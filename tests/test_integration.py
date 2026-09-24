@@ -294,7 +294,7 @@ def test_8_config_strictness(tmp_path):
     with pytest.raises(ConfigError, match="unknown field"):
         load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
     for path, val, msg in [(("objective", "extra_regularizers"), ["vicreg_var"], "extra_regularizers"),
-                           (("pairing", "k"), 2, "pairing.k"), (("pairing", "negative_detach"), True, "pairing policy"),
+                           (("pairing", "k"), 0, "pairing.k"), (("pairing", "k"), 256, "pairing.k"), (("pairing", "negative_detach"), True, "pairing policy"),
                            (("model", "weights"), "IMAGENET1K_V1", "weights"), (("data", "official_test_accessible"), True, "official test"),
                            (("train", "precision"), "bf16", "FP32"), (("objective", "clip_J"), True, "clipped J")]:
         bad = copy.deepcopy(base)
@@ -411,3 +411,24 @@ def test_numerical_failure_is_recorded(tmp_path):
     assert any(run_dir.joinpath("failure").glob("failure_step_*.pt"))
     status = json.loads((run_dir / "status.json").read_text())
     assert status["status"] == "FAILED_NUMERICAL" and "non-finite" in status["failure_reason"]
+
+
+@pytest.mark.parametrize("k", [8, 64])
+def test_k_greater_than_one_objective_and_config(tmp_path, k):
+    """K distinct nonzero shifts: K*B negatives averaged as one distribution; config accepts 1 <= K <= B-1."""
+    import yaml
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["pairing"]["k"] = k
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    assert cfg["pairing"]["k"] == k
+    cfg = copy.deepcopy(cfg); cfg["train"].update({"batch_size_images": 128, "num_workers": 0, "pin_memory": False})
+    built = build_models(cfg, seed=0, device="cpu")
+    x1, x2 = torch.randn(128, 3, 32, 32), torch.randn(128, 3, 32, 32)
+    f = forward_features(built["encoder"], built["projector"], x1, x2, eps=1e-8)
+    obj = compute_objective("vcs_qmi", f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(1))
+    assert obj["n_pos"] == 128 and obj["n_neg"] == k * 128
+    assert isinstance(obj["shift"], list) and len(obj["shift"]) == k and len(set(obj["shift"])) == k and all(1 <= s_ <= 127 for s_ in obj["shift"])
+    assert abs(obj["stats"]["J_raw"] - (1 - obj["stats"]["R_binary"])) < 1e-5
+    obj["loss"].backward()
+    assert grad_norms(built["encoder"], built["projector"], built["critic"])["grad_norm_critic"] > 0

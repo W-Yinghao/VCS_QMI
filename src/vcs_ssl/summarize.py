@@ -44,7 +44,7 @@ def collect(output_root: Path, stage: str) -> list[dict[str, Any]]:
         heldout_by_epoch = {r["epoch"]: r.get("heldout_J") for r in epochs if r.get("heldout_J") is not None}
         last_train = [r for r in epochs if r.get("J_raw") is not None or r.get("nt_xent") is not None or r.get("vicreg_invariance") is not None]
         rows.append({
-            "run_id": rd.name, "method": status.get("method"), "seed": status.get("seed"), "status": status.get("status"),
+            "run_id": rd.name, "method": status.get("method"), "K": rm.get("K"), "seed": status.get("seed"), "status": status.get("status"),
             "failure_reason": status.get("failure_reason"), "completed_epoch": status.get("completed_epoch"), "epochs_intended": status.get("epochs_intended"),
             "optimizer_step": status.get("optimizer_step"), "code_commit": rm.get("code_commit"), "code_dirty": rm.get("code_dirty"),
             "config_hash": rm.get("config_hash"), "split_hash": rm.get("split_hash"), "init_hashes": rm.get("init_hashes"),
@@ -86,11 +86,11 @@ def fmt(v: Any, nd: int = 2) -> str:
 
 def render(rows: list[dict[str, Any]], stage: str) -> str:
     L = [f"# {stage} — neutral results table (observed values only)", "", f"Generated {utc_now()}. Failed / stopped runs are listed, never dropped.", ""]
-    L += ["| run | method | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |",
-          "|---|---|---|---|---|---|---|---|---|---|---|"]
+    L += ["| run | method | K | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |",
+          "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         hj = "null" if r["heldout_J"] is None else f"{r['heldout_J']:.4f}±{fmt(r['heldout_J_sd'], 4)}"
-        L.append(f"| {r['run_id']} | {r['method']} | {r['seed']} | {r['completed_epoch']}/{r['epochs_intended']} | {fmt(r['linear_val_top1_pct'])} | "
+        L.append(f"| {r['run_id']} | {r['method']} | {fmt(r['K'])} | {r['seed']} | {r['completed_epoch']}/{r['epochs_intended']} | {fmt(r['linear_val_top1_pct'])} | "
                  f"{fmt(r['knn_val_top1_pct'])} | {hj} | {fmt(r['h_effective_rank'])} | {fmt(r['train_seconds'], 0)} | "
                  f"{fmt(r['peak_allocated_mb'], 0)}/{fmt(r['peak_reserved_mb'], 0)} | {r['status']}{' COLLAPSE_SUSPECTED' if r['collapse_suspected'] else ''} |")
     L += ["", "## Epoch-0 (random init, same seed) reference and deltas", "",
@@ -133,8 +133,10 @@ def render(rows: list[dict[str, Any]], stage: str) -> str:
         if not vals:
             return "null"
         return f"{st.mean(vals):.2f} ± {st.stdev(vals):.2f}" if len(vals) > 1 else f"{vals[0]:.2f}"
-    for m in sorted({r["method"] for r in rows if r["method"]}):
-        rs = [r for r in rows if r["method"] == m and r["status"] == "COMPLETED" and r["has_epoch20_eval"]]
+    def key(r):
+        return f"{r['method']} K={r['K']}" if r.get("K") is not None else str(r["method"])
+    for m in sorted({key(r) for r in rows if r["method"]}):
+        rs = [r for r in rows if key(r) == m and r["status"] == "COMPLETED" and r["has_epoch20_eval"]]
         dl = [r["linear_val_top1_pct"] - r["linear_val_top1_pct_epoch0"] for r in rs if r["linear_val_top1_pct"] is not None and r["linear_val_top1_pct_epoch0"] is not None]
         L.append(f"| {m} | {len(rs)} | {agg([r['linear_val_top1_pct'] for r in rs])} | {agg([r['linear_val_top1_pct_epoch0'] for r in rs])} | {agg(dl)} | "
                  f"{agg([r['knn_val_top1_pct'] for r in rs])} | {agg([r['h_effective_rank'] for r in rs])} | {agg([r['heldout_J'] for r in rs])} |")

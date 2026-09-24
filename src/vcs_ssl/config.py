@@ -128,8 +128,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     if cfg["objective"]["positive_weight"] != 1.0 or cfg["objective"]["negative_weight"] != 1.0:
         raise ConfigError("positive/negative weights must both be 1.0 (reference objective)")
     p = cfg["pairing"]
-    if p["k"] != 1:
-        raise ConfigError("pairing.k must be 1 in the first round")
+    if not (1 <= p["k"] <= cfg["train"]["batch_size_images"] - 1):
+        raise ConfigError("pairing.k must satisfy 1 <= K <= batch_size_images - 1 (K distinct nonzero cyclic shifts)")
     if p["sampler"] != "random_nonzero_cyclic_shift" or not p["unique_shifts"] or p["allow_self"] or p["label_filter"] \
             or p["queue"] or p["negative_detach"] or p["rng"] != "dedicated_cpu_generator":
         raise ConfigError("pairing policy deviates from the frozen first-round definition")
