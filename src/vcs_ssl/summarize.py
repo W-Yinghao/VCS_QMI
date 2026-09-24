@@ -45,6 +45,7 @@ def collect(output_root: Path, stage: str) -> list[dict[str, Any]]:
         last_train = [r for r in epochs if r.get("J_raw") is not None or r.get("nt_xent") is not None or r.get("vicreg_invariance") is not None]
         rows.append({
             "run_id": rd.name, "method": status.get("method"), "K": rm.get("K"), "seed": status.get("seed"), "status": status.get("status"),
+            "hparams": rm.get("hparams"), "critic_impl": rm.get("critic_impl"),
             "failure_reason": status.get("failure_reason"), "completed_epoch": status.get("completed_epoch"), "epochs_intended": status.get("epochs_intended"),
             "optimizer_step": status.get("optimizer_step"), "code_commit": rm.get("code_commit"), "code_dirty": rm.get("code_dirty"),
             "config_hash": rm.get("config_hash"), "split_hash": rm.get("split_hash"), "init_hashes": rm.get("init_hashes"),
@@ -93,6 +94,15 @@ def render(rows: list[dict[str, Any]], stage: str) -> str:
         L.append(f"| {r['run_id']} | {r['method']} | {fmt(r['K'])} | {r['seed']} | {r['completed_epoch']}/{r['epochs_intended']} | {fmt(r['linear_val_top1_pct'])} | "
                  f"{fmt(r['knn_val_top1_pct'])} | {hj} | {fmt(r['h_effective_rank'])} | {fmt(r['train_seconds'], 0)} | "
                  f"{fmt(r['peak_allocated_mb'], 0)}/{fmt(r['peak_reserved_mb'], 0)} | {r['status']}{' COLLAPSE_SUSPECTED' if r['collapse_suspected'] else ''} |")
+    if any(r.get("hparams") for r in rows):
+        L += ["", "## Hyper-parameters per run (from run_manifest.json)", "",
+              "| run | K | critic hidden | last gain | critic lr× | critic wd | proj hidden | proj out | critic input | critic impl | B | lr | epochs |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for r in rows:
+            h = r.get("hparams") or {}
+            L.append(f"| {r['run_id']} | {h.get('K')} | {h.get('critic_hidden_dims')} | {h.get('critic_last_gain')} | {h.get('critic_lr_multiplier')} | "
+                     f"{h.get('critic_weight_decay')} | {h.get('projector_hidden_dim')} | {h.get('projector_output_dim')} | {h.get('critic_input_norm')} | "
+                     f"{(r.get('critic_impl') or '').split('.')[-1] or None} | {h.get('batch_size_images')} | {h.get('lr')} | {h.get('epochs')} |")
     L += ["", "## Epoch-0 (random init, same seed) reference and deltas", "",
           "| run | linear-val ep0 (%) | linear-val final (%) | Δ linear | kNN ep0 (%) | kNN final (%) | Δ kNN | h-rank ep0 | h-rank final | heldout-J ep0 |",
           "|---|---|---|---|---|---|---|---|---|---|"]

@@ -432,3 +432,52 @@ def test_k_greater_than_one_objective_and_config(tmp_path, k):
     assert abs(obj["stats"]["J_raw"] - (1 - obj["stats"]["R_binary"])) < 1e-5
     obj["loss"].backward()
     assert grad_norms(built["encoder"], built["projector"], built["critic"])["grad_norm_critic"] > 0
+
+
+def test_critic_variants_and_raw_input(tmp_path):
+    """PairCriticMLP([w,w], gain 0.1) is structurally the reference PairCritic; other depths/gains build; 'none' feeds raw p."""
+    import yaml
+    from vcs_ssl.models.critic import PairCriticMLP, build_critic, critic_impl_name
+    from reference.ssl_core import PairCritic
+
+    torch.manual_seed(0); ref = PairCritic(128, 512)
+    torch.manual_seed(0); var = PairCriticMLP(128, [512, 512], 0.1)
+    assert [type(m).__name__ for m in ref.net] == [type(m).__name__ for m in var.net]
+    assert all(torch.equal(a, b) for a, b in zip(ref.state_dict().values(), var.state_dict().values()))
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())["model"]["critic"]
+    assert critic_impl_name(base) == "reference.ssl_core.PairCritic" and isinstance(build_critic(base, feature_dim=128), PairCritic)
+    for hd, gain in (([256, 256], 0.1), ([2048, 2048], 0.1), ([512], 0.1), ([512, 512, 512], 0.1), ([512, 512], 1.0), ([512, 512], 0.01)):
+        c = dict(base, hidden_dims=hd, last_layer_xavier_gain=gain)
+        crit = build_critic(c, feature_dim=64)
+        out = crit(torch.randn(5, 64), torch.randn(5, 64))
+        assert out.shape == (5,) and (out.abs() <= 1).all()
+        assert isinstance(crit, PairCritic) == (len(hd) == 2 and hd[0] == hd[1] and gain == 0.1)
+    with pytest.raises(ValueError):
+        build_critic(dict(base, last_layer_xavier_gain=0.0), feature_dim=64)
+    # raw-input variant: objective consumes p_raw, not z_l2
+    env = _env(tmp_path)
+    cfgd = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    cfgd["model"]["normalization"]["vcs_and_simclr"] = "none"
+    cfgd["model"]["projector"]["output_dim"] = 256
+    cfgd["model"]["projector"]["hidden_dim"] = 1024
+    cfgd["optimizer"]["critic_lr_multiplier"] = 10.0
+    cfgd["optimizer"]["critic_weight_decay"] = 1e-4
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(cfgd)), env=env)
+    built = build_models(cfg, seed=0, device="cpu")
+    assert built["params"]["projector"] == 512 * 1024 + 2 * 1024 + 1024 * 256 + 256
+    f = forward_features(built["encoder"], built["projector"], torch.randn(4, 3, 32, 32), torch.randn(4, 3, 32, 32), eps=1e-8)
+    assert f["p_raw"].shape == (8, 256)
+    obj = compute_objective("vcs_qmi", f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(0))
+    from vcs_ssl.objectives import critic_input_key
+    assert critic_input_key(cfg) == "p_raw"
+    z1, z2 = f["p_raw"].chunk(2)
+    from reference.ssl_core import vcs_pair_loss
+    s, _ = vcs_pair_loss(z1, z2, built["critic"], k=1, generator=torch.Generator().manual_seed(0))
+    torch.testing.assert_close(obj["loss"], s["loss"])
+    opt = build_optimizer(built["encoder"], built["projector"], built["critic"], cfg["optimizer"])
+    g = [g for g in opt.param_groups if g["name"] == "critic"][0]
+    assert g["base_lr"] == pytest.approx(1e-2) and g["weight_decay"] == pytest.approx(1e-4)
+    # controls must keep the frozen projector / l2 policy
+    bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad["model"]["projector"]["output_dim"] = 256
+    with pytest.raises(ConfigError, match="control runs keep"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)

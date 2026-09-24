@@ -177,17 +177,27 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError(f"critic.enabled / critic_validation.enabled must be {expect[1]} for method {m!r}")
     if m == "vcs_qmi":
         c = cfg["model"]["critic"]
-        if c["input"] != "ordered_concat" or c["hidden_dims"] != [512, 512] or c["activation"] != "relu" \
-                or c["output"] != "tanh" or c["batchnorm"] or c["dropout"] != 0.0 \
-                or c["last_layer_xavier_gain"] != 0.1 or c["last_layer_bias"] != 0.0:
-            raise ConfigError("critic architecture deviates from the reference PairCritic")
+        if c["input"] != "ordered_concat" or c["activation"] != "relu" or c["output"] != "tanh" or c["batchnorm"] \
+                or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
+            raise ConfigError("critic must stay an ordered-concat ReLU MLP with tanh output, no BN/dropout, zero last bias")
+        hd = c["hidden_dims"]
+        if not (isinstance(hd, list) and len(hd) >= 1 and all(isinstance(w, int) and w > 0 for w in hd)):
+            raise ConfigError("critic.hidden_dims must be a non-empty list of positive ints (hyper-parameter variant)")
+        if not (isinstance(c["last_layer_xavier_gain"], (int, float)) and c["last_layer_xavier_gain"] > 0):
+            raise ConfigError("critic.last_layer_xavier_gain must be > 0 (exactly zero blocks encoder gradients at step 1)")
+        if cfg["optimizer"]["critic_lr_multiplier"] <= 0 or cfg["optimizer"]["critic_weight_decay"] < 0:
+            raise ConfigError("critic_lr_multiplier must be > 0 and critic_weight_decay >= 0")
     n = cfg["model"]["normalization"]
-    if n["vcs_and_simclr"] != "l2" or n["vicreg"] != "none":
-        raise ConfigError("normalization policy: l2 for vcs/simclr, none for vicreg")
+    if n["vcs_and_simclr"] not in ("l2", "none") or n["vicreg"] != "none":
+        raise ConfigError("normalization policy: vcs/simclr in {l2, none} (none = raw projector output into the critic), vicreg none")
+    if m == "simclr_matched" and n["vcs_and_simclr"] != "l2":
+        raise ConfigError("SimCLR control always uses l2-normalized views")
     pr = cfg["model"]["projector"]
-    if not (pr["hidden_dim"] == 512 and pr["output_dim"] == 128 and pr["hidden_batchnorm"] and not pr["hidden_linear_bias"]
-            and pr["output_linear_bias"] and not pr["output_batchnorm"]):
-        raise ConfigError("projector deviates from the frozen spec")
+    if not (isinstance(pr["hidden_dim"], int) and pr["hidden_dim"] > 0 and isinstance(pr["output_dim"], int) and pr["output_dim"] > 0
+            and pr["hidden_batchnorm"] and not pr["hidden_linear_bias"] and pr["output_linear_bias"] and not pr["output_batchnorm"]):
+        raise ConfigError("projector must stay Linear(no bias)-BN-ReLU-Linear(bias) with positive widths")
+    if m != "vcs_qmi" and (pr["hidden_dim"] != 512 or pr["output_dim"] != 128):
+        raise ConfigError("control runs keep the frozen 512/128 projector")
     if cfg["evaluation"]["feature"] != "h_before_projector" or not cfg["evaluation"]["freeze_encoder_parameters"] \
             or not cfg["evaluation"]["freeze_bn_buffers"]:
         raise ConfigError("evaluation must use frozen h before the projector")

@@ -22,6 +22,11 @@ def forward_features(encoder, projector, x1: Tensor, x2: Tensor, eps: float) -> 
     return {"h": h, "p_raw": p, "z_l2": z}
 
 
+def critic_input_key(cfg: dict[str, Any]) -> str:
+    """'z_l2' (frozen default) or 'p_raw' when model.normalization.vcs_and_simclr == 'none' (named variant)."""
+    return "p_raw" if cfg["model"]["normalization"]["vcs_and_simclr"] == "none" else "z_l2"
+
+
 def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, Any], critic=None,
                       pair_generator: torch.Generator | None = None) -> dict[str, Any]:
     """Return ``{"loss": Tensor, "stats": {...floats/None}, "shift": int|None, "n_pos": int, "n_neg": int}``."""
@@ -32,7 +37,8 @@ def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, A
     if method == "vcs_qmi":
         if critic is None:
             raise ValueError("vcs_qmi requires a critic")
-        z1, z2 = feats["z_l2"].chunk(2, dim=0)
+        key = critic_input_key(cfg)
+        z1, z2 = feats[key].chunk(2, dim=0)
         s, shifts = vcs_pair_loss(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
         loss = s["loss"]
         for k in VCS_STAT_KEYS:

@@ -8,7 +8,7 @@ from torch import nn
 
 from ..utils import state_dict_sha256
 from .backbone import build_resnet18_cifar
-from .critic import build_critic
+from .critic import build_critic, critic_impl_name
 from .projector import build_projector
 
 __all__ = ["build_models", "build_resnet18_cifar", "build_projector", "build_critic", "count_params"]
@@ -44,4 +44,5 @@ def build_models(cfg: dict[str, Any], *, seed: int, device: torch.device | str =
         critic.to(device)
     return {"encoder": encoder, "projector": projector, "critic": critic, "init_hashes": hashes,
             "params": {"encoder": count_params(encoder), "projector": count_params(projector), "critic": count_params(critic)},
-            "model_strings": {"encoder": str(encoder), "projector": str(projector), "critic": str(critic)}}
+            "model_strings": {"encoder": str(encoder), "projector": str(projector), "critic": str(critic)},
+            "critic_impl": critic_impl_name(mcfg["critic"]) if critic is not None else None}

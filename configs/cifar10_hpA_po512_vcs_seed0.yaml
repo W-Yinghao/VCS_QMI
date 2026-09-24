@@ -1,0 +1,213 @@
+schema_version: vcs_ssl_agent_1.0
+run:
+  stage: P12_vcs_hparamA
+  method: vcs_qmi
+  seed: 0
+  output_root: ${OUTPUT_ROOT}
+  resume: null
+  overwrite: false
+data:
+  name: cifar10
+  root: ${DATA_ROOT}
+  download: false
+  split: dev45k_val5k
+  split_seed: 20260924
+  val_per_class: 500
+  manifest: ${MANIFEST_ROOT}/cifar10_dev45k_val5k.json
+  ssl_labels_accessible: false
+  official_test_accessible: false
+views:
+  count: 2
+  random_resized_crop:
+    size: 32
+    scale:
+    - 0.2
+    - 1.0
+    ratio:
+    - 0.75
+    - 1.3333333333333333
+    interpolation: bilinear
+    antialias: true
+  horizontal_flip_p: 0.5
+  color_jitter:
+    brightness: 0.4
+    contrast: 0.4
+    saturation: 0.4
+    hue: 0.1
+    p: 0.8
+  grayscale_p: 0.2
+  gaussian_blur_p: 0.0
+  solarize_p: 0.0
+  normalize_mean:
+  - 0.5
+  - 0.5
+  - 0.5
+  normalize_std:
+  - 0.5
+  - 0.5
+  - 0.5
+model:
+  backbone: resnet18_cifar
+  weights: null
+  h_dim: 512
+  stem:
+    kernel_size: 3
+    stride: 1
+    padding: 1
+    bias: false
+    maxpool: false
+  projector:
+    hidden_dim: 512
+    output_dim: 512
+    hidden_batchnorm: true
+    hidden_linear_bias: false
+    output_linear_bias: true
+    output_batchnorm: false
+  normalization:
+    vcs_and_simclr: l2
+    eps: 1.0e-08
+    vicreg: none
+  critic:
+    enabled: true
+    input: ordered_concat
+    hidden_dims:
+    - 512
+    - 512
+    activation: relu
+    output: tanh
+    batchnorm: false
+    dropout: 0.0
+    last_layer_xavier_gain: 0.1
+    last_layer_bias: 0.0
+objective:
+  target: mixture_reference_I_VQ
+  loss: negative_J
+  positive_weight: 1.0
+  negative_weight: 1.0
+  training_cs_transform: false
+  clip_J: false
+  extra_regularizers: []
+  simclr_temperature: 0.2
+  vicreg_weights:
+    invariance: 25.0
+    variance: 25.0
+    covariance: 1.0
+  vicreg_variance_eps: 0.0001
+pairing:
+  sampler: random_nonzero_cyclic_shift
+  k: 1
+  unique_shifts: true
+  allow_self: false
+  label_filter: false
+  queue: false
+  negative_detach: false
+  rng: dedicated_cpu_generator
+  rng_seed_offset: 100003
+train:
+  mode: joint
+  epochs: 200
+  warmup_epochs: 10
+  batch_size_images: 256
+  drop_last: true
+  shuffle: true
+  replacement: false
+  world_size: 1
+  grad_accumulation_steps: 1
+  precision: fp32
+  allow_tf32: false
+  compile: false
+  num_workers: 4
+  pin_memory: true
+  persistent_workers: false
+  grad_clip_norm: null
+  encoder_projector_forward: concat_2B
+  max_steps: null
+optimizer:
+  name: adamw
+  lr: 0.001
+  betas:
+  - 0.9
+  - 0.999
+  eps: 1.0e-08
+  matrix_weight_decay_encoder_projector: 0.0001
+  weight_decay_bias_norm: 0.0
+  critic_weight_decay: 0.0
+  critic_lr_multiplier: 1.0
+schedule:
+  kind: linear_warmup_cosine
+  unit: optimizer_step
+  min_lr_ratio: 0.01
+  scale_lr_with_batch: false
+evaluation:
+  official_test_enabled: false
+  checkpoint_rule: fixed_last_epoch
+  knn_epochs:
+  - 0
+  - 10
+  - 20
+  - 50
+  - 100
+  - 150
+  - 200
+  linear_epochs_of_pretrain:
+  - 200
+  clean_transform: to_tensor_then_fixed_normalization_only
+  feature: h_before_projector
+  freeze_encoder_parameters: true
+  freeze_bn_buffers: true
+  knn:
+    k: 200
+    temperature: 0.1
+    normalize_h: true
+    query_chunk: 256
+  linear:
+    normalize_h: false
+    head: linear_with_bias
+    epochs: 100
+    batch_size: 256
+    optimizer: sgd
+    lr: 0.1
+    momentum: 0.9
+    weight_decay: 0.0
+    schedule: cosine
+    min_lr_ratio: 0.001
+    seed: 20260925
+    checkpoint_rule: final_probe_epoch
+    feature_cache_dtype: float32
+  critic_validation:
+    enabled: true
+    augmentation: same_two_view_distribution_as_train
+    repeats: 4
+    update_weights: false
+    model_mode: eval
+    batch_size: 256
+    rng_seed: 20260926
+  spectrum:
+    enabled: true
+    selection_first_sorted_ids: 4096
+    features:
+    - h
+    - p_raw
+    - z_l2
+    center: true
+    covariance_ddof: 1
+logging:
+  step_interval: 50
+  gradient_norm_interval: 50
+  epoch_jsonl: true
+  save_initial_checkpoint: true
+  checkpoint_epochs:
+  - 20
+  - 50
+  - 100
+  - 150
+  - 200
+  resume_checkpoint: last.pt
+  keep_failure_artifacts: true
+  external_logging: false
+execution:
+  max_concurrent_jobs: 1
+  max_gpus_per_job: 1
+  automatic_hyperparameter_search: false
+  auto_start_full_200ep: false
+  requires_preflight: true

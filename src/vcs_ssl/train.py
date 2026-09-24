@@ -159,6 +159,7 @@ class Trainer:
         self.critic: nn.Module | None = built["critic"]
         self.init_hashes = built["init_hashes"]
         self.param_counts = built["params"]
+        self.critic_impl = built.get("critic_impl")
         atomic_write_text(self.run_dir / "model_strings.txt", "\n\n".join(f"== {k} ==\n{v}" for k, v in built["model_strings"].items()))
         self.optimizer = build_optimizer(self.encoder, self.projector, self.critic, self.cfg["optimizer"])
         self.coverage = verify_optimizer_coverage(self.optimizer, self.encoder, self.projector, self.critic)
@@ -180,7 +181,13 @@ class Trainer:
             "pair_sampling": self.cfg["pairing"]["sampler"] if self.method == "vcs_qmi" else
             ("2B-2 in-batch negatives (NT-Xent)" if self.method == "simclr_matched" else "none (VICReg)"),
             "world_size": 1, "encoder_dim": int(self.cfg["model"]["h_dim"]), "projector_dim": int(self.cfg["model"]["projector"]["output_dim"]),
-            "critic_params": self.param_counts["critic"] or None, "encoder_params": self.param_counts["encoder"],
+            "critic_params": self.param_counts["critic"] or None, "critic_impl": self.critic_impl, "encoder_params": self.param_counts["encoder"],
+            "hparams": {"K": int(self.cfg["pairing"]["k"]), "critic_hidden_dims": list(self.cfg["model"]["critic"]["hidden_dims"]),
+                        "critic_last_gain": self.cfg["model"]["critic"]["last_layer_xavier_gain"],
+                        "critic_lr_multiplier": self.cfg["optimizer"]["critic_lr_multiplier"], "critic_weight_decay": self.cfg["optimizer"]["critic_weight_decay"],
+                        "projector_hidden_dim": self.cfg["model"]["projector"]["hidden_dim"], "projector_output_dim": self.cfg["model"]["projector"]["output_dim"],
+                        "critic_input_norm": self.cfg["model"]["normalization"]["vcs_and_simclr"], "batch_size_images": self.batch,
+                        "lr": self.cfg["optimizer"]["lr"], "epochs": self.epochs, "warmup_epochs": self.cfg["train"]["warmup_epochs"]},
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -350,7 +357,8 @@ class Trainer:
             if cv["enabled"] and crit is not None:
                 ch = critic_holdout(enc, proj, crit, self.data.data, self.sel_uids, self.two_view, device=self.device,
                                     batch_size=cv["batch_size"], repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(self.cfg["pairing"]["k"]),
-                                    num_workers=self.eval_num_workers, l2_eps=self.cfg["model"]["normalization"]["eps"])
+                                    num_workers=self.eval_num_workers, l2_eps=self.cfg["model"]["normalization"]["eps"],
+                                    normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none")
                 result["critic_holdout"] = ch
                 result["heldout_J"] = ch["heldout_J_mean"]
             del enc, proj, crit, built, ck, sel, fit
