@@ -24,7 +24,7 @@ from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, clean_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, linear_probe, spectrum_report
 from .models import build_models
-from .utils import Timer, apply_precision_policy, atomic_write_json, environment_info, precision_flags, read_json, sha256_file, utc_now
+from .utils import Timer, apply_precision_policy, atomic_write_json, environment_info, precision_flags, sha256_file, state_dict_sha256, utc_now
 
 
 def feature_cache_key(*, ckpt_sha: str, split_sha: str, transform_sha: str, dtype: str, uids: np.ndarray, which: str) -> str:
@@ -99,7 +99,7 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
                 m.eval()
                 for p in m.parameters():
                     p.requires_grad_(False)
-        enc_hash_before = __import__("vcs_ssl.utils", fromlist=["state_dict_sha256"]).state_dict_sha256(enc)
+        enc_hash_before = state_dict_sha256(enc)
 
         cache_dir = run_dir / "features"
         k_fit = feature_cache_key(ckpt_sha=ckpt_sha, split_sha=manifest["manifest_sha256"], transform_sha=tsig, dtype=dtype, uids=fit_uids, which="fit_h")
@@ -139,7 +139,7 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
             result["critic_holdout"] = ch
             result["heldout_J"] = ch["heldout_J_mean"]
             result["heldout_J_sd"] = ch["heldout_J_sd"]
-        enc_hash_after = __import__("vcs_ssl.utils", fromlist=["state_dict_sha256"]).state_dict_sha256(enc)
+        enc_hash_after = state_dict_sha256(enc)
         result["encoder_state_unchanged"] = enc_hash_before == enc_hash_after
         if not result["encoder_state_unchanged"]:
             raise RuntimeError("encoder state changed during evaluation")

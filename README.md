@@ -8,7 +8,7 @@ Implements the CLIs required by `VCS_QMI_SSL_Server_Agent_Spec_v1.md` on top of 
 | placeholder | value |
 |---|---|
 | `REPO_ROOT` | `/home/infres/yinwang/CS_QMI/ssl_pilot` (git, branch `main`) |
-| `DATA_ROOT` | `/home/infres/yinwang/CS_QMI/data/cifar10` (official `cifar-10-python.tar.gz`, md5-verified; train partition only is read) |
+| `DATA_ROOT` | `/home/infres/yinwang/CS_QMI/data/cifar10` — `cifar-10-batches-py` is a symlink to the user's existing copy `/projects/EEG-foundation-model/yinghao/FMCA-AV/cifar10` (official batch files, md5-verified against the CIFAR page; only the 5 train batches are read, `test_batch` never) |
 | `OUTPUT_ROOT` | `/home/infres/yinwang/CS_QMI/outputs` |
 | `MANIFEST_ROOT` | `/home/infres/yinwang/CS_QMI/manifests` (`cifar10_dev45k_val5k.json` shared by every run) |
 | Python env | `/home/infres/yinwang/CS_QMI/env` (uv venv, CPython 3.12.12, torch 2.9.0+cu128, torchvision 0.24.0) |

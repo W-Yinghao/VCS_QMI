@@ -114,7 +114,9 @@ def main(argv: list[str] | None = None) -> int:
                 rep["gpu_shape_check"] = {"h": list(h.shape), "p_raw": list(p.shape), "params": built["params"]}
         except Exception as e:  # noqa: BLE001
             problem(f"gpu shape check: {e!r}")
-    rep["to_implement"] = "all CLIs implemented in this repo (train/evaluate/preflight/summarize/prepare_data); no prior SSL trainer existed in the workspace"
+    rep["to_implement"] = ("all CLIs implemented in this repo (train/evaluate/preflight/summarize/prepare_data). An unrelated SSL harness exists in "
+                           "~/FMCA-AV (different objective/protocol); only its CIFAR-10 raw batch files are reused (read-only, md5-verified), "
+                           "no code/config is inherited from it (spec §1.1).")
     atomic_write_json(report_dir / "P0_preflight.json", rep)
     atomic_write_text(report_dir / "P0_preflight.md", render_md(rep))
     print(f"preflight {rep['status']}; problems: {rep['problems']}")

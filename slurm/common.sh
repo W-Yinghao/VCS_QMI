@@ -27,6 +27,7 @@ run_fg() {
   trap 'echo "[slurm] TERM received, forwarding to $pid"; kill -TERM $pid 2>/dev/null' TERM INT
   wait $pid
   local rc=$?
+  if [ $rc -gt 128 ]; then wait $pid; rc=$?; fi   # first wait returned because of the trap; collect the child's real exit code
   trap - TERM INT
   return $rc
 }
