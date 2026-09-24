@@ -481,3 +481,17 @@ def test_critic_variants_and_raw_input(tmp_path):
     bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad["model"]["projector"]["output_dim"] = 256
     with pytest.raises(ConfigError, match="control runs keep"):
         load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+
+
+def test_critic_holdout_caps_k_on_short_tail_batch(tmp_path):
+    """K larger than the tail batch allows is capped per batch (recorded), instead of raising (K=255 failure, 2026-09-24)."""
+    from vcs_ssl.diagnostics import critic_holdout
+    data, m = synthetic_bundle()
+    cfg = small_cfg(tmp_path, "vcs")
+    built = build_models(cfg, seed=0, device=torch.device("cpu"))
+    sel = np.asarray(m["selection_uids"])  # 80 images -> batches 32, 32, 16 -> tail allows K <= 15
+    res = critic_holdout(built["encoder"], built["projector"], built["critic"], data.data, sel, build_two_view_transform(cfg["views"]),
+                         device=torch.device("cpu"), batch_size=32, repeats=1, rng_seed=1, k=20, num_workers=0)
+    rep = res["per_repeat"][0]
+    assert rep["k_effective_min"] == 15 and rep["n_pos"] == 80 and rep["n_neg"] == 20 * 32 + 20 * 32 + 15 * 16
+    assert -3.0 <= rep["heldout_J"] <= 1.0

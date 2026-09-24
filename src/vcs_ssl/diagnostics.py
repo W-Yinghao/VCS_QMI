@@ -171,6 +171,7 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 batches[-2] = tuple(torch.cat((u, v), dim=0) for u, v in zip(a, b))
                 batches.pop()
             shifts = []
+            k_eff_min = k
             for x1, x2, _ in batches:
                 bsz = x1.shape[0]
                 if bsz < 2:
@@ -178,10 +179,12 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 p_all = projector(encoder(torch.cat((x1, x2)).to(device)))
                 z = F.normalize(p_all, dim=1, eps=l2_eps) if normalize_input else p_all
                 z1, z2 = z.chunk(2, dim=0)
-                idx, sh = cyclic_negative_indices(bsz, k, generator=pair_gen, device=z.device)
+                k_eff = min(k, bsz - 1)  # a short tail batch cannot host K distinct nonzero shifts; capped and recorded
+                k_eff_min = min(k_eff_min, k_eff)
+                idx, sh = cyclic_negative_indices(bsz, k_eff, generator=pair_gen, device=z.device)
                 shifts.append(int(sh[0]))
                 tp = critic(z1, z2)
-                tn = critic(z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1]), z2[idx].reshape(-1, z2.shape[1]))
+                tn = critic(z1.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z1.shape[1]), z2[idx].reshape(-1, z2.shape[1]))
                 pos_sum += float(tp.sum()); pos_sq += float(tp.square().sum()); n_pos += tp.numel()
                 neg_sum += float(tn.sum()); neg_sq += float(tn.square().sum()); n_neg += tn.numel()
                 sat_pos += int((tp.abs() > 0.95).sum()); sat_neg += int((tn.abs() > 0.95).sum())
@@ -189,7 +192,7 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 neg_hist += torch.histc(tn.float().cpu(), bins=40, min=-1, max=1)
             mp, mq, sp, sq = pos_sum / n_pos, neg_sum / n_neg, pos_sq / n_pos, neg_sq / n_neg
             j = mp - mq - 0.5 * sp - 0.5 * sq
-            per_repeat.append({"repeat": r, "seed": seed, "n_pos": n_pos, "n_neg": n_neg, "heldout_J": j, "heldout_R_binary": 1.0 - j,
+            per_repeat.append({"repeat": r, "seed": seed, "n_pos": n_pos, "n_neg": n_neg, "k_effective_min": k_eff_min, "heldout_J": j, "heldout_R_binary": 1.0 - j,
                                "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
                                "sat_pos_frac": sat_pos / n_pos, "sat_neg_frac": sat_neg / n_neg,
                                "shifts": shifts, "pos_hist": pos_hist.tolist(), "neg_hist": neg_hist.tolist()})
