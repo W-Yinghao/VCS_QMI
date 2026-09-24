@@ -35,7 +35,9 @@ def collect(output_root: Path, stage: str) -> list[dict[str, Any]]:
             continue
         summary = _load(rd / "summary.json") or {}
         rm = _load(rd / "run_manifest.json") or {}
-        ev20 = _load(rd / "evaluations" / "evaluation_epoch_020.json") or _load(rd / "evaluations" / "evaluation_last.json")
+        final_evals = sorted((rd / "evaluations").glob("evaluation_epoch_*.json")) if (rd / "evaluations").is_dir() else []
+        ev20 = _load(final_evals[-1]) if final_evals else None  # evaluation of the highest evaluated epoch (final checkpoint)
+        final_eval_name = final_evals[-1].name if final_evals else None
         ev0 = _load(rd / "evaluations" / "evaluation_initial.json")
         epochs = _jsonl(rd / "logs" / "epochs.jsonl")
         knn_by_epoch = {r["epoch"]: r.get("knn_val_top1_pct") for r in epochs if r.get("knn_val_top1_pct") is not None}
@@ -69,7 +71,7 @@ def collect(output_root: Path, stage: str) -> list[dict[str, Any]]:
             "collapse_suspected": summary.get("collapse_suspected"), "seen_base_images": summary.get("seen_base_images"),
             "critic_params": rm.get("critic_params"), "encoder_params": rm.get("encoder_params"), "projector_params": rm.get("projector_params"),
             "slurm_job_id": rm.get("slurm_job_id"), "hostname": rm.get("hostname"), "run_dir": str(rd),
-            "has_epoch0_eval": ev0 is not None, "has_epoch20_eval": ev20 is not None,
+            "has_epoch0_eval": ev0 is not None, "has_epoch20_eval": ev20 is not None, "final_eval_file": final_eval_name,
         })
     return rows
 
@@ -92,7 +94,7 @@ def render(rows: list[dict[str, Any]], stage: str) -> str:
                  f"{fmt(r['knn_val_top1_pct'])} | {hj} | {fmt(r['h_effective_rank'])} | {fmt(r['train_seconds'], 0)} | "
                  f"{fmt(r['peak_allocated_mb'], 0)}/{fmt(r['peak_reserved_mb'], 0)} | {r['status']}{' COLLAPSE_SUSPECTED' if r['collapse_suspected'] else ''} |")
     L += ["", "## Epoch-0 (random init, same seed) reference and deltas", "",
-          "| run | linear-val ep0 (%) | linear-val ep20 (%) | Δ linear | kNN ep0 (%) | kNN ep20 (%) | Δ kNN | h-rank ep0 | h-rank ep20 | heldout-J ep0 |",
+          "| run | linear-val ep0 (%) | linear-val final (%) | Δ linear | kNN ep0 (%) | kNN final (%) | Δ kNN | h-rank ep0 | h-rank final | heldout-J ep0 |",
           "|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         dl = None if r["linear_val_top1_pct"] is None or r["linear_val_top1_pct_epoch0"] is None else r["linear_val_top1_pct"] - r["linear_val_top1_pct_epoch0"]
@@ -110,7 +112,7 @@ def render(rows: list[dict[str, Any]], stage: str) -> str:
     for r in rows:
         L.append(f"- {r['run_id']}: J_raw {fmt(r['final_train_J_raw'], 4)}, R_binary {fmt(r['final_train_R_binary'], 4)}, nt_xent {fmt(r['final_train_nt_xent'], 4)}, "
                  f"vicreg {r['final_train_vicreg']}")
-    L += ["", "## Cost", "", "| run | steady step (s) | images/s | views/s | train s | in-train eval s | ep20 eval s | seen base images | critic params | job |",
+    L += ["", "## Cost", "", "| run | steady step (s) | images/s | views/s | train s | in-train eval s | final eval s | seen base images | critic params | job |",
           "|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
         L.append(f"| {r['run_id']} | {fmt(r['steady_state_step_seconds'], 4)} | {fmt(r['steady_state_images_per_s'], 0)} | {fmt(r['steady_state_views_per_s'], 0)} | "
@@ -123,9 +125,22 @@ def render(rows: list[dict[str, Any]], stage: str) -> str:
     inits = {(r["init_hashes"] or {}).get("encoder_init_sha256") for r in rows}
     L += ["", f"- identical encoder init across runs: {len(inits) == 1 and None not in inits}",
           f"- identical split across runs: {len({r['split_hash'] for r in rows}) == 1}", ""]
-    L += ["## Coverage checks", ""]
+    L += ["## Per-method aggregation across seeds (only COMPLETED runs with a final evaluation; mean ± sample SD, n seeds)", "",
+          "| method | n | linear-val final (%) | linear-val ep0 (%) | Δ linear | kNN final (%) | h-rank final | heldout-J final |", "|---|---|---|---|---|---|---|---|"]
+    import statistics as st
+    def agg(vals):
+        vals = [v for v in vals if v is not None]
+        if not vals:
+            return "null"
+        return f"{st.mean(vals):.2f} ± {st.stdev(vals):.2f}" if len(vals) > 1 else f"{vals[0]:.2f}"
+    for m in sorted({r["method"] for r in rows if r["method"]}):
+        rs = [r for r in rows if r["method"] == m and r["status"] == "COMPLETED" and r["has_epoch20_eval"]]
+        dl = [r["linear_val_top1_pct"] - r["linear_val_top1_pct_epoch0"] for r in rs if r["linear_val_top1_pct"] is not None and r["linear_val_top1_pct_epoch0"] is not None]
+        L.append(f"| {m} | {len(rs)} | {agg([r['linear_val_top1_pct'] for r in rs])} | {agg([r['linear_val_top1_pct_epoch0'] for r in rs])} | {agg(dl)} | "
+                 f"{agg([r['knn_val_top1_pct'] for r in rs])} | {agg([r['h_effective_rank'] for r in rs])} | {agg([r['heldout_J'] for r in rs])} |")
+    L += ["", "## Coverage checks", ""]
     for r in rows:
-        L.append(f"- {r['run_id']}: epoch0 eval {r['has_epoch0_eval']}, final eval {r['has_epoch20_eval']}, status {r['status']}, failure {r['failure_reason']}")
+        L.append(f"- {r['run_id']}: epoch0 eval {r['has_epoch0_eval']}, final eval {r['has_epoch20_eval']} ({r['final_eval_file']}), status {r['status']}, failure {r['failure_reason']}")
     return "\n".join(L) + "\n"
 
 
