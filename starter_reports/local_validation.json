@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-24",
+  "environment": {
+    "python": "3.13.5",
+    "torch": "2.10.0+cpu",
+    "cuda_available": false
+  },
+  "unit_tests": {
+    "passed": 29,
+    "failed": 0,
+    "log": "reports/local_core_tests.txt"
+  },
+  "config_checks": [
+    {
+      "file": "configs/cifar10_pilot_simclr.yaml",
+      "sha256": "2f40f45b2738ead8c803abe4063302cce808bf2e5ae860f2332cb33f1bfb68ca",
+      "parse_and_policy_checks": "PASS"
+    },
+    {
+      "file": "configs/cifar10_pilot_vcs.yaml",
+      "sha256": "6621d513c45fc9d487228264e80f262f51ee0511bddaaf24aa0b1381bd56199e",
+      "parse_and_policy_checks": "PASS"
+    },
+    {
+      "file": "configs/cifar10_pilot_vicreg.yaml",
+      "sha256": "964845e7373e72fa958d211a9270ff02c1b3062cefafb65533da29057145f304",
+      "parse_and_policy_checks": "PASS"
+    }
+  ],
+  "scope": "CPU mathematical identities, tensor operations, core gradient routing, toy optimizer/eval checks.",
+  "not_run": [
+    "CIFAR data integration",
+    "torchvision ResNet18 real-image training",
+    "GPU forward/backward",
+    "complete SSL trainer",
+    "linear evaluation on CIFAR",
+    "AMP",
+    "DDP",
+    "multiworker checkpoint replay"
+  ],
+  "performance_claims": null
+}
