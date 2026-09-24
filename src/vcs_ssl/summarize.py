@@ -27,6 +27,21 @@ def _jsonl(p: Path) -> list[dict[str, Any]]:
     return [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
 
 
+def _hparams_from_config(rd: Path) -> dict[str, Any] | None:
+    """Fallback for runs launched before run_manifest.hparams existed: read the frozen resolved config."""
+    p = rd / "config.resolved.yaml"
+    if not p.is_file():
+        return None
+    import yaml  # noqa: PLC0415
+
+    c = yaml.safe_load(p.read_text())
+    return {"K": c["pairing"]["k"], "critic_hidden_dims": c["model"]["critic"]["hidden_dims"], "critic_last_gain": c["model"]["critic"]["last_layer_xavier_gain"],
+            "critic_lr_multiplier": c["optimizer"]["critic_lr_multiplier"], "critic_weight_decay": c["optimizer"]["critic_weight_decay"],
+            "projector_hidden_dim": c["model"]["projector"]["hidden_dim"], "projector_output_dim": c["model"]["projector"]["output_dim"],
+            "critic_input_norm": c["model"]["normalization"]["vcs_and_simclr"], "batch_size_images": c["train"]["batch_size_images"],
+            "lr": c["optimizer"]["lr"], "epochs": c["train"]["epochs"], "warmup_epochs": c["train"]["warmup_epochs"]}
+
+
 def collect(output_root: Path, stage: str) -> list[dict[str, Any]]:
     rows = []
     for rd in sorted(p for p in output_root.iterdir() if p.is_dir()):
@@ -45,7 +60,7 @@ def collect(output_root: Path, stage: str) -> list[dict[str, Any]]:
         last_train = [r for r in epochs if r.get("J_raw") is not None or r.get("nt_xent") is not None or r.get("vicreg_invariance") is not None]
         rows.append({
             "run_id": rd.name, "method": status.get("method"), "K": rm.get("K"), "seed": status.get("seed"), "status": status.get("status"),
-            "hparams": rm.get("hparams"), "critic_impl": rm.get("critic_impl"),
+            "hparams": rm.get("hparams") or _hparams_from_config(rd), "critic_impl": rm.get("critic_impl"),
             "failure_reason": status.get("failure_reason"), "completed_epoch": status.get("completed_epoch"), "epochs_intended": status.get("epochs_intended"),
             "optimizer_step": status.get("optimizer_step"), "code_commit": rm.get("code_commit"), "code_dirty": rm.get("code_dirty"),
             "config_hash": rm.get("config_hash"), "split_hash": rm.get("split_hash"), "init_hashes": rm.get("init_hashes"),
