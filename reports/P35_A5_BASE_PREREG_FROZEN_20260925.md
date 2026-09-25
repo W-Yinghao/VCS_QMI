@@ -15,3 +15,10 @@ still running and may move the base's a0 later.
 a5_views4: final linear vs 81.56 (HELPS > +1.0 / HURTS < −1.0), plus the equal-epoch comparison with `P28_vcs_views4_seed0` (a0 = 1,
 4 views): the difference isolates a0 = 5 under 4 views.  a5_800ep: vs `P26_vcs_base_800ep` at 800; the kNN curve at 200/400/600/800.
 Single seed.  No code change (configs only; last gate 1009177 on commit 9a1a3c0+).  sha256: `configs/HPARAM_K_SHA256.json`.
+
+## Addendum 21:40 UTC (before any a5_views4 result) — seeds 1/2 of a5_views4
+`P28_vcs_views4_seed0` (a0 = 1, 4 views) finished at **84.48 / kNN 81.10 / h-rank 57.4** (+3.9 over the a0 = 1 base, the largest single
+factor so far; at 2× encoder compute per epoch — the equal-compute P33 unit is at epoch 58/100).  `P35_vcs_a5_views4_seed0` is at epoch 22
+with kNN +7.6 over the a0 = 5 base at the same epoch.  Because the base gets seeds and a0 = 5 + 4 views is the expected next base, seeds 1/2
+of `a5_views4` are queued now (same config, seed only) rather than after seed 0 finishes (≈ 3 h), so the quota is not left idle.
+Reading: mean ± SD over 3 seeds vs 81.56 (a0 = 5, 2 views) and vs 84.48 (a0 = 1, 4 views, single seed).  Configs in `HPARAM_K_SHA256.json`.
