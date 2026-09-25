@@ -32,6 +32,7 @@ BASELINES = {  # (stage, seed) -> reference linear/kNN for deltas
     ("P31_vcs_scale_init", 0): {"run": "P24_vcs_cos_negdetach_seed0 (cosine, K=8, neg-detach, a0=1)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
     ("P33_vcs_views_compute", 0): {"run": "P24_vcs_cos_negdetach_seed0 (cosine, K=8, neg-detach; equal encoder compute)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
     ("P35_vcs_a5_base", 0): {"run": "P26_vcs_a5_learn_seed0 (cosine, K=8, neg-detach, a0=5)", "linear": 81.90, "knn": 77.00, "h_rank": 44.99},
+    ("P37_vcs_views_curve", 0): {"run": "P26_vcs_a5_learn_seed0 (a0=5, 2 views, 200 ep = 1x compute)", "linear": 81.90, "knn": 77.00, "h_rank": 44.99},
     ("P35_vcs_a5_base", 1): {"run": "P31_vcs_a5_learn_seed1 (cosine, K=8, neg-detach, a0=5)", "linear": 81.06, "knn": 76.98, "h_rank": 45.53},
     ("P35_vcs_a5_base", 2): {"run": "P31_vcs_a5_learn_seed2 (cosine, K=8, neg-detach, a0=5)", "linear": 81.72, "knn": 76.84, "h_rank": 46.33},
     ("P31_vcs_scale_init", 1): {"run": "P26_vcs_base_seed1_seed1 (cosine, K=8, neg-detach, a0=1)", "linear": 80.58, "knn": 74.26, "h_rank": 29.59},
@@ -138,7 +139,7 @@ def scan(output_root: Path, stages: set[str]):
             base_traj = {0: 36.58, 10: 45.58, 20: 52.44, 50: 60.30, 100: 64.76, 150: 66.82, 200: 67.44}  # P10_vcs_k8_seed0 (K=8 baseline)
         if st.get("stage") in ("P26_vcs_negdetach_base", "P28_vcs_new_candidates", "P31_vcs_scale_init", "P33_vcs_views_compute"):
             base_traj = {0: 36.58, 10: 53.94, 20: 60.88, 50: 68.14, 100: 71.84, 150: 74.26, 200: 74.62}  # P24_vcs_cos_negdetach_seed0
-        if st.get("stage") == "P35_vcs_a5_base":
+        if st.get("stage") in ("P35_vcs_a5_base", "P37_vcs_views_curve"):
             base_traj = {0: 36.58, 10: 51.06, 20: 61.08, 50: 68.74, 100: 73.50, 150: 76.46, 200: 77.00}  # P26_vcs_a5_learn_seed0
         if st.get("stage") == "P29_vcs_seedfill":
             base_traj = {0: 36.58, 10: 56.54, 20: 64.00, 50: 69.16, 100: 71.72, 150: 72.84, 200: 72.76}  # P18 cosine K=8 seed 0
@@ -206,7 +207,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output-root", default=os.environ.get("OUTPUT_ROOT", "/home/infres/yinwang/CS_QMI/outputs"))
     ap.add_argument("--out", default="/home/infres/yinwang/CS_QMI/ssl_pilot/reports/WATCH_status.md")
-    ap.add_argument("--stages", default="P26_vcs_negdetach_base,P28_vcs_new_candidates,P29_vcs_seedfill,P31_vcs_scale_init,P33_vcs_views_compute,P35_vcs_a5_base")
+    ap.add_argument("--stages", default="P26_vcs_negdetach_base,P28_vcs_new_candidates,P31_vcs_scale_init,P35_vcs_a5_base,P37_vcs_views_curve")
     ap.add_argument("--print", action="store_true")
     a = ap.parse_args()
     stages = set(a.stages.split(","))
