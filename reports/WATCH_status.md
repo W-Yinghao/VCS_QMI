@@ -1,6 +1,6 @@
-# Watcher status — 2026-09-25 08:55:51 UTC
+# Watcher status — 2026-09-25 09:25:53 UTC
 
-Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants.  Baseline for deltas: same-seed K=1 200-epoch run (P5).  Signal rule (pre-registered): HELPS if final linear-val > baseline + 1.0, HURTS if < baseline − 1.0, else neutral.
+Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants, P20_vcs_ssl_wiring.  Baseline for deltas: same-seed K=1 200-epoch run (P5).  Signal rule (pre-registered): HELPS if final linear-val > baseline + 1.0, HURTS if < baseline − 1.0, else neutral.
 
 ## P16_vcs_hparamB_set
 
@@ -19,7 +19,7 @@ Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants.  Baseline for deltas: same
 | P16_vcs_b128_seed0 | batch_size_images=128 | COMPLETED | 200/200 | — | 63.68 (200) | -0.96 | 0.9036 | 14.03 | 73.22 | HURTS (-1.62) | — | 1008231 |
 | P16_vcs_b1024_seed0 | batch_size_images=1024 | COMPLETED | 200/200 | — | 63.30 (200) | -1.34 | 0.8935 | 12.01 | 73.00 | HURTS (-1.84) | — | 1008233 |
 | P16_vcs_aug_weak_seed0 | crop_scale_min=0.5, color_jitter=[0.2, 0.2, 0.2, 0.05] | COMPLETED | 200/200 | — | 55.20 (200) | -9.44 | 0.9746 | 12.42 | 67.78 | HURTS (-7.06) | — | 1008230 |
-| P16_vcs_k8_clr10_800ep_seed0 | K=8, critic_lr_multiplier=10.0 | RUNNING | 336/800 | 246 | 70.16 (200) | 5.52 | 0.9291 | 26.11 | — | — | — | 1008239 |
+| P16_vcs_k8_clr10_800ep_seed0 | K=8, critic_lr_multiplier=10.0 | RUNNING | 392/800 | 216 | 70.16 (200) | 5.52 | 0.9291 | 26.11 | — | — | — | 1008239 |
 
 kNN trajectories:
 
@@ -42,21 +42,21 @@ kNN trajectories:
 
 | run | changed | status | epoch | ETA (min) | last kNN (ep) | Δ kNN vs base @same ep | heldout-J | h-rank | final linear | signal | flags | job |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| P18_vcs_crit_bilinear_seed0 | K=8, critic_input=bilinear_concat | RUNNING | 88/200 | 59 | 61.24 (50) | 0.94 | 0.8616 | 13.26 | — | — | — | 1008402 |
-| P18_vcs_crit_cosine_seed0 | K=8, critic_input=cosine | RUNNING | 88/200 | 58 | 69.16 (50) | 8.86 | 0.9132 | 40.38 | — | — | — | 1008403 |
-| P18_vcs_crit_interact_seed0 | K=8, critic_input=concat_interact | RUNNING | 89/200 | 58 | 66.96 (50) | 6.66 | 0.9114 | 31.51 | — | — | — | 1008401 |
-| P18_vcs_crit_steps2_seed0 | K=8, critic_steps=2 | RUNNING | 95/200 | 50 | 61.72 (50) | 1.42 | 0.8600 | 14.12 | — | — | — | 1008405 |
-| P18_vcs_crit_steps5_seed0 | K=8, critic_steps=5 | RUNNING | 90/200 | 56 | 62.86 (50) | 2.56 | 0.8604 | 18.63 | — | — | — | 1008406 |
-| P18_vcs_pair_sym_seed0 | K=8, pair_symmetric=True | RUNNING | 94/200 | 52 | 61.74 (50) | 1.44 | 0.8575 | 12.91 | — | — | — | 1008404 |
+| P18_vcs_crit_bilinear_seed0 | K=8, critic_input=bilinear_concat | RUNNING | 143/200 | 30 | 65.04 (100) | 0.28 | 0.9019 | 15.89 | — | — | — | 1008402 |
+| P18_vcs_crit_cosine_seed0 | K=8, critic_input=cosine | RUNNING | 144/200 | 29 | 71.72 (100) | 6.96 | 0.9479 | 53.36 | — | — | — | 1008403 |
+| P18_vcs_crit_interact_seed0 | K=8, critic_input=concat_interact | RUNNING | 144/200 | 29 | 69.70 (100) | 4.94 | 0.9419 | 37.79 | — | — | — | 1008401 |
+| P18_vcs_crit_steps2_seed0 | K=8, critic_steps=2 | RUNNING | 155/200 | 22 | 67.22 (150) | 0.40 | 0.9250 | 17.49 | — | — | — | 1008405 |
+| P18_vcs_crit_steps5_seed0 | K=8, critic_steps=5 | RUNNING | 147/200 | 27 | 65.92 (100) | 1.16 | 0.8985 | 20.56 | — | — | — | 1008406 |
+| P18_vcs_pair_sym_seed0 | K=8, pair_symmetric=True | RUNNING | 153/200 | 23 | 66.88 (150) | 0.06 | 0.9244 | 16.29 | — | — | — | 1008404 |
 
 kNN trajectories:
 
-- P18_vcs_crit_bilinear_seed0: ep0: 36.6, ep10: 47.0, ep20: 53.0, ep50: 61.2
-- P18_vcs_crit_cosine_seed0: ep0: 36.6, ep10: 56.5, ep20: 64.0, ep50: 69.2
-- P18_vcs_crit_interact_seed0: ep0: 36.6, ep10: 56.1, ep20: 61.4, ep50: 67.0
-- P18_vcs_crit_steps2_seed0: ep0: 36.6, ep10: 49.9, ep20: 54.9, ep50: 61.7
-- P18_vcs_crit_steps5_seed0: ep0: 36.6, ep10: 50.8, ep20: 56.1, ep50: 62.9
-- P18_vcs_pair_sym_seed0: ep0: 36.6, ep10: 46.9, ep20: 53.8, ep50: 61.7
+- P18_vcs_crit_bilinear_seed0: ep0: 36.6, ep10: 47.0, ep20: 53.0, ep50: 61.2, ep100: 65.0
+- P18_vcs_crit_cosine_seed0: ep0: 36.6, ep10: 56.5, ep20: 64.0, ep50: 69.2, ep100: 71.7
+- P18_vcs_crit_interact_seed0: ep0: 36.6, ep10: 56.1, ep20: 61.4, ep50: 67.0, ep100: 69.7
+- P18_vcs_crit_steps2_seed0: ep0: 36.6, ep10: 49.9, ep20: 54.9, ep50: 61.7, ep100: 65.0, ep150: 67.2
+- P18_vcs_crit_steps5_seed0: ep0: 36.6, ep10: 50.8, ep20: 56.1, ep50: 62.9, ep100: 65.9
+- P18_vcs_pair_sym_seed0: ep0: 36.6, ep10: 46.9, ep20: 53.8, ep50: 61.7, ep100: 65.0, ep150: 66.9
 
 ---
-event_key: done=13 mon_evals=133 flags=0
+event_key: done=13 mon_evals=141 flags=0

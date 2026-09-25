@@ -294,7 +294,7 @@ def test_8_config_strictness(tmp_path):
     with pytest.raises(ConfigError, match="unknown field"):
         load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
     for path, val, msg in [(("objective", "extra_regularizers"), ["vicreg_var"], "extra_regularizers"),
-                           (("pairing", "k"), 0, "pairing.k"), (("pairing", "k"), 256, "pairing.k"), (("pairing", "negative_detach"), True, "pairing policy"),
+                           (("pairing", "k"), 0, "pairing.k"), (("pairing", "k"), 256, "pairing.k"), (("pairing", "allow_self"), True, "pairing policy"),
                            (("model", "weights"), "IMAGENET1K_V1", "weights"), (("data", "official_test_accessible"), True, "official test"),
                            (("train", "precision"), "bf16", "FP32"), (("objective", "clip_J"), True, "clipped J")]:
         bad = copy.deepcopy(base)
