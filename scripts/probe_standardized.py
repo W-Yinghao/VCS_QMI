@@ -24,7 +24,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--output-root", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--stages", default="P3_pilot,P5_confirm200,P8_long800,P10_kstudy200,P12_vcs_hparamA,P14_vcs_hparamB_lr,P16_vcs_hparamB_set,P18_vcs_critic_variants")
+    ap.add_argument("--stages", default="P3_pilot,P5_confirm200,P8_long800,P10_kstudy200,P12_vcs_hparamA,P14_vcs_hparamB_lr,P16_vcs_hparamB_set,P18_vcs_critic_variants,P20_vcs_ssl_wiring,P22_vcs_target_branch,P24_vcs_cosine_base")
     ap.add_argument("--force", action="store_true")
     a = ap.parse_args()
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
