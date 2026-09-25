@@ -27,6 +27,16 @@ class ConfigError(ValueError):
 
 # --- schema: nested dict of key -> type spec.  A tuple of types means "one of"; None means allow None. -----------
 _Num = (int, float)
+
+
+class _Opt:
+    """Optional field: absent in older frozen configs -> filled with ``default`` (so downstream code always sees it)."""
+
+    def __init__(self, types: Any, default: Any) -> None:
+        self.types = types if isinstance(types, tuple) else (types,)
+        self.default = default
+
+
 SCHEMA: dict[str, Any] = {
     "schema_version": str,
     "run": {"stage": str, "method": str, "seed": int, "output_root": str, "resume": (str, type(None)), "overwrite": bool},
@@ -44,7 +54,8 @@ SCHEMA: dict[str, Any] = {
                             "output_linear_bias": bool, "output_batchnorm": bool},
               "normalization": {"vcs_and_simclr": str, "eps": _Num, "vicreg": str},
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
-                         "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num}},
+                         "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
+                         "feature_source": _Opt(str, "z")}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num},
@@ -79,13 +90,15 @@ def _validate(node: Any, schema: Any, path: str) -> None:
         if not isinstance(node, dict):
             raise ConfigError(f"{path}: expected mapping, got {type(node).__name__}")
         unknown = sorted(set(node) - set(schema))
-        missing = sorted(set(schema) - set(node))
+        missing = sorted(k for k in set(schema) - set(node) if not isinstance(schema[k], _Opt))
         if unknown:
             raise ConfigError(f"{path}: unknown field(s) {unknown}; fields are never silently ignored")
         if missing:
             raise ConfigError(f"{path}: missing field(s) {missing}")
         for k, sub in schema.items():
-            _validate(node[k], sub, f"{path}.{k}")
+            if isinstance(sub, _Opt) and k not in node:
+                node[k] = sub.default  # optional field absent (older frozen config): filled with its default
+            _validate(node[k], sub.types if isinstance(sub, _Opt) else sub, f"{path}.{k}")
         return
     types = schema if isinstance(schema, tuple) else (schema,)
     if bool in types and isinstance(node, bool):
@@ -131,8 +144,12 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     if not (1 <= p["k"] <= cfg["train"]["batch_size_images"] - 1):
         raise ConfigError("pairing.k must satisfy 1 <= K <= batch_size_images - 1 (K distinct nonzero cyclic shifts)")
     if p["sampler"] not in ("random_nonzero_cyclic_shift", "random_nonzero_cyclic_shift_symmetric") or not p["unique_shifts"] \
-            or p["allow_self"] or p["label_filter"] or p["queue"] or p["negative_detach"] or p["rng"] != "dedicated_cpu_generator":
+            or p["allow_self"] or p["label_filter"] or p["queue"] or p["rng"] != "dedicated_cpu_generator":
         raise ConfigError("pairing policy deviates from the frozen definition (symmetric scoring of both orders is the only named variant)")
+    if p["negative_detach"] and m != "vcs_qmi":
+        raise ConfigError("negative_detach is a VCS-only named variant")
+    if m == "vcs_qmi" and cfg["model"]["critic"]["feature_source"] not in ("z", "h_l2"):
+        raise ConfigError("critic.feature_source must be 'z' (projector output, default) or 'h_l2' (L2-normalized encoder output, named variant)")
     t = cfg["train"]
     if not (t["mode"] == "joint" or re.fullmatch(r"joint_critic_steps_([2-9]|10)", t["mode"])):
         raise ConfigError("train.mode must be 'joint' or the named variant 'joint_critic_steps_N' (N extra-1 critic-only steps on detached features, 2<=N<=10)")

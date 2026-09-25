@@ -147,7 +147,8 @@ def spectrum_report(feats: dict[str, Any], names: tuple[str, ...] = ("h", "p_raw
 @torch.no_grad()
 def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, images: np.ndarray, sel_uids: np.ndarray,
                    two_view_transform, *, device: torch.device, batch_size: int, repeats: int, rng_seed: int, k: int,
-                   num_workers: int = 4, l2_eps: float = 1e-8, normalize_input: bool = True, symmetric: bool = False) -> dict[str, Any]:
+                   num_workers: int = 4, l2_eps: float = 1e-8, normalize_input: bool = True, symmetric: bool = False,
+                   feature_source: str = "z") -> dict[str, Any]:
     """Train-distribution two-view pairs on selection images; whole model eval; global (count-weighted) means."""
     before = freeze(encoder, projector, critic)
     n = len(sel_uids)
@@ -176,8 +177,12 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 bsz = x1.shape[0]
                 if bsz < 2:
                     raise RuntimeError("a batch of size 1 remained after merging; cannot form negatives")
-                p_all = projector(encoder(torch.cat((x1, x2)).to(device)))
-                z = F.normalize(p_all, dim=1, eps=l2_eps) if normalize_input else p_all
+                h_all = encoder(torch.cat((x1, x2)).to(device))
+                if feature_source == "h_l2":
+                    z = F.normalize(h_all, dim=1, eps=l2_eps)
+                else:
+                    p_all = projector(h_all)
+                    z = F.normalize(p_all, dim=1, eps=l2_eps) if normalize_input else p_all
                 z1, z2 = z.chunk(2, dim=0)
                 k_eff = min(k, bsz - 1)  # a short tail batch cannot host K distinct nonzero shifts; capped and recorded
                 k_eff_min = min(k_eff_min, k_eff)
@@ -205,7 +210,7 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
             "heldout_J_mean": float(js.mean()), "heldout_J_sd": float(js.std(unbiased=True)) if repeats > 1 else None,
             "heldout_R_binary_mean": float(1.0 - js.mean()), "per_repeat": per_repeat, "hist_bin_edges": hist_bins.tolist(),
             "seconds": t.elapsed,
-            "critic_input": "z_l2" if normalize_input else "p_raw", "symmetric": symmetric,
+            "critic_input": ("h_l2" if feature_source == "h_l2" else ("z_l2" if normalize_input else "p_raw")), "symmetric": symmetric,
             "note": "diagnostic value of the current critic on images not used for SSL fit; not a refit supremum, not S, not Shannon MI"}
 
 

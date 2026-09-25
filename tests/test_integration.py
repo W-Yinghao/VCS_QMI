@@ -573,3 +573,44 @@ def test_symmetric_pairing_and_critic_steps(tmp_path):
     bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad["train"]["mode"] = "joint_critic_steps_2"
     with pytest.raises(ConfigError):
         load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+
+
+def test_critic_on_h_and_negative_detach(tmp_path):
+    import yaml
+    from vcs_ssl.objectives import critic_feature_dim, critic_input_key, vcs_pair_loss_negdetach
+    env = _env(tmp_path)
+    # optional field absent -> default 'z'; old configs unchanged
+    cfg0 = load_config(CFG_DIR / "cifar10_pilot_vcs.yaml", env=env)
+    assert cfg0["model"]["critic"]["feature_source"] == "z" and critic_feature_dim(cfg0) == 128
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["model"]["critic"]["feature_source"] = "h_l2"
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    assert critic_input_key(cfg) == "h_l2" and critic_feature_dim(cfg) == 512
+    built = build_models(cfg, seed=0, device="cpu")
+    assert built["critic"].feature_dim == 512
+    f = forward_features(built["encoder"], built["projector"], torch.randn(4, 3, 32, 32), torch.randn(4, 3, 32, 32), eps=1e-8)
+    torch.testing.assert_close(f["h_l2"].norm(dim=1), torch.ones(8), atol=1e-5, rtol=0)
+    obj = compute_objective("vcs_qmi", f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(0))
+    obj["loss"].backward()
+    gn = grad_norms(built["encoder"], built["projector"], built["critic"])
+    assert gn["grad_norm_encoder"] > 0 and gn["grad_norm_critic"] > 0 and gn["grad_norm_projector"] is None
+    # negative_detach: gradient through z2 comes only from positives
+    base2 = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); base2["pairing"]["negative_detach"] = True
+    cfg2 = load_config(_write(tmp_path, yaml.safe_dump(base2)), env=env)
+    crit = build_models(cfg2, seed=0, device="cpu")["critic"]
+    z1 = F.normalize(torch.randn(8, 128), dim=1).requires_grad_(True); z2 = F.normalize(torch.randn(8, 128), dim=1).requires_grad_(True)
+    s_nd, _ = vcs_pair_loss_negdetach(z1, z2, crit, k=1, generator=torch.Generator().manual_seed(0))
+    # negatives-only term must not reach z2
+    z1b = z1.detach().clone().requires_grad_(True); z2b = z2.detach().clone().requires_grad_(True)
+    from reference.ssl_core import cyclic_negative_indices
+    idx, _ = cyclic_negative_indices(8, 1, generator=torch.Generator().manual_seed(0))
+    tn = crit(z1b, z2b.detach()[idx[0]]); (tn.mean()).backward()
+    assert z1b.grad is not None and z2b.grad is None
+    bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad["pairing"]["negative_detach"] = True
+    with pytest.raises(ConfigError, match="VCS-only"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+    # trainer smoke with critic on h (projector unused) completes
+    data, m = synthetic_bundle()
+    cfgs = small_cfg(tmp_path, "vcs"); cfgs["model"]["critic"]["feature_source"] = "h_l2"; policy_checks(cfgs)
+    tr, st = run_trainer(tmp_path, cfgs, data, m, run_id="crit_on_h", device=torch.device("cpu"), smoke_steps=2, epoch_eval=True, smoke_epoch_steps=2)
+    assert st == "COMPLETED"

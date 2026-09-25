@@ -193,7 +193,8 @@ class Trainer:
                         "gaussian_blur_p": self.cfg["views"]["gaussian_blur_p"],
                         "matrix_weight_decay": self.cfg["optimizer"]["matrix_weight_decay_encoder_projector"],
                         "critic_input": self.cfg["model"]["critic"]["input"], "pair_symmetric": pair_symmetric(self.cfg),
-                        "critic_steps": critic_steps(self.cfg)},
+                        "critic_steps": critic_steps(self.cfg), "critic_feature_source": self.cfg["model"]["critic"].get("feature_source", "z"),
+                        "negative_detach": self.cfg["pairing"]["negative_detach"]},
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -361,7 +362,7 @@ class Trainer:
                 result["COLLAPSE_SUSPECTED"] = self.collapse_streak >= 2
             cv = ecfg["critic_validation"]
             if cv["enabled"] and crit is not None:
-                ch = critic_holdout(enc, proj, crit, self.data.data, self.sel_uids, self.two_view, device=self.device,
+                ch = critic_holdout(enc, proj, crit, self.data.data, self.sel_uids, self.two_view, device=self.device, feature_source=self.cfg["model"]["critic"].get("feature_source", "z"),
                                     batch_size=cv["batch_size"], repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(self.cfg["pairing"]["k"]),
                                     num_workers=self.eval_num_workers, l2_eps=self.cfg["model"]["normalization"]["eps"],
                                     normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none", symmetric=pair_symmetric(self.cfg))
@@ -428,8 +429,9 @@ class Trainer:
     def first_step_gradient_check(self, gn: dict[str, Any]) -> None:
         """Spec §7.2: every module has a nonzero finite gradient on the first real step; parameters then change."""
         problems = []
+        critic_on_h = self.method == "vcs_qmi" and self.cfg["model"]["critic"].get("feature_source", "z") == "h_l2"
         for name, m in (("encoder", self.encoder), ("projector", self.projector), ("critic", self.critic)):
-            if m is None:
+            if m is None or (name == "projector" and critic_on_h):  # projector receives no gradient when the critic reads h (disclosed)
                 continue
             g = gn.get(f"grad_norm_{name}")
             if g is None or not np.isfinite(g) or g <= 0:

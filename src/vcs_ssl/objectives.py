@@ -19,12 +19,18 @@ def forward_features(encoder, projector, x1: Tensor, x2: Tensor, eps: float) -> 
     h = encoder(torch.cat((x1, x2), dim=0))
     p = projector(h)
     z = F.normalize(p, dim=1, eps=eps)
-    return {"h": h, "p_raw": p, "z_l2": z}
+    return {"h": h, "p_raw": p, "z_l2": z, "h_l2": F.normalize(h, dim=1, eps=eps)}
 
 
 def critic_input_key(cfg: dict[str, Any]) -> str:
-    """'z_l2' (frozen default) or 'p_raw' when model.normalization.vcs_and_simclr == 'none' (named variant)."""
+    """'z_l2' (frozen default), 'p_raw' (normalization 'none'), or 'h_l2' (critic reads the L2-normalized encoder output; named variant)."""
+    if cfg["model"]["critic"].get("feature_source", "z") == "h_l2":
+        return "h_l2"
     return "p_raw" if cfg["model"]["normalization"]["vcs_and_simclr"] == "none" else "z_l2"
+
+
+def critic_feature_dim(cfg: dict[str, Any]) -> int:
+    return int(cfg["model"]["h_dim"]) if cfg["model"]["critic"].get("feature_source", "z") == "h_l2" else int(cfg["model"]["projector"]["output_dim"])
 
 
 def pair_symmetric(cfg: dict[str, Any]) -> bool:
@@ -35,6 +41,19 @@ def critic_steps(cfg: dict[str, Any]) -> int:
     """Number of critic updates per batch: 1 for 'joint'; N for 'joint_critic_steps_N' (N-1 critic-only steps on detached features)."""
     mode = cfg["train"]["mode"]
     return 1 if mode == "joint" else int(mode.rsplit("_", 1)[1])
+
+
+def vcs_pair_loss_negdetach(z1: Tensor, z2: Tensor, critic, *, k: int, generator: torch.Generator | None):
+    """Named variant: the shifted partner z2[pi(i)] in negative pairs is detached (no gradient into the encoder through negatives'
+    second view); positives unchanged. Same averaging rule as the reference."""
+    if z1.ndim != 2 or z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes")
+    indices, shifts = cyclic_negative_indices(len(z1), k, generator=generator, device=z1.device)
+    t_pos = critic(z1, z2)
+    left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
+    right = z2.detach()[indices].reshape(-1, z2.shape[1])
+    t_neg = critic(left, right)
+    return vcs_from_scores(t_pos, t_neg), shifts
 
 
 def vcs_pair_loss_symmetric(z1: Tensor, z2: Tensor, critic, *, k: int, generator: torch.Generator | None):
@@ -63,7 +82,9 @@ def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, A
         key = critic_input_key(cfg)
         z1, z2 = feats[key].chunk(2, dim=0)
         sym = pair_symmetric(cfg)
-        fn = vcs_pair_loss_symmetric if sym else vcs_pair_loss
+        if sym and cfg["pairing"]["negative_detach"]:
+            raise ValueError("symmetric pairing and negative_detach are not combined")
+        fn = vcs_pair_loss_symmetric if sym else (vcs_pair_loss_negdetach if cfg["pairing"]["negative_detach"] else vcs_pair_loss)
         s, shifts = fn(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
         loss = s["loss"]
         for k in VCS_STAT_KEYS:

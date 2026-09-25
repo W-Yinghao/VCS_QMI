@@ -35,7 +35,8 @@ def build_models(cfg: dict[str, Any], *, seed: int, device: torch.device | str =
     critic = None
     if mcfg["critic"]["enabled"]:
         torch.manual_seed(seed * 1000003 + 7919)  # separate stream, disclosed engineering choice
-        critic = build_critic(mcfg["critic"], feature_dim=mcfg["projector"]["output_dim"])
+        fdim = int(mcfg["h_dim"]) if mcfg["critic"].get("feature_source", "z") == "h_l2" else int(mcfg["projector"]["output_dim"])
+        critic = build_critic(mcfg["critic"], feature_dim=fdim)
     hashes = {"encoder_init_sha256": state_dict_sha256(encoder), "projector_init_sha256": state_dict_sha256(projector),
               "critic_init_sha256": state_dict_sha256(critic) if critic is not None else None}
     encoder.to(device)
