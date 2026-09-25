@@ -32,6 +32,8 @@ BASELINES = {  # (stage, seed) -> reference linear/kNN for deltas
     ("P31_vcs_scale_init", 0): {"run": "P24_vcs_cos_negdetach_seed0 (cosine, K=8, neg-detach, a0=1)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
     ("P33_vcs_views_compute", 0): {"run": "P24_vcs_cos_negdetach_seed0 (cosine, K=8, neg-detach; equal encoder compute)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
     ("P35_vcs_a5_base", 0): {"run": "P26_vcs_a5_learn_seed0 (cosine, K=8, neg-detach, a0=5)", "linear": 81.90, "knn": 77.00, "h_rank": 44.99},
+    ("P35_vcs_a5_base", 1): {"run": "P31_vcs_a5_learn_seed1 (cosine, K=8, neg-detach, a0=5)", "linear": 81.06, "knn": 76.98, "h_rank": 45.53},
+    ("P35_vcs_a5_base", 2): {"run": "P31_vcs_a5_learn_seed2 (cosine, K=8, neg-detach, a0=5)", "linear": 81.72, "knn": 76.84, "h_rank": 46.33},
     ("P31_vcs_scale_init", 1): {"run": "P26_vcs_base_seed1_seed1 (cosine, K=8, neg-detach, a0=1)", "linear": 80.58, "knn": 74.26, "h_rank": 29.59},
     ("P31_vcs_scale_init", 2): {"run": "P26_vcs_base_seed2_seed2 (cosine, K=8, neg-detach, a0=1)", "linear": 80.72, "knn": 74.34, "h_rank": 30.62},
     ("P29_vcs_seedfill", 1): {"run": "seed-0 of the same config (cosK8 78.32 / cosK255 79.32)", "linear": 78.32, "knn": 72.76, "h_rank": 57.74},
