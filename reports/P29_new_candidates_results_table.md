@@ -1,12 +1,12 @@
 # P28_vcs_new_candidates — neutral results table (observed values only)
 
-Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
+Generated 2026-09-25T22:41:38Z. Failed / stopped runs are listed, never dropped.
 
 | run | method | K | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | P28_vcs_diag_metric_seed0 | vcs_qmi | 8 | 0 | 200/200 | 80.56 | 74.02 | 0.9253±0.0017 | 27.47 | 5657 | 3683/4844 | COMPLETED |
 | P28_vcs_mono_spline_seed0 | vcs_qmi | 8 | 0 | 200/200 | 80.46 | 73.90 | 0.9190±0.0017 | 24.98 | 6219 | 3683/4842 | COMPLETED |
-| P28_vcs_proj_bnonly_seed0 | vcs_qmi | 8 | 0 | 82/200 | null | null | null | null | null | null/null | RUNNING |
+| P28_vcs_proj_bnonly_seed0 | vcs_qmi | 8 | 0 | 200/200 | 77.78 | 74.08 | 0.9414±0.0026 | 1.70 | 6284 | 3645/4834 | COMPLETED COLLAPSE_SUSPECTED |
 | P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925 | vcs_qmi | 8 | 0 | 0/200 | null | null | null | null | 0 | 3559/4826 | FAILED_INFRA |
 | P28_vcs_proj_linear_seed0 | vcs_qmi | 8 | 0 | 200/200 | 80.02 | 75.74 | 0.9327±0.0017 | 30.49 | 6310 | 3680/4836 | COMPLETED |
 | P28_vcs_views4_seed0 | vcs_qmi | 8 | 0 | 200/200 | 84.48 | 81.10 | 0.9597±0.0013 | 57.42 | 12238 | 7568/12672 | COMPLETED |
@@ -28,7 +28,7 @@ Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
 |---|---|---|---|---|---|---|---|---|---|
 | P28_vcs_diag_metric_seed0 | 41.78 | 80.56 | 38.78 | 36.58 | 74.02 | 37.44 | 2.94 | 27.47 | -0.5686 |
 | P28_vcs_mono_spline_seed0 | 41.78 | 80.46 | 38.68 | 36.58 | 73.90 | 37.32 | 2.94 | 24.98 | -0.5701 |
-| P28_vcs_proj_bnonly_seed0 | null | null | null | null | null | null | null | null | null |
+| P28_vcs_proj_bnonly_seed0 | 41.78 | 77.78 | 36.00 | 36.58 | 74.08 | 37.50 | 2.94 | 1.70 | -0.5696 |
 | P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925 | null | null | null | null | null | null | null | null | null |
 | P28_vcs_proj_linear_seed0 | 41.78 | 80.02 | 38.24 | 36.58 | 75.74 | 39.16 | 2.94 | 30.49 | -0.5704 |
 | P28_vcs_views4_seed0 | 41.78 | 84.48 | 42.70 | 36.58 | 81.10 | 44.52 | 2.94 | 57.42 | -0.5686 |
@@ -37,7 +37,7 @@ Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
 
 - P28_vcs_diag_metric_seed0: ep0: 36.58, ep10: 53.60, ep20: 61.02, ep50: 67.82, ep100: 71.60, ep150: 73.56, ep200: 74.02
 - P28_vcs_mono_spline_seed0: ep0: 36.58, ep10: 53.52, ep20: 59.68, ep50: 66.76, ep100: 71.78, ep150: 73.60, ep200: 73.90
-- P28_vcs_proj_bnonly_seed0: ep0: 36.58, ep10: 56.28, ep20: 62.68, ep50: 69.58
+- P28_vcs_proj_bnonly_seed0: ep0: 36.58, ep10: 56.28, ep20: 62.68, ep50: 69.58, ep100: 71.82, ep150: 73.46, ep200: 74.08
 - P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925: ep0: 36.58
 - P28_vcs_proj_linear_seed0: ep0: 36.58, ep10: 55.18, ep20: 62.50, ep50: 69.20, ep100: 73.64, ep150: 75.50, ep200: 75.74
 - P28_vcs_views4_seed0: ep0: 36.58, ep10: 61.18, ep20: 68.96, ep50: 74.80, ep100: 78.56, ep150: 80.40, ep200: 81.10
@@ -46,7 +46,7 @@ Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
 
 - P28_vcs_diag_metric_seed0: ep0: -0.5686, ep10: 0.6217, ep20: 0.7788, ep50: 0.8541, ep100: 0.8993, ep150: 0.9172, ep200: 0.9253
 - P28_vcs_mono_spline_seed0: ep0: -0.5701, ep10: 0.4818, ep20: 0.6787, ep50: 0.8396, ep100: 0.8894, ep150: 0.9117, ep200: 0.9190
-- P28_vcs_proj_bnonly_seed0: ep0: -0.5696, ep10: 0.6634, ep20: 0.7973, ep50: 0.8971
+- P28_vcs_proj_bnonly_seed0: ep0: -0.5696, ep10: 0.6634, ep20: 0.7973, ep50: 0.8971, ep100: 0.9284, ep150: 0.9406, ep200: 0.9414
 - P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925: ep0: -0.5696
 - P28_vcs_proj_linear_seed0: ep0: -0.5704, ep10: 0.6415, ep20: 0.7798, ep50: 0.8675, ep100: 0.9090, ep150: 0.9259, ep200: 0.9327
 - P28_vcs_views4_seed0: ep0: -0.5686, ep10: 0.6496, ep20: 0.8447, ep50: 0.9141, ep100: 0.9421, ep150: 0.9554, ep200: 0.9597
@@ -55,7 +55,7 @@ Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
 
 - P28_vcs_diag_metric_seed0: J_raw 0.9291, R_binary 0.0709, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P28_vcs_mono_spline_seed0: J_raw 0.9232, R_binary 0.0768, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P28_vcs_proj_bnonly_seed0: J_raw 0.9238, R_binary 0.0762, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P28_vcs_proj_bnonly_seed0: J_raw 0.9440, R_binary 0.0560, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925: J_raw null, R_binary null, nt_xent null, vicreg None
 - P28_vcs_proj_linear_seed0: J_raw 0.9374, R_binary 0.0626, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P28_vcs_views4_seed0: J_raw 0.9660, R_binary 0.0340, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
@@ -66,7 +66,7 @@ Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
 |---|---|---|---|---|---|---|---|---|---|
 | P28_vcs_diag_metric_seed0 | 0.1594 | 1606 | 3213 | 5657 | 136 | 29 | 8960000 | 130 | 1009115@nodeaudible01 |
 | P28_vcs_mono_spline_seed0 | 0.1756 | 1458 | 2916 | 6219 | 150 | 35 | 8960000 | 9 | 1009114@node55 |
-| P28_vcs_proj_bnonly_seed0 | null | null | null | null | null | null | None | 2 | 1009178@node01 |
+| P28_vcs_proj_bnonly_seed0 | 0.1775 | 1443 | 2885 | 6284 | 152 | 36 | 8960000 | 2 | 1009178@node01 |
 | P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925 | null | null | null | 0 | 21 | null | 0 | 2 | 1009122@node54 |
 | P28_vcs_proj_linear_seed0 | 0.1778 | 1440 | 2879 | 6310 | 160 | 37 | 8960000 | 2 | 1009119@node06 |
 | P28_vcs_views4_seed0 | 0.3462 | 740 | 1479 | 12238 | 135 | 31 | 8960000 | 2 | 1009117@nodeaudible01 |
@@ -87,13 +87,13 @@ Generated 2026-09-25T21:35:18Z. Failed / stopped runs are listed, never dropped.
 
 | method | n | linear-val final (%) | linear-val ep0 (%) | Δ linear | kNN final (%) | h-rank final | heldout-J final |
 |---|---|---|---|---|---|---|---|
-| vcs_qmi K=8 | 4 | 81.38 ± 2.08 | 41.78 ± 0.00 | 39.60 ± 2.08 | 76.19 ± 3.38 | 35.09 ± 15.05 | 0.93 ± 0.02 |
+| vcs_qmi K=8 | 5 | 80.66 ± 2.42 | 41.78 ± 0.00 | 38.88 ± 2.42 | 75.77 ± 3.08 | 28.41 ± 19.82 | 0.94 ± 0.02 |
 
 ## Coverage checks
 
 - P28_vcs_diag_metric_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P28_vcs_mono_spline_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
-- P28_vcs_proj_bnonly_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
+- P28_vcs_proj_bnonly_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P28_vcs_proj_bnonly_seed0_FAILED_attempt1_20260925: epoch0 eval False, final eval False (None), status FAILED_INFRA, failure RuntimeError: first-step gradient check failed: projector gradient norm None
 - P28_vcs_proj_linear_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P28_vcs_views4_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
