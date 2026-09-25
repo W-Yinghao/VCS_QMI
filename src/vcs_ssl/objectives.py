@@ -7,7 +7,7 @@ import torch
 from torch import Tensor
 from torch.nn import functional as F
 
-from reference.ssl_core import simclr_nt_xent, vcs_pair_loss, vicreg_loss
+from reference.ssl_core import cyclic_negative_indices, simclr_nt_xent, vcs_from_scores, vcs_pair_loss, vicreg_loss
 
 VCS_STAT_KEYS = ("J_raw", "R_binary", "t_pos_mean", "t_neg_mean", "t_pos_second", "t_neg_second", "sat_pos_frac", "sat_neg_frac")
 
@@ -27,6 +27,29 @@ def critic_input_key(cfg: dict[str, Any]) -> str:
     return "p_raw" if cfg["model"]["normalization"]["vcs_and_simclr"] == "none" else "z_l2"
 
 
+def pair_symmetric(cfg: dict[str, Any]) -> bool:
+    return cfg["pairing"]["sampler"] == "random_nonzero_cyclic_shift_symmetric"
+
+
+def critic_steps(cfg: dict[str, Any]) -> int:
+    """Number of critic updates per batch: 1 for 'joint'; N for 'joint_critic_steps_N' (N-1 critic-only steps on detached features)."""
+    mode = cfg["train"]["mode"]
+    return 1 if mode == "joint" else int(mode.rsplit("_", 1)[1])
+
+
+def vcs_pair_loss_symmetric(z1: Tensor, z2: Tensor, critic, *, k: int, generator: torch.Generator | None):
+    """Named variant: score both orders. Positives (z1[i],z2[i]) and (z2[i],z1[i]); negatives (z1[i],z2[pi(i)]) and (z2[i],z1[pi(i)])
+    with the same K shifts. Same averaging rule as the reference (each distribution averaged separately)."""
+    if z1.ndim != 2 or z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes")
+    indices, shifts = cyclic_negative_indices(len(z1), k, generator=generator, device=z1.device)
+    t_pos = torch.cat((critic(z1, z2), critic(z2, z1)))
+    l1 = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
+    l2 = z2.unsqueeze(0).expand(k, -1, -1).reshape(-1, z2.shape[1])
+    t_neg = torch.cat((critic(l1, z2[indices].reshape(-1, z2.shape[1])), critic(l2, z1[indices].reshape(-1, z1.shape[1]))))
+    return vcs_from_scores(t_pos, t_neg), shifts
+
+
 def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, Any], critic=None,
                       pair_generator: torch.Generator | None = None) -> dict[str, Any]:
     """Return ``{"loss": Tensor, "stats": {...floats/None}, "shift": int|None, "n_pos": int, "n_neg": int}``."""
@@ -39,12 +62,15 @@ def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, A
             raise ValueError("vcs_qmi requires a critic")
         key = critic_input_key(cfg)
         z1, z2 = feats[key].chunk(2, dim=0)
-        s, shifts = vcs_pair_loss(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
+        sym = pair_symmetric(cfg)
+        fn = vcs_pair_loss_symmetric if sym else vcs_pair_loss
+        s, shifts = fn(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
         loss = s["loss"]
         for k in VCS_STAT_KEYS:
             stats[k] = float(s[k].detach())
+        mult = 2 if sym else 1
         return {"loss": loss, "stats": stats, "shift": int(shifts[0]) if len(shifts) == 1 else [int(v) for v in shifts],
-                "n_pos": b, "n_neg": b * cfg["pairing"]["k"]}
+                "n_pos": b * mult, "n_neg": b * cfg["pairing"]["k"] * mult}
     if method == "simclr_matched":
         z1, z2 = feats["z_l2"].chunk(2, dim=0)  # normalized; the reference re-normalizes (idempotent)
         loss = simclr_nt_xent(z1, z2, temperature=ocfg["simclr_temperature"])

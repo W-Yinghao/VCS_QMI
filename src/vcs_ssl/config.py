@@ -130,12 +130,14 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     p = cfg["pairing"]
     if not (1 <= p["k"] <= cfg["train"]["batch_size_images"] - 1):
         raise ConfigError("pairing.k must satisfy 1 <= K <= batch_size_images - 1 (K distinct nonzero cyclic shifts)")
-    if p["sampler"] != "random_nonzero_cyclic_shift" or not p["unique_shifts"] or p["allow_self"] or p["label_filter"] \
-            or p["queue"] or p["negative_detach"] or p["rng"] != "dedicated_cpu_generator":
-        raise ConfigError("pairing policy deviates from the frozen first-round definition")
+    if p["sampler"] not in ("random_nonzero_cyclic_shift", "random_nonzero_cyclic_shift_symmetric") or not p["unique_shifts"] \
+            or p["allow_self"] or p["label_filter"] or p["queue"] or p["negative_detach"] or p["rng"] != "dedicated_cpu_generator":
+        raise ConfigError("pairing policy deviates from the frozen definition (symmetric scoring of both orders is the only named variant)")
     t = cfg["train"]
-    if t["mode"] != "joint":
-        raise ConfigError("train.mode must be 'joint' (end_to_end_joint)")
+    if not (t["mode"] == "joint" or re.fullmatch(r"joint_critic_steps_([2-9]|10)", t["mode"])):
+        raise ConfigError("train.mode must be 'joint' or the named variant 'joint_critic_steps_N' (N extra-1 critic-only steps on detached features, 2<=N<=10)")
+    if m != "vcs_qmi" and (t["mode"] != "joint" or p["sampler"] != "random_nonzero_cyclic_shift"):
+        raise ConfigError("control runs keep joint mode and the default sampler")
     if t["world_size"] != 1 or t["grad_accumulation_steps"] != 1 or t["precision"] != "fp32" or t["allow_tf32"] or t["compile"]:
         raise ConfigError("single-GPU FP32, no accumulation, no TF32, no compile in the first round")
     if t["grad_clip_norm"] is not None:
@@ -181,9 +183,9 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError(f"critic.enabled / critic_validation.enabled must be {expect[1]} for method {m!r}")
     if m == "vcs_qmi":
         c = cfg["model"]["critic"]
-        if c["input"] != "ordered_concat" or c["activation"] != "relu" or c["output"] != "tanh" or c["batchnorm"] \
-                or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
-            raise ConfigError("critic must stay an ordered-concat ReLU MLP with tanh output, no BN/dropout, zero last bias")
+        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine") or c["activation"] != "relu" \
+                or c["output"] != "tanh" or c["batchnorm"] or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
+            raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine); ReLU, tanh, no BN/dropout")
         hd = c["hidden_dims"]
         if not (isinstance(hd, list) and len(hd) >= 1 and all(isinstance(w, int) and w > 0 for w in hd)):
             raise ConfigError("critic.hidden_dims must be a non-empty list of positive ints (hyper-parameter variant)")

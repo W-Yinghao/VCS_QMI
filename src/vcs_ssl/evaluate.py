@@ -135,7 +135,8 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
         if cv["enabled"] and crit is not None:
             ch = critic_holdout(enc, proj, crit, data.data, sel_uids, build_two_view_transform(cfg["views"]), device=device, batch_size=cv["batch_size"],
                                 repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(cfg["pairing"]["k"]), num_workers=num_workers,
-                                l2_eps=cfg["model"]["normalization"]["eps"], normalize_input=cfg["model"]["normalization"]["vcs_and_simclr"] != "none")
+                                l2_eps=cfg["model"]["normalization"]["eps"], normalize_input=cfg["model"]["normalization"]["vcs_and_simclr"] != "none",
+                                symmetric=cfg["pairing"]["sampler"] == "random_nonzero_cyclic_shift_symmetric")
             result["critic_holdout"] = ch
             result["heldout_J"] = ch["heldout_J_mean"]
             result["heldout_J_sd"] = ch["heldout_J_sd"]

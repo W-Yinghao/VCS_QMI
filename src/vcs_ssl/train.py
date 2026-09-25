@@ -29,7 +29,7 @@ from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, two_view_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_report
 from .models import build_models
-from .objectives import compute_objective, forward_features
+from .objectives import compute_objective, critic_steps, forward_features, pair_symmetric
 from .optim import all_grads_finite, build_optimizer, grad_norms, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
@@ -191,7 +191,9 @@ class Trainer:
                         "min_lr_ratio": self.min_lr_ratio, "crop_scale_min": self.cfg["views"]["random_resized_crop"]["scale"][0],
                         "color_jitter": [self.cfg["views"]["color_jitter"][k] for k in ("brightness", "contrast", "saturation", "hue")],
                         "gaussian_blur_p": self.cfg["views"]["gaussian_blur_p"],
-                        "matrix_weight_decay": self.cfg["optimizer"]["matrix_weight_decay_encoder_projector"]},
+                        "matrix_weight_decay": self.cfg["optimizer"]["matrix_weight_decay_encoder_projector"],
+                        "critic_input": self.cfg["model"]["critic"]["input"], "pair_symmetric": pair_symmetric(self.cfg),
+                        "critic_steps": critic_steps(self.cfg)},
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -362,7 +364,7 @@ class Trainer:
                 ch = critic_holdout(enc, proj, crit, self.data.data, self.sel_uids, self.two_view, device=self.device,
                                     batch_size=cv["batch_size"], repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(self.cfg["pairing"]["k"]),
                                     num_workers=self.eval_num_workers, l2_eps=self.cfg["model"]["normalization"]["eps"],
-                                    normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none")
+                                    normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none", symmetric=pair_symmetric(self.cfg))
                 result["critic_holdout"] = ch
                 result["heldout_J"] = ch["heldout_J_mean"]
             del enc, proj, crit, built, ck, sel, fit
@@ -396,6 +398,18 @@ class Trainer:
         x1 = x1.to(self.device, non_blocking=True)
         x2 = x2.to(self.device, non_blocking=True)
         feats = forward_features(self.encoder, self.projector, x1, x2, eps=self.cfg["model"]["normalization"]["eps"])
+        n_extra = critic_steps(self.cfg) - 1
+        if n_extra > 0 and self.critic is not None:
+            # named variant: critic-only updates on detached features before the joint step (encoder/projector grads stay None)
+            det = {k: v.detach() for k, v in feats.items()}
+            for _ in range(n_extra):
+                self.optimizer.zero_grad(set_to_none=True)
+                cobj = compute_objective(self.method, det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
+                if not torch.isfinite(cobj["loss"]):
+                    raise FloatingPointError(f"non-finite critic-only loss at step {self.step}")
+                cobj["loss"].backward()
+                self.optimizer.step()
+            self.optimizer.zero_grad(set_to_none=True)
         obj = compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
         loss = obj["loss"]
         if not torch.isfinite(loss):

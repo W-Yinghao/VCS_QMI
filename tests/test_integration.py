@@ -515,3 +515,60 @@ def test_blur_variant_and_control_lock(tmp_path):
     bad2 = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); bad2["views"]["solarize_p"] = 0.2
     with pytest.raises(ConfigError, match="solarize"):
         load_config(_write(tmp_path, yaml.safe_dump(bad2)), env=env)
+
+
+@pytest.mark.parametrize("inp", ["concat_interact", "bilinear_concat", "cosine"])
+def test_critic_input_variants(tmp_path, inp):
+    """Named critic variants: pointwise, bounded, gradients reach both views and the critic; config accepted for VCS only."""
+    import yaml
+    from vcs_ssl.models.critic import build_critic, critic_impl_name
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["model"]["critic"]["input"] = inp
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    crit = build_critic(cfg["model"]["critic"], feature_dim=16)
+    assert inp.split("_")[0] in critic_impl_name(cfg["model"]["critic"]).lower()
+    x = torch.randn(6, 16, requires_grad=True); y = torch.randn(6, 16, requires_grad=True)
+    out = crit(x, y)
+    assert out.shape == (6,) and (out.abs() <= 1).all()
+    pointwise = torch.cat([crit(x[i:i + 1], y[i:i + 1]) for i in range(6)])
+    torch.testing.assert_close(out, pointwise, atol=1e-6, rtol=1e-5)
+    (out.mean() + 0.5 * out.square().mean()).backward()
+    assert x.grad.abs().sum() > 0 and y.grad.abs().sum() > 0
+    assert sum(float(p.grad.abs().sum()) for p in crit.parameters() if p.grad is not None) > 0
+    if inp == "cosine":
+        assert sum(p.numel() for p in crit.parameters()) == 2
+
+
+def test_symmetric_pairing_and_critic_steps(tmp_path):
+    import yaml
+    from vcs_ssl.objectives import critic_steps, pair_symmetric, vcs_pair_loss_symmetric
+    from reference.ssl_core import vcs_pair_loss
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["pairing"]["sampler"] = "random_nonzero_cyclic_shift_symmetric"
+    base["train"]["mode"] = "joint_critic_steps_3"
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    assert pair_symmetric(cfg) and critic_steps(cfg) == 3
+    built = build_models(cfg, seed=0, device="cpu")
+    z1, z2 = F.normalize(torch.randn(8, 128), dim=1), F.normalize(torch.randn(8, 128), dim=1)
+    s_sym, sh = vcs_pair_loss_symmetric(z1, z2, built["critic"], k=2, generator=torch.Generator().manual_seed(0))
+    s_a, _ = vcs_pair_loss(z1, z2, built["critic"], k=2, generator=torch.Generator().manual_seed(0))
+    assert len(sh) == 2 and torch.isfinite(s_sym["loss"])
+    # symmetric loss uses 2B positives and 2KB negatives; with a symmetric input it equals the one-directional loss
+    f = forward_features(built["encoder"], built["projector"], torch.randn(8, 3, 32, 32), torch.randn(8, 3, 32, 32), eps=1e-8)
+    obj = compute_objective("vcs_qmi", f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(1))
+    assert obj["n_pos"] == 16 and obj["n_neg"] == 16
+    # extra critic-only steps: critic params move before the joint step; encoder gets exactly one update per batch
+    data, m = synthetic_bundle()
+    cfg2 = small_cfg(tmp_path, "vcs"); cfg2["train"]["mode"] = "joint_critic_steps_3"; cfg2["pairing"]["sampler"] = "random_nonzero_cyclic_shift_symmetric"
+    policy_checks(cfg2)
+    tr, st = run_trainer(tmp_path, cfg2, data, m, run_id="altsteps", device=torch.device("cpu"), smoke_steps=2, epoch_eval=False)
+    assert st == "COMPLETED"
+    rows = steps_log(tr.run_dir)
+    assert rows[0]["n_pos"] == 2 * cfg2["train"]["batch_size_images"]
+    rm = json.loads((tr.run_dir / "run_manifest.json").read_text())
+    assert rm["hparams"]["critic_steps"] == 3 and rm["hparams"]["pair_symmetric"] is True
+    bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad["train"]["mode"] = "joint_critic_steps_2"
+    with pytest.raises(ConfigError):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)

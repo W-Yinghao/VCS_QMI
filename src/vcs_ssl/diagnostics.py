@@ -147,7 +147,7 @@ def spectrum_report(feats: dict[str, Any], names: tuple[str, ...] = ("h", "p_raw
 @torch.no_grad()
 def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, images: np.ndarray, sel_uids: np.ndarray,
                    two_view_transform, *, device: torch.device, batch_size: int, repeats: int, rng_seed: int, k: int,
-                   num_workers: int = 4, l2_eps: float = 1e-8, normalize_input: bool = True) -> dict[str, Any]:
+                   num_workers: int = 4, l2_eps: float = 1e-8, normalize_input: bool = True, symmetric: bool = False) -> dict[str, Any]:
     """Train-distribution two-view pairs on selection images; whole model eval; global (count-weighted) means."""
     before = freeze(encoder, projector, critic)
     n = len(sel_uids)
@@ -185,6 +185,9 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 shifts.append(int(sh[0]))
                 tp = critic(z1, z2)
                 tn = critic(z1.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z1.shape[1]), z2[idx].reshape(-1, z2.shape[1]))
+                if symmetric:  # named variant: also score the reversed order with the same shifts
+                    tp = torch.cat((tp, critic(z2, z1)))
+                    tn = torch.cat((tn, critic(z2.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z2.shape[1]), z1[idx].reshape(-1, z1.shape[1]))))
                 pos_sum += float(tp.sum()); pos_sq += float(tp.square().sum()); n_pos += tp.numel()
                 neg_sum += float(tn.sum()); neg_sq += float(tn.square().sum()); n_neg += tn.numel()
                 sat_pos += int((tp.abs() > 0.95).sum()); sat_neg += int((tn.abs() > 0.95).sum())
@@ -202,7 +205,7 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
             "heldout_J_mean": float(js.mean()), "heldout_J_sd": float(js.std(unbiased=True)) if repeats > 1 else None,
             "heldout_R_binary_mean": float(1.0 - js.mean()), "per_repeat": per_repeat, "hist_bin_edges": hist_bins.tolist(),
             "seconds": t.elapsed,
-            "critic_input": "z_l2" if normalize_input else "p_raw",
+            "critic_input": "z_l2" if normalize_input else "p_raw", "symmetric": symmetric,
             "note": "diagnostic value of the current critic on images not used for SSL fit; not a refit supremum, not S, not Shannon MI"}
 
 
