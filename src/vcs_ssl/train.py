@@ -31,7 +31,7 @@ from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_re
 from .models import build_models, ema_update
 from .objectives import (compute_objective, compute_objective_target, compute_objective_views, critic_steps, forward_features, forward_features_target,
                          forward_features_views, pair_symmetric)
-from .optim import all_grads_finite, build_optimizer, grad_norms, set_lrs, verify_optimizer_coverage
+from .optim import all_grads_finite, build_optimizer, grad_norms, has_trainable_params, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
                     precision_flags, read_json, sha256_file, utc_now)
@@ -520,6 +520,8 @@ class Trainer:
         critic_on_h = self.method == "vcs_qmi" and self.cfg["model"]["critic"].get("feature_source", "z") == "h_l2"
         for name, m in (("encoder", self.encoder), ("projector", self.projector), ("critic", self.critic), ("predictor", self.predictor)):
             if m is None or (name == "projector" and critic_on_h):  # projector receives no gradient when the critic reads h (disclosed)
+                continue
+            if not has_trainable_params(m):  # parameter-free module (named variant projector.kind=bn_only: affine-free BN only)
                 continue
             g = gn.get(f"grad_norm_{name}")
             if g is None or not np.isfinite(g) or g <= 0:

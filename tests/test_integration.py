@@ -862,3 +862,25 @@ def test_projector_kinds(tmp_path):
     badc = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); badc["model"]["projector"]["depth"] = 1
     with pytest.raises(ConfigError, match="control runs keep"):
         load_config(_write(tmp_path, yaml.safe_dump(badc)), env=env)
+
+
+def test_bn_only_projector_has_no_trainable_params_and_is_skipped_by_gradient_check(tmp_path):
+    import yaml
+    from vcs_ssl.optim import has_trainable_params
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    assert has_trainable_params(build_models(load_config(_write(tmp_path, yaml.safe_dump(base)), env=env), seed=0, device="cpu")["projector"])
+    b2 = copy.deepcopy(base); b2["model"]["projector"]["kind"] = "bn_only"; b2["model"]["projector"]["output_dim"] = 512; b2["model"]["critic"]["input"] = "cosine"
+    bt = build_models(load_config(_write(tmp_path, yaml.safe_dump(b2)), env=env), seed=0, device="cpu")
+    assert not has_trainable_params(bt["projector"])
+    # the optimizer still covers encoder + critic, and a backward pass gives finite gradients to both
+    from vcs_ssl.optim import build_optimizer, grad_norms
+    cfg2 = load_config(_write(tmp_path, yaml.safe_dump(b2)), env=env)
+    opt = build_optimizer(bt["encoder"], bt["projector"], bt["critic"], cfg2["optimizer"])
+    x1, x2 = torch.randn(8, 3, 32, 32), torch.randn(8, 3, 32, 32)
+    f = forward_features(bt["encoder"], bt["projector"], x1, x2, eps=cfg2["model"]["normalization"]["eps"])
+    out = compute_objective("vcs_qmi", f, cfg=cfg2, critic=bt["critic"], pair_generator=torch.Generator().manual_seed(0))
+    out["loss"].backward()
+    gn = grad_norms(bt["encoder"], bt["projector"], bt["critic"])
+    assert gn["grad_norm_projector"] is None and gn["grad_norm_encoder"] > 0 and gn["grad_norm_critic"] > 0
+    opt.zero_grad(set_to_none=True)

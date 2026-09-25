@@ -65,6 +65,11 @@ def set_lrs(opt: torch.optim.Optimizer, factor: float) -> dict[str, float]:
 
 
 @torch.no_grad()
+def has_trainable_params(m: nn.Module) -> bool:
+    """False for parameter-free modules (e.g. the affine-free BN-only projector), which cannot have a gradient norm."""
+    return any(p.requires_grad for p in m.parameters())
+
+
 def grad_norms(encoder: nn.Module, projector: nn.Module, critic: nn.Module | None, predictor: nn.Module | None = None) -> dict[str, float | None]:
     """L2 norm of all gradients per module, collected after backward and before optimizer.step (no clipping)."""
     out: dict[str, float | None] = {}
