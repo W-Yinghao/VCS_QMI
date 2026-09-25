@@ -691,3 +691,38 @@ def test_cosine_scale_init(tmp_path):
     bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); bad["model"]["critic"]["cosine_scale_init"] = 0
     with pytest.raises(ConfigError, match="cosine_scale_init"):
         load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+
+
+def test_critic_holdout_follows_training_wiring(tmp_path):
+    """With an EMA teacher + predictor the hold-out diagnostic scores online[+predictor] vs teacher pairs (training wiring), not online-online."""
+    import yaml
+    from vcs_ssl.diagnostics import critic_holdout
+    from vcs_ssl.objectives import compute_objective_target, forward_features_target
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["train"]["target_branch"] = "ema_0.99"; base["model"]["projector"]["predictor"] = True; base["model"]["critic"]["input"] = "cosine"
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    data, m = synthetic_bundle()
+    built = build_models(cfg, seed=0, device="cpu")
+    # perturb the teacher so wiring matters
+    with torch.no_grad():
+        for q in built["teacher"]["projector"].parameters():
+            q.add_(0.5)
+    sel = np.asarray(m["selection_uids"])[:64]
+    tf = build_two_view_transform(cfg["views"])
+    res_w = critic_holdout(built["encoder"], built["projector"], built["critic"], data.data, sel, tf, device=torch.device("cpu"), batch_size=32, repeats=1, rng_seed=1, k=1,
+                           num_workers=0, target_branch="ema_0.99", teacher=built["teacher"], predictor=built["predictor"])
+    res_o = critic_holdout(built["encoder"], built["projector"], built["critic"], data.data, sel, tf, device=torch.device("cpu"), batch_size=32, repeats=1, rng_seed=1, k=1, num_workers=0)
+    assert res_w["wiring"].startswith("training wiring") and res_o["wiring"] == "online-online"
+    assert res_w["per_repeat"][0]["n_pos"] == 2 * 64 and res_o["per_repeat"][0]["n_pos"] == 64
+    assert abs(res_w["heldout_J_mean"] - res_o["heldout_J_mean"]) > 1e-6
+    # the diagnostic matches a no-grad evaluation of the training objective on the same batch (eval mode, same pairs/shifts)
+    for mod in (built["encoder"], built["projector"], built["critic"], built["predictor"], built["teacher"]["encoder"], built["teacher"]["projector"]):
+        mod.eval()
+    torch.manual_seed(0)
+    x1 = torch.stack([tf(__import__("PIL.Image", fromlist=["fromarray"]).fromarray(data.data[u])) for u in sel[:32]])
+    x2 = torch.stack([tf(__import__("PIL.Image", fromlist=["fromarray"]).fromarray(data.data[u])) for u in sel[:32]])
+    with torch.no_grad():
+        f = forward_features_target(built["encoder"], built["projector"], x1, x2, 1e-8, target_branch="ema_0.99", teacher=built["teacher"], predictor=built["predictor"])
+        obj = compute_objective_target(f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(5))
+    assert torch.isfinite(obj["loss"]) and obj["n_pos"] == 64

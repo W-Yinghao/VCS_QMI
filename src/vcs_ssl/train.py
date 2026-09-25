@@ -350,6 +350,12 @@ class Trainer:
             proj.load_state_dict(ck["projector_state"])
             if crit is not None:
                 crit.load_state_dict(ck["critic_state"])
+            ev_pred, ev_teacher = built.get("predictor"), built.get("teacher")
+            if ev_pred is not None and ck.get("predictor_state") is not None:
+                ev_pred.load_state_dict(ck["predictor_state"])
+            if ev_teacher is not None and ck.get("teacher_encoder_state") is not None:
+                ev_teacher["encoder"].load_state_dict(ck["teacher_encoder_state"])
+                ev_teacher["projector"].load_state_dict(ck["teacher_projector_state"])
             eval_seed = 7_000_000 + epoch
             sel = extract_features(enc, proj, self.data.data, self.data.targets, self.sel_uids, self.clean, device=self.device,
                                    num_workers=self.eval_num_workers, seed=eval_seed, l2_eps=self.cfg["model"]["normalization"]["eps"])
@@ -378,10 +384,11 @@ class Trainer:
                 ch = critic_holdout(enc, proj, crit, self.data.data, self.sel_uids, self.two_view, device=self.device, feature_source=self.cfg["model"]["critic"].get("feature_source", "z"),
                                     batch_size=cv["batch_size"], repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(self.cfg["pairing"]["k"]),
                                     num_workers=self.eval_num_workers, l2_eps=self.cfg["model"]["normalization"]["eps"],
-                                    normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none", symmetric=pair_symmetric(self.cfg))
+                                    normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none", symmetric=pair_symmetric(self.cfg),
+                                    target_branch=self.target_branch, teacher=ev_teacher, predictor=ev_pred)
                 result["critic_holdout"] = ch
                 result["heldout_J"] = ch["heldout_J_mean"]
-            del enc, proj, crit, built, ck, sel, fit
+            del enc, proj, crit, built, ck, sel, fit, ev_pred, ev_teacher
         after = rng_fingerprint(capture_rng(self.device, self.loader_gen, self.pair_gen))
         result["training_rng_untouched"] = before == after
         if before != after:

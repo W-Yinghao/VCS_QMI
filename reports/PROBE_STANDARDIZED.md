@@ -1,4 +1,4 @@
-# Standardized-feature linear probe (diagnostic) — 2026-09-25T09:45:34Z
+# Standardized-feature linear probe (diagnostic) — 2026-09-25T14:09:25Z
 
 Same probe protocol on per-dimension standardized `h` (fit statistics). Same rule for every method; raw = frozen pilot protocol.
 
@@ -45,10 +45,30 @@ Same probe protocol on per-dimension standardized `h` (fit statistics). Same rul
 | P16_vcs_b128_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 73.22 | 73.26 | +0.04 | 63.68 | 25.5 | [68.1, 70.8, 69.1, 72.1, 71.8, 71.2, 72.8, 73.1, 73.3, 73.3] |
 | P16_vcs_b512_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 74.34 | 73.92 | -0.42 | 63.60 | 27.9 | [69.9, 70.2, 70.2, 71.6, 71.7, 72.1, 72.6, 73.5, 73.7, 73.9] |
 | P16_vcs_k8_aug_strong_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 76.70 | 76.88 | +0.18 | 68.96 | 24.6 | [73.4, 72.5, 73.2, 75.8, 74.8, 75.0, 76.0, 76.1, 76.7, 76.9] |
+| P16_vcs_k8_clr10_800ep_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_800.pt | 79.56 | 79.20 | -0.36 | 74.28 | 15.4 | [77.2, 77.3, 77.0, 78.2, 77.6, 78.3, 79.0, 79.0, 79.0, 79.2] |
 | P16_vcs_k8_clr10_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 77.44 | 76.94 | -0.50 | 68.40 | 24.0 | [73.0, 73.7, 73.2, 74.8, 75.2, 75.6, 76.4, 77.0, 77.1, 76.9] |
 | P16_vcs_k8_clr3_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 76.80 | 76.82 | +0.02 | 67.32 | 24.0 | [74.2, 73.3, 74.2, 75.3, 75.1, 75.4, 76.4, 76.8, 76.7, 76.8] |
 | P16_vcs_wd1e-5_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 74.86 | 74.68 | -0.18 | 63.60 | 27.1 | [68.8, 70.6, 69.8, 71.7, 72.3, 71.8, 73.9, 74.1, 74.5, 74.7] |
 | P16_vcs_wd5e-4_seed0 | vcs_qmi | P16_vcs_hparamB_set | epoch_200.pt | 73.84 | 73.88 | +0.04 | 63.38 | 25.1 | [69.3, 70.2, 69.3, 71.8, 71.1, 71.4, 73.2, 73.5, 73.8, 73.9] |
+| P18_vcs_crit_bilinear_seed0 | vcs_qmi | P18_vcs_critic_variants | epoch_200.pt | 76.18 | 76.60 | +0.42 | 66.76 | 25.4 | [72.2, 71.9, 72.1, 75.0, 75.0, 75.1, 76.1, 76.8, 76.4, 76.6] |
+| P18_vcs_crit_cosine_seed0 | vcs_qmi | P18_vcs_critic_variants | epoch_200.pt | 78.32 | 78.12 | -0.20 | 72.76 | 16.7 | [74.5, 75.5, 75.4, 76.7, 76.3, 77.1, 77.6, 77.5, 78.1, 78.1] |
+| P18_vcs_crit_interact_seed0 | vcs_qmi | P18_vcs_critic_variants | epoch_200.pt | 77.34 | 76.76 | -0.58 | 70.74 | 20.6 | [73.2, 73.3, 73.9, 74.7, 75.1, 75.4, 76.2, 76.5, 77.0, 76.8] |
+| P18_vcs_crit_steps2_seed0 | vcs_qmi | P18_vcs_critic_variants | epoch_200.pt | 76.76 | 76.78 | +0.02 | 67.54 | 23.7 | [72.9, 72.8, 73.7, 75.0, 75.3, 75.5, 76.3, 76.7, 76.7, 76.8] |
+| P18_vcs_crit_steps5_seed0 | vcs_qmi | P18_vcs_critic_variants | epoch_200.pt | 75.62 | 75.64 | +0.02 | 68.80 | 23.8 | [72.3, 72.9, 72.5, 73.3, 73.5, 74.6, 75.0, 75.0, 75.6, 75.6] |
+| P18_vcs_pair_sym_seed0 | vcs_qmi | P18_vcs_critic_variants | epoch_200.pt | 77.08 | 76.70 | -0.38 | 67.60 | 23.3 | [72.6, 73.4, 73.7, 74.7, 75.4, 74.6, 76.0, 76.4, 76.6, 76.7] |
+| P20_vcs_crit_on_h_seed0 | vcs_qmi | P20_vcs_ssl_wiring | epoch_200.pt | 75.88 | 76.06 | +0.18 | 70.58 | 28.9 | [72.6, 73.2, 73.4, 74.1, 74.0, 74.5, 75.3, 75.9, 75.8, 76.1] |
+| P20_vcs_crit_steps5_seed0 | vcs_qmi | P20_vcs_ssl_wiring | epoch_200.pt | 74.40 | 73.92 | -0.48 | 67.42 | 20.4 | [71.2, 70.6, 70.2, 72.0, 72.6, 72.3, 73.0, 73.7, 74.4, 73.9] |
+| P20_vcs_neg_detach_seed0 | vcs_qmi | P20_vcs_ssl_wiring | epoch_200.pt | 44.46 | 46.22 | +1.76 | 37.78 | 12.1 | [39.2, 41.4, 38.2, 42.8, 42.9, 44.9, 44.6, 45.6, 46.5, 46.2] |
+| P22_vcs_ema0.996_seed0 | vcs_qmi | P22_vcs_target_branch | epoch_200.pt | 76.46 | 76.42 | -0.04 | 68.96 | 21.8 | [72.0, 72.9, 72.4, 74.8, 74.7, 74.7, 75.9, 76.5, 76.4, 76.4] |
+| P22_vcs_ema0.99_seed0 | vcs_qmi | P22_vcs_target_branch | epoch_200.pt | 76.28 | 75.82 | -0.46 | 69.52 | 22.1 | [72.3, 72.4, 73.4, 74.2, 75.0, 74.8, 75.4, 75.7, 75.8, 75.8] |
+| P22_vcs_sg_pred_seed0 | vcs_qmi | P22_vcs_target_branch | epoch_200.pt | 76.94 | 76.50 | -0.44 | 66.94 | 22.9 | [72.3, 73.3, 72.2, 74.6, 74.9, 74.6, 76.0, 76.2, 76.6, 76.5] |
+| P22_vcs_stopgrad_seed0 | vcs_qmi | P22_vcs_target_branch | epoch_200.pt | 76.62 | 76.38 | -0.24 | 68.74 | 23.5 | [72.8, 72.7, 73.6, 74.7, 74.8, 74.4, 75.5, 76.0, 75.9, 76.4] |
+| P24_vcs_cos_clr10_seed0 | vcs_qmi | P24_vcs_cosine_base | epoch_200.pt | 77.26 | 77.26 | +0.00 | 71.74 | 18.0 | [73.5, 73.6, 74.2, 75.0, 75.1, 76.5, 76.6, 76.8, 77.3, 77.3] |
+| P24_vcs_cos_k255_seed0 | vcs_qmi | P24_vcs_cosine_base | epoch_200.pt | 79.32 | 78.90 | -0.42 | 73.48 | 16.5 | [75.1, 76.3, 76.9, 76.9, 78.1, 78.0, 78.4, 79.0, 78.9, 78.9] |
+| P24_vcs_cos_k64_seed0 | vcs_qmi | P24_vcs_cosine_base | epoch_200.pt | 78.74 | 78.34 | -0.40 | 73.56 | 16.6 | [74.8, 75.3, 75.7, 76.7, 77.1, 77.6, 78.1, 78.3, 78.4, 78.3] |
+| P24_vcs_cos_negdetach_seed0 | vcs_qmi | P24_vcs_cosine_base | epoch_200.pt | 80.48 | 79.98 | -0.50 | 74.62 | 20.2 | [77.4, 79.1, 77.4, 78.8, 79.1, 78.9, 79.5, 79.7, 79.9, 80.0] |
+| P24_vcs_cos_on_h_seed0 | vcs_qmi | P24_vcs_cosine_base | epoch_200.pt | 72.72 | 75.22 | +2.50 | 76.48 | 0.5 | [71.4, 73.3, 72.7, 73.7, 73.4, 74.7, 74.6, 75.1, 75.2, 75.2] |
+| P24_vcs_cos_scale10_seed0 | vcs_qmi | P24_vcs_cosine_base | epoch_200.pt | 77.56 | 77.58 | +0.02 | 71.28 | 17.1 | [72.8, 73.8, 74.3, 74.4, 74.6, 76.6, 76.6, 77.2, 77.5, 77.6] |
 | P3_simclr_seed0 | simclr_matched | P3_pilot | epoch_020.pt | 74.98 | 74.96 | -0.02 | 67.90 | 27.1 | [72.3, 71.8, 72.7, 73.6, 73.2, 73.7, 74.7, 74.8, 75.0, 75.0] |
 | P3_vcs_seed0 | vcs_qmi | P3_pilot | epoch_020.pt | 56.26 | 57.18 | +0.92 | 41.08 | 34.5 | [46.1, 47.3, 52.8, 52.2, 50.3, 55.1, 55.0, 56.7, 57.2, 57.2] |
 | P3_vicreg_seed0 | vicreg_matched_128 | P3_pilot | epoch_020.pt | 75.58 | 75.42 | -0.16 | 68.20 | 23.6 | [72.0, 73.8, 73.3, 74.7, 74.7, 74.4, 75.1, 75.4, 75.4, 75.4] |

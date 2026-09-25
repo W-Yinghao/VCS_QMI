@@ -11,7 +11,7 @@ order, or the critic update count changed (all permitted by the collaborator's p
 | unit | f_θ / change | linear | Δ | kNN | h-rank | z-rank | `p_raw` cliff | ‖h‖ | heldout-J | signal |
 |---|---|---|---|---|---|---|---|---|---|---|
 | **crit_cosine** | tanh(a·⟨z1,z2⟩+b), 2 params | **78.32** | **+2.20** | **72.76** | **57.7** | 42.2 | none | 16.6 | 0.968 | HELPS |
-| **crit_interact** | MLP on [z1,z2,z1⊙z2,‖z1−z2‖] | 77.34 | +1.22 | 70.74 | 39.3 | 22.3 | none | 20.5 | 0.962 | HELPS |
+| **crit_interact** | MLP on [z1, z2, z1⊙z2, |z1−z2| (elementwise)] | 77.34 | +1.22 | 70.74 | 39.3 | 22.3 | none | 20.5 | 0.962 | HELPS |
 | crit_bilinear | tanh(z1ᵀWz2 + MLP[z1;z2]) | 76.18 | +0.06 | 66.76 | 16.7 | 8.9 | 9 dirs | 25.1 | 0.931 | neutral |
 | pair_sym | score both orders | 77.08 | +0.96 | 67.60 | 17.0 | — | — | — | 0.931 | neutral |
 | crit_steps2 | 1 extra critic-only step | 76.76 | +0.64 | 67.54 | 18.1 | — | — | — | 0.931 | neutral |
@@ -22,7 +22,7 @@ kNN trajectories (ep 10/20/50/100/150/200): cosine 56.5/64.0/69.2/71.7/72.8/72.8
 
 ## Reading (per the frozen grid)
 - **The critic's function form was the limiter.**  Replacing the concat-MLP f_θ by a similarity-form critic raises the encoder's effective rank
-  from 16 to 58 (SimCLR-matched: 90) and removes the `p_raw` eigenvalue cliff entirely; interaction features (z1⊙z2, ‖z1−z2‖) fed to the same
+  from 16 to 58 (SimCLR-matched: 90) and removes the `p_raw` eigenvalue cliff entirely; interaction features (z1⊙z2, elementwise |z1−z2|) fed to the same
   MLP get most of the way (rank 39).  This is the pre-registered "critic form is a real limiter" outcome; the paper's wording about the critic
   class must state that f_θ needs an explicit similarity/interaction structure, not merely capacity.
 - **A 2-parameter critic beats a 400k-parameter one** (78.32 vs 76.12): the MLP's capacity was never the binding constraint (consistent with

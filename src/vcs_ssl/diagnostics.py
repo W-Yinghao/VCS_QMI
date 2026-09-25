@@ -148,9 +148,17 @@ def spectrum_report(feats: dict[str, Any], names: tuple[str, ...] = ("h", "p_raw
 def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, images: np.ndarray, sel_uids: np.ndarray,
                    two_view_transform, *, device: torch.device, batch_size: int, repeats: int, rng_seed: int, k: int,
                    num_workers: int = 4, l2_eps: float = 1e-8, normalize_input: bool = True, symmetric: bool = False,
-                   feature_source: str = "z") -> dict[str, Any]:
-    """Train-distribution two-view pairs on selection images; whole model eval; global (count-weighted) means."""
-    before = freeze(encoder, projector, critic)
+                   feature_source: str = "z", target_branch: str = "shared", teacher: dict | None = None, predictor: nn.Module | None = None) -> dict[str, Any]:
+    """Train-distribution two-view pairs on selection images; whole model eval; global (count-weighted) means.
+
+    With a target branch (stopgrad / ema_<tau>) and/or a predictor, the scored pairs follow the TRAINING wiring: online side =
+    [predictor(]projector(encoder(x))[)], target side = teacher (EMA) or online features, both views symmetric as in
+    ``compute_objective_target``.  All modules (incl. teacher/predictor) are frozen in eval mode; teacher BN uses its running buffers.
+    """
+    t_enc = teacher["encoder"] if teacher is not None else None
+    t_proj = teacher["projector"] if teacher is not None else None
+    before = freeze(encoder, projector, critic, predictor, t_enc, t_proj)
+    use_target = target_branch != "shared"
     n = len(sel_uids)
     per_repeat = []
     hist_bins = torch.linspace(-1, 1, 41)
@@ -177,22 +185,38 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 bsz = x1.shape[0]
                 if bsz < 2:
                     raise RuntimeError("a batch of size 1 remained after merging; cannot form negatives")
-                h_all = encoder(torch.cat((x1, x2)).to(device))
-                if feature_source == "h_l2":
-                    z = F.normalize(h_all, dim=1, eps=l2_eps)
-                else:
-                    p_all = projector(h_all)
-                    z = F.normalize(p_all, dim=1, eps=l2_eps) if normalize_input else p_all
+                xx = torch.cat((x1, x2)).to(device)
+                h_all = encoder(xx)
+                def _feat(h, proj, pred):
+                    if feature_source == "h_l2":
+                        return F.normalize(h, dim=1, eps=l2_eps)
+                    p_all = proj(h)
+                    if pred is not None:
+                        p_all = pred(p_all)
+                    return F.normalize(p_all, dim=1, eps=l2_eps) if normalize_input else p_all
+                z = _feat(h_all, projector, predictor)
                 z1, z2 = z.chunk(2, dim=0)
                 k_eff = min(k, bsz - 1)  # a short tail batch cannot host K distinct nonzero shifts; capped and recorded
                 k_eff_min = min(k_eff_min, k_eff)
                 idx, sh = cyclic_negative_indices(bsz, k_eff, generator=pair_gen, device=z.device)
                 shifts.append(int(sh[0]))
-                tp = critic(z1, z2)
-                tn = critic(z1.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z1.shape[1]), z2[idx].reshape(-1, z2.shape[1]))
-                if symmetric:  # named variant: also score the reversed order with the same shifts
-                    tp = torch.cat((tp, critic(z2, z1)))
-                    tn = torch.cat((tn, critic(z2.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z2.shape[1]), z1[idx].reshape(-1, z1.shape[1]))))
+                if use_target:
+                    # training wiring: online (with predictor) vs target (teacher or detached online, no predictor), symmetric
+                    if teacher is not None:
+                        t_all = _feat(t_enc(xx), t_proj, None)
+                    else:
+                        t_all = _feat(h_all, projector, None)
+                    t1, t2 = t_all.chunk(2, dim=0)
+                    tp = torch.cat((critic(z1, t2), critic(z2, t1)))
+                    l1 = z1.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z1.shape[1])
+                    l2 = z2.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z2.shape[1])
+                    tn = torch.cat((critic(l1, t2[idx].reshape(-1, t2.shape[1])), critic(l2, t1[idx].reshape(-1, t1.shape[1]))))
+                else:
+                    tp = critic(z1, z2)
+                    tn = critic(z1.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z1.shape[1]), z2[idx].reshape(-1, z2.shape[1]))
+                    if symmetric:  # named variant: also score the reversed order with the same shifts
+                        tp = torch.cat((tp, critic(z2, z1)))
+                        tn = torch.cat((tn, critic(z2.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z2.shape[1]), z1[idx].reshape(-1, z1.shape[1]))))
                 pos_sum += float(tp.sum()); pos_sq += float(tp.square().sum()); n_pos += tp.numel()
                 neg_sum += float(tn.sum()); neg_sq += float(tn.square().sum()); n_neg += tn.numel()
                 sat_pos += int((tp.abs() > 0.95).sum()); sat_neg += int((tn.abs() > 0.95).sum())
@@ -204,13 +228,15 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                                "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
                                "sat_pos_frac": sat_pos / n_pos, "sat_neg_frac": sat_neg / n_neg,
                                "shifts": shifts, "pos_hist": pos_hist.tolist(), "neg_hist": neg_hist.tolist()})
-    assert_unchanged(before, encoder, projector, critic)
+    assert_unchanged(before, encoder, projector, critic, predictor, t_enc, t_proj)
     js = torch.tensor([r["heldout_J"] for r in per_repeat], dtype=torch.float64)
     return {"n_selection_images": int(n), "repeats": repeats, "batch_size": batch_size, "k": k,
             "heldout_J_mean": float(js.mean()), "heldout_J_sd": float(js.std(unbiased=True)) if repeats > 1 else None,
             "heldout_R_binary_mean": float(1.0 - js.mean()), "per_repeat": per_repeat, "hist_bin_edges": hist_bins.tolist(),
             "seconds": t.elapsed,
             "critic_input": ("h_l2" if feature_source == "h_l2" else ("z_l2" if normalize_input else "p_raw")), "symmetric": symmetric,
+            "wiring": ("training wiring: online[+predictor] vs " + ("EMA teacher" if teacher is not None else "detached online") + ", symmetric") if use_target else "online-online",
+            "target_branch": target_branch, "predictor": predictor is not None,
             "note": "diagnostic value of the current critic on images not used for SSL fit; not a refit supremum, not S, not Shannon MI"}
 
 

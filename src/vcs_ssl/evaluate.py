@@ -94,7 +94,13 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
         proj.load_state_dict(ck["projector_state"])
         if crit is not None:
             crit.load_state_dict(ck["critic_state"])
-        for m in (enc, proj, crit):
+        ev_pred, ev_teacher = built.get("predictor"), built.get("teacher")
+        if ev_pred is not None and ck.get("predictor_state") is not None:
+            ev_pred.load_state_dict(ck["predictor_state"])
+        if ev_teacher is not None and ck.get("teacher_encoder_state") is not None:
+            ev_teacher["encoder"].load_state_dict(ck["teacher_encoder_state"])
+            ev_teacher["projector"].load_state_dict(ck["teacher_projector_state"])
+        for m in (enc, proj, crit, ev_pred, *((ev_teacher["encoder"], ev_teacher["projector"]) if ev_teacher else ())):
             if m is not None:
                 m.eval()
                 for p in m.parameters():
@@ -137,7 +143,8 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
                                 repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(cfg["pairing"]["k"]), num_workers=num_workers,
                                 l2_eps=cfg["model"]["normalization"]["eps"], normalize_input=cfg["model"]["normalization"]["vcs_and_simclr"] != "none",
                                 symmetric=cfg["pairing"]["sampler"] == "random_nonzero_cyclic_shift_symmetric",
-                                feature_source=cfg["model"]["critic"].get("feature_source", "z"))
+                                feature_source=cfg["model"]["critic"].get("feature_source", "z"),
+                                target_branch=cfg["train"].get("target_branch", "shared"), teacher=ev_teacher, predictor=ev_pred)
             result["critic_holdout"] = ch
             result["heldout_J"] = ch["heldout_J_mean"]
             result["heldout_J_sd"] = ch["heldout_J_sd"]
