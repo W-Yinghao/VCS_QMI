@@ -193,8 +193,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("automatic search / auto 200-epoch start are not authorized")
     if cfg["execution"]["max_gpus_per_job"] != 1:
         raise ConfigError("max_gpus_per_job must be 1")
-    if cfg["views"]["count"] not in (2, 4):
-        raise ConfigError("views.count must be 2 (frozen) or 4 (VCS-only named variant)")
+    if cfg["views"]["count"] not in (2, 4, 8):
+        raise ConfigError("views.count must be 2 (frozen) or 4 / 8 (VCS-only named variants: J averaged over all view pairs)")
     if cfg["views"]["count"] != 2 and m != "vcs_qmi":
         raise ConfigError("control runs keep two views")
     if cfg["pairing"]["sampler"] == "all_pairs_matrix" and (m != "vcs_qmi" or cfg["model"]["critic"]["input"] not in ("cosine", "shared_metric", "mono_spline", "diag_metric")):

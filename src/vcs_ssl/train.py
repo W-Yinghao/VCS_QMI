@@ -643,7 +643,7 @@ class Trainer:
         mem = self.peak_memory()
         summary = {
             **self.run_manifest, "status": status, "failure_reason": self.failure_reason, "completed_epoch": self.completed_epoch,
-            "optimizer_step": self.step, "seen_base_images": self.seen_base_images, "seen_views": 2 * self.seen_base_images,
+            "optimizer_step": self.step, "seen_base_images": self.seen_base_images, "seen_views": self.n_views * self.seen_base_images,
             "train_seconds": self.train_seconds, "eval_seconds": self.eval_seconds,
             "steady_state_step_seconds_mean": float(np.mean(steady)) if steady else None,
             "steady_state_images_per_s": (self.batch / float(np.mean(steady))) if steady else None,

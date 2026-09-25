@@ -841,6 +841,16 @@ def test_new_candidates_spline_diag_allpairs_views(tmp_path):
     badv = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); badv["views"]["count"] = 4
     with pytest.raises(ConfigError, match="two views"):
         load_config(_write(tmp_path, yaml.safe_dump(badv)), env=env)
+    # 8 views: 28 pairs, same code path
+    b8 = copy.deepcopy(b4); b8["views"]["count"] = 8
+    cfg8 = load_config(_write(tmp_path, yaml.safe_dump(b8)), env=env)
+    bt8 = build_models(cfg8, seed=0, device="cpu")
+    fv8 = forward_features_views(bt8["encoder"], bt8["projector"], [torch.randn(5, 3, 32, 32) for _ in range(8)], eps=1e-8)
+    ov8 = compute_objective_views(fv8, cfg=cfg8, critic=bt8["critic"], pair_generator=torch.Generator().manual_seed(0))
+    assert ov8["n_pos"] == 5 * 28 and len(ov8["shift"]) == 28 and torch.isfinite(ov8["loss"])
+    bad8 = copy.deepcopy(b4); bad8["views"]["count"] = 6
+    with pytest.raises(ConfigError, match="views.count"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad8)), env=env)
 
 
 def test_projector_kinds(tmp_path):
