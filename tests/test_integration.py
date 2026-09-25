@@ -495,3 +495,23 @@ def test_critic_holdout_caps_k_on_short_tail_batch(tmp_path):
     rep = res["per_repeat"][0]
     assert rep["k_effective_min"] == 15 and rep["n_pos"] == 80 and rep["n_neg"] == 20 * 32 + 20 * 32 + 15 * 16
     assert -3.0 <= rep["heldout_J"] <= 1.0
+
+
+def test_blur_variant_and_control_lock(tmp_path):
+    import yaml
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["views"]["gaussian_blur_p"] = 0.5
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    tf = build_two_view_transform(cfg["views"])
+    assert any(type(m).__name__ == "RandomApply" and any(type(x).__name__ == "GaussianBlur" for x in m.transforms) for m in tf.transforms)
+    from PIL import Image
+    img = Image.fromarray(np.random.default_rng(0).integers(0, 256, (32, 32, 3), dtype=np.uint8))
+    v = tf(img)
+    assert v.shape == (3, 32, 32) and torch.isfinite(v).all()
+    bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad["views"]["gaussian_blur_p"] = 0.5
+    with pytest.raises(ConfigError, match="control runs keep"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+    bad2 = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); bad2["views"]["solarize_p"] = 0.2
+    with pytest.raises(ConfigError, match="solarize"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad2)), env=env)

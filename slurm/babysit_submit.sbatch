@@ -12,12 +12,12 @@ source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 : "${UNITS_FILE:?}"; : "${STAGE:?}"; : "${OUT:?}"; CAP=${CAP:-28}; FINAL_CKPT=${FINAL_CKPT:-epoch_200.pt}
 banner "babysitter for ${STAGE}: units=${UNITS_FILE} cap=${CAP}"
 ids=(); submitted=()
-while read -r run_id cfg; do
+while read -r run_id cfg unit_final; do
   [ -z "$run_id" ] && continue
   st=$("$PYTHON" -c "import json;print(json.load(open('$OUTPUT_ROOT/$run_id/status.json'))['status'])" 2>/dev/null || echo NONE)
   if [ "$st" = "COMPLETED" ]; then echo "[skip] $run_id already COMPLETED"; continue; fi
   while [ "$(squeue -h -u "$USER" | wc -l)" -ge "$CAP" ]; do sleep 120; done
-  id=$(sbatch --parsable --job-name="${run_id#P12_vcs_}" --export=ALL,CFG="$cfg",RUN_ID="$run_id",FINAL_CKPT="$FINAL_CKPT" "$REPO_ROOT/slurm/run_unit.sbatch" | cut -d';' -f1)
+  id=$(sbatch --parsable --job-name="${run_id#P*_vcs_}" --export=ALL,CFG="$cfg",RUN_ID="$run_id",FINAL_CKPT="${unit_final:-$FINAL_CKPT}" "$REPO_ROOT/slurm/run_unit.sbatch" | cut -d';' -f1)
   echo "[submit] $(date -u +%FT%TZ) $run_id -> $id ($cfg) queue=$(squeue -h -u "$USER" | wc -l)"
   ids+=("$id"); submitted+=("$run_id=$id")
   sleep 5

@@ -158,8 +158,12 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("max_gpus_per_job must be 1")
     if cfg["views"]["count"] != 2:
         raise ConfigError("two views only")
-    if cfg["views"]["gaussian_blur_p"] != 0.0 or cfg["views"]["solarize_p"] != 0.0:
-        raise ConfigError("gaussian blur / solarize are not part of the first-round recipe")
+    if cfg["views"]["solarize_p"] != 0.0:
+        raise ConfigError("solarize is not part of any recipe here")
+    if not 0.0 <= cfg["views"]["gaussian_blur_p"] <= 1.0:
+        raise ConfigError("gaussian_blur_p must be in [0, 1]")
+    if m != "vcs_qmi" and cfg["views"]["gaussian_blur_p"] != 0.0:
+        raise ConfigError("control runs keep the frozen augmentation recipe (no blur)")
     if cfg["model"]["backbone"] != "resnet18_cifar" or cfg["model"]["h_dim"] != 512:
         raise ConfigError("backbone must be resnet18_cifar with h_dim 512")
     if cfg["optimizer"]["name"] != "adamw" or cfg["schedule"]["kind"] != "linear_warmup_cosine" \

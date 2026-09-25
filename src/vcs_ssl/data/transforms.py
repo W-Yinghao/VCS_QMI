@@ -12,19 +12,24 @@ _INTERP = {"bilinear": InterpolationMode.BILINEAR, "bicubic": InterpolationMode.
 
 
 def build_two_view_transform(views: dict[str, Any]) -> T.Compose:
-    if views["gaussian_blur_p"] != 0.0 or views["solarize_p"] != 0.0:
-        raise ValueError("blur/solarize are not implemented in the first-round recipe on purpose")
+    if views["solarize_p"] != 0.0:
+        raise ValueError("solarize is not implemented on purpose")
+    if not 0.0 <= views["gaussian_blur_p"] <= 1.0:
+        raise ValueError("gaussian_blur_p must be in [0, 1]")
     rrc = views["random_resized_crop"]
     cj = views["color_jitter"]
-    return T.Compose([
+    ops: list = [
         T.RandomResizedCrop(rrc["size"], scale=tuple(rrc["scale"]), ratio=tuple(rrc["ratio"]),
                             interpolation=_INTERP[rrc["interpolation"]], antialias=rrc["antialias"]),
         T.RandomHorizontalFlip(p=views["horizontal_flip_p"]),
         T.RandomApply([T.ColorJitter(cj["brightness"], cj["contrast"], cj["saturation"], cj["hue"])], p=cj["p"]),
         T.RandomGrayscale(p=views["grayscale_p"]),
-        T.ToTensor(),
-        T.Normalize(mean=tuple(views["normalize_mean"]), std=tuple(views["normalize_std"])),
-    ])
+    ]
+    if views["gaussian_blur_p"] > 0.0:
+        # named variant (not in the first-round recipe): 3x3 kernel for 32x32 images, sigma U(0.1, 2.0), applied after grayscale
+        ops.append(T.RandomApply([T.GaussianBlur(kernel_size=3, sigma=(0.1, 2.0))], p=views["gaussian_blur_p"]))
+    ops += [T.ToTensor(), T.Normalize(mean=tuple(views["normalize_mean"]), std=tuple(views["normalize_std"]))]
+    return T.Compose(ops)
 
 
 def build_clean_transform(views: dict[str, Any]) -> T.Compose:

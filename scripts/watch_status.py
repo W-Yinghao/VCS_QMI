@@ -22,6 +22,7 @@ BASELINES = {  # (stage, seed) -> reference linear/kNN for deltas
     ("P12_vcs_hparamA", 0): {"run": "P5_vcs_seed0", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
     ("P10_kstudy200", 0): {"run": "P5_vcs_seed0", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
     ("P14_vcs_hparamB_lr", 0): {"run": "P5_vcs_seed0", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
+    ("P16_vcs_hparamB_set", 0): {"run": "P5_vcs_seed0", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
     ("P10_kstudy200", 1): {"run": "P5_vcs_seed1", "linear": 74.24, "knn": 63.64, "h_rank": 13.46},
     ("P10_kstudy200", 2): {"run": "P5_vcs_seed2", "linear": 73.94, "knn": 63.50, "h_rank": 13.22},
     ("P8_long800", 0): {"run": "P5_vcs_seed0 (200ep)", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
@@ -33,7 +34,8 @@ BASE_TRAJ = {0: {0: 36.54, 10: 42.02, 20: 47.42, 50: 54.60, 100: 60.88, 150: 63.
              2: {0: 37.08, 10: 41.34, 20: 49.26, 50: 56.76, 100: 61.54, 150: 63.18, 200: 63.50}}
 BASE_HP = {"K": 1, "critic_hidden_dims": [512, 512], "critic_last_gain": 0.1, "critic_lr_multiplier": 1.0, "critic_weight_decay": 0.0,
            "projector_hidden_dim": 512, "projector_output_dim": 128, "critic_input_norm": "l2", "batch_size_images": 256, "lr": 0.001,
-           "min_lr_ratio": 0.01, "warmup_epochs": 10}
+           "min_lr_ratio": 0.01, "warmup_epochs": 10, "crop_scale_min": 0.2, "color_jitter": [0.4, 0.4, 0.4, 0.1], "gaussian_blur_p": 0.0,
+           "matrix_weight_decay": 0.0001}
 
 
 def jload(p: Path):
@@ -62,7 +64,9 @@ def hparams(rd: Path):
             "critic_lr_multiplier": c["optimizer"]["critic_lr_multiplier"], "critic_weight_decay": c["optimizer"]["critic_weight_decay"],
             "projector_hidden_dim": c["model"]["projector"]["hidden_dim"], "projector_output_dim": c["model"]["projector"]["output_dim"],
             "critic_input_norm": c["model"]["normalization"]["vcs_and_simclr"], "batch_size_images": c["train"]["batch_size_images"],
-            "lr": c["optimizer"]["lr"], "epochs": c["train"]["epochs"], "min_lr_ratio": c["schedule"]["min_lr_ratio"], "warmup_epochs": c["train"]["warmup_epochs"]}
+            "lr": c["optimizer"]["lr"], "epochs": c["train"]["epochs"], "min_lr_ratio": c["schedule"]["min_lr_ratio"], "warmup_epochs": c["train"]["warmup_epochs"],
+            "crop_scale_min": c["views"]["random_resized_crop"]["scale"][0], "color_jitter": [c["views"]["color_jitter"][k] for k in ("brightness", "contrast", "saturation", "hue")],
+            "gaussian_blur_p": c["views"]["gaussian_blur_p"], "matrix_weight_decay": c["optimizer"]["matrix_weight_decay_encoder_projector"]}
 
 
 def changed_hp(h: dict) -> str:
@@ -104,6 +108,8 @@ def scan(output_root: Path, stages: set[str]):
             eta_min = train_s / ep * (tot - ep) / 60
         h = hparams(rd)
         base = BASELINES.get((st.get("stage"), st.get("seed")))
+        if h.get("epochs") == 800 and st.get("stage") != "P8_long800":
+            base = {"run": "P8_vcs800_seed0 (800ep)", "linear": 79.24, "knn": 71.36, "h_rank": 20.13}
         lin = ev["linear_val_top1_pct"] if ev else None
         knn_final = ev["knn_val_top1_pct"] if ev else (last_mon["knn_val_top1_pct"] if last_mon else None)
         flags = []
@@ -161,7 +167,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output-root", default=os.environ.get("OUTPUT_ROOT", "/home/infres/yinwang/CS_QMI/outputs"))
     ap.add_argument("--out", default="/home/infres/yinwang/CS_QMI/ssl_pilot/reports/WATCH_status.md")
-    ap.add_argument("--stages", default="P12_vcs_hparamA,P8_long800,P14_vcs_hparamB_lr")
+    ap.add_argument("--stages", default="P12_vcs_hparamA,P14_vcs_hparamB_lr,P16_vcs_hparamB_set")
     ap.add_argument("--print", action="store_true")
     a = ap.parse_args()
     stages = set(a.stages.split(","))
