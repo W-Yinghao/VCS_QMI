@@ -1,7 +1,7 @@
-# P27 (interim) — wave G on the neg-detach cosine base: 9 of 10 units final
+# P27 — wave G on the neg-detach cosine base (final, 10 of 10 units)
 
-Pre-registration: `P26_NEGDETACH_BASE_PREREG_FROZEN_20260925.md`.  Table: `P27_negdetach_base_results_table_interim.md` (summarize job 1009162,
-2026-09-25 18:18 UTC).  `base_800ep` is at epoch ≈230/800 and is reported when it finishes (final P27 table is dependency-gated on it).
+Pre-registration: `P26_NEGDETACH_BASE_PREREG_FROZEN_20260925.md`.  Table: `P27_negdetach_base_results_table.md` (final summarize job 1009007;
+the interim table `P27_negdetach_base_results_table_interim.md` from job 1009162 covered 9 units).
 All numbers: frozen-h linear-val on the 5k selection split, 200 epochs, seed 0 unless stated.
 
 ## Base anchor (a0 = 1, learnable; cosine critic, K = 8, negative partner detached)
@@ -25,7 +25,7 @@ HELPS > +1.0, HURTS < −1.0.
 | proj_outBN (N4) | 78.52 | −2.07 | 72.68 | 4.5 (top eig 56 %) | 2.0 | 7.06 / −5.24 | HURTS |
 | shared_metric (N6) | 75.28 | −5.31 | 69.28 | 1.3 (top eig 95 %) | 1.0 | 6.28 / −4.40 | HURTS, collapse-suspected |
 | interact_only (N5) | stopped ep 30 | — | 20.5 | 1.0 | — | — | collapsed (J ≈ 0), cancelled to free the GPU |
-| base_800ep | running | | 75.98 @ ep 200 | | | | pending |
+| base_800ep (800 epochs) | **84.64** | +4.05 vs 200 ep | **81.44** | 61.1 | 14.7 | 21.12 / −19.18 (thr 0.91) | best-achievable at 4× compute; = views4 at 2× (84.48) |
 
 ## Reading (against the pre-registered questions)
 1. **N2/N3 — initial sharpness is the one positive factor, and it is an early-trajectory effect.** a0 = 5 gives +1.3 (≈ 10 base SDs, single
@@ -48,9 +48,14 @@ HELPS > +1.0, HURTS < −1.0.
    similarity-type critics; the mechanism claim in synthesis §3.2 stands.
 6. **K = 255 no longer adds on top of negative detach** (+0.23; it gave +1.0 without detach).  The two factors do not stack: both seem to act on
    the same thing (how much repulsion reaches the encoder), and detach saturates it.
+7. **800 epochs of the detach recipe reach 84.64 / kNN 81.44 / h-rank 61** — +4.1 over its 200-epoch value and +3.9 over the plain-cosine
+   800-epoch run (80.74, P25): the detach gain *grows* with training length (2.2 at 200 → 3.9 at 800).  kNN is still rising at 800
+   (79.4 / 81.0 / 81.4 at 400 / 600 / 800).  The critic keeps sharpening (a 21, b −19, threshold cos* 0.91) while positive saturation
+   stays at 10 %.  At 4× the compute this equals the 4-view run at 2× (84.48, P29) and is 1.5 below the 200-epoch SimCLR control (86.09);
+   `P35_vcs_a5_800ep` (a0 = 5, running) and the 4-view seeds will show whether the factors stack at long schedules.
 
 ## Consequences for the search
-- New base candidate: cosine critic, K = 8, negative detach, **a0 = 5** (learnable or fixed — tie).  Confirmation and the a0 curve are in P31.
+- New base: cosine critic, K = 8, negative detach, **a0 = 5** (confirmed on 3 seeds, P32; learnable or fixed — tie).  4 views added on top (P29/P34, P35 running).
 - Dropped: output BN, learnable shared metric, interaction-only MLP, bias calibration, K = 255 with detach.
 - Still open (P28, running): monotone spline score, diagonal metric, 4 views, linear-only projector, no projector (BN on h).
 
