@@ -25,6 +25,7 @@ BASELINES = {  # (stage, seed) -> reference linear/kNN for deltas
     ("P16_vcs_hparamB_set", 0): {"run": "P5_vcs_seed0", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
     ("P18_vcs_critic_variants", 0): {"run": "P10_vcs_k8_seed0 (K=8)", "linear": 76.12, "knn": 67.44, "h_rank": 15.59},
     ("P20_vcs_ssl_wiring", 0): {"run": "P16_vcs_k8_clr10_seed0 (K=8, clr x10)", "linear": 77.44, "knn": 68.40, "h_rank": 21.44},
+    ("P22_vcs_target_branch", 0): {"run": "P16_vcs_k8_clr10_seed0 (K=8, clr x10)", "linear": 77.44, "knn": 68.40, "h_rank": 21.44},
     ("P10_kstudy200", 1): {"run": "P5_vcs_seed1", "linear": 74.24, "knn": 63.64, "h_rank": 13.46},
     ("P10_kstudy200", 2): {"run": "P5_vcs_seed2", "linear": 73.94, "knn": 63.50, "h_rank": 13.22},
     ("P8_long800", 0): {"run": "P5_vcs_seed0 (200ep)", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
@@ -38,7 +39,7 @@ BASE_HP = {"K": 1, "critic_hidden_dims": [512, 512], "critic_last_gain": 0.1, "c
            "projector_hidden_dim": 512, "projector_output_dim": 128, "critic_input_norm": "l2", "batch_size_images": 256, "lr": 0.001,
            "min_lr_ratio": 0.01, "warmup_epochs": 10, "crop_scale_min": 0.2, "color_jitter": [0.4, 0.4, 0.4, 0.1], "gaussian_blur_p": 0.0,
            "matrix_weight_decay": 0.0001, "critic_input": "ordered_concat", "pair_symmetric": False, "critic_steps": 1,
-           "critic_feature_source": "z", "negative_detach": False}
+           "critic_feature_source": "z", "negative_detach": False, "target_branch": "shared", "predictor": False, "projector_depth": 2}
 
 
 def jload(p: Path):
@@ -72,7 +73,9 @@ def hparams(rd: Path):
             "gaussian_blur_p": c["views"]["gaussian_blur_p"], "matrix_weight_decay": c["optimizer"]["matrix_weight_decay_encoder_projector"],
             "critic_input": c["model"]["critic"]["input"], "pair_symmetric": c["pairing"]["sampler"].endswith("symmetric"),
             "critic_steps": 1 if c["train"]["mode"] == "joint" else int(c["train"]["mode"].rsplit("_", 1)[1]),
-            "critic_feature_source": c["model"]["critic"].get("feature_source", "z"), "negative_detach": c["pairing"]["negative_detach"]}
+            "critic_feature_source": c["model"]["critic"].get("feature_source", "z"), "negative_detach": c["pairing"]["negative_detach"],
+            "target_branch": c["train"].get("target_branch", "shared"), "predictor": c["model"]["projector"].get("predictor", False),
+            "projector_depth": c["model"]["projector"].get("depth", 2)}
 
 
 def changed_hp(h: dict) -> str:
@@ -117,7 +120,7 @@ def scan(output_root: Path, stages: set[str]):
         base_traj = BASE_TRAJ.get(st.get("seed"), {})
         if st.get("stage") == "P18_vcs_critic_variants":
             base_traj = {0: 36.58, 10: 45.58, 20: 52.44, 50: 60.30, 100: 64.76, 150: 66.82, 200: 67.44}  # P10_vcs_k8_seed0 (K=8 baseline)
-        if st.get("stage") == "P20_vcs_ssl_wiring":
+        if st.get("stage") in ("P20_vcs_ssl_wiring", "P22_vcs_target_branch"):
             base_traj = {0: 36.58, 50: 63.96, 100: 66.70, 150: 68.38, 200: 68.40}  # P16_vcs_k8_clr10_seed0
         if h.get("epochs") == 800 and st.get("stage") != "P8_long800":
             base = {"run": "P8_vcs800_seed0 (800ep)", "linear": 79.24, "knn": 71.36, "h_rank": 20.13}
@@ -179,7 +182,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output-root", default=os.environ.get("OUTPUT_ROOT", "/home/infres/yinwang/CS_QMI/outputs"))
     ap.add_argument("--out", default="/home/infres/yinwang/CS_QMI/ssl_pilot/reports/WATCH_status.md")
-    ap.add_argument("--stages", default="P16_vcs_hparamB_set,P18_vcs_critic_variants,P20_vcs_ssl_wiring")
+    ap.add_argument("--stages", default="P16_vcs_hparamB_set,P18_vcs_critic_variants,P20_vcs_ssl_wiring,P22_vcs_target_branch")
     ap.add_argument("--print", action="store_true")
     a = ap.parse_args()
     stages = set(a.stages.split(","))

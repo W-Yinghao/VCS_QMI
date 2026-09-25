@@ -614,3 +614,66 @@ def test_critic_on_h_and_negative_detach(tmp_path):
     cfgs = small_cfg(tmp_path, "vcs"); cfgs["model"]["critic"]["feature_source"] = "h_l2"; policy_checks(cfgs)
     tr, st = run_trainer(tmp_path, cfgs, data, m, run_id="crit_on_h", device=torch.device("cpu"), smoke_steps=2, epoch_eval=True, smoke_epoch_steps=2)
     assert st == "COMPLETED"
+
+
+def test_target_branch_predictor_projector_depth(tmp_path):
+    """EMA/stop-grad target branches, predictor head and projector depth: named variants that leave J untouched."""
+    import yaml
+    from vcs_ssl.models import ema_update
+    from vcs_ssl.objectives import compute_objective_target, forward_features_target
+    env = _env(tmp_path)
+    cfg0 = load_config(CFG_DIR / "cifar10_pilot_vcs.yaml", env=env)
+    assert cfg0["train"]["target_branch"] == "shared" and cfg0["model"]["projector"]["depth"] == 2 and cfg0["model"]["projector"]["predictor"] is False
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    base["train"]["target_branch"] = "ema_0.99"; base["model"]["projector"]["predictor"] = True; base["model"]["projector"]["depth"] = 3
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    built = build_models(cfg, seed=0, device="cpu")
+    assert built["teacher"] is not None and built["predictor"] is not None and built["teacher"]["tau"] == 0.99
+    assert sum(isinstance(m, torch.nn.Linear) for m in built["projector"]) == 3
+    assert all(not q.requires_grad for q in built["teacher"]["encoder"].parameters())
+    x1, x2 = torch.randn(6, 3, 32, 32), torch.randn(6, 3, 32, 32)
+    f = forward_features_target(built["encoder"], built["projector"], x1, x2, 1e-8, target_branch="ema_0.99", teacher=built["teacher"], predictor=built["predictor"])
+    assert "tgt_z_l2" in f and not f["tgt_z_l2"].requires_grad and f["z_l2"].requires_grad
+    obj = compute_objective_target(f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(0))
+    assert obj["n_pos"] == 12 and obj["n_neg"] == 12
+    obj["loss"].backward()
+    gn = grad_norms(built["encoder"], built["projector"], built["critic"], built["predictor"])
+    assert gn["grad_norm_encoder"] > 0 and gn["grad_norm_projector"] > 0 and gn["grad_norm_predictor"] > 0 and gn["grad_norm_critic"] > 0
+    opt = build_optimizer(built["encoder"], built["projector"], built["critic"], cfg["optimizer"], predictor=built["predictor"])
+    assert verify_optimizer_coverage(opt, built["encoder"], built["projector"], built["critic"], built["predictor"])["n_params_in_optimizer"] > 0
+    # EMA moves the teacher toward the student
+    before = [q.clone() for q in built["teacher"]["encoder"].parameters()][:1][0]
+    with torch.no_grad():
+        for q in built["encoder"].parameters():
+            q.add_(1.0)
+    ema_update(built["teacher"], built["encoder"], built["projector"])
+    after = next(built["teacher"]["encoder"].parameters())
+    torch.testing.assert_close(after, before + 0.01 * 1.0, atol=1e-5, rtol=0)
+    # stop-grad target: detached student features
+    base2 = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); base2["train"]["target_branch"] = "stopgrad"
+    cfg2 = load_config(_write(tmp_path, yaml.safe_dump(base2)), env=env)
+    b2 = build_models(cfg2, seed=0, device="cpu")
+    f2 = forward_features_target(b2["encoder"], b2["projector"], x1, x2, 1e-8, target_branch="stopgrad")
+    assert not f2["tgt_z_l2"].requires_grad and torch.equal(f2["tgt_z_l2"], f2["z_l2"].detach())
+    # policy: predictor needs a target branch; controls locked
+    bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); bad["model"]["projector"]["predictor"] = True
+    with pytest.raises(ConfigError, match="predictor requires"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+    bad2 = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bad2["train"]["target_branch"] = "ema_0.99"
+    with pytest.raises(ConfigError, match="control runs keep"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad2)), env=env)
+    # trainer smoke: EMA + predictor completes, checkpoint carries teacher/predictor states, resume works
+    data, m = synthetic_bundle()
+    cfgs = small_cfg(tmp_path, "vcs"); cfgs["train"]["target_branch"] = "ema_0.99"; cfgs["model"]["projector"]["predictor"] = True; policy_checks(cfgs)
+    tr, st = run_trainer(tmp_path, cfgs, data, m, run_id="ema_pred", device=torch.device("cpu"), smoke_steps=4, smoke_epoch_steps=2, epoch_eval=True)
+    assert st == "COMPLETED"
+    ck = load_checkpoint(tr.run_dir / "checkpoints" / "last.pt")
+    assert ck["teacher_encoder_state"] is not None and ck["predictor_state"] is not None
+    tr_b, st_b = run_trainer(tmp_path, cfgs, data, m, run_id="ema_pred_b", device=torch.device("cpu"), smoke_steps=4, smoke_epoch_steps=2, epoch_eval=False, stop_after_steps=2)
+    tr_c, st_c = run_trainer(tmp_path, cfgs, data, m, run_id="ema_pred_b", device=torch.device("cpu"), smoke_steps=4, smoke_epoch_steps=2, epoch_eval=False,
+                             resume_from=tr_b.ckpt_dir / "last.pt")
+    assert st_b == "STOPPED_BUDGET" and st_c == "COMPLETED"
+    for k in tr.teacher["encoder"].state_dict():
+        pass  # teacher present
+    rm = json.loads((tr.run_dir / "run_manifest.json").read_text())
+    assert rm["hparams"]["target_branch"] == "ema_0.99" and rm["hparams"]["predictor"] is True

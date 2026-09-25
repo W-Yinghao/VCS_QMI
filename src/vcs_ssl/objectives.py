@@ -107,3 +107,51 @@ def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, A
         stats["vicreg_covariance"] = float(v["covariance"].detach())
         return {"loss": v["loss"], "stats": stats, "shift": None, "n_pos": b, "n_neg": 0}
     raise ValueError(f"unknown method {method!r}")
+
+
+def forward_features_target(encoder, projector, x1: Tensor, x2: Tensor, eps: float, *, target_branch: str, teacher=None, predictor=None) -> dict[str, Tensor]:
+    """Named variants of the two-view wiring. Returns the same keys as forward_features plus 'tgt_<key>' tensors for the target branch.
+
+    shared  : identical to forward_features (both views through the student; no target tensors).
+    stopgrad: target = detached student features of the *other* view (SimSiam-style).
+    ema_tau : target = EMA teacher features (no grad).
+    predictor (optional): the student side that meets the critic is predictor(student projector output), L2-normalized.
+    Pairing used by compute_objective_target: positives (s1, t2) and (s2, t1) (symmetric); negatives with the same shifts.
+    """
+    feats = forward_features(encoder, projector, x1, x2, eps)
+    if target_branch == "shared":
+        return feats
+    if target_branch == "stopgrad":
+        t_h, t_p = feats["h"].detach(), feats["p_raw"].detach()
+    else:
+        with torch.no_grad():
+            t_h = teacher["encoder"](torch.cat((x1, x2), dim=0))
+            t_p = teacher["projector"](t_h)
+    feats["tgt_p_raw"] = t_p
+    feats["tgt_z_l2"] = F.normalize(t_p, dim=1, eps=eps)
+    feats["tgt_h_l2"] = F.normalize(t_h, dim=1, eps=eps)
+    if predictor is not None:
+        q = predictor(feats["p_raw"])
+        feats["p_raw"] = q
+        feats["z_l2"] = F.normalize(q, dim=1, eps=eps)
+    return feats
+
+
+def compute_objective_target(feats: dict[str, Tensor], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any]:
+    """VCS objective with a separate target branch: symmetric pairs (student view a, target view b), b != a."""
+    key = critic_input_key(cfg)
+    s1, s2 = feats[key].chunk(2, dim=0)
+    t1, t2 = feats["tgt_" + key].chunk(2, dim=0)
+    k = cfg["pairing"]["k"]
+    indices, shifts = cyclic_negative_indices(len(s1), k, generator=pair_generator, device=s1.device)
+    t_pos = torch.cat((critic(s1, t2), critic(s2, t1)))
+    l1 = s1.unsqueeze(0).expand(k, -1, -1).reshape(-1, s1.shape[1])
+    l2 = s2.unsqueeze(0).expand(k, -1, -1).reshape(-1, s2.shape[1])
+    t_neg = torch.cat((critic(l1, t2[indices].reshape(-1, t2.shape[1])), critic(l2, t1[indices].reshape(-1, t1.shape[1]))))
+    st = vcs_from_scores(t_pos, t_neg)
+    stats: dict[str, Any] = {k_: None for k_ in VCS_STAT_KEYS}
+    stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    for k_ in VCS_STAT_KEYS:
+        stats[k_] = float(st[k_].detach())
+    b = s1.shape[0]
+    return {"loss": st["loss"], "stats": stats, "shift": int(shifts[0]) if len(shifts) == 1 else [int(v) for v in shifts], "n_pos": 2 * b, "n_neg": 2 * b * k}

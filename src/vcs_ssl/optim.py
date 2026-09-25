@@ -7,11 +7,14 @@ import torch
 from torch import nn
 
 
-def build_optimizer(encoder: nn.Module, projector: nn.Module, critic: nn.Module | None, ocfg: dict[str, Any]) -> torch.optim.AdamW:
+def build_optimizer(encoder: nn.Module, projector: nn.Module, critic: nn.Module | None, ocfg: dict[str, Any],
+                    predictor: nn.Module | None = None) -> torch.optim.AdamW:
     if ocfg["name"] != "adamw":
         raise ValueError("first round uses AdamW")
     decay, no_decay = [], []
-    for module in (encoder, projector):
+    for module in (encoder, projector, predictor):
+        if module is None:
+            continue
         for name, p in module.named_parameters():
             if not p.requires_grad:
                 raise ValueError(f"frozen parameter in trainable module: {name}")
@@ -27,17 +30,18 @@ def build_optimizer(encoder: nn.Module, projector: nn.Module, critic: nn.Module 
         groups.append({"name": "critic", "params": cparams, "lr": ocfg["lr"] * ocfg["critic_lr_multiplier"],
                        "base_lr": ocfg["lr"] * ocfg["critic_lr_multiplier"], "weight_decay": ocfg["critic_weight_decay"]})
     opt = torch.optim.AdamW(groups, betas=tuple(ocfg["betas"]), eps=ocfg["eps"])
-    verify_optimizer_coverage(opt, encoder, projector, critic)
+    verify_optimizer_coverage(opt, encoder, projector, critic, predictor)
     return opt
 
 
-def verify_optimizer_coverage(opt: torch.optim.Optimizer, encoder: nn.Module, projector: nn.Module, critic: nn.Module | None) -> dict[str, int]:
+def verify_optimizer_coverage(opt: torch.optim.Optimizer, encoder: nn.Module, projector: nn.Module, critic: nn.Module | None,
+                              predictor: nn.Module | None = None) -> dict[str, int]:
     """Every trainable parameter appears exactly once; nothing foreign is present."""
     in_opt: list[int] = [id(p) for g in opt.param_groups for p in g["params"]]
     if len(in_opt) != len(set(in_opt)):
         raise ValueError("duplicate parameter in optimizer")
     expected: dict[int, str] = {}
-    for mname, module in (("encoder", encoder), ("projector", projector), ("critic", critic)):
+    for mname, module in (("encoder", encoder), ("projector", projector), ("critic", critic), ("predictor", predictor)):
         if module is None:
             continue
         for pname, p in module.named_parameters():
@@ -61,10 +65,12 @@ def set_lrs(opt: torch.optim.Optimizer, factor: float) -> dict[str, float]:
 
 
 @torch.no_grad()
-def grad_norms(encoder: nn.Module, projector: nn.Module, critic: nn.Module | None) -> dict[str, float | None]:
+def grad_norms(encoder: nn.Module, projector: nn.Module, critic: nn.Module | None, predictor: nn.Module | None = None) -> dict[str, float | None]:
     """L2 norm of all gradients per module, collected after backward and before optimizer.step (no clipping)."""
     out: dict[str, float | None] = {}
-    for name, m in (("encoder", encoder), ("projector", projector), ("critic", critic)):
+    for name, m in (("encoder", encoder), ("projector", projector), ("critic", critic), ("predictor", predictor)):
+        if name == "predictor" and m is None:
+            continue
         if m is None:
             out[f"grad_norm_{name}"] = None
             continue

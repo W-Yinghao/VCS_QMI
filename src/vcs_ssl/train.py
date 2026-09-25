@@ -28,8 +28,8 @@ from .data.datasets import SSLTwoViewDataset, make_ssl_loader
 from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, two_view_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_report
-from .models import build_models
-from .objectives import compute_objective, critic_steps, forward_features, pair_symmetric
+from .models import build_models, ema_update
+from .objectives import compute_objective, compute_objective_target, critic_steps, forward_features, forward_features_target, pair_symmetric
 from .optim import all_grads_finite, build_optimizer, grad_norms, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
@@ -157,12 +157,15 @@ class Trainer:
         self.encoder: nn.Module = built["encoder"]
         self.projector: nn.Module = built["projector"]
         self.critic: nn.Module | None = built["critic"]
+        self.predictor: nn.Module | None = built.get("predictor")
+        self.teacher = built.get("teacher")
+        self.target_branch = self.cfg["train"].get("target_branch", "shared")
         self.init_hashes = built["init_hashes"]
         self.param_counts = built["params"]
         self.critic_impl = built.get("critic_impl")
         atomic_write_text(self.run_dir / "model_strings.txt", "\n\n".join(f"== {k} ==\n{v}" for k, v in built["model_strings"].items()))
-        self.optimizer = build_optimizer(self.encoder, self.projector, self.critic, self.cfg["optimizer"])
-        self.coverage = verify_optimizer_coverage(self.optimizer, self.encoder, self.projector, self.critic)
+        self.optimizer = build_optimizer(self.encoder, self.projector, self.critic, self.cfg["optimizer"], predictor=self.predictor)
+        self.coverage = verify_optimizer_coverage(self.optimizer, self.encoder, self.projector, self.critic, self.predictor)
 
         self.loader = make_ssl_loader(self.dataset, batch_size=self.batch, num_workers=self.cfg["train"]["num_workers"],
                                       pin_memory=self.cfg["train"]["pin_memory"] and self.device.type == "cuda",
@@ -194,7 +197,8 @@ class Trainer:
                         "matrix_weight_decay": self.cfg["optimizer"]["matrix_weight_decay_encoder_projector"],
                         "critic_input": self.cfg["model"]["critic"]["input"], "pair_symmetric": pair_symmetric(self.cfg),
                         "critic_steps": critic_steps(self.cfg), "critic_feature_source": self.cfg["model"]["critic"].get("feature_source", "z"),
-                        "negative_detach": self.cfg["pairing"]["negative_detach"]},
+                        "negative_detach": self.cfg["pairing"]["negative_detach"], "target_branch": self.target_branch,
+                        "predictor": self.predictor is not None, "projector_depth": self.cfg["model"]["projector"].get("depth", 2)},
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -281,6 +285,9 @@ class Trainer:
         return {
             "encoder_state": self.encoder.state_dict(), "projector_state": self.projector.state_dict(),
             "critic_state": None if self.critic is None else self.critic.state_dict(),
+            "predictor_state": None if self.predictor is None else self.predictor.state_dict(),
+            "teacher_encoder_state": None if self.teacher is None else self.teacher["encoder"].state_dict(),
+            "teacher_projector_state": None if self.teacher is None else self.teacher["projector"].state_dict(),
             "optimizer_state": self.optimizer.state_dict(),
             "scheduler_state": {"kind": "linear_warmup_cosine_per_step", "total_steps": self.total_steps, "warmup_steps": self.warmup_steps,
                                 "min_lr_ratio": self.min_lr_ratio, "step": self.step},
@@ -309,6 +316,11 @@ class Trainer:
         self.projector.load_state_dict(ck["projector_state"])
         if self.critic is not None:
             self.critic.load_state_dict(ck["critic_state"])
+        if self.predictor is not None:
+            self.predictor.load_state_dict(ck["predictor_state"])
+        if self.teacher is not None:
+            self.teacher["encoder"].load_state_dict(ck["teacher_encoder_state"])
+            self.teacher["projector"].load_state_dict(ck["teacher_projector_state"])
         self.optimizer.load_state_dict(ck["optimizer_state"])
         restore_rng(ck, self.loader_gen, self.pair_gen)
         self.completed_epoch = int(ck["completed_epoch"])
@@ -398,30 +410,40 @@ class Trainer:
         self.optimizer.zero_grad(set_to_none=True)
         x1 = x1.to(self.device, non_blocking=True)
         x2 = x2.to(self.device, non_blocking=True)
-        feats = forward_features(self.encoder, self.projector, x1, x2, eps=self.cfg["model"]["normalization"]["eps"])
+        if self.target_branch == "shared":
+            feats = forward_features(self.encoder, self.projector, x1, x2, eps=self.cfg["model"]["normalization"]["eps"])
+        else:
+            if self.predictor is not None:
+                self.predictor.train()
+            feats = forward_features_target(self.encoder, self.projector, x1, x2, self.cfg["model"]["normalization"]["eps"],
+                                            target_branch=self.target_branch, teacher=self.teacher, predictor=self.predictor)
         n_extra = critic_steps(self.cfg) - 1
         if n_extra > 0 and self.critic is not None:
             # named variant: critic-only updates on detached features before the joint step (encoder/projector grads stay None)
             det = {k: v.detach() for k, v in feats.items()}
             for _ in range(n_extra):
                 self.optimizer.zero_grad(set_to_none=True)
-                cobj = compute_objective(self.method, det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
+                cobj = (compute_objective(self.method, det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen) if self.target_branch == "shared"
+                        else compute_objective_target(det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
                 if not torch.isfinite(cobj["loss"]):
                     raise FloatingPointError(f"non-finite critic-only loss at step {self.step}")
                 cobj["loss"].backward()
                 self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
-        obj = compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
+        obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen) if self.target_branch == "shared"
+               else compute_objective_target(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
         loss = obj["loss"]
         if not torch.isfinite(loss):
             raise FloatingPointError(f"non-finite loss at step {self.step}")
         loss.backward()
-        gn = grad_norms(self.encoder, self.projector, self.critic) if (log_this or self.step == 0) else {}
+        gn = grad_norms(self.encoder, self.projector, self.critic, self.predictor) if (log_this or self.step == 0) else {}
         if not all_grads_finite(self.optimizer):
             raise FloatingPointError(f"non-finite gradient at step {self.step}")
         if self.step == 0:
             self.first_step_gradient_check(gn)
         self.optimizer.step()
+        if self.teacher is not None:
+            ema_update(self.teacher, self.encoder, self.projector)
         out = {"loss": float(loss.detach()), **obj["stats"], "shift": obj["shift"], "n_pos": obj["n_pos"], "n_neg": obj["n_neg"],
                "lr_factor": factor, **{f"lr_{k}": v for k, v in lrs.items()}, **gn}
         return out
@@ -430,7 +452,7 @@ class Trainer:
         """Spec §7.2: every module has a nonzero finite gradient on the first real step; parameters then change."""
         problems = []
         critic_on_h = self.method == "vcs_qmi" and self.cfg["model"]["critic"].get("feature_source", "z") == "h_l2"
-        for name, m in (("encoder", self.encoder), ("projector", self.projector), ("critic", self.critic)):
+        for name, m in (("encoder", self.encoder), ("projector", self.projector), ("critic", self.critic), ("predictor", self.predictor)):
             if m is None or (name == "projector" and critic_on_h):  # projector receives no gradient when the critic reads h (disclosed)
                 continue
             g = gn.get(f"grad_norm_{name}")

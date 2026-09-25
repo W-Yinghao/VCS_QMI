@@ -51,7 +51,7 @@ SCHEMA: dict[str, Any] = {
     "model": {"backbone": str, "weights": (str, type(None)), "h_dim": int,
               "stem": {"kernel_size": int, "stride": int, "padding": int, "bias": bool, "maxpool": bool},
               "projector": {"hidden_dim": int, "output_dim": int, "hidden_batchnorm": bool, "hidden_linear_bias": bool,
-                            "output_linear_bias": bool, "output_batchnorm": bool},
+                            "output_linear_bias": bool, "output_batchnorm": bool, "depth": _Opt(int, 2), "predictor": _Opt(bool, False)},
               "normalization": {"vcs_and_simclr": str, "eps": _Num, "vicreg": str},
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
@@ -61,7 +61,7 @@ SCHEMA: dict[str, Any] = {
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num},
     "pairing": {"sampler": str, "k": int, "unique_shifts": bool, "allow_self": bool, "label_filter": bool, "queue": bool,
                 "negative_detach": bool, "rng": str, "rng_seed_offset": int},
-    "train": {"mode": str, "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
+    "train": {"mode": str, "target_branch": _Opt(str, "shared"), "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
               "replacement": bool, "world_size": int, "grad_accumulation_steps": int, "precision": str, "allow_tf32": bool,
               "compile": bool, "num_workers": int, "pin_memory": bool, "persistent_workers": bool,
               "grad_clip_norm": (_Num[0], _Num[1], type(None)), "encoder_projector_forward": str, "max_steps": (int, type(None))},
@@ -155,6 +155,15 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("train.mode must be 'joint' or the named variant 'joint_critic_steps_N' (N extra-1 critic-only steps on detached features, 2<=N<=10)")
     if m != "vcs_qmi" and (t["mode"] != "joint" or p["sampler"] != "random_nonzero_cyclic_shift"):
         raise ConfigError("control runs keep joint mode and the default sampler")
+    tb = t["target_branch"]
+    if not (tb in ("shared", "stopgrad") or re.fullmatch(r"ema_0\.\d+", tb)):
+        raise ConfigError("train.target_branch must be 'shared' (default), 'stopgrad' or 'ema_<tau>' (named variants)")
+    if m != "vcs_qmi" and (tb != "shared" or cfg["model"]["projector"]["predictor"] or cfg["model"]["projector"]["depth"] != 2):
+        raise ConfigError("control runs keep the shared two-view branch, no predictor, 2-layer projector")
+    if cfg["model"]["projector"]["depth"] < 2 or cfg["model"]["projector"]["depth"] > 4:
+        raise ConfigError("projector depth must be in [2, 4]")
+    if cfg["model"]["projector"]["predictor"] and tb == "shared":
+        raise ConfigError("a predictor requires a stop-gradient or EMA target branch")
     if t["world_size"] != 1 or t["grad_accumulation_steps"] != 1 or t["precision"] != "fp32" or t["allow_tf32"] or t["compile"]:
         raise ConfigError("single-GPU FP32, no accumulation, no TF32, no compile in the first round")
     if t["grad_clip_norm"] is not None:
