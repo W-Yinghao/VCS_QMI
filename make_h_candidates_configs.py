@@ -16,6 +16,9 @@ NEW = [
     ("mono_spline", [(("model", "critic", "input"), "mono_spline"), (("model", "critic", "hidden_dims"), [8, 8])]),
     ("diag_metric", [(("model", "critic", "input"), "diag_metric")]),
     ("views4", [(("views", "count"), 4)]),
+    # added after the geometry diagnostic (GEOMETRY_DIAG.md): move the spreading pressure from z to h
+    ("proj_linear", [(("model", "projector", "depth"), 1)]),
+    ("proj_bnonly", [(("model", "projector", "kind"), "bn_only"), (("model", "projector", "output_dim"), 512)]),
 ]
 SEEDS = [  # (label, source config, seed)
     ("cosK8", ROOT / "configs" / "cifar10_hpC_crit_cosine_vcs_seed0.yaml", 1),
