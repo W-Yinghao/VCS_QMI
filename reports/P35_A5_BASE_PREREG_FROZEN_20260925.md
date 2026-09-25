@@ -22,3 +22,11 @@ factor so far; at 2× encoder compute per epoch — the equal-compute P33 unit i
 with kNN +7.6 over the a0 = 5 base at the same epoch.  Because the base gets seeds and a0 = 5 + 4 views is the expected next base, seeds 1/2
 of `a5_views4` are queued now (same config, seed only) rather than after seed 0 finishes (≈ 3 h), so the quota is not left idle.
 Reading: mean ± SD over 3 seeds vs 81.56 (a0 = 5, 2 views) and vs 84.48 (a0 = 1, 4 views, single seed).  Configs in `HPARAM_K_SHA256.json`.
+
+## Addendum 2026-09-26 — a5_views4_800ep (queued before any a5_views4 result; a GPU slot was free)
+`P26_vcs_base_800ep_seed0` (a0 = 1, 2 views, 800 ep) finished at **84.64 / kNN 81.44 / h-rank 61**: the detach gain grows with the schedule
+(+2.2 at 200 ep → +3.9 over plain cosine at 800 ep) and kNN was still rising at 800.  4 views at 200 ep gives 84.48 at half that compute.
+Unit `a5_views4_800ep`: a0 = 5, 4 views, 800 epochs (checkpoints 100/200/400/600/800; kNN 0/20/50/100/200/400/600/800; linear at 800;
+≈ 4× the compute of the 4-view 200-epoch run, ≈ 14 h).  Question: best-achievable estimate of the full recipe, and whether the schedule gain
+and the views gain stack (read against 84.64 at equal wall-clock/epochs × 2 compute, and against `P35_vcs_a5_800ep`, 2 views).
+Single seed; HELPS/HURTS not applied (no same-compute base); reported as an absolute number with its compute.  Config sha in `HPARAM_K_SHA256.json`.
