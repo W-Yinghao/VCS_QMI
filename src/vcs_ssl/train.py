@@ -175,6 +175,7 @@ class Trainer:
             raise RuntimeError("unexpected number of batches per pass")
 
         self.save_view_examples()
+        self.calibration = self.calibrate_cosine_bias() if self.cfg["model"]["critic"].get("cosine_bias_calibrate", False) else None
         self.run_manifest = {
             "run_id": self.run_id, "method": self.method, "stage": self.stage, "seed": self.seed, "smoke": self.smoke,
             "code_commit": self.git.get("commit"), "code_dirty": self.git.get("is_dirty"),
@@ -199,7 +200,11 @@ class Trainer:
                         "critic_steps": critic_steps(self.cfg), "critic_feature_source": self.cfg["model"]["critic"].get("feature_source", "z"),
                         "negative_detach": self.cfg["pairing"]["negative_detach"], "target_branch": self.target_branch,
                         "predictor": self.predictor is not None, "projector_depth": self.cfg["model"]["projector"].get("depth", 2),
-                        "cosine_scale_init": self.cfg["model"]["critic"].get("cosine_scale_init", 1.0)},
+                        "cosine_scale_init": self.cfg["model"]["critic"].get("cosine_scale_init", 1.0),
+                        "cosine_scale_fixed": self.cfg["model"]["critic"].get("cosine_scale_fixed", False),
+                        "cosine_bias_calibrate": self.cfg["model"]["critic"].get("cosine_bias_calibrate", False),
+                        "projector_output_bn": self.cfg["model"]["projector"]["output_batchnorm"]},
+            "cosine_bias_calibration": getattr(self, "calibration", None),
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -220,6 +225,43 @@ class Trainer:
                 if self.epoch_eval and 0 in self.knn_epochs:
                     self.epoch_evaluation(self.ckpt_dir / "initial.pt", epoch=0)
                 self.append_epoch_record(epoch=0, epoch_stats=None, status="RUNNING")
+
+    @torch.no_grad()
+    def calibrate_cosine_bias(self, n_images: int = 512) -> dict[str, Any]:
+        """Named variant (init only): b0 = -a0 * mu, mu = 0.5*(mean s_pos + mean s_neg) of the critic's similarity on a fixed fit
+        calibration mini-batch (first n_images fit UIDs, two views with a dedicated RNG), train-mode BN with buffers restored."""
+        crit = self.critic
+        if crit is None or not (hasattr(crit, "scale") and hasattr(crit, "bias")):
+            raise ConfigError("cosine_bias_calibrate requires a cosine/shared-metric critic")
+        uids = self.fit_uids[:n_images]
+        gen = torch.Generator().manual_seed(self.seed + 424242)
+        from .data.datasets import TwoViewNoLabelEvalDataset, make_eval_loader  # noqa: PLC0415
+        loader = make_eval_loader(TwoViewNoLabelEvalDataset(self.data.data, uids, self.two_view), batch_size=256, num_workers=0, generator=gen,
+                                  pin_memory=False)
+        enc_snap = {k: v.clone() for k, v in self.encoder.state_dict().items()}
+        proj_snap = {k: v.clone() for k, v in self.projector.state_dict().items()}
+        self.encoder.train(); self.projector.train()
+        s_pos, s_neg = [], []
+        pg = torch.Generator().manual_seed(self.seed + 4242)
+        from reference.ssl_core import cyclic_negative_indices  # noqa: PLC0415
+        from .objectives import critic_input_key  # noqa: PLC0415
+        key = critic_input_key(self.cfg)
+        for x1, x2, _ in loader:
+            f = forward_features(self.encoder, self.projector, x1.to(self.device), x2.to(self.device), eps=self.cfg["model"]["normalization"]["eps"])
+            z1, z2 = f[key].chunk(2, dim=0)
+            if hasattr(crit, "W"):
+                z1 = torch.nn.functional.normalize(z1 @ crit.W.T, dim=1); z2 = torch.nn.functional.normalize(z2 @ crit.W.T, dim=1)
+            idx, _ = cyclic_negative_indices(len(z1), 1, generator=pg, device=z1.device)
+            s_pos.append((z1 * z2).sum(-1)); s_neg.append((z1 * z2[idx[0]]).sum(-1))
+        self.encoder.load_state_dict(enc_snap); self.projector.load_state_dict(proj_snap)
+        mp, mn = float(torch.cat(s_pos).mean()), float(torch.cat(s_neg).mean())
+        mu = 0.5 * (mp + mn)
+        a0 = float(crit.scale)
+        crit.bias.fill_(-a0 * mu)
+        rec = {"n_images": int(len(uids)), "uid_first": int(uids[0]), "uid_last": int(uids[-1]), "rng_seed": self.seed + 424242, "pair_rng_seed": self.seed + 4242,
+               "bn_mode": "train (buffers restored afterwards)", "mean_s_pos": mp, "mean_s_neg": mn, "mu": mu, "a0": a0, "b0": float(crit.bias)}
+        atomic_write_json(self.run_dir / "cosine_bias_calibration.json", rec)
+        return rec
 
     def save_view_examples(self, n: int = 16) -> None:
         from torchvision.utils import save_image  # noqa: PLC0415

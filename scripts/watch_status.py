@@ -27,6 +27,9 @@ BASELINES = {  # (stage, seed) -> reference linear/kNN for deltas
     ("P20_vcs_ssl_wiring", 0): {"run": "P16_vcs_k8_clr10_seed0 (K=8, clr x10)", "linear": 77.44, "knn": 68.40, "h_rank": 21.44},
     ("P22_vcs_target_branch", 0): {"run": "P16_vcs_k8_clr10_seed0 (K=8, clr x10)", "linear": 77.44, "knn": 68.40, "h_rank": 21.44},
     ("P24_vcs_cosine_base", 0): {"run": "P18_vcs_crit_cosine_seed0 (cosine critic, K=8)", "linear": 78.32, "knn": 72.76, "h_rank": 57.74},
+    ("P26_vcs_negdetach_base", 0): {"run": "P24_vcs_cos_negdetach_seed0 (cosine, K=8, neg-detach)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
+    ("P26_vcs_negdetach_base", 1): {"run": "P24_vcs_cos_negdetach_seed0 (seed-0 reference)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
+    ("P26_vcs_negdetach_base", 2): {"run": "P24_vcs_cos_negdetach_seed0 (seed-0 reference)", "linear": 80.48, "knn": 74.62, "h_rank": 30.87},
     ("P10_kstudy200", 1): {"run": "P5_vcs_seed1", "linear": 74.24, "knn": 63.64, "h_rank": 13.46},
     ("P10_kstudy200", 2): {"run": "P5_vcs_seed2", "linear": 73.94, "knn": 63.50, "h_rank": 13.22},
     ("P8_long800", 0): {"run": "P5_vcs_seed0 (200ep)", "linear": 74.84, "knn": 64.64, "h_rank": 12.87},
@@ -40,7 +43,7 @@ BASE_HP = {"K": 1, "critic_hidden_dims": [512, 512], "critic_last_gain": 0.1, "c
            "projector_hidden_dim": 512, "projector_output_dim": 128, "critic_input_norm": "l2", "batch_size_images": 256, "lr": 0.001,
            "min_lr_ratio": 0.01, "warmup_epochs": 10, "crop_scale_min": 0.2, "color_jitter": [0.4, 0.4, 0.4, 0.1], "gaussian_blur_p": 0.0,
            "matrix_weight_decay": 0.0001, "critic_input": "ordered_concat", "pair_symmetric": False, "critic_steps": 1,
-           "critic_feature_source": "z", "negative_detach": False, "target_branch": "shared", "predictor": False, "projector_depth": 2, "cosine_scale_init": 1.0}
+           "critic_feature_source": "z", "negative_detach": False, "target_branch": "shared", "predictor": False, "projector_depth": 2, "cosine_scale_init": 1.0, "cosine_scale_fixed": False, "cosine_bias_calibrate": False, "projector_output_bn": False}
 
 
 def jload(p: Path):
@@ -76,7 +79,9 @@ def hparams(rd: Path):
             "critic_steps": 1 if c["train"]["mode"] == "joint" else int(c["train"]["mode"].rsplit("_", 1)[1]),
             "critic_feature_source": c["model"]["critic"].get("feature_source", "z"), "negative_detach": c["pairing"]["negative_detach"],
             "target_branch": c["train"].get("target_branch", "shared"), "predictor": c["model"]["projector"].get("predictor", False),
-            "projector_depth": c["model"]["projector"].get("depth", 2), "cosine_scale_init": c["model"]["critic"].get("cosine_scale_init", 1.0)}
+            "projector_depth": c["model"]["projector"].get("depth", 2), "cosine_scale_init": c["model"]["critic"].get("cosine_scale_init", 1.0),
+            "cosine_scale_fixed": c["model"]["critic"].get("cosine_scale_fixed", False), "cosine_bias_calibrate": c["model"]["critic"].get("cosine_bias_calibrate", False),
+            "projector_output_bn": c["model"]["projector"]["output_batchnorm"]}
 
 
 def changed_hp(h: dict) -> str:
@@ -121,6 +126,8 @@ def scan(output_root: Path, stages: set[str]):
         base_traj = BASE_TRAJ.get(st.get("seed"), {})
         if st.get("stage") == "P18_vcs_critic_variants":
             base_traj = {0: 36.58, 10: 45.58, 20: 52.44, 50: 60.30, 100: 64.76, 150: 66.82, 200: 67.44}  # P10_vcs_k8_seed0 (K=8 baseline)
+        if st.get("stage") == "P26_vcs_negdetach_base":
+            base_traj = {0: 36.58, 10: 53.94, 20: 60.88, 50: 68.14, 100: 71.84, 150: 74.26, 200: 74.62}  # P24_vcs_cos_negdetach_seed0
         if st.get("stage") == "P24_vcs_cosine_base":
             base_traj = {0: 36.58, 10: 56.54, 20: 64.00, 50: 69.16, 100: 71.72, 150: 72.84, 200: 72.76}  # P18_vcs_crit_cosine_seed0
         if st.get("stage") in ("P20_vcs_ssl_wiring", "P22_vcs_target_branch"):
@@ -185,7 +192,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--output-root", default=os.environ.get("OUTPUT_ROOT", "/home/infres/yinwang/CS_QMI/outputs"))
     ap.add_argument("--out", default="/home/infres/yinwang/CS_QMI/ssl_pilot/reports/WATCH_status.md")
-    ap.add_argument("--stages", default="P16_vcs_hparamB_set,P20_vcs_ssl_wiring,P22_vcs_target_branch,P24_vcs_cosine_base")
+    ap.add_argument("--stages", default="P24_vcs_cosine_base,P26_vcs_negdetach_base")
     ap.add_argument("--print", action="store_true")
     a = ap.parse_args()
     stages = set(a.stages.split(","))

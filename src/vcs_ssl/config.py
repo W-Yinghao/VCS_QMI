@@ -55,7 +55,8 @@ SCHEMA: dict[str, Any] = {
               "normalization": {"vcs_and_simclr": str, "eps": _Num, "vicreg": str},
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
-                         "feature_source": _Opt(str, "z"), "cosine_scale_init": _Opt((int, float), 1.0)}},
+                         "feature_source": _Opt(str, "z"), "cosine_scale_init": _Opt((int, float), 1.0),
+                         "cosine_scale_fixed": _Opt(bool, False), "cosine_bias_calibrate": _Opt(bool, False)}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num},
@@ -211,9 +212,9 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError(f"critic.enabled / critic_validation.enabled must be {expect[1]} for method {m!r}")
     if m == "vcs_qmi":
         c = cfg["model"]["critic"]
-        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine") or c["activation"] != "relu" \
+        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric") or c["activation"] != "relu" \
                 or c["output"] != "tanh" or c["batchnorm"] or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
-            raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine); ReLU, tanh, no BN/dropout")
+            raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine|interact_only|shared_metric); ReLU, tanh, no BN/dropout")
         hd = c["hidden_dims"]
         if not (isinstance(hd, list) and len(hd) >= 1 and all(isinstance(w, int) and w > 0 for w in hd)):
             raise ConfigError("critic.hidden_dims must be a non-empty list of positive ints (hyper-parameter variant)")
@@ -228,8 +229,15 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("SimCLR control always uses l2-normalized views")
     pr = cfg["model"]["projector"]
     if not (isinstance(pr["hidden_dim"], int) and pr["hidden_dim"] > 0 and isinstance(pr["output_dim"], int) and pr["output_dim"] > 0
-            and pr["hidden_batchnorm"] and not pr["hidden_linear_bias"] and pr["output_linear_bias"] and not pr["output_batchnorm"]):
-        raise ConfigError("projector must stay Linear(no bias)-BN-ReLU-Linear(bias) with positive widths")
+            and pr["hidden_batchnorm"] and not pr["hidden_linear_bias"]):
+        raise ConfigError("projector must stay Linear(no bias)-BN-ReLU-...-Linear with positive widths")
+    if pr["output_batchnorm"]:
+        if m != "vcs_qmi":
+            raise ConfigError("output BN is a VCS-only named variant")
+        if pr["output_linear_bias"]:
+            raise ConfigError("output BN variant requires output_linear_bias=false (bias absorbed by BN)")
+    elif not pr["output_linear_bias"]:
+        raise ConfigError("without output BN the last projector layer keeps its bias (frozen recipe)")
     if m != "vcs_qmi" and (pr["hidden_dim"] != 512 or pr["output_dim"] != 128):
         raise ConfigError("control runs keep the frozen 512/128 projector")
     if cfg["evaluation"]["feature"] != "h_before_projector" or not cfg["evaluation"]["freeze_encoder_parameters"] \

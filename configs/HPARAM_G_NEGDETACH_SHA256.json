@@ -1,0 +1,184 @@
+{
+  "derived_from": {
+    "cifar10_hpF_cos_negdetach_vcs_seed0.yaml": "6e4fb742b1036ee4e08560a144e15ae583b779c85f12b4899e946a0160ab840a"
+  },
+  "baseline_run": "P24_vcs_cos_negdetach_seed0",
+  "units": [
+    {
+      "label": "base_seed1",
+      "seed": 1,
+      "changes": [],
+      "config": "configs/cifar10_hpG_base_seed1_vcs_seed1.yaml",
+      "run_id": "P26_vcs_base_seed1_seed1",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "base_seed2",
+      "seed": 2,
+      "changes": [],
+      "config": "configs/cifar10_hpG_base_seed2_vcs_seed2.yaml",
+      "run_id": "P26_vcs_base_seed2_seed2",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "b0_calib",
+      "seed": 0,
+      "changes": [
+        [
+          "model.critic.cosine_bias_calibrate",
+          true
+        ]
+      ],
+      "config": "configs/cifar10_hpG_b0_calib_vcs_seed0.yaml",
+      "run_id": "P26_vcs_b0_calib_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "a5_learn",
+      "seed": 0,
+      "changes": [
+        [
+          "model.critic.cosine_scale_init",
+          5.0
+        ]
+      ],
+      "config": "configs/cifar10_hpG_a5_learn_vcs_seed0.yaml",
+      "run_id": "P26_vcs_a5_learn_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "a5_fixed",
+      "seed": 0,
+      "changes": [
+        [
+          "model.critic.cosine_scale_init",
+          5.0
+        ],
+        [
+          "model.critic.cosine_scale_fixed",
+          true
+        ]
+      ],
+      "config": "configs/cifar10_hpG_a5_fixed_vcs_seed0.yaml",
+      "run_id": "P26_vcs_a5_fixed_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "proj_outBN",
+      "seed": 0,
+      "changes": [
+        [
+          "model.projector.output_batchnorm",
+          true
+        ],
+        [
+          "model.projector.output_linear_bias",
+          false
+        ]
+      ],
+      "config": "configs/cifar10_hpG_proj_outBN_vcs_seed0.yaml",
+      "run_id": "P26_vcs_proj_outBN_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "interact_only",
+      "seed": 0,
+      "changes": [
+        [
+          "model.critic.input",
+          "interact_only"
+        ],
+        [
+          "model.critic.hidden_dims",
+          [
+            256,
+            256
+          ]
+        ]
+      ],
+      "config": "configs/cifar10_hpG_interact_only_vcs_seed0.yaml",
+      "run_id": "P26_vcs_interact_only_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "shared_metric",
+      "seed": 0,
+      "changes": [
+        [
+          "model.critic.input",
+          "shared_metric"
+        ]
+      ],
+      "config": "configs/cifar10_hpG_shared_metric_vcs_seed0.yaml",
+      "run_id": "P26_vcs_shared_metric_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "k255",
+      "seed": 0,
+      "changes": [
+        [
+          "pairing.k",
+          255
+        ]
+      ],
+      "config": "configs/cifar10_hpG_k255_vcs_seed0.yaml",
+      "run_id": "P26_vcs_k255_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "base_800ep",
+      "seed": 0,
+      "changes": [
+        [
+          "train.epochs",
+          800
+        ],
+        [
+          "logging.checkpoint_epochs",
+          [
+            100,
+            200,
+            400,
+            600,
+            800
+          ]
+        ],
+        [
+          "evaluation.knn_epochs",
+          [
+            0,
+            20,
+            50,
+            100,
+            200,
+            400,
+            600,
+            800
+          ]
+        ],
+        [
+          "evaluation.linear_epochs_of_pretrain",
+          [
+            800
+          ]
+        ]
+      ],
+      "config": "configs/cifar10_hpG_base_800ep_vcs_seed0.yaml",
+      "run_id": "P26_vcs_base_800ep_seed0",
+      "final_ckpt": "epoch_800.pt"
+    }
+  ],
+  "files": {
+    "cifar10_hpG_base_seed1_vcs_seed1.yaml": "729ddc68049996a79b7118c5053153f02522ac671de590d226b779ea08fd8c5c",
+    "cifar10_hpG_base_seed2_vcs_seed2.yaml": "4ff793ca34366e6a3a3357ce489997b1f0a1f16e4464c19a1837e65135bac98a",
+    "cifar10_hpG_b0_calib_vcs_seed0.yaml": "7609f180119aabd166a1a7b3de2677eaf319c2a9a849ff226515777505f597ca",
+    "cifar10_hpG_a5_learn_vcs_seed0.yaml": "6ffb50697155b48f9902b66cdc6f4cd89be82bf6290f28f49587f7d860a98435",
+    "cifar10_hpG_a5_fixed_vcs_seed0.yaml": "972daccee593a2b5c440bd7a431156a801445a2fb1d21e7cddf02559ab4da3d8",
+    "cifar10_hpG_proj_outBN_vcs_seed0.yaml": "3f1ddb9f90e6f5bd2f68a7544f5f253b868990e0b4b6e6c2d73b5696ad2fe493",
+    "cifar10_hpG_interact_only_vcs_seed0.yaml": "b8e9499adf75694fc750624dbf7896597ca34d492eb7f13c7f762231f19e953a",
+    "cifar10_hpG_shared_metric_vcs_seed0.yaml": "4250dd87c5c02641aff537483c2674d7e2b2ebf68c50ea0412ee508c85cf2e1d",
+    "cifar10_hpG_k255_vcs_seed0.yaml": "696191029b91b0d6ea8d1b7e3afc83bf8597ce097ed87bad2f949c1e2a645932",
+    "cifar10_hpG_base_800ep_vcs_seed0.yaml": "0fe7bbee7b45cb31383f393472ffd7e7c214808517101bcd7930c333141f2943"
+  }
+}

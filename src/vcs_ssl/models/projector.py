@@ -18,7 +18,8 @@ def build_projector(p: dict[str, Any], *, in_dim: int) -> nn.Sequential:
         d = p["hidden_dim"]
     layers.append(nn.Linear(d, p["output_dim"], bias=p["output_linear_bias"]))
     if p["output_batchnorm"]:
-        raise ValueError("output BN is not part of the frozen projector")
+        # named variant: affine-free BN on the projector output (before the L2 normalization applied by the objective)
+        layers.append(nn.BatchNorm1d(p["output_dim"], affine=False))
     return nn.Sequential(*layers)
 
 

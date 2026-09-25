@@ -85,12 +85,12 @@ class BilinearConcatCritic(nn.Module):
 
 
 class CosineCritic(nn.Module):
-    """Named variant: tanh(a * <z1, z2> + b) with two learnable scalars (similarity-form critic)."""
+    """Named variant: tanh(a * <z1, z2> + b); a, b scalars (a optionally fixed; b optionally calibrated at init)."""
 
-    def __init__(self, feature_dim: int, scale_init: float = 1.0) -> None:
+    def __init__(self, feature_dim: int, scale_init: float = 1.0, scale_fixed: bool = False) -> None:
         super().__init__()
         self.feature_dim = feature_dim
-        self.scale = nn.Parameter(torch.tensor(float(scale_init)))
+        self.scale = nn.Parameter(torch.tensor(float(scale_init)), requires_grad=not scale_fixed)
         self.bias = nn.Parameter(torch.tensor(0.0))
 
     def forward(self, left: Tensor, right: Tensor) -> Tensor:
@@ -99,7 +99,48 @@ class CosineCritic(nn.Module):
         return torch.tanh(self.scale * (left * right).sum(-1) + self.bias)
 
 
-CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine")
+class InteractOnlyCritic(nn.Module):
+    """Named variant: MLP on [z1*z2, |z1-z2|] only (no raw z1/z2 channel); symmetric in the two views; ReLU; tanh output."""
+
+    def __init__(self, feature_dim: int, hidden_dims: list[int], last_layer_gain: float = 0.1) -> None:
+        super().__init__()
+        self.feature_dim = feature_dim
+        layers: list[nn.Module] = []
+        d = 2 * feature_dim
+        for w in hidden_dims:
+            layers += [nn.Linear(d, w), nn.ReLU()]
+            d = w
+        layers.append(nn.Linear(d, 1))
+        self.net = nn.Sequential(*layers)
+        nn.init.xavier_uniform_(self.net[-1].weight, gain=last_layer_gain)
+        nn.init.zeros_(self.net[-1].bias)
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        return torch.tanh(self.net(torch.cat((left * right, (left - right).abs()), dim=-1)).squeeze(-1))
+
+
+class SharedMetricCritic(nn.Module):
+    """Named variant: tanh(a * <normalize(W z1), normalize(W z2)> + b) with one shared square W (init identity); starts equal to CosineCritic."""
+
+    def __init__(self, feature_dim: int, scale_init: float = 1.0, scale_fixed: bool = False, eps: float = 1e-8) -> None:
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.W = nn.Parameter(torch.eye(feature_dim))
+        self.scale = nn.Parameter(torch.tensor(float(scale_init)), requires_grad=not scale_fixed)
+        self.bias = nn.Parameter(torch.tensor(0.0))
+        self.eps = eps
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        w1 = torch.nn.functional.normalize(left @ self.W.T, dim=1, eps=self.eps)
+        w2 = torch.nn.functional.normalize(right @ self.W.T, dim=1, eps=self.eps)
+        return torch.tanh(self.scale * (w1 * w2).sum(-1) + self.bias)
+
+
+CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric")
 
 
 def critic_impl_name(c: dict[str, Any]) -> str:
@@ -110,6 +151,10 @@ def critic_impl_name(c: dict[str, Any]) -> str:
         return "vcs_ssl.models.critic.BilinearConcatCritic"
     if inp == "cosine":
         return "vcs_ssl.models.critic.CosineCritic"
+    if inp == "interact_only":
+        return "vcs_ssl.models.critic.InteractOnlyCritic"
+    if inp == "shared_metric":
+        return "vcs_ssl.models.critic.SharedMetricCritic"
     hd = list(c["hidden_dims"])
     if len(hd) == 2 and hd[0] == hd[1] and float(c["last_layer_xavier_gain"]) == 0.1:
         return "reference.ssl_core.PairCritic"
@@ -133,5 +178,9 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
     if name.endswith("BilinearConcatCritic"):
         return BilinearConcatCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("CosineCritic"):
-        return CosineCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)))
+        return CosineCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), scale_fixed=bool(c.get("cosine_scale_fixed", False)))
+    if name.endswith("InteractOnlyCritic"):
+        return InteractOnlyCritic(feature_dim, hd, last_layer_gain=gain)
+    if name.endswith("SharedMetricCritic"):
+        return SharedMetricCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), scale_fixed=bool(c.get("cosine_scale_fixed", False)))
     return PairCriticMLP(feature_dim, hd, last_layer_gain=gain)

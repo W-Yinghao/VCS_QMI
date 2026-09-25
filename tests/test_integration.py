@@ -726,3 +726,53 @@ def test_critic_holdout_follows_training_wiring(tmp_path):
         f = forward_features_target(built["encoder"], built["projector"], x1, x2, 1e-8, target_branch="ema_0.99", teacher=built["teacher"], predictor=built["predictor"])
         obj = compute_objective_target(f, cfg=cfg, critic=built["critic"], pair_generator=torch.Generator().manual_seed(5))
     assert torch.isfinite(obj["loss"]) and obj["n_pos"] == 64
+
+
+def test_wave_g_variants(tmp_path):
+    """Fixed cosine scale, bias calibration, projector output BN, interaction-only and shared-metric critics."""
+    import yaml
+    from vcs_ssl.models.critic import CosineCritic, InteractOnlyCritic, SharedMetricCritic
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    # fixed scale excluded from the optimizer
+    b1 = copy.deepcopy(base); b1["model"]["critic"]["input"] = "cosine"; b1["model"]["critic"]["cosine_scale_init"] = 5; b1["model"]["critic"]["cosine_scale_fixed"] = True
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(b1)), env=env)
+    bt = build_models(cfg, seed=0, device="cpu"); crit = bt["critic"]
+    assert isinstance(crit, CosineCritic) and not crit.scale.requires_grad and float(crit.scale) == 5.0
+    opt = build_optimizer(bt["encoder"], bt["projector"], crit, cfg["optimizer"])
+    assert [g for g in opt.param_groups if g["name"] == "critic"][0]["params"] == [crit.bias]
+    # shared metric starts identical to cosine
+    b2 = copy.deepcopy(base); b2["model"]["critic"]["input"] = "shared_metric"
+    cfg2 = load_config(_write(tmp_path, yaml.safe_dump(b2)), env=env)
+    sm = build_models(cfg2, seed=0, device="cpu")["critic"]; assert isinstance(sm, SharedMetricCritic)
+    z1, z2 = F.normalize(torch.randn(6, 128), dim=1), F.normalize(torch.randn(6, 128), dim=1)
+    torch.testing.assert_close(sm(z1, z2), CosineCritic(128)(z1, z2), atol=1e-6, rtol=0)
+    assert sum(p.numel() for p in sm.parameters()) == 128 * 128 + 2
+    # interaction-only: symmetric in the two views, no raw channel
+    b3 = copy.deepcopy(base); b3["model"]["critic"]["input"] = "interact_only"; b3["model"]["critic"]["hidden_dims"] = [256, 256]
+    cfg3 = load_config(_write(tmp_path, yaml.safe_dump(b3)), env=env)
+    io = build_models(cfg3, seed=0, device="cpu")["critic"]; assert isinstance(io, InteractOnlyCritic)
+    torch.testing.assert_close(io(z1, z2), io(z2, z1), atol=1e-6, rtol=0)
+    assert io.net[0].in_features == 256
+    # projector output BN (affine-free) requires bias=False; controls locked
+    b4 = copy.deepcopy(base); b4["model"]["projector"]["output_batchnorm"] = True; b4["model"]["projector"]["output_linear_bias"] = False
+    cfg4 = load_config(_write(tmp_path, yaml.safe_dump(b4)), env=env)
+    proj = build_models(cfg4, seed=0, device="cpu")["projector"]
+    assert isinstance(proj[-1], torch.nn.BatchNorm1d) and proj[-1].affine is False and proj[-2].bias is None
+    bad = copy.deepcopy(base); bad["model"]["projector"]["output_batchnorm"] = True
+    with pytest.raises(ConfigError, match="output_linear_bias=false"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+    badc = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); badc["model"]["projector"]["output_batchnorm"] = True; badc["model"]["projector"]["output_linear_bias"] = False
+    with pytest.raises(ConfigError, match="VCS-only"):
+        load_config(_write(tmp_path, yaml.safe_dump(badc)), env=env)
+    # bias calibration at init: b0 = -a0*mu, BN buffers restored, record written; trainer smoke completes
+    data, m = synthetic_bundle()
+    cfgs = small_cfg(tmp_path, "vcs"); cfgs["model"]["critic"]["input"] = "cosine"; cfgs["model"]["critic"]["cosine_bias_calibrate"] = True; policy_checks(cfgs)
+    run_dir = Path(cfgs["run"]["output_root"]) / "calib"; run_dir.mkdir()
+    tr = Trainer(cfgs, run_dir=run_dir, data=data, manifest=m, device=torch.device("cpu"), stage="TEST", smoke_steps=2, epoch_eval=False)
+    tr.setup()
+    rec = json.loads((run_dir / "cosine_bias_calibration.json").read_text())
+    assert rec["n_images"] == min(512, len(m["fit_uids"])) and abs(rec["b0"] + rec["a0"] * rec["mu"]) < 1e-6 and float(tr.critic.bias) == pytest.approx(rec["b0"])
+    bn = [mod for mod in tr.encoder.modules() if isinstance(mod, torch.nn.BatchNorm2d)][0]
+    assert int(bn.num_batches_tracked) == 0  # calibration forward did not leave BN statistics behind
+    assert tr.run() == "COMPLETED"
