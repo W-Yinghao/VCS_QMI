@@ -57,3 +57,12 @@ HELPS > +1.0, HURTS < −1.0.
 ## Not claimed
 Single seed for every unit except the base; selection split; the a0 effect is a single seed until P31 lands; effective ranks are variance
 based and a rank of 1–4 with kNN ≈ 70 means one dominant direction, not a dead representation.
+
+## Addendum 18:50 UTC — first P28/P29 finals (for the P29 report; recorded here so the numbers are not lost)
+| unit | linear | Δ vs 80.59 | kNN | h-rank | z-rank | learned score |
+|---|---|---|---|---|---|---|
+| P28 mono_spline | 80.46 | −0.13 neutral | 73.90 | 25.0 | 10.3 | c0 = −8.4; f flat (≈ −8.3) for s < 0.5, then −4.7 / −3.0 / −0.7 / +1.6 at s = 0.7 / 0.8 / 0.9 / 1.0: slopes 7 and 12 in the top two knots — the free monotone score re-learned a *sharper* threshold near cos ≈ 0.9, not a smoother one |
+| P28 diag_metric | 80.56 | −0.03 neutral | 74.02 | 27.5 | 7.0 | 89 % of the 128 weights < 0.1; the top 10 carry 97 % — the critic selects ≈10 dimensions; h unaffected (unlike the shared metric) |
+| P29 cosK8 seed 1 | 78.06 | (seed 0: 78.32) | 73.00 | 57.0 | 42.8 | a = 8.33, b = −3.89 (seed 0: 8.35 / −3.91) |
+Reading: the spline result closes synthesis §4.4 (a smoother score does not help; the objective *wants* a hard threshold at high cosine).  The
+diagonal metric is the mild form of §4.3 (freedom is used to shrink the code the critic sees) without damaging h.
