@@ -133,5 +133,5 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
     if name.endswith("BilinearConcatCritic"):
         return BilinearConcatCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("CosineCritic"):
-        return CosineCritic(feature_dim, scale_init=1.0)
+        return CosineCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)))
     return PairCriticMLP(feature_dim, hd, last_layer_gain=gain)

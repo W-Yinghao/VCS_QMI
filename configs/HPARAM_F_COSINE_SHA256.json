@@ -1,0 +1,216 @@
+{
+  "derived_from": {
+    "cifar10_hpC_crit_cosine_vcs_seed0.yaml": "f219b21786790c91fdba3d695c58808dbaa916c374a604f673cabfe8556f553a"
+  },
+  "baseline_run": "P18_vcs_crit_cosine_seed0",
+  "units": [
+    {
+      "label": "cos_k64",
+      "changes": [
+        [
+          "pairing.k",
+          64
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_k64_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_k64_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_k255",
+      "changes": [
+        [
+          "pairing.k",
+          255
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_k255_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_k255_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_clr10",
+      "changes": [
+        [
+          "optimizer.critic_lr_multiplier",
+          10.0
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_clr10_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_clr10_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_scale10",
+      "changes": [
+        [
+          "model.critic.cosine_scale_init",
+          10.0
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_scale10_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_scale10_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_on_h",
+      "changes": [
+        [
+          "model.critic.feature_source",
+          "h_l2"
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_on_h_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_on_h_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_negdetach",
+      "changes": [
+        [
+          "pairing.negative_detach",
+          true
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_negdetach_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_negdetach_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_ema0.99",
+      "changes": [
+        [
+          "train.target_branch",
+          "ema_0.99"
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_ema0.99_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_ema0.99_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_ema0.996",
+      "changes": [
+        [
+          "train.target_branch",
+          "ema_0.996"
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_ema0.996_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_ema0.996_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_stopgrad",
+      "changes": [
+        [
+          "train.target_branch",
+          "stopgrad"
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_stopgrad_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_stopgrad_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_sg_pred",
+      "changes": [
+        [
+          "train.target_branch",
+          "stopgrad"
+        ],
+        [
+          "model.projector.predictor",
+          true
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_sg_pred_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_sg_pred_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_ema0.99_pred",
+      "changes": [
+        [
+          "train.target_branch",
+          "ema_0.99"
+        ],
+        [
+          "model.projector.predictor",
+          true
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_ema0.99_pred_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_ema0.99_pred_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_proj_depth3",
+      "changes": [
+        [
+          "model.projector.depth",
+          3
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_proj_depth3_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_proj_depth3_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "cos_800ep",
+      "changes": [
+        [
+          "train.epochs",
+          800
+        ],
+        [
+          "logging.checkpoint_epochs",
+          [
+            100,
+            200,
+            400,
+            600,
+            800
+          ]
+        ],
+        [
+          "evaluation.knn_epochs",
+          [
+            0,
+            20,
+            50,
+            100,
+            200,
+            400,
+            600,
+            800
+          ]
+        ],
+        [
+          "evaluation.linear_epochs_of_pretrain",
+          [
+            800
+          ]
+        ]
+      ],
+      "config": "configs/cifar10_hpF_cos_800ep_vcs_seed0.yaml",
+      "run_id": "P24_vcs_cos_800ep_seed0",
+      "final_ckpt": "epoch_800.pt"
+    }
+  ],
+  "files": {
+    "cifar10_hpF_cos_k64_vcs_seed0.yaml": "c6ed638a577df221a700e349e723e7f50f6dd90f4764b7bc2c2ed5397f443b0e",
+    "cifar10_hpF_cos_k255_vcs_seed0.yaml": "4688e54b385d9876a160269a5b082d00016e0b63269515b161d96b748aeda7f4",
+    "cifar10_hpF_cos_clr10_vcs_seed0.yaml": "cc0b3d2cee5e94cad028e9cf98ca16ce1adf99accd61e2d7e073f6016891b045",
+    "cifar10_hpF_cos_scale10_vcs_seed0.yaml": "5762016fafaebdb22b96457fdf226b6c16a7845d568aff2ccbadec19943cc9a1",
+    "cifar10_hpF_cos_on_h_vcs_seed0.yaml": "6324c2f3f19070678744e849376299bd3e1f1d6ed4c418ec4f75edae0c44d928",
+    "cifar10_hpF_cos_negdetach_vcs_seed0.yaml": "6e4fb742b1036ee4e08560a144e15ae583b779c85f12b4899e946a0160ab840a",
+    "cifar10_hpF_cos_ema0.99_vcs_seed0.yaml": "3273d4a43435cb1eb743da2a34d20dabb48bc99960318e94e1079de6f6fdd225",
+    "cifar10_hpF_cos_ema0.996_vcs_seed0.yaml": "891fad1cd84ae5d4874b993575464ead407f8aaeb50a6788a9c1883ea896a689",
+    "cifar10_hpF_cos_stopgrad_vcs_seed0.yaml": "38bdeeaf35e39bf0120a639cb20af65bd80b1df9e0c7b2b4b1142cd0230f364d",
+    "cifar10_hpF_cos_sg_pred_vcs_seed0.yaml": "6546d7d98061edb2cf2308e94f713bb0fc9fe86b5c36e7599b7ac821f9f19ad0",
+    "cifar10_hpF_cos_ema0.99_pred_vcs_seed0.yaml": "f491daf443ff57277c451aabdc983c5cffe574d18bb2ed0c36cfbbb7e42608c7",
+    "cifar10_hpF_cos_proj_depth3_vcs_seed0.yaml": "fb1b0346e574888bba93d5da7ade9a3902fa391550c6def16b0ddd3e3d733a36",
+    "cifar10_hpF_cos_800ep_vcs_seed0.yaml": "c4d6c1f891f1f8dad7c768533dfd59690ef7ffd8802bed72df2c113a14c0541b"
+  }
+}

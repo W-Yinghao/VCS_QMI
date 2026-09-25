@@ -677,3 +677,17 @@ def test_target_branch_predictor_projector_depth(tmp_path):
         pass  # teacher present
     rm = json.loads((tr.run_dir / "run_manifest.json").read_text())
     assert rm["hparams"]["target_branch"] == "ema_0.99" and rm["hparams"]["predictor"] is True
+
+
+def test_cosine_scale_init(tmp_path):
+    import yaml
+    from vcs_ssl.models.critic import CosineCritic
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); base["model"]["critic"]["input"] = "cosine"; base["model"]["critic"]["cosine_scale_init"] = 10
+    cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    crit = build_models(cfg, seed=0, device="cpu")["critic"]
+    assert isinstance(crit, CosineCritic) and float(crit.scale) == 10.0 and float(crit.bias) == 0.0
+    cfg0 = load_config(CFG_DIR / "cifar10_pilot_vcs.yaml", env=env); assert cfg0["model"]["critic"]["cosine_scale_init"] == 1.0
+    bad = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); bad["model"]["critic"]["cosine_scale_init"] = 0
+    with pytest.raises(ConfigError, match="cosine_scale_init"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)

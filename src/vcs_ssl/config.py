@@ -55,7 +55,7 @@ SCHEMA: dict[str, Any] = {
               "normalization": {"vcs_and_simclr": str, "eps": _Num, "vicreg": str},
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
-                         "feature_source": _Opt(str, "z")}},
+                         "feature_source": _Opt(str, "z"), "cosine_scale_init": _Opt((int, float), 1.0)}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num},
@@ -148,6 +148,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("pairing policy deviates from the frozen definition (symmetric scoring of both orders is the only named variant)")
     if p["negative_detach"] and m != "vcs_qmi":
         raise ConfigError("negative_detach is a VCS-only named variant")
+    if m == "vcs_qmi" and cfg["model"]["critic"]["cosine_scale_init"] <= 0:
+        raise ConfigError("critic.cosine_scale_init must be > 0")
     if m == "vcs_qmi" and cfg["model"]["critic"]["feature_source"] not in ("z", "h_l2"):
         raise ConfigError("critic.feature_source must be 'z' (projector output, default) or 'h_l2' (L2-normalized encoder output, named variant)")
     t = cfg["train"]

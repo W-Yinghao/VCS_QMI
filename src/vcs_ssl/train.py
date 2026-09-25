@@ -198,7 +198,8 @@ class Trainer:
                         "critic_input": self.cfg["model"]["critic"]["input"], "pair_symmetric": pair_symmetric(self.cfg),
                         "critic_steps": critic_steps(self.cfg), "critic_feature_source": self.cfg["model"]["critic"].get("feature_source", "z"),
                         "negative_detach": self.cfg["pairing"]["negative_detach"], "target_branch": self.target_branch,
-                        "predictor": self.predictor is not None, "projector_depth": self.cfg["model"]["projector"].get("depth", 2)},
+                        "predictor": self.predictor is not None, "projector_depth": self.cfg["model"]["projector"].get("depth", 2),
+                        "cosine_scale_init": self.cfg["model"]["critic"].get("cosine_scale_init", 1.0)},
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -444,7 +445,9 @@ class Trainer:
         self.optimizer.step()
         if self.teacher is not None:
             ema_update(self.teacher, self.encoder, self.projector)
-        out = {"loss": float(loss.detach()), **obj["stats"], "shift": obj["shift"], "n_pos": obj["n_pos"], "n_neg": obj["n_neg"],
+        cos_extra = ({"cos_scale": float(self.critic.scale.detach()), "cos_bias": float(self.critic.bias.detach())}
+                     if self.critic is not None and hasattr(self.critic, "scale") and hasattr(self.critic, "bias") else {})
+        out = {"loss": float(loss.detach()), **obj["stats"], **cos_extra, "shift": obj["shift"], "n_pos": obj["n_pos"], "n_neg": obj["n_neg"],
                "lr_factor": factor, **{f"lr_{k}": v for k, v in lrs.items()}, **gn}
         return out
 

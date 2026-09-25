@@ -1,4 +1,4 @@
-# Watcher status — 2026-09-25 09:45:54 UTC
+# Watcher status — 2026-09-25 10:01:22 UTC
 
 Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants, P20_vcs_ssl_wiring, P22_vcs_target_branch.  Baseline for deltas: same-seed K=1 200-epoch run (P5).  Signal rule (pre-registered): HELPS if final linear-val > baseline + 1.0, HURTS if < baseline − 1.0, else neutral.
 
@@ -19,7 +19,7 @@ Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants, P20_vcs_ssl_wiring, P22_vc
 | P16_vcs_b128_seed0 | batch_size_images=128 | COMPLETED | 200/200 | — | 63.68 (200) | -0.96 | 0.9036 | 14.03 | 73.22 | HURTS (-1.62) | — | 1008231 |
 | P16_vcs_b1024_seed0 | batch_size_images=1024 | COMPLETED | 200/200 | — | 63.30 (200) | -1.34 | 0.8935 | 12.01 | 73.00 | HURTS (-1.84) | — | 1008233 |
 | P16_vcs_aug_weak_seed0 | crop_scale_min=0.5, color_jitter=[0.2, 0.2, 0.2, 0.05] | COMPLETED | 200/200 | — | 55.20 (200) | -9.44 | 0.9746 | 12.42 | 67.78 | HURTS (-7.06) | — | 1008230 |
-| P16_vcs_k8_clr10_800ep_seed0 | K=8, critic_lr_multiplier=10.0 | RUNNING | 428/800 | 197 | 72.14 (400) | — | 0.9497 | 31.67 | — | — | — | 1008239 |
+| P16_vcs_k8_clr10_800ep_seed0 | K=8, critic_lr_multiplier=10.0 | RUNNING | 456/800 | 182 | 72.14 (400) | — | 0.9497 | 31.67 | — | — | — | 1008239 |
 
 kNN trajectories:
 
@@ -42,27 +42,44 @@ kNN trajectories:
 
 | run | changed | status | epoch | ETA (min) | last kNN (ep) | Δ kNN vs base @same ep | heldout-J | h-rank | final linear | signal | flags | job |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| P18_vcs_crit_bilinear_seed0 | K=8, critic_input=bilinear_concat | RUNNING | 180/200 | 10 | 66.62 (150) | -0.20 | 0.9239 | 16.24 | — | — | — | 1008402 |
-| P18_vcs_crit_cosine_seed0 | K=8, critic_input=cosine | RUNNING | 181/200 | 10 | 72.84 (150) | 6.02 | 0.9636 | 56.68 | — | — | — | 1008403 |
-| P18_vcs_crit_interact_seed0 | K=8, critic_input=concat_interact | RUNNING | 181/200 | 10 | 69.82 (150) | 3.00 | 0.9576 | 38.52 | — | — | — | 1008401 |
-| P18_vcs_crit_steps2_seed0 | K=8, critic_steps=2 | RUNNING | 196/200 | 2 | 67.22 (150) | 0.40 | 0.9250 | 17.49 | — | — | — | 1008405 |
-| P18_vcs_crit_steps5_seed0 | K=8, critic_steps=5 | RUNNING | 184/200 | 8 | 68.38 (150) | 1.56 | 0.9299 | 21.14 | — | — | — | 1008406 |
-| P18_vcs_pair_sym_seed0 | K=8, pair_symmetric=True | RUNNING | 193/200 | 3 | 66.88 (150) | 0.06 | 0.9244 | 16.29 | — | — | — | 1008404 |
+| P18_vcs_crit_cosine_seed0 | K=8, critic_input=cosine | COMPLETED | 200/200 | — | 72.76 (200) | 5.32 | 0.9676 | 57.74 | 78.32 | HELPS (+2.20) | — | 1008403 |
+| P18_vcs_crit_interact_seed0 | K=8, critic_input=concat_interact | COMPLETED | 200/200 | — | 70.74 (200) | 3.30 | 0.9623 | 39.28 | 77.34 | HELPS (+1.22) | — | 1008401 |
+| P18_vcs_pair_sym_seed0 | K=8, pair_symmetric=True | COMPLETED | 200/200 | — | 67.60 (200) | 0.16 | 0.9307 | 17.00 | 77.08 | neutral (+0.96) | — | 1008404 |
+| P18_vcs_crit_steps2_seed0 | K=8, critic_steps=2 | COMPLETED | 200/200 | — | 67.54 (200) | 0.10 | 0.9312 | 18.06 | 76.76 | neutral (+0.64) | — | 1008405 |
+| P18_vcs_crit_bilinear_seed0 | K=8, critic_input=bilinear_concat | COMPLETED | 200/200 | — | 66.76 (200) | -0.68 | 0.9306 | 16.68 | 76.18 | neutral (+0.06) | — | 1008402 |
+| P18_vcs_crit_steps5_seed0 | K=8, critic_steps=5 | COMPLETED | 200/200 | — | 68.80 (200) | 1.36 | 0.9371 | 21.08 | 75.62 | neutral (-0.50) | — | 1008406 |
 
 kNN trajectories:
 
-- P18_vcs_crit_bilinear_seed0: ep0: 36.6, ep10: 47.0, ep20: 53.0, ep50: 61.2, ep100: 65.0, ep150: 66.6
-- P18_vcs_crit_cosine_seed0: ep0: 36.6, ep10: 56.5, ep20: 64.0, ep50: 69.2, ep100: 71.7, ep150: 72.8
-- P18_vcs_crit_interact_seed0: ep0: 36.6, ep10: 56.1, ep20: 61.4, ep50: 67.0, ep100: 69.7, ep150: 69.8
-- P18_vcs_crit_steps2_seed0: ep0: 36.6, ep10: 49.9, ep20: 54.9, ep50: 61.7, ep100: 65.0, ep150: 67.2
-- P18_vcs_crit_steps5_seed0: ep0: 36.6, ep10: 50.8, ep20: 56.1, ep50: 62.9, ep100: 65.9, ep150: 68.4
-- P18_vcs_pair_sym_seed0: ep0: 36.6, ep10: 46.9, ep20: 53.8, ep50: 61.7, ep100: 65.0, ep150: 66.9
+- P18_vcs_crit_bilinear_seed0: ep0: 36.6, ep10: 47.0, ep20: 53.0, ep50: 61.2, ep100: 65.0, ep150: 66.6, ep200: 66.8
+- P18_vcs_crit_cosine_seed0: ep0: 36.6, ep10: 56.5, ep20: 64.0, ep50: 69.2, ep100: 71.7, ep150: 72.8, ep200: 72.8
+- P18_vcs_crit_interact_seed0: ep0: 36.6, ep10: 56.1, ep20: 61.4, ep50: 67.0, ep100: 69.7, ep150: 69.8, ep200: 70.7
+- P18_vcs_crit_steps2_seed0: ep0: 36.6, ep10: 49.9, ep20: 54.9, ep50: 61.7, ep100: 65.0, ep150: 67.2, ep200: 67.5
+- P18_vcs_crit_steps5_seed0: ep0: 36.6, ep10: 50.8, ep20: 56.1, ep50: 62.9, ep100: 65.9, ep150: 68.4, ep200: 68.8
+- P18_vcs_pair_sym_seed0: ep0: 36.6, ep10: 46.9, ep20: 53.8, ep50: 61.7, ep100: 65.0, ep150: 66.9, ep200: 67.6
 
 ## P20_vcs_ssl_wiring
 
 | run | changed | status | epoch | ETA (min) | last kNN (ep) | Δ kNN vs base @same ep | heldout-J | h-rank | final linear | signal | flags | job |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| P20_vcs_crit_on_h_seed0 | K=8, critic_lr_multiplier=10.0, critic_feature_source=h_l2 | RUNNING | 0/200 | — | — (None) | — | — | — | — | — | — | 1008560 |
+| P20_vcs_crit_on_h_seed0 | K=8, critic_lr_multiplier=10.0, critic_feature_source=h_l2 | RUNNING | 30/200 | 80 | 56.18 (20) | — | 0.7923 | 13.81 | — | — | — | 1008560 |
+| P20_vcs_crit_steps5_seed0 | K=8, critic_lr_multiplier=10.0, critic_steps=5 | RUNNING | 17/200 | 105 | 52.00 (10) | — | 0.7056 | 15.50 | — | — | — | 1008562 |
+| P20_vcs_neg_detach_seed0 | K=8, critic_lr_multiplier=10.0, negative_detach=True | RUNNING | 23/200 | 83 | 38.02 (20) | — | 0.0000 | 1.06 | — | — | COLLAPSE_SUSPECTED | 1008561 |
+
+kNN trajectories:
+
+- P20_vcs_crit_on_h_seed0: ep0: 36.6, ep10: 50.4, ep20: 56.2
+- P20_vcs_crit_steps5_seed0: ep0: 36.6, ep10: 52.0
+- P20_vcs_neg_detach_seed0: ep0: 36.6, ep10: 37.5, ep20: 38.0
+
+## P22_vcs_target_branch
+
+| run | changed | status | epoch | ETA (min) | last kNN (ep) | Δ kNN vs base @same ep | heldout-J | h-rank | final linear | signal | flags | job |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| P22_vcs_ema0.996_seed0 | K=8, critic_lr_multiplier=10.0, target_branch=ema_0.996 | RUNNING | 5/200 | 128 | 36.58 (0) | 0.00 | -0.0000 | 2.94 | — | — | — | 1008574 |
+| P22_vcs_ema0.99_seed0 | K=8, critic_lr_multiplier=10.0, target_branch=ema_0.99 | RUNNING | 8/200 | 126 | 36.58 (0) | 0.00 | -0.0000 | 2.94 | — | — | — | 1008573 |
+| P22_vcs_sg_pred_seed0 | K=8, critic_lr_multiplier=10.0, target_branch=stopgrad, predictor=True | RUNNING | 4/200 | 104 | 36.58 (0) | 0.00 | -0.0000 | 2.94 | — | — | — | 1008577 |
+| P22_vcs_stopgrad_seed0 | K=8, critic_lr_multiplier=10.0, target_branch=stopgrad | RUNNING | 6/200 | 102 | 36.58 (0) | 0.00 | -0.0000 | 2.94 | — | — | — | 1008576 |
 
 ---
-event_key: done=13 mon_evals=146 flags=0
+event_key: done=19 mon_evals=170 flags=1
