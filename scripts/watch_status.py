@@ -108,7 +108,7 @@ def fmt(v, nd=2):
 def scan(output_root: Path, stages: set[str]):
     rows = []
     now = time.time()
-    for rd in sorted(p for p in output_root.iterdir() if p.is_dir()):
+    for rd in sorted(p for p in output_root.iterdir() if p.is_dir() and "_FAILED_attempt" not in p.name):  # archived failed attempts are listed in job_ids.json, not here
         st = jload(rd / "status.json")
         if not st or st.get("stage") not in stages:
             continue
