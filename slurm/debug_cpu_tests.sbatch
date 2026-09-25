@@ -9,5 +9,8 @@
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 banner "DEBUG: CPU test run"
 "$PYTHON" -m pytest -q tests/test_ssl_core.py -p no:cacheprovider 2>&1 | tail -3
-"$PYTHON" -m pytest -q -x tests/test_integration.py -p no:cacheprovider 2>&1 | tail -60
-echo "end=$(date -u +%FT%TZ)"
+rc1=${PIPESTATUS[0]}
+"$PYTHON" -m pytest -q tests/test_integration.py -p no:cacheprovider 2>&1 | tail -60
+rc2=${PIPESTATUS[0]}
+echo "reference_rc=$rc1 integration_rc=$rc2 end=$(date -u +%FT%TZ)"
+[ $rc1 -eq 0 ] && [ $rc2 -eq 0 ]

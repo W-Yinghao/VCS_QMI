@@ -1,4 +1,4 @@
-# Watcher status — 2026-09-25 08:03:00 UTC
+# Watcher status — 2026-09-25 08:05:49 UTC
 
 Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants.  Baseline for deltas: same-seed K=1 200-epoch run (P5).  Signal rule (pre-registered): HELPS if final linear-val > baseline + 1.0, HURTS if < baseline − 1.0, else neutral.
 
@@ -18,8 +18,8 @@ Stages: P16_vcs_hparamB_set, P18_vcs_critic_variants.  Baseline for deltas: same
 | P16_vcs_b128_seed0 | batch_size_images=128 | COMPLETED | 200/200 | — | 63.68 (200) | -0.96 | 0.9036 | 14.03 | 73.22 | HURTS (-1.62) | — | 1008231 |
 | P16_vcs_b1024_seed0 | batch_size_images=1024 | COMPLETED | 200/200 | — | 63.30 (200) | -1.34 | 0.8935 | 12.01 | 73.00 | HURTS (-1.84) | — | 1008233 |
 | P16_vcs_aug_weak_seed0 | crop_scale_min=0.5, color_jitter=[0.2, 0.2, 0.2, 0.05] | COMPLETED | 200/200 | — | 55.20 (200) | -9.44 | 0.9746 | 12.42 | 67.78 | HURTS (-7.06) | — | 1008230 |
-| P16_vcs_k8_aug_strong_seed0 | K=8, crop_scale_min=0.08, color_jitter=[0.8, 0.8, 0.8, 0.2], gaussian_blur_p=0.5 | RUNNING | 196/200 | 2 | 68.48 (150) | 4.70 | 0.8071 | 17.58 | — | — | — | 1008241 |
-| P16_vcs_k8_clr10_800ep_seed0 | K=8, critic_lr_multiplier=10.0 | RUNNING | 238/800 | 298 | 70.16 (200) | 5.52 | 0.9291 | 26.11 | — | — | — | 1008239 |
+| P16_vcs_k8_aug_strong_seed0 | K=8, crop_scale_min=0.08, color_jitter=[0.8, 0.8, 0.8, 0.2], gaussian_blur_p=0.5 | COMPLETED | 200/200 | — | 68.96 (200) | 4.32 | 0.8212 | 18.36 | — | — | — | 1008241 |
+| P16_vcs_k8_clr10_800ep_seed0 | K=8, critic_lr_multiplier=10.0 | RUNNING | 244/800 | 295 | 70.16 (200) | 5.52 | 0.9291 | 26.11 | — | — | — | 1008239 |
 
 kNN trajectories:
 
@@ -31,7 +31,7 @@ kNN trajectories:
 - P16_vcs_b1024_seed0: ep0: 36.6, ep10: 39.2, ep20: 44.1, ep50: 52.3, ep100: 59.8, ep150: 62.6, ep200: 63.3
 - P16_vcs_b128_seed0: ep0: 36.6, ep10: 42.3, ep20: 48.5, ep50: 56.8, ep100: 61.0, ep150: 63.3, ep200: 63.7
 - P16_vcs_b512_seed0: ep0: 36.6, ep10: 41.2, ep20: 47.5, ep50: 55.6, ep100: 61.1, ep150: 63.4, ep200: 63.6
-- P16_vcs_k8_aug_strong_seed0: ep0: 36.6, ep10: 45.0, ep20: 53.2, ep50: 60.8, ep100: 65.9, ep150: 68.5
+- P16_vcs_k8_aug_strong_seed0: ep0: 36.6, ep10: 45.0, ep20: 53.2, ep50: 60.8, ep100: 65.9, ep150: 68.5, ep200: 69.0
 - P16_vcs_k8_clr10_800ep_seed0: ep0: 36.6, ep20: 57.4, ep50: 64.1, ep100: 67.0, ep200: 70.2
 - P16_vcs_k8_clr10_seed0: ep0: 36.6, ep10: 51.8, ep20: 56.9, ep50: 64.0, ep100: 66.7, ep150: 68.4, ep200: 68.4
 - P16_vcs_k8_clr3_seed0: ep0: 36.6, ep10: 47.7, ep20: 53.6, ep50: 63.5, ep100: 66.0, ep150: 67.1, ep200: 67.3
@@ -39,4 +39,4 @@ kNN trajectories:
 - P16_vcs_wd5e-4_seed0: ep0: 36.6, ep10: 41.4, ep20: 47.8, ep50: 56.4, ep100: 60.8, ep150: 63.4, ep200: 63.4
 
 ---
-event_key: done=12 mon_evals=107 flags=0
+event_key: done=13 mon_evals=109 flags=0

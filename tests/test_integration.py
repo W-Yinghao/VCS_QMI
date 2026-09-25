@@ -527,7 +527,8 @@ def test_critic_input_variants(tmp_path, inp):
     base["model"]["critic"]["input"] = inp
     cfg = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
     crit = build_critic(cfg["model"]["critic"], feature_dim=16)
-    assert inp.split("_")[0] in critic_impl_name(cfg["model"]["critic"]).lower()
+    expected = {"concat_interact": "InteractCritic", "bilinear_concat": "BilinearConcatCritic", "cosine": "CosineCritic"}[inp]
+    assert critic_impl_name(cfg["model"]["critic"]).endswith(expected) and type(crit).__name__ == expected
     x = torch.randn(6, 16, requires_grad=True); y = torch.randn(6, 16, requires_grad=True)
     out = crit(x, y)
     assert out.shape == (6,) and (out.abs() <= 1).all()
