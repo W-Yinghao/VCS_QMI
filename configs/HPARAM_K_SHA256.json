@@ -1,0 +1,63 @@
+{
+  "source": "cifar10_hpG_a5_learn_vcs_seed0.yaml",
+  "stage": "P35_vcs_a5_base",
+  "units": [
+    {
+      "label": "a5_views4",
+      "changes": [
+        [
+          "views.count",
+          4
+        ]
+      ],
+      "config": "configs/cifar10_hpK_a5_views4_vcs_seed0.yaml",
+      "run_id": "P35_vcs_a5_views4_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "a5_800ep",
+      "changes": [
+        [
+          "train.epochs",
+          800
+        ],
+        [
+          "logging.checkpoint_epochs",
+          [
+            100,
+            200,
+            400,
+            600,
+            800
+          ]
+        ],
+        [
+          "evaluation.knn_epochs",
+          [
+            0,
+            20,
+            50,
+            100,
+            200,
+            400,
+            600,
+            800
+          ]
+        ],
+        [
+          "evaluation.linear_epochs_of_pretrain",
+          [
+            800
+          ]
+        ]
+      ],
+      "config": "configs/cifar10_hpK_a5_800ep_vcs_seed0.yaml",
+      "run_id": "P35_vcs_a5_800ep_seed0",
+      "final_ckpt": "epoch_800.pt"
+    }
+  ],
+  "files": {
+    "cifar10_hpK_a5_views4_vcs_seed0.yaml": "080a2f184aa4ab5ae2bee2c90aa22a2bfc4187437837ea902a2bb9035069d2f9",
+    "cifar10_hpK_a5_800ep_vcs_seed0.yaml": "6275fcdfd5e60d058a24e6336ad0a5291d6494573cee7c98f09f9ce433f95db5"
+  }
+}
