@@ -24,12 +24,13 @@ from . import SCHEMA_VERSION, __version__
 from .checkpoint import atomic_torch_save, capture_rng, load_checkpoint, restore_rng, rng_fingerprint
 from .config import ConfigError, dump_resolved, load_config
 from .data.cifar import CifarTrain, load_cifar10_train
-from .data.datasets import SSLTwoViewDataset, make_ssl_loader
+from .data.datasets import SSLMultiViewDataset, SSLTwoViewDataset, make_ssl_loader
 from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, two_view_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_report
 from .models import build_models, ema_update
-from .objectives import compute_objective, compute_objective_target, critic_steps, forward_features, forward_features_target, pair_symmetric
+from .objectives import (compute_objective, compute_objective_target, compute_objective_views, critic_steps, forward_features, forward_features_target,
+                         forward_features_views, pair_symmetric)
 from .optim import all_grads_finite, build_optimizer, grad_norms, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
@@ -110,7 +111,9 @@ class Trainer:
 
         self.two_view = build_two_view_transform(cfg["views"])
         self.clean = build_clean_transform(cfg["views"])
-        self.dataset = SSLTwoViewDataset(data.data, self.fit_uids, self.two_view)
+        self.n_views = int(cfg["views"]["count"])
+        self.dataset = (SSLTwoViewDataset(data.data, self.fit_uids, self.two_view) if self.n_views == 2
+                        else SSLMultiViewDataset(data.data, self.fit_uids, self.two_view, self.n_views))
 
         # bookkeeping
         self.step = 0
@@ -203,7 +206,8 @@ class Trainer:
                         "cosine_scale_init": self.cfg["model"]["critic"].get("cosine_scale_init", 1.0),
                         "cosine_scale_fixed": self.cfg["model"]["critic"].get("cosine_scale_fixed", False),
                         "cosine_bias_calibrate": self.cfg["model"]["critic"].get("cosine_bias_calibrate", False),
-                        "projector_output_bn": self.cfg["model"]["projector"]["output_batchnorm"]},
+                        "projector_output_bn": self.cfg["model"]["projector"]["output_batchnorm"], "n_views": self.n_views,
+                        "projector_kind": self.cfg["model"]["projector"].get("kind", "mlp")},
             "cosine_bias_calibration": getattr(self, "calibration", None),
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
@@ -271,7 +275,8 @@ class Trainer:
             rows = []
             uids = []
             for i in range(n):
-                v1, v2, uid = self.dataset[i]
+                item = self.dataset[i]
+                v1, v2, uid = item[0], item[1], item[-1]
                 rows.append(torch.stack((v1, v2)))
                 uids.append(uid)
             grid = torch.cat(rows) * 0.5 + 0.5  # undo fixed normalization for viewing
@@ -300,7 +305,7 @@ class Trainer:
         rec = {
             "run_id": self.run_id, "method": self.method, "stage": self.stage, "seed": self.seed, "epoch": epoch,
             "code_commit": self.git.get("commit"), "config_hash": self.cfg["_meta"]["config_hash"], "split_hash": self.manifest["manifest_sha256"],
-            "physical_batch_images": self.batch, "views_per_image": 2, "K": self.run_manifest["K"], "pair_sampling": self.run_manifest["pair_sampling"],
+            "physical_batch_images": self.batch, "views_per_image": self.n_views, "K": self.run_manifest["K"], "pair_sampling": self.run_manifest["pair_sampling"],
             "world_size": 1, "encoder_dim": self.run_manifest["encoder_dim"], "projector_dim": self.run_manifest["projector_dim"],
             "critic_params": self.run_manifest["critic_params"], "objective_target": self.run_manifest["objective_target"],
             "optimizer_step": self.step, "seen_base_images": self.seen_base_images,
@@ -447,7 +452,7 @@ class Trainer:
         return result
 
     # -- training ------------------------------------------------------------------------------------------------------
-    def train_step(self, x1: torch.Tensor, x2: torch.Tensor, uids: torch.Tensor, log_this: bool) -> dict[str, Any]:
+    def train_step(self, x1: torch.Tensor, x2: torch.Tensor, uids: torch.Tensor, log_this: bool, extra_views: list | None = None) -> dict[str, Any]:
         if uids.unique().numel() != uids.numel():
             raise RuntimeError("duplicate UID inside a batch")
         if not self.fit_mask[uids.numpy()].all():
@@ -460,7 +465,13 @@ class Trainer:
         self.optimizer.zero_grad(set_to_none=True)
         x1 = x1.to(self.device, non_blocking=True)
         x2 = x2.to(self.device, non_blocking=True)
-        if self.target_branch == "shared":
+        multi = bool(extra_views)
+        if multi:
+            if self.target_branch != "shared" or critic_steps(self.cfg) != 1:
+                raise ConfigError("views.count > 2 is implemented for the shared branch with a single joint step only")
+            views = [x1, x2] + [v.to(self.device, non_blocking=True) for v in extra_views]
+            feats = forward_features_views(self.encoder, self.projector, views, eps=self.cfg["model"]["normalization"]["eps"])
+        elif self.target_branch == "shared":
             feats = forward_features(self.encoder, self.projector, x1, x2, eps=self.cfg["model"]["normalization"]["eps"])
         else:
             if self.predictor is not None:
@@ -480,8 +491,11 @@ class Trainer:
                 cobj["loss"].backward()
                 self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
-        obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen) if self.target_branch == "shared"
-               else compute_objective_target(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
+        if multi:
+            obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
+        else:
+            obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen) if self.target_branch == "shared"
+                   else compute_objective_target(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
         loss = obj["loss"]
         if not torch.isfinite(loss):
             raise FloatingPointError(f"non-finite loss at step {self.step}")
@@ -532,7 +546,7 @@ class Trainer:
             return
         payload = {"exception": repr(exc), "traceback": traceback.format_exc(), "step": self.step, "epoch": self.completed_epoch + 1,
                    "shift": None if step_out is None else step_out.get("shift"), "last_step_stats": step_out,
-                   "uids": None if batch is None else batch[2].tolist(), **capture_rng(self.device, self.loader_gen, self.pair_gen),
+                   "uids": None if batch is None else batch[-1].tolist(), **capture_rng(self.device, self.loader_gen, self.pair_gen),
                    "encoder_state": self.encoder.state_dict(), "projector_state": self.projector.state_dict(),
                    "critic_state": None if self.critic is None else self.critic.state_dict(), "config_hash": self.cfg["_meta"]["config_hash"]}
         atomic_torch_save(payload, self.run_dir / "failure" / f"failure_step_{self.step:06d}.pt")
@@ -564,7 +578,7 @@ class Trainer:
                         data_wait = time.perf_counter() - t_wait
                         log_this = (self.step % self.cfg["logging"]["step_interval"] == 0) or (self.step == self.total_steps - 1)
                         with Timer(self.device) as st:
-                            out = self.train_step(batch[0], batch[1], batch[2], log_this)
+                            out = self.train_step(batch[0], batch[1], batch[-1], log_this, extra_views=list(batch[2:-1]) if len(batch) > 3 else None)
                         if self.step == 0:
                             self.verify_first_step_update()
                         step_times.append(st.elapsed)
@@ -577,7 +591,7 @@ class Trainer:
                                 sums[k] = sums.get(k, 0.0) + float(v)
                                 counts[k] = counts.get(k, 0) + 1
                         if log_this:
-                            rec = {"step": self.step - 1, "epoch": epoch, **out, "base_images": int(batch[0].shape[0]), "views": 2 * int(batch[0].shape[0]),
+                            rec = {"step": self.step - 1, "epoch": epoch, **out, "base_images": int(batch[0].shape[0]), "views": (len(batch) - 1) * int(batch[0].shape[0]),
                                    "seen_base_images": self.seen_base_images, "step_seconds": st.elapsed, "data_wait_seconds": data_wait,
                                    "interval_mean_step_seconds": float(np.mean(step_times[-self.cfg["logging"]["step_interval"]:])),
                                    "interval_wall_seconds": time.perf_counter() - interval_t0, **self.peak_memory(), "utc": utc_now()}

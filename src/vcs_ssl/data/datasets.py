@@ -33,6 +33,26 @@ class SSLTwoViewDataset(Dataset):
         return v1, v2, uid
 
 
+class SSLMultiViewDataset(Dataset):
+    """Named variant: returns ``(view_1, ..., view_n, uid)`` with n independent augmentation calls; no labels."""
+
+    def __init__(self, images_uint8: np.ndarray, uids: np.ndarray, transform: Callable, n_views: int) -> None:
+        if n_views < 2:
+            raise ValueError("n_views must be >= 2")
+        self.images = images_uint8
+        self.uids = np.asarray(uids, dtype=np.int64)
+        self.transform = transform
+        self.n_views = int(n_views)
+
+    def __len__(self) -> int:
+        return len(self.uids)
+
+    def __getitem__(self, i: int):
+        uid = int(self.uids[i])
+        img = Image.fromarray(self.images[uid])
+        return (*[self.transform(img) for _ in range(self.n_views)], uid)
+
+
 class LabeledCleanDataset(Dataset):
     """Evaluation-only dataset: ``(x_clean, label, uid)``.  Used by probes/kNN/spectrum, never by SSL training."""
 

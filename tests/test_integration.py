@@ -776,3 +776,89 @@ def test_wave_g_variants(tmp_path):
     bn = [mod for mod in tr.encoder.modules() if isinstance(mod, torch.nn.BatchNorm2d)][0]
     assert int(bn.num_batches_tracked) == 0  # calibration forward did not leave BN statistics behind
     assert tr.run() == "COMPLETED"
+
+
+def test_new_candidates_spline_diag_allpairs_views(tmp_path):
+    import yaml
+    from vcs_ssl.models.critic import CosineCritic, DiagMetricCritic, MonoSplineCritic
+    from vcs_ssl.objectives import compute_objective_views, forward_features_views, vcs_pair_loss_all_matrix
+    from reference.ssl_core import vcs_pair_loss
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    z1, z2 = F.normalize(torch.randn(16, 128, dtype=torch.float64), dim=1), F.normalize(torch.randn(16, 128, dtype=torch.float64), dim=1)
+    # spline: monotone, init == cosine (a=1, b=0)
+    b1 = copy.deepcopy(base); b1["model"]["critic"]["input"] = "mono_spline"; b1["model"]["critic"]["hidden_dims"] = [8, 8]
+    cfg1 = load_config(_write(tmp_path, yaml.safe_dump(b1)), env=env)
+    sp = build_models(cfg1, seed=0, device="cpu")["critic"]; assert isinstance(sp, MonoSplineCritic) and len(sp.knots) == 8
+    s = torch.linspace(-1, 1, 201)
+    f = sp.f(s); assert torch.all(f[1:] >= f[:-1] - 1e-6); torch.testing.assert_close(f, s, atol=1e-2, rtol=0)  # init ~ cosine (a=1,b=0) within 0.01
+    torch.testing.assert_close(sp(z1.float(), z2.float()), CosineCritic(128)(z1.float(), z2.float()), atol=1e-2, rtol=0)
+    # diag metric init == cosine
+    b2 = copy.deepcopy(base); b2["model"]["critic"]["input"] = "diag_metric"
+    cfg2 = load_config(_write(tmp_path, yaml.safe_dump(b2)), env=env)
+    dm = build_models(cfg2, seed=0, device="cpu")["critic"]; assert isinstance(dm, DiagMetricCritic)
+    torch.testing.assert_close(dm(z1.float(), z2.float()), CosineCritic(128)(z1.float(), z2.float()), atol=1e-6, rtol=0)
+    # all-pairs matrix == cyclic shifts with K = B-1 (values and gradients), with and without negative detach
+    crit = CosineCritic(128).double(); crit.scale.data.fill_(3.0); crit.bias.data.fill_(-1.5)
+    for nd in (False, True):
+        a1, a2 = z1.clone().requires_grad_(True), z2.clone().requires_grad_(True)
+        sA, _ = vcs_pair_loss_all_matrix(a1, a2, crit, negative_detach=nd)
+        gA = torch.autograd.grad(sA["loss"], (a1, a2))
+        c1, c2 = z1.clone().requires_grad_(True), z2.clone().requires_grad_(True)
+        if nd:
+            from vcs_ssl.objectives import vcs_pair_loss_negdetach
+            sB, _ = vcs_pair_loss_negdetach(c1, c2, crit, k=15, generator=torch.Generator().manual_seed(0))
+        else:
+            sB, _ = vcs_pair_loss(c1, c2, crit, k=15, generator=torch.Generator().manual_seed(0))
+        gB = torch.autograd.grad(sB["loss"], (c1, c2))
+        torch.testing.assert_close(sA["J_raw"], sB["J_raw"], atol=1e-12, rtol=1e-12)
+        for x, y in zip(gA, gB):
+            torch.testing.assert_close(x, y, atol=1e-12, rtol=1e-10)
+    b3 = copy.deepcopy(base); b3["model"]["critic"]["input"] = "cosine"; b3["pairing"]["sampler"] = "all_pairs_matrix"
+    cfg3 = load_config(_write(tmp_path, yaml.safe_dump(b3)), env=env)
+    bt = build_models(cfg3, seed=0, device="cpu")
+    fz = forward_features(bt["encoder"], bt["projector"], torch.randn(6, 3, 32, 32), torch.randn(6, 3, 32, 32), eps=1e-8)
+    obj = compute_objective("vcs_qmi", fz, cfg=cfg3, critic=bt["critic"], pair_generator=None)
+    assert obj["n_neg"] == 30 and obj["shift"] is None
+    badc = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); badc["pairing"]["sampler"] = "all_pairs_matrix"  # concat MLP critic
+    with pytest.raises(ConfigError, match="similarity-type"):
+        load_config(_write(tmp_path, yaml.safe_dump(badc)), env=env)
+    # four views: dataset, objective (6 pairs), trainer smoke; controls locked
+    b4 = copy.deepcopy(base); b4["views"]["count"] = 4; b4["model"]["critic"]["input"] = "cosine"
+    cfg4 = load_config(_write(tmp_path, yaml.safe_dump(b4)), env=env)
+    from vcs_ssl.data.datasets import SSLMultiViewDataset
+    data, m = synthetic_bundle()
+    ds = SSLMultiViewDataset(data.data, np.asarray(m["fit_uids"]), build_two_view_transform(cfg4["views"]), 4)
+    item = ds[0]; assert len(item) == 5 and item[0].shape == (3, 32, 32) and isinstance(item[-1], int)
+    bt4 = build_models(cfg4, seed=0, device="cpu")
+    fv = forward_features_views(bt4["encoder"], bt4["projector"], [torch.randn(5, 3, 32, 32) for _ in range(4)], eps=1e-8)
+    assert len(fv["views_z"]) == 4 and fv["h"].shape == (20, 512)
+    ov = compute_objective_views(fv, cfg=cfg4, critic=bt4["critic"], pair_generator=torch.Generator().manual_seed(0))
+    assert ov["n_pos"] == 30 and ov["n_neg"] == 30 and len(ov["shift"]) == 6 and torch.isfinite(ov["loss"])
+    cfgs = small_cfg(tmp_path, "vcs"); cfgs["views"]["count"] = 4; cfgs["model"]["critic"]["input"] = "cosine"; policy_checks(cfgs)
+    tr, st = run_trainer(tmp_path, cfgs, data, m, run_id="views4", device=torch.device("cpu"), smoke_steps=2, epoch_eval=True, smoke_epoch_steps=2)
+    assert st == "COMPLETED" and steps_log(tr.run_dir)[0]["views"] == 4 * cfgs["train"]["batch_size_images"]
+    badv = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); badv["views"]["count"] = 4
+    with pytest.raises(ConfigError, match="two views"):
+        load_config(_write(tmp_path, yaml.safe_dump(badv)), env=env)
+
+
+def test_projector_kinds(tmp_path):
+    import yaml
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    b1 = copy.deepcopy(base); b1["model"]["projector"]["depth"] = 1
+    proj = build_models(load_config(_write(tmp_path, yaml.safe_dump(b1)), env=env), seed=0, device="cpu")["projector"]
+    assert len(proj) == 1 and isinstance(proj[0], torch.nn.Linear) and proj[0].in_features == 512 and proj[0].out_features == 128
+    b2 = copy.deepcopy(base); b2["model"]["projector"]["kind"] = "bn_only"; b2["model"]["projector"]["output_dim"] = 512; b2["model"]["critic"]["input"] = "cosine"
+    cfg2 = load_config(_write(tmp_path, yaml.safe_dump(b2)), env=env)
+    bt = build_models(cfg2, seed=0, device="cpu")
+    assert isinstance(bt["projector"][0], torch.nn.BatchNorm1d) and bt["projector"][0].affine is False and bt["critic"].feature_dim == 512
+    f = forward_features(bt["encoder"], bt["projector"], torch.randn(4, 3, 32, 32), torch.randn(4, 3, 32, 32), eps=1e-8)
+    assert f["z_l2"].shape == (8, 512)
+    bad = copy.deepcopy(base); bad["model"]["projector"]["kind"] = "bn_only"
+    with pytest.raises(ConfigError, match="output_dim == h_dim"):
+        load_config(_write(tmp_path, yaml.safe_dump(bad)), env=env)
+    badc = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); badc["model"]["projector"]["depth"] = 1
+    with pytest.raises(ConfigError, match="control runs keep"):
+        load_config(_write(tmp_path, yaml.safe_dump(badc)), env=env)

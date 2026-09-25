@@ -7,7 +7,12 @@ from torch import nn
 
 
 def build_projector(p: dict[str, Any], *, in_dim: int) -> nn.Sequential:
-    depth = int(p.get("depth", 2))  # number of Linear layers (2 = frozen default); each hidden block = Linear(no bias)-BN-ReLU
+    if p.get("kind", "mlp") == "bn_only":
+        # named variant: no projector; the critic reads L2(BN(h)) with an affine-free BN (scale control for similarity critics)
+        if p["output_dim"] != in_dim:
+            raise ValueError("bn_only projector requires output_dim == in_dim")
+        return nn.Sequential(nn.BatchNorm1d(in_dim, affine=False))
+    depth = int(p.get("depth", 2))  # number of Linear layers (2 = frozen default; 1 = single linear map); each hidden block = Linear(no bias)-BN-ReLU
     layers: list[nn.Module] = []
     d = in_dim
     for _ in range(depth - 1):

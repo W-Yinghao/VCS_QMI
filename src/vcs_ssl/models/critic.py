@@ -140,7 +140,81 @@ class SharedMetricCritic(nn.Module):
         return torch.tanh(self.scale * (w1 * w2).sum(-1) + self.bias)
 
 
-CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric")
+class MonoSplineCritic(nn.Module):
+    """Named variant: T = tanh(f(<z1,z2>)) with f a monotone increasing piecewise-linear spline on [-1, 1]:
+    f(s) = c0 + sum_k softplus(w_k) * relu(s - t_k), knots t_k = -1 + 2k/M (k = 0..M-1). Init: f(s) = s (equal to cosine a=1, b=0)."""
+
+    def __init__(self, feature_dim: int, knots: int = 8) -> None:
+        super().__init__()
+        if knots < 1:
+            raise ValueError("knots must be >= 1")
+        self.feature_dim = feature_dim
+        self.register_buffer("knots", torch.linspace(-1.0, 1.0, knots + 1)[:-1])
+        w = torch.full((knots,), -8.0)  # softplus(-8) = 3.4e-4: other knots start (numerically) flat; Adam still moves them
+        w[0] = float(torch.log(torch.expm1(torch.tensor(1.0))))  # softplus(w0) = 1
+        self.w = nn.Parameter(w)
+        self.c0 = nn.Parameter(torch.tensor(-1.0))
+
+    def f(self, s: Tensor) -> Tensor:
+        slopes = torch.nn.functional.softplus(self.w)
+        return self.c0 + (slopes * torch.relu(s.unsqueeze(-1) - self.knots)).sum(-1)
+
+    def embed(self, z: Tensor) -> Tensor:
+        return z
+
+    def score_matrix(self, C: Tensor) -> Tensor:
+        return torch.tanh(self.f(C))
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        return torch.tanh(self.f((left * right).sum(-1)))
+
+
+class DiagMetricCritic(nn.Module):
+    """Named variant: tanh(a * <normalize(w*z1), normalize(w*z2)> + b) with a learnable per-dimension weight w (init ones)."""
+
+    def __init__(self, feature_dim: int, scale_init: float = 1.0, scale_fixed: bool = False, eps: float = 1e-8) -> None:
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.w = nn.Parameter(torch.ones(feature_dim))
+        self.scale = nn.Parameter(torch.tensor(float(scale_init)), requires_grad=not scale_fixed)
+        self.bias = nn.Parameter(torch.tensor(0.0))
+        self.eps = eps
+
+    def embed(self, z: Tensor) -> Tensor:
+        return torch.nn.functional.normalize(z * self.w, dim=1, eps=self.eps)
+
+    def score_matrix(self, C: Tensor) -> Tensor:
+        return torch.tanh(self.scale * C + self.bias)
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        return torch.tanh(self.scale * (self.embed(left) * self.embed(right)).sum(-1) + self.bias)
+
+
+# matrix-form hooks for the all-pairs sampler (similarity-type critics only)
+def _cos_embed(self, z):  # noqa: ANN001
+    return z
+
+
+def _cos_score_matrix(self, C):  # noqa: ANN001
+    return torch.tanh(self.scale * C + self.bias)
+
+
+CosineCritic.embed = _cos_embed
+CosineCritic.score_matrix = _cos_score_matrix
+
+
+def _sm_embed(self, z):  # noqa: ANN001
+    return torch.nn.functional.normalize(z @ self.W.T, dim=1, eps=self.eps)
+
+
+SharedMetricCritic.embed = _sm_embed
+SharedMetricCritic.score_matrix = _cos_score_matrix
+
+CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric")
 
 
 def critic_impl_name(c: dict[str, Any]) -> str:
@@ -155,6 +229,10 @@ def critic_impl_name(c: dict[str, Any]) -> str:
         return "vcs_ssl.models.critic.InteractOnlyCritic"
     if inp == "shared_metric":
         return "vcs_ssl.models.critic.SharedMetricCritic"
+    if inp == "mono_spline":
+        return "vcs_ssl.models.critic.MonoSplineCritic"
+    if inp == "diag_metric":
+        return "vcs_ssl.models.critic.DiagMetricCritic"
     hd = list(c["hidden_dims"])
     if len(hd) == 2 and hd[0] == hd[1] and float(c["last_layer_xavier_gain"]) == 0.1:
         return "reference.ssl_core.PairCritic"
@@ -183,4 +261,8 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
         return InteractOnlyCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("SharedMetricCritic"):
         return SharedMetricCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), scale_fixed=bool(c.get("cosine_scale_fixed", False)))
+    if name.endswith("MonoSplineCritic"):
+        return MonoSplineCritic(feature_dim, knots=int(hd[0]))  # hidden_dims[0] = number of knots (documented reuse of the field)
+    if name.endswith("DiagMetricCritic"):
+        return DiagMetricCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), scale_fixed=bool(c.get("cosine_scale_fixed", False)))
     return PairCriticMLP(feature_dim, hd, last_layer_gain=gain)

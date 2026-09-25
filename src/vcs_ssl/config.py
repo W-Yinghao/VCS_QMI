@@ -51,7 +51,7 @@ SCHEMA: dict[str, Any] = {
     "model": {"backbone": str, "weights": (str, type(None)), "h_dim": int,
               "stem": {"kernel_size": int, "stride": int, "padding": int, "bias": bool, "maxpool": bool},
               "projector": {"hidden_dim": int, "output_dim": int, "hidden_batchnorm": bool, "hidden_linear_bias": bool,
-                            "output_linear_bias": bool, "output_batchnorm": bool, "depth": _Opt(int, 2), "predictor": _Opt(bool, False)},
+                            "output_linear_bias": bool, "output_batchnorm": bool, "depth": _Opt(int, 2), "predictor": _Opt(bool, False), "kind": _Opt(str, "mlp")},
               "normalization": {"vcs_and_simclr": str, "eps": _Num, "vicreg": str},
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
@@ -144,7 +144,7 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     p = cfg["pairing"]
     if not (1 <= p["k"] <= cfg["train"]["batch_size_images"] - 1):
         raise ConfigError("pairing.k must satisfy 1 <= K <= batch_size_images - 1 (K distinct nonzero cyclic shifts)")
-    if p["sampler"] not in ("random_nonzero_cyclic_shift", "random_nonzero_cyclic_shift_symmetric") or not p["unique_shifts"] \
+    if p["sampler"] not in ("random_nonzero_cyclic_shift", "random_nonzero_cyclic_shift_symmetric", "all_pairs_matrix") or not p["unique_shifts"] \
             or p["allow_self"] or p["label_filter"] or p["queue"] or p["rng"] != "dedicated_cpu_generator":
         raise ConfigError("pairing policy deviates from the frozen definition (symmetric scoring of both orders is the only named variant)")
     if p["negative_detach"] and m != "vcs_qmi":
@@ -163,8 +163,14 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("train.target_branch must be 'shared' (default), 'stopgrad' or 'ema_<tau>' (named variants)")
     if m != "vcs_qmi" and (tb != "shared" or cfg["model"]["projector"]["predictor"] or cfg["model"]["projector"]["depth"] != 2):
         raise ConfigError("control runs keep the shared two-view branch, no predictor, 2-layer projector")
-    if cfg["model"]["projector"]["depth"] < 2 or cfg["model"]["projector"]["depth"] > 4:
-        raise ConfigError("projector depth must be in [2, 4]")
+    if cfg["model"]["projector"]["depth"] < 1 or cfg["model"]["projector"]["depth"] > 4:
+        raise ConfigError("projector depth must be in [1, 4] (1 = single linear layer, VCS-only named variant)")
+    if cfg["model"]["projector"]["kind"] not in ("mlp", "bn_only"):
+        raise ConfigError("projector.kind must be 'mlp' (default) or 'bn_only' (affine-free BN on h, VCS-only named variant)")
+    if m != "vcs_qmi" and (cfg["model"]["projector"]["kind"] != "mlp" or cfg["model"]["projector"]["depth"] != 2):
+        raise ConfigError("control runs keep the 2-layer MLP projector")
+    if cfg["model"]["projector"]["kind"] == "bn_only" and cfg["model"]["projector"]["output_dim"] != cfg["model"]["h_dim"]:
+        raise ConfigError("projector.kind=bn_only requires output_dim == h_dim")
     if cfg["model"]["projector"]["predictor"] and tb == "shared":
         raise ConfigError("a predictor requires a stop-gradient or EMA target branch")
     if t["world_size"] != 1 or t["grad_accumulation_steps"] != 1 or t["precision"] != "fp32" or t["allow_tf32"] or t["compile"]:
@@ -187,8 +193,12 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("automatic search / auto 200-epoch start are not authorized")
     if cfg["execution"]["max_gpus_per_job"] != 1:
         raise ConfigError("max_gpus_per_job must be 1")
-    if cfg["views"]["count"] != 2:
-        raise ConfigError("two views only")
+    if cfg["views"]["count"] not in (2, 4):
+        raise ConfigError("views.count must be 2 (frozen) or 4 (VCS-only named variant)")
+    if cfg["views"]["count"] != 2 and m != "vcs_qmi":
+        raise ConfigError("control runs keep two views")
+    if cfg["pairing"]["sampler"] == "all_pairs_matrix" and (m != "vcs_qmi" or cfg["model"]["critic"]["input"] not in ("cosine", "shared_metric", "mono_spline", "diag_metric")):
+        raise ConfigError("all_pairs_matrix is a VCS-only sampler for similarity-type critics (cosine|shared_metric|mono_spline|diag_metric)")
     if cfg["views"]["solarize_p"] != 0.0:
         raise ConfigError("solarize is not part of any recipe here")
     if not 0.0 <= cfg["views"]["gaussian_blur_p"] <= 1.0:
@@ -212,7 +222,7 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError(f"critic.enabled / critic_validation.enabled must be {expect[1]} for method {m!r}")
     if m == "vcs_qmi":
         c = cfg["model"]["critic"]
-        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric") or c["activation"] != "relu" \
+        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric") or c["activation"] != "relu" \
                 or c["output"] != "tanh" or c["batchnorm"] or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
             raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine|interact_only|shared_metric); ReLU, tanh, no BN/dropout")
         hd = c["hidden_dims"]

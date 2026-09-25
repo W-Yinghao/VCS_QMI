@@ -37,6 +37,24 @@ def pair_symmetric(cfg: dict[str, Any]) -> bool:
     return cfg["pairing"]["sampler"] == "random_nonzero_cyclic_shift_symmetric"
 
 
+def pair_all_matrix(cfg: dict[str, Any]) -> bool:
+    return cfg["pairing"]["sampler"] == "all_pairs_matrix"
+
+
+def vcs_pair_loss_all_matrix(z1: Tensor, z2: Tensor, critic, *, negative_detach: bool = False):
+    """All B(B-1) off-diagonal pairs at once (equivalent to K = B-1 distinct nonzero shifts; same separate averaging as the reference).
+    Requires a similarity-type critic exposing embed(z) and score_matrix(C). Returns (stats, shifts=None)."""
+    if z1.ndim != 2 or z1.shape != z2.shape or len(z1) < 2:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes with B >= 2")
+    e1, e2 = critic.embed(z1), critic.embed(z2)
+    e2n = e2.detach() if negative_detach else e2
+    t_pos = critic.score_matrix((e1 * e2).sum(-1))
+    T = critic.score_matrix(e1 @ e2n.T)
+    mask = ~torch.eye(len(z1), dtype=torch.bool, device=z1.device)
+    t_neg = T[mask]
+    return vcs_from_scores(t_pos, t_neg), None
+
+
 def critic_steps(cfg: dict[str, Any]) -> int:
     """Number of critic updates per batch: 1 for 'joint'; N for 'joint_critic_steps_N' (N-1 critic-only steps on detached features)."""
     mode = cfg["train"]["mode"]
@@ -84,6 +102,11 @@ def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, A
         sym = pair_symmetric(cfg)
         if sym and cfg["pairing"]["negative_detach"]:
             raise ValueError("symmetric pairing and negative_detach are not combined")
+        if pair_all_matrix(cfg):
+            s, shifts = vcs_pair_loss_all_matrix(z1, z2, critic, negative_detach=cfg["pairing"]["negative_detach"])
+            for k in VCS_STAT_KEYS:
+                stats[k] = float(s[k].detach())
+            return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": b, "n_neg": b * (b - 1)}
         fn = vcs_pair_loss_symmetric if sym else (vcs_pair_loss_negdetach if cfg["pairing"]["negative_detach"] else vcs_pair_loss)
         s, shifts = fn(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
         loss = s["loss"]
@@ -155,3 +178,37 @@ def compute_objective_target(feats: dict[str, Tensor], *, cfg: dict[str, Any], c
         stats[k_] = float(st[k_].detach())
     b = s1.shape[0]
     return {"loss": st["loss"], "stats": stats, "shift": int(shifts[0]) if len(shifts) == 1 else [int(v) for v in shifts], "n_pos": 2 * b, "n_neg": 2 * b * k}
+
+
+def forward_features_views(encoder, projector, views: list[Tensor], eps: float) -> dict[str, Any]:
+    """n >= 2 views of the same B images: one concatenated forward (BN policy shared), returns per-view lists."""
+    if len(views) < 2 or any(v.shape != views[0].shape for v in views):
+        raise ValueError("views must be a list of >= 2 equal-shape tensors")
+    h = encoder(torch.cat(views, dim=0))
+    p = projector(h)
+    z = F.normalize(p, dim=1, eps=eps)
+    n = len(views)
+    return {"h": h, "p_raw": p, "z_l2": z, "h_l2": F.normalize(h, dim=1, eps=eps),
+            "views_z": list(z.chunk(n, dim=0)), "views_p": list(p.chunk(n, dim=0)), "views_h": list(F.normalize(h, dim=1, eps=eps).chunk(n, dim=0))}
+
+
+def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any]:
+    """Named variant (views.count = 4): the same J averaged over all view pairs (a < b) of the same images; each pair draws its own shifts.
+    Q still comes from different UIDs (cyclic shifts). Not a new loss: more Monte-Carlo coverage of the same P and Q."""
+    key = {"z_l2": "views_z", "p_raw": "views_p", "h_l2": "views_h"}[critic_input_key(cfg)]
+    vs = feats[key]
+    k = cfg["pairing"]["k"]
+    nd = cfg["pairing"]["negative_detach"]
+    fn = vcs_pair_loss_negdetach if nd else vcs_pair_loss
+    losses, acc, shifts = [], {kk: 0.0 for kk in VCS_STAT_KEYS}, []
+    pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
+    for a, b_ in pairs:
+        s, sh = fn(vs[a], vs[b_], critic, k=k, generator=pair_generator)
+        losses.append(s["loss"]); shifts.append(int(sh[0]))
+        for kk in VCS_STAT_KEYS:
+            acc[kk] += float(s[kk].detach()) / len(pairs)
+    loss = torch.stack(losses).mean()
+    stats: dict[str, Any] = dict(acc)
+    stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    B = vs[0].shape[0]
+    return {"loss": loss, "stats": stats, "shift": shifts, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs)}
