@@ -1,6 +1,6 @@
 # VCS-QMI SSL 综合分析：85 个 run 之后，瓶颈在哪里，还要试什么
 
-版本 2026-09-25 16:20 UTC（§4b 增补于 17:05 UTC）。数据：`reports/ALL_RUNS.md`（93 个 run 目录，85 个已完成并有最终评估），各阶段报告 P4–P19、P25/P27 表，
+版本 2026-09-25 16:20 UTC（§4b 增补于 17:05 UTC，§4c 于 17:25 UTC）。数据：`reports/ALL_RUNS.md`（93 个 run 目录，85 个已完成并有最终评估），各阶段报告 P4–P19、P25/P27 表，
 `PROBE_STANDARDIZED.md`，外部审查 `CS_QMI/VCS_QMI_SSL_Bottleneck_Review_20260925.md`。所有数字为 CIFAR-10 官方训练集内 45k fit / 5k selection
 上的冻结 h 线性验证（linear-val）与 kNN；不是官方 test。除 P5/P8/P10/P11 外均为 seed 0。
 
@@ -109,6 +109,31 @@ Wang–Isola 的 alignment（正配对距离²，低 = 视图更近）与 unifor
 
 由此新增两个候选（已排入 P28）：`proj_linear`（projector 退化为单个线性层）和 `proj_bnonly`（无 projector，critic 读 L2(BN(h))，BN 无仿射
 参数以避免 cos_on_h 的尺度塌缩）。两者都不改 J，只是去掉能替 encoder 完成"铺开"的非线性层，检验读法 2。
+
+## 4c. 各层 probe 的结果（2026-09-25 17:15 UTC，`reports/PROBE_LAYERS.md`，§5.A.3 已完成）
+
+8 个冻结 run，ResNet layer2 / layer3（均值池化）、h、projector 隐层、p_raw、z_l2 各做冻结线性 probe 与 kNN（h 列与各 run 自身的 GPU 评估一致到 0.04）。
+
+| | layer3→h 的 linear 增益 | 与 SimCLR 的差距 l2 / l3 / h | z_l2 − h | p_raw 有效秩 |
+|---|---|---|---|---|
+| SimCLR / VICReg | +4.7 / +4.1 | — / 1.4, 0.2, 0.8 | −2.5 / −3.9 | 77 / 87 |
+| VCS 拼接 MLP，K=1 / K=8 | **+0.8 / +0.5** | 3.8, 7.6, 11.6 / 3.6, 6.1, 10.3 | −14.0 / −12.7 | **7 / 8** |
+| VCS cosine K=8 / +neg-detach | +3.9 / +3.0 | 4.0, 7.4, 8.1 / 3.2, 4.3, 6.0 | −6.1 / −9.3 | 42 / 14 |
+| VCS MLP 800 ep（K=1 / K=8 clr×10） | +2.1 / +1.5 | 2.1, 4.6, 7.2 / 2.7, 3.7, 6.9 | −11.4 / −9.6 | 9 / 12 |
+
+读法：
+1. **拼接 MLP critic 下，ResNet 最后一个 stage 几乎学不到线性可读的信息**（layer3→h 只有 +0.5…+0.8，对照 +4 以上）；相似度型 critic 把这一段
+   恢复到 +3…+4。§3.1 的低秩牵引主要作用在直接喂 critic 的那个 block 上。
+2. **但差距在每一层都存在并随深度增大**（l2 3–4，l3 4–7.6，h 6–11.6）。最好的 VCS run 也在 layer3 落后 4.3。目标"训练不足"不限于最后一个 block。
+3. **VCS 的 projector 丢掉的类别信息远多于对照**：z_l2 比 h 低 6–14 个点（对照 2.5–3.9），p_raw 有效秩 7–14（普通 cosine 42；对照 77–87）。
+   critic 实际看到的是 ≈10 维的编码——足以分开正负配对（heldout-J 0.93–0.97），不足以逼 h 变丰富。这就是 §4.3"最优解简并"在各层上的样子。
+4. **普通 cosine critic 下 p_raw 的 kNN 比 h 高 4.4 个点**（77.2 对 72.8）：目标塑造的度量结构在 z 上，h 只继承一部分；neg-detach 把差距抹平
+   （74.7 对 74.6），与 §4b"neg-detach 把铺开的层从 z 换成 h"一致。两条都指向 projector 是 VCS 与对照分岔的位置——P28 的 proj_linear /
+   proj_bnonly 正是检验这一点。
+
+wave G 已出的两条：a0=5 可学 **81.90**（kNN 77.0，秩 45）、a0=5 固定 **81.54**（kNN 77.0，秩 46.9），基线三 seed 80.48 / 80.58 / 80.72。
+两者的 (a,b) 终点完全不同（10.1/−8.2 对 5/−3.3，阈值 0.82 对 0.67）而结果相同，且 a5 可学的 a 在前 20 个 epoch 先降到 3.3 再回升——增益来自
+初始尺度决定的早期轨迹，不是终点。这正是 §4.3 的预测（最优解简并 → 动力学决定几何）。已排入 P31：a0 ∈ {2, 10, 20} 与 a5 的 seed 1/2。
 
 ## 5. 建议的下一批（按信息量排序；不改 J、不改参考测度、不改 tanh）
 
