@@ -40,3 +40,21 @@ Selection split; controls not yet tuned or given 4 views; compute is 2× the 2-v
 800-epoch run (84.64 / 81.44) and +4.0 over its own 200-epoch value (81.56).  At 4× the compute of a 200-epoch 2-view run it passes VICReg
 (85.46, 200 ep) and is 0.55 below SimCLR (86.09, 200 ep); h-rank 88 now equals SimCLR's 90.  `a5_views4_800ep` (running, epoch ≈ 300/800)
 is the last long run.
+
+## Addendum 2026-09-26 12:50 UTC — a5_views4_800ep seed 0 final: the recipe passes the untuned controls
+`P35_vcs_a5_views4_800ep_seed0` (cosine critic, K = 8, negative detach, a0 = 5, 4 views, B = 256, 800 epochs; 8× the 2-view 200-epoch compute):
+**linear 86.42 / kNN 85.60 / h-rank 135.9** (z-rank 30; heldout-J 0.974; critic a 24.4 / b −22.1 → threshold 0.90; positive saturation 61 %).
+kNN curve: 68.4 / 74.5 / 78.8 / 81.9 / 84.2 / 85.2 / 85.6 at epochs 20 / 50 / 100 / 200 / 400 / 600 / 800 — still rising by 0.4 per 200 epochs at the end.
+
+| | linear | kNN | h-rank |
+|---|---|---|---|
+| VCS recipe, 4 views, 800 ep (this run, 1 seed) | **86.42** | **85.60** | 136 |
+| VCS recipe, 2 views, 800 ep (P35, 1 seed) | 85.54 | 82.62 | 88 |
+| SimCLR matched, 2 views, 200 ep (P5, 3 seeds; untuned) | 86.09 ± 0.38 | 83.98 | 90 |
+| VICReg matched, 2 views, 200 ep (P5, 3 seeds; untuned) | 85.46 ± 0.26 | 81.92 | 76 |
+| original VCS recipe, 200 ep (P5, 3 seeds) | 74.34 ± 0.46 | 63.93 | 13 |
+
+Reading: first VCS run above both controls on both metrics (+0.3 linear, +1.6 kNN over SimCLR) — with the caveats that the controls are
+untuned, at 200 epochs and 2 views (owner's equal-budget rule: P41 draft), and this is one seed (seeds 1/2 running, ≈ 10 h).  h-rank 136
+is above SimCLR's 90; the critic keeps sharpening to a 0.90 threshold; kNN had not saturated at 800 epochs, which is the question the
+1600-epoch chain (P43) answers.  `P35_vcs_a5_800ep_seed1` (2 views, 800 ep) finished training at kNN 82.20 (seed 0: 82.62); linear pending.
