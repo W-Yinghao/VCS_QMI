@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-26 21:00 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-26 22:50 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -115,7 +115,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 | 4× | 4 views, 400 ep | 85.90 | 83.58 | 105 | 1 | P36 |
 | 4× | 8 views, 200 ep | 86.28 | 83.66 | 104 | 1 | P38 |
 | 4× | 2 views, 800 ep | 85.30 ± 0.21 | 82.33 ± 0.25 | 86 | 3 | P36 |
-| 8× | 4 views, 800 ep | 86.42 | 85.60 | 136 | 1 (+2 **[pending 2026-09-26 22:40 UTC]**) | P36 |
+| 8× | 4 views, 800 ep | **87.01 ± 0.53** (86.42 / 87.16 / 87.44) | 85.46 ± 0.12 | 134 | 3 | P36 |
 | 8× | 8 views, 400 ep | **[pending]** | | | 1 | P44 |
 | 8× | 16 views, 200 ep | **[pending]** | | | 1 | P44 |
 | 8× | 4 views, 800 ep, B 128 | **[pending]** | | | 1 | P44 |
@@ -138,7 +138,7 @@ kNN 83.98 / rank 90; VICReg-matched-128 85.46 ± 0.26 / 81.92 / 76.  Original VC
 | 5 | 4 views (2× compute) | 84.54 ± 0.16 | +3.0 | 81.40 | 76 | 3 | P28/P35 |
 | 5' | 4 views at 1× compute (B 128, 100 ep) | 83.19 ± 0.40 | +1.6 | 78.43 | 56 | 3 | P39 |
 | 6 | 800 epochs (2 views) | 85.30 ± 0.21 | +3.7 vs step 4 | 82.33 | 86 | 3 | P35 |
-| 6' | 800 epochs (4 views) | 86.42 | +1.9 vs step 5 | 85.60 | 136 | 1 | P35 |
+| 6' | 800 epochs (4 views) | 87.01 ± 0.53 | +2.5 vs step 5 | 85.46 | 134 | 3 | P35 |
 Interactions: a₀ and views overlap (with 4 views a₀ = 1 gives 84.41); K > 8 stops helping once detach is on; the batch/steps effect needs the
 views (2 views, B 128: +0.6; 4 views, B 128 at 1×: +1.6); detach is necessary with 4 views too (−2.2 without).
 
@@ -168,7 +168,7 @@ critics (neutral, neutral, collapse, collapse, neutral); bias calibration; LR 3e
 `SYNTHESIS_20260925.md` §2, P13–P40 reports.
 
 ### 5.5 Ceiling runs (owner: compute unconstrained) — **[pending, 2026-09-27 ≈ 04:00–08:00 UTC]**
-4 views × 800 ep seeds 1/2; 4 views × 1600 ep; 8 views × 800 ep; 8 views × 400 ep; 16 views × 200 ep; 4 views × 800 ep with B 128; 4 views ×
+4 views × 1600 ep; 8 views × 800 ep; 8 views × 400 ep; 16 views × 200 ep; 4 views × 800 ep with B 128; 4 views ×
 800 ep with strong augmentation.  Reading rule (pre-registered, P43): absolute numbers; a kNN curve flat over its last two logged points
 counts as saturated; the best configuration then gets seeds 1/2.
 

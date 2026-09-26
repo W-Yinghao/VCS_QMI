@@ -75,3 +75,17 @@ schedule): **85.90 / kNN 83.58 / h-rank 105**, threshold 0.87; kNN 67.96 / 74.2 
 Reading: +1.4 / +1.4 / +0.5 linear per doubling of compute (1× → 2× → 4× → 8×), kNN +3.0 / +2.2 / +2.0 — the linear gain is flattening
 while kNN and rank keep growing (rank 56 → 136); at 4× compute, 4 views × 400 ep beats 2 views × 800 ep by 0.6 linear / 1.3 kNN.  The 16×
 points (P43) tell whether linear saturates near 86.5–87 or continues.  Controls (untuned, 1×): SimCLR 86.09 ± 0.38, VICReg 85.46 ± 0.26.
+
+## Addendum 2026-09-26 22:50 UTC — 4 views × 800 epochs on 3 seeds
+| seed | linear | kNN | h-rank | heldout-J | kNN at 200 / 400 / 600 / 800 |
+|---|---|---|---|---|---|
+| 0 | 86.42 | 85.60 | 135.9 | 0.974 | 81.92 / 84.16 / 85.16 / 85.60 |
+| 1 | 87.16 | 85.36 | 133.0 | 0.974 | 81.88 / 84.26 / 85.02 / 85.36 |
+| 2 | 87.44 | 85.42 | 134.7 | 0.974 | 82.10 / 84.22 / 85.44 / 85.42 |
+| **mean ± SD** | **87.01 ± 0.53** | **85.46 ± 0.12** | 134.5 | 0.974 | |
+
+The 8× recipe (cosine critic, K = 8, negative detach, a₀ = 5, 4 views, B 256, 800 epochs) is **87.01 ± 0.53 linear / 85.46 ± 0.12 kNN** on the
+selection split — +0.9 linear / +1.5 kNN over the untuned 200-epoch SimCLR control (86.09 ± 0.38 / 83.98) and +1.6 / +3.5 over VICReg
+(85.46 ± 0.26 / 81.92), at 8× their encoder compute; +12.7 / +21.5 over the original VCS recipe.  The seed spread on linear (0.53) is
+larger than at 200 epochs (0.16) while kNN is tight (0.12); kNN is still rising by 0.2–0.4 over the last 200 epochs in every seed.
+Compute-scaling curve (3-seed where available): 1× 83.19 ± 0.40 → 2× 84.54 ± 0.16 → 4× 85.90 (4 v) / 86.28 (8 v) → 8× 87.01 ± 0.53.
