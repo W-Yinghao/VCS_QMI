@@ -62,3 +62,12 @@ on the MLP-critic recipe (P11/P17) and are re-checked here at 1× compute, singl
 | wd5e-5 / wd5e-4 | encoder/projector weight decay 1e-4 → 5e-5 / 5e-4 | optimizer re-check (P17 found 1e-4 best on the MLP recipe) |
 | k127 | K = B − 1 = 127 via the all-pairs matrix sampler (tested equivalent to cyclic shifts) | all negatives per pair: does K matter once detach + 4 views are on?  (K = 1 cost 0.7 / 2.1 kNN; K = 255 was neutral at 2 views) |
 HELPS/HURTS ±1.0.  Configs in `HPARAM_M_SHA256.json`.
+
+## Addendum 2026-09-26 07:00 UTC — the 1× recipe without a0, and its warm-up (two GPU slots idle)
+Projector width on the 1× recipe is neutral (out 512: 82.88; hidden 2048: 82.82; vs 83.19 ± 0.40) — projector closed.  Two last checks on
+the 1× recipe (4 views, B = 128, 100 ep), single seed, vs 83.19 ± 0.40:
+| unit | change | question |
+|---|---|---|
+| views4_b128_100ep_a1 | a0 = 1 | the simpler recipe (no initial-scale change) at 1× compute, to pair with its 2× number 84.41 ± 0.06 |
+| a5_views4_b128_100ep_warm5 | warm-up 10 → 5 epochs | the 100-epoch run spends 10 % in warm-up; does a shorter warm-up help the short schedule? |
+HELPS/HURTS ±1.0.  Configs in `HPARAM_M_SHA256.json`.
