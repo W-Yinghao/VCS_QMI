@@ -1,11 +1,11 @@
 # P35_vcs_a5_base — neutral results table (observed values only)
 
-Generated 2026-09-26T02:05:06Z. Failed / stopped runs are listed, never dropped.
+Generated 2026-09-26T04:02:03Z. Failed / stopped runs are listed, never dropped.
 
 | run | method | K | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| P35_vcs_a5_800ep_seed0 | vcs_qmi | 8 | 0 | 559/800 | null | null | null | null | null | null/null | RUNNING |
-| P35_vcs_a5_views4_800ep_seed0 | vcs_qmi | 8 | 0 | 177/800 | null | null | null | null | null | null/null | RUNNING |
+| P35_vcs_a5_800ep_seed0 | vcs_qmi | 8 | 0 | 800/800 | 85.54 | 82.62 | 0.9635±0.0013 | 88.18 | 22455 | 3683/4842 | COMPLETED |
+| P35_vcs_a5_views4_800ep_seed0 | vcs_qmi | 8 | 0 | 291/800 | null | null | null | null | null | null/null | RUNNING |
 | P35_vcs_a5_views4_seed0 | vcs_qmi | 8 | 0 | 200/200 | 84.50 | 81.40 | 0.9640±0.0011 | 75.96 | 13682 | 7568/12672 | COMPLETED |
 | P35_vcs_a5_views4_seed1 | vcs_qmi | 8 | 1 | 200/200 | 84.40 | 81.18 | 0.9636±0.0009 | 76.10 | 13208 | 7568/12672 | COMPLETED |
 | P35_vcs_a5_views4_seed2 | vcs_qmi | 8 | 2 | 200/200 | 84.72 | 81.62 | 0.9636±0.0011 | 75.07 | 13536 | 7568/12672 | COMPLETED |
@@ -24,7 +24,7 @@ Generated 2026-09-26T02:05:06Z. Failed / stopped runs are listed, never dropped.
 
 | run | linear-val ep0 (%) | linear-val final (%) | Δ linear | kNN ep0 (%) | kNN final (%) | Δ kNN | h-rank ep0 | h-rank final | heldout-J ep0 |
 |---|---|---|---|---|---|---|---|---|---|
-| P35_vcs_a5_800ep_seed0 | null | null | null | null | null | null | null | null | null |
+| P35_vcs_a5_800ep_seed0 | 41.78 | 85.54 | 43.76 | 36.58 | 82.62 | 46.04 | 2.94 | 88.18 | -0.9998 |
 | P35_vcs_a5_views4_800ep_seed0 | null | null | null | null | null | null | null | null | null |
 | P35_vcs_a5_views4_seed0 | 41.78 | 84.50 | 42.72 | 36.58 | 81.40 | 44.82 | 2.94 | 75.96 | -0.9998 |
 | P35_vcs_a5_views4_seed1 | 41.60 | 84.40 | 42.80 | 37.42 | 81.18 | 43.76 | 3.22 | 76.10 | -0.9998 |
@@ -32,24 +32,24 @@ Generated 2026-09-26T02:05:06Z. Failed / stopped runs are listed, never dropped.
 
 ## kNN trajectory (in-training monitor, selection top-1 %)
 
-- P35_vcs_a5_800ep_seed0: ep0: 36.58, ep20: 60.84, ep50: 68.82, ep100: 73.42, ep200: 77.78, ep400: 80.68
-- P35_vcs_a5_views4_800ep_seed0: ep0: 36.58, ep20: 68.36, ep50: 74.46, ep100: 78.78
+- P35_vcs_a5_800ep_seed0: ep0: 36.58, ep20: 60.84, ep50: 68.82, ep100: 73.42, ep200: 77.78, ep400: 80.68, ep600: 82.10, ep800: 82.62
+- P35_vcs_a5_views4_800ep_seed0: ep0: 36.58, ep20: 68.36, ep50: 74.46, ep100: 78.78, ep200: 81.92
 - P35_vcs_a5_views4_seed0: ep0: 36.58, ep10: 58.32, ep20: 68.66, ep50: 74.94, ep100: 77.98, ep150: 80.64, ep200: 81.40
 - P35_vcs_a5_views4_seed1: ep0: 37.42, ep10: 56.74, ep20: 67.78, ep50: 74.24, ep100: 78.60, ep150: 80.78, ep200: 81.18
 - P35_vcs_a5_views4_seed2: ep0: 37.08, ep10: 57.82, ep20: 68.40, ep50: 74.80, ep100: 79.04, ep150: 81.06, ep200: 81.62
 
 ## Held-out J trajectory (VCS only)
 
-- P35_vcs_a5_800ep_seed0: ep0: -0.9998, ep20: 0.8000, ep50: 0.8602, ep100: 0.9076, ep200: 0.9357, ep400: 0.9514
-- P35_vcs_a5_views4_800ep_seed0: ep0: -0.9998, ep20: 0.8803, ep50: 0.9148, ep100: 0.9418
+- P35_vcs_a5_800ep_seed0: ep0: -0.9998, ep20: 0.8000, ep50: 0.8602, ep100: 0.9076, ep200: 0.9357, ep400: 0.9514, ep600: 0.9611, ep800: 0.9635
+- P35_vcs_a5_views4_800ep_seed0: ep0: -0.9998, ep20: 0.8803, ep50: 0.9148, ep100: 0.9418, ep200: 0.9589
 - P35_vcs_a5_views4_seed0: ep0: -0.9998, ep10: 0.7061, ep20: 0.8745, ep50: 0.9169, ep100: 0.9450, ep150: 0.9601, ep200: 0.9640
 - P35_vcs_a5_views4_seed1: ep0: -0.9998, ep10: 0.7034, ep20: 0.8660, ep50: 0.9179, ep100: 0.9450, ep150: 0.9596, ep200: 0.9636
 - P35_vcs_a5_views4_seed2: ep0: -0.9998, ep10: 0.7215, ep20: 0.8364, ep50: 0.9173, ep100: 0.9469, ep150: 0.9605, ep200: 0.9636
 
 ## Final-epoch training objective values (epoch means)
 
-- P35_vcs_a5_800ep_seed0: J_raw 0.9674, R_binary 0.0326, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P35_vcs_a5_views4_800ep_seed0: J_raw 0.9645, R_binary 0.0355, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P35_vcs_a5_800ep_seed0: J_raw 0.9725, R_binary 0.0275, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P35_vcs_a5_views4_800ep_seed0: J_raw 0.9739, R_binary 0.0261, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_seed0: J_raw 0.9705, R_binary 0.0295, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_seed1: J_raw 0.9704, R_binary 0.0296, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_seed2: J_raw 0.9707, R_binary 0.0293, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
@@ -58,7 +58,7 @@ Generated 2026-09-26T02:05:06Z. Failed / stopped runs are listed, never dropped.
 
 | run | steady step (s) | images/s | views/s | train s | in-train eval s | final eval s | seen base images | critic params | job |
 |---|---|---|---|---|---|---|---|---|---|
-| P35_vcs_a5_800ep_seed0 | null | null | null | null | null | null | None | 2 | 1009210@nodeaudible01 |
+| P35_vcs_a5_800ep_seed0 | 0.1584 | 1616 | 3233 | 22455 | 165 | 29 | 35840000 | 2 | 1009210@nodeaudible01 |
 | P35_vcs_a5_views4_800ep_seed0 | null | null | null | null | null | null | None | 2 | 1009268@nodeaudible01 |
 | P35_vcs_a5_views4_seed0 | 0.3861 | 663 | 1326 | 13682 | 160 | 37 | 8960000 | 2 | 1009209@node01 |
 | P35_vcs_a5_views4_seed1 | 0.3733 | 686 | 1372 | 13208 | 153 | 35 | 8960000 | 2 | 1009219@node05 |
@@ -79,11 +79,11 @@ Generated 2026-09-26T02:05:06Z. Failed / stopped runs are listed, never dropped.
 
 | method | n | linear-val final (%) | linear-val ep0 (%) | Δ linear | kNN final (%) | h-rank final | heldout-J final |
 |---|---|---|---|---|---|---|---|
-| vcs_qmi K=8 | 3 | 84.54 ± 0.16 | 42.13 ± 0.77 | 42.41 ± 0.61 | 81.40 ± 0.22 | 75.71 ± 0.56 | 0.96 ± 0.00 |
+| vcs_qmi K=8 | 4 | 84.79 ± 0.52 | 42.04 ± 0.66 | 42.74 ± 0.84 | 81.71 ± 0.64 | 78.83 ± 6.25 | 0.96 ± 0.00 |
 
 ## Coverage checks
 
-- P35_vcs_a5_800ep_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
+- P35_vcs_a5_800ep_seed0: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
 - P35_vcs_a5_views4_800ep_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
 - P35_vcs_a5_views4_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P35_vcs_a5_views4_seed1: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
