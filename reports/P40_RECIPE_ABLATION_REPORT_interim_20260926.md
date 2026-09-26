@@ -30,3 +30,18 @@ Batch size enters the recipe search (P39 addendum, running).  Detach, K = 8 and 
 
 ## Not claimed
 Single seed throughout; selection split; the B = 128 gain is a single seed at 100 epochs until the follow-ups land.
+
+## Addendum 06:30 UTC — batch / steps follow-ups final
+| unit | views | epochs | B | steps | compute | linear | kNN | h-rank | (a, b) → thr | comparator | Δ |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| a5_views4_b128_100ep (3 seeds) | 4 | 100 | 128 | 35 k | 1× | **83.19 ± 0.40** (83.52 / 82.74 / 83.30) | 78.43 ± 0.11 | 55.8 | 10.1 / −8.2 → 0.80 | 2 v/200 ep 81.56 ± 0.44 | **+1.63** HELPS |
+| a5_views4_b64_100ep | 4 | 100 | 64 | 70 k | 1× | 82.78 | 78.56 | 52.2 | | b128/100 ep 83.19 | −0.41 neutral |
+| a5_b128 | 2 | 200 | 128 | 70 k | 1× | 82.14 | 76.42 | 42.8 | | 2 v/200 ep 81.56 | +0.58 neutral |
+| a5_views4_b128_200ep | 4 | 200 | 128 | 70 k | 2× | 84.74 | 81.16 | 77.1 | 15.2 / −13.1 → 0.86 | 4 v/200 ep 84.54 ± 0.16 | +0.20 neutral |
+
+Reading.  (i) At the 1× budget the recipe is **4 views, B = 128, 100 epochs: 83.19 ± 0.40** — +1.6 over the 2-view base on 3 seeds each.
+(ii) The steps effect saturates: 70 k steps (B = 64 at 1×, or B = 128 at 2×) add nothing over 35 k; B = 64 is slightly worse (fewer images
+per step for the K = 8 negatives, noisier BN).  (iii) Steps without views are nearly neutral (+0.6 at 70 k steps, 2 views): the update count
+matters only once each update carries ≥ 6 pairs per image — the two factors interact rather than add.  (iv) At 2× compute B = 128 and
+B = 256 tie (84.74 vs 84.54 ± 0.16); the 2× recipe stays B = 256 (3 seeds in hand).  Remaining P39 units (projector width, wd, K = 127) are
+running.
