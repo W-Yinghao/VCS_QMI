@@ -1,16 +1,16 @@
 # P35_vcs_a5_base — neutral results table (observed values only)
 
-Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
+Generated 2026-09-26T22:45:49Z. Failed / stopped runs are listed, never dropped.
 
 | run | method | K | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | P35_vcs_a5_800ep_seed0 | vcs_qmi | 8 | 0 | 800/800 | 85.54 | 82.62 | 0.9635±0.0013 | 88.18 | 22455 | 3683/4842 | COMPLETED |
 | P35_vcs_a5_800ep_seed1 | vcs_qmi | 8 | 1 | 800/800 | 85.18 | 82.20 | 0.9632±0.0011 | 85.88 | 22307 | 3683/4842 | COMPLETED |
 | P35_vcs_a5_800ep_seed2 | vcs_qmi | 8 | 2 | 800/800 | 85.18 | 82.16 | 0.9639±0.0014 | 84.15 | 25269 | 3683/4842 | COMPLETED |
-| P35_vcs_a5_views4_400ep_seed0 | vcs_qmi | 8 | 0 | 356/400 | null | null | null | null | null | null/null | RUNNING |
+| P35_vcs_a5_views4_400ep_seed0 | vcs_qmi | 8 | 0 | 400/400 | 85.90 | 83.58 | 0.9704±0.0013 | 104.58 | 24183 | 7568/12672 | COMPLETED |
 | P35_vcs_a5_views4_800ep_seed0 | vcs_qmi | 8 | 0 | 800/800 | 86.42 | 85.60 | 0.9743±0.0015 | 135.89 | 48508 | 7568/12672 | COMPLETED |
-| P35_vcs_a5_views4_800ep_seed1 | vcs_qmi | 8 | 1 | 326/800 | null | null | null | null | null | null/null | RUNNING |
-| P35_vcs_a5_views4_800ep_seed2 | vcs_qmi | 8 | 2 | 319/800 | null | null | null | null | null | null/null | RUNNING |
+| P35_vcs_a5_views4_800ep_seed1 | vcs_qmi | 8 | 1 | 800/800 | 87.16 | 85.36 | 0.9741±0.0013 | 133.03 | 52783 | 7568/12672 | COMPLETED |
+| P35_vcs_a5_views4_800ep_seed2 | vcs_qmi | 8 | 2 | 800/800 | 87.44 | 85.42 | 0.9739±0.0010 | 134.72 | 54097 | 7568/12672 | COMPLETED |
 | P35_vcs_a5_views4_seed0 | vcs_qmi | 8 | 0 | 200/200 | 84.50 | 81.40 | 0.9640±0.0011 | 75.96 | 13682 | 7568/12672 | COMPLETED |
 | P35_vcs_a5_views4_seed1 | vcs_qmi | 8 | 1 | 200/200 | 84.40 | 81.18 | 0.9636±0.0009 | 76.10 | 13208 | 7568/12672 | COMPLETED |
 | P35_vcs_a5_views4_seed2 | vcs_qmi | 8 | 2 | 200/200 | 84.72 | 81.62 | 0.9636±0.0011 | 75.07 | 13536 | 7568/12672 | COMPLETED |
@@ -37,10 +37,10 @@ Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
 | P35_vcs_a5_800ep_seed0 | 41.78 | 85.54 | 43.76 | 36.58 | 82.62 | 46.04 | 2.94 | 88.18 | -0.9998 |
 | P35_vcs_a5_800ep_seed1 | 41.60 | 85.18 | 43.58 | 37.42 | 82.20 | 44.78 | 3.22 | 85.88 | -0.9998 |
 | P35_vcs_a5_800ep_seed2 | 43.02 | 85.18 | 42.16 | 37.08 | 82.16 | 45.08 | 3.22 | 84.15 | -0.9998 |
-| P35_vcs_a5_views4_400ep_seed0 | null | null | null | null | null | null | null | null | null |
+| P35_vcs_a5_views4_400ep_seed0 | 41.78 | 85.90 | 44.12 | 36.58 | 83.58 | 47.00 | 2.94 | 104.58 | -0.9998 |
 | P35_vcs_a5_views4_800ep_seed0 | 41.78 | 86.42 | 44.64 | 36.58 | 85.60 | 49.02 | 2.94 | 135.89 | -0.9998 |
-| P35_vcs_a5_views4_800ep_seed1 | null | null | null | null | null | null | null | null | null |
-| P35_vcs_a5_views4_800ep_seed2 | null | null | null | null | null | null | null | null | null |
+| P35_vcs_a5_views4_800ep_seed1 | 41.60 | 87.16 | 45.56 | 37.42 | 85.36 | 47.94 | 3.22 | 133.03 | -0.9998 |
+| P35_vcs_a5_views4_800ep_seed2 | 43.02 | 87.44 | 44.42 | 37.08 | 85.42 | 48.34 | 3.22 | 134.72 | -0.9998 |
 | P35_vcs_a5_views4_seed0 | 41.78 | 84.50 | 42.72 | 36.58 | 81.40 | 44.82 | 2.94 | 75.96 | -0.9998 |
 | P35_vcs_a5_views4_seed1 | 41.60 | 84.40 | 42.80 | 37.42 | 81.18 | 43.76 | 3.22 | 76.10 | -0.9998 |
 | P35_vcs_a5_views4_seed2 | 43.02 | 84.72 | 41.70 | 37.08 | 81.62 | 44.54 | 3.22 | 75.07 | -0.9998 |
@@ -50,10 +50,10 @@ Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
 - P35_vcs_a5_800ep_seed0: ep0: 36.58, ep20: 60.84, ep50: 68.82, ep100: 73.42, ep200: 77.78, ep400: 80.68, ep600: 82.10, ep800: 82.62
 - P35_vcs_a5_800ep_seed1: ep0: 37.42, ep20: 61.06, ep50: 68.00, ep100: 72.76, ep200: 78.08, ep400: 80.56, ep600: 81.52, ep800: 82.20
 - P35_vcs_a5_800ep_seed2: ep0: 37.08, ep20: 61.22, ep50: 69.06, ep100: 73.72, ep200: 76.96, ep400: 80.74, ep600: 82.02, ep800: 82.16
-- P35_vcs_a5_views4_400ep_seed0: ep0: 36.58, ep20: 67.96, ep50: 74.20, ep100: 78.32, ep200: 81.64, ep300: 82.94
+- P35_vcs_a5_views4_400ep_seed0: ep0: 36.58, ep20: 67.96, ep50: 74.20, ep100: 78.32, ep200: 81.64, ep300: 82.94, ep400: 83.58
 - P35_vcs_a5_views4_800ep_seed0: ep0: 36.58, ep20: 68.36, ep50: 74.46, ep100: 78.78, ep200: 81.92, ep400: 84.16, ep600: 85.16, ep800: 85.60
-- P35_vcs_a5_views4_800ep_seed1: ep0: 37.42, ep20: 68.14, ep50: 74.14, ep100: 79.14, ep200: 81.88
-- P35_vcs_a5_views4_800ep_seed2: ep0: 37.08, ep20: 67.42, ep50: 73.86, ep100: 79.10, ep200: 82.10
+- P35_vcs_a5_views4_800ep_seed1: ep0: 37.42, ep20: 68.14, ep50: 74.14, ep100: 79.14, ep200: 81.88, ep400: 84.26, ep600: 85.02, ep800: 85.36
+- P35_vcs_a5_views4_800ep_seed2: ep0: 37.08, ep20: 67.42, ep50: 73.86, ep100: 79.10, ep200: 82.10, ep400: 84.22, ep600: 85.44, ep800: 85.42
 - P35_vcs_a5_views4_seed0: ep0: 36.58, ep10: 58.32, ep20: 68.66, ep50: 74.94, ep100: 77.98, ep150: 80.64, ep200: 81.40
 - P35_vcs_a5_views4_seed1: ep0: 37.42, ep10: 56.74, ep20: 67.78, ep50: 74.24, ep100: 78.60, ep150: 80.78, ep200: 81.18
 - P35_vcs_a5_views4_seed2: ep0: 37.08, ep10: 57.82, ep20: 68.40, ep50: 74.80, ep100: 79.04, ep150: 81.06, ep200: 81.62
@@ -63,10 +63,10 @@ Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
 - P35_vcs_a5_800ep_seed0: ep0: -0.9998, ep20: 0.8000, ep50: 0.8602, ep100: 0.9076, ep200: 0.9357, ep400: 0.9514, ep600: 0.9611, ep800: 0.9635
 - P35_vcs_a5_800ep_seed1: ep0: -0.9998, ep20: 0.8113, ep50: 0.8724, ep100: 0.9088, ep200: 0.9339, ep400: 0.9523, ep600: 0.9606, ep800: 0.9632
 - P35_vcs_a5_800ep_seed2: ep0: -0.9998, ep20: 0.7959, ep50: 0.8618, ep100: 0.9036, ep200: 0.9317, ep400: 0.9517, ep600: 0.9609, ep800: 0.9639
-- P35_vcs_a5_views4_400ep_seed0: ep0: -0.9998, ep20: 0.8809, ep50: 0.9146, ep100: 0.9429, ep200: 0.9602, ep300: 0.9683
+- P35_vcs_a5_views4_400ep_seed0: ep0: -0.9998, ep20: 0.8809, ep50: 0.9146, ep100: 0.9429, ep200: 0.9602, ep300: 0.9683, ep400: 0.9704
 - P35_vcs_a5_views4_800ep_seed0: ep0: -0.9998, ep20: 0.8803, ep50: 0.9148, ep100: 0.9418, ep200: 0.9589, ep400: 0.9686, ep600: 0.9728, ep800: 0.9743
-- P35_vcs_a5_views4_800ep_seed1: ep0: -0.9998, ep20: 0.8606, ep50: 0.9202, ep100: 0.9400, ep200: 0.9575
-- P35_vcs_a5_views4_800ep_seed2: ep0: -0.9998, ep20: 0.8590, ep50: 0.9128, ep100: 0.9420, ep200: 0.9583
+- P35_vcs_a5_views4_800ep_seed1: ep0: -0.9998, ep20: 0.8606, ep50: 0.9202, ep100: 0.9400, ep200: 0.9575, ep400: 0.9683, ep600: 0.9726, ep800: 0.9741
+- P35_vcs_a5_views4_800ep_seed2: ep0: -0.9998, ep20: 0.8590, ep50: 0.9128, ep100: 0.9420, ep200: 0.9583, ep400: 0.9677, ep600: 0.9727, ep800: 0.9739
 - P35_vcs_a5_views4_seed0: ep0: -0.9998, ep10: 0.7061, ep20: 0.8745, ep50: 0.9169, ep100: 0.9450, ep150: 0.9601, ep200: 0.9640
 - P35_vcs_a5_views4_seed1: ep0: -0.9998, ep10: 0.7034, ep20: 0.8660, ep50: 0.9179, ep100: 0.9450, ep150: 0.9596, ep200: 0.9636
 - P35_vcs_a5_views4_seed2: ep0: -0.9998, ep10: 0.7215, ep20: 0.8364, ep50: 0.9173, ep100: 0.9469, ep150: 0.9605, ep200: 0.9636
@@ -76,10 +76,10 @@ Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
 - P35_vcs_a5_800ep_seed0: J_raw 0.9725, R_binary 0.0275, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_800ep_seed1: J_raw 0.9723, R_binary 0.0277, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_800ep_seed2: J_raw 0.9721, R_binary 0.0279, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P35_vcs_a5_views4_400ep_seed0: J_raw 0.9793, R_binary 0.0207, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P35_vcs_a5_views4_400ep_seed0: J_raw 0.9799, R_binary 0.0201, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_800ep_seed0: J_raw 0.9861, R_binary 0.0139, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P35_vcs_a5_views4_800ep_seed1: J_raw 0.9753, R_binary 0.0247, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P35_vcs_a5_views4_800ep_seed2: J_raw 0.9749, R_binary 0.0251, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P35_vcs_a5_views4_800ep_seed1: J_raw 0.9856, R_binary 0.0144, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P35_vcs_a5_views4_800ep_seed2: J_raw 0.9859, R_binary 0.0141, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_seed0: J_raw 0.9705, R_binary 0.0295, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_seed1: J_raw 0.9704, R_binary 0.0296, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P35_vcs_a5_views4_seed2: J_raw 0.9707, R_binary 0.0293, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
@@ -91,10 +91,10 @@ Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
 | P35_vcs_a5_800ep_seed0 | 0.1584 | 1616 | 3233 | 22455 | 165 | 29 | 35840000 | 2 | 1009210@nodeaudible01 |
 | P35_vcs_a5_800ep_seed1 | 0.1573 | 1627 | 3255 | 22307 | 148 | 29 | 35840000 | 2 | 1009364@nodeaudible01 |
 | P35_vcs_a5_800ep_seed2 | 0.1781 | 1437 | 2874 | 25269 | 184 | 36 | 35840000 | 2 | 1009365@node06 |
-| P35_vcs_a5_views4_400ep_seed0 | null | null | null | null | null | null | None | 2 | 1009376@nodeaudible01 |
+| P35_vcs_a5_views4_400ep_seed0 | 0.3422 | 748 | 1496 | 24183 | 125 | 28 | 17920000 | 2 | 1009376@nodeaudible01 |
 | P35_vcs_a5_views4_800ep_seed0 | 0.3425 | 747 | 1495 | 48508 | 156 | 30 | 35840000 | 2 | 1009268@nodeaudible01 |
-| P35_vcs_a5_views4_800ep_seed1 | null | null | null | null | null | null | None | 2 | 1009374@node05 |
-| P35_vcs_a5_views4_800ep_seed2 | null | null | null | null | null | null | None | 2 | 1009375@node05 |
+| P35_vcs_a5_views4_800ep_seed1 | 0.3730 | 686 | 1373 | 52783 | 174 | 35 | 35840000 | 2 | 1009374@node05 |
+| P35_vcs_a5_views4_800ep_seed2 | 0.3824 | 669 | 1339 | 54097 | 170 | 36 | 35840000 | 2 | 1009375@node05 |
 | P35_vcs_a5_views4_seed0 | 0.3861 | 663 | 1326 | 13682 | 160 | 37 | 8960000 | 2 | 1009209@node01 |
 | P35_vcs_a5_views4_seed1 | 0.3733 | 686 | 1372 | 13208 | 153 | 35 | 8960000 | 2 | 1009219@node05 |
 | P35_vcs_a5_views4_seed2 | 0.3827 | 669 | 1338 | 13536 | 149 | 35 | 8960000 | 2 | 1009220@node05 |
@@ -119,17 +119,17 @@ Generated 2026-09-26T13:37:33Z. Failed / stopped runs are listed, never dropped.
 
 | method | n | linear-val final (%) | linear-val ep0 (%) | Δ linear | kNN final (%) | h-rank final | heldout-J final |
 |---|---|---|---|---|---|---|---|
-| vcs_qmi K=8 | 7 | 85.13 ± 0.70 | 42.08 ± 0.65 | 43.05 ± 1.01 | 82.40 ± 1.50 | 88.75 ± 21.46 | 0.97 ± 0.00 |
+| vcs_qmi K=8 | 10 | 85.64 ± 1.07 | 42.10 ± 0.64 | 43.55 ± 1.20 | 83.11 ± 1.75 | 99.36 ± 25.74 | 0.97 ± 0.01 |
 
 ## Coverage checks
 
 - P35_vcs_a5_800ep_seed0: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
 - P35_vcs_a5_800ep_seed1: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
 - P35_vcs_a5_800ep_seed2: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
-- P35_vcs_a5_views4_400ep_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
+- P35_vcs_a5_views4_400ep_seed0: epoch0 eval True, final eval True (evaluation_epoch_400.json), status COMPLETED, failure None
 - P35_vcs_a5_views4_800ep_seed0: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
-- P35_vcs_a5_views4_800ep_seed1: epoch0 eval False, final eval False (None), status RUNNING, failure None
-- P35_vcs_a5_views4_800ep_seed2: epoch0 eval False, final eval False (None), status RUNNING, failure None
+- P35_vcs_a5_views4_800ep_seed1: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
+- P35_vcs_a5_views4_800ep_seed2: epoch0 eval True, final eval True (evaluation_epoch_800.json), status COMPLETED, failure None
 - P35_vcs_a5_views4_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P35_vcs_a5_views4_seed1: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P35_vcs_a5_views4_seed2: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
