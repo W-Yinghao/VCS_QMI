@@ -98,6 +98,55 @@
       "config": "configs/cifar10_hpM_a5_lr5e-4_vcs_seed0.yaml",
       "run_id": "P39_vcs_a5_lr5e-4_seed0",
       "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "a5_views4_b64_100ep",
+      "source": "cifar10_hpM_a5_views4_b128_100ep_vcs_seed0.yaml",
+      "changes": {
+        "train.batch_size_images": 64
+      },
+      "config": "configs/cifar10_hpM_a5_views4_b64_100ep_vcs_seed0.yaml",
+      "run_id": "P39_vcs_a5_views4_b64_100ep_seed0",
+      "final_ckpt": "epoch_100.pt"
+    },
+    {
+      "label": "a5_views4_b128_200ep",
+      "source": "cifar10_hpM_a5_views4_b128_100ep_vcs_seed0.yaml",
+      "changes": {
+        "train.epochs": 200,
+        "logging.checkpoint_epochs": [
+          20,
+          50,
+          100,
+          150,
+          200
+        ],
+        "evaluation.knn_epochs": [
+          0,
+          10,
+          20,
+          50,
+          100,
+          150,
+          200
+        ],
+        "evaluation.linear_epochs_of_pretrain": [
+          200
+        ]
+      },
+      "config": "configs/cifar10_hpM_a5_views4_b128_200ep_vcs_seed0.yaml",
+      "run_id": "P39_vcs_a5_views4_b128_200ep_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "label": "a5_b128",
+      "source": "cifar10_hpG_a5_learn_vcs_seed0.yaml",
+      "changes": {
+        "train.batch_size_images": 128
+      },
+      "config": "configs/cifar10_hpM_a5_b128_vcs_seed0.yaml",
+      "run_id": "P39_vcs_a5_b128_seed0",
+      "final_ckpt": "epoch_200.pt"
     }
   ],
   "files": {
@@ -105,6 +154,9 @@
     "cifar10_hpM_a5_views4_nodetach_100ep_vcs_seed0.yaml": "2421545ddc1a89569e18b4f8dfa38aa29cf4de10b14559fb0944366d3d8228a9",
     "cifar10_hpM_a5_views4_b128_100ep_vcs_seed0.yaml": "888b0c2013ee9ef5ecde8848b4a7310ece98fec1b23f63b1929b974083acaf5f",
     "cifar10_hpM_a5_lr2e-3_vcs_seed0.yaml": "b1b9415e40280a425ef6145d37122b9adf6c5a427a546930bd20a3836867f23c",
-    "cifar10_hpM_a5_lr5e-4_vcs_seed0.yaml": "0c2ffd64b0cf7b502e1a4001d4fcc238032ceeb94319e7d806ba204968c6acd2"
+    "cifar10_hpM_a5_lr5e-4_vcs_seed0.yaml": "0c2ffd64b0cf7b502e1a4001d4fcc238032ceeb94319e7d806ba204968c6acd2",
+    "cifar10_hpM_a5_views4_b64_100ep_vcs_seed0.yaml": "9b56e348ba32a6209133377d1775e6f0975bd22e41f5a62967c69ceb7a43065e",
+    "cifar10_hpM_a5_views4_b128_200ep_vcs_seed0.yaml": "4199bf31a3315fba66c51890a05fa666620924e2d50fb3bd68ce5aaab7c39a97",
+    "cifar10_hpM_a5_b128_vcs_seed0.yaml": "74c8e1ac701c577be290511d8c28b33b441754714e904b9b1f500cc6615b5d00"
   }
 }

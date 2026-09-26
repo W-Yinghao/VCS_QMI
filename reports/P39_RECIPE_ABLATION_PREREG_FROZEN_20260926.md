@@ -25,3 +25,15 @@ sha256: `configs/HPARAM_M_SHA256.json`.
 ## Not queued (and why)
 Controls at equal tuning budget: owner deferred until the VCS recipe is settled.  K = 255 / EMA / predictor / critic capacity / projector
 variants: closed by P25–P29.  Seeds for the views curve: after the single-seed curve is read.
+
+## Addendum 2026-09-26 03:00 UTC — batch size / optimizer steps (queued after the b128 result, before these units)
+`a5_views4_b128_100ep` = **83.52 / kNN 78.30** vs `a5_views4_100ep` (B = 256) 81.88 / 77.74 at identical compute: halving the batch
+(35 100 vs 17 500 optimizer steps) is worth +1.6 linear, and the critic reaches the sharp regime (a 10.1 / b −8.2) that the B = 256 run
+only reaches at 200 epochs.  So at fixed compute the 4-view gain is largely a *steps* effect (the equal-epoch 4-view run, 84.54, has the
+same 35 k steps at 2× compute).  Three units follow the lead (single seed, lr 1e-3 unchanged, as in the P17 batch sweep):
+| unit | views | epochs | B | steps | compute | compared with | question |
+|---|---|---|---|---|---|---|---|
+| a5_views4_b64_100ep | 4 | 100 | 64 | 70 k | 1× | b128/100ep 83.52 | does the steps gain continue at B = 64? |
+| a5_views4_b128_200ep | 4 | 200 | 128 | 70 k | 2× | b256/200ep 84.54 ± 0.16 | does it hold at the recipe's compute? |
+| a5_b128 | 2 | 200 | 128 | 70 k | 1× | a0 = 5 base 81.56 ± 0.44 (35 k steps) | is it steps alone, without views?  (P17: B = 128 neutral on the MLP recipe) |
+HELPS/HURTS ±1.0 vs the comparators; also kNN, rank, (a, b), saturation.  Configs in `HPARAM_M_SHA256.json`.
