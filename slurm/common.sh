@@ -23,11 +23,13 @@ banner() {
 # Forward SIGTERM (sent by SLURM at walltime, --signal=B:TERM@120) to the python child so it can record STOPPED_BUDGET.
 run_fg() {
   "$@" &
-  local pid=$!
-  trap 'echo "[slurm] TERM received, forwarding to $pid"; kill -TERM $pid 2>/dev/null' TERM INT
+  local pid=$! got_sig=0
+  trap 'got_sig=1; echo "[slurm] TERM received, forwarding to $pid"; kill -TERM $pid 2>/dev/null' TERM INT
   wait $pid
   local rc=$?
-  if [ $rc -gt 128 ]; then wait $pid; rc=$?; fi   # first wait returned because of the trap; collect the child's real exit code
+  # only when the trap interrupted the first wait: wait again to collect the child's real exit code
+  # (a child that exits >128 on its own, e.g. 143 = STOPPED_BUDGET via --stop-after-steps, must not be waited twice: that returns 127)
+  if [ $got_sig -eq 1 ] && [ $rc -gt 128 ]; then wait $pid; rc=$?; fi
   trap - TERM INT
   return $rc
 }
