@@ -30,3 +30,8 @@ each step carries ≥ 6 pairs per image.  The untested cell is 8 views *with* th
 | a5_views8_b128_100ep | 8 | 100 | 128 | 35 k | 2× | 4 views/200 ep 84.54 ± 0.16 (same compute and steps); 8 views/100 ep B256 83.40 | is the P38 deficit of 8 views a steps effect? |
 Memory: 8 views × 128 = 1 024 images per step (≈ 7.5 GB, as 4 views × 256); 8 × 256 = 2 048 (≈ 15 GB).  HELPS/HURTS ±1.0 vs the comparators;
 also kNN, h-rank, (a, b), positive saturation.  Single seed; configs in `HPARAM_L_SHA256.json`.
+
+## Addendum 2026-09-26 22:55 UTC — seeds 1/2 of 8 views × 200 ep
+`P37_vcs_a5_views8_200ep_seed0` = 86.28 / kNN 83.66 (4× compute) is the best 200-epoch number and the likely 4× recipe point; two A100 slots
+are idle after the 4-view 800-ep seeds finished (87.01 ± 0.53).  Seeds 1/2 are queued so the 8-view 200-epoch point is a 3-seed mean.
+Reading: mean ± SD vs 4 views × 200 ep 84.54 ± 0.16 and 4 views × 400 ep 85.90.  Configs in `HPARAM_L_SHA256.json`.
