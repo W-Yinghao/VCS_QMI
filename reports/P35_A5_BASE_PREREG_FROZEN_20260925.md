@@ -30,3 +30,9 @@ Unit `a5_views4_800ep`: a0 = 5, 4 views, 800 epochs (checkpoints 100/200/400/600
 ≈ 4× the compute of the 4-view 200-epoch run, ≈ 14 h).  Question: best-achievable estimate of the full recipe, and whether the schedule gain
 and the views gain stack (read against 84.64 at equal wall-clock/epochs × 2 compute, and against `P35_vcs_a5_800ep`, 2 views).
 Single seed; HELPS/HURTS not applied (no same-compute base); reported as an absolute number with its compute.  Config sha in `HPARAM_K_SHA256.json`.
+
+## Addendum 2026-09-26 06:25 UTC — seeds 1/2 of a5_800ep
+`P35_vcs_a5_800ep_seed0` (a0 = 5, 2 views, 800 epochs) = 85.54 / kNN 82.62 / h-rank 88 — the recipe's long-schedule headline at 2-view
+cost.  Two GPU slots are idle and the 200-epoch numbers are all on 3 seeds; the 800-epoch 2-view number gets seeds 1/2 now (≈ 6.2 h each) so
+it can be quoted as mean ± SD.  Reading: mean ± SD; compared with `P26_vcs_base_800ep` (a0 = 1, 84.64, single seed) and the 200-epoch
+controls.  Configs in `HPARAM_K_SHA256.json`.
