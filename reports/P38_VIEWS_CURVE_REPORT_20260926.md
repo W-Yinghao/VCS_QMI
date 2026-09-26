@@ -28,3 +28,17 @@ controls before comparison (owner's rule).
 
 ## Not claimed
 Single seed at 8 views and at 4 views/100 ep; warm-up (10 epochs) is a larger fraction of the 50-epoch run; selection split.
+
+## Addendum 2026-09-26 13:20 UTC — 8 views with the steps of the 4-view winner (owner-requested units; stage table regenerates when the 200-ep unit lands)
+| unit | views | epochs | B | steps | compute | linear | kNN | h-rank | (a, b) → thr | sat⁺ |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 4 views / 200 ep / B 256 (3 seeds, P36) | 4 | 200 | 256 | 35 k | 2× | 84.54 ± 0.16 | 81.40 | 76 | 10.8 / −8.7 → 0.80 | 0.25–0.30 |
+| 8 views / 100 ep / B 256 (P38) | 8 | 100 | 256 | 17.5 k | 2× | 83.40 | 80.44 | 74 | 6.7 / −4.5 → 0.66 | 0.36 |
+| **8 views / 100 ep / B 128** (new) | 8 | 100 | 128 | 35 k | 2× | **84.60** | **81.62** | 78 | 10.6 / −8.5 → 0.80 | 0.35 |
+| 8 views / 200 ep / B 256 (running) | 8 | 200 | 256 | 35 k | 4× | | | | | |
+
+Reading: with the update count restored to 35 k, 8 views ties 4 views at the same compute (84.60 vs 84.54 ± 0.16; kNN +0.2; rank +2) and the
+critic ends at the same sharpness (threshold 0.80).  The P38 8-view deficit was therefore a steps effect; **beyond 6 pairs per image, more
+pairs per step neither help nor hurt at fixed compute** — the objective's signal per update saturates around 4 views.  The 8-view kNN curve
+is steeper early (79.3 at epoch 50 vs 74.9 for 4 views/200 ep at epoch 50), which is what the long 8-view chain (P43) tests: whether that
+head start survives 800 epochs.
