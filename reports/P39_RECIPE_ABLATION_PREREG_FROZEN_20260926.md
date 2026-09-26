@@ -53,3 +53,12 @@ the regime where h-rank is no longer collapsed.  Two units on the equal-compute 
 | out512 | projector output 128 → 512 | does a wider code let the critic's ≈ 30-dim solution carry more of h? |
 | hid2048 | projector hidden 512 → 2048 | more projector capacity as the buffer between objective and h (P29 §3) |
 HELPS/HURTS ±1.0 vs 83.52 (single seed each).  Configs in `HPARAM_M_SHA256.json`.
+
+## Addendum 2026-09-26 05:50 UTC — weight decay and K on the equal-compute recipe (three GPU slots idle)
+The equal-compute recipe (4 views, B = 128, 100 ep) is now on 3 seeds (see P40 for the numbers).  Two remaining recipe knobs were tuned only
+on the MLP-critic recipe (P11/P17) and are re-checked here at 1× compute, single seed, vs the 3-seed mean of the recipe:
+| unit | change | question |
+|---|---|---|
+| wd5e-5 / wd5e-4 | encoder/projector weight decay 1e-4 → 5e-5 / 5e-4 | optimizer re-check (P17 found 1e-4 best on the MLP recipe) |
+| k127 | K = B − 1 = 127 via the all-pairs matrix sampler (tested equivalent to cyclic shifts) | all negatives per pair: does K matter once detach + 4 views are on?  (K = 1 cost 0.7 / 2.1 kNN; K = 255 was neutral at 2 views) |
+HELPS/HURTS ±1.0.  Configs in `HPARAM_M_SHA256.json`.
