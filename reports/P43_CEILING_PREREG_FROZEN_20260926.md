@@ -21,3 +21,11 @@ Absolute linear-val / kNN / h-rank at the final checkpoint plus the kNN curve at
 is the maximum.  A run whose kNN curve has flattened before its end (last two points within 0.2) is read as "schedule saturated".  The best
 configuration gets seeds 1/2 afterwards (owner's rule: the base gets seeds).  Selection split as always; official test once at the very end.
 Configs and sha256: `configs/HPARAM_O_SHA256.json`; job ids (all chain links) in `job_ids.json`.
+
+## Addendum 2026-09-26 13:45 UTC — stronger augmentation on the long 4-view schedule (one GPU slot idle)
+The augmentation recipe was tuned only at 200 epochs on the MLP-critic recipe (P17: crop 0.08 / jitter 0.8 / blur each neutral-to-harmful,
+"strong" −1.5).  Long schedules with a stronger objective are the regime where stronger augmentation usually pays in SSL, so one ceiling unit:
+| unit | change vs a5_views4_800ep | question |
+|---|---|---|
+| a5_views4_800ep_augstrong | crop scale [0.08, 1], colour jitter 0.8 / 0.8 / 0.8 / 0.2 (blur stays off, it hurt on its own) | does stronger augmentation raise the 800-epoch 4-view ceiling (86.42 seed 0)? |
+2 chain links (≈ 15 h).  Absolute reading vs the 3-seed 4-view 800-ep number when available.  Config sha in `HPARAM_O_SHA256.json`.
