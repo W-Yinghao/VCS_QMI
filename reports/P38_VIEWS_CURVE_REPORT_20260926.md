@@ -42,3 +42,23 @@ critic ends at the same sharpness (threshold 0.80).  The P38 8-view deficit was 
 pairs per step neither help nor hurt at fixed compute** — the objective's signal per update saturates around 4 views.  The 8-view kNN curve
 is steeper early (79.3 at epoch 50 vs 74.9 for 4 views/200 ep at epoch 50), which is what the long 8-view chain (P43) tests: whether that
 head start survives 800 epochs.
+
+## Addendum 2026-09-26 17:00 UTC — 8 views / 200 ep / B 256 (4× compute, 35 k steps): 86.28
+`P37_vcs_a5_views8_200ep_seed0`: **linear 86.28 / kNN 83.66 / h-rank 103.7** (z-rank 30, heldout-J 0.972).  Stage table `P38_views_curve_results_table.md` regenerated.
+
+| views | epochs | B | steps | compute | linear | kNN | h-rank |
+|---|---|---|---|---|---|---|---|
+| 2 | 200 | 256 | 35 k | 1× | 81.56 ± 0.44 | 76.94 | 46 |
+| 4 | 200 | 256 | 35 k | 2× | 84.54 ± 0.16 | 81.40 | 76 |
+| 8 | 100 | 128 | 35 k | 2× | 84.60 | 81.62 | 78 |
+| **8** | **200** | **256** | **35 k** | **4×** | **86.28** | **83.66** | **104** |
+| 4 | 400 | 256 | 70 k | 4× | 85.90 | 83.58 | 105 |
+| 2 | 800 | 256 | 140 k | 4× | 85.30 ± 0.21 | 82.33 | 86 |
+| 4 | 800 | 256 | 140 k | 8× | 86.42 | 85.60 | 136 |
+
+Reading: at a fixed 200-epoch schedule the views curve is 81.56 → 84.54 → 86.28 (+3.0, +1.7) — more pairs per image do keep paying when the
+step count is held at 35 k and the batch at 256; at the 4× budget, 8 views × 200 ep beats 4 views × 400 ep (+0.4 / +0.1 kNN) and 2 views
+× 800 ep (+1.0 / +1.3).  The P38 conclusion "peaks at 4" was a fixed-compute statement at 1×–2×, where 8 views could only be bought with
+fewer steps or a smaller batch; with the owner's compute-unconstrained goal the right reading is: **views scale as well as epochs, and
+better than epochs at equal compute from 4× on**.  This is the second-best absolute number (0.14 below the 8× 4-view run at half its
+compute).  Follow-ups (P43 addendum): 8 views × 400 ep (8×, vs 86.42) and 16 views × 200 ep (8×), plus the running 8 views × 800 ep (16×).
