@@ -20,3 +20,13 @@ Warm-up stays 10 epochs (a larger fraction of the shorter runs; disclosed).  Mem
 Fixed-compute curve (1×): 2 views/200 ep = 81.56 (3 seeds) → 4 views/100 ep → 8 views/50 ep; HELPS/HURTS at ±1.0 vs 81.56.
 2× curve: 4 views/200 ep (`P35_vcs_a5_views4`, 3 seeds queued) vs 8 views/100 ep.  Secondary: kNN, h-rank, heldout-J, positive-pair
 saturation fraction (P29 §4).  Single seed.  sha256 in `configs/HPARAM_L_SHA256.json`; gate + babysitter ids in `job_ids.json`.
+
+## Addendum 2026-09-26 09:30 UTC — 8 views with enough optimizer steps (owner: "做")
+P38 found 8 views below 4 views at both 1× and 2× compute; P40 found that the fixed-compute limiter is the number of optimizer steps once
+each step carries ≥ 6 pairs per image.  The untested cell is 8 views *with* the step count of the winning 4-view runs (35 k):
+| unit | views | epochs | B | steps | compute | compared with | question |
+|---|---|---|---|---|---|---|---|
+| a5_views8_200ep | 8 | 200 | 256 | 35 k | 4× | 4 views/200 ep 84.54 ± 0.16 (2×); 2 views/800 ep 85.54 (4×, same price) | at equal steps, do 28 pairs per image beat 6? |
+| a5_views8_b128_100ep | 8 | 100 | 128 | 35 k | 2× | 4 views/200 ep 84.54 ± 0.16 (same compute and steps); 8 views/100 ep B256 83.40 | is the P38 deficit of 8 views a steps effect? |
+Memory: 8 views × 128 = 1 024 images per step (≈ 7.5 GB, as 4 views × 256); 8 × 256 = 2 048 (≈ 15 GB).  HELPS/HURTS ±1.0 vs the comparators;
+also kNN, h-rank, (a, b), positive saturation.  Single seed; configs in `HPARAM_L_SHA256.json`.
