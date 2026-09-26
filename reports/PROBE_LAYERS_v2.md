@@ -13,3 +13,25 @@ Frozen final checkpoints, clean-transform features, fit UIDs train the head / se
 | P37_vcs_a5_views8_100ep_seed0 | vcs_qmi | cosine | 8 | True | 65.70 / 54.96 / 17 (d=128) | 78.40 / 67.28 / 34 (d=256) | 83.40 / 80.44 / 74 (d=512) | 83.76 / 81.20 / 83 (d=512) | 82.04 / 81.96 / 42 (d=128) | 80.76 / 81.96 / 42 (d=128) |
 | P26_vcs_base_800ep_seed0 | vcs_qmi | cosine | 8 | True | 66.34 / 56.36 / 18 (d=128) | 80.86 / 71.02 / 33 (d=256) | 84.64 / 81.44 / 61 (d=512) | 82.72 / 80.56 / 42 (d=512) | 74.66 / 80.34 / 15 (d=128) | 76.10 / 80.34 / 15 (d=128) |
 | P24_vcs_cos_800ep_seed0 | vcs_qmi | cosine | 8 | False | 64.14 / 55.04 / 18 (d=128) | 75.96 / 65.40 / 35 (d=256) | 80.74 / 76.48 / 89 (d=512) | 79.42 / 79.00 / 111 (d=512) | 73.28 / 80.02 / 45 (d=128) | 74.66 / 80.02 / 45 (d=128) |
+
+## Reading (interpretation commit)
+| run | l3 → h gain | gap to SimCLR at l2 / l3 / h | z_l2 − h | p_raw eff-rank | kNN proj_hidden − h |
+|---|---|---|---|---|---|
+| SimCLR | +4.70 | — | −2.5 | 77 | −1.0 |
+| detach base (2 v, 200 ep) | +3.02 | 3.2 / 4.3 / 6.0 | −9.3 | 14 | +0.4 |
+| a0 = 5 (2 v, 200 ep) | +4.56 | 3.6 / 4.4 / 4.5 | −6.7 | 21 | +0.6 |
+| **4 views, a0 = 5 (200 ep)** | **+4.88** | **2.8 / 2.1 / 1.9** | −4.1 | 31 | +0.5 |
+| 4 views, a0 = 1 (200 ep) | +4.92 | 2.7 / 2.2 / 2.0 | −6.0 | 22 | +0.6 |
+| 8 views, a0 = 5 (100 ep) | +5.00 | 2.8 / 3.3 / 3.0 | −2.6 | 42 | +0.8 |
+| detach base, 800 ep | +3.78 | 2.1 / 0.9 / 1.8 | −8.5 | 15 | −0.9 |
+| plain cosine, 800 ep | +4.78 | 4.3 / 5.8 / 5.7 | −6.1 | 45 | +2.5 |
+
+1. **The last ResNet stage is fully productive under the recipe** (+4.9 from layer3 to h, SimCLR +4.7; the original MLP recipe had +0.8).
+2. **The remaining deficit is now uniform across depth** (≈ 2 points at layer2, layer3 and h for the 4-view recipe; the 800-epoch 2-view
+   run is even closer at layer3, 0.9), instead of growing with depth as in every earlier VCS run (3.8 / 7.6 / 11.6 for the original).  What is
+   left is a whole-network effect of the objective, not a last-block pathology.
+3. **The projector still discards more than SimCLR's** (z probes 4–8 below h vs 2.5; p_raw effective rank 15–31 vs 77), most extremely in
+   the 800-epoch detach run (rank 15, z −8.5) — the per-layer view of the narrow z cone in GEOMETRY_DIAG_v2 §2.  The projector keeps
+   converting a low-dimensional pair-separability code into a spread h; giving it more pairs (views) or more steps widens what reaches h.
+
+Not claimed: single seed; selection set; probe on CPU (identical h endpoints confirm parity with the GPU evaluations).
