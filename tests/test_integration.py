@@ -894,3 +894,29 @@ def test_bn_only_projector_has_no_trainable_params_and_is_skipped_by_gradient_ch
     gn = grad_norms(bt["encoder"], bt["projector"], bt["critic"])
     assert gn["grad_norm_projector"] is None and gn["grad_norm_encoder"] > 0 and gn["grad_norm_critic"] > 0
     opt.zero_grad(set_to_none=True)
+
+
+def test_control_tuning_flag_and_multiview_controls(tmp_path):
+    import yaml
+    from vcs_ssl.objectives import compute_objective_views, forward_features_views
+    env = _env(tmp_path)
+    for name, key in (("cifar10_pilot_simclr.yaml", "nt_xent"), ("cifar10_pilot_vicreg.yaml", "vicreg_invariance")):
+        base = yaml.safe_load((CFG_DIR / name).read_text())
+        locked = copy.deepcopy(base); locked["views"]["count"] = 4
+        with pytest.raises(ConfigError, match="control_tuning"):
+            load_config(_write(tmp_path, yaml.safe_dump(locked)), env=env)
+        tuned = copy.deepcopy(base); tuned["views"]["count"] = 4; tuned["run"]["control_tuning"] = True
+        cfg = load_config(_write(tmp_path, yaml.safe_dump(tuned)), env=env)
+        bt = build_models(cfg, seed=0, device="cpu"); assert bt["critic"] is None
+        fv = forward_features_views(bt["encoder"], bt["projector"], [torch.randn(6, 3, 32, 32) for _ in range(4)], eps=1e-8)
+        ov = compute_objective_views(fv, cfg=cfg, critic=None, pair_generator=None)
+        assert torch.isfinite(ov["loss"]) and ov["stats"][key] is not None and ov["shift"] is None
+        # 2-view reduction: with exactly two views the multi-view path equals the standard objective
+        f2 = forward_features(bt["encoder"], bt["projector"], torch.randn(6, 3, 32, 32), torch.randn(6, 3, 32, 32), eps=1e-8)
+        std = compute_objective(cfg["run"]["method"], f2, cfg=cfg, critic=None, pair_generator=None)
+        fv2 = {"views_z": list(f2["z_l2"].chunk(2)), "views_p": list(f2["p_raw"].chunk(2)), "views_h": list(f2["h_l2"].chunk(2))}
+        mv = compute_objective_views(fv2, cfg=cfg, critic=None, pair_generator=None)
+        assert torch.allclose(std["loss"], mv["loss"], atol=1e-6)
+    badv = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); badv["run"]["control_tuning"] = True
+    with pytest.raises(ConfigError, match="control methods only"):
+        load_config(_write(tmp_path, yaml.safe_dump(badv)), env=env)

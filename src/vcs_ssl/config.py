@@ -39,7 +39,8 @@ class _Opt:
 
 SCHEMA: dict[str, Any] = {
     "schema_version": str,
-    "run": {"stage": str, "method": str, "seed": int, "output_root": str, "resume": (str, type(None)), "overwrite": bool},
+    "run": {"stage": str, "method": str, "seed": int, "output_root": str, "resume": (str, type(None)), "overwrite": bool,
+            "control_tuning": _Opt(bool, False)},
     "data": {"name": str, "root": str, "download": bool, "split": str, "split_seed": int, "val_per_class": int,
              "manifest": str, "ssl_labels_accessible": bool, "official_test_accessible": bool},
     "views": {"count": int,
@@ -194,9 +195,12 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     if cfg["execution"]["max_gpus_per_job"] != 1:
         raise ConfigError("max_gpus_per_job must be 1")
     if cfg["views"]["count"] not in (2, 4, 8):
-        raise ConfigError("views.count must be 2 (frozen) or 4 / 8 (VCS-only named variants: J averaged over all view pairs)")
-    if cfg["views"]["count"] != 2 and m != "vcs_qmi":
-        raise ConfigError("control runs keep two views")
+        raise ConfigError("views.count must be 2 (frozen) or 4 / 8 (named variants: the objective averaged over all view pairs)")
+    ct = cfg["run"].get("control_tuning", False)
+    if ct and m == "vcs_qmi":
+        raise ConfigError("run.control_tuning applies to control methods only")
+    if cfg["views"]["count"] != 2 and m != "vcs_qmi" and not (ct and cfg["views"]["count"] == 4):
+        raise ConfigError("control runs keep two views unless run.control_tuning=true (then 4 views: the control loss averaged over the 6 view pairs)")
     if cfg["pairing"]["sampler"] == "all_pairs_matrix" and (m != "vcs_qmi" or cfg["model"]["critic"]["input"] not in ("cosine", "shared_metric", "mono_spline", "diag_metric")):
         raise ConfigError("all_pairs_matrix is a VCS-only sampler for similarity-type critics (cosine|shared_metric|mono_spline|diag_metric)")
     if cfg["views"]["solarize_p"] != 0.0:

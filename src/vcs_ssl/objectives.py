@@ -195,6 +195,29 @@ def forward_features_views(encoder, projector, views: list[Tensor], eps: float) 
 def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any]:
     """Named variant (views.count = 4): the same J averaged over all view pairs (a < b) of the same images; each pair draws its own shifts.
     Q still comes from different UIDs (cyclic shifts). Not a new loss: more Monte-Carlo coverage of the same P and Q."""
+    method = cfg["run"]["method"]
+    ocfg = cfg["objective"]
+    if method != "vcs_qmi":
+        # control-tuning named variant: the control's own pairwise loss averaged over all view pairs (a < b); nothing else changes
+        vs = feats["views_z"] if method == "simclr_matched" else feats["views_p"]
+        pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
+        stats: dict[str, Any] = {kk: None for kk in VCS_STAT_KEYS}
+        stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+        B = vs[0].shape[0]
+        if method == "simclr_matched":
+            losses = [simclr_nt_xent(vs[a], vs[b_], temperature=ocfg["simclr_temperature"]) for a, b_ in pairs]
+            loss = torch.stack(losses).mean()
+            stats["nt_xent"] = float(loss.detach())
+            return {"loss": loss, "stats": stats, "shift": None, "n_pos": 2 * B * len(pairs), "n_neg": 2 * B * (2 * B - 2) * len(pairs)}
+        if method == "vicreg_matched_128":
+            w = ocfg["vicreg_weights"]
+            outs = [vicreg_loss(vs[a], vs[b_], inv_weight=w["invariance"], var_weight=w["variance"], cov_weight=w["covariance"], eps=ocfg["vicreg_variance_eps"])
+                    for a, b_ in pairs]
+            loss = torch.stack([o["loss"] for o in outs]).mean()
+            for name in ("invariance", "variance", "covariance"):
+                stats[f"vicreg_{name}"] = float(torch.stack([o[name] for o in outs]).mean().detach())
+            return {"loss": loss, "stats": stats, "shift": None, "n_pos": B * len(pairs), "n_neg": 0}
+        raise ValueError(f"unknown method {method!r}")
     key = {"z_l2": "views_z", "p_raw": "views_p", "h_l2": "views_h"}[critic_input_key(cfg)]
     vs = feats[key]
     k = cfg["pairing"]["k"]
