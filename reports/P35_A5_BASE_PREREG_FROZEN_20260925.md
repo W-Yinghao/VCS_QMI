@@ -36,3 +36,10 @@ Single seed; HELPS/HURTS not applied (no same-compute base); reported as an abso
 cost.  Two GPU slots are idle and the 200-epoch numbers are all on 3 seeds; the 800-epoch 2-view number gets seeds 1/2 now (≈ 6.2 h each) so
 it can be quoted as mean ± SD.  Reading: mean ± SD; compared with `P26_vcs_base_800ep` (a0 = 1, 84.64, single seed) and the 200-epoch
 controls.  Configs in `HPARAM_K_SHA256.json`.
+
+## Addendum 2026-09-26 07:40 UTC — seeds 1/2 of a5_views4_800ep and a 400-epoch point (three GPU slots idle)
+The recipe search is closed on the VCS side (P40: wd 1e-4, K = 8, lr 1e-3, projector 512/128 all confirmed; B = 128 at 1×, B = 256 at 2×).
+`a5_views4_800ep_seed0` (4 views, 800 ep) is at epoch ≈ 450 and is the expected headline; its seeds 1/2 are started now (≈ 14 h each) so the
+headline is a 3-seed mean when the paper is written.  `a5_views4_400ep` (4 views, 400 ep, own cosine schedule) adds the missing point of
+the compute-scaling curve of the final recipe: 1× (4 v / B128 / 100 ep, 83.19 ± 0.40) → 2× (4 v / 200 ep, 84.54 ± 0.16) → 4× (400 ep) → 8× (800 ep).
+Reading: absolute numbers with compute; no HELPS/HURTS.  Configs in `HPARAM_K_SHA256.json`.
