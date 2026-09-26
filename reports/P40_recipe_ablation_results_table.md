@@ -1,20 +1,20 @@
 # P39_vcs_recipe_ablation — neutral results table (observed values only)
 
-Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
+Generated 2026-09-26T06:53:06Z. Failed / stopped runs are listed, never dropped.
 
 | run | method | K | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | P39_vcs_a5_b128_seed0 | vcs_qmi | 8 | 0 | 200/200 | 82.14 | 76.42 | 0.9394±0.0017 | 42.78 | 6091 | 2076/3482 | COMPLETED |
 | P39_vcs_a5_lr2e-3_seed0 | vcs_qmi | 8 | 0 | 200/200 | 81.64 | 77.50 | 0.9424±0.0015 | 50.55 | 5560 | 3683/4842 | COMPLETED |
 | P39_vcs_a5_lr5e-4_seed0 | vcs_qmi | 8 | 0 | 200/200 | 80.56 | 75.76 | 0.9389±0.0016 | 41.99 | 5613 | 3683/4842 | COMPLETED |
-| P39_vcs_a5_views4_b128_100ep_hid2048_seed0 | vcs_qmi | 8 | 0 | 65/100 | null | null | null | null | null | null/null | RUNNING |
-| P39_vcs_a5_views4_b128_100ep_k127_seed0 | vcs_qmi | 127 | 0 | 28/100 | null | null | null | null | null | null/null | RUNNING |
-| P39_vcs_a5_views4_b128_100ep_out512_seed0 | vcs_qmi | 8 | 0 | 65/100 | null | null | null | null | null | null/null | RUNNING |
+| P39_vcs_a5_views4_b128_100ep_hid2048_seed0 | vcs_qmi | 8 | 0 | 100/100 | 82.82 | 78.52 | 0.9549±0.0009 | 60.14 | 5803 | 3695/4840 | COMPLETED |
+| P39_vcs_a5_views4_b128_100ep_k127_seed0 | vcs_qmi | 127 | 0 | 64/100 | null | null | null | null | null | null/null | RUNNING |
+| P39_vcs_a5_views4_b128_100ep_out512_seed0 | vcs_qmi | 8 | 0 | 100/100 | 82.88 | 78.26 | 0.9538±0.0011 | 56.57 | 5772 | 3684/4846 | COMPLETED |
 | P39_vcs_a5_views4_b128_100ep_seed0 | vcs_qmi | 8 | 0 | 100/100 | 83.52 | 78.30 | 0.9535±0.0011 | 55.62 | 6563 | 3682/4842 | COMPLETED |
 | P39_vcs_a5_views4_b128_100ep_seed1 | vcs_qmi | 8 | 1 | 100/100 | 82.74 | 78.48 | 0.9534±0.0013 | 55.51 | 5798 | 3682/4842 | COMPLETED |
 | P39_vcs_a5_views4_b128_100ep_seed2 | vcs_qmi | 8 | 2 | 100/100 | 83.30 | 78.50 | 0.9534±0.0014 | 56.26 | 5799 | 3682/4842 | COMPLETED |
-| P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0 | vcs_qmi | 8 | 0 | 29/100 | null | null | null | null | null | null/null | RUNNING |
-| P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0 | vcs_qmi | 8 | 0 | 29/100 | null | null | null | null | null | null/null | RUNNING |
+| P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0 | vcs_qmi | 8 | 0 | 65/100 | null | null | null | null | null | null/null | RUNNING |
+| P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0 | vcs_qmi | 8 | 0 | 65/100 | null | null | null | null | null | null/null | RUNNING |
 | P39_vcs_a5_views4_b128_200ep_seed0 | vcs_qmi | 8 | 0 | 200/200 | 84.74 | 81.16 | 0.9644±0.0012 | 77.09 | 11582 | 3682/4842 | COMPLETED |
 | P39_vcs_a5_views4_b64_100ep_seed0 | vcs_qmi | 8 | 0 | 100/100 | 82.78 | 78.56 | 0.9522±0.0014 | 52.20 | 6491 | 2077/3482 | COMPLETED |
 | P39_vcs_a5_views4_k1_100ep_seed0 | vcs_qmi | 1 | 0 | 100/100 | 81.14 | 75.68 | 0.9418±0.0015 | 45.40 | 6105 | 7568/12670 | COMPLETED |
@@ -47,9 +47,9 @@ Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
 | P39_vcs_a5_b128_seed0 | 41.78 | 82.14 | 40.36 | 36.58 | 76.42 | 39.84 | 2.94 | 42.78 | -0.9998 |
 | P39_vcs_a5_lr2e-3_seed0 | 41.78 | 81.64 | 39.86 | 36.58 | 77.50 | 40.92 | 2.94 | 50.55 | -0.9998 |
 | P39_vcs_a5_lr5e-4_seed0 | 41.78 | 80.56 | 38.78 | 36.58 | 75.76 | 39.18 | 2.94 | 41.99 | -0.9998 |
-| P39_vcs_a5_views4_b128_100ep_hid2048_seed0 | null | null | null | null | null | null | null | null | null |
+| P39_vcs_a5_views4_b128_100ep_hid2048_seed0 | 41.78 | 82.82 | 41.04 | 36.58 | 78.52 | 41.94 | 2.94 | 60.14 | -0.9998 |
 | P39_vcs_a5_views4_b128_100ep_k127_seed0 | null | null | null | null | null | null | null | null | null |
-| P39_vcs_a5_views4_b128_100ep_out512_seed0 | null | null | null | null | null | null | null | null | null |
+| P39_vcs_a5_views4_b128_100ep_out512_seed0 | 41.78 | 82.88 | 41.10 | 36.58 | 78.26 | 41.68 | 2.94 | 56.57 | -0.9998 |
 | P39_vcs_a5_views4_b128_100ep_seed0 | 41.78 | 83.52 | 41.74 | 36.58 | 78.30 | 41.72 | 2.94 | 55.62 | -0.9998 |
 | P39_vcs_a5_views4_b128_100ep_seed1 | 41.60 | 82.74 | 41.14 | 37.42 | 78.48 | 41.06 | 3.22 | 55.51 | -0.9998 |
 | P39_vcs_a5_views4_b128_100ep_seed2 | 43.02 | 83.30 | 40.28 | 37.08 | 78.50 | 41.42 | 3.22 | 56.26 | -0.9998 |
@@ -65,14 +65,14 @@ Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
 - P39_vcs_a5_b128_seed0: ep0: 36.58, ep10: 53.98, ep20: 63.74, ep50: 70.28, ep100: 73.94, ep150: 76.04, ep200: 76.42
 - P39_vcs_a5_lr2e-3_seed0: ep0: 36.58, ep10: 54.26, ep20: 62.26, ep50: 69.66, ep100: 74.40, ep150: 77.22, ep200: 77.50
 - P39_vcs_a5_lr5e-4_seed0: ep0: 36.58, ep10: 47.90, ep20: 56.52, ep50: 68.36, ep100: 72.76, ep150: 75.18, ep200: 75.76
-- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: ep0: 36.58, ep10: 61.56, ep20: 70.84, ep50: 76.02
-- P39_vcs_a5_views4_b128_100ep_k127_seed0: ep0: 36.58, ep10: 62.26, ep20: 70.40
-- P39_vcs_a5_views4_b128_100ep_out512_seed0: ep0: 36.58, ep10: 62.64, ep20: 70.78, ep50: 75.86
+- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: ep0: 36.58, ep10: 61.56, ep20: 70.84, ep50: 76.02, ep100: 78.52
+- P39_vcs_a5_views4_b128_100ep_k127_seed0: ep0: 36.58, ep10: 62.26, ep20: 70.40, ep50: 75.92
+- P39_vcs_a5_views4_b128_100ep_out512_seed0: ep0: 36.58, ep10: 62.64, ep20: 70.78, ep50: 75.86, ep100: 78.26
 - P39_vcs_a5_views4_b128_100ep_seed0: ep0: 36.58, ep10: 61.82, ep20: 70.32, ep50: 75.78, ep100: 78.30
 - P39_vcs_a5_views4_b128_100ep_seed1: ep0: 37.42, ep10: 62.32, ep20: 69.74, ep50: 76.42, ep100: 78.48
 - P39_vcs_a5_views4_b128_100ep_seed2: ep0: 37.08, ep10: 61.48, ep20: 68.64, ep50: 76.20, ep100: 78.50
-- P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0: ep0: 36.58, ep10: 61.68, ep20: 70.26
-- P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0: ep0: 36.58, ep10: 62.80, ep20: 70.42
+- P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0: ep0: 36.58, ep10: 61.68, ep20: 70.26, ep50: 76.28
+- P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0: ep0: 36.58, ep10: 62.80, ep20: 70.42, ep50: 75.70
 - P39_vcs_a5_views4_b128_200ep_seed0: ep0: 36.58, ep10: 61.14, ep20: 69.90, ep50: 75.32, ep100: 79.08, ep150: 81.02, ep200: 81.16
 - P39_vcs_a5_views4_b64_100ep_seed0: ep0: 36.58, ep10: 64.02, ep20: 71.18, ep50: 76.26, ep100: 78.56
 - P39_vcs_a5_views4_k1_100ep_seed0: ep0: 36.58, ep10: 54.00, ep20: 64.70, ep50: 72.80, ep100: 75.68
@@ -83,14 +83,14 @@ Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
 - P39_vcs_a5_b128_seed0: ep0: -0.9998, ep10: 0.7479, ep20: 0.8090, ep50: 0.8701, ep100: 0.9138, ep150: 0.9331, ep200: 0.9394
 - P39_vcs_a5_lr2e-3_seed0: ep0: -0.9998, ep10: 0.7049, ep20: 0.7988, ep50: 0.8693, ep100: 0.9150, ep150: 0.9348, ep200: 0.9424
 - P39_vcs_a5_lr5e-4_seed0: ep0: -0.9998, ep10: 0.5000, ep20: 0.7746, ep50: 0.8648, ep100: 0.9138, ep150: 0.9323, ep200: 0.9389
-- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: ep0: -0.9998, ep10: 0.7921, ep20: 0.8843, ep50: 0.9270
-- P39_vcs_a5_views4_b128_100ep_k127_seed0: ep0: -0.9998, ep10: 0.8162, ep20: 0.8848
-- P39_vcs_a5_views4_b128_100ep_out512_seed0: ep0: -0.9998, ep10: 0.8278, ep20: 0.8900, ep50: 0.9283
+- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: ep0: -0.9998, ep10: 0.7921, ep20: 0.8843, ep50: 0.9270, ep100: 0.9549
+- P39_vcs_a5_views4_b128_100ep_k127_seed0: ep0: -0.9998, ep10: 0.8162, ep20: 0.8848, ep50: 0.9284
+- P39_vcs_a5_views4_b128_100ep_out512_seed0: ep0: -0.9998, ep10: 0.8278, ep20: 0.8900, ep50: 0.9283, ep100: 0.9538
 - P39_vcs_a5_views4_b128_100ep_seed0: ep0: -0.9998, ep10: 0.7937, ep20: 0.8825, ep50: 0.9247, ep100: 0.9535
 - P39_vcs_a5_views4_b128_100ep_seed1: ep0: -0.9998, ep10: 0.8101, ep20: 0.8731, ep50: 0.9295, ep100: 0.9534
 - P39_vcs_a5_views4_b128_100ep_seed2: ep0: -0.9998, ep10: 0.7663, ep20: 0.8674, ep50: 0.9284, ep100: 0.9534
-- P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0: ep0: -0.9998, ep10: 0.7960, ep20: 0.8814
-- P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0: ep0: -0.9998, ep10: 0.7971, ep20: 0.8755
+- P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0: ep0: -0.9998, ep10: 0.7960, ep20: 0.8814, ep50: 0.9264
+- P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0: ep0: -0.9998, ep10: 0.7971, ep20: 0.8755, ep50: 0.9242
 - P39_vcs_a5_views4_b128_200ep_seed0: ep0: -0.9998, ep10: 0.8085, ep20: 0.8794, ep50: 0.9234, ep100: 0.9492, ep150: 0.9604, ep200: 0.9644
 - P39_vcs_a5_views4_b64_100ep_seed0: ep0: -0.9998, ep10: 0.8094, ep20: 0.8803, ep50: 0.9307, ep100: 0.9522
 - P39_vcs_a5_views4_k1_100ep_seed0: ep0: -0.9998, ep10: 0.6888, ep20: 0.8362, ep50: 0.9043, ep100: 0.9418
@@ -101,14 +101,14 @@ Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
 - P39_vcs_a5_b128_seed0: J_raw 0.9440, R_binary 0.0560, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_lr2e-3_seed0: J_raw 0.9472, R_binary 0.0528, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_lr5e-4_seed0: J_raw 0.9430, R_binary 0.0570, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: J_raw 0.9487, R_binary 0.0513, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P39_vcs_a5_views4_b128_100ep_k127_seed0: J_raw 0.9051, R_binary 0.0949, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P39_vcs_a5_views4_b128_100ep_out512_seed0: J_raw 0.9481, R_binary 0.0519, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: J_raw 0.9607, R_binary 0.0393, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P39_vcs_a5_views4_b128_100ep_k127_seed0: J_raw 0.9478, R_binary 0.0522, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P39_vcs_a5_views4_b128_100ep_out512_seed0: J_raw 0.9595, R_binary 0.0405, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_views4_b128_100ep_seed0: J_raw 0.9591, R_binary 0.0409, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_views4_b128_100ep_seed1: J_raw 0.9589, R_binary 0.0411, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_views4_b128_100ep_seed2: J_raw 0.9594, R_binary 0.0406, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0: J_raw 0.9034, R_binary 0.0966, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
-- P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0: J_raw 0.9029, R_binary 0.0971, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P39_vcs_a5_views4_b128_100ep_wd5e-4_seed0: J_raw 0.9470, R_binary 0.0530, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
+- P39_vcs_a5_views4_b128_100ep_wd5e-5_seed0: J_raw 0.9467, R_binary 0.0533, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_views4_b128_200ep_seed0: J_raw 0.9711, R_binary 0.0289, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_views4_b64_100ep_seed0: J_raw 0.9585, R_binary 0.0415, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
 - P39_vcs_a5_views4_k1_100ep_seed0: J_raw 0.9470, R_binary 0.0530, nt_xent null, vicreg {'vicreg_invariance': None, 'vicreg_variance': None, 'vicreg_covariance': None}
@@ -121,9 +121,9 @@ Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
 | P39_vcs_a5_b128_seed0 | 0.0862 | 1485 | 2970 | 6091 | 125 | 29 | 8985600 | 2 | 1009342@nodeaudible01 |
 | P39_vcs_a5_lr2e-3_seed0 | 0.1570 | 1631 | 3262 | 5560 | 125 | 28 | 8960000 | 2 | 1009275@nodeaudible01 |
 | P39_vcs_a5_lr5e-4_seed0 | 0.1584 | 1616 | 3233 | 5613 | 134 | 30 | 8960000 | 2 | 1009276@nodeaudible01 |
-| P39_vcs_a5_views4_b128_100ep_hid2048_seed0 | null | null | null | null | null | null | None | 2 | 1009356@nodeaudible01 |
+| P39_vcs_a5_views4_b128_100ep_hid2048_seed0 | 0.1643 | 779 | 1558 | 5803 | 90 | 28 | 4492800 | 2 | 1009356@nodeaudible01 |
 | P39_vcs_a5_views4_b128_100ep_k127_seed0 | null | null | null | null | null | null | None | 2 | 1009361@nodeaudible01 |
-| P39_vcs_a5_views4_b128_100ep_out512_seed0 | null | null | null | null | null | null | None | 2 | 1009355@nodeaudible01 |
+| P39_vcs_a5_views4_b128_100ep_out512_seed0 | 0.1635 | 783 | 1566 | 5772 | 92 | 29 | 4492800 | 2 | 1009355@nodeaudible01 |
 | P39_vcs_a5_views4_b128_100ep_seed0 | 0.1857 | 689 | 1379 | 6563 | 112 | 38 | 4492800 | 2 | 1009274@node01 |
 | P39_vcs_a5_views4_b128_100ep_seed1 | 0.1642 | 780 | 1559 | 5798 | 90 | 29 | 4492800 | 2 | 1009350@nodeaudible01 |
 | P39_vcs_a5_views4_b128_100ep_seed2 | 0.1641 | 780 | 1560 | 5799 | 95 | 30 | 4492800 | 2 | 1009351@nodeaudible01 |
@@ -161,16 +161,16 @@ Generated 2026-09-26T06:17:46Z. Failed / stopped runs are listed, never dropped.
 |---|---|---|---|---|---|---|---|
 | vcs_qmi K=1 | 1 | 81.14 | 41.78 | 39.36 | 75.68 | 45.40 | 0.94 |
 | vcs_qmi K=127 | 0 | null | null | null | null | null | null |
-| vcs_qmi K=8 | 9 | 82.34 ± 1.55 | 41.90 ± 0.43 | 40.44 ± 1.52 | 77.78 ± 1.77 | 57.53 ± 14.69 | 0.95 ± 0.01 |
+| vcs_qmi K=8 | 11 | 82.43 ± 1.40 | 41.88 ± 0.38 | 40.56 ± 1.38 | 77.89 ± 1.60 | 57.68 ± 13.17 | 0.95 ± 0.01 |
 
 ## Coverage checks
 
 - P39_vcs_a5_b128_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P39_vcs_a5_lr2e-3_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
 - P39_vcs_a5_lr5e-4_seed0: epoch0 eval True, final eval True (evaluation_epoch_200.json), status COMPLETED, failure None
-- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
+- P39_vcs_a5_views4_b128_100ep_hid2048_seed0: epoch0 eval True, final eval True (evaluation_epoch_100.json), status COMPLETED, failure None
 - P39_vcs_a5_views4_b128_100ep_k127_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
-- P39_vcs_a5_views4_b128_100ep_out512_seed0: epoch0 eval False, final eval False (None), status RUNNING, failure None
+- P39_vcs_a5_views4_b128_100ep_out512_seed0: epoch0 eval True, final eval True (evaluation_epoch_100.json), status COMPLETED, failure None
 - P39_vcs_a5_views4_b128_100ep_seed0: epoch0 eval True, final eval True (evaluation_epoch_100.json), status COMPLETED, failure None
 - P39_vcs_a5_views4_b128_100ep_seed1: epoch0 eval True, final eval True (evaluation_epoch_100.json), status COMPLETED, failure None
 - P39_vcs_a5_views4_b128_100ep_seed2: epoch0 eval True, final eval True (evaluation_epoch_100.json), status COMPLETED, failure None
