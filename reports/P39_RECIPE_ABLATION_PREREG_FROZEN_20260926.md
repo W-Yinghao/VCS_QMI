@@ -37,3 +37,8 @@ same 35 k steps at 2× compute).  Three units follow the lead (single seed, lr 1
 | a5_views4_b128_200ep | 4 | 200 | 128 | 70 k | 2× | b256/200ep 84.54 ± 0.16 | does it hold at the recipe's compute? |
 | a5_b128 | 2 | 200 | 128 | 70 k | 1× | a0 = 5 base 81.56 ± 0.44 (35 k steps) | is it steps alone, without views?  (P17: B = 128 neutral on the MLP recipe) |
 HELPS/HURTS ±1.0 vs the comparators; also kNN, rank, (a, b), saturation.  Configs in `HPARAM_M_SHA256.json`.
+
+## Addendum 2026-09-26 04:10 UTC — seeds 1/2 of a5_views4_b128_100ep
+The equal-compute recipe candidate (4 views, B = 128, 100 epochs: 83.52 / kNN 78.30, single seed) gets seeds 1/2 now (two GPU slots idle),
+so the paper's 1×-compute number is a 3-seed mean like the 2×-compute one (84.54 ± 0.16).  Reading: mean ± SD vs 81.56 ± 0.44 (2 views,
+B = 256, 200 epochs, same compute).  Configs in `HPARAM_M_SHA256.json`.

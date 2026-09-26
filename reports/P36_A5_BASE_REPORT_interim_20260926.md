@@ -34,3 +34,9 @@ controls re-tuned with an equal budget (in particular a 4-view / multi-crop SimC
 
 ## Not claimed
 Selection split; controls not yet tuned or given 4 views; compute is 2× the 2-view controls at equal epochs.
+
+## Addendum 04:10 UTC — a5_800ep final
+`P35_vcs_a5_800ep_seed0` (a0 = 5, 2 views, 800 epochs): **85.54 / kNN 82.62 / h-rank 88.2** — +0.9 linear / +1.2 kNN over the a0 = 1
+800-epoch run (84.64 / 81.44) and +4.0 over its own 200-epoch value (81.56).  At 4× the compute of a 200-epoch 2-view run it passes VICReg
+(85.46, 200 ep) and is 0.55 below SimCLR (86.09, 200 ep); h-rank 88 now equals SimCLR's 90.  `a5_views4_800ep` (running, epoch ≈ 300/800)
+is the last long run.
