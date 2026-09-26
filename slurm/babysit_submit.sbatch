@@ -28,11 +28,19 @@ if [ ${#ids[@]} -gt 0 ]; then
   echo "[submit] summarize -> $sid (afterany:${dep})"; submitted+=("summarize=$sid")
 fi
 "$PYTHON" - "$STAGE" "${submitted[@]}" <<'PY'
-import json, sys, time, os
+import json, sys, time, os, fcntl
 stage, pairs = sys.argv[1], sys.argv[2:]
-p = "reports/job_ids.json"; hist = json.load(open(p)) if os.path.exists(p) else []
-hist.append({"submitted_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "stage": stage + " (babysitter)",
-             "jobs": dict(x.split("=") for x in pairs), "commit": os.popen("git rev-parse HEAD").read().strip()})
-json.dump(hist, open(p, "w"), indent=2); print("recorded", len(pairs), "jobs")
+p = "reports/job_ids.json"
+with open(p + ".lock", "w") as lk:  # serialize concurrent babysitters: read-modify-write under an exclusive lock, then atomic replace
+    fcntl.flock(lk, fcntl.LOCK_EX)
+    hist = json.load(open(p)) if os.path.exists(p) else []
+    hist.append({"submitted_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "stage": stage + " (babysitter)",
+                 "jobs": dict(x.split("=") for x in pairs), "commit": os.popen("git rev-parse HEAD").read().strip()})
+    tmp = p + f".tmp.{os.getpid()}"
+    with open(tmp, "w") as f:
+        json.dump(hist, f, indent=2); f.flush(); os.fsync(f.fileno())
+    os.replace(tmp, p)
+    fcntl.flock(lk, fcntl.LOCK_UN)
+print("recorded", len(pairs), "jobs")
 PY
 echo "end=$(date -u +%FT%TZ)"
