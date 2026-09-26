@@ -58,3 +58,20 @@ Reading: first VCS run above both controls on both metrics (+0.3 linear, +1.6 kN
 untuned, at 200 epochs and 2 views (owner's equal-budget rule: P41 draft), and this is one seed (seeds 1/2 running, ≈ 10 h).  h-rank 136
 is above SimCLR's 90; the critic keeps sharpening to a 0.90 threshold; kNN had not saturated at 800 epochs, which is the question the
 1600-epoch chain (P43) answers.  `P35_vcs_a5_800ep_seed1` (2 views, 800 ep) finished training at kNN 82.20 (seed 0: 82.62); linear pending.
+
+## Addendum 2026-09-26 14:35 UTC — 2-view 800-ep on 3 seeds; the compute-scaling curve of the final recipe
+`a5_800ep` (2 views, 800 ep): **85.54 / 85.18 / 85.18 → 85.30 ± 0.21**, kNN 82.33 ± 0.25, h-rank 86.  `a5_views4_400ep` (4 views, 400 ep, own
+schedule): **85.90 / kNN 83.58 / h-rank 105**, threshold 0.87; kNN 67.96 / 74.2 / 78.3 / 81.6 / 82.9 / 83.6 at 20 / 50 / 100 / 200 / 300 / 400.
+
+| compute (1× = 2 views, 200 ep) | recipe | linear | kNN | h-rank |
+|---|---|---|---|---|
+| 1× | 4 views, B 128, 100 ep (3 seeds) | 83.19 ± 0.40 | 78.43 | 56 |
+| 2× | 4 views, B 256, 200 ep (3 seeds) | 84.54 ± 0.16 | 81.40 | 76 |
+| 4× | 4 views, 400 ep (1 seed) | 85.90 | 83.58 | 105 |
+| 4× | 2 views, 800 ep (3 seeds) | 85.30 ± 0.21 | 82.33 | 86 |
+| 8× | 4 views, 800 ep (1 seed; seeds running) | 86.42 | 85.60 | 136 |
+| 16× | 4 views, 1600 ep / 8 views, 800 ep | running (H100) | | |
+
+Reading: +1.4 / +1.4 / +0.5 linear per doubling of compute (1× → 2× → 4× → 8×), kNN +3.0 / +2.2 / +2.0 — the linear gain is flattening
+while kNN and rank keep growing (rank 56 → 136); at 4× compute, 4 views × 400 ep beats 2 views × 800 ep by 0.6 linear / 1.3 kNN.  The 16×
+points (P43) tell whether linear saturates near 86.5–87 or continues.  Controls (untuned, 1×): SimCLR 86.09 ± 0.38, VICReg 85.46 ± 0.26.
