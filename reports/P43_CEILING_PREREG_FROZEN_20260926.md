@@ -29,3 +29,13 @@ The augmentation recipe was tuned only at 200 epochs on the MLP-critic recipe (P
 |---|---|---|
 | a5_views4_800ep_augstrong | crop scale [0.08, 1], colour jitter 0.8 / 0.8 / 0.8 / 0.2 (blur stays off, it hurt on its own) | does stronger augmentation raise the 800-epoch 4-view ceiling (86.42 seed 0)? |
 2 chain links (≈ 15 h).  Absolute reading vs the 3-seed 4-view 800-ep number when available.  Config sha in `HPARAM_O_SHA256.json`.
+
+## Addendum 2026-09-26 17:05 UTC — views keep scaling at fixed steps: 8 views × 400 ep and 16 views × 200 ep
+`P37_vcs_a5_views8_200ep` (8 views, 200 ep, B 256, 4×) = **86.28 / kNN 83.66 / rank 104**: at a fixed 200-epoch schedule the views curve is
+2 → 4 → 8 = 81.56 → 84.54 → 86.28, and 8 views × 200 ep beats 4 views × 400 ep (85.90) at the same compute.  Two more ceiling units
+(single seed, < 23 h each on A100 so single jobs; schema extended to 16 views, same all-pairs code, test added, gate re-run):
+| unit | views | epochs | B | steps | compute | compared with | question |
+|---|---|---|---|---|---|---|---|
+| a5_views8_400ep | 8 | 400 | 256 | 70 k | 8× | 4 views × 800 ep 86.42 (same compute) | at 8×, more views or more epochs? |
+| a5_views16_200ep | 16 | 200 | 256 | 35 k | 8× | 8 views × 200 ep 86.28; 4 views × 800 ep 86.42 | does the views curve continue at 16 (120 pairs per image; ≈ 30 GB peak)? |
+Absolute reading; the running 8 views × 800 ep (16×) completes the picture.  Config sha in `HPARAM_O_SHA256.json`.

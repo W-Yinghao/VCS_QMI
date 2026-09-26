@@ -194,8 +194,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("automatic search / auto 200-epoch start are not authorized")
     if cfg["execution"]["max_gpus_per_job"] != 1:
         raise ConfigError("max_gpus_per_job must be 1")
-    if cfg["views"]["count"] not in (2, 4, 8):
-        raise ConfigError("views.count must be 2 (frozen) or 4 / 8 (named variants: the objective averaged over all view pairs)")
+    if cfg["views"]["count"] not in (2, 4, 8, 16):
+        raise ConfigError("views.count must be 2 (frozen) or 4 / 8 / 16 (named variants: the objective averaged over all view pairs)")
     ct = cfg["run"].get("control_tuning", False)
     if ct and m == "vcs_qmi":
         raise ConfigError("run.control_tuning applies to control methods only")

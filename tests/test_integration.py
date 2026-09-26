@@ -848,6 +848,11 @@ def test_new_candidates_spline_diag_allpairs_views(tmp_path):
     fv8 = forward_features_views(bt8["encoder"], bt8["projector"], [torch.randn(5, 3, 32, 32) for _ in range(8)], eps=1e-8)
     ov8 = compute_objective_views(fv8, cfg=cfg8, critic=bt8["critic"], pair_generator=torch.Generator().manual_seed(0))
     assert ov8["n_pos"] == 5 * 28 and len(ov8["shift"]) == 28 and torch.isfinite(ov8["loss"])
+    b16 = copy.deepcopy(b4); b16["views"]["count"] = 16
+    cfg16 = load_config(_write(tmp_path, yaml.safe_dump(b16)), env=env)
+    fv16 = forward_features_views(bt8["encoder"], bt8["projector"], [torch.randn(3, 3, 32, 32) for _ in range(16)], eps=1e-8)
+    ov16 = compute_objective_views(fv16, cfg=cfg16, critic=bt8["critic"], pair_generator=torch.Generator().manual_seed(0))
+    assert ov16["n_pos"] == 3 * 120 and len(ov16["shift"]) == 120 and torch.isfinite(ov16["loss"])
     bad8 = copy.deepcopy(b4); bad8["views"]["count"] = 6
     with pytest.raises(ConfigError, match="views.count"):
         load_config(_write(tmp_path, yaml.safe_dump(bad8)), env=env)
