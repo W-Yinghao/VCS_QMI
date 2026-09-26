@@ -42,3 +42,14 @@ HELPS/HURTS ±1.0 vs the comparators; also kNN, rank, (a, b), saturation.  Confi
 The equal-compute recipe candidate (4 views, B = 128, 100 epochs: 83.52 / kNN 78.30, single seed) gets seeds 1/2 now (two GPU slots idle),
 so the paper's 1×-compute number is a 3-seed mean like the 2×-compute one (84.54 ± 0.16).  Reading: mean ± SD vs 81.56 ± 0.44 (2 views,
 B = 256, 200 epochs, same compute).  Configs in `HPARAM_M_SHA256.json`.
+
+## Addendum 2026-09-26 05:15 UTC — projector width on the equal-compute recipe (queued before results; two GPU slots idle)
+Batch follow-ups so far: 4 views B = 64 / 100 ep 82.78 (< B = 128 83.52; B = 128 is the optimum at 1×), 2 views B = 128 / 200 ep 82.14
+(+0.6 vs 81.56: steps alone, without views, are nearly neutral — the steps gain needs the views).  The projector keeps only 20–30 effective
+dimensions in every detach run (PROBE_LAYERS_v2); projector width was neutral on the MLP-critic recipe (P13) but has not been tested in
+the regime where h-rank is no longer collapsed.  Two units on the equal-compute recipe (4 views, B = 128, 100 ep; comparator 83.52):
+| unit | change | question |
+|---|---|---|
+| out512 | projector output 128 → 512 | does a wider code let the critic's ≈ 30-dim solution carry more of h? |
+| hid2048 | projector hidden 512 → 2048 | more projector capacity as the buffer between objective and h (P29 §3) |
+HELPS/HURTS ±1.0 vs 83.52 (single seed each).  Configs in `HPARAM_M_SHA256.json`.
