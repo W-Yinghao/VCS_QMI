@@ -45,3 +45,15 @@ Dropped: spline and diagonal-metric scores, linear-only projector, projector-fre
 ## Not claimed
 Single seed for every unit; selection split; the 4-view gain at equal compute is +1.25 (P34, single seed); the saturation reading is observational
 (no intervention on the threshold yet); no control comparison at equal tuning budget.
+
+## Addendum 2026-09-26 06:15 UTC — views4 (a0 = 1) on 3 seeds
+| seed | linear | kNN | h-rank | heldout-J |
+|---|---|---|---|---|
+| 0 | 84.48 | 81.10 | 57.4 | 0.960 |
+| 1 | 84.36 | 80.78 | 56.5 | 0.958 |
+| 2 | 84.38 | 80.90 | 58.8 | 0.959 |
+| **mean ± SD** | **84.41 ± 0.06** | **80.93 ± 0.16** | 57.6 | 0.959 |
+vs the a0 = 5 version (P36): 84.54 ± 0.16 / 81.40 ± 0.22 / rank 75.7.  Linear identical within SD (+0.13); kNN +0.5 and rank +18 for a0 = 5.
+**The recipe can be stated without the initial-scale change**: cosine critic, K = 8, negative partner detached, 4 views, 200 epochs → 84.41 ± 0.06
+(vs 80.59 ± 0.12 for 2 views: +3.8 on 3 seeds each; +1.6 at equal compute via B = 128 / 100 ep, P40).  a0 = 5 is kept as an optional
+refinement that raises h-rank and kNN slightly.
