@@ -28,3 +28,8 @@ views4 is also compared at equal *compute* (2× encoder forward per step).  P29:
 ("cosine > concat-MLP at K=8") is stated with 3 seeds vs the P10 K=8 MLP seeds.
 
 Configs and sha256: `configs/HPARAM_H_SHA256.json`.
+
+## Addendum 2026-09-26 — seeds 1/2 of views4 (a0 = 1)
+`P28_vcs_views4_seed0` = 84.48 / kNN 81.10 and the a0 = 5 version = 84.54 ± 0.16 on 3 seeds (P36): the initial scale adds nothing once 4
+views are used.  To state the *simpler* recipe (a0 = 1) with its own 3-seed number, seeds 1/2 of `views4` are queued now (two GPU slots were
+idle).  Reading: mean ± SD vs 84.54 ± 0.16 (a0 = 5); equality within SD ⇒ the paper's recipe can drop a0.  Configs in `HPARAM_H_SHA256.json`.
