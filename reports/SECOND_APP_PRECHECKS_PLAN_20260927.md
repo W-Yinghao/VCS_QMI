@@ -8,11 +8,11 @@ critic form with tanh output, pairing scheme incl. cross-batch/independent-pool 
 ## Order and status
 | pre-check | property | data | status |
 |---|---|---|---|
-| D  leakage-detection power | bounded objective, distribution-free bound, one-sided lower confidence bound | existing frozen CIFAR-10 h + planted nuisance (no new data) | **prereg frozen, running** (`P45_PRECHECK_D_PREREG_FROZEN_20260927.md`) |
+| D  leakage-detection power | bounded objective, distribution-free bound, one-sided lower confidence bound | existing frozen CIFAR-10 h + planted nuisance (no new data) | **running** as 10 per-case CPU jobs (prereg + 3 addenda: `P45_PRECHECK_D_PREREG_FROZEN_20260927.md`) |
 | B1 closed-form vs neural critic | quadratic objective ⇒ closed-form critic in a fixed feature class | existing checkpoints, two-view features of the selection images | **done — property holds** (`P48_PRECHECK_B1_REPORT_20260927.md`) |
-| A  calibration & threshold transfer | pairwise scores have absolute meaning | cross-modal pairs: local COCO-2017 captions (source) with a constructed distribution shift (target); frozen dual towers | **draft** (data + towers plan below; prereg to freeze before any run) |
-| C  batch decoupling | positives and negatives averaged separately | shares A's data and towers | **draft** (after A's pipeline exists) |
-| B2 registration energy surface | closed-form J* as a similarity for rigid/affine alignment | constructed modality pairs from COCO images first (transform truth known by construction); real RGB-NIR / MRI pairs only if a licensed public source is confirmed | **draft** |
+| A  calibration & threshold transfer | pairwise scores have absolute meaning | COCO-2017 captions, no-animal → animal shift; frozen CLIP ViT-B/32 + identity adapters | **done — holds conditionally** (calibration without a calibration set only in the mid-dependence regime; no threshold-transfer advantage: monotone critic) (`P50_PRECHECK_A_REPORT_20260927.md`) |
+| C  batch decoupling | positives and negatives averaged separately | A's setting 2 | **done — does not hold** on frozen-tower adapters (all methods flat in batch size within 1 %) (`P54_PRECHECK_C_REPORT_20260927.md`) |
+| B2 registration energy surface | closed-form J* as a similarity for rigid/affine alignment | 60 constructed tent-map modality pairs from COCO val2017 | **done — does not hold** (rougher energy than MI/NMI: more local maxima, narrower basin, lower success from large offsets) (`P52_PRECHECK_B2_REPORT_20260927.md`) |
 
 Compute: D and B1 ran on the CPU partition (they are small; the P44 ceiling runs were still on the GPUs).  Owner 2026-09-27: GPUs may be used
 for the pre-checks — CLIP feature extraction, adapter grids (A/C), registration energy surfaces (B2) and any full-size sweeps go to the GPU
