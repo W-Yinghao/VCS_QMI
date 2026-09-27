@@ -61,3 +61,5 @@ Frozen now with the design of §"IXI design"; the 60-subject id-list sha256 is a
 Reading rules unchanged: holds (≥ NMI + 0.10 success at R = 20 / 30, ≤ NMI local maxima, no divergence, peak-at-truth ≥ 95 %); re-opened /
 conditional (success within 0.05 of NMI and ≤ NMI maxima); does not hold otherwise.  The two sources are read separately; the family row is
 re-opened only if the rule is met on at least one real source and not contradicted on the other.
+
+**IXI archive provenance and subject-list hashes (appended after the smoke 1011906, before the full run is read):** {'T2': ('39af50f87be8f7d0be2f166a64f5f59b5e43577255eb5613553dae37c348c2e4', 3853445120, 'https://huggingface.co/datasets/Santhosh1884/IXI-Datasets/resolve/main/IXI-T2.tar'), 'PD': ('c00124d2409b68f9800938ede547cff71cafb0d51e19bd5138d85a4c4e144130', 4068966400, 'https://huggingface.co/datasets/Santhosh1884/IXI-Datasets/resolve/main/IXI-PD.tar')} n_both 578; 
