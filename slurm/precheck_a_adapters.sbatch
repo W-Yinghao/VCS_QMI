@@ -11,5 +11,5 @@
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 : "${FEATURES:?}"; : "${REPORT:?}"
 banner "pre-check A adapters (smoke=${SMOKE:-0}) <- ${FEATURES}"
-if [ "${SMOKE:-0}" = "1" ]; then "$PYTHON" scripts/precheck_a_adapters.py --features "$FEATURES" --out "$REPORT" --smoke; rc=$?; else "$PYTHON" scripts/precheck_a_adapters.py --features "$FEATURES" --out "$REPORT" ${EXTRA_ARGS:-}; rc=$?; fi
+if [ "${SMOKE:-0}" = "1" ]; then "$PYTHON" scripts/precheck_a_adapters.py --features "$FEATURES" --out "$REPORT" --smoke ${EXTRA_ARGS:-}; rc=$?; else "$PYTHON" scripts/precheck_a_adapters.py --features "$FEATURES" --out "$REPORT" ${EXTRA_ARGS:-}; rc=$?; fi
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
