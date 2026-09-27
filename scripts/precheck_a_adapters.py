@@ -2,7 +2,7 @@
 
     python scripts/precheck_a_adapters.py --features <dir from step 1> --out <report prefix> [--smoke]
 
-Methods (identical adapters: Linear(512→256, bias) per tower, L2-normalised outputs; batch 256 images, one of captions 0–3 per image per step;
+Methods (identical adapters: Linear(512→512, bias) per tower initialised at the identity (start from CLIP's joint space), L2-normalised outputs; batch 256 images, one of captions 0–3 per image per step;
 caption 4 of every image is held out for evaluation):
   vcs       T = tanh(a·cos(u, v) + b), a₀ = 5, b₀ = 0; loss −J with positives (u_i, v_i) and K = 8 negatives per image whose captions come from
             an independent pool (random SRC-FIT images outside the batch); P and Q averaged separately (plan form).
@@ -36,9 +36,12 @@ def load_split(fd, name):
 
 
 class Adapters(nn.Module):
-    def __init__(self, method, d_in=512, d_out=256):
+    def __init__(self, method, d_in=512, d_out=512):
         super().__init__()
         self.img = nn.Linear(d_in, d_out); self.txt = nn.Linear(d_in, d_out); self.method = method
+        if d_in == d_out:  # identity initialisation: training starts from CLIP's own joint space (probe finding: random init destroys it)
+            for lin in (self.img, self.txt):
+                nn.init.eye_(lin.weight); nn.init.zeros_(lin.bias)
         if method == "vcs":
             self.a = nn.Parameter(torch.tensor(5.0)); self.b = nn.Parameter(torch.tensor(0.0))
         elif method == "infonce":
@@ -185,6 +188,15 @@ def main() -> int:
     fit_img, fit_txt = splits["SRC-FIT"]; cal_img, cal_txt = splits["SRC-CAL"]
     results = {"settings": vars(a), "device": str(device), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "methods": {}}
     t0 = time.time()
+    # reference: raw CLIP (no adapter) cosine, Platt on CAL
+    ref = Adapters("infonce").to(device); ref.eval(); results["raw_clip_reference"] = {}
+    with torch.no_grad():
+        cal_s, cal_c, cal_y, _, _ = pair_sets(ref, cal_img, cal_txt, device, 11)
+        for split in ("SRC-EVAL", "TGT-EVAL"):
+            img, txt = splits[split]; s_, c_, y_, u, v = pair_sets(ref, img, txt, device, 13); pc, _, _ = platt(cal_c, cal_y, c_)
+            e, mx, _ = ece(pc, y_); th = threshold_at_fnr(cal_c[cal_y == 1], 0.05)
+            results["raw_clip_reference"][split] = {"R1_R5": retrieval(u, v), "ECE_cosine+Platt": e, "Brier": brier(pc, y_), "FNR@CAL-FNR0.05": float((c_[y_ == 1] < th).float().mean()), "FPR@CAL-FNR0.05": float((c_[y_ == 0] >= th).float().mean())}
+    print("[raw CLIP reference]", results["raw_clip_reference"], flush=True)
     for method in ("vcs", "infonce", "logistic"):
         grid = []
         for lr in lrs:
@@ -211,12 +223,20 @@ def main() -> int:
                 row["calibration"] = {}
                 for name, p in probs.items():
                     e, mx, curve = ece(p, y_); row["calibration"][name] = {"ECE": e, "max_dev": mx, "Brier": brier(p, y_), "curve": curve}
-                # threshold transfer (thresholds set on CAL joint pairs)
+                # threshold transfer.  (a) quantile rule on CAL: identical for a monotone critic and its cosine (kept as a sanity row);
+                # (b) absolute rule: VCS T >= 0 (PMI >= 0 / p >= 1/2) and logistic logit >= 0 need no calibration data; cosine gets the CAL threshold
+                # matching the method's *source* FNR, so both are compared at the same source operating point.
                 row["threshold"] = {}
                 for fnr in fnrs:
-                    for sname, cal_sc, ev_sc in (("score", cal_s, s_), ("cosine", cal_c, c_)):
-                        th = threshold_at_fnr(cal_sc[cal_y == 1], fnr)
-                        row["threshold"][f"{sname}@FNR{fnr:g}"] = {"theta": th, "FNR": float((ev_sc[y_ == 1] < th).float().mean()), "FPR": float((ev_sc[y_ == 0] >= th).float().mean())}
+                    th = threshold_at_fnr(cal_s[cal_y == 1], fnr)
+                    row["threshold"][f"score_quantile@FNR{fnr:g}"] = {"theta": th, "FNR": float((s_[y_ == 1] < th).float().mean()), "FPR": float((s_[y_ == 0] >= th).float().mean())}
+                if method in ("vcs", "logistic"):
+                    row["threshold"]["absolute_score>=0"] = {"theta": 0.0, "FNR": float((s_[y_ == 1] < 0).float().mean()), "FPR": float((s_[y_ == 0] >= 0).float().mean()),
+                                                            "balanced_err": float(0.5 * ((s_[y_ == 1] < 0).float().mean() + (s_[y_ == 0] >= 0).float().mean()))}
+                    src_fnr = float((cal_s[cal_y == 1] < 0).float().mean())   # the absolute rule's FNR on CAL -> matched cosine threshold
+                    thc = threshold_at_fnr(cal_c[cal_y == 1], min(max(src_fnr, 1e-3), 0.999))
+                    row["threshold"]["cosine_matched_to_absolute"] = {"theta": thc, "FNR": float((c_[y_ == 1] < thc).float().mean()), "FPR": float((c_[y_ == 0] >= thc).float().mean()),
+                                                                     "balanced_err": float(0.5 * ((c_[y_ == 1] < thc).float().mean() + (c_[y_ == 0] >= thc).float().mean())), "matched_src_fnr": src_fnr}
                 if method == "vcs":
                     J, st = heldout_J(m, img, txt, device, 17); row["heldout_J"] = J; row["saturation"] = st
                 r[split] = row
@@ -226,7 +246,7 @@ def main() -> int:
     json.dump(results, open(a.out + ".json", "w"), indent=1, default=float)
     # markdown
     L = [f"# Pre-check A — calibration and threshold transfer on frozen CLIP features (COCO no-animal → animal) — {results['utc']}", "",
-         "Adapters Linear(512→256)+L2 per tower; batch 256; captions 0–3 train, caption 4 evaluation; balanced joint/product pairs (product = caption 4 of another image). "
+         "Adapters Linear(512→512, identity init)+L2 per tower; batch 256; captions 0–3 train, caption 4 evaluation; balanced joint/product pairs (product = caption 4 of another image). "
          "ECE: 15 equal-mass bins. Thresholds set on SRC-CAL joint pairs at the stated FNR and applied unchanged. Mean over seeds (SD in JSON).", ""]
     L += ["| method | selected (lr, ep) | split | R@1 | probability | ECE | max dev | Brier |", "|---|---|---|---|---|---|---|---|"]
     for method, res in results["methods"].items():
@@ -244,6 +264,9 @@ def main() -> int:
                 return np.mean([r[split]["threshold"][k][f] for r in res["seeds"].values()])
             sf, sp, tf, tp_ = mean_of("SRC-EVAL", "FNR"), mean_of("SRC-EVAL", "FPR"), mean_of("TGT-EVAL", "FNR"), mean_of("TGT-EVAL", "FPR")
             L.append(f"| {method} | {k} | | {mean_of('SRC-EVAL', 'theta'):.3f} | {sf:.3f} / {sp:.3f} | {tf:.3f} / {tp_:.3f} | {abs(tf - sf):.3f} / {abs(tp_ - sp):.3f} |")
+    rc = results.get("raw_clip_reference", {})
+    if rc:
+        L += ["", "Raw CLIP reference (no adapter): " + "; ".join(f"{sp}: R@1 {v['R1_R5'][0]:.3f}, ECE(cos+Platt) {v['ECE_cosine+Platt']:.4f}, FNR/FPR at CAL-FNR 5 % = {v['FNR@CAL-FNR0.05']:.3f}/{v['FPR@CAL-FNR0.05']:.3f}" for sp, v in rc.items())]
     if "vcs" in results["methods"]:
         L += ["", "VCS held-out J (SRC-EVAL / TGT-EVAL, mean over seeds): " + " / ".join(f"{np.mean([r[sp]['heldout_J'] for r in results['methods']['vcs']['seeds'].values()]):.3f}" for sp in ("SRC-EVAL", "TGT-EVAL"))
               + "; learned (a, b): " + ", ".join(f"seed {s}: a {r['params'].get('a', float('nan')):.2f} b {r['params'].get('b', float('nan')):.2f}" for s, r in results["methods"]["vcs"]["seeds"].items())]

@@ -53,3 +53,15 @@ captions; seed 20260927; SRC-FIT 20 000 / SRC-CAL 5 000 / SRC-EVAL 5 000 / TGT-E
 Feature extraction and the adapter grids run on one GPU (short jobs); tests and calibration on CPU.  Adapter grid per method: lr ∈ {1e-3, 3e-4}
 × epochs ∈ {5, 15, 40} on cached features (6 configurations, selection on SRC-CAL by the method's own loss); 3 seeds of the selected
 configuration.  Step 2 code: `scripts/precheck_a_adapters.py` (to be committed before its run).
+
+## Addendum 2026-09-27 (smoke-probe findings, frozen before the full run; probe output `P50_precheck_A_smoke.md` disclosed)
+1. Randomly initialised 512→256 adapters destroy CLIP's joint space (R@1 ≈ 0.02 after the probe epoch).  Change: adapters are 512→512 linear
+   layers initialised at the identity (zero bias) for every method, so all methods start from the same pre-trained alignment; a raw-CLIP
+   (no adapter) reference row is added (cosine + Platt on CAL, R@1, FNR/FPR at the CAL-quantile threshold).
+2. A quantile threshold set on CAL transfers identically for a monotone critic and its cosine (tanh(a·cos + b) is monotone in cos) — the probe
+   rows were identical by construction.  The threshold-transfer claim is therefore evaluated on the **absolute** rule that only a calibrated
+   score offers: VCS T ≥ 0 (PMI ≥ 0, p̂ ≥ ½) and logistic logit ≥ 0, applied unchanged on source and target with no calibration data; the cosine
+   competitor receives the CAL threshold that matches the method's *source* FNR (same source operating point).  Reported: FNR, FPR, balanced
+   error on SRC-EVAL / TGT-EVAL and their drift; the CAL-quantile row is kept as a sanity check.  Claim 2 now reads: drift of the balanced
+   error under the absolute VCS rule ≤ ½ of the drift of the matched cosine rule.
+3. Probe sanity: held-out J on SRC-EVAL 0.44 and on TGT-EVAL 0.10 after one epoch — the setting is in the mid-dependence regime (P1 satisfied).
