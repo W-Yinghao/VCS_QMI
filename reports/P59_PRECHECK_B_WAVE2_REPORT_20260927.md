@@ -73,11 +73,23 @@ non-matching* stages by a small margin only, and it is not a better probe than C
   This is P52's constructed-modality result reproduced on real data, and it is *worse* for J* than on the tent-map pairs (P52: 10.2 vs 6.5
   maxima, success 0.77 / 0.54 vs 0.88 / 0.70): real RGB–NIR intensities are largely monotonically related, which is MI's easy case, while the
   49-feature linear class still has to represent the relation piecewise.  The registration family stays closed on real cross-spectral data.
-- **B-T2, source 2 — real multi-contrast MRI (IXI PD/T2, CC BY-SA 3.0; prereg frozen):** the official server refuses this cluster (HTTP 403)
-  and the mirror fetch is not permitted to the assistant; the owner runs the download job, after which a watcher verifies the declared sha256
-  and chains the smoke and the full run.  Status: *pending (data)*.
+- **B-T2, source 2 — real multi-contrast MRI (IXI PD/T2, CC BY-SA 3.0; 60 subjects, mid-axial slices; archives fetched by the owner from the
+  declared-hash mirror after the official server refused the cluster; GPU job 1011907).**
+
+  | measure | peak at truth (transl. / rot.) | mean # local maxima | median basin half-width px / deg | success R = 5 / 10 / 20 / 30 | divergence |
+  |---|---|---|---|---|---|
+  | closed-form J* (Fourier 49) | 1.00 / 1.00 | 1.8 | 14 / 10 | 1.00 / 0.98 / 0.90 / 0.83 | 0.00 |
+  | histogram MI | 1.00 / 1.00 | 1.0 | 24 / 30 | 1.00 / 1.00 / 1.00 / 0.99 | 0.00 |
+  | NMI | 1.00 / 1.00 | 1.0 | 24 / 30 | 1.00 / 1.00 / 1.00 / 1.00 | 0.00 |
+
+  **Reading (frozen, as RGB–NIR): does not hold** — success 0.10 / 0.17 below NMI at R = 20 / 30, 1.8 vs 1.0 local maxima, a basin half as wide.
+  On dual-echo PD/T2 the intensity relation is almost one-to-one, so histogram MI is unimodal over the whole ± 24 px / ± 30° range and succeeds
+  from every start; J* also peaks at the truth in every subject and never diverges, but its narrower basin loses one start in six at R = 30.
+  Third real source (fMRI EPI-boldref vs T1w) pending.
+- **B-T2, source 3 — fMRI EPI vs T1w (AOMIC-PIOP1, CC0; P60 fMRI prereg):** running (smoke 1011927 → full 1011928); appended when it lands.
 
 ## 4. Family table (brief appendix A, row B) after B-S1 / B-T1
 Unlabelled embedding probes / measurement on frozen features: *candidate*, with the qualification that the closed-form J* offers
-cost and determinism, not better discrimination than CKA in the strong-dependence regime.  Registration / calibration / stereo energies: **closed** — P52 (constructed pairs) is now confirmed on real cross-spectral pairs (B-T2
-source 1); B-S2's variants and the MRI source can only qualify, not reverse, this unless a variant matches MI on both maxima and success.
+cost and determinism, not better discrimination than CKA in the strong-dependence regime.  Registration / calibration / stereo energies: **closed** — P52 (constructed pairs) is confirmed on real cross-spectral pairs (RGB–NIR) and on
+real multi-contrast MRI (IXI PD/T2, where MI is essentially perfect); the B-S2 combination shows the plain closed form's deficit is removable
+down to parity, never to an advantage.
