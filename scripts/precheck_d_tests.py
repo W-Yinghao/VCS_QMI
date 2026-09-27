@@ -252,6 +252,7 @@ def main() -> int:
                 inst_u = [run_instance(H, Y, N, n, rng, conditional=False, delta=a.delta, perms=a.perms, steps=a.steps, seed=a.seed * 7000 + r) for r in range(R)]
                 summ["unconditional_power"] = {t: float(np.mean([i[t]["reject"] for i in inst_u])) for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")}
             results["cases"][case]["by_n"][str(n)] = {"repeats": R, "summary": summ, "instances": inst}
+            atomic_write_json(Path(a.out + ".partial.json"), results)   # incremental checkpoint of the results (walltime safety)
             print(f"[{case}] n={n} R={R}: " + " ".join(f"{t}={summ[t]['power']:.2f}" for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")) + f"  J(lin/mlp/closed)={summ['vcs_hoeff_lin']['J_eval_mean']:.3f}/{summ['vcs_hoeff_mlp']['J_eval_mean']:.3f}/{summ['vcs_hoeff_closed']['J_eval_mean']:.3f} tau={summ['vcs_hoeff']['tau']:.3f} picked={summ['vcs_hoeff']['picked']}  ({time.time() - t0:.0f}s)", flush=True)
     results["utc_end"] = utc_now(); atomic_write_json(Path(a.out + ".json"), results)
     # markdown summary
