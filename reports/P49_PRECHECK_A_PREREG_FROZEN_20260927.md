@@ -1,4 +1,4 @@
-# DRAFT pre-registration — pre-check A: calibration and threshold transfer (P49).  NOT FROZEN: asset download needs the owner's OK.
+# Pre-registration — pre-check A: calibration and threshold transfer (P49), frozen 2026-09-27 before launch (owner approved the CLIP download and GPU use)
 
 **Property tested.** Pairwise VCS scores have absolute meaning: at the population optimum T* = tanh(PMI/2) = 2·P(joint | x, y) − 1 under a
 balanced prior, so (1+T)/2 is a match probability and a T-threshold is a PMI threshold.  Question (brief §2, A): after finite training on
@@ -19,10 +19,10 @@ Index built 2026-09-27 (`/home/infres/yinwang/CS_QMI/data/coco_index/`, metadata
   independent caption pool of the same split (never in-batch shuffles; Hoeffding-bound premises).  Balanced 50/50 joint/product for reliability
   diagrams; also the natural "1 : 9" mixture as a robustness row (calibration depends on the prior — reported, not claimed).
 
-## Frozen towers and adapters (asset download required — OWNER TO CONFIRM)
-- Towers: an open CLIP checkpoint (proposed: ViT-B/32, `laion2b_s34b_b79k`, via `open_clip_torch`; weights ≈ 600 MB; source URL, licence
-  (MIT code; LAION weights CC-BY-4.0 model card) and sha256 recorded here before the download).  Both towers frozen; features cached once
-  (image 512-d, text 512-d; CPU extraction ≈ 1.5 h for 35 k images, texts negligible) — no GPU needed.
+## Frozen towers and adapters
+- Towers: open CLIP ViT-B/32 `laion2b_s34b_b79k` (open_clip_torch 3.3.0; weights 605 143 316 bytes, sha256 ac4f8c4b88af6d96…; source HF
+  `laion/CLIP-ViT-B-32-laion2B-s34B-b79K`; provenance file `models/open_clip/PROVENANCE_ViT-B-32_laion2b_s34b_b79k.json`).  Both towers frozen;
+  features cached once on a GPU (`scripts/precheck_a_features.py`; image 512-d and the 5 captions per image, 512-d each).
 - Adapters: identical for all methods — one linear layer per tower (512 → 256, bias) followed by L2 (VCS/InfoNCE) or raw (logistic uses the
   dot product with learnable scale/bias); trained on SRC-FIT only; AdamW, lr and epochs from a small grid *per method* with equal budget (6
   configurations each; selection on SRC-CAL by the method's own validation loss).  Batch 256 image–caption pairs; K = 8 independent-pool
@@ -45,6 +45,11 @@ Property holds: claims 1 and 2 hold on the target and J < 0.9.  Holds conditiona
 only on the source.  Does not hold: VCS ECE ≥ Platt-cosine ECE and no drift advantage; or J ≥ 0.9 (degenerate regime — report and stop).
 Seeds: 3 adapter seeds (cheap on cached features).  Compute: CPU only.  Not claimed: retrieval quality; any task.
 
-## Blocking items
-- Owner's OK to install `open_clip_torch` into the env and download the CLIP checkpoint (recorded provenance).  Alternative without any
-  download: none for a text tower; an image-only surrogate (two image views) would reduce A to SSL and is not acceptable for this pre-check.
+## Split rule (final)
+Source pool = train2017 images with ≥ 1 instance annotation, no `animal` supercategory and 5 captions; target pool = images with `animal` and 5
+captions; seed 20260927; SRC-FIT 20 000 / SRC-CAL 5 000 / SRC-EVAL 5 000 / TGT-EVAL 5 000, id lists and sha256 in `outputs/P49_precheck_A/splits.json`.
+
+## Compute
+Feature extraction and the adapter grids run on one GPU (short jobs); tests and calibration on CPU.  Adapter grid per method: lr ∈ {1e-3, 3e-4}
+× epochs ∈ {5, 15, 40} on cached features (6 configurations, selection on SRC-CAL by the method's own loss); 3 seeds of the selected
+configuration.  Step 2 code: `scripts/precheck_a_adapters.py` (to be committed before its run).
