@@ -23,10 +23,12 @@ def main():
     for case in order:
         cr = merged["cases"][case]
         for n, r in sorted(cr["by_n"].items(), key=lambda kv: int(kv[0])):
-            s = r["summary"]; h = s["hsic_perm"]["power"] if s.get("hsic_perm") else float("nan")
-            L.append(f"| {case} | {cr['strength']:g} | {n} | {r['repeats']} | {s['vcs_hoeff']['power']:.2f} | {s['vcs_hoeff_lin']['power']:.2f} | {s['vcs_hoeff_mlp']['power']:.2f} | {s['vcs_hoeff_closed']['power']:.2f} | {s['vcs_perm']['power']:.2f} | {h:.2f} | {s['c2st']['power']:.2f} | {s['vcs_hoeff']['J_eval_mean']:.4f} ± {s['vcs_hoeff']['J_eval_sd']:.4f} | {s['vcs_hoeff']['tau']:.3f} | {s['c2st']['acc_mean']:.3f} |")
+            s = r["summary"]; not_run = all(i["hsic_perm"].get("not_run") for i in r["instances"]) if r.get("instances") else False
+            h = "n/a (n > 5000)" if not_run else f"{s['hsic_perm']['power']:.2f}"
+            L.append(f"| {case} | {cr['strength']:g} | {n} | {r['repeats']} | {s['vcs_hoeff']['power']:.2f} | {s['vcs_hoeff_lin']['power']:.2f} | {s['vcs_hoeff_mlp']['power']:.2f} | {s['vcs_hoeff_closed']['power']:.2f} | {s['vcs_perm']['power']:.2f} | {h} | {s['c2st']['power']:.2f} | {s['vcs_hoeff']['J_eval_mean']:.4f} ± {s['vcs_hoeff']['J_eval_sd']:.4f} | {s['vcs_hoeff']['tau']:.3f} | {s['c2st']['acc_mean']:.3f} |")
             if "unconditional_power" in s:
-                u = s["unconditional_power"]; L.append(f"| {case} (unconditional test) | | {n} | {r['repeats']} | {u['vcs_hoeff']:.2f} | {u['vcs_hoeff_lin']:.2f} | {u['vcs_hoeff_mlp']:.2f} | {u['vcs_hoeff_closed']:.2f} | {u['vcs_perm']:.2f} | {u['hsic_perm']:.2f} | {u['c2st']:.2f} | | | |")
+                u = s["unconditional_power"]; hu = "n/a" if not_run else f"{u['hsic_perm']:.2f}"
+                L.append(f"| {case} (unconditional test) | | {n} | {r['repeats']} | {u['vcs_hoeff']:.2f} | {u['vcs_hoeff_lin']:.2f} | {u['vcs_hoeff_mlp']:.2f} | {u['vcs_hoeff_closed']:.2f} | {u['vcs_perm']:.2f} | {hu} | {u['c2st']:.2f} | | | |")
     Path(a.out + ".md").write_text("\n".join(L) + "\n"); print("->", a.out + ".md", "cases:", len(order)); return 0
 
 if __name__ == "__main__":
