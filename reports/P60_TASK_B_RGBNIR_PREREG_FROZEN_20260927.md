@@ -46,3 +46,5 @@ academic dataset (Brown & Süsstrunk, CVPR 2011; cited as such); the page's lack
 sha256 / bytes / url / utc are written by the download job into `data/rgb_nir/PROVENANCE.json`.  The IXI alternative (P60 IXI draft) is kept as
 the record of the detour and is not run.  Frozen now; chain: download (CPU) → 3-pair real smoke (GPU) → full 60-pair run (GPU); the 60-pair
 id-list sha256 from the smoke is appended below before the full run is read.
+
+**Appended after the full run (job 1011199): archive sha256 7c465a23e89b1137109a41121373dc40e2936bae5d8e050bb73b703743f746bc (952 431 486 bytes, 477 pairs, 9 categories); 60-pair id list: 60 6c262c3ed830baf97f6f7020f9659cba5ffb55c05d680b4c9b2dd468f971b19e (n, sha256 of the comma-joined ids from `P60_task_B_T2_rgbnir.json`).**
