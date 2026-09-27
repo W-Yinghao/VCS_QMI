@@ -39,3 +39,8 @@ below it; does not hold if VCS < 0.95 or VCS degrades at least as much as every 
 QC sentinels: every run COMPLETED with finite loss; first-step gradient check passed; the B = 256 cells reproduce the known recipe numbers
 within 1 point (VCS 2-view a0 = 5 ≈ the P26 value; SimCLR 86.1 ± 0.4; VICReg 85.5 ± 0.3) — otherwise the sweep is not read.
 Not claimed: anything beyond B ∈ [32, 256], other datasets, more seeds, or the queue setting (C-T, separate prereg).
+
+**Addendum 1 (frozen 2026-09-27T19:24:24Z, owner: "都补充上").**  Seeds 1 and 2 for the 12 main cells (3 methods × B ∈ {32, 64, 128, 256}; the lr × 2 checks stay
+single-seed); configs `configs/cifar10_hpP_*_seed{1,2}.yaml` differ from the seed-0 files only in `run.seed` (manifest
+`configs/HPARAM_P_SEEDS_SHA256.json`).  Reading unchanged, applied to the 3-seed means; retention is computed per seed and averaged; the
+report states the seed spread next to every threshold comparison.  ≈ 24 runs, ≈ 60 GPU-h.
