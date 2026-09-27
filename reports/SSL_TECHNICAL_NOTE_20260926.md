@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-27 01:15 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-27 01:35 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -117,7 +117,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 | 4× | 2 views, 800 ep | 85.30 ± 0.21 | 82.33 ± 0.25 | 86 | 3 | P36 |
 | 8× | 4 views, 800 ep | **87.01 ± 0.53** (86.42 / 87.16 / 87.44) | 85.46 ± 0.12 | 134 | 3 | P36 |
 | 8× | 8 views, 400 ep | 86.76 | 84.94 | 137 | 1 | P44 |
-| 8× | 16 views, 200 ep | **[pending]** | | | 1 | P44 |
+| 8× | 16 views, 200 ep | 86.74 | 84.48 | 126 | 1 | P44 |
 | 8× | 4 views, 800 ep, B 128 | **[pending]** | | | 1 | P44 |
 | 8× | 4 views, 800 ep, strong aug (crop 0.08, jitter 0.8) | **87.78** | 85.58 | 107 | 1 | P44 |
 | 16× | 4 views, 1600 ep | **[pending]** | | | 1 | P44 |
@@ -143,10 +143,10 @@ Interactions: a₀ and views overlap (with 4 views a₀ = 1 gives 84.41); K > 8 
 views (2 views, B 128: +0.6; 4 views, B 128 at 1×: +1.6); detach is necessary with 4 views too (−2.2 without).
 
 ### 5.3 Views (P38 + addenda)
-Fixed schedule (200 ep, B 256, 35 k steps): 2 → 4 → 8 views = 81.56 → 84.54 → 86.28.  Fixed compute: at 1× 4 views/100 ep (81.88) ≈ 2 views
+Fixed schedule (200 ep, B 256, 35 k steps): 2 → 4 → 8 → 16 views = 81.56 → 84.54 → 86.28 → 86.74 (+3.0, +1.7, +0.5: flattening; 16 views cost 4× the step time of 4 views).  Fixed compute: at 1× 4 views/100 ep (81.88) ≈ 2 views
 (81.56) > 8 views/50 ep (80.60); at 2× 4 views/200 ep (84.54) = 8 views/100 ep/B 128 (84.60) > 8 views/100 ep/B 256 (83.40); at 4× 8 views/
 200 ep (86.28) > 4 views/400 ep (85.90) > 2 views/800 ep (85.30).  Reading: more pairs per image help as long as the update count is not
-reduced to pay for them; from 4× on, views buy more than epochs.  16 views and 8 views × 800 ep **[pending]**.
+reduced to pay for them; from 4× on, views buy more than epochs.  8 views × 800 ep **[pending]**.
 
 ### 5.4 Ablations on the final recipe (single seed; P40 unless stated; comparator 83.19 ± 0.40 at 1× or 84.54 ± 0.16 at 2×)
 | knob | tested | result |
