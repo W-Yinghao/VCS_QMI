@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-26 22:50 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-27 00:20 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -74,7 +74,7 @@ No EMA, no predictor, no stop-gradient branch, no extra critic steps (all tested
 | critic | tanh(a⟨z₁,z₂⟩+b), a₀ = 5, b₀ = 0 | §5.2 |
 | negatives | K = 8 non-zero cyclic shifts per view pair, shifted partner detached | §5.2 |
 | views | 4 per image (6 pairs) | §5.3; 8 views under study (§5.5) |
-| augmentation | RandomResizedCrop(32, scale [0.2, 1], ratio [3/4, 4/3], bilinear, antialias) → HFlip 0.5 → ColorJitter(0.4, 0.4, 0.4, 0.1) p 0.8 → Grayscale p 0.2; no blur, no solarize; normalise with CIFAR mean/std | weak −7, stronger −0.8…−1.5 at 200 ep on the old recipe (P17); strong augmentation at 800 ep **[pending]** |
+| augmentation | RandomResizedCrop(32, scale [0.2, 1], ratio [3/4, 4/3], bilinear, antialias) → HFlip 0.5 → ColorJitter(0.4, 0.4, 0.4, 0.1) p 0.8 → Grayscale p 0.2; no blur, no solarize; normalise with CIFAR mean/std | weak −7, stronger −0.8…−1.5 at 200 ep on the old recipe (P17); at 800 ep with 4 views, crop 0.08 + jitter 0.8 gives 87.78 vs 87.01 ± 0.53 (single seed, +0.8; heldout-J 0.877 vs 0.974, threshold 0.95) — stronger augmentation pays only on long schedules |
 | batch | 256 images (B = 128 for the 1×-compute recipe) | P17, P40 |
 | optimiser | AdamW, lr 1e-3, betas (0.9, 0.999), eps 1e-8, wd 1e-4 on matrix weights (0 on bias/norm), critic lr ×1, critic wd 0 | lr 3e-4…1e-2, wd 1e-5…5e-4, critic lr ×0.1…×10 (P13/P15/P17/P40) |
 | schedule | linear warm-up 10 epochs → cosine to 1 % of peak, per step | schedule shape neutral (P15); warm-up 5 hurts on short runs (P40) |
@@ -119,7 +119,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 | 8× | 8 views, 400 ep | **[pending]** | | | 1 | P44 |
 | 8× | 16 views, 200 ep | **[pending]** | | | 1 | P44 |
 | 8× | 4 views, 800 ep, B 128 | **[pending]** | | | 1 | P44 |
-| 8× | 4 views, 800 ep, strong aug | **[pending]** | | | 1 | P44 |
+| 8× | 4 views, 800 ep, strong aug (crop 0.08, jitter 0.8) | **87.78** | 85.58 | 107 | 1 | P44 |
 | 16× | 4 views, 1600 ep | **[pending]** | | | 1 | P44 |
 | 16× | 8 views, 800 ep | **[pending]** | | | 1 | P44 |
 
