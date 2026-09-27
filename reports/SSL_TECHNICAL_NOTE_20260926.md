@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-27 00:20 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-27 01:15 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -116,7 +116,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 | 4× | 8 views, 200 ep | 86.28 | 83.66 | 104 | 1 | P38 |
 | 4× | 2 views, 800 ep | 85.30 ± 0.21 | 82.33 ± 0.25 | 86 | 3 | P36 |
 | 8× | 4 views, 800 ep | **87.01 ± 0.53** (86.42 / 87.16 / 87.44) | 85.46 ± 0.12 | 134 | 3 | P36 |
-| 8× | 8 views, 400 ep | **[pending]** | | | 1 | P44 |
+| 8× | 8 views, 400 ep | 86.76 | 84.94 | 137 | 1 | P44 |
 | 8× | 16 views, 200 ep | **[pending]** | | | 1 | P44 |
 | 8× | 4 views, 800 ep, B 128 | **[pending]** | | | 1 | P44 |
 | 8× | 4 views, 800 ep, strong aug (crop 0.08, jitter 0.8) | **87.78** | 85.58 | 107 | 1 | P44 |
