@@ -10,7 +10,7 @@ source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK} MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 : "${RUN:?}"; : "${CKPT:?}"; : "${OUT:?}"; : "${REPORT:?}"
 banner "pre-check D: features + tests for ${RUN}/${CKPT} (smoke=${SMOKE:-0})"
-if [ "${SMOKE:-0}" = "1" ]; then STR="0,0.1"; else STR="${STRENGTHS:-0,0.01,0.02,0.05,0.1,0.2}"; fi
+if [ "${SMOKE:-0}" = "1" ]; then STR="0,0.1"; else STR="${STRENGTHS:-0,0.01,0.02,0.05,0.1,0.2,0.3,0.5}"; fi
 if [ ! -f "$OUT/manifest.json" ]; then
   "$PYTHON" scripts/precheck_d_features.py --run "$RUN" --checkpoint "$CKPT" --out "$OUT" --strengths "$STR" --workers 6 || exit $?
 else

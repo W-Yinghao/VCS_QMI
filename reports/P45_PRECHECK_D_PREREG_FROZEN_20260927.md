@@ -45,3 +45,20 @@ cleanly before the fleet.
 
 Outputs: `reports/P46_precheck_D_<encoder>.md/.json` (all instances kept), feature manifests under `outputs/P45_precheck_D_<encoder>/`.
 Code: `scripts/precheck_d_features.py`, `scripts/precheck_d_tests.py`, `slurm/precheck_d.sbatch` (CPU partition).
+
+## Addendum 2026-09-27 (probe findings, frozen before the fleet; the two probe runs are disclosed: `P46_precheck_D_smoke.md`, `P46_precheck_D_probe.md`, `P46_precheck_D_probe2.md`)
+1. **Critic over-fitting broke the guaranteed test in the first design.**  The MLP critic trained for 300 full-batch steps on FIT memorised the
+   (z_i, N_i) pairs (each z_i appears with both N values) and gave saturated, uninformative outputs on EVAL: Ĵ_eval ≈ −0.3 at s = 0.1 although
+   the permutation-calibrated VCS test, HSIC and C2ST all rejected.  Change (before any fleet run): three critics, all fitted on 80 % of FIT and
+   selected/early-stopped on the remaining 20 % (VAL) — a low-capacity signed linear critic tanh(⟨w, z⟩(2N−1) + b), the MLP (AdamW, wd 1e-2,
+   best VAL J), and the closed-form linear-class critic φ = [z(2N−1), 1] (ridge and the tanh scalar chosen on VAL, cf. B1).  The reported
+   `vcs_hoeff` uses the critic with the best VAL J (chosen without touching EVAL, so the bound's premise holds); the three are also reported
+   separately.  C2ST gets the same early-stopping budget.  Probe 2 after the change: at s = 0 all Ĵ_eval ≈ 0 and no test rejects; at s = 0.1 the
+   closed-form Ĵ_eval grows 0.006 → 0.020 → 0.047 for n = 200 / 1000 / 5000.
+2. **The planted colour shift is weak in h-space** (S ≈ 0.05 at s = 0.1), so the distribution-free bound (τ_{5000,5000} = 0.084) cannot reach
+   the threshold within n ≤ 5000 at s ≤ 0.1 even with a perfect critic — a property of the bound, not of the estimator.  To map the guaranteed
+   test's power curve the strength grid is extended to s ∈ {0, 0.01, 0.02, 0.05, 0.1, 0.2, 0.3, 0.5} and the sample sizes to include n = 10 000
+   (R = 10; HSIC is not run above n = 5 000 — O(n²) memory — and is marked "not run" there).  The reading rules of the main text are unchanged;
+   the "small-sample end" comparison (n ≤ 500) is between the permutation-calibrated tests, and the guaranteed test is read on its own curve
+   (smallest n reaching 80 % power per s).
+3. Conditional exactness held in the probe (label_only: conditional tests 0/4 rejections at n = 2000; label_colour: vcs_perm 4/4, HSIC 2/4, C2ST 0/4).

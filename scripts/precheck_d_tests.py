@@ -45,24 +45,79 @@ def j_stat(t_pos, t_neg):
     return float((t_pos - 0.5 * t_pos ** 2).mean() + (-t_neg - 0.5 * t_neg ** 2).mean())
 
 
-def fit_vcs_critic(z, n, n_neg, steps, seed, lr=1e-3):
-    g = torch.Generator().manual_seed(seed); torch.manual_seed(seed)
-    m = PairMLP(z.shape[1]); opt = torch.optim.Adam(m.parameters(), lr=lr)
-    for _ in range(steps):
-        opt.zero_grad()
-        tp = torch.tanh(m(z, n)); tn = torch.tanh(m(z, n_neg))
-        loss = -((tp - 0.5 * tp ** 2).mean() + (-tn - 0.5 * tn ** 2).mean())
-        loss.backward(); opt.step()
-    return m.eval()
+class PairLinear(nn.Module):
+    """T = tanh(<w, z> * (2n-1) + b): the natural low-capacity critic for a binary nuisance (sign flips with N)."""
+    def __init__(self, d):
+        super().__init__(); self.w = nn.Linear(d, 1)
+
+    def forward(self, z, n):
+        return self.w(z).squeeze(1) * (2 * n.float() - 1)
 
 
-def fit_c2st(z, n, n_neg, steps, seed, lr=1e-3):
-    torch.manual_seed(seed)
-    m = PairMLP(z.shape[1]); opt = torch.optim.Adam(m.parameters(), lr=lr); bce = nn.BCEWithLogitsLoss()
-    zz = torch.cat((z, z)); nn_ = torch.cat((n, n_neg)); lab = torch.cat((torch.ones(len(z)), torch.zeros(len(z))))
-    for _ in range(steps):
-        opt.zero_grad(); loss = bce(m(zz, nn_), lab); loss.backward(); opt.step()
-    return m.eval()
+def _j_loss(m, z, n, n_neg):
+    tp = torch.tanh(m(z, n)); tn = torch.tanh(m(z, n_neg))
+    return -((tp - 0.5 * tp ** 2).mean() + (-tn - 0.5 * tn ** 2).mean())
+
+
+def fit_vcs_critic(z, n, n_neg, steps, seed, lr=1e-3, kind="linear", wd=1e-2, val_frac=0.2):
+    """Fit on 80 % of FIT, early-stop on the remaining 20 % (VAL J); the returned critic is fixed before EVAL is touched (bound premise)."""
+    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
+    perm = torch.randperm(len(z), generator=g); nv = max(8, int(val_frac * len(z))); vi, ti = perm[:nv], perm[nv:]
+    m = PairLinear(z.shape[1]) if kind == "linear" else PairMLP(z.shape[1])
+    opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd)
+    best, best_state, best_step = float("inf"), {k: v.clone() for k, v in m.state_dict().items()}, 0
+    for step in range(1, steps + 1):
+        opt.zero_grad(); loss = _j_loss(m, z[ti], n[ti], n_neg[ti]); loss.backward(); opt.step()
+        if step % 10 == 0 or step == steps:
+            with torch.no_grad():
+                lv = float(_j_loss(m, z[vi], n[vi], n_neg[vi]))
+            if lv < best:
+                best, best_step, best_state = lv, step, {k: v.clone() for k, v in m.state_dict().items()}
+    m.load_state_dict(best_state); m.eval(); m.best_step = best_step; m.val_J = -best
+    return m
+
+
+def closed_form_critic(z, n, n_neg, seed):
+    """Linear class phi(z, n) = [z * (2n-1), 1]: w* = 1/2 (A_M + lam I)^-1 d (ridge chosen on VAL J), then tanh(c * phi w*) with c on VAL."""
+    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
+    perm = torch.randperm(len(z), generator=g); nv = max(8, int(0.2 * len(z))); vi, ti = perm[:nv], perm[nv:]
+    def phi(zz, nn_):
+        return torch.cat((zz * (2 * nn_.float() - 1)[:, None], torch.ones(len(zz), 1)), 1).double()
+    pp, pn = phi(z[ti], n[ti]), phi(z[ti], n_neg[ti]); d = pp.mean(0) - pn.mean(0); A = 0.5 * (pp.T @ pp / len(pp) + pn.T @ pn / len(pn)); sc = float(torch.diag(A).mean())
+    vp, vn = phi(z[vi], n[vi]), phi(z[vi], n_neg[vi]); best = (-9, None, None, None)
+    for lam in (1e-3, 1e-2, 1e-1, 1.0):
+        w = 0.5 * torch.linalg.solve(A + lam * sc * torch.eye(len(A), dtype=torch.float64), d)
+        for c in torch.logspace(-1, 1.5, 25):
+            tp, tn = torch.tanh(float(c) * (vp @ w)), torch.tanh(float(c) * (vn @ w))
+            jv = float((tp - 0.5 * tp ** 2).mean() + (-tn - 0.5 * tn ** 2).mean())
+            if jv > best[0]:
+                best = (jv, w, float(c), lam)
+
+    class CF:
+        def __init__(self, w, c):
+            self.w, self.c = w, c
+        def __call__(self, zz, nn_):
+            return torch.atanh(torch.tanh(self.c * (phi(zz, nn_) @ self.w)).float().clamp(-0.999999, 0.999999))  # pre-activation so that tanh() outside gives T
+    m = CF(best[1], best[2]); m.val_J = best[0]; m.lam = best[3]
+    return m
+
+
+def fit_c2st(z, n, n_neg, steps, seed, lr=1e-3, wd=1e-2, val_frac=0.2):
+    """Same MLP, BCE, AdamW and early stopping on a validation part of FIT as the VCS MLP critic (equal budget)."""
+    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
+    perm = torch.randperm(len(z), generator=g); nv = max(8, int(val_frac * len(z))); vi, ti = perm[:nv], perm[nv:]
+    m = PairMLP(z.shape[1]); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd); bce = nn.BCEWithLogitsLoss()
+    def batch(ix):
+        return torch.cat((z[ix], z[ix])), torch.cat((n[ix], n_neg[ix])), torch.cat((torch.ones(len(ix)), torch.zeros(len(ix))))
+    zt, nt, lt = batch(ti); zv, nv_, lv_ = batch(vi); best, best_state = float("inf"), {k: v.clone() for k, v in m.state_dict().items()}
+    for step in range(1, steps + 1):
+        opt.zero_grad(); loss = bce(m(zt, nt), lt); loss.backward(); opt.step()
+        if step % 10 == 0 or step == steps:
+            with torch.no_grad():
+                l = float(bce(m(zv, nv_), lv_))
+            if l < best:
+                best, best_state = l, {k: v.clone() for k, v in m.state_dict().items()}
+    m.load_state_dict(best_state); return m.eval()
 
 
 # ----------------------------------------------------------------------------------------------------------------------- HSIC
@@ -103,12 +158,22 @@ def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
     else:
         nf_neg = torch.as_tensor(N[pool]); ne_neg = torch.as_tensor(N[pool][rng.permutation(n)])
     res = {}
-    # VCS critic
-    crit = fit_vcs_critic(zf, nf, nf_neg, steps, seed)
+    tau = tau_hoeff(n, n, delta)
+    crits = {"lin": fit_vcs_critic(zf, nf, nf_neg, steps, seed, kind="linear"), "mlp": fit_vcs_critic(zf, nf, nf_neg, steps, seed, kind="mlp"),
+             "closed": closed_form_critic(zf, nf, nf_neg, seed)}
+    Js = {}
+    for name, cr in crits.items():
+        with torch.no_grad():
+            tp_, tn_ = torch.tanh(cr(ze, ne)), torch.tanh(cr(ze, ne_neg))
+        Js[name] = j_stat(tp_, tn_)
+        res[f"vcs_hoeff_{name}"] = {"J_eval": Js[name], "tau": tau, "reject": Js[name] > tau, "sat_pos": float((tp_.abs() > 0.95).float().mean()),
+                                   "val_J": float(getattr(cr, "val_J", float("nan"))), "best_step": int(getattr(cr, "best_step", -1))}
+    # primary guaranteed test = the early-stopped linear critic (lowest capacity); also report the best-of-three chosen on VAL J (still EVAL-independent)
+    pick = max(crits, key=lambda k: getattr(crits[k], "val_J", -9)); res["vcs_hoeff"] = dict(res[f"vcs_hoeff_{pick}"], picked=pick)
+    crit = crits[pick]
     with torch.no_grad():
         tp, tn = torch.tanh(crit(ze, ne)), torch.tanh(crit(ze, ne_neg))
-    J = j_stat(tp, tn); tau = tau_hoeff(n, n, delta)
-    res["vcs_hoeff"] = {"J_eval": J, "tau": tau, "reject": J > tau, "sat_pos": float((tp.abs() > 0.95).float().mean())}
+    J = j_stat(tp, tn)
     # VCS permutation null: permute N among the eval items (within class if conditional); negatives stay the pool draw
     null = []
     with torch.no_grad():
@@ -122,9 +187,14 @@ def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
             null.append(j_stat(torch.tanh(crit(ze, torch.as_tensor(pn))), tn))
     null = np.asarray(null); p_perm = float((1 + (null >= J).sum()) / (1 + perms))
     res["vcs_perm"] = {"J_eval": J, "p": p_perm, "reject": p_perm <= delta}
-    # HSIC permutation
-    K = gaussian_kernel(ze); h0 = hsic_stat(K, ne); hn = []
-    for _ in range(perms):
+    # HSIC permutation (O(n^2) memory: skipped above 5 000 items and reported as not run)
+    if n > 5000:
+        res["hsic_perm"] = {"stat": None, "p": None, "reject": False, "not_run": True}
+        K = None
+    else:
+        K = gaussian_kernel(ze); h0 = hsic_stat(K, ne)
+    hn = []
+    for _ in (range(perms) if K is not None else ()):
         if conditional:
             pn = np.empty(n, dtype=np.int64)
             for c in np.unique(Y[ev]):
@@ -132,8 +202,9 @@ def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
         else:
             pn = N[ev][rng.permutation(n)]
         hn.append(hsic_stat(K, torch.as_tensor(pn)))
-    hn = np.asarray(hn); p_h = float((1 + (hn >= h0).sum()) / (1 + perms))
-    res["hsic_perm"] = {"stat": h0, "p": p_h, "reject": p_h <= delta}
+    if K is not None:
+        hn = np.asarray(hn); p_h = float((1 + (hn >= h0).sum()) / (1 + perms))
+        res["hsic_perm"] = {"stat": h0, "p": p_h, "reject": p_h <= delta}
     # C2ST
     clf = fit_c2st(zf, nf, nf_neg, steps, seed + 1)
     with torch.no_grad():
@@ -146,8 +217,8 @@ def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--features", required=True); ap.add_argument("--out", required=True)
-    ap.add_argument("--sizes", default="100,200,500,1000,2000,5000"); ap.add_argument("--repeats", type=int, default=100)
-    ap.add_argument("--repeats-large", type=int, default=30, help="repeats for n >= 2000"); ap.add_argument("--perms", type=int, default=200)
+    ap.add_argument("--sizes", default="100,200,500,1000,2000,5000,10000"); ap.add_argument("--repeats", type=int, default=100)
+    ap.add_argument("--repeats-large", type=int, default=30, help="repeats for n >= 2000 (n >= 10000: 10)"); ap.add_argument("--perms", type=int, default=200)
     ap.add_argument("--steps", type=int, default=300); ap.add_argument("--delta", type=float, default=0.05)
     ap.add_argument("--cond-sizes", default="500,2000"); ap.add_argument("--cond-repeats", type=int, default=50)
     ap.add_argument("--cases", default=None, help="comma list of case names to run (default: all in the manifest)")
@@ -168,29 +239,32 @@ def main() -> int:
         grid = cond_sizes if conditional else sizes
         results["cases"][case] = {"strength": d["strength"], "conditional": conditional, "by_n": {}}
         for n in grid:
-            R = a.cond_repeats if conditional else (a.repeats_large if n >= 2000 else a.repeats)
+            R = a.cond_repeats if conditional else (10 if n >= 10000 else (a.repeats_large if n >= 2000 else a.repeats))
             inst = [run_instance(H, Y, N, n, rng, conditional=conditional, delta=a.delta, perms=a.perms, steps=a.steps, seed=a.seed * 1000 + r) for r in range(R)]
-            summ = {t: {"power": float(np.mean([i[t]["reject"] for i in inst]))} for t in ("vcs_hoeff", "vcs_perm", "hsic_perm", "c2st")}
+            summ = {t: {"power": float(np.mean([i[t]["reject"] for i in inst]))} for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")}
+            summ["vcs_hoeff"]["picked"] = dict(zip(*np.unique([i["vcs_hoeff"]["picked"] for i in inst], return_counts=True)))
+            for t in ("vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed"):
+                summ[t]["J_eval_mean"] = float(np.mean([i[t]["J_eval"] for i in inst]))
             summ["vcs_hoeff"]["J_eval_mean"] = float(np.mean([i["vcs_hoeff"]["J_eval"] for i in inst])); summ["vcs_hoeff"]["J_eval_sd"] = float(np.std([i["vcs_hoeff"]["J_eval"] for i in inst]))
             summ["vcs_hoeff"]["tau"] = inst[0]["vcs_hoeff"]["tau"]; summ["c2st"]["acc_mean"] = float(np.mean([i["c2st"]["acc"] for i in inst]))
             # unconditional runs in conditional cases: ignore class (does the *unconditional* test reject, as it should for label_only?)
             if conditional:
                 inst_u = [run_instance(H, Y, N, n, rng, conditional=False, delta=a.delta, perms=a.perms, steps=a.steps, seed=a.seed * 7000 + r) for r in range(R)]
-                summ["unconditional_power"] = {t: float(np.mean([i[t]["reject"] for i in inst_u])) for t in ("vcs_hoeff", "vcs_perm", "hsic_perm", "c2st")}
+                summ["unconditional_power"] = {t: float(np.mean([i[t]["reject"] for i in inst_u])) for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")}
             results["cases"][case]["by_n"][str(n)] = {"repeats": R, "summary": summ, "instances": inst}
-            print(f"[{case}] n={n} R={R}: " + " ".join(f"{t}={summ[t]['power']:.2f}" for t in ("vcs_hoeff", "vcs_perm", "hsic_perm", "c2st")) + f"  J={summ['vcs_hoeff']['J_eval_mean']:.4f} tau={summ['vcs_hoeff']['tau']:.3f}  ({time.time() - t0:.0f}s)", flush=True)
+            print(f"[{case}] n={n} R={R}: " + " ".join(f"{t}={summ[t]['power']:.2f}" for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")) + f"  J(lin/mlp/closed)={summ['vcs_hoeff_lin']['J_eval_mean']:.3f}/{summ['vcs_hoeff_mlp']['J_eval_mean']:.3f}/{summ['vcs_hoeff_closed']['J_eval_mean']:.3f} tau={summ['vcs_hoeff']['tau']:.3f} picked={summ['vcs_hoeff']['picked']}  ({time.time() - t0:.0f}s)", flush=True)
     results["utc_end"] = utc_now(); atomic_write_json(Path(a.out + ".json"), results)
     # markdown summary
     L = [f"# Pre-check D — independence-test power on planted nuisances ({man['run']}, {man['checkpoint']}) — {utc_now()}", "",
          f"Pool: {man['n_fit']} fit images; per instance three disjoint samples of n (fit / eval / independent pool); level δ = {a.delta}; permutations {a.perms}; "
          f"critic/classifier: MLP({H.shape[1]}+2→128→128→1), {a.steps} Adam steps; repeats {a.repeats} (n ≥ 2000: {a.repeats_large}).", "",
-         "| case | s | n | R | vcs_hoeff | vcs_perm | hsic_perm | c2st | mean J_eval | τ | c2st acc |", "|---|---|---|---|---|---|---|---|---|---|---|"]
+         "| case | s | n | R | vcs_hoeff (val-picked) | hoeff lin | hoeff mlp | hoeff closed | vcs_perm | hsic_perm | c2st | mean J_eval (picked) | τ | c2st acc |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for case, cr in results["cases"].items():
         for n, r in cr["by_n"].items():
             s = r["summary"]
-            L.append(f"| {case} | {cr['strength']:g} | {n} | {r['repeats']} | {s['vcs_hoeff']['power']:.2f} | {s['vcs_perm']['power']:.2f} | {s['hsic_perm']['power']:.2f} | {s['c2st']['power']:.2f} | {s['vcs_hoeff']['J_eval_mean']:.4f} ± {s['vcs_hoeff']['J_eval_sd']:.4f} | {s['vcs_hoeff']['tau']:.3f} | {s['c2st']['acc_mean']:.3f} |")
+            L.append(f"| {case} | {cr['strength']:g} | {n} | {r['repeats']} | {s['vcs_hoeff']['power']:.2f} | {s['vcs_hoeff_lin']['power']:.2f} | {s['vcs_hoeff_mlp']['power']:.2f} | {s['vcs_hoeff_closed']['power']:.2f} | {s['vcs_perm']['power']:.2f} | {s['hsic_perm']['power']:.2f} | {s['c2st']['power']:.2f} | {s['vcs_hoeff']['J_eval_mean']:.4f} ± {s['vcs_hoeff']['J_eval_sd']:.4f} | {s['vcs_hoeff']['tau']:.3f} | {s['c2st']['acc_mean']:.3f} |")
             if "unconditional_power" in s:
-                u = s["unconditional_power"]; L.append(f"| {case} (unconditional test) | | {n} | {r['repeats']} | {u['vcs_hoeff']:.2f} | {u['vcs_perm']:.2f} | {u['hsic_perm']:.2f} | {u['c2st']:.2f} | | | |")
+                u = s["unconditional_power"]; L.append(f"| {case} (unconditional test) | | {n} | {r['repeats']} | {u['vcs_hoeff']:.2f} | {u['vcs_hoeff_lin']:.2f} | {u['vcs_hoeff_mlp']:.2f} | {u['vcs_hoeff_closed']:.2f} | {u['vcs_perm']:.2f} | {u['hsic_perm']:.2f} | {u['c2st']:.2f} | | | |")
     Path(a.out + ".md").write_text("\n".join(L) + "\n"); print("->", a.out + ".md")
     return 0
 
