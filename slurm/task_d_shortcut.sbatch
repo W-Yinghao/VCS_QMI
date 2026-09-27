@@ -13,11 +13,13 @@
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK} MKL_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 : "${RHO:?}"; : "${SEED:?}"; : "${OUT:?}"
-banner "D-T shortcut model rho=${RHO} seed=${SEED} -> ${OUT} (smoke=${SMOKE:-0})"
+# SHORTCUT=colour (default, P55) | blur (P55 addendum 1: Gaussian blur radius 1 px); optional SHIFT overrides the family default.
+SC_ARGS="--shortcut ${SHORTCUT:-colour}"; [ -n "${SHIFT:-}" ] && SC_ARGS="$SC_ARGS --shift $SHIFT"
+banner "D-T shortcut model rho=${RHO} seed=${SEED} shortcut=${SHORTCUT:-colour} -> ${OUT} (smoke=${SMOKE:-0})"
 if [ "${SMOKE:-0}" = "1" ]; then
-  "$PYTHON" scripts/task_d_shortcut.py --rho "$RHO" --seed "$SEED" --out "$OUT" --workers 4 --smoke || exit $?
+  "$PYTHON" scripts/task_d_shortcut.py --rho "$RHO" --seed "$SEED" --out "$OUT" $SC_ARGS --workers 4 --smoke ${TRAIN_ARGS:-} || exit $?
   "$PYTHON" scripts/precheck_d_tests.py --features "$OUT" --out "${OUT}/smoke_tests" --smoke; rc=$?
 else
-  "$PYTHON" scripts/task_d_shortcut.py --rho "$RHO" --seed "$SEED" --out "$OUT" --workers 6 ${TRAIN_ARGS:-}; rc=$?
+  "$PYTHON" scripts/task_d_shortcut.py --rho "$RHO" --seed "$SEED" --out "$OUT" $SC_ARGS --workers 6 ${TRAIN_ARGS:-}; rc=$?
 fi
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
