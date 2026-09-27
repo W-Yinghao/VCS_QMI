@@ -74,3 +74,8 @@ vs seed 1) and 4/4 vs 5/5 (vs SimCLR); the miss is the h row, whose argmax is B'
 isotropic ≤ 6.3e-10 (CKA-RBF ≤ 1.1e-6); per-feature scaling changes all three measures by 0.12–0.16.  Under the rule above this probe would read
 "holds conditionally"; the full-size run (PCA-64, 2 500 eval images) decides.
 **Compute.** CPU partition: feature extraction of 5 000 images × 3 networks + 76 closed-form problems of dimension 4 097 (≈ 20–40 min); GPU optional.
+
+**Addendum 1 (frozen 2026-09-27T19:24:24Z, owner: "都补充上").**  B-S2 combination variant: `--patch-features --coarse-to-fine` together (the two variants
+that each closed half of the gap in the report), same 60 images and seed.  Reading unchanged: the family is re-opened only if J* matches
+MI/NMI on local maxima (≤ NMI's) *and* success at R = 20 / 30 within 0.05 — and even then the report states that parity, not advantage, is
+what was shown.  One GPU job (≈ 1.7 h).
