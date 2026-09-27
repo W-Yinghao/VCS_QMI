@@ -68,3 +68,5 @@ native accept 0.445 / precision 0.972, source-Platt (random-mismatch calibration
 rule (the random-mismatch task is easy on this target).  Pipeline complete end to end; no design change follows.  Note for the reading: J on
 the exact-pairing external target lands at 0.36 after one epoch and will likely exceed 0.7 after the selected 15 / 40 epochs (the P58
 exact-pair regime); if so the A-S1 cell is reported and not read, as §3 says.
+
+**Appended after the features job 1011817 (before the main run is read):** {"n_images": 5000, "ids_sha256": "bd298bfdd0d1cfac69ff72efc83aca377f8de31730a642ff70d8cd44f875a402", "selection_ids_sha256": "bd298bfdd0d1cfac69ff72efc83aca377f8de31730a642ff70d8cd44f875a402", "truncation_rate": 0.04520000144839287, "narrative_words_mean": 30.0258}
