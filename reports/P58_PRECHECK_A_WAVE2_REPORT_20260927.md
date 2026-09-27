@@ -69,3 +69,27 @@ is trained on the same kind of relation it will score (topic-level pairs → top
 solvable (AUROC well above chance).  Under those conditions the native rule is the best deployable rule seen here, but never within 0.05 of a
 nominal precision; anyone needing the nominal level must calibrate on the target, which the oracle row shows also over-shoots on hard pairs.
 Data re-weighting by T stays unsupported.  Not claimed: other towers, non-linear adapters, external targets, retrieval quality.
+
+## 4. Addendum 1 — external target: Localized Narratives on Open Images validation (5 000 images, one narrative each; CC BY 4.0 / CC BY 2.0)
+Prereg: `P57_ADDENDUM1_EXTERNAL_TARGET_FROZEN_20260927.md` (provenance, id-list sha256 bd298bfd…, narrative truncation rate 0.045 at the 77-token
+CLIP context).  Adapters: the P58 topic-pairing selection re-trained on each COCO source (animal; indoor → outdoor), 3 seeds; pairing on the
+target is exact (own narrative); only random mismatches are available (no topic labels).  Table: `P58_precheck_A_external.md` (results-only
+commit).  nocaps was dropped before download: no licence text and HTTP 403.
+
+| source → EXT-EVAL | J (vcs) | native ECE | cosine + Platt (SRC-CAL) ECE | native − Platt | A-T @0.8: native accept / precision | source-Platt (easy) | target oracle | AUROC adapter vs raw CLIP |
+|---|---|---|---|---|---|---|---|---|
+| animal | 0.559 | 0.101 | 0.097 | +0.004 | 0.436 / 0.908 | 0.424 / 0.913 | 0.378 / 0.925 | 0.946 vs 0.985 |
+| indoor → outdoor | 0.322 | 0.110 | 0.100 | +0.010 | 0.316 / 0.871 | 0.274 / 0.889 | 0.236 / 0.907 | 0.858 vs 0.985 |
+| at nominal 0.7 | | | | | 0.522 / 0.864; 0.458 / 0.796 | 0.512 / 0.870; 0.424 / 0.816 | 0.436 / 0.907; 0.341 / 0.859 | |
+
+**Reading (P57 rules restricted to this target).**  *A-S1:* both cells are inside the J ∈ [0.1, 0.7] regime and the native − Platt gap is +0.004 and
++0.010 — the second sits exactly on the "≤ +0.01" line (0.0101), below the +0.02 *does-not-hold* threshold → **holds conditionally** on the
+external target; in absolute terms both native and Platt are poorly calibrated there (ECE ≈ 0.10 vs 0.02–0.03 in-domain), i.e. the shift
+hurts the fitted calibrator as much as the native one, which is the P50 claim in its weakest useful form.  *A-T:* the task is well defined
+(AUROC 0.86–0.95); the native rule is again the deployable rule closest to nominal (0.071–0.164 off, 0.005–0.02 closer than source-fitted
+Platt) but never within 0.05, and every rule over-shoots, the target-fitted oracle included → **holds conditionally**, as on the COCO shifts.
+Observation, not read by any rule: the COCO-trained adapters *lower* the AUROC on this target relative to raw CLIP (0.946 / 0.858 vs 0.985) —
+a 512 × 512 adapter fitted to one COCO relation over-fits it, and the narrative captions are out of its domain; raw CLIP with a source Platt
+is the best ranker here and the worst calibrator (precision 0.95–0.99 at nominal 0.8).  The consequence for the family is unchanged:
+calibration-without-a-calibration-set survives as a conditional property of the *relation the critic was trained on*, and any real
+mismatch-detection deployment would have to choose between an adapter that is calibrated and a raw model that ranks better.
