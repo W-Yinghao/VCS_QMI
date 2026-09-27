@@ -62,3 +62,8 @@ step count is held at 35 k and the batch at 256; at the 4× budget, 8 views × 2
 fewer steps or a smaller batch; with the owner's compute-unconstrained goal the right reading is: **views scale as well as epochs, and
 better than epochs at equal compute from 4× on**.  This is the second-best absolute number (0.14 below the 8× 4-view run at half its
 compute).  Follow-ups (P43 addendum): 8 views × 400 ep (8×, vs 86.42) and 16 views × 200 ep (8×), plus the running 8 views × 800 ep (16×).
+
+## Addendum 2026-09-27 06:35 UTC — 8 views × 200 ep on 3 seeds (last SSL runs; owner stopped further submissions)
+seeds 0/1/2: 86.28 / 85.58 / 85.98 → **85.95 ± 0.35** linear, kNN 83.47 ± 0.38, h-rank 103.  Against 4 views × 200 ep (84.54 ± 0.16): +1.4 at
+2× the compute; against 4 views × 400 ep (85.90, same 4× compute): equal.  The single-seed 86.28 was the high end of its seed spread; the
+3-seed value keeps the fixed-schedule views curve monotone but shallower (81.56 → 84.54 → 85.95 → 86.74 for 2 / 4 / 8 / 16 views).

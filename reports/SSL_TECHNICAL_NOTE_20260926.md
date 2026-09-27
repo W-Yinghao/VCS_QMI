@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-27 05:20 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-27 06:40 UTC (all SSL runs finished; no further submissions per the owner) (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -113,7 +113,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 | 2× | 4 views, B 256, 200 ep | **84.54 ± 0.16** | 81.40 ± 0.22 | 76 | 3 | P36 |
 | 2× | same with a₀ = 1 | 84.41 ± 0.06 | 80.93 ± 0.16 | 58 | 3 | P29 |
 | 4× | 4 views, 400 ep | 85.90 | 83.58 | 105 | 1 | P36 |
-| 4× | 8 views, 200 ep | 86.28 | 83.66 | 104 | 1 | P38 |
+| 4× | 8 views, 200 ep | 85.95 ± 0.35 (86.28 / 85.58 / 85.98) | 83.47 ± 0.38 | 103 | 3 | P38 |
 | 4× | 2 views, 800 ep | 85.30 ± 0.21 | 82.33 ± 0.25 | 86 | 3 | P36 |
 | 8× | 4 views, 800 ep | **87.01 ± 0.53** (86.42 / 87.16 / 87.44) | 85.46 ± 0.12 | 134 | 3 | P36 |
 | 8× | 8 views, 400 ep | 86.76 | 84.94 | 137 | 1 | P44 |
@@ -143,9 +143,9 @@ Interactions: a₀ and views overlap (with 4 views a₀ = 1 gives 84.41); K > 8 
 views (2 views, B 128: +0.6; 4 views, B 128 at 1×: +1.6); detach is necessary with 4 views too (−2.2 without).
 
 ### 5.3 Views (P38 + addenda)
-Fixed schedule (200 ep, B 256, 35 k steps): 2 → 4 → 8 → 16 views = 81.56 → 84.54 → 86.28 → 86.74 (+3.0, +1.7, +0.5: flattening; 16 views cost 4× the step time of 4 views).  Fixed compute: at 1× 4 views/100 ep (81.88) ≈ 2 views
+Fixed schedule (200 ep, B 256, 35 k steps): 2 → 4 → 8 → 16 views = 81.56 → 84.54 → 85.95 (3 seeds) → 86.74 (+3.0, +1.4, +0.8: flattening; 16 views cost 4× the step time of 4 views).  Fixed compute: at 1× 4 views/100 ep (81.88) ≈ 2 views
 (81.56) > 8 views/50 ep (80.60); at 2× 4 views/200 ep (84.54) = 8 views/100 ep/B 128 (84.60) > 8 views/100 ep/B 256 (83.40); at 4× 8 views/
-200 ep (86.28) > 4 views/400 ep (85.90) > 2 views/800 ep (85.30).  Reading: more pairs per image help as long as the update count is not
+200 ep (85.95 ± 0.35) ≈ 4 views/400 ep (85.90) > 2 views/800 ep (85.30).  Reading: more pairs per image help as long as the update count is not
 reduced to pay for them; from 4× on, views buy more than epochs.  8 views × 800 ep: 87.14 / kNN 86.32 (16×).
 
 ### 5.4 Ablations on the final recipe (single seed; P40 unless stated; comparator 83.19 ± 0.40 at 1× or 84.54 ± 0.16 at 2×)
@@ -167,7 +167,7 @@ critics (neutral, neutral, collapse, collapse, neutral); bias calibration; LR 3e
 2 views; weak / strong augmentation, blur; K = 64 / 255 without detach (+0.4 / +0.9), with detach (+0.2).  Full list: `ALL_RUNS.md`,
 `SYNTHESIS_20260925.md` §2, P13–P40 reports.
 
-### 5.5 Ceiling runs (owner: compute unconstrained) — final (P44; single seed each; 8 views × 200 ep seeds 1/2 still running)
+### 5.5 Ceiling runs (owner: compute unconstrained) — final (P44; single seed each)
 | compute | run | linear | kNN | h-rank | kNN curve (last points) |
 |---|---|---|---|---|---|
 | 8× | 4 v × 800 ep (3 seeds) | 87.01 ± 0.53 | 85.46 ± 0.12 | 134 | 85.2 → 85.5 (600 → 800) |
