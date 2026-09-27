@@ -30,6 +30,8 @@ from torch import nn
 
 from vcs_ssl.utils import atomic_write_json, utc_now
 
+DEVICE = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
+
 
 # ----------------------------------------------------------------------------------------------------------------------- critics
 class PairMLP(nn.Module):
@@ -63,7 +65,7 @@ def fit_vcs_critic(z, n, n_neg, steps, seed, lr=1e-3, kind="linear", wd=1e-2, va
     """Fit on 80 % of FIT, early-stop on the remaining 20 % (VAL J); the returned critic is fixed before EVAL is touched (bound premise)."""
     torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
     perm = torch.randperm(len(z), generator=g); nv = max(8, int(val_frac * len(z))); vi, ti = perm[:nv], perm[nv:]
-    m = PairLinear(z.shape[1]) if kind == "linear" else PairMLP(z.shape[1])
+    m = (PairLinear(z.shape[1]) if kind == "linear" else PairMLP(z.shape[1])).to(z.device)
     opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd)
     best, best_state, best_step = float("inf"), {k: v.clone() for k, v in m.state_dict().items()}, 0
     for step in range(1, steps + 1):
@@ -82,11 +84,11 @@ def closed_form_critic(z, n, n_neg, seed):
     torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
     perm = torch.randperm(len(z), generator=g); nv = max(8, int(0.2 * len(z))); vi, ti = perm[:nv], perm[nv:]
     def phi(zz, nn_):
-        return torch.cat((zz * (2 * nn_.float() - 1)[:, None], torch.ones(len(zz), 1)), 1).double()
+        return torch.cat((zz * (2 * nn_.float() - 1)[:, None], torch.ones(len(zz), 1, device=zz.device)), 1).double()
     pp, pn = phi(z[ti], n[ti]), phi(z[ti], n_neg[ti]); d = pp.mean(0) - pn.mean(0); A = 0.5 * (pp.T @ pp / len(pp) + pn.T @ pn / len(pn)); sc = float(torch.diag(A).mean())
     vp, vn = phi(z[vi], n[vi]), phi(z[vi], n_neg[vi]); best = (-9, None, None, None)
     for lam in (1e-3, 1e-2, 1e-1, 1.0):
-        w = 0.5 * torch.linalg.solve(A + lam * sc * torch.eye(len(A), dtype=torch.float64), d)
+        w = 0.5 * torch.linalg.solve(A + lam * sc * torch.eye(len(A), dtype=torch.float64, device=A.device), d)
         for c in torch.logspace(-1, 1.5, 25):
             tp, tn = torch.tanh(float(c) * (vp @ w)), torch.tanh(float(c) * (vn @ w))
             jv = float((tp - 0.5 * tp ** 2).mean() + (-tn - 0.5 * tn ** 2).mean())
@@ -106,9 +108,9 @@ def fit_c2st(z, n, n_neg, steps, seed, lr=1e-3, wd=1e-2, val_frac=0.2):
     """Same MLP, BCE, AdamW and early stopping on a validation part of FIT as the VCS MLP critic (equal budget)."""
     torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
     perm = torch.randperm(len(z), generator=g); nv = max(8, int(val_frac * len(z))); vi, ti = perm[:nv], perm[nv:]
-    m = PairMLP(z.shape[1]); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd); bce = nn.BCEWithLogitsLoss()
+    m = PairMLP(z.shape[1]).to(z.device); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd); bce = nn.BCEWithLogitsLoss()
     def batch(ix):
-        return torch.cat((z[ix], z[ix])), torch.cat((n[ix], n_neg[ix])), torch.cat((torch.ones(len(ix)), torch.zeros(len(ix))))
+        return torch.cat((z[ix], z[ix])), torch.cat((n[ix], n_neg[ix])), torch.cat((torch.ones(len(ix), device=z.device), torch.zeros(len(ix), device=z.device)))
     zt, nt, lt = batch(ti); zv, nv_, lv_ = batch(vi); best, best_state = float("inf"), {k: v.clone() for k, v in m.state_dict().items()}
     for step in range(1, steps + 1):
         opt.zero_grad(); loss = bce(m(zt, nt), lt); loss.backward(); opt.step()
@@ -123,8 +125,8 @@ def fit_c2st(z, n, n_neg, steps, seed, lr=1e-3, wd=1e-2, val_frac=0.2):
 # ----------------------------------------------------------------------------------------------------------------------- HSIC
 def hsic_stat(K, n_bits):
     """HSIC_b with a Gaussian kernel matrix K on z and the delta kernel on a binary variable (L_ij = 1[n_i == n_j]); O(n^2)."""
-    nb = n_bits.float(); L = nb[:, None] * nb[None, :] + (1 - nb)[:, None] * (1 - nb)[None, :]
-    N = K.shape[0]; H = torch.eye(N) - 1.0 / N
+    nb = n_bits.float().to(K.device); L = nb[:, None] * nb[None, :] + (1 - nb)[:, None] * (1 - nb)[None, :]
+    N = K.shape[0]; H = torch.eye(N, device=K.device) - 1.0 / N
     return float(torch.trace(K @ H @ L @ H) / N ** 2)
 
 
@@ -150,13 +152,13 @@ def within_class_pool(y_eval, y_pool, n_pool, rng):
 def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
     idx = rng.permutation(len(H))[: 3 * n]; fit, ev, pool = idx[:n], idx[n:2 * n], idx[2 * n:]
     mu, sd = H[fit].mean(0), H[fit].std(0) + 1e-6
-    zf, ze = (H[fit] - mu) / sd, (H[ev] - mu) / sd
-    nf, ne = torch.as_tensor(N[fit]), torch.as_tensor(N[ev])
+    zf, ze = ((H[fit] - mu) / sd).to(DEVICE), ((H[ev] - mu) / sd).to(DEVICE)
+    nf, ne = torch.as_tensor(N[fit]).to(DEVICE), torch.as_tensor(N[ev]).to(DEVICE)
     if conditional:
-        nf_neg = torch.as_tensor(within_class_pool(Y[fit], Y[pool], N[pool], rng))     # fit negatives from the pool (within class)
-        ne_neg = torch.as_tensor(within_class_pool(Y[ev], Y[pool], N[pool], rng))
+        nf_neg = torch.as_tensor(within_class_pool(Y[fit], Y[pool], N[pool], rng)).to(DEVICE)     # fit negatives from the pool (within class)
+        ne_neg = torch.as_tensor(within_class_pool(Y[ev], Y[pool], N[pool], rng)).to(DEVICE)
     else:
-        nf_neg = torch.as_tensor(N[pool]); ne_neg = torch.as_tensor(N[pool][rng.permutation(n)])
+        nf_neg = torch.as_tensor(N[pool]).to(DEVICE); ne_neg = torch.as_tensor(N[pool][rng.permutation(n)]).to(DEVICE)
     res = {}
     tau = tau_hoeff(n, n, delta)
     crits = {"lin": fit_vcs_critic(zf, nf, nf_neg, steps, seed, kind="linear"), "mlp": fit_vcs_critic(zf, nf, nf_neg, steps, seed, kind="mlp"),
@@ -184,7 +186,7 @@ def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
                     ii = np.where(Y[ev] == c)[0]; pn[ii] = N[ev][ii][rng.permutation(len(ii))]
             else:
                 pn = N[ev][rng.permutation(n)]
-            null.append(j_stat(torch.tanh(crit(ze, torch.as_tensor(pn))), tn))
+            null.append(j_stat(torch.tanh(crit(ze, torch.as_tensor(pn).to(DEVICE))), tn))
     null = np.asarray(null); p_perm = float((1 + (null >= J).sum()) / (1 + perms))
     res["vcs_perm"] = {"J_eval": J, "p": p_perm, "reject": p_perm <= delta}
     # HSIC permutation (O(n^2) memory: skipped above 5 000 items and reported as not run)
@@ -201,7 +203,7 @@ def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
                 ii = np.where(Y[ev] == c)[0]; pn[ii] = N[ev][ii][rng.permutation(len(ii))]
         else:
             pn = N[ev][rng.permutation(n)]
-        hn.append(hsic_stat(K, torch.as_tensor(pn)))
+        hn.append(hsic_stat(K, torch.as_tensor(pn).to(DEVICE)))
     if K is not None:
         hn = np.asarray(hn); p_h = float((1 + (hn >= h0).sum()) / (1 + perms))
         res["hsic_perm"] = {"stat": h0, "p": p_h, "reject": p_h <= delta}
@@ -224,7 +226,7 @@ def main() -> int:
     ap.add_argument("--cases", default=None, help="comma list of case names to run (default: all in the manifest)")
     ap.add_argument("--seed", type=int, default=1); ap.add_argument("--smoke", action="store_true")
     a = ap.parse_args()
-    torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
+    torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8"))); print("device:", DEVICE, flush=True)
     fd = Path(a.features); man = json.load(open(fd / "manifest.json"))
     cases = a.cases.split(",") if a.cases else list(man["cases"].keys())
     sizes = [int(v) for v in a.sizes.split(",")]; cond_sizes = [int(v) for v in a.cond_sizes.split(",")]
