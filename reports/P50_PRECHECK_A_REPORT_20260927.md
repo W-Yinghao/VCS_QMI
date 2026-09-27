@@ -50,3 +50,48 @@ detection / open-set rejection via the *native* T are not supported by this sett
 Setting 2, mid-dependence by construction: positives = (image, caption of a *different* image with the same supercategory set) — a topic-level
 relation whose S is well below 1 and whose truth is known by construction; product = random caption.  Same towers, adapters, grid, seeds and
 metrics.  This answers whether the native calibration holds when the regime is not degenerate, and it is the setting pre-check C will use.
+
+---
+# Setting 2 (topic pairing, mid-dependence by construction) — result and final reading of pre-check A
+
+Table: `P50_precheck_A2.md/.json` (GPU job 1010742; prereg addendum 5).  Positives = caption of a different same-topic image; 96 % of images
+have a partner.  Held-out J = **0.572 (source) / 0.157 (target)** — inside the mid-dependence regime.  Selected: VCS lr 1e-3 / 15 ep, InfoNCE and
+logistic 1e-3 / 40 ep; seed spread ≤ 0.005 ECE.
+
+| probability | SRC-EVAL ECE / Brier | TGT-EVAL ECE / Brier |
+|---|---|---|
+| **VCS native (1+T)/2 — no calibration data** | **0.023** / 0.104 | **0.088** / 0.208 |
+| VCS embedding, cosine + Platt(CAL) | 0.022 / 0.104 | 0.089 / 0.209 |
+| InfoNCE cosine + Platt(CAL) | 0.013 / 0.099 | 0.092 / 0.208 |
+| logistic native σ(a·cos + b) | 0.483 / 0.470 | 0.488 / 0.483 |
+| logistic cosine + Platt(CAL) | 0.011 / 0.098 | 0.079 / 0.204 |
+| raw CLIP cosine + Platt(CAL) | 0.012 / — | 0.087 / — |
+(InfoNCE "score + Platt" is NaN: the Platt fit on the τ-scaled logit overflowed; the cosine + Platt row is the intended competitor.)
+
+| threshold rule | SRC-EVAL FNR / FPR | TGT-EVAL FNR / FPR | drift |ΔFNR| / |ΔFPR| |
+|---|---|---|---|
+| VCS absolute T ≥ 0 | 0.091 / 0.178 | 0.350 / 0.283 | 0.259 / 0.105 |
+| cosine on the VCS embedding, matched to the same source FNR | 0.091 / 0.178 | 0.351 / 0.282 | 0.260 / 0.104 |
+| InfoNCE cosine, CAL quantile at FNR 5 % | 0.039 / 0.247 | 0.091 / 0.564 | 0.052 / 0.317 |
+| logistic absolute logit ≥ 0 | 1.000 / 0.000 | 1.000 / 0.000 | — |
+Learned a = 5.26, b = −0.13 (threshold cos* = 0.025).  Retrieval R@1 of exact captions collapses for every adapter trained on topic pairs (0.05–0.08
+vs raw 0.37) — expected and secondary.
+
+## Reading (pre-committed grid, setting 2)
+- Mid-dependence check: **passes** (J 0.57 / 0.16).
+- **Claim 1 (native calibration): holds conditionally.**  In this regime (1+T)/2 is as calibrated as a post-hoc Platt fit on the same embedding
+  (0.023 vs 0.022 source; 0.088 vs 0.089 target) and meets the frozen thresholds (≤ 0.05 on source; on target ≤ the Platt-scaled InfoNCE cosine
+  0.092) — i.e. the VCS critic delivers probabilities *without a calibration set* of the quality a calibration set would give.  It is not better
+  than post-hoc calibration of the competitors (logistic + Platt 0.079 on the target), and every method's calibration degrades under the
+  shift by the same amount (≈ 0.06–0.08 ECE): the shift, not the objective, dominates the target error.  Setting 1 showed the same statement
+  fails when the pair problem is near-degenerate (over-confidence); so the property is conditional on the regime the brief's P1 asks for.
+- **Claim 2 (threshold transfer): does not hold**, structurally: T = tanh(a·cos + b) is monotone in the cosine, so the absolute rule T ≥ 0 is a
+  cosine threshold in disguise and transfers exactly like one placed at the same source operating point (drift 0.259 / 0.105 for both).  What
+  the absolute rule offers is that the operating point needs no calibration data, not a smaller drift; a non-monotone (multi-dimensional)
+  critic would be needed for the claim to be even testable.
+
+## Final verdict for pre-check A
+**Holds conditionally** (calibration without a calibration set, only in the mid-dependence regime; no transfer advantage).  Families
+(brief appendix A, row A): mismatch detection / open-set rejection / pointwise PMI maps move to *conditional* candidates — usable where the pair
+problem is genuinely uncertain (S ≪ 1) and where "no calibration data" is the value proposition; data re-weighting by T stays unsupported
+(no advantage over a calibrated cosine).  Evidence category: completed (3 seeds, single split, CLIP ViT-B/32 features, COCO topic shift).
