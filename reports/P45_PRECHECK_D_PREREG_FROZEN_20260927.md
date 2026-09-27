@@ -70,3 +70,13 @@ Code: `scripts/precheck_d_features.py`, `scripts/precheck_d_tests.py`, `slurm/pr
    n = 2000 are re-run with R = 100 on fresh draws (seed 2, disjoint from the fleet's seed 1), both encoders; nothing else changes and no
    power cell is re-run.  The false-alarm and conditional-exactness (type-I) rules are then read on the R = 100 rates; the fleet's R = 30 / 10
    rates stay in the tables.  Cost ≈ 1.5 GPU-hours per encoder.
+5. **Wave-2 supplements (frozen 2026-09-27 before launch; owner's instruction "全部都补充实验"; designs in `SECOND_APP_WAVE2_PLAN_20260927.md`, row D).**
+   *D-S1 level pin:* s = 0 at n ∈ {2000, 5000, 10 000}, R = 1000 fresh draws (seed 3), both encoders, every test.  Reading: rate ≤ 0.065 →
+   level 0.05 confirmed (binomial 95 % upper bound at R = 1000 is 0.061); (0.065, 0.09] → anti-conservative but not invalid; > 0.09 →
+   invalid at that n.  It is read next to the letter/intent question of the report §3.1; the D verdict is not re-litigated by this unit.
+   *D-S2 second encoder seeds:* VCS seed 1 (`P35_vcs_a5_views4_800ep_seed1`, epoch_800.pt) and SimCLR seed 1 (`P5_simclr_seed1`,
+   epoch_200.pt); s ∈ {0, 0.05, 0.1, 0.2, 0.3}; n ∈ {100, 200, 500, 1000, 2000, 5000}; R = 100 (n ≥ 2000: 30); both conditional cases at
+   n ∈ {500, 2000}, R = 50; the rules of the main text apply verbatim; "on par with HSIC" is confirmed if ≥ 90 % of the small-sample cells
+   (n ≤ 500, s ≥ 0.05) pass the parity rule on seed 1 as well.
+   *D-S3 second nuisance family:* Gaussian blur of σ ∈ {0, 0.25, 0.5, 0.75, 1.0} px applied to the N = 1 images at 32 × 32 (σ = 0 is exact
+   independence), VCS seed 0 and SimCLR seed 0, same tests and rules (parity, monotonicity, false alarm at R = 100 cells).
