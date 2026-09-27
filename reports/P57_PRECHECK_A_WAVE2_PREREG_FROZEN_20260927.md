@@ -96,3 +96,5 @@ No design change follows from the probe.  Full run: `features` job (indoor → o
 relation, a *secondary* run with nominal 0.7 (`--nominal 0.7`, separate job, otherwise identical) is added now; it is read with the same rules
 and reported as secondary — it cannot rescue a failed primary, only qualify a "degenerate acceptance" outcome.  The indoor → outdoor split
 hashes are appended below when the features job lands (before the main job starts, which depends on it).
+
+**Indoor → outdoor split hashes (appended when the features job 1011090 landed).** rule: source = train2017 images whose supercategory set is non-empty and a subset of {furniture, appliance, indoor, kitchen, electronic, food}; target = non-empty subset of {vehicle, outdoor, sports}; >= 5 captions; images with 'person' or 'animal' or 'accessory' are in neither pool; pool sizes: {'source': 23327, 'target': 10325}; sizes: {'SRC-FIT': 13327, 'SRC-CAL': 5000, 'SRC-EVAL': 5000, 'TGT-EVAL': 5000}; sha256: SRC-FIT f26372c6901b8428…, SRC-CAL d1ce7582059c5e18…, SRC-EVAL d1397b2b016ca080…, TGT-EVAL 5a194efe61c99cad….
