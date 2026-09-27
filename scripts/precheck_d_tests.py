@@ -149,8 +149,10 @@ def within_class_pool(y_eval, y_pool, n_pool, rng):
     return out
 
 
-def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed):
+def run_instance(H, Y, N, n, rng, *, conditional, delta, perms, steps, seed, redraw_n=False):
     idx = rng.permutation(len(H))[: 3 * n]; fit, ev, pool = idx[:n], idx[n:2 * n], idx[2 * n:]
+    if redraw_n:   # addendum 6 (null diagnosis): fresh N ~ Bernoulli(1/2) for this repeat's FIT / EVAL / POOL items instead of the pool's single stored draw
+        N = N.copy(); N[idx] = rng.integers(0, 2, size=len(idx))
     mu, sd = H[fit].mean(0), H[fit].std(0) + 1e-6
     zf, ze = ((H[fit] - mu) / sd).to(DEVICE), ((H[ev] - mu) / sd).to(DEVICE)
     nf, ne = torch.as_tensor(N[fit]).to(DEVICE), torch.as_tensor(N[ev]).to(DEVICE)
@@ -225,6 +227,7 @@ def main() -> int:
     ap.add_argument("--cond-sizes", default="500,2000"); ap.add_argument("--cond-repeats", type=int, default=50)
     ap.add_argument("--cases", default=None, help="comma list of case names to run (default: all in the manifest)")
     ap.add_argument("--seed", type=int, default=1); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--redraw-null-n", action="store_true", help="addendum 6: in unconditional cases with strength 0, re-draw N for the items of every repeat (default: the stored single draw)")
     a = ap.parse_args()
     torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8"))); print("device:", DEVICE, flush=True)
     fd = Path(a.features); man = json.load(open(fd / "manifest.json"))
@@ -242,7 +245,8 @@ def main() -> int:
         results["cases"][case] = {"strength": d["strength"], "conditional": conditional, "by_n": {}}
         for n in grid:
             R = a.cond_repeats if conditional else (a.repeats_xl if n >= 10000 else (a.repeats_large if n >= 2000 else a.repeats))
-            inst = [run_instance(H, Y, N, n, rng, conditional=conditional, delta=a.delta, perms=a.perms, steps=a.steps, seed=a.seed * 1000 + r) for r in range(R)]
+            redraw = bool(a.redraw_null_n) and not conditional and float(d["strength"]) == 0.0
+            inst = [run_instance(H, Y, N, n, rng, conditional=conditional, delta=a.delta, perms=a.perms, steps=a.steps, seed=a.seed * 1000 + r, redraw_n=redraw) for r in range(R)]
             summ = {t: {"power": float(np.mean([i[t]["reject"] for i in inst]))} for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")}
             summ["vcs_hoeff"]["picked"] = dict(zip(*np.unique([i["vcs_hoeff"]["picked"] for i in inst], return_counts=True)))
             for t in ("vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed"):
@@ -260,7 +264,8 @@ def main() -> int:
     # markdown summary
     L = [f"# Pre-check D — independence-test power on planted nuisances ({man['run']}, {man['checkpoint']}) — {utc_now()}", "",
          f"Pool: {man['n_fit']} fit images; per instance three disjoint samples of n (fit / eval / independent pool); level δ = {a.delta}; permutations {a.perms}; "
-         f"critic/classifier: MLP({H.shape[1]}+2→128→128→1), {a.steps} Adam steps; repeats {a.repeats} (n ≥ 2000: {a.repeats_large}).", "",
+         f"critic/classifier: MLP({H.shape[1]}+2→128→128→1), {a.steps} Adam steps; repeats {a.repeats} (n ≥ 2000: {a.repeats_large})."
+         + (" **Null N re-drawn per repeat (--redraw-null-n, addendum 6).**" if a.redraw_null_n else ""), "",
          "| case | s | n | R | vcs_hoeff (val-picked) | hoeff lin | hoeff mlp | hoeff closed | vcs_perm | hsic_perm | c2st | mean J_eval (picked) | τ | c2st acc |", "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for case, cr in results["cases"].items():
         for n, r in cr["by_n"].items():

@@ -80,3 +80,5 @@ Code: `scripts/precheck_d_features.py`, `scripts/precheck_d_tests.py`, `slurm/pr
    (n ≤ 500, s ≥ 0.05) pass the parity rule on seed 1 as well.
    *D-S3 second nuisance family:* Gaussian blur of σ ∈ {0, 0.25, 0.5, 0.75, 1.0} px applied to the N = 1 images at 32 × 32 (σ = 0 is exact
    independence), VCS seed 0 and SimCLR seed 0, same tests and rules (parity, monotonicity, false alarm at R = 100 cells).
+
+6. **Null-level diagnosis (wave-2 supplement S-1)** — see `P45_ADDENDUM6_NULL_DIAGNOSIS_FROZEN_20260927.md` (frozen 2026-09-27T19:28:00Z): hypothesis that the single per-pool N draw shared by all repeats explains the 0.06–0.07 level; design = s0 with N re-drawn per repeat (R = 1000, seed 4, both encoders) + three synthetic nulls.
