@@ -135,7 +135,7 @@ The guaranteed test rejects in none of these cells (Ĵ ≤ 0.001 ≪ τ_{2000,20
    undetectable in SimCLR features at n = 2000 even without conditioning (unconditional s = 0.05 case: vcs_perm 0.07, HSIC 0.17) — the
    strength was fixed in the prereg before SimCLR's sensitivity was known; this cell carries no information about exactness.
 
-**Verdict: holds conditionally.**  What holds: distribution-free calibration wherever R = 100; exactness of the within-class shuffle (type I
+**Interim verdict on the fleet tables (written before the addendum-4 top-up; superseded by §3.1): holds conditionally.**  What holds: distribution-free calibration wherever R = 100; exactness of the within-class shuffle (type I
 at the null level, full unconditional power on the same draws); Ĵ monotone in s wherever it is distinguishable from zero; and, at the
 small-sample end, the permutation-calibrated VCS statistic matches HSIC within 0.03 in 32 of 36 cells and beats C2ST everywhere.  The
 conditions: (i) the *guaranteed* bound is far too loose at these sample sizes — it needs S ≳ τ_{n,n}, i.e. roughly S ≥ 0.13 at n = 2000 or
@@ -147,10 +147,39 @@ R = 30 / 10 false-alarm cells, pending the R = 100 top-up; the SimCLR null-end o
 
 ## 3. Pending, limits, families
 
-### 3.1 Pending
-- Addendum 4 top-up (jobs 1010999–1011002, RTX6000PRO): s = 0 at n ∈ {2000, 5000, 10 000} and *label_only* conditional at n = 2000, R = 100,
-  seed 2, both encoders.  The false-alarm and type-I readings of §2 (1) and §2 (4) will be appended here from those rates; if any R = 100
-  rate exceeds 0.09 the verdict moves to *does not hold* by the frozen clause.
+### 3.1 Addendum-4 top-up (R = 100, fresh draws, seed 2) and the final reading
+Jobs 1010999–1011002 (RTX6000PRO, 3–8 min each).  Tables: `P46_precheck_D_null100_{vcs4v800,simclr}_{s0,cond_label_only}.md`.
+
+| cell (R = 100) | VCS: vcs_perm / hsic / c2st / hoeff | SimCLR: vcs_perm / hsic / c2st / hoeff |
+|---|---|---|
+| s = 0, n = 2000 | .04 / .05 / .01 / 0 | .08 / .07 / .01 / 0 |
+| s = 0, n = 5000 | .05 / .06 / .01 / 0 | **.12** / **.11** / .00 / 0 |
+| s = 0, n = 10 000 | **.10** / n/a / .00 / 0 | .08 / n/a / .00 / 0 |
+| label_only conditional, n = 2000 | .04 / .09 / .00 / 0 (unconditional 1.00 / 1.00 / 1.00) | .05 / .07 / .00 / 0 (unconditional 1.00 / 1.00 / 1.00) |
+
+*Conditional exactness (type I):* holds on both encoders at R = 100 (≤ 0.09 for every conditional test; unconditional tests at 1.00).
+*False alarm:* three R = 100 cells exceed the frozen 0.09 figure — vcs_perm 10/100 at n = 10 000 (VCS encoder), vcs_perm 12/100 and
+hsic_perm 11/100 at n = 5000 (SimCLR encoder; same draws, so the two are not independent events).  Under an exact level of 0.05 their
+binomial tail probabilities are 0.028, 0.004 and 0.012.  Pooled over every R = 100 null draw (n ≤ 1000 fleet + top-up, 700 per encoder)
+the vcs_perm rate is 47/700 = 0.067 on the VCS encoder (p = 0.027 against 0.05) and 40/700 = 0.057 on SimCLR (p = 0.21); HSIC 22/700 and
+35/700; the guaranteed test 0/1400 and C2ST 7/1400.  The permutation test is exact by construction (p = (1 + #{null ≥ obs}) / 201,
+reject at p ≤ 0.05, i.e. level 10/201 = 0.0498; N is drawn independently of everything at s = 0; the critic is chosen on VAL and fixed) — I
+found no implementation reason for an excess, so what the data show is a level of about 0.06 rather than 0.05 in these draws, or a
+2–3 % chance event; the two cannot be separated with this R.
+
+**Verdict after the top-up, by the frozen grid: does not hold** — the *does-not-hold* clause "false alarms exceed 0.09" is met in three
+R = 100 cells, and §3.1 of the interim text committed to this reading in advance.  Everything else in the grid holds as described in §2:
+power parity within 0.09 of HSIC (never a 0.10 deficit), exact conditional test, monotone Ĵ where non-zero, guaranteed test conservative
+(0/1400) but 20–50× more sample-hungry.  The substance the owner should weigh when deciding how to carry this into the family table: the
+clause was written to catch an *invalid* test (the over-fitted critic of addendum 1 produced saturated statistics), whereas what tripped it
+is a permutation test running at ≈ 0.06 instead of 0.05 at n ≥ 5000 on some draws, with HSIC tripping on the same draws in one cell.  A
+reader who takes the clause by its intent reads "holds conditionally, with the level excess disclosed"; a reader who takes it by its letter
+reads "does not hold".  This report carries the letter; the choice of framing is the owner's, and it is flagged in the hand-back summary.
+
+*Note on the C2ST baseline:* its null rejection rate is 0.00–0.01, below nominal, because the early-stopped classifier is near-constant at
+small signal (accuracy exactly ½ with almost no spread); the normal approximation used (variance 1/(8n)) matches the paired design, so this is
+the classifier's sample complexity under the equal budget, not a miscalibrated p-value.  Its curve is therefore a fair "same budget" baseline
+but not the strongest possible C2ST.
 
 ### 3.2 Limits (not claimed)
 One nuisance family (global colour temperature); one encoder seed per method; one split; the C2ST baseline is the same MLP class with the
@@ -159,7 +188,7 @@ nothing about tasks, texture or subgroup nuisances, or continuous / multi-class 
 natural fifth pre-check the brief §5 allows — proposed, not run).
 
 ### 3.3 Family table (brief appendix A, row D)
-Leakage / shortcut detection, dependence profiles, domain-shift magnitude, invariance penalties → **conditional candidates**: as a
+By the letter of the frozen grid (§3.1) row D **closes**.  If the owner reads the false-alarm clause by its intent, the row is a *conditional candidate* as follows — leakage / shortcut detection, dependence profiles, domain-shift magnitude, invariance penalties: as a
 permutation-calibrated O(n) dependence test with an exact conditional version for discrete Y (on par with HSIC, better than C2ST at small
 n, and a monotone magnitude in the same statistic); the certified lower confidence bound is a selling point only when the dependence is
 strong or n is in the 10⁴ range.  A claim of *higher power* than HSIC is not available from this evidence.
