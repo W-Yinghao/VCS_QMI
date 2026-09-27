@@ -91,7 +91,7 @@ def J_tanh(c, w, phi_pos, phi_neg):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--runs", required=True, help="comma list run_id:checkpoint")
+    ap.add_argument("--runs", required=True, help="list of run_id:checkpoint separated by , or ;")
     ap.add_argument("--output-root", default=os.environ.get("OUTPUT_ROOT", "/home/infres/yinwang/CS_QMI/outputs"))
     ap.add_argument("--out", required=True); ap.add_argument("--ridge", default="1e-6,1e-4,1e-2")
     a = ap.parse_args()
@@ -100,7 +100,10 @@ def main() -> int:
         torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
     ridges = [float(v) for v in a.ridge.split(",")]
     rows, out = [], {"utc": utc_now(), "K": K, "runs": {}}
-    for item in a.runs.split(","):
+    for item in a.runs.replace(";", ",").split(","):  # ';' accepted because sbatch --export splits values on commas
+        item = item.strip()
+        if not item:
+            continue
         run, ckpt = item.split(":"); rd = Path(a.output_root) / run
         cfg, crit, Z1, Z2, H1, H2 = two_view_features(rd, ckpt, device)
         n = len(Z1); half = n // 2; gen = torch.Generator().manual_seed(7)
