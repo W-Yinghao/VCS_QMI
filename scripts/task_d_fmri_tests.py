@@ -127,7 +127,7 @@ def pearson(a, b):
     a = a - a.mean(); b = b - b.mean(); return float((a * b).sum() / (a.norm() * b.norm() + 1e-12))
 
 
-def run_instance(z, n, g, *, rng, k_neg, n_shifts, min_shift, steps, delta, seed):
+def run_instance(z, n, g, *, rng, k_neg, n_shifts, min_shift, steps, delta, seed, null_mode="frozen"):
     """z [T,d], n [T], g [T] already aligned (lag applied) and truncated to the used length.  Returns per-test decisions and statistics."""
     T = len(n); n_eval = max(30, int(round(0.3 * T))); n_train = T - n_eval; n_fit = int(round(0.8 * n_train))
     zf, nf = z[:n_fit], n[:n_fit]; zv, nv = z[n_fit:n_train], n[n_fit:n_train]; ze, ne, ge = z[n_train:], n[n_train:], g[n_train:]
@@ -139,7 +139,9 @@ def run_instance(z, n, g, *, rng, k_neg, n_shifts, min_shift, steps, delta, seed
         def J_eval(nn_):
             return j_of(crit(ze, nn_), torch.cat([crit(ze, rolled(nn_, s)) for s in seval]))
         J = J_eval(ne)
-        null_shifts = shifts_for(len(ne), n_shifts, rng, min_shift)
+        # "frozen" = P65 as run (n_shifts draws from [min_shift, L - min_shift]; at L = 72 only 13 distinct shifts -> anti-conservative,
+# addendum 1); "orbit" = the exact circular-orbit null: every shift 1..L-1 once.
+        null_shifts = np.arange(1, len(ne)) if null_mode == "orbit" else shifts_for(len(ne), n_shifts, rng, min_shift)
         null_J = np.array([J_eval(rolled(ne, s)) for s in null_shifts])
         Kz = gaussian_kernel(ze); h0 = hsic_cont(Kz, ne); null_h = np.array([hsic_cont(Kz, rolled(ne, s)) for s in null_shifts])
         r0 = pearson(ge, ne); null_r = np.array([abs(pearson(ge, rolled(ne, s))) for s in null_shifts])
@@ -163,7 +165,7 @@ def main() -> int:
     ap.add_argument("--sizes", default="120,240,all"); ap.add_argument("--lags", default="0,1,2,4,8"); ap.add_argument("--alphas", default="0,0.5,1")
     ap.add_argument("--shifts", type=int, default=200); ap.add_argument("--min-shift", type=int, default=30); ap.add_argument("--k-neg", type=int, default=4)
     ap.add_argument("--steps", type=int, default=300); ap.add_argument("--delta", type=float, default=0.05); ap.add_argument("--seed", type=int, default=1)
-    ap.add_argument("--subjects", default=None); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--subjects", default=None); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--null", default="frozen", choices=["frozen", "orbit"], help="null construction (addendum 1): frozen = P65 as run; orbit = exact circular orbit, all L-1 shifts once")
     a = ap.parse_args()
     prep = Path(a.prep); man = json.load(open(prep / "manifest.json"))
     subs = sorted(s for s, q in man["subjects"].items() if "error" not in q and (prep / f"{s}.pt").exists())
@@ -181,7 +183,7 @@ def main() -> int:
         if lag > 0:
             z, n, g = z[lag:], n[:-lag], g[lag:]
         L = len(n) if sz == "all" else min(int(sz), len(n))
-        return run_instance(z[:L].to(DEVICE), n[:L].to(DEVICE), g[:L].to(DEVICE), rng=rng, k_neg=a.k_neg, n_shifts=a.shifts, min_shift=a.min_shift, steps=a.steps, delta=a.delta, seed=seed)
+        return run_instance(z[:L].to(DEVICE), n[:L].to(DEVICE), g[:L].to(DEVICE), rng=rng, k_neg=a.k_neg, n_shifts=a.shifts, min_shift=a.min_shift, steps=a.steps, delta=a.delta, seed=seed, null_mode=a.null)
 
     for al in alphas:
         for sz in sizes:
@@ -204,7 +206,7 @@ def main() -> int:
             print(f"[{key}] " + " ".join(f"{t}={summ[t]:.2f}" for t in TESTS) + f" J={summ['J_mean']:.4f} ({time.time() - t0:.0f}s)", flush=True)
     Path(a.out + ".json").write_text(json.dumps(results, indent=1, default=float))
     S = len(subs)
-    L = [f"# Task pre-check D-fMRI — motion leakage in cleaned resting-state BOLD (P65): {S} subjects, {a.shifts} circular shifts (≥ {a.min_shift} TRs), K = {a.k_neg} product shifts, δ = {a.delta} — {results['utc']}", "",
+    L = [f"# Task pre-check D-fMRI — motion leakage in cleaned resting-state BOLD (P65): {S} subjects, null = {a.null} ({"all L-1 circular shifts once" if a.null == "orbit" else f"{a.shifts} draws from [{a.min_shift}, L-{a.min_shift}]"}), K = {a.k_neg} product shifts, δ = {a.delta} — {results['utc']}", "",
          "Rejection rate over subjects per test; Ĵ = held-out J of the picked critic on the last 30 % block; |r| = |Pearson(N, global signal)|.  alpha = motion-cleaning strength (0 none, 1 full 24-parameter regression).", "",
          "| alpha | n | lag (TR) | vcs_shift | vcs_hoeff | hsic_shift | c2st | qcfc_corr | Ĵ mean ± sd | |r| | closed-form picked |", "|---|---|---|---|---|---|---|---|---|---|---|"]
     for key, c in results["cells"].items():
