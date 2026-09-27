@@ -65,3 +65,6 @@ configuration.  Step 2 code: `scripts/precheck_a_adapters.py` (to be committed b
    error on SRC-EVAL / TGT-EVAL and their drift; the CAL-quantile row is kept as a sanity check.  Claim 2 now reads: drift of the balanced
    error under the absolute VCS rule ≤ ½ of the drift of the matched cosine rule.
 3. Probe sanity: held-out J on SRC-EVAL 0.44 and on TGT-EVAL 0.10 after one epoch — the setting is in the mid-dependence regime (P1 satisfied).
+4. Smoke 2 (identity adapters): raw CLIP R@1 0.49 / 0.45 (source / target); after one probe epoch InfoNCE 0.46, logistic 0.39, VCS 0.20 — the VCS
+   objective moves the adapters fastest at lr 1e-3, so the grid gets a third learning rate, lr ∈ {1e-3, 3e-4, 1e-4} × epochs ∈ {5, 15, 40}
+   (9 configurations per method, still equal budgets; selection unchanged).  Full run launched after this addendum.

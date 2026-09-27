@@ -176,7 +176,7 @@ def heldout_J(m, img, txt, device, seed, K=8):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--features", required=True); ap.add_argument("--out", required=True)
-    ap.add_argument("--lrs", default="1e-3,3e-4"); ap.add_argument("--epochs", default="5,15,40"); ap.add_argument("--seeds", default="0,1,2")
+    ap.add_argument("--lrs", default="1e-3,3e-4,1e-4"); ap.add_argument("--epochs", default="5,15,40"); ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--fnr", default="0.05,0.10"); ap.add_argument("--smoke", action="store_true")
     a = ap.parse_args()
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
