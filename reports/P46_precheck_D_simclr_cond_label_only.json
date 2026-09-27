@@ -1,0 +1,5209 @@
+{
+  "manifest": {
+    "run": "P5_simclr_seed0",
+    "checkpoint": "epoch_200.pt",
+    "encoder_sha256": "f180f84ccef5ea7c",
+    "split_hash": "c35d7cd336e79680c2e2c077e5612ed9eb6779ff70a427f5e085bc4df2d617a9",
+    "n_fit": 45000,
+    "seed": 20260927,
+    "planting": "N=1 images: R*(1+s), B*(1-s) on uint8, clipped; N ~ Bernoulli(1/2) i.i.d., same draw for all s",
+    "cond": {
+      "p(N=1|Y)": "0.5 + 0.3 * (+1 if Y even else -1)",
+      "colour": 0.05
+    },
+    "cases": {
+      "s0": {
+        "file": "s0.pt",
+        "strength": 0.0,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.2440248280763626,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.01": {
+        "file": "s0.01.pt",
+        "strength": 0.01,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.24402132630348206,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.02": {
+        "file": "s0.02.pt",
+        "strength": 0.02,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.2440018653869629,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.05": {
+        "file": "s0.05.pt",
+        "strength": 0.05,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.24381917715072632,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.1": {
+        "file": "s0.1.pt",
+        "strength": 0.1,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.24327784776687622,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.2": {
+        "file": "s0.2.pt",
+        "strength": 0.2,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.2417919635772705,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.3": {
+        "file": "s0.3.pt",
+        "strength": 0.3,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.2401573359966278,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "s0.5": {
+        "file": "s0.5.pt",
+        "strength": 0.5,
+        "n1_frac": 0.49871110916137695,
+        "h_mean_abs": 0.2366182655096054,
+        "corr_N_Y_even": 0.0055111294216989275
+      },
+      "cond_label_only": {
+        "file": "cond_label_only.pt",
+        "strength": 0.0,
+        "n1_frac": 0.5015110969543457,
+        "h_mean_abs": 0.2440248280763626,
+        "corr_N_Y_even": 0.5995582936927197
+      },
+      "cond_label_colour0.05": {
+        "file": "cond_label_colour0.05.pt",
+        "strength": 0.05,
+        "n1_frac": 0.5015110969543457,
+        "h_mean_abs": 0.2437804937362671,
+        "corr_N_Y_even": 0.5995582936927197
+      }
+    },
+    "utc": "2026-09-27T08:49:08Z"
+  },
+  "settings": {
+    "features": "/home/infres/yinwang/CS_QMI/outputs/P45_precheck_D_simclr",
+    "out": "reports/P46_precheck_D_simclr_cond_label_only",
+    "sizes": "100,200,500,1000,2000,5000,10000",
+    "repeats": 100,
+    "repeats_large": 30,
+    "perms": 200,
+    "steps": 300,
+    "delta": 0.05,
+    "cond_sizes": "500,2000",
+    "cond_repeats": 50,
+    "cases": "cond_label_only",
+    "seed": 1,
+    "smoke": false
+  },
+  "utc_start": "2026-09-27T12:50:05Z",
+  "cases": {
+    "cond_label_only": {
+      "strength": 0.0,
+      "conditional": true,
+      "by_n": {
+        "500": {
+          "repeats": 50,
+          "summary": {
+            "vcs_hoeff": {
+              "power": 0.0,
+              "picked": {
+                "closed": 32,
+                "mlp": 18
+              },
+              "J_eval_mean": -0.004957337841624394,
+              "J_eval_sd": 0.0062078292300323515,
+              "tau": 0.26478751132706785
+            },
+            "vcs_hoeff_lin": {
+              "power": 0.0,
+              "J_eval_mean": -0.11899296879768372
+            },
+            "vcs_hoeff_mlp": {
+              "power": 0.0,
+              "J_eval_mean": -0.0027834434004034847
+            },
+            "vcs_hoeff_closed": {
+              "power": 0.0,
+              "J_eval_mean": -0.004337750461127143
+            },
+            "vcs_perm": {
+              "power": 0.0
+            },
+            "hsic_perm": {
+              "power": 0.02
+            },
+            "c2st": {
+              "power": 0.0,
+              "acc_mean": 0.5007200187444687
+            },
+            "unconditional_power": {
+              "vcs_hoeff": 0.0,
+              "vcs_hoeff_lin": 0.0,
+              "vcs_hoeff_mlp": 0.0,
+              "vcs_hoeff_closed": 0.0,
+              "vcs_perm": 1.0,
+              "hsic_perm": 1.0,
+              "c2st": 0.98
+            }
+          },
+          "instances": [
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.12125589698553085,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.16424036026000977,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.001889386447146535,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0017449641600251198,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0015281087253242731,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002850987448401901,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.001889386447146535,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0017449641600251198,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.001889386447146535,
+                "p": 0.39303482587064675,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.00223447079770267,
+                "p": 0.417910447761194,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5010000467300415,
+                "p": 0.474784308870553,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.10266081988811493,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1202065572142601,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0013456273591145873,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00010547135025262833,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0019207143923267722,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0002603365358131918,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.0019207143923267722,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0002603365358131918,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.0019207143923267722,
+                "p": 0.16417910447761194,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002252236707136035,
+                "p": 0.8855721393034826,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.503000020980835,
+                "p": 0.42475722625180307,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13228395581245422,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.10570090264081955,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0012800069525837898,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014790219720453024,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00012607034295797348,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0017752036511918807,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0012800069525837898,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014790219720453024,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0012800069525837898,
+                "p": 0.09950248756218906,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0026838050689548254,
+                "p": 0.5024875621890548,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5049999952316284,
+                "p": 0.3759149314675625,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.12560255825519562,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0020000000949949026,
+                "val_J": -0.11233684420585632,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0066476138308644295,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00035810424014925957,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.00016643853450659662,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 4.340328267409769e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0066476138308644295,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00035810424014925957,
+                "best_step": 30,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0066476138308644295,
+                "p": 0.6865671641791045,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0025865351781249046,
+                "p": 0.22885572139303484,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4950000047683716,
+                "p": 0.6240850685324375,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.09918913245201111,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1104758232831955,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0014973357319831848,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0010137268109247088,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.004022256471216679,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0034063649119996176,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.004022256471216679,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0034063649119996176,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.004022256471216679,
+                "p": 0.5671641791044776,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002355512697249651,
+                "p": 0.6965174129353234,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49500003457069397,
+                "p": 0.6240843532532038,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13326334953308105,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1337057203054428,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.003457031911239028,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001123734749853611,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.002287589944899082,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0010196808506429493,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.002287589944899082,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0010196808506429493,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.002287589944899082,
+                "p": 0.7313432835820896,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0026128108147531748,
+                "p": 0.20398009950248755,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5099999904632568,
+                "p": 0.2635448254396225,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.08340158313512802,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0020000000949949026,
+                "val_J": -0.08152913302183151,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": 0.00047456088941544294,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0030100285075604916,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0024392246268689632,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00471934176534936,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0024392246268689632,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00471934176534936,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0024392246268689632,
+                "p": 0.3283582089552239,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002132641151547432,
+                "p": 0.6268656716417911,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5130000114440918,
+                "p": 0.20548355510937383,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1138746440410614,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.10883054882287979,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008839697693474591,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0026800413616001606,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 9.167386451736093e-05,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0015328895220731798,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 9.167386451736093e-05,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0015328895220731798,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 9.167386451736093e-05,
+                "p": 0.32338308457711445,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002262779278680682,
+                "p": 0.13930348258706468,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5049999952316284,
+                "p": 0.3759149314675625,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13183918595314026,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.10228737443685532,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0012549106031656265,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0024998923763632774,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.012113716453313828,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 1.8995603908306125e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.012113716453313828,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 1.8995603908306125e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.012113716453313828,
+                "p": 0.7213930348258707,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002541470108553767,
+                "p": 0.4427860696517413,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49900001287460327,
+                "p": 0.5252141902301742,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13043808937072754,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1129404827952385,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0019524423405528069,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001413417048752308,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00390896201133728,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0018140810602052197,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00390896201133728,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0018140810602052197,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00390896201133728,
+                "p": 0.8955223880597015,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019789859652519226,
+                "p": 0.6965174129353234,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.484000027179718,
+                "p": 0.8442135523571903,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.08865144848823547,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.09060598164796829,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005537832621484995,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00036949943751096725,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.001973717473447323,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.005082820201567188,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.001973717473447323,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.005082820201567188,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.001973717473447323,
+                "p": 0.18407960199004975,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0021331687457859516,
+                "p": 0.5870646766169154,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4959999918937683,
+                "p": 0.5998592189248951,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.10876891762018204,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.12047140300273895,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.001517202239483595,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00152679905295372,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0005458228988572955,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0018081092248254142,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.001517202239483595,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00152679905295372,
+                "best_step": 10,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.001517202239483595,
+                "p": 0.7263681592039801,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002036377089098096,
+                "p": 0.36318407960199006,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5040000081062317,
+                "p": 0.40014078107510487,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.15087515115737915,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.09275580942630768,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0013121007941663265,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002078940160572529,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.000418713316321373,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008207942333895905,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.000418713316321373,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008207942333895905,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.000418713316321373,
+                "p": 0.31343283582089554,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002372840652242303,
+                "p": 0.3880597014925373,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1314476579427719,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.10909859836101532,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0013952931622043252,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014292316045612097,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0022522052749991417,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0015730034694485537,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0022522052749991417,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0015730034694485537,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0022522052749991417,
+                "p": 0.945273631840796,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0024308685678988695,
+                "p": 0.19402985074626866,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.44967074686970376,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.16182202100753784,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04615400359034538,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0012989758979529142,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014620854053646326,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0013314052484929562,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001676293090513378,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0012989758979529142,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014620854053646326,
+                "best_step": 30,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0012989758979529142,
+                "p": 0.42786069651741293,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0023824586533010006,
+                "p": 0.13930348258706468,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.48900002241134644,
+                "p": 0.7566915331936324,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.10436487197875977,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0564107708632946,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0024560114834457636,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009792097844183445,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.003189456183463335,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.003223576300297631,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.003189456183463335,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.003223576300297631,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.003189456183463335,
+                "p": 0.10945273631840796,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0020024485420435667,
+                "p": 0.7562189054726368,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5040000677108765,
+                "p": 0.4001393245348941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.12641413509845734,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05767684802412987,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.016377883031964302,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.005760626867413521,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.020414581522345543,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.011061863217003663,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.020414581522345543,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.011061863217003663,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.020414581522345543,
+                "p": 0.8606965174129353,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0028903339989483356,
+                "p": 0.7213930348258707,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4870000183582306,
+                "p": 0.7945159086018436,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.14390531182289124,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1277114599943161,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011481582187116146,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0010268872138112783,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0007665872108191252,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008126302906963281,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0007665872108191252,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008126302906963281,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0007665872108191252,
+                "p": 0.6417910447761194,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002175642177462578,
+                "p": 0.6965174129353234,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.44967074686970376,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.09010767191648483,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.10497494041919708,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0017174920067191124,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0013914359733462334,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00013209693133831024,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007318262017073245,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00013209693133831024,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007318262017073245,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00013209693133831024,
+                "p": 0.6119402985074627,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0023654247634112835,
+                "p": 0.8208955223880597,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1500200629234314,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07211783528327942,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.007942553609609604,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.002629535738378763,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.022311437875032425,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.01071371400200594,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.022311437875032425,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.01071371400200594,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.022311437875032425,
+                "p": 0.9502487562189055,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002556165913119912,
+                "p": 0.13432835820895522,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5040000081062317,
+                "p": 0.40014078107510487,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.0901610255241394,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.052688680589199066,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.006176739931106567,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.007697408087551594,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.006608470343053341,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0044423431678980675,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.006176739931106567,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.007697408087551594,
+                "best_step": 50,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.006176739931106567,
+                "p": 0.6119402985074627,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002216249005869031,
+                "p": 0.5074626865671642,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4970000088214874,
+                "p": 0.5752420352102113,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13231521844863892,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.033200204372406006,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.004033464938402176,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0014689881354570389,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.019418276846408844,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.01767131334863163,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.019418276846408844,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.01767131334863163,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.019418276846408844,
+                "p": 0.8756218905472637,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002537350868806243,
+                "p": 0.29850746268656714,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5060000419616699,
+                "p": 0.3521672215464941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11639752984046936,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0020000000949949026,
+                "val_J": -0.045606955885887146,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0012088355142623186,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0016720027197152376,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0009065885678865016,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 6.737602279047053e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0009065885678865016,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 6.737602279047053e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0009065885678865016,
+                "p": 0.8905472636815921,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0025080526247620583,
+                "p": 0.7910447761194029,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4950000047683716,
+                "p": 0.6240850685324375,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.10655178129673004,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.004000000189989805,
+                "val_J": -0.100913405418396,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011808889685198665,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001190548064187169,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0006212039734236896,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008799892975218869,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0006212039734236896,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008799892975218869,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0006212039734236896,
+                "p": 0.746268656716418,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0022044728975743055,
+                "p": 0.3681592039800995,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49900001287460327,
+                "p": 0.5252141902301742,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1179254874587059,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.16827654838562012,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0029458568897098303,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0027474421076476574,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.023097235709428787,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.004961089990515187,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.023097235709428787,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.004961089990515187,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.023097235709428787,
+                "p": 0.8905472636815921,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002549497177824378,
+                "p": 0.6318407960199005,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4930000305175781,
+                "p": 0.671014756849098,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11937455832958221,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05120315030217171,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.004458777140825987,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0025591389276087284,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0031364676542580128,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0058871252996186675,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0031364676542580128,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0058871252996186675,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0031364676542580128,
+                "p": 0.4129353233830846,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0022898868191987276,
+                "p": 0.3681592039800995,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4930000305175781,
+                "p": 0.671014756849098,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11597707867622375,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0020000000949949026,
+                "val_J": -0.05230860784649849,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008709719404578209,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009387391619384289,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.012931162491440773,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.014266580462472277,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.012931162491440773,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.014266580462472277,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.012931162491440773,
+                "p": 0.07462686567164178,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002478439826518297,
+                "p": 0.208955223880597,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.503000020980835,
+                "p": 0.42475722625180307,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11753542721271515,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06469472497701645,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0017236266285181046,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0019837035797536373,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0008608916541561484,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002625621125531304,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0017236266285181046,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0019837035797536373,
+                "best_step": 10,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0017236266285181046,
+                "p": 0.7114427860696517,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002164464443922043,
+                "p": 0.6318407960199005,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49800002574920654,
+                "p": 0.5503277612094042,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.09684351086616516,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04599262773990631,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0022358507849276066,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000860766158439219,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0006926528876647353,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0004482911055431584,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0006926528876647353,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0004482911055431584,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0006926528876647353,
+                "p": 0.5422885572139303,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0024166430812329054,
+                "p": 0.1044776119402985,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.14514459669589996,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.21745365858078003,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0013766656629741192,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007454799488186836,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.002848610980436206,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.004884551827287411,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0013766656629741192,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007454799488186836,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0013766656629741192,
+                "p": 0.9502487562189055,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0023946333676576614,
+                "p": 0.5621890547263682,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5110000371932983,
+                "p": 0.243307286157487,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.12316568195819855,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.08212966471910477,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.008030625991523266,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00866394117474556,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0009408086189068854,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0036340073775293345,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.008030625991523266,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00866394117474556,
+                "best_step": 40,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.008030625991523266,
+                "p": 0.527363184079602,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.003408953081816435,
+                "p": 0.48756218905472637,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.44967074686970376,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13595886528491974,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0020000000949949026,
+                "val_J": -0.06746883690357208,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0015123942866921425,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0013190857134759426,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0008908659219741821,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0017584988897624207,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0015123942866921425,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0013190857134759426,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0015123942866921425,
+                "p": 0.39303482587064675,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018364647403359413,
+                "p": 0.8507462686567164,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4970000386238098,
+                "p": 0.5752412966719616,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.09945721179246902,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07973210513591766,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011780322529375553,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 7.747672498226166e-06,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00032660458236932755,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0005750397403595918,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00032660458236932755,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0005750397403595918,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00032660458236932755,
+                "p": 0.6119402985074627,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0022161933593451977,
+                "p": 0.5472636815920398,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49800002574920654,
+                "p": 0.5503277612094042,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.14322681725025177,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0020000000949949026,
+                "val_J": -0.10359250009059906,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.010812784545123577,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0004973434843122959,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0008616457926109433,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011099035369417634,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.010812784545123577,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0004973434843122959,
+                "best_step": 50,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.010812784545123577,
+                "p": 0.8805970149253731,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002323584398254752,
+                "p": 0.6069651741293532,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.44967074686970376,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1148112416267395,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.056671105325222015,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.002985084429383278,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0005649416707456112,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.007226474583148956,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.002873849005393862,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.007226474583148956,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.002873849005393862,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.007226474583148956,
+                "p": 0.6368159203980099,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0025602153036743402,
+                "p": 0.6517412935323383,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.503000020980835,
+                "p": 0.42475722625180307,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.07661227881908417,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0918092429637909,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0015365548897534609,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001783511252142489,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0016690630000084639,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0034345389261440477,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0015365548897534609,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001783511252142489,
+                "best_step": 10,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0015365548897534609,
+                "p": 0.14427860696517414,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0021786566358059645,
+                "p": 0.736318407960199,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1168750748038292,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.10386376082897186,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0015495754778385162,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0012889427598565817,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0007471955614164472,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000788026204537595,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.0007471955614164472,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000788026204537595,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.0007471955614164472,
+                "p": 0.7313432835820896,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0025164468679577112,
+                "p": 0.18407960199004975,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5090000033378601,
+                "p": 0.28460675311386335,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11553487181663513,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05573829635977745,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.001310315914452076,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0015459507703781128,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.00046080269385129213,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.004436425586261259,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.001310315914452076,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0015459507703781128,
+                "best_step": 10,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.001310315914452076,
+                "p": 0.8855721393034826,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0024466461036354303,
+                "p": 0.14925373134328357,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.14949502050876617,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.12292288988828659,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0016358564607799053,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0018382127163931727,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0016730527859181166,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00012097439684122398,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0016730527859181166,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00012097439684122398,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0016730527859181166,
+                "p": 0.3383084577114428,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002762651303783059,
+                "p": 0.029850746268656716,
+                "reject": true
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11093280464410782,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.12937958538532257,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0003815852105617523,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014603156596422195,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.008021342568099499,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0050302088488929884,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.008021342568099499,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0050302088488929884,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.008021342568099499,
+                "p": 0.7910447761194029,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0021029217168688774,
+                "p": 0.20398009950248755,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5199999809265137,
+                "p": 0.10295182160546502,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.11941862851381302,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.17627283930778503,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0019820984452962875,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002010045573115349,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0021688134875148535,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002464887791462726,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0019820984452962875,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002010045573115349,
+                "best_step": 10,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0019820984452962875,
+                "p": 0.11940298507462686,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002528365235775709,
+                "p": 0.6318407960199005,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5000000596046448,
+                "p": 0.49999849609582303,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.15236243605613708,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04991545155644417,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0009602985810488462,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009315239731222391,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.013499494642019272,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.009983595432552644,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.013499494642019272,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.009983595432552644,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.013499494642019272,
+                "p": 0.24378109452736318,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019836598075926304,
+                "p": 0.27860696517412936,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49900001287460327,
+                "p": 0.5252141902301742,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.10639214515686035,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.12644563615322113,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.001196899451315403,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002195664681494236,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.009876037016510963,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0020995685989828507,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.009876037016510963,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0020995685989828507,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.009876037016510963,
+                "p": 0.9353233830845771,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002438585739582777,
+                "p": 0.2935323383084577,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5060000419616699,
+                "p": 0.3521672215464941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13299019634723663,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.007842758670449257,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.012406038120388985,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.009701093658804893,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.008479307405650616,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.007995033981253317,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.012406038120388985,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.009701093658804893,
+                "best_step": 50,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.012406038120388985,
+                "p": 0.6218905472636815,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001908393925987184,
+                "p": 0.8955223880597015,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4970000386238098,
+                "p": 0.5752412966719616,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.0927472859621048,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1007642075419426,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0021709799766540527,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0004305788315832615,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0008909200550988317,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011319650452080608,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0021709799766540527,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0004305788315832615,
+                "best_step": 40,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0021709799766540527,
+                "p": 0.48756218905472637,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0021340709645301104,
+                "p": 0.6865671641791045,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.44967074686970376,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.13332529366016388,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07475209981203079,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011173468083143234,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0021568159572780132,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.006723439786583185,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.009902952120654823,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.006723439786583185,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.009902952120654823,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.006723439786583185,
+                "p": 0.6019900497512438,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0023797324392944574,
+                "p": 0.09950248756218906,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.0802372470498085,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.18282261490821838,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0010096277110278606,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002513247076421976,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0005978168919682503,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0066533102555341745,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0010096277110278606,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002513247076421976,
+                "best_step": 10,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0010096277110278606,
+                "p": 0.7164179104477612,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0021486226469278336,
+                "p": 0.7164179104477612,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5040000081062317,
+                "p": 0.40014078107510487,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.1279308944940567,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.13712413609027863,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011472039623185992,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0026184425223618746,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00577818788588047,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00037573845656668856,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00577818788588047,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00037573845656668856,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00577818788588047,
+                "p": 0.9751243781094527,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.00202854978851974,
+                "p": 0.9900497512437811,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49900001287460327,
+                "p": 0.5252141902301742,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.144176185131073,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.1255943775177002,
+                "best_step": 10
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0027392515912652016,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0016095852479338646,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.009579231031239033,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002568771651510748,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0027392515912652016,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0016095852479338646,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0027392515912652016,
+                "p": 0.6766169154228856,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002452853601425886,
+                "p": 0.8308457711442786,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5010000467300415,
+                "p": 0.474784308870553,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.0855855792760849,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.045332107692956924,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0018447197508066893,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.002277030609548092,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0022631585597991943,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.003074135988248901,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0022631585597991943,
+                "tau": 0.26478751132706785,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.003074135988248901,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0022631585597991943,
+                "p": 0.13930348258706468,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0022705576848238707,
+                "p": 0.6915422885572139,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5040000081062317,
+                "p": 0.40014078107510487,
+                "reject": false
+              }
+            }
+          ]
+        },
+        "2000": {
+          "repeats": 50,
+          "summary": {
+            "vcs_hoeff": {
+              "power": 0.0,
+              "picked": {
+                "closed": 44,
+                "mlp": 6
+              },
+              "J_eval_mean": -0.0008027778635732829,
+              "J_eval_sd": 0.0015092010395965356,
+              "tau": 0.13239375566353392
+            },
+            "vcs_hoeff_lin": {
+              "power": 0.0,
+              "J_eval_mean": -0.05198393002152443
+            },
+            "vcs_hoeff_mlp": {
+              "power": 0.0,
+              "J_eval_mean": -0.0010598599695367738
+            },
+            "vcs_hoeff_closed": {
+              "power": 0.0,
+              "J_eval_mean": -0.000653959809569642
+            },
+            "vcs_perm": {
+              "power": 0.1
+            },
+            "hsic_perm": {
+              "power": 0.04
+            },
+            "c2st": {
+              "power": 0.0,
+              "acc_mean": 0.5010500264167785
+            },
+            "unconditional_power": {
+              "vcs_hoeff": 0.0,
+              "vcs_hoeff_lin": 0.0,
+              "vcs_hoeff_mlp": 0.0,
+              "vcs_hoeff_closed": 0.0,
+              "vcs_perm": 1.0,
+              "hsic_perm": 1.0,
+              "c2st": 1.0
+            }
+          },
+          "instances": [
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04426056891679764,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05086115002632141,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0010163718834519386,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0015706070698797703,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -5.17197186127305e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000421162321975608,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -5.17197186127305e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000421162321975608,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -5.17197186127305e-05,
+                "p": 0.8606965174129353,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017313497373834252,
+                "p": 0.44776119402985076,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5007500052452087,
+                "p": 0.46220944259462465,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.051498983055353165,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06058206409215927,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.001187523128464818,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007349711377173662,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00033447647001594305,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 9.905541091899205e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00033447647001594305,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 9.905541091899205e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00033447647001594305,
+                "p": 0.8905472636815921,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001874231151305139,
+                "p": 0.029850746268656716,
+                "reject": true
+              },
+              "c2st": {
+                "acc": 0.502750039100647,
+                "p": 0.36397435751923896,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05440161004662514,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07523918151855469,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008372621377930045,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009677847265265882,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0004209931939840317,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009353672544098542,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0004209931939840317,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009353672544098542,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0004209931939840317,
+                "p": 0.681592039800995,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018884874880313873,
+                "p": 0.6119402985074627,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5040000677108765,
+                "p": 0.3064378053682615,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04594288766384125,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05738571286201477,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0014183595776557922,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0010439448524266481,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.000412384863011539,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -6.138042005201624e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.000412384863011539,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -6.138042005201624e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.000412384863011539,
+                "p": 0.009950248756218905,
+                "reject": true
+              },
+              "hsic_perm": {
+                "stat": 0.0018669310957193375,
+                "p": 0.0845771144278607,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49650001525878906,
+                "p": 0.671014756849098,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.058773934841156006,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06624036282300949,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0006751636974513531,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007990282028913498,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00010299193672835827,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00014561807226066823,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00010299193672835827,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00014561807226066823,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00010299193672835827,
+                "p": 0.6766169154228856,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019356278935447335,
+                "p": 0.04477611940298507,
+                "reject": true
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.4001393245348941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.03846711665391922,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07624019682407379,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005966972676105797,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000663445214740932,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0003578008327167481,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011640220297601611,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0005966972676105797,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000663445214740932,
+                "best_step": 30,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0005966972676105797,
+                "p": 0.40298507462686567,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019351032096892595,
+                "p": 0.0945273631840796,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.499750018119812,
+                "p": 0.5126126463983197,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04537820443511009,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04867882654070854,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008172347443178296,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0008098618127405643,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00036878930404782295,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0014592748286013143,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00036878930404782295,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0014592748286013143,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00036878930404782295,
+                "p": 0.8407960199004975,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001840613316744566,
+                "p": 0.09950248756218906,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5045000314712524,
+                "p": 0.2846054741333094,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04825055971741676,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05129557102918625,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008240267634391785,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014130522031337023,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 5.485297879204154e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008560648197304638,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 5.485297879204154e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008560648197304638,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 5.485297879204154e-05,
+                "p": 0.19402985074626866,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018710183212533593,
+                "p": 0.4129353233830846,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.4001393245348941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04901987314224243,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06259196996688843,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0009080208837985992,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0012333951890468597,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.00012859510025009513,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007218617005622457,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.00012859510025009513,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007218617005622457,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.00012859510025009513,
+                "p": 0.3482587064676617,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018381872214376926,
+                "p": 0.32338308457711445,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49825000762939453,
+                "p": 0.5875933372213645,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.057831451296806335,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0878659039735794,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008710394613444805,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011227400973439217,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0002505628508515656,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0013182017506518744,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0008710394613444805,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011227400973439217,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0008710394613444805,
+                "p": 0.6169154228855721,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0016206223517656326,
+                "p": 0.09950248756218906,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5042500495910645,
+                "p": 0.29542886794958595,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05131687968969345,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04787933826446533,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0007941354997456074,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007718076230958104,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -7.831721450202167e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00031085539347918247,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -7.831721450202167e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00031085539347918247,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -7.831721450202167e-05,
+                "p": 0.2885572139303483,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001742411172017455,
+                "p": 0.8706467661691543,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5010000467300415,
+                "p": 0.44966925494952315,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.06975102424621582,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.056690823286771774,
+                "best_step": 20
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005928478785790503,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0005711598205380142,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.00015900962171144783,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0001692339776063582,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.00015900962171144783,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0001692339776063582,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.00015900962171144783,
+                "p": 0.11442786069651742,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018320591188967228,
+                "p": 0.5771144278606966,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49925002455711365,
+                "p": 0.5377890602533895,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.060869209468364716,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04569969326257706,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.001104271039366722,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014686230570077896,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0010458446340635419,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0008328121090068699,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0010458446340635419,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0008328121090068699,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0010458446340635419,
+                "p": 0.8109452736318408,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001970035722479224,
+                "p": 0.48756218905472637,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49800002574920654,
+                "p": 0.5998577623832954,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05830639600753784,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04759562015533447,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005772282020188868,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007729256758466363,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00016473562573082745,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00019702282817385774,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00016473562573082745,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00019702282817385774,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00016473562573082745,
+                "p": 0.9353233830845771,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0016507840482518077,
+                "p": 0.6766169154228856,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5050000548362732,
+                "p": 0.26354236285935567,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.051369935274124146,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06010005623102188,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0009279390797019005,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001047701109200716,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00015696452464908361,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0004486140103043346,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00015696452464908361,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0004486140103043346,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00015696452464908361,
+                "p": 0.835820895522388,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018674232997000217,
+                "p": 0.7263681592039801,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5015000104904175,
+                "p": 0.42475722625180307,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.059122778475284576,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.03716220706701279,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005923239514231682,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011073104105889797,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -7.150121382437646e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007318168209982206,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -7.150121382437646e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007318168209982206,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -7.150121382437646e-05,
+                "p": 0.22388059701492538,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001953572267666459,
+                "p": 0.6567164179104478,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49775001406669617,
+                "p": 0.612025924192237,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05797214061021805,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.056535571813583374,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0014469354646280408,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00048381148371845484,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0001432838907931,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -8.620738826089721e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0001432838907931,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -8.620738826089721e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0001432838907931,
+                "p": 0.4925373134328358,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018905824981629848,
+                "p": 0.4626865671641791,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5037500262260437,
+                "p": 0.3176269653809457,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05127460137009621,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.052201077342033386,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0012928087962791324,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006776134832762182,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -3.6101380828768015e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -2.0318319762496827e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -3.6101380828768015e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -2.0318319762496827e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -3.6101380828768015e-05,
+                "p": 0.3582089552238806,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001820015488192439,
+                "p": 0.3383084577114428,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5052500367164612,
+                "p": 0.2533186100654151,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05375552177429199,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.037874091416597366,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0006372085772454739,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0003557777963578701,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0027008133474737406,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0016514898006919517,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0027008133474737406,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0016514898006919517,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0027008133474737406,
+                "p": 0.44776119402985076,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018573259003460407,
+                "p": 0.3333333333333333,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5015000104904175,
+                "p": 0.42475722625180307,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05929535627365112,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.050842560827732086,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008199145086109638,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007982510142028332,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00043459003791213036,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00017269157515696068,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00043459003791213036,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00017269157515696068,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00043459003791213036,
+                "p": 0.9402985074626866,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0021095455158501863,
+                "p": 0.48258706467661694,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5049999952316284,
+                "p": 0.2635448254396225,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04914480447769165,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04311100393533707,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011885474668815732,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006489335792139173,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0016492567956447601,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.001102253236562076,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0016492567956447601,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.001102253236562076,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0016492567956447601,
+                "p": 0.24875621890547264,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018539384473115206,
+                "p": 0.6865671641791045,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49775001406669617,
+                "p": 0.612025924192237,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.053409598767757416,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.03761459141969681,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.002014390891417861,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006299819797277451,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0007762117893435061,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0007839601564731957,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0007762117893435061,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0007839601564731957,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0007762117893435061,
+                "p": 0.7114427860696517,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001881130738183856,
+                "p": 0.7512437810945274,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5005000233650208,
+                "p": 0.474784308870553,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.052966371178627014,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07582728564739227,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0009482260793447495,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011666310019791126,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0005248136585578322,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0015668878823742103,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0009482260793447495,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0011666310019791126,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0009482260793447495,
+                "p": 0.2537313432835821,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018022700678557158,
+                "p": 0.835820895522388,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5024999976158142,
+                "p": 0.3759149314675625,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04204995557665825,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04247177392244339,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005617266288027167,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008263473864644766,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0003475471748970449,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0003584447253020107,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.0003475471748970449,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0003584447253020107,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.0003475471748970449,
+                "p": 0.25870646766169153,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0016975909238681197,
+                "p": 0.27860696517412936,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5035000443458557,
+                "p": 0.32898251612697627,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.048783618956804276,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.050152361392974854,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005683037452399731,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007538609206676483,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0003940584138035774,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -4.5110688771563445e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.0003940584138035774,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -4.5110688771563445e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.0003940584138035774,
+                "p": 0.01990049751243781,
+                "reject": true
+              },
+              "hsic_perm": {
+                "stat": 0.0018740844679996371,
+                "p": 0.4527363184079602,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.503250002861023,
+                "p": 0.3405009036506968,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04309641569852829,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.050293877720832825,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0012740003876388073,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001083667273633182,
+                "best_step": 10
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00027981685707345605,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000701094893566151,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00027981685707345605,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000701094893566151,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00027981685707345605,
+                "p": 0.9402985074626866,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.002060861326754093,
+                "p": 0.35323383084577115,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4982500374317169,
+                "p": 0.5875918697142185,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.045079804956912994,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05136320739984512,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0004755386325996369,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006336372462101281,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0006340088439173996,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0001965225295978696,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.0006340088439173996,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0001965225295978696,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.0006340088439173996,
+                "p": 0.19900497512437812,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017850410658866167,
+                "p": 0.208955223880597,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4987500309944153,
+                "p": 0.562814924786801,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04224171116948128,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07565338164567947,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0006910115480422974,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0012554135173559189,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0003803151485044509,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014991712831719103,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0006910115480422974,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0012554135173559189,
+                "best_step": 20,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0006910115480422974,
+                "p": 0.05970149253731343,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017473729094490409,
+                "p": 0.900497512437811,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5037500262260437,
+                "p": 0.3176269653809457,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.050289325416088104,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05020128935575485,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011358987540006638,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.001222450053319335,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 1.6308622434735298e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007481855716584637,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 1.6308622434735298e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0007481855716584637,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 1.6308622434735298e-05,
+                "p": 0.1044776119402985,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017942598788067698,
+                "p": 0.8308457711442786,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5010000467300415,
+                "p": 0.44966925494952315,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.057581834495067596,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.02738262712955475,
+                "best_step": 80
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0027161450125277042,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00036764878313988447,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.007264741696417332,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.004654567252896815,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.007264741696417332,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.004654567252896815,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.007264741696417332,
+                "p": 0.7412935323383084,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017492019105702639,
+                "p": 0.3482587064676617,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49525004625320435,
+                "p": 0.7260223589029278,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04195686802268028,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06174014136195183,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.00047410372644662857,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0008830358274281025,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0007447989191859961,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000797835390208214,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.0007447989191859961,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000797835390208214,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.0007447989191859961,
+                "p": 0.029850746268656716,
+                "reject": true
+              },
+              "hsic_perm": {
+                "stat": 0.0018920695874840021,
+                "p": 0.4427860696517413,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.499750018119812,
+                "p": 0.5126126463983197,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.03449917584657669,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.038101665675640106,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0036667047534137964,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.001077129621990025,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -7.085636025294662e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00014588848522612078,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0036667047534137964,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.001077129621990025,
+                "best_step": 50,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0036667047534137964,
+                "p": 0.47761194029850745,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018959894077852368,
+                "p": 0.35323383084577115,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.499500036239624,
+                "p": 0.5252126893305437,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05288544297218323,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.059304408729076385,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0001956314081326127,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00025469763204455376,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.0005797090707346797,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0003452530829061138,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0001956314081326127,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00025469763204455376,
+                "best_step": 40,
+                "picked": "mlp"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0001956314081326127,
+                "p": 0.024875621890547265,
+                "reject": true
+              },
+              "hsic_perm": {
+                "stat": 0.001636584522202611,
+                "p": 0.8855721393034826,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5,
+                "p": 0.5,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05661623179912567,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.054217107594013214,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.00040470296517014503,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009356369264423847,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -4.489673301577568e-06,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00033424195588525126,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -4.489673301577568e-06,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00033424195588525126,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -4.489673301577568e-06,
+                "p": 0.6069651741293532,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018511577509343624,
+                "p": 0.40298507462686567,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5045000314712524,
+                "p": 0.2846054741333094,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04003187641501427,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.049061283469200134,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.000812768004834652,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000774892047047615,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -3.622943768277764e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00023304106174115951,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -3.622943768277764e-05,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00023304106174115951,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -3.622943768277764e-05,
+                "p": 0.5074626865671642,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001774854026734829,
+                "p": 0.4527363184079602,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5012500286102295,
+                "p": 0.4371821047683698,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04921770095825195,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05330991744995117,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008411030285060406,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0012430683709681034,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.00017707320512272418,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009520624511382499,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.00017707320512272418,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009520624511382499,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.00017707320512272418,
+                "p": 0.06965174129353234,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0020831606816500425,
+                "p": 0.3781094527363184,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49525001645088196,
+                "p": 0.726023614444353,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05511903390288353,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.029352942481637,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.002264632610604167,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00010566658602328971,
+                "best_step": 60
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.003352933097630739,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0025931579183587662,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.003352933097630739,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0025931579183587662,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.003352933097630739,
+                "p": 0.6218905472636815,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017982636345550418,
+                "p": 0.9751243781094527,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.499750018119812,
+                "p": 0.5126126463983197,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.06353936344385147,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05069620907306671,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0011449756566435099,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00011827907292172313,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0025314989034086466,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0007382813317836695,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0025314989034086466,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0007382813317836695,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0025314989034086466,
+                "p": 0.36318407960199006,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017718124436214566,
+                "p": 0.6019900497512438,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5057500004768372,
+                "p": 0.23351377346676125,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.06280729174613953,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.04763788729906082,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005838191136717796,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0005679961759597063,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.001390261109918356,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00133623861209831,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.001390261109918356,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.00133623861209831,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.001390261109918356,
+                "p": 0.5074626865671642,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018361432012170553,
+                "p": 0.5422885572139303,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5015000104904175,
+                "p": 0.42475722625180307,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.047558899968862534,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.038059309124946594,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0003245309926569462,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0005039931274950504,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.001510183559730649,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0010540927502223254,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.001510183559730649,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0010540927502223254,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.001510183559730649,
+                "p": 0.7810945273631841,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001711809542030096,
+                "p": 0.417910447761194,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5007500052452087,
+                "p": 0.46220944259462465,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.06492754071950912,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.030930273234844208,
+                "best_step": 30
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0013525625690817833,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0009554442949593067,
+                "best_step": 50
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0014231018722057343,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0016245882461896556,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0014231018722057343,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0016245882461896556,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0014231018722057343,
+                "p": 0.24875621890547264,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019161677919328213,
+                "p": 0.11940298507462686,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5045000314712524,
+                "p": 0.2846054741333094,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05981900542974472,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.07412674278020859,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0005925428122282028,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006306655704975128,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0004570776945911348,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006173003034905704,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0004570776945911348,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006173003034905704,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0004570776945911348,
+                "p": 0.9203980099502488,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001994938123971224,
+                "p": 0.7263681592039801,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.503000020980835,
+                "p": 0.3521672215464941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05406108498573303,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05412435531616211,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.000984388287179172,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014608098426833749,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0030481796711683273,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 3.7452370743462074e-05,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0030481796711683273,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 3.7452370743462074e-05,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0030481796711683273,
+                "p": 0.9651741293532339,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018157886806875467,
+                "p": 0.7711442786069652,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.502750039100647,
+                "p": 0.36397435751923896,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.048512980341911316,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.06508754193782806,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008181584998965263,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000977595103904605,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0001762587926350534,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006738206631622048,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0001762587926350534,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0006738206631622048,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0001762587926350534,
+                "p": 0.5572139303482587,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019351650262251496,
+                "p": 0.4925373134328358,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4985000491142273,
+                "p": 0.5752398195946697,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.04425795376300812,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0641554594039917,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0006538010202348232,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.000377367134205997,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.000564838235732168,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00023366257669348565,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.000564838235732168,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00023366257669348565,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.000564838235732168,
+                "p": 0.004975124378109453,
+                "reject": true
+              },
+              "hsic_perm": {
+                "stat": 0.0018661972135305405,
+                "p": 0.7263681592039801,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5007500052452087,
+                "p": 0.46220944259462465,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.0468255952000618,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.051267318427562714,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0006923694163560867,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0014369525015354156,
+                "best_step": 20
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": 0.00021428201580420136,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0001545039980656193,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": 0.00021428201580420136,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0001545039980656193,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": 0.00021428201580420136,
+                "p": 0.35323383084577115,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0017489369492977858,
+                "p": 0.8905472636815921,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5007500648498535,
+                "p": 0.46220644829225926,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05333224684000015,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.05228270962834358,
+                "best_step": 50
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0007628428866155446,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0004169205203652382,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.00027839653193950653,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00022098651257153567,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.00027839653193950653,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.00022098651257153567,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.00027839653193950653,
+                "p": 0.8208955223880597,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018098581349477172,
+                "p": 0.746268656716418,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.49950000643730164,
+                "p": 0.5252141902301742,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.05948305502533913,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.040492575615644455,
+                "best_step": 40
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0008930078474804759,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.0009498366853222251,
+                "best_step": 30
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0006619786145165563,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0007420142671161707,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0006619786145165563,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0007420142671161707,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0006619786145165563,
+                "p": 0.6716417910447762,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0018392506754025817,
+                "p": 0.6666666666666666,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5007500648498535,
+                "p": 0.46220644829225926,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.051826782524585724,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.02937065064907074,
+                "best_step": 60
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.0017312138807028532,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -3.456644481047988e-05,
+                "best_step": 40
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.0007222589338198304,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0006395154946555522,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.0007222589338198304,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0006395154946555522,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.0007222589338198304,
+                "p": 0.4427860696517413,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.001897319220006466,
+                "p": 0.05472636815920398,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.5020000338554382,
+                "p": 0.4001393245348941,
+                "reject": false
+              }
+            },
+            {
+              "vcs_hoeff_lin": {
+                "J_eval": -0.06041589751839638,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": -0.03142370656132698,
+                "best_step": 70
+              },
+              "vcs_hoeff_mlp": {
+                "J_eval": -0.004288037307560444,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0004089375725015998,
+                "best_step": 60
+              },
+              "vcs_hoeff_closed": {
+                "J_eval": -0.005343343131244183,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0028400388446219696,
+                "best_step": -1
+              },
+              "vcs_hoeff": {
+                "J_eval": -0.005343343131244183,
+                "tau": 0.13239375566353392,
+                "reject": false,
+                "sat_pos": 0.0,
+                "val_J": 0.0028400388446219696,
+                "best_step": -1,
+                "picked": "closed"
+              },
+              "vcs_perm": {
+                "J_eval": -0.005343343131244183,
+                "p": 0.9651741293532339,
+                "reject": false
+              },
+              "hsic_perm": {
+                "stat": 0.0019742425065487623,
+                "p": 0.16417910447761194,
+                "reject": false
+              },
+              "c2st": {
+                "acc": 0.4947500228881836,
+                "p": 0.7466789773198511,
+                "reject": false
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "utc_end": "2026-09-27T12:59:17Z"
+}
