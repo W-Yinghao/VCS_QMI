@@ -50,8 +50,15 @@ non-matching* stages by a small margin only, and it is not a better probe than C
   change nothing; smoothing helps MI more than J*, and at σ = 4 px J* loses its peak at the truth in 17 % of images.  Substance: the roughness
   of J* is not intrinsic to the objective — it is a feature-class effect that a low-frequency channel or a multi-resolution optimiser
   compensates — but even then J* only *equals* MI, and nothing in these five variants gives it an advantage.  The family stays closed:
-  matching a 30-year-old baseline at best is not a reason to use J* as a registration energy.  (The combination patch + coarse-to-fine was
-  not pre-registered and was not run.)
+  matching a 30-year-old baseline at best is not a reason to use J* as a registration energy.  **Addendum 1 (owner: "都补充上") — the combination patch features + coarse-to-fine (GPU job 1011782):** J* 6.6 local maxima vs 6.5, basin
+  22 / 16 vs 24 / 21 px / deg, success 1.00 / 1.00 / 0.94 / 0.79 vs 1.00 / 1.00 / 0.93 / 0.79, peak at truth 1.00, no divergence (MI / NMI diverge
+  in 1 % of the R = 30 starts).  Reading (addendum 1: re-opened only if maxima ≤ NMI's *and* success within 0.05): success is at parity
+  (+0.01 / 0.00) and the maxima differ by 0.1 per image — by the letter (6.6 > 6.5) the clause is not met, by any practical reading J* now
+  *equals* MI on every metric.  Either way the addendum's own sentence applies: parity is not advantage, and the family stays closed.  What
+  changes is the diagnosis — the roughness that P52 measured is entirely a feature-class and optimiser effect, not a property of the
+  objective; the real-data runs (RGB–NIR, and IXI / fMRI when they land) used the Fourier-49 class without coarse-to-fine, so their J* deficit
+  is an upper bound on what the plain closed form loses, not the floor.  Re-running the combination on the real sources is a natural next
+  step; it was not pre-registered and is listed as *proposed*.
 - **B-T2, source 1 — real cross-spectral pairs (EPFL RGB–NIR Scene, 60 of 477 pairs, stratified over 9 categories; owner accepted the data
   2026-09-27; provenance sha256 7c465a23…, pair-list hash 6c262c3e… in the frozen P60 prereg; GPU job 1011199, 55 min).**
 
