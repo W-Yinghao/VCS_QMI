@@ -86,7 +86,20 @@ non-matching* stages by a small margin only, and it is not a better probe than C
   On dual-echo PD/T2 the intensity relation is almost one-to-one, so histogram MI is unimodal over the whole ± 24 px / ± 30° range and succeeds
   from every start; J* also peaks at the truth in every subject and never diverges, but its narrower basin loses one start in six at R = 30.
   Third real source (fMRI EPI-boldref vs T1w) pending.
-- **B-T2, source 3 — fMRI EPI vs T1w (AOMIC-PIOP1, CC0; P60 fMRI prereg):** running (smoke 1011927 → full 1011928); appended when it lands.
+- **B-T2, source 3 — fMRI EPI-boldref vs T1w (AOMIC-PIOP1, CC0; 60 subjects; brain-masked mid-axial slices, EPI resampled onto the 1 mm T1w grid;
+  GPU job 1011928; slice previews in `reports/slices_fmri/`).**
+
+  | measure | peak at truth (transl. / rot.) | mean # local maxima | median basin half-width px / deg | success R = 5 / 10 / 20 / 30 | divergence |
+  |---|---|---|---|---|---|
+  | closed-form J* (Fourier 49) | 1.00 / 0.98 | 1.2 | 22 / 15 | 0.97 / 0.95 / 0.88 / 0.84 | 0.00 |
+  | histogram MI | 1.00 / 1.00 | 1.0 | 24 / 30 | 1.00 / 1.00 / 1.00 / 0.99 | 0.00 |
+  | NMI | 1.00 / 1.00 | 1.0 | 24 / 30 | 1.00 / 1.00 / 1.00 / 0.99 | 0.00 |
+
+  **Reading (frozen, as the other real sources): does not hold** — success 0.12 / 0.15 below NMI at R = 20 / 30, 1.2 vs 1.0 local maxima, a
+  rotation basin half as wide (15° vs 30°).  Functional-to-structural registration is MI's textbook case and MI is again near-perfect; J*
+  always finds the truth from nearby but loses one start in six from 30 px / 30°.  Three real sources (cross-spectral RGB–NIR, dual-echo PD/T2,
+  EPI/T1w) and the constructed pairs now agree, with the same signature each time: correct global maximum, no divergence, narrower basin.
+
 
 ## 4. Family table (brief appendix A, row B) after B-S1 / B-T1
 Unlabelled embedding probes / measurement on frozen features: *candidate*, with the qualification that the closed-form J* offers
