@@ -62,3 +62,11 @@ Code: `scripts/precheck_d_features.py`, `scripts/precheck_d_tests.py`, `slurm/pr
    the "small-sample end" comparison (n ≤ 500) is between the permutation-calibrated tests, and the guaranteed test is read on its own curve
    (smallest n reaching 80 % power per s).
 3. Conditional exactness held in the probe (label_only: conditional tests 0/4 rejections at n = 2000; label_colour: vcs_perm 4/4, HSIC 2/4, C2ST 0/4).
+4. **Null-calibration top-up at R = 100 (written 2026-09-27 after the fleet tables were seen, frozen before any further compute).**  The
+   false-alarm rule (≤ 0.09) carries a binomial slack derived for R = 100, but the fleet's s = 0 cells at n ≥ 2000 ran with R = 30 (n = 2000,
+   5000) and R = 10 (n = 10 000), where a single rejection above the expectation already prints 0.10.  Observed in the fleet: vcs_perm 3/30 at
+   n = 5000 (both encoders) and 1/10 at n = 10 000 (VCS encoder); hsic_perm 5/30 at n = 5000 (SimCLR encoder); *label_only* conditional
+   vcs_perm 5/50 at n = 2000 (SimCLR encoder).  Top-up: the s = 0 case at n ∈ {2000, 5000, 10 000} and the *label_only* conditional case at
+   n = 2000 are re-run with R = 100 on fresh draws (seed 2, disjoint from the fleet's seed 1), both encoders; nothing else changes and no
+   power cell is re-run.  The false-alarm and conditional-exactness (type-I) rules are then read on the R = 100 rates; the fleet's R = 30 / 10
+   rates stay in the tables.  Cost ≈ 1.5 GPU-hours per encoder.

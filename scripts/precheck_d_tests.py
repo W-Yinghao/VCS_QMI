@@ -220,7 +220,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--features", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--sizes", default="100,200,500,1000,2000,5000,10000"); ap.add_argument("--repeats", type=int, default=100)
-    ap.add_argument("--repeats-large", type=int, default=30, help="repeats for n >= 2000 (n >= 10000: 10)"); ap.add_argument("--perms", type=int, default=200)
+    ap.add_argument("--repeats-large", type=int, default=30, help="repeats for n >= 2000"); ap.add_argument("--repeats-xl", type=int, default=10, help="repeats for n >= 10000"); ap.add_argument("--perms", type=int, default=200)
     ap.add_argument("--steps", type=int, default=300); ap.add_argument("--delta", type=float, default=0.05)
     ap.add_argument("--cond-sizes", default="500,2000"); ap.add_argument("--cond-repeats", type=int, default=50)
     ap.add_argument("--cases", default=None, help="comma list of case names to run (default: all in the manifest)")
@@ -241,7 +241,7 @@ def main() -> int:
         grid = cond_sizes if conditional else sizes
         results["cases"][case] = {"strength": d["strength"], "conditional": conditional, "by_n": {}}
         for n in grid:
-            R = a.cond_repeats if conditional else (10 if n >= 10000 else (a.repeats_large if n >= 2000 else a.repeats))
+            R = a.cond_repeats if conditional else (a.repeats_xl if n >= 10000 else (a.repeats_large if n >= 2000 else a.repeats))
             inst = [run_instance(H, Y, N, n, rng, conditional=conditional, delta=a.delta, perms=a.perms, steps=a.steps, seed=a.seed * 1000 + r) for r in range(R)]
             summ = {t: {"power": float(np.mean([i[t]["reject"] for i in inst]))} for t in ("vcs_hoeff", "vcs_hoeff_lin", "vcs_hoeff_mlp", "vcs_hoeff_closed", "vcs_perm", "hsic_perm", "c2st")}
             summ["vcs_hoeff"]["picked"] = dict(zip(*np.unique([i["vcs_hoeff"]["picked"] for i in inst], return_counts=True)))
