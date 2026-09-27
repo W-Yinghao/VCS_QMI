@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-27 02:15 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-27 05:20 UTC (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -120,8 +120,8 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 | 8× | 16 views, 200 ep | 86.74 | 84.48 | 126 | 1 | P44 |
 | 8× | 4 views, 800 ep, B 128 | 86.70 | 84.54 | 127 | 1 | P44 |
 | 8× | 4 views, 800 ep, strong aug (crop 0.08, jitter 0.8) | **87.78** | 85.58 | 107 | 1 | P44 |
-| 16× | 4 views, 1600 ep | **[pending]** | | | 1 | P44 |
-| 16× | 8 views, 800 ep | **[pending]** | | | 1 | P44 |
+| 16× | 4 views, 1600 ep | 87.50 | 85.84 | 157 | 1 | P44 |
+| 16× | 8 views, 800 ep | 87.14 | 86.32 | 157 | 1 | P44 |
 
 Reference points on the same split and protocol (P5, 3 seeds, 200 epochs, 2 views, **untuned** frozen recipes): SimCLR-matched 86.09 ± 0.38 /
 kNN 83.98 / rank 90; VICReg-matched-128 85.46 ± 0.26 / 81.92 / 76.  Original VCS recipe (concat-MLP critic, K = 1): 74.34 ± 0.46 / 63.93 / 13.
@@ -146,7 +146,7 @@ views (2 views, B 128: +0.6; 4 views, B 128 at 1×: +1.6); detach is necessary w
 Fixed schedule (200 ep, B 256, 35 k steps): 2 → 4 → 8 → 16 views = 81.56 → 84.54 → 86.28 → 86.74 (+3.0, +1.7, +0.5: flattening; 16 views cost 4× the step time of 4 views).  Fixed compute: at 1× 4 views/100 ep (81.88) ≈ 2 views
 (81.56) > 8 views/50 ep (80.60); at 2× 4 views/200 ep (84.54) = 8 views/100 ep/B 128 (84.60) > 8 views/100 ep/B 256 (83.40); at 4× 8 views/
 200 ep (86.28) > 4 views/400 ep (85.90) > 2 views/800 ep (85.30).  Reading: more pairs per image help as long as the update count is not
-reduced to pay for them; from 4× on, views buy more than epochs.  8 views × 800 ep **[pending]**.
+reduced to pay for them; from 4× on, views buy more than epochs.  8 views × 800 ep: 87.14 / kNN 86.32 (16×).
 
 ### 5.4 Ablations on the final recipe (single seed; P40 unless stated; comparator 83.19 ± 0.40 at 1× or 84.54 ± 0.16 at 2×)
 | knob | tested | result |
@@ -167,10 +167,22 @@ critics (neutral, neutral, collapse, collapse, neutral); bias calibration; LR 3e
 2 views; weak / strong augmentation, blur; K = 64 / 255 without detach (+0.4 / +0.9), with detach (+0.2).  Full list: `ALL_RUNS.md`,
 `SYNTHESIS_20260925.md` §2, P13–P40 reports.
 
-### 5.5 Ceiling runs (owner: compute unconstrained) — **[pending, 2026-09-27 ≈ 04:00–08:00 UTC]**
-4 views × 1600 ep; 8 views × 800 ep; 8 views × 400 ep; 16 views × 200 ep; 4 views × 800 ep with B 128; 4 views ×
-800 ep with strong augmentation.  Reading rule (pre-registered, P43): absolute numbers; a kNN curve flat over its last two logged points
-counts as saturated; the best configuration then gets seeds 1/2.
+### 5.5 Ceiling runs (owner: compute unconstrained) — final (P44; single seed each; 8 views × 200 ep seeds 1/2 still running)
+| compute | run | linear | kNN | h-rank | kNN curve (last points) |
+|---|---|---|---|---|---|
+| 8× | 4 v × 800 ep (3 seeds) | 87.01 ± 0.53 | 85.46 ± 0.12 | 134 | 85.2 → 85.5 (600 → 800) |
+| 8× | 4 v × 800 ep, strong aug | **87.78** | 85.58 | 107 | 85.3 → 85.6 |
+| 8× | 8 v × 400 ep | 86.76 | 84.94 | 137 | 85.1 → 84.9 (flat) |
+| 8× | 16 v × 200 ep | 86.74 | 84.48 | 126 | 84.7 → 84.5 (flat) |
+| 8× | 4 v × 800 ep, B 128 | 86.70 | 84.54 | 127 | 83.9 → 84.5 |
+| 16× | 4 v × 1600 ep | 87.50 | 85.84 | 157 | see P44 |
+| 16× | 8 v × 800 ep | 87.14 | **86.32** | 157 | see P44 |
+Reading: at 8× compute every allocation (more epochs, more views, more updates) lands at 86.7–87.0; doubling again to 16× adds ≈ +0.3
+(87.1–87.5).  The linear ceiling of the recipe on this split is therefore ≈ 87.5 (+0.5 per doubling and flattening); kNN keeps rising with
+views and schedule (86.3 at 8 views × 800 ep).  The one lever with a gain at fixed compute is stronger augmentation on the long schedule
+(+0.8, single seed).  The "best absolute" configuration for the paper is 4 views × 800 epochs (3 seeds, 87.01 ± 0.53), with strong
+augmentation (87.78) and 4 views × 1600 epochs (87.50) as single-seed upper points; the owner stopped further SSL submissions on
+2026-09-26, so these are not seeded.
 
 ---
 
