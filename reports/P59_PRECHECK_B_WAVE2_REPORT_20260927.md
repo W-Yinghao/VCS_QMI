@@ -1,8 +1,8 @@
 # Row B, wave 2 — report (P59): B-S1 closed form on cross-modal features, B-T1 layer-correspondence probe; B-S2 and B-T2 pending
 
-Prereg: `P59_PRECHECK_B_WAVE2_PREREG_FROZEN_20260927.md` (probes disclosed there).  Tables: `P59_precheck_B_S1_clip.md`, `P59_task_B_T1_layerprobe.md`
-(results-only commit d322a00).  Evidence category: completed for B-S1 and B-T1 (CPU jobs 1011126, 1011140); B-S2 (five GPU variants) and
-B-T2 (IXI; data blocked, see §3) pending.
+Prereg: `P59_PRECHECK_B_WAVE2_PREREG_FROZEN_20260927.md` (probes disclosed there).  Tables: `P59_precheck_B_S1_clip.md`, `P59_task_B_T1_layerprobe.md`,
+`P59_precheck_B_S2_{fourier121,patch,smooth2,smooth4,ctf}.md`, `P60_task_B_T2_rgbnir.md` (results-only commits d322a00, d330a38 and the B-S2 commit).
+Evidence category: completed for B-S1, B-T1, B-S2 and B-T2 source 1; B-T2 source 2 (IXI) pending data.
 
 ## 1. B-S1 — closed-form linear-class critic vs the trained cosine critic on CLIP adapter features (topic pairing, 3 seeds)
 | split | neural critic J (mean of 3 seeds) | best tanh-closed-form J (class P1, 513-d) | gap neural − closed |
@@ -32,9 +32,26 @@ on the diagonal with off-diagonal values 0.62–0.93 — whereas CKA spans 0.2�
 non-matching* stages by a small margin only, and it is not a better probe than CKA on this evidence.  The untransformed closed form
 (`vcs_closed`) is not usable as a probe (1/6): the tanh scalar chosen on validation is what makes the bilinear J* readable.
 
-## 3. Pending
-- **B-S2** registration-energy variants (Fourier 121, patch features, smoothing σ = 2 / 4 px, coarse-to-fine): jobs 1011141–1011145 class,
-  ≈ 1.7 GPU-h each; appended here when they land.
+## 3. B-S2 and B-T2
+- **B-S2 — registration-energy variants on the P52 constructed pairs (60 images, same seed; GPU jobs 1011141 / 1011191 / 1011192 / 1011204 / 1011205).**
+  Baseline P52: J* 10.2 local maxima, success 0.77 / 0.54 at R = 20 / 30; MI / NMI 6.5, 0.88 / 0.70.
+
+  | variant (applied to all measures where it is a preprocessing) | J* maxima | MI / NMI maxima | J* success R = 20 / 30 | MI / NMI success | J* peak at truth |
+  |---|---|---|---|---|---|
+  | Fourier features 49 → 121 | 10.4 | 6.5 | 0.78 / 0.54 | 0.88 / 0.70 | 1.00 |
+  | + 8 × 8 block-mean channel (patch features) | **6.6** | 6.5 | 0.85 / 0.64 | 0.88 / 0.70 | 1.00 |
+  | pre-smoothing σ = 2 px | 6.7 | 4.5 / 4.6 | 0.83 / 0.64 | 0.91 / 0.73 | 1.00 |
+  | pre-smoothing σ = 4 px | 5.0 | 3.1 / 3.2 | 0.61 / 0.47 | 0.91 / 0.73 | 0.83 |
+  | coarse-to-fine optimiser (64 → 128 → 256 px) | 10.2 (surface unchanged) | 6.5 | **0.94 / 0.76** | 0.93 / 0.79 | 1.00 |
+
+  **Reading (frozen: re-opened only if one variant matches MI/NMI on local maxima *and* success within 0.05): not re-opened.**  No single
+  variant does both: the block-mean feature class removes the extra maxima (6.6 vs 6.5) but leaves success 0.03 / 0.06 short; the
+  coarse-to-fine optimiser brings success to parity (+0.01 / −0.03) but the fine-scale surface keeps its 10.2 maxima; more Fourier features
+  change nothing; smoothing helps MI more than J*, and at σ = 4 px J* loses its peak at the truth in 17 % of images.  Substance: the roughness
+  of J* is not intrinsic to the objective — it is a feature-class effect that a low-frequency channel or a multi-resolution optimiser
+  compensates — but even then J* only *equals* MI, and nothing in these five variants gives it an advantage.  The family stays closed:
+  matching a 30-year-old baseline at best is not a reason to use J* as a registration energy.  (The combination patch + coarse-to-fine was
+  not pre-registered and was not run.)
 - **B-T2, source 1 — real cross-spectral pairs (EPFL RGB–NIR Scene, 60 of 477 pairs, stratified over 9 categories; owner accepted the data
   2026-09-27; provenance sha256 7c465a23…, pair-list hash 6c262c3e… in the frozen P60 prereg; GPU job 1011199, 55 min).**
 
