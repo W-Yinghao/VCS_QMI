@@ -62,7 +62,8 @@ SCHEMA: dict[str, Any] = {
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num},
     "pairing": {"sampler": str, "k": int, "unique_shifts": bool, "allow_self": bool, "label_filter": bool, "queue": bool,
-                "negative_detach": bool, "rng": str, "rng_seed_offset": int},
+                "negative_detach": bool, "rng": str, "rng_seed_offset": int,
+                "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096)},
     "train": {"mode": str, "target_branch": _Opt(str, "shared"), "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
               "replacement": bool, "world_size": int, "grad_accumulation_steps": int, "precision": str, "allow_tf32": bool,
               "compile": bool, "num_workers": int, "pin_memory": bool, "persistent_workers": bool,
@@ -145,9 +146,23 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     p = cfg["pairing"]
     if not (1 <= p["k"] <= cfg["train"]["batch_size_images"] - 1):
         raise ConfigError("pairing.k must satisfy 1 <= K <= batch_size_images - 1 (K distinct nonzero cyclic shifts)")
+    ns = p.get("negative_source", "cyclic")
+    if ns not in ("cyclic", "queue"):
+        raise ConfigError("pairing.negative_source must be 'cyclic' (frozen: in-batch cyclic shifts) or 'queue' (named variant: FIFO queue of detached features from previous steps)")
+    if p["queue"] != (ns == "queue"):
+        raise ConfigError("pairing.queue must be true exactly when pairing.negative_source == 'queue'")
     if p["sampler"] not in ("random_nonzero_cyclic_shift", "random_nonzero_cyclic_shift_symmetric", "all_pairs_matrix") or not p["unique_shifts"] \
-            or p["allow_self"] or p["label_filter"] or p["queue"] or p["rng"] != "dedicated_cpu_generator":
+            or p["allow_self"] or p["label_filter"] or p["rng"] != "dedicated_cpu_generator":
         raise ConfigError("pairing policy deviates from the frozen definition (symmetric scoring of both orders is the only named variant)")
+    if ns == "queue":
+        if m not in ("vcs_qmi", "simclr_matched"):
+            raise ConfigError("queue negatives are implemented for vcs_qmi and simclr_matched only (VICReg has no negatives)")
+        if p["sampler"] != "random_nonzero_cyclic_shift":
+            raise ConfigError("queue negatives require the default sampler (no symmetric / all-pairs combination)")
+        if not isinstance(p["queue_size"], int) or p["queue_size"] < max(2, p["k"]):
+            raise ConfigError("pairing.queue_size must be an int >= max(2, K)")
+        if cfg["views"]["count"] != 2 or cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint":
+            raise ConfigError("queue negatives are implemented for 2 views, the shared branch and a single joint step only")
     if p["negative_detach"] and m != "vcs_qmi":
         raise ConfigError("negative_detach is a VCS-only named variant")
     if m == "vcs_qmi" and cfg["model"]["critic"]["cosine_scale_init"] <= 0:

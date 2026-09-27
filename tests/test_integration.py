@@ -925,3 +925,120 @@ def test_control_tuning_flag_and_multiview_controls(tmp_path):
     badv = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text()); badv["run"]["control_tuning"] = True
     with pytest.raises(ConfigError, match="control methods only"):
         load_config(_write(tmp_path, yaml.safe_dump(badv)), env=env)
+
+
+def test_queue_negatives_config_and_objective(tmp_path):
+    """Wave-2 C-T named variant: FIFO queue of detached features as the negative pool (VCS product term / SimCLR MoCo-style)."""
+    import yaml
+    from vcs_ssl.objectives import NegativeQueue, simclr_nt_xent_queue, vcs_pair_loss_negdetach, vcs_pair_loss_queue
+    env = _env(tmp_path)
+    base = yaml.safe_load((CFG_DIR / "cifar10_pilot_vcs.yaml").read_text())
+    cfg0 = load_config(_write(tmp_path, yaml.safe_dump(base)), env=env)
+    assert cfg0["pairing"]["negative_source"] == "cyclic" and cfg0["pairing"]["queue_size"] == 4096  # defaults: byte-identical behaviour
+
+    def with_queue(b, size=64, k=8):
+        c = copy.deepcopy(b); c["pairing"].update({"negative_source": "queue", "queue": True, "queue_size": size, "k": k}); return c
+    badv = yaml.safe_load((CFG_DIR / "cifar10_pilot_vicreg.yaml").read_text()); badv["pairing"].update({"negative_source": "queue", "queue": True})
+    with pytest.raises(ConfigError, match="vcs_qmi and simclr_matched only"):
+        load_config(_write(tmp_path, yaml.safe_dump(badv)), env=env)
+    inc = copy.deepcopy(base); inc["pairing"]["negative_source"] = "queue"  # queue flag left false
+    with pytest.raises(ConfigError, match="pairing.queue must be true"):
+        load_config(_write(tmp_path, yaml.safe_dump(inc)), env=env)
+    inc2 = copy.deepcopy(base); inc2["pairing"]["queue"] = True  # flag without the source
+    with pytest.raises(ConfigError, match="pairing.queue must be true"):
+        load_config(_write(tmp_path, yaml.safe_dump(inc2)), env=env)
+    with pytest.raises(ConfigError, match="queue_size"):
+        load_config(_write(tmp_path, yaml.safe_dump(with_queue(base, size=4, k=8))), env=env)
+    sym = with_queue(base); sym["pairing"]["sampler"] = "random_nonzero_cyclic_shift_symmetric"; sym["pairing"]["negative_detach"] = False
+    with pytest.raises(ConfigError, match="default sampler"):
+        load_config(_write(tmp_path, yaml.safe_dump(sym)), env=env)
+    v4 = with_queue(base); v4["views"]["count"] = 4
+    with pytest.raises(ConfigError, match="2 views"):
+        load_config(_write(tmp_path, yaml.safe_dump(v4)), env=env)
+    cfgq = load_config(_write(tmp_path, yaml.safe_dump(with_queue(base))), env=env)
+    assert cfgq["pairing"]["negative_source"] == "queue" and cfgq["pairing"]["queue_size"] == 64
+
+    # FIFO ring: order, cap, overflow, sampling without replacement per anchor
+    nq = NegativeQueue(8, 3)
+    rows = torch.arange(30, dtype=torch.float32).view(10, 3)
+    nq.enqueue(rows[:5]); assert nq.filled == 5 and torch.equal(nq.features(), rows[:5])
+    nq.enqueue(rows[5:10]); assert nq.filled == 8 and nq.ptr == 2 and torch.equal(nq.features(), rows[2:10])
+    nq.enqueue(rows); assert nq.filled == 8 and torch.equal(nq.features(), rows[2:10])
+    idx = nq.sample_indices(4, 3, torch.Generator().manual_seed(0))
+    assert idx.shape == (3, 4) and int(idx.max()) < 8 and all(len(set(idx[:, j].tolist())) == 3 for j in range(4))
+    st = nq.state_dict(); nq2 = NegativeQueue(8, 3); nq2.load_state_dict(st); assert torch.equal(nq2.features(), nq.features()) and nq2.ptr == nq.ptr
+
+    # VCS: with the queue holding exactly the other view's batch and the cyclic partner indices, the queue loss equals the negdetach loss
+    bt = build_models(cfgq, seed=0, device="cpu")
+    B, k = 16, 8
+    z1 = F.normalize(torch.randn(B, 128), dim=1).requires_grad_(True); z2 = F.normalize(torch.randn(B, 128), dim=1).requires_grad_(True)
+    g1, g2 = torch.Generator().manual_seed(7), torch.Generator().manual_seed(7)
+    indices, shifts = cyclic_negative_indices(B, k, generator=g1)
+    q = NegativeQueue(64, 128); q.enqueue(z2)
+    sq, _ = vcs_pair_loss_queue(z1, z2, bt["critic"], k=k, queue=q, generator=None, indices=indices)
+    sc, sh = vcs_pair_loss_negdetach(z1, z2, bt["critic"], k=k, generator=g2)
+    assert torch.equal(sh, shifts) and torch.allclose(sq["loss"], sc["loss"], atol=1e-6) and torch.allclose(sq["t_neg_mean"], sc["t_neg_mean"], atol=1e-6)
+    gq = torch.autograd.grad(sq["loss"], z1, retain_graph=True)[0]; gc = torch.autograd.grad(sc["loss"], z1, retain_graph=True)[0]
+    assert torch.allclose(gq, gc, atol=1e-6)
+    # sampled path: finite, K partners per anchor from the queue
+    q.enqueue(F.normalize(torch.randn(40, 128), dim=1))
+    sq2, _ = vcs_pair_loss_queue(z1, z2, bt["critic"], k=k, queue=q, generator=torch.Generator().manual_seed(1))
+    assert torch.isfinite(sq2["loss"])
+    with pytest.raises(ValueError, match="fewer entries"):
+        NegativeQueue(64, 128).sample_indices(B, k, None)
+
+    # SimCLR MoCo-style queue loss: shape / value against a manual computation
+    p1, p2, qf = torch.randn(6, 128), torch.randn(6, 128), torch.randn(50, 128)
+    loss = simclr_nt_xent_queue(p1, p2, qf, temperature=0.2)
+    x = F.normalize(torch.cat((p1, p2)), dim=1); pos = F.normalize(torch.cat((p2, p1)), dim=1); qn = F.normalize(qf, dim=1)
+    logits = torch.cat(((x * pos).sum(1, keepdim=True), x @ qn.T), 1) / 0.2
+    assert logits.shape == (12, 51) and torch.allclose(loss, F.cross_entropy(logits, torch.zeros(12, dtype=torch.long)), atol=1e-6)
+
+    # compute_objective: fallback to cyclic shifts while the queue holds < K entries, queue path afterwards
+    f = forward_features(bt["encoder"], bt["projector"], torch.randn(B, 3, 32, 32), torch.randn(B, 3, 32, 32), eps=1e-8)
+    qe = NegativeQueue(64, 128)
+    o0 = compute_objective("vcs_qmi", f, cfg=cfgq, critic=bt["critic"], pair_generator=torch.Generator().manual_seed(0), queue=qe)
+    assert o0["stats"]["queue_fallback"] == 1.0 and o0["shift"] is not None and o0["n_neg"] == B * k
+    qe.enqueue(f["z_l2"].detach())
+    o1 = compute_objective("vcs_qmi", f, cfg=cfgq, critic=bt["critic"], pair_generator=torch.Generator().manual_seed(0), queue=qe)
+    assert o1["stats"]["queue_fallback"] == 0.0 and o1["shift"] is None and o1["n_neg"] == B * k and torch.isfinite(o1["loss"])
+    with pytest.raises(ValueError, match="requires a NegativeQueue"):
+        compute_objective("vcs_qmi", f, cfg=cfgq, critic=bt["critic"], pair_generator=None, queue=None)
+    bs = yaml.safe_load((CFG_DIR / "cifar10_pilot_simclr.yaml").read_text()); bs["pairing"].update({"negative_source": "queue", "queue": True, "queue_size": 64})
+    cfgs = load_config(_write(tmp_path, yaml.safe_dump(bs)), env=env)
+    bts = build_models(cfgs, seed=0, device="cpu")
+    fs = forward_features(bts["encoder"], bts["projector"], torch.randn(B, 3, 32, 32), torch.randn(B, 3, 32, 32), eps=1e-8)
+    qs = NegativeQueue(64, 128); qs.enqueue(fs["z_l2"].detach())
+    os_ = compute_objective("simclr_matched", fs, cfg=cfgs, critic=None, pair_generator=None, queue=qs)
+    assert os_["stats"]["nt_xent"] is not None and os_["n_neg"] == 2 * B * 32 and torch.isfinite(os_["loss"])
+
+
+@pytest.mark.parametrize("name", ["vcs", "simclr"])
+def test_queue_negatives_trainer_smoke_and_exact_resume(tmp_path, name):
+    data, m = synthetic_bundle()
+    cfg = small_cfg(tmp_path, name, batch=16, workers=0)
+    cfg["pairing"].update({"negative_source": "queue", "queue": True, "queue_size": 64, "k": 8 if name == "vcs" else 1})
+    policy_checks(cfg)
+    cpu = torch.device("cpu")
+    tr_a, st_a = run_trainer(tmp_path, cfg, data, m, run_id=f"q_cont_{name}", device=cpu, smoke_steps=6, smoke_epoch_steps=3, epoch_eval=False)
+    assert st_a == "COMPLETED" and tr_a.step == 6 and tr_a.queue_fallback_steps == 1
+    s = steps_log(tr_a.run_dir)
+    assert s[0]["queue_fallback"] == 1.0 and all(r["queue_fallback"] == 0.0 for r in s[1:]) and s[-1]["queue_fill"] == 64
+    if name == "vcs":
+        assert s[0]["shift"] is not None and all(r["shift"] is None for r in s[1:])
+    ck = load_checkpoint(tr_a.ckpt_dir / "last.pt")
+    assert ck["neg_queue_state"]["count"] == 64 and ck["queue_fallback_steps"] == 1
+    summary = json.loads((tr_a.run_dir / "summary.json").read_text()); assert summary["queue_fallback_steps"] == 1
+    man = json.loads((tr_a.run_dir / "run_manifest.json").read_text()); assert man["negative_source"] == "queue" and man["queue_size"] == 64
+    tr_b, st_b = run_trainer(tmp_path, cfg, data, m, run_id=f"q_int_{name}", device=cpu, smoke_steps=6, smoke_epoch_steps=3, epoch_eval=False, stop_after_steps=3)
+    assert st_b == "STOPPED_BUDGET" and tr_b.completed_epoch == 1
+    tr_c, st_c = run_trainer(tmp_path, cfg, data, m, run_id=f"q_int_{name}", device=cpu, smoke_steps=6, smoke_epoch_steps=3, epoch_eval=False,
+                             resume_from=tr_b.ckpt_dir / "last.pt")
+    assert st_c == "COMPLETED" and tr_c.step == 6
+    for mod in ("encoder", "projector") + (("critic",) if name == "vcs" else ()):
+        a, c = getattr(tr_a, mod).state_dict(), getattr(tr_c, mod).state_dict()
+        for k_ in a:
+            assert torch.equal(a[k_], c[k_]), f"{mod}.{k_} differs after resume with queue"
+    assert torch.equal(tr_a.neg_queue.features(), tr_c.neg_queue.features())
+    la = [r["loss"] for r in steps_log(tr_a.run_dir)]; lc = [r["loss"] for r in steps_log(tr_c.run_dir) if r["step"] >= 3]
+    assert la[3:] == lc

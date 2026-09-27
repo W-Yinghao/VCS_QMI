@@ -29,8 +29,8 @@ from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, two_view_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_report
 from .models import build_models, ema_update
-from .objectives import (compute_objective, compute_objective_target, compute_objective_views, critic_steps, forward_features, forward_features_target,
-                         forward_features_views, pair_symmetric)
+from .objectives import (NegativeQueue, compute_objective, compute_objective_target, compute_objective_views, critic_feature_dim, critic_steps,
+                         critic_input_key, forward_features, forward_features_target, forward_features_views, pair_symmetric, uses_queue)
 from .optim import all_grads_finite, build_optimizer, grad_norms, has_trainable_params, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
@@ -169,6 +169,13 @@ class Trainer:
         atomic_write_text(self.run_dir / "model_strings.txt", "\n\n".join(f"== {k} ==\n{v}" for k, v in built["model_strings"].items()))
         self.optimizer = build_optimizer(self.encoder, self.projector, self.critic, self.cfg["optimizer"], predictor=self.predictor)
         self.coverage = verify_optimizer_coverage(self.optimizer, self.encoder, self.projector, self.critic, self.predictor)
+        # named variant (wave-2 C-T): FIFO queue of detached features from previous steps as the negative pool
+        self.neg_queue: NegativeQueue | None = None
+        self.queue_fallback_steps = 0
+        if uses_queue(self.cfg):
+            self.queue_key = critic_input_key(self.cfg) if self.method == "vcs_qmi" else "z_l2"
+            qdim = critic_feature_dim(self.cfg) if self.method == "vcs_qmi" else int(self.cfg["model"]["projector"]["output_dim"])
+            self.neg_queue = NegativeQueue(int(self.cfg["pairing"]["queue_size"]), qdim, device=self.device)
 
         self.loader = make_ssl_loader(self.dataset, batch_size=self.batch, num_workers=self.cfg["train"]["num_workers"],
                                       pin_memory=self.cfg["train"]["pin_memory"] and self.device.type == "cuda",
@@ -185,8 +192,9 @@ class Trainer:
             "config_hash": self.cfg["_meta"]["config_hash"], "config_file_sha256": self.cfg["_meta"]["config_file_sha256"],
             "split_hash": self.manifest["manifest_sha256"], "physical_batch_images": self.batch, "views_per_image": 2,
             "K": int(self.cfg["pairing"]["k"]) if self.method == "vcs_qmi" else None,
-            "pair_sampling": self.cfg["pairing"]["sampler"] if self.method == "vcs_qmi" else
-            ("2B-2 in-batch negatives (NT-Xent)" if self.method == "simclr_matched" else "none (VICReg)"),
+            "pair_sampling": (f"queue{self.cfg['pairing']['queue_size']}_detached" if uses_queue(self.cfg) else self.cfg["pairing"]["sampler"]) if self.method == "vcs_qmi" else
+            (("MoCo-style queue negatives (NT-Xent, no momentum encoder)" if uses_queue(self.cfg) else "2B-2 in-batch negatives (NT-Xent)") if self.method == "simclr_matched" else "none (VICReg)"),
+            "negative_source": self.cfg["pairing"].get("negative_source", "cyclic"), "queue_size": int(self.cfg["pairing"]["queue_size"]) if uses_queue(self.cfg) else None,
             "world_size": 1, "encoder_dim": int(self.cfg["model"]["h_dim"]), "projector_dim": int(self.cfg["model"]["projector"]["output_dim"]),
             "critic_params": self.param_counts["critic"] or None, "critic_impl": self.critic_impl, "encoder_params": self.param_counts["encoder"],
             "hparams": {"K": int(self.cfg["pairing"]["k"]), "critic_hidden_dims": list(self.cfg["model"]["critic"]["hidden_dims"]),
@@ -346,6 +354,7 @@ class Trainer:
             "seen_base_images": self.seen_base_images, "train_seconds": self.train_seconds, "eval_seconds": self.eval_seconds,
             **rng, "precision_flags": precision_flags(), "model_hparams": self.cfg["model"], "best_metric_policy": None,
             "init_hashes": self.init_hashes, "smoke": self.smoke, "saved_utc": utc_now(), "torch_version": torch.__version__,
+            "neg_queue_state": None if self.neg_queue is None else self.neg_queue.state_dict(), "queue_fallback_steps": self.queue_fallback_steps,
         }
 
     def save_checkpoint(self, path: Path) -> None:
@@ -370,6 +379,11 @@ class Trainer:
             self.teacher["encoder"].load_state_dict(ck["teacher_encoder_state"])
             self.teacher["projector"].load_state_dict(ck["teacher_projector_state"])
         self.optimizer.load_state_dict(ck["optimizer_state"])
+        if self.neg_queue is not None:
+            if ck.get("neg_queue_state") is None:
+                raise ConfigError("resume refused: checkpoint has no negative-queue state but the config uses queue negatives")
+            self.neg_queue.load_state_dict(ck["neg_queue_state"])
+            self.queue_fallback_steps = int(ck.get("queue_fallback_steps", 0))
         restore_rng(ck, self.loader_gen, self.pair_gen)
         self.completed_epoch = int(ck["completed_epoch"])
         self.step = int(ck["optimizer_step"])
@@ -484,7 +498,7 @@ class Trainer:
             det = {k: v.detach() for k, v in feats.items()}
             for _ in range(n_extra):
                 self.optimizer.zero_grad(set_to_none=True)
-                cobj = (compute_objective(self.method, det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen) if self.target_branch == "shared"
+                cobj = (compute_objective(self.method, det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, queue=self.neg_queue) if self.target_branch == "shared"
                         else compute_objective_target(det, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
                 if not torch.isfinite(cobj["loss"]):
                     raise FloatingPointError(f"non-finite critic-only loss at step {self.step}")
@@ -494,7 +508,7 @@ class Trainer:
         if multi:
             obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
         else:
-            obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen) if self.target_branch == "shared"
+            obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, queue=self.neg_queue) if self.target_branch == "shared"
                    else compute_objective_target(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
         loss = obj["loss"]
         if not torch.isfinite(loss):
@@ -506,6 +520,10 @@ class Trainer:
         if self.step == 0:
             self.first_step_gradient_check(gn)
         self.optimizer.step()
+        if self.neg_queue is not None:  # queue update after the step: both views' detached features of this batch
+            if obj["stats"].get("queue_fallback") == 1.0:
+                self.queue_fallback_steps += 1
+            self.neg_queue.enqueue(feats[self.queue_key].detach())
         if self.teacher is not None:
             ema_update(self.teacher, self.encoder, self.projector)
         cos_extra = ({"cos_scale": float(self.critic.scale.detach()), "cos_bias": float(self.critic.bias.detach())}
@@ -648,7 +666,7 @@ class Trainer:
             "steady_state_step_seconds_mean": float(np.mean(steady)) if steady else None,
             "steady_state_images_per_s": (self.batch / float(np.mean(steady))) if steady else None,
             "steady_state_views_per_s": (2 * self.batch / float(np.mean(steady))) if steady else None,
-            **mem, "collapse_suspected": self.collapse_streak >= 2, "finished_utc": utc_now(),
+            **mem, "collapse_suspected": self.collapse_streak >= 2, "finished_utc": utc_now(), "queue_fallback_steps": self.queue_fallback_steps,
             "last_eval": {k: v for k, v in (getattr(self, "_last_eval", None) or {}).items() if k not in ("spectrum", "critic_holdout", "knn")},
         }
         atomic_write_json(self.run_dir / "summary.json", summary)

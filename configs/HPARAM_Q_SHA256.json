@@ -1,0 +1,87 @@
+{
+  "stage": "P63_queue",
+  "bases": {
+    "vcs": "cifar10_hpG_a5_learn_vcs_seed0.yaml",
+    "simclr": "cifar10_confirm200_simclr_seed0.yaml"
+  },
+  "units": [
+    {
+      "label": "vcs_B16_queue4096",
+      "method": "vcs_qmi",
+      "batch": 16,
+      "lr": 6.25e-05,
+      "lr_rule": "1e-3 x B/256",
+      "K": 8,
+      "queue_size": 4096,
+      "epochs": 200,
+      "views": 2,
+      "steps_per_epoch": 2812,
+      "config": "configs/cifar10_hpQ_vcs_B16_queue4096_seed0.yaml",
+      "run_id": "P63_vcs_B16_queue4096_seed0",
+      "final_ckpt": "epoch_200.pt",
+      "est_hours_h100": 6.5,
+      "chain_links": 1,
+      "reference_B256": "P61_vcs_B256_seed0 (cyclic / in-batch negatives, HPARAM_P)"
+    },
+    {
+      "label": "vcs_B32_queue4096",
+      "method": "vcs_qmi",
+      "batch": 32,
+      "lr": 0.000125,
+      "lr_rule": "1e-3 x B/256",
+      "K": 8,
+      "queue_size": 4096,
+      "epochs": 200,
+      "views": 2,
+      "steps_per_epoch": 1406,
+      "config": "configs/cifar10_hpQ_vcs_B32_queue4096_seed0.yaml",
+      "run_id": "P63_vcs_B32_queue4096_seed0",
+      "final_ckpt": "epoch_200.pt",
+      "est_hours_h100": 3.5,
+      "chain_links": 1,
+      "reference_B256": "P61_vcs_B256_seed0 (cyclic / in-batch negatives, HPARAM_P)"
+    },
+    {
+      "label": "simclr_B16_queue4096",
+      "method": "simclr_matched",
+      "batch": 16,
+      "lr": 6.25e-05,
+      "lr_rule": "1e-3 x B/256",
+      "K": null,
+      "queue_size": 4096,
+      "epochs": 200,
+      "views": 2,
+      "steps_per_epoch": 2812,
+      "config": "configs/cifar10_hpQ_simclr_B16_queue4096_seed0.yaml",
+      "run_id": "P63_simclr_B16_queue4096_seed0",
+      "final_ckpt": "epoch_200.pt",
+      "est_hours_h100": 6.5,
+      "chain_links": 1,
+      "reference_B256": "P61_simclr_B256_seed0 (cyclic / in-batch negatives, HPARAM_P)"
+    },
+    {
+      "label": "simclr_B32_queue4096",
+      "method": "simclr_matched",
+      "batch": 32,
+      "lr": 0.000125,
+      "lr_rule": "1e-3 x B/256",
+      "K": null,
+      "queue_size": 4096,
+      "epochs": 200,
+      "views": 2,
+      "steps_per_epoch": 1406,
+      "config": "configs/cifar10_hpQ_simclr_B32_queue4096_seed0.yaml",
+      "run_id": "P63_simclr_B32_queue4096_seed0",
+      "final_ckpt": "epoch_200.pt",
+      "est_hours_h100": 3.5,
+      "chain_links": 1,
+      "reference_B256": "P61_simclr_B256_seed0 (cyclic / in-batch negatives, HPARAM_P)"
+    }
+  ],
+  "files": {
+    "cifar10_hpQ_vcs_B16_queue4096_seed0.yaml": "bb4fac1bfdd8169cb332453bc693c24698d9c0ed4534b597252be7af73771466",
+    "cifar10_hpQ_vcs_B32_queue4096_seed0.yaml": "b4a486d2ab2318866b2a5297ffcb138b10899c3873abb47e915a0d99d025f4a4",
+    "cifar10_hpQ_simclr_B16_queue4096_seed0.yaml": "5024caaa2428f3d59382b3a4d681005536017e2845788be27da679b97705e782",
+    "cifar10_hpQ_simclr_B32_queue4096_seed0.yaml": "0ee56589914cf7b2f424c1689758cdeee58189d06be14117d3a3c57afe5c4e26"
+  }
+}

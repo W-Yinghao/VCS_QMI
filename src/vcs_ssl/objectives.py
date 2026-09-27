@@ -87,13 +87,130 @@ def vcs_pair_loss_symmetric(z1: Tensor, z2: Tensor, critic, *, k: int, generator
     return vcs_from_scores(t_pos, t_neg), shifts
 
 
+class NegativeQueue:
+    """Named variant (wave-2 C-T): FIFO ring of *detached* features from previous optimizer steps, used as the product-of-marginals
+    sample for VCS (K partners per anchor, drawn without replacement per anchor with the dedicated CPU pair generator) or as
+    MoCo-style negatives for SimCLR.  Same encoder, no momentum branch; both methods get the identical queue treatment."""
+
+    def __init__(self, size: int, dim: int, device: torch.device | str = "cpu") -> None:
+        if size < 2 or dim < 1:
+            raise ValueError("queue needs size >= 2 and dim >= 1")
+        self.size, self.dim = int(size), int(dim)
+        self.buffer = torch.zeros(self.size, self.dim, device=device)
+        self.ptr, self.count = 0, 0
+
+    @property
+    def filled(self) -> int:
+        return self.count
+
+    def ready(self, k: int) -> bool:
+        return self.count >= k
+
+    def features(self) -> Tensor:
+        """The filled part in FIFO order (oldest first); detached, no grad."""
+        if self.count < self.size:
+            return self.buffer[: self.count]
+        return torch.cat((self.buffer[self.ptr:], self.buffer[: self.ptr]), dim=0)
+
+    @torch.no_grad()
+    def enqueue(self, feats: Tensor) -> None:
+        f = feats.detach().to(self.buffer.device, self.buffer.dtype)
+        if f.ndim != 2 or f.shape[1] != self.dim:
+            raise ValueError("queue features must be [n, dim]")
+        if len(f) >= self.size:  # only the newest `size` entries survive
+            f = f[-self.size:]
+            self.buffer.copy_(f); self.ptr, self.count = 0, self.size
+            return
+        n = len(f)
+        end = self.ptr + n
+        if end <= self.size:
+            self.buffer[self.ptr:end] = f
+        else:
+            first = self.size - self.ptr
+            self.buffer[self.ptr:] = f[:first]; self.buffer[: n - first] = f[first:]
+        self.ptr = end % self.size
+        self.count = min(self.size, self.count + n)
+
+    def sample_indices(self, n_anchor: int, k: int, generator: torch.Generator | None) -> Tensor:
+        """[K, n_anchor] indices into `features()`: per anchor K distinct queue entries (uniform without replacement)."""
+        if not self.ready(k):
+            raise ValueError("queue holds fewer entries than K")
+        r = torch.rand(n_anchor, self.count, generator=generator)  # CPU generator (dedicated pairing stream)
+        return r.argsort(dim=1)[:, :k].T.contiguous().to(self.buffer.device)
+
+    def state_dict(self) -> dict[str, Any]:
+        return {"buffer": self.buffer.detach().cpu().clone(), "ptr": self.ptr, "count": self.count, "size": self.size, "dim": self.dim}
+
+    def load_state_dict(self, st: dict[str, Any]) -> None:
+        if int(st["size"]) != self.size or int(st["dim"]) != self.dim:
+            raise ValueError("queue state shape mismatch")
+        self.buffer.copy_(st["buffer"].to(self.buffer.device)); self.ptr, self.count = int(st["ptr"]), int(st["count"])
+
+
+def vcs_pair_loss_queue(z1: Tensor, z2: Tensor, critic, *, k: int, queue: NegativeQueue, generator: torch.Generator | None, indices: Tensor | None = None):
+    """Named variant: positives (z1[i], z2[i]) as in the reference; the K partners of anchor z1[i] in the negative (product) term come
+    from the queue of detached features of previous steps (no gradient through partners — negative_detach semantics). Same separate
+    averaging as the reference. `indices` [K,B] overrides the sampled partner indices (tests)."""
+    if z1.ndim != 2 or z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes")
+    q = queue.features()
+    idx = queue.sample_indices(len(z1), k, generator) if indices is None else indices.to(q.device)
+    t_pos = critic(z1, z2)
+    left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
+    right = q[idx].reshape(-1, q.shape[1])
+    t_neg = critic(left, right)
+    return vcs_from_scores(t_pos, t_neg), None
+
+
+def simclr_nt_xent_queue(p1: Tensor, p2: Tensor, queue_feats: Tensor, temperature: float) -> Tensor:
+    """MoCo-style NT-Xent with queue negatives and no momentum encoder: for each of the 2B anchors the logits are
+    [sim(anchor, its positive = the other view of the same image), sim(anchor, queue_1..Q)] / tau, target index 0."""
+    if p1.ndim != 2 or p1.shape != p2.shape or len(p1) < 1 or queue_feats.ndim != 2 or queue_feats.shape[1] != p1.shape[1]:
+        raise ValueError("require matching [B,D] views and a [Q,D] queue")
+    x = F.normalize(torch.cat((p1, p2), dim=0).float(), dim=-1, eps=1e-8)
+    pos = F.normalize(torch.cat((p2, p1), dim=0).float(), dim=-1, eps=1e-8)
+    q = F.normalize(queue_feats.detach().float(), dim=-1, eps=1e-8)
+    l_pos = (x * pos).sum(-1, keepdim=True)
+    l_neg = x @ q.T
+    logits = torch.cat((l_pos, l_neg), dim=1) / temperature
+    return F.cross_entropy(logits, torch.zeros(len(x), dtype=torch.long, device=x.device))
+
+
+def uses_queue(cfg: dict[str, Any]) -> bool:
+    return cfg["pairing"].get("negative_source", "cyclic") == "queue"
+
+
 def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, Any], critic=None,
-                      pair_generator: torch.Generator | None = None) -> dict[str, Any]:
-    """Return ``{"loss": Tensor, "stats": {...floats/None}, "shift": int|None, "n_pos": int, "n_neg": int}``."""
+                      pair_generator: torch.Generator | None = None, queue: NegativeQueue | None = None) -> dict[str, Any]:
+    """Return ``{"loss": Tensor, "stats": {...floats/None}, "shift": int|None, "n_pos": int, "n_neg": int}``.
+    With pairing.negative_source == 'queue' a NegativeQueue must be passed; while it holds fewer than K entries (first step) the
+    cyclic-shift negatives are used and ``stats['queue_fallback']`` is 1.0."""
     ocfg = cfg["objective"]
     b = feats["p_raw"].shape[0] // 2
     stats: dict[str, Any] = {k: None for k in VCS_STAT_KEYS}
     stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    if uses_queue(cfg):
+        if queue is None:
+            raise ValueError("pairing.negative_source == 'queue' requires a NegativeQueue")
+        k = int(cfg["pairing"]["k"])
+        stats["queue_fill"] = float(queue.filled)
+        if queue.ready(k):
+            stats["queue_fallback"] = 0.0
+            if method == "vcs_qmi":
+                if critic is None:
+                    raise ValueError("vcs_qmi requires a critic")
+                z1, z2 = feats[critic_input_key(cfg)].chunk(2, dim=0)
+                s, _ = vcs_pair_loss_queue(z1, z2, critic, k=k, queue=queue, generator=pair_generator)
+                for kk in VCS_STAT_KEYS:
+                    stats[kk] = float(s[kk].detach())
+                return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": b, "n_neg": b * k}
+            if method == "simclr_matched":
+                z1, z2 = feats["z_l2"].chunk(2, dim=0)
+                loss = simclr_nt_xent_queue(z1, z2, queue.features(), temperature=ocfg["simclr_temperature"])
+                stats["nt_xent"] = float(loss.detach())
+                return {"loss": loss, "stats": stats, "shift": None, "n_pos": 2 * b, "n_neg": 2 * b * queue.filled}
+            raise ValueError(f"queue negatives are not defined for {method!r}")
+        stats["queue_fallback"] = 1.0  # queue not yet filled to K: this step uses the frozen in-batch negatives
     if method == "vcs_qmi":
         if critic is None:
             raise ValueError("vcs_qmi requires a critic")
