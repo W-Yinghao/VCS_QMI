@@ -1,0 +1,46 @@
+# Second application — wave 2: supplementary property experiments and task-level pre-checks for all four rows (plan, 2026-09-27)
+
+Owner 2026-09-27 (after the four-pre-check hand-back): "全部都补充实验，都有进行任务级precheck" — every row gets (S) supplementary
+experiments that firm up its property verdict and (T) a task-level pre-check.  This plan fixes the designs; each unit gets its own frozen
+pre-registration (or a dated addendum to the row's existing prereg) before compute.  Common discipline unchanged (brief §3): identity
+splits with hashes, no official test sets, equal tuning budgets tabled, failed configurations kept, movable set only (tanh critics, no
+hard-negative *training* selection, no auxiliary losses, reference measure unchanged), evidence categories completed / report-only /
+pending / proposed.  Task choice per row is mine (most direct task of the brief's family with data already on disk or public with a clear
+licence); the owner may redirect any of them.
+
+**Flag.** C-S1 and C-T train encoders from scratch on CIFAR-10 — SSL-type compute.  The owner's SSL stop order (2026-09-26) is read as
+superseded *for these two units only* by the instruction above, since the frozen-tower evidence left from-scratch training as the only
+place where a batch effect can exist (summary §2, row C).  Nothing else in the SSL programme is re-opened.
+
+## Row D — bounded objective, distribution-free bound, exact conditional test
+| unit | design | reading (pre-committed) | cost |
+|---|---|---|---|
+| **D-S1** level pin | s = 0, n ∈ {2000, 5000, 10 000}, R = 1000 fresh draws (seed 3), both encoders, all tests | rate ≤ 0.065 → level 0.05 confirmed (binomial 95 % upper bound at R = 1000 is 0.061); (0.065, 0.09] → anti-conservative but not invalid; > 0.09 → invalid at that n.  Read next to the letter/intent question of the D report §3.1; the D verdict itself is not re-litigated here | 6 GPU jobs ≤ 80 min |
+| **D-S2** second encoder seeds | VCS seed 1 (`P35_vcs_a5_views4_800ep_seed1`, epoch 800), SimCLR seed 1 (`P5_simclr_seed1`, epoch 200); s ∈ {0, 0.05, 0.1, 0.2, 0.3}, n ≤ 5000, R as P45; both conditional cases | P45 rules verbatim (parity −0.05 at n ≤ 500; Ĵ monotone; conditional exactness).  "On par with HSIC" is confirmed if ≥ 90 % of the small-sample cells pass on seed 1 as well | 2 feature jobs + 14 case jobs |
+| **D-S3** second nuisance family | Gaussian blur σ ∈ {0, 0.25, 0.5, 0.75, 1.0} px on the N = 1 images (32 × 32), VCS seed 0 and SimCLR seed 0, same tests | P45 rules verbatim; the point is whether parity and monotonicity hold for a texture (low-pass) nuisance, not only a colour one | 2 feature jobs + ~12 case jobs |
+| **D-T** task: shortcut-reliance detection in trained classifiers | Supervised ResNet-18 on the 45 000 fit images with a colour-temperature shortcut (s = 0.2) correlated with class parity at ρ ∈ {0.5, 0.8, 0.95, 1.0} (ρ = P(colour agrees with parity)); 15 epochs, 2 seeds.  Ground truth reliance = accuracy drop on the 5 000 selection images with the colour *flipped* vs *matched*.  Detection: on 2000 held-out fit images with colour re-planted independently of Y (N ~ Bernoulli ½, s = 0.2), conditional test of h ⊥ N ∣ Y — VCS permutation, VCS Hoeffding, HSIC, C2ST (the P46 machinery); null case s = 0 | (i) mean conditional Ĵ increases with ρ and Spearman(Ĵ, accuracy drop) ≥ 0.9 over the 8 (ρ, seed) models; (ii) at n = 500 the VCS permutation test detects every ρ ≥ 0.8 model with power ≥ 0.8 and HSIC is not more than 0.05 above it; (iii) s = 0 rejection ≤ 0.09.  Holds / conditionally (one of i–iii) / does not hold (Ĵ not monotone in ρ, or power < 0.5 at ρ = 0.95) | ≈ 1 GPU-h training + 1 GPU-h tests |
+
+## Row A — pairwise scores with absolute meaning
+| unit | design | reading | cost |
+|---|---|---|---|
+| **A-S1** calibration-vs-dependence curve | Frozen CLIP + identity adapters as in P50; pairing difficulty as the knob: exact / topic (same supercategory set) / coarse (share ≥ 1 supercategory) / random; two shifts: animal (P49) and indoor → outdoor (source = images with furniture/appliance/indoor supercategories and none of vehicle/outdoor, target = the converse; rule and hashes in the prereg); methods vcs / infonce / logistic with the P49 grid; 3 seeds | native ECE vs Platt-cosine ECE on the target as a function of held-out J.  "Native calibration holds in a regime" if native ≤ Platt + 0.01 in every setting with J ∈ [0.1, 0.7] on both shifts; "does not hold" if any such setting has native > Platt + 0.02; else conditional (regime narrower than [0.1, 0.7]) | ≈ 3 GPU-h |
+| **A-T** task: mismatch detection without a target calibration set | Target pairs (both shifts): 50 % matched, 50 % mismatched with a *topic-matched* wrong caption (evaluation-only hard mismatches; no training selection).  Rule fixed on the source: native accept if (1+T)/2 ≥ 0.8 (nominal precision 0.8); competitors: cosine + Platt fitted on SOURCE-CAL (threshold at predicted 0.8), InfoNCE softmax probability ≥ 0.8 (τ from training), and the oracle Platt fitted on target CAL (upper reference, not deployable) | primary: |realized precision − 0.8| on target; native holds if within 0.05 and not worse than source-Platt-cosine by more than 0.02; does not hold if worse by ≥ 0.05.  Secondary: balanced error, AUROC (ranking; expected equal for monotone critics), ECE | ≈ 1 GPU-h (reuses A-S1 adapters) |
+
+## Row B — closed-form critic; alignment energies
+| unit | design | reading | cost |
+|---|---|---|---|
+| **B-S1** closed form on cross-modal features | B1 protocol (linear class + ridge + tanh scalar, VAL-chosen) on the CLIP adapter features of P50 setting 2 vs the trained cosine critic | gap ≤ 0.02 in held-out J → holds on cross-modal features | minutes |
+| **B-S2** registration-energy variants | P52 protocol; variants: Fourier features 49 → 121; local-patch (8 × 8 mean) features; Gaussian pre-smoothing σ ∈ {0, 2, 4} px applied identically to J* and MI/NMI; coarse-to-fine (64 → 128 → 256 px) | B2 is re-opened only if some variant matches MI/NMI on local maxima *and* success rate within 0.05 (same variant for both); otherwise the roughness is called intrinsic to the energy | ≈ 2 GPU-h |
+| **B-T1** task: unlabelled embedding probe (layer correspondence) | Closed-form J* in a bilinear class (PCA-64 per side, 4096 features, ridge on VAL) between the stem / layer1–4 / h of `P35 seed 0` vs `P35 seed 1`, and vs `P5_simclr seed 0`, on 5000 selection images; competitors linear CKA and RBF-kernel CKA; invariance checks (orthogonal rotation, isotropic scaling, per-feature scaling) | holds if the argmax over layers identifies the matching stage in ≥ as many of the 6 stages as CKA does (ties allowed) and the orthogonal/isotropic invariance error < 10⁻³; conditional if it loses one stage; does not hold otherwise | ≈ 1 GPU-h |
+| **B-T2** task: real cross-spectral registration | EPFL RGB–NIR Scene dataset (477 aligned RGB/NIR pairs, 9 scene categories; source URL, licence text, archive sha256, and image-id split recorded in the prereg *before* the CPU download job); 60 pairs (identity = image id), grey RGB vs NIR at 256 px; P52 protocol (surfaces ± 24 px / ± 30°, Nelder–Mead from R ∈ {5, 10, 20, 30}) for J* vs MI/NMI | as P52: J* must match MI/NMI on local maxima and success within 0.05 to re-open the family on real data | ≈ 2 GPU-h + 0.7 GB |
+
+## Row C — positives and negatives averaged separately
+| unit | design | reading | cost |
+|---|---|---|---|
+| **C-S1** from-scratch batch sweep | CIFAR-10, 2 views, 200 epochs, B ∈ {32, 64, 128, 256}; VCS final recipe (cosine critic, K = min(8, B − 1), detach, a0 = 5), SimCLR and VICReg (frozen P5 recipes); lr = each method's frozen lr × B/256 (linear rule, declared for all); equal-tuning check: lr × 2 at B = 32 for every method; 1 seed; linear / kNN on the selection split; retention(B) = acc(B)/acc(256) | holds if VCS retention at B = 32 ≥ 0.98 while at least one control ≤ 0.95; conditional if VCS ≥ 0.98 and all controls > 0.95 (no batch effect to be immune to, as on frozen towers) or VCS ∈ [0.95, 0.98) with a control below it; does not hold if VCS < 0.95 or VCS degrades at least as much as every control | 15 runs, ≈ 40 GPU-h |
+| **C-T** task: streaming / asymmetric negatives | Queue of 4096 detached embeddings from previous batches as the negative pool (product-of-marginals sample) for VCS and as MoCo-style negatives for InfoNCE, both from the *same* encoder without momentum (identical treatment); B ∈ {16, 32}; 200 epochs; 1 seed; VCS positives from the batch, K = 8 queue negatives per anchor; InfoNCE: batch positives, 4096 queue negatives | holds if VCS-with-queue reaches ≥ 0.95 of the VCS B = 256 result at B = 16 while InfoNCE-with-queue reaches < 0.90 of its own B = 256; does not hold if VCS < 0.90 or degrades as much as InfoNCE | 4 runs, ≈ 12 GPU-h |
+
+## Order
+1. D-S1, D-S2 (no new code; today).  2. Code for D-S3 / D-T, A-S1 / A-T, B-S1 / B-S2 / B-T1 / B-T2, C-T in parallel; each smoke-tested on
+CPU via sbatch; preregs frozen; launch as GPUs free (quota 8, cap 30).  3. C-S1 configs from the existing generators; launched after its prereg.
+Every unit: results-only commit → report commit; the summary's family table is updated per unit.  Total ≈ 70 GPU-h.
