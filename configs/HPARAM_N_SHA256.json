@@ -1,0 +1,214 @@
+{
+  "stage": "P41_control_tuning",
+  "units": [
+    {
+      "control": "simclr",
+      "label": "tau0.1",
+      "changes": {
+        "objective.simclr_temperature": 0.1
+      },
+      "config": "configs/cifar10_hpN_simclr_tau0.1_seed0.yaml",
+      "run_id": "P41_simclr_tau0.1_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "simclr",
+      "label": "tau0.5",
+      "changes": {
+        "objective.simclr_temperature": 0.5
+      },
+      "config": "configs/cifar10_hpN_simclr_tau0.5_seed0.yaml",
+      "run_id": "P41_simclr_tau0.5_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "simclr",
+      "label": "views4",
+      "changes": {
+        "views.count": 4
+      },
+      "config": "configs/cifar10_hpN_simclr_views4_seed0.yaml",
+      "run_id": "P41_simclr_views4_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "simclr",
+      "label": "views4_b128_100ep",
+      "changes": {
+        "views.count": 4,
+        "train.batch_size_images": 128,
+        "train.epochs": 100,
+        "logging.checkpoint_epochs": [
+          20,
+          50,
+          100
+        ],
+        "evaluation.knn_epochs": [
+          0,
+          10,
+          20,
+          50,
+          100
+        ],
+        "evaluation.linear_epochs_of_pretrain": [
+          100
+        ]
+      },
+      "config": "configs/cifar10_hpN_simclr_views4_b128_100ep_seed0.yaml",
+      "run_id": "P41_simclr_views4_b128_100ep_seed0",
+      "final_ckpt": "epoch_100.pt"
+    },
+    {
+      "control": "simclr",
+      "label": "b128",
+      "changes": {
+        "train.batch_size_images": 128
+      },
+      "config": "configs/cifar10_hpN_simclr_b128_seed0.yaml",
+      "run_id": "P41_simclr_b128_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "simclr",
+      "label": "800ep",
+      "changes": {
+        "train.epochs": 800,
+        "logging.checkpoint_epochs": [
+          100,
+          200,
+          400,
+          600,
+          800
+        ],
+        "evaluation.knn_epochs": [
+          0,
+          20,
+          50,
+          100,
+          200,
+          400,
+          600,
+          800
+        ],
+        "evaluation.linear_epochs_of_pretrain": [
+          800
+        ]
+      },
+      "config": "configs/cifar10_hpN_simclr_800ep_seed0.yaml",
+      "run_id": "P41_simclr_800ep_seed0",
+      "final_ckpt": "epoch_800.pt"
+    },
+    {
+      "control": "vicreg",
+      "label": "cov0.1",
+      "changes": {
+        "objective.vicreg_weights.covariance": 0.1
+      },
+      "config": "configs/cifar10_hpN_vicreg_cov0.1_seed0.yaml",
+      "run_id": "P41_vicreg_cov0.1_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "vicreg",
+      "label": "w10_10_1",
+      "changes": {
+        "objective.vicreg_weights.invariance": 10,
+        "objective.vicreg_weights.variance": 10
+      },
+      "config": "configs/cifar10_hpN_vicreg_w10_10_1_seed0.yaml",
+      "run_id": "P41_vicreg_w10_10_1_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "vicreg",
+      "label": "views4",
+      "changes": {
+        "views.count": 4
+      },
+      "config": "configs/cifar10_hpN_vicreg_views4_seed0.yaml",
+      "run_id": "P41_vicreg_views4_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "vicreg",
+      "label": "views4_b128_100ep",
+      "changes": {
+        "views.count": 4,
+        "train.batch_size_images": 128,
+        "train.epochs": 100,
+        "logging.checkpoint_epochs": [
+          20,
+          50,
+          100
+        ],
+        "evaluation.knn_epochs": [
+          0,
+          10,
+          20,
+          50,
+          100
+        ],
+        "evaluation.linear_epochs_of_pretrain": [
+          100
+        ]
+      },
+      "config": "configs/cifar10_hpN_vicreg_views4_b128_100ep_seed0.yaml",
+      "run_id": "P41_vicreg_views4_b128_100ep_seed0",
+      "final_ckpt": "epoch_100.pt"
+    },
+    {
+      "control": "vicreg",
+      "label": "b128",
+      "changes": {
+        "train.batch_size_images": 128
+      },
+      "config": "configs/cifar10_hpN_vicreg_b128_seed0.yaml",
+      "run_id": "P41_vicreg_b128_seed0",
+      "final_ckpt": "epoch_200.pt"
+    },
+    {
+      "control": "vicreg",
+      "label": "800ep",
+      "changes": {
+        "train.epochs": 800,
+        "logging.checkpoint_epochs": [
+          100,
+          200,
+          400,
+          600,
+          800
+        ],
+        "evaluation.knn_epochs": [
+          0,
+          20,
+          50,
+          100,
+          200,
+          400,
+          600,
+          800
+        ],
+        "evaluation.linear_epochs_of_pretrain": [
+          800
+        ]
+      },
+      "config": "configs/cifar10_hpN_vicreg_800ep_seed0.yaml",
+      "run_id": "P41_vicreg_800ep_seed0",
+      "final_ckpt": "epoch_800.pt"
+    }
+  ],
+  "files": {
+    "cifar10_hpN_simclr_tau0.1_seed0.yaml": "f1a00fbc8f89b995311a28625c470dc3c0ad3c32c25c254359750b4d241301d3",
+    "cifar10_hpN_simclr_tau0.5_seed0.yaml": "3cff78c36a885f377c202e52fdd750706d27df1ec7c966518ed905dd40306119",
+    "cifar10_hpN_simclr_views4_seed0.yaml": "089fb97d8f30b38a84b39837fdf24e0a7e73325e71e0c5a69b6e757e02681774",
+    "cifar10_hpN_simclr_views4_b128_100ep_seed0.yaml": "16374bb0f36539728dac76cfd9d626309d2d6176c8ef5632a054ef8b9afb1e2b",
+    "cifar10_hpN_simclr_b128_seed0.yaml": "cb919a9ad9dd4a3d6cca6ec0b6cca1b9badabc047e3e1b848b096d68a5134ce2",
+    "cifar10_hpN_simclr_800ep_seed0.yaml": "a81bc8a6a197c76372385e593a70a76b950bdfbd957a2f740a3c6bc9f5da0483",
+    "cifar10_hpN_vicreg_cov0.1_seed0.yaml": "7935136d30c644fb5f5bca10eb7cfba79759355b53839655d00719176c08ea9e",
+    "cifar10_hpN_vicreg_w10_10_1_seed0.yaml": "5b167b26f87211539366fa5de4be7700aa74904df7d217b0e10a908efb7a0dd9",
+    "cifar10_hpN_vicreg_views4_seed0.yaml": "7d36cd4b6b782e18b7a1aa41d9863857bd99ecc6f8398dd2d8082d6647cfc0f6",
+    "cifar10_hpN_vicreg_views4_b128_100ep_seed0.yaml": "6f925d4f737c8e5e175806b23c5df8e417e12365f164ab001d8bebb87b041cb6",
+    "cifar10_hpN_vicreg_b128_seed0.yaml": "981f31135e585d1b0241251c34fa82fce2382902a0493b09539d7a24a8cda8fe",
+    "cifar10_hpN_vicreg_800ep_seed0.yaml": "5be64c4f2172463b1d1de8e8e513bfd3a5b4542dbddd01f9ee70bfd0c446c41f"
+  }
+}
