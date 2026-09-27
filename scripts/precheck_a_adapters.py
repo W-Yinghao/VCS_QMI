@@ -32,7 +32,22 @@ from torch.nn import functional as F
 
 def load_split(fd, name):
     d = torch.load(fd / "features" / f"{name}.pt", map_location="cpu", weights_only=False)
-    return d["img"].float(), d["txt"].float()  # [n,512], [n,5,512]
+    return d["img"].float(), d["txt"].float(), d["image_ids"]  # [n,512], [n,5,512], [n]
+
+
+def topic_partners(image_ids, index_dir, seed):
+    """Setting 2 (mid-dependence by construction): the positive caption of image i comes from a *different* image j with the same exact
+    supercategory set (topic).  Returns, per image, a list of candidate partner indices within the split (empty if singleton) and one fixed
+    evaluation partner (or -1)."""
+    idx = json.load(open(Path(index_dir) / "train2017_index.json"))["images"]
+    keys = [tuple(idx[str(int(i))]["supercats"]) for i in image_ids]
+    groups = {}
+    for pos, k in enumerate(keys):
+        groups.setdefault(k, []).append(pos)
+    cands = [[q for q in groups[k] if q != pos] for pos, k in enumerate(keys)]
+    g = torch.Generator().manual_seed(seed)
+    fixed = torch.tensor([c[int(torch.randint(0, len(c), (1,), generator=g))] if c else -1 for c in cands])
+    return cands, fixed
 
 
 class Adapters(nn.Module):
@@ -78,16 +93,23 @@ def logistic_loss(m, u, v):
     return -F.logsigmoid(y * logits).mean(), {}
 
 
-def train(method, fit_img, fit_txt, cal_img, cal_txt, lr, epochs, seed, device, K=8, batch=256, wd=1e-4, log=None):
+def train(method, fit_img, fit_txt, cal_img, cal_txt, lr, epochs, seed, device, K=8, batch=256, wd=1e-4, log=None, fit_partners=None, cal_partners=None, max_steps=None):
+    """fit_partners / cal_partners: None (exact pairing) or per-image candidate lists (topic pairing); max_steps caps the number of updates (pre-check C)."""
     torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
     m = Adapters(method).to(device); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd)
-    n = len(fit_img); steps = epochs * (n // batch); step = 0
+    n = len(fit_img); steps = epochs * (n // batch) if max_steps is None else max_steps; step = 0
     fit_img, fit_txt = fit_img.to(device), fit_txt.to(device)
-    for ep in range(epochs):
-        perm = torch.randperm(n, generator=g).to(device)
+    def partner(ix_cpu, cands):
+        return torch.tensor([c[int(torch.randint(0, len(c), (1,), generator=g))] if c else int(i) for i, c in zip(ix_cpu.tolist(), (cands[i] for i in ix_cpu.tolist()))])
+    done = False
+    while not done:
+        perm = torch.randperm(n, generator=g)
         for s in range(0, n - batch + 1, batch):
-            ix = perm[s: s + batch]; ci = torch.randint(0, 4, (batch,), generator=g).to(device)   # captions 0-3 for training
-            xi, xt = fit_img[ix], fit_txt[ix, ci]
+            if step >= steps:
+                done = True; break
+            ix_cpu = perm[s: s + batch]; ix = ix_cpu.to(device); ci = torch.randint(0, 4, (batch,), generator=g).to(device)   # captions 0-3 for training
+            src = ix if fit_partners is None else partner(ix_cpu, fit_partners).to(device)
+            xi, xt = fit_img[ix], fit_txt[src, ci]
             for pg in opt.param_groups:
                 pg["lr"] = lr * 0.5 * (1 + math.cos(math.pi * step / max(steps, 1)))
             opt.zero_grad(); u, v = m.enc(xi, xt)
@@ -100,10 +122,13 @@ def train(method, fit_img, fit_txt, cal_img, cal_txt, lr, epochs, seed, device, 
             else:
                 loss, st = logistic_loss(m, u, v)
             loss.backward(); opt.step(); step += 1
+        if max_steps is None and step >= steps:
+            done = True
     m.eval()
     # selection loss on SRC-CAL (method's own loss; VCS with CAL-pool negatives)
     with torch.no_grad():
-        ci = torch.randint(0, 4, (len(cal_img),), generator=g); u, v = m.enc(cal_img.to(device), cal_txt[torch.arange(len(cal_img)), ci].to(device))
+        ci = torch.randint(0, 4, (len(cal_img),), generator=g); csrc = torch.arange(len(cal_img)) if cal_partners is None else partner(torch.arange(len(cal_img)), cal_partners)
+        u, v = m.enc(cal_img.to(device), cal_txt[csrc, ci].to(device))
         if method == "vcs":
             pool = torch.randint(0, len(cal_img), (len(cal_img), K), generator=g); pc = torch.randint(0, 4, (len(cal_img), K), generator=g)
             v_pool = F.normalize(m.txt(cal_txt[pool, pc].to(device)), dim=-1); val, _ = vcs_loss(m, u, v, v_pool)
@@ -147,13 +172,16 @@ def platt(score_cal, y_cal, score):
         return torch.sigmoid(a.double() * score.double() + b.double()).float(), float(a), float(b)
 
 
-def pair_sets(m, img, txt, device, seed):
-    """Balanced joint/product pairs on held-out caption 4; product partner = caption 4 of a different image (fixed derangement)."""
+def pair_sets(m, img, txt, device, seed, fixed_partner=None):
+    """Balanced joint/product pairs on held-out caption 4; joint partner = the image itself (exact) or its fixed topic partner (setting 2);
+    product partner = caption 4 of a random other image (fixed derangement).  Images without a topic partner are dropped from both sets."""
     n = len(img); g = torch.Generator().manual_seed(seed); perm = torch.randperm(n, generator=g); perm = torch.where(perm == torch.arange(n), (perm + 1) % n, perm)
+    keep = torch.arange(n) if fixed_partner is None else torch.where(fixed_partner >= 0)[0]
+    src = torch.arange(n) if fixed_partner is None else fixed_partner.clamp(min=0)
     with torch.no_grad():
         u, v = m.enc(img.to(device), txt[:, 4].to(device)); u, v = u.cpu(), v.cpu()
-        s_pos, c_pos = m.cpu().score(u, v); s_neg, c_neg = m.score(u, v[perm]); m.to(device)
-    return torch.cat((s_pos, s_neg)), torch.cat((c_pos, c_neg)), torch.cat((torch.ones(n), torch.zeros(n))), u, v
+        s_pos, c_pos = m.cpu().score(u[keep], v[src[keep]]); s_neg, c_neg = m.score(u[keep], v[perm[keep]]); m.to(device)
+    return torch.cat((s_pos, s_neg)), torch.cat((c_pos, c_neg)), torch.cat((torch.ones(len(keep)), torch.zeros(len(keep)))), u, v
 
 
 def threshold_at_fnr(score_pos, fnr):
@@ -165,11 +193,12 @@ def retrieval(u, v):
     return float((ranks < 1).float().mean()), float((ranks < 5).float().mean())
 
 
-def heldout_J(m, img, txt, device, seed, K=8):
+def heldout_J(m, img, txt, device, seed, K=8, fixed_partner=None):
     n = len(img); g = torch.Generator().manual_seed(seed)
+    keep = torch.arange(n) if fixed_partner is None else torch.where(fixed_partner >= 0)[0]; src = torch.arange(n) if fixed_partner is None else fixed_partner.clamp(min=0)
     with torch.no_grad():
-        u, v = m.enc(img.to(device), txt[:, 4].to(device)); pool = torch.randint(0, n, (n, K), generator=g)
-        v_pool = F.normalize(m.txt(txt[pool, 4].to(device)), dim=-1); loss, st = vcs_loss(m, u, v, v_pool)
+        u, v = m.enc(img.to(device), txt[:, 4].to(device)); pool = torch.randint(0, n, (len(keep), K), generator=g)
+        v_pool = F.normalize(m.txt(txt[pool, 4].to(device)), dim=-1); loss, st = vcs_loss(m, u[keep], v[src[keep]], v_pool)
     return -float(loss), st
 
 
@@ -178,22 +207,31 @@ def main() -> int:
     ap.add_argument("--features", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--lrs", default="1e-3,3e-4,1e-4"); ap.add_argument("--epochs", default="5,15,40"); ap.add_argument("--seeds", default="0,1,2")
     ap.add_argument("--fnr", default="0.05,0.10"); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--pairing", default="exact", choices=["exact", "topic"], help="exact: image with its own caption; topic: caption of another image with the same supercategory set (setting 2)")
+    ap.add_argument("--index-dir", default="/home/infres/yinwang/CS_QMI/data/coco_index")
     a = ap.parse_args()
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
-    fd = Path(a.features); splits = {k: load_split(fd, k) for k in ("SRC-FIT", "SRC-CAL", "SRC-EVAL", "TGT-EVAL")}
+    fd = Path(a.features); raw = {k: load_split(fd, k) for k in ("SRC-FIT", "SRC-CAL", "SRC-EVAL", "TGT-EVAL")}
     lrs = [float(x) for x in a.lrs.split(",")]; epochs = [int(x) for x in a.epochs.split(",")]; seeds = [int(x) for x in a.seeds.split(",")]; fnrs = [float(x) for x in a.fnr.split(",")]
     if a.smoke:
         lrs, epochs, seeds = [1e-3], [1], [0]
-        splits = {k: (v[0][:2000], v[1][:2000]) for k, v in splits.items()}
+        raw = {k: (v[0][:2000], v[1][:2000], v[2][:2000]) for k, v in raw.items()}
+    splits = {k: (v[0], v[1]) for k, v in raw.items()}
+    partners = {k: (None, None) for k in splits}
+    if a.pairing == "topic":
+        for k, v in raw.items():
+            cands, fixed = topic_partners(v[2], a.index_dir, 20260927); partners[k] = (cands, fixed)
+            print(f"[topic] {k}: {int((fixed >= 0).sum())}/{len(fixed)} images have a same-topic partner", flush=True)
     fit_img, fit_txt = splits["SRC-FIT"]; cal_img, cal_txt = splits["SRC-CAL"]
+    fit_p, cal_p = partners["SRC-FIT"][0], partners["SRC-CAL"][0]
     results = {"settings": vars(a), "device": str(device), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "methods": {}}
     t0 = time.time()
     # reference: raw CLIP (no adapter) cosine, Platt on CAL
     ref = Adapters("infonce").to(device); ref.eval(); results["raw_clip_reference"] = {}
     with torch.no_grad():
-        cal_s, cal_c, cal_y, _, _ = pair_sets(ref, cal_img, cal_txt, device, 11)
+        cal_s, cal_c, cal_y, _, _ = pair_sets(ref, cal_img, cal_txt, device, 11, partners["SRC-CAL"][1])
         for split in ("SRC-EVAL", "TGT-EVAL"):
-            img, txt = splits[split]; s_, c_, y_, u, v = pair_sets(ref, img, txt, device, 13); pc, _, _ = platt(cal_c, cal_y, c_)
+            img, txt = splits[split]; s_, c_, y_, u, v = pair_sets(ref, img, txt, device, 13, partners[split][1]); pc, _, _ = platt(cal_c, cal_y, c_)
             e, mx, _ = ece(pc, y_); th = threshold_at_fnr(cal_c[cal_y == 1], 0.05)
             results["raw_clip_reference"][split] = {"R1_R5": retrieval(u, v), "ECE_cosine+Platt": e, "Brier": brier(pc, y_), "FNR@CAL-FNR0.05": float((c_[y_ == 1] < th).float().mean()), "FPR@CAL-FNR0.05": float((c_[y_ == 0] >= th).float().mean())}
     print("[raw CLIP reference]", results["raw_clip_reference"], flush=True)
@@ -201,16 +239,16 @@ def main() -> int:
         grid = []
         for lr in lrs:
             for ep in epochs:
-                m, val = train(method, fit_img, fit_txt, cal_img, cal_txt, lr, ep, 0, device)
+                m, val = train(method, fit_img, fit_txt, cal_img, cal_txt, lr, ep, 0, device, fit_partners=fit_p, cal_partners=cal_p)
                 grid.append({"lr": lr, "epochs": ep, "cal_loss": val}); print(f"[{method}] lr={lr:g} ep={ep}: CAL loss {val:.4f} ({time.time() - t0:.0f}s)", flush=True)
         best = min(grid, key=lambda r: r["cal_loss"]); res = {"grid": grid, "selected": best, "seeds": {}}
         for seed in seeds:
-            m, val = train(method, fit_img, fit_txt, cal_img, cal_txt, best["lr"], best["epochs"], seed, device)
+            m, val = train(method, fit_img, fit_txt, cal_img, cal_txt, best["lr"], best["epochs"], seed, device, fit_partners=fit_p, cal_partners=cal_p)
             r = {"cal_loss": val, "params": {k: float(v) for k, v in m.named_parameters() if v.numel() == 1}}
             # CAL pairs (for Platt and thresholds), EVAL pairs
-            cal_s, cal_c, cal_y, _, _ = pair_sets(m, cal_img, cal_txt, device, 11)
+            cal_s, cal_c, cal_y, _, _ = pair_sets(m, cal_img, cal_txt, device, 11, partners["SRC-CAL"][1])
             for split in ("SRC-EVAL", "TGT-EVAL"):
-                img, txt = splits[split]; s_, c_, y_, u, v = pair_sets(m, img, txt, device, 13)
+                img, txt = splits[split]; s_, c_, y_, u, v = pair_sets(m, img, txt, device, 13, partners[split][1])
                 row = {"retrieval_R1_R5": retrieval(u, v)}
                 # probabilities: native (VCS (1+T)/2; logistic sigma; infonce: none) and Platt-calibrated cosine, Platt-calibrated native score
                 probs = {}
@@ -238,14 +276,14 @@ def main() -> int:
                     row["threshold"]["cosine_matched_to_absolute"] = {"theta": thc, "FNR": float((c_[y_ == 1] < thc).float().mean()), "FPR": float((c_[y_ == 0] >= thc).float().mean()),
                                                                      "balanced_err": float(0.5 * ((c_[y_ == 1] < thc).float().mean() + (c_[y_ == 0] >= thc).float().mean())), "matched_src_fnr": src_fnr}
                 if method == "vcs":
-                    J, st = heldout_J(m, img, txt, device, 17); row["heldout_J"] = J; row["saturation"] = st
+                    J, st = heldout_J(m, img, txt, device, 17, fixed_partner=partners[split][1]); row["heldout_J"] = J; row["saturation"] = st
                 r[split] = row
             res["seeds"][str(seed)] = r
             print(f"[{method}] seed {seed}: " + " | ".join(f"{sp}: R@1 {r[sp]['retrieval_R1_R5'][0]:.3f} ECE " + ", ".join(f"{k}={v['ECE']:.3f}" for k, v in r[sp]["calibration"].items()) for sp in ("SRC-EVAL", "TGT-EVAL")) + (f" | J {r['SRC-EVAL'].get('heldout_J', float('nan')):.3f}" if method == "vcs" else ""), flush=True)
         results["methods"][method] = res
     json.dump(results, open(a.out + ".json", "w"), indent=1, default=float)
     # markdown
-    L = [f"# Pre-check A — calibration and threshold transfer on frozen CLIP features (COCO no-animal → animal) — {results['utc']}", "",
+    L = [f"# Pre-check A — calibration and threshold transfer on frozen CLIP features (COCO no-animal → animal; pairing = {a.pairing}) — {results['utc']}", "",
          "Adapters Linear(512→512, identity init)+L2 per tower; batch 256; captions 0–3 train, caption 4 evaluation; balanced joint/product pairs (product = caption 4 of another image). "
          "ECE: 15 equal-mass bins. Thresholds set on SRC-CAL joint pairs at the stated FNR and applied unchanged. Mean over seeds (SD in JSON).", ""]
     L += ["| method | selected (lr, ep) | split | R@1 | probability | ECE | max dev | Brier |", "|---|---|---|---|---|---|---|---|"]

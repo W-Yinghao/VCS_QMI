@@ -68,3 +68,13 @@ configuration.  Step 2 code: `scripts/precheck_a_adapters.py` (to be committed b
 4. Smoke 2 (identity adapters): raw CLIP R@1 0.49 / 0.45 (source / target); after one probe epoch InfoNCE 0.46, logistic 0.39, VCS 0.20 — the VCS
    objective moves the adapters fastest at lr 1e-3, so the grid gets a third learning rate, lr ∈ {1e-3, 3e-4, 1e-4} × epochs ∈ {5, 15, 40}
    (9 configurations per method, still equal budgets; selection unchanged).  Full run launched after this addendum.
+
+## Addendum 5 — setting 2, mid-dependence by construction (frozen 2026-09-27 after setting 1's result, before any setting-2 run)
+Setting 1 (exact image–caption pairs) gave held-out J = 0.92 on the source — at the degenerate edge of P1 — and the native calibration claim
+failed there and on the target (`P50_PRECHECK_A_REPORT_20260927.md`).  Setting 2 keeps everything (towers, identity adapters, grid of 9 per
+method, 3 seeds, splits, metrics, absolute-threshold rule) and changes only the joint relation: **the positive caption of image i is a caption
+of a different image j with the same exact supercategory set** (topic-level dependence, S well below 1, truth by construction; images without a
+same-topic partner in their split are dropped from the joint sets but stay in the pools).  Product samples: caption of a random image.
+Evaluation partner j is fixed per image (seed 20260927); training partners are re-sampled per step.  `--pairing topic`.
+Pre-committed reading: identical to the main text (claims 1 and 2, mid-dependence check J < 0.9 now expected to pass; if J ≥ 0.9 again the
+pre-check is not decidable on CLIP features and is reported so).  Setting 2 is also the setting of pre-check C.
