@@ -6,9 +6,11 @@ families of second applications survive; none of them selects a task.  Frozen it
 critic form with tanh output, pairing scheme incl. cross-batch/independent-pool negatives, evaluation protocol).
 
 ## Order and status
+All four done 2026-09-27 — hand-back: `SECOND_APP_PRECHECKS_SUMMARY_20260927.md` (surviving families, engineering, data risk; no task selected).
+
 | pre-check | property | data | status |
 |---|---|---|---|
-| D  leakage-detection power | bounded objective, distribution-free bound, one-sided lower confidence bound | existing frozen CIFAR-10 h + planted nuisance (no new data) | **running** as 10 per-case CPU jobs (prereg + 3 addenda: `P45_PRECHECK_D_PREREG_FROZEN_20260927.md`) |
+| D  leakage-detection power | bounded objective, distribution-free bound, one-sided lower confidence bound | existing frozen CIFAR-10 h + planted nuisance (no new data) | **done — holds conditionally** (permutation-calibrated VCS test on par with HSIC, exact conditional test; the guaranteed bound 20–50× more sample-hungry; R = 100 null top-up pending, addendum 4) (`P46_PRECHECK_D_REPORT_20260927.md`) |
 | B1 closed-form vs neural critic | quadratic objective ⇒ closed-form critic in a fixed feature class | existing checkpoints, two-view features of the selection images | **done — property holds** (`P48_PRECHECK_B1_REPORT_20260927.md`) |
 | A  calibration & threshold transfer | pairwise scores have absolute meaning | COCO-2017 captions, no-animal → animal shift; frozen CLIP ViT-B/32 + identity adapters | **done — holds conditionally** (calibration without a calibration set only in the mid-dependence regime; no threshold-transfer advantage: monotone critic) (`P50_PRECHECK_A_REPORT_20260927.md`) |
 | C  batch decoupling | positives and negatives averaged separately | A's setting 2 | **done — does not hold** on frozen-tower adapters (all methods flat in batch size within 1 %) (`P54_PRECHECK_C_REPORT_20260927.md`) |
@@ -18,7 +20,7 @@ Compute: D and B1 ran on the CPU partition (they are small; the P44 ceiling runs
 for the pre-checks — CLIP feature extraction, adapter grids (A/C), registration energy surfaces (B2) and any full-size sweeps go to the GPU
 partitions (A100,H100,L40S,RTX6000PRO) as short jobs; CPU stays for tests of O(n²) size and summaries.
 
-## Data and third-party assets (record before use; nothing downloaded yet)
+## Data and third-party assets (recorded before use)
 - CIFAR-10 (local copy, frozen split hash c35d7cd3…): pre-checks D and B1.
 - COCO 2017 (local copy at `/projects/EEG-foundation-model/yinghao/FMCA-AV/coco`: train2017 118 287 images, val2017 5 000, captions_*2017.json;
   annotations CC BY 4.0, images under their Flickr terms — research use): source pairs for A/C.  Identity = image id; a caption is paired
