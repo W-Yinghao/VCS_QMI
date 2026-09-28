@@ -1,4 +1,4 @@
-# Pre-registration DRAFT — P79: R2 with exact pairing + cross-fitted R3, frozen CLIP + identity adapters (2026-09-28)
+# Pre-registration DRAFT — P79: R2 with exact pairing + cross-fitted R3, frozen CLIP + identity adapters (2026-09-28) — FROZEN 2026-09-28T15:50:28Z before GPU compute
 
 Status: DRAFT (fork); the main session freezes it (rename to `*_FROZEN_*`) before the GPU run.  Results will be P80.
 **Disclosure:** this unit repairs P72 §1 and was designed **after** the P72 results were seen.  P72 trained on topic pairing and evaluated

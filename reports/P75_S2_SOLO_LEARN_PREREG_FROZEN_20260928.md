@@ -1,4 +1,4 @@
-# Pre-registration DRAFT — S2 (P75): VCS and SimCLR under the solo-learn CIFAR-10 protocol (2026-09-28)
+# Pre-registration DRAFT — S2 (P75): VCS and SimCLR under the solo-learn CIFAR-10 protocol (2026-09-28) — FROZEN 2026-09-28T16:02:02Z before GPU compute (submitted at --nice=500 so estimator-package jobs keep queue priority, owner 2026-09-28)
 
 Status: DRAFT (S2 fork). The main session freezes it (renamed `*_FROZEN_*`) before any GPU job. GPU priority: the estimator package
 (`VCS_QMI_Estimator_Research_and_Server_v1`) comes first. S2 only uses spare quota (owner, 2026-09-28: "优先压缩包中的，有空余的把别的也提交了").
