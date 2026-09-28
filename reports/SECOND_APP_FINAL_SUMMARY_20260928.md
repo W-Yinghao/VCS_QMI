@@ -66,3 +66,9 @@ GPU-hours over two days; every job id is in `reports/job_ids.json`; every unit h
 Pending: P67 official test-set evaluation (52 units, once; running).  Proposed, not run: 16× control
 (SimCLR 4v/1600ep); momentum-encoder queue for both objectives; high-motion or task-fMRI cohort and aCompCor reference for P65; the D
 conditional cases with N re-drawn; a within-block exact conditional test for time series.
+
+## 7. Official test set (P67 / P68, once, 2026-09-28)
+Test and selection agree to within seed noise across all 22 cells (mean Δ −0.03 linear, +0.35 kNN).  Test linear, 3 seeds: VCS 82.98 / 84.52 / 85.87 /
+86.65 at 1× / 2× / 4× / 8×; tuned SimCLR 86.94 / 87.99 / 88.21 / 88.13; tuned VICReg 87.00 / 87.11 / 86.91 / 86.87; VCS singles 87.60 (16×) and 88.26
+(8× strong-aug).  The equal-budget picture of §3 holds on the test set: SimCLR leads at every budget (+4.0 → +1.5), VICReg leads until it is level with
+VCS at 8× on the linear probe (VCS ahead on kNN there).  Report: `P68_FINAL_OFFICIAL_TEST_REPORT_20260928.md`.  Nothing is pending.

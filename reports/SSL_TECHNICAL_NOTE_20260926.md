@@ -245,3 +245,5 @@ Diagnostics: `GEOMETRY_DIAG.md`, `GEOMETRY_DIAG_v2.md`, `PROBE_LAYERS.md`, `PROB
 Configs: `configs/cifar10_hp{A..O}_*.yaml` with `configs/HPARAM_*_SHA256.json`; final recipe configs `cifar10_hpK_a5_views4_vcs_seed{0,1,2}.yaml`
 (2×), `cifar10_hpM_a5_views4_b128_100ep_vcs_seed{0,1,2}.yaml` (1×), `cifar10_hpK_a5_views4_800ep_vcs_seed{0,1,2}.yaml` (8×).
 Run directories: `/home/infres/yinwang/CS_QMI/outputs/<run_id>/` (config.resolved.yaml, manifest, checkpoints, logs, evaluations).
+
+**Official test set (evaluated once, 2026-09-28; `P68_FINAL_OFFICIAL_TEST_REPORT_20260928.md`).**  Test linear, 3 seeds: VCS 82.98 ± 0.45 / 84.52 ± 0.18 / 85.87 ± 0.07 / 86.65 ± 0.26 at 1× / 2× / 4× / 8× (kNN 78.57 / 81.31 / 83.69 / 85.30); tuned SimCLR 86.94 / 87.99 / 88.21 / 88.13; tuned VICReg 87.00 / 87.11 / 86.91 / 86.87.  Test and selection agree within seed noise in every cell.
