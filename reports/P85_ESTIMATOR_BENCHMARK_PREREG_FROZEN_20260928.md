@@ -163,3 +163,11 @@ the six B = 1024 in-batch cells (1 M pairs per step) and ≈ 10–15 min for N =
 All four pilot cells raised `RuntimeError: Invalid device argument` in `_peak_mem` (`torch.cuda.reset_peak_memory_stats` before the caching
 allocator existed; unreachable on the CPU gate).  Fix in `src/vcs_estim/benchmark.py`: a zero-size allocation initialises the allocator and the
 statistics call is guarded.  No estimator, grid, role or read-out code changed.  Pilot resubmitted after this line.
+
+## Pilot measurement (results-only addendum, 2026-09-28T19:42:59Z; job 1013331, H100, )
+Wall time per cell 162–176 s (47 rows each: 9 VCS-N rows 4–14 s fit, kernel rows ≤ 3 s), CUDA peak 3.3–3.8 GB, CPU RSS 2.1 GB.  Full grid (81 distinct
+cells, 8 cost-balanced chunks; the six B = 1024 in-batch cells and the N = 16384 cells are the heavier ones): ≈ 4–14 GPU-h in total, ≈ 0.5–2 h per chunk on
+H100; `slurm/estim_p85_cells.sbatch` keeps its 12 h limit.  Derivative self-check: oracle envelope − finite difference = 1.07 combined SE (threshold 3; no
+inspection triggered).  Values are not read here; two observations are logged for the P86 reading: at d_total = 100, N = 256 all nine VCS-N rows share one
+J_eval (−0.0088), i.e. the SELECT rule kept the initial critic (recorded per row), and the kernel same-target rows are ≈ 0 at d_total = 100 for both N.
+Full grid submitted after this line, unchanged.
