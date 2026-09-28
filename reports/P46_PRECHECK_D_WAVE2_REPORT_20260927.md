@@ -105,3 +105,27 @@ force: (a) sensitivity is not reliance — at ρ = 0.5, with zero reliance, the 
 because a 1-px blur is a large change to the features whether or not the classifier uses it; (b) the magnitude saturates — Ĵ moves 0.27 → 0.29
 while reliance moves 0.29 → 0.86.  The guaranteed test now fires at ρ ≥ 0.95 (Ĵ 0.27–0.29 > τ_{1000} = 0.19), which the weaker colour shortcut
 never reached below ρ = 1.0.  The contingency (radius 1.5 px) was not needed.
+
+## 7. Addendum 6 — null-level diagnosis (R = 1000 everywhere; GPU jobs 1012136-class and pdsyn_*)
+| null construction | n = 2000 | n = 5000 | n = 10 000 |
+|---|---|---|---|
+| real features, N re-drawn per repeat — VCS encoder: vcs_perm / hsic | 0.05 / 0.06 | 0.05 / 0.04 | 0.06 / n/a |
+| real features, N re-drawn per repeat — SimCLR encoder | 0.06 / 0.04 | 0.06 / 0.05 | 0.06 / n/a |
+| synthetic, fresh Gaussian z and N per repeat (n = 500 / 2000) | 0.041 / 0.051 (hsic 0.048 / 0.049) | | |
+| synthetic, fixed pool of 45 000 z with ONE N draw (the P45 design) | 0.059 (hsic 0.059) | 0.063 (0.062) | **0.084** |
+| synthetic, fixed pool with N re-drawn per repeat | 0.053 (0.056) | 0.061 (0.048) | 0.052 |
+Binomial 95 % band for an exact test at R = 1000: 0.036–0.064.  The guaranteed test and C2ST are ≤ 0.003 throughout.
+
+**Reading (addendum 6, pre-committed).**  All six real-feature cells with fresh N are ≤ 0.065 → *level confirmed*; the fresh synthetic null is
+exact (0.04–0.05); the synthetic fixed-pool design reproduces the excess and makes it grow with n (0.059 → 0.084, HSIC alike where it runs); the
+same pool with N re-drawn removes it.  The 0.06–0.07 (and the 0.10–0.14 cells at R ≤ 100) were therefore the design — one realised N shared by
+every repeat of a pool — and not the tests, which are exact.  The same construction underlies the D-T null cells (one N draw per model over
+5 000 images), which explains their 0.00–0.16 scatter around a pooled 0.05.
+
+**Consequence for the D verdict.**  The P46 report §3.1 moved D to *does not hold* on the letter of the false-alarm clause, tripped by three
+R = 100 cells at 0.10–0.12 under the single-draw design.  With the null constructed correctly the false-alarm clause holds on both encoders at
+every n (≤ 0.065 at R = 1000), and every other clause was already met as described there.  **D is revised to: holds conditionally** — the
+conditions being the ones of the P46 interim verdict (the guaranteed bound is 20–50× more sample-hungry than the permutation test; parity
+with HSIC up to 0.09 in 4 of 36 small-sample cells; conditional power shown on one encoder in the colour family, on both in the blur family).
+The *does-not-hold* reading stays in the record as what the frozen rule said under a flawed null; the revision rests on a diagnosis that was
+itself pre-registered (addendum 6) before its compute.

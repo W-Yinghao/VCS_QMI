@@ -192,3 +192,10 @@ By the letter of the frozen grid (§3.1) row D **closes**.  If the owner reads t
 permutation-calibrated O(n) dependence test with an exact conditional version for discrete Y (on par with HSIC, better than C2ST at small
 n, and a monotone magnitude in the same statistic); the certified lower confidence bound is a selling point only when the dependence is
 strong or n is in the 10⁴ range.  A claim of *higher power* than HSIC is not available from this evidence.
+
+### 3.4 Verdict revision (2026-09-28, addendum 6)
+The false-alarm excess that tripped the *does-not-hold* clause in §3.1 was diagnosed and reproduced as a property of the null construction
+(one N draw per pool shared by all repeats), not of the tests: with N re-drawn per repeat the rate is 0.05–0.06 at R = 1000 on both encoders,
+a fresh synthetic null is exact, and a synthetic fixed-pool null reproduces the excess (0.084 at n = 10 000).  Details and tables:
+`P46_PRECHECK_D_WAVE2_REPORT_20260927.md` §7 and `P45_ADDENDUM6_NULL_DIAGNOSIS_FROZEN_20260927.md`.  **Revised verdict: holds conditionally**
+(the interim verdict of §2, with its conditions).  The §3.1 reading is kept as the record of what the frozen rule said under that null.
