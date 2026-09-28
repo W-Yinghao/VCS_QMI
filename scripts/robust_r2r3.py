@@ -15,6 +15,13 @@ Methods, equal budget (P49 grid lr x epochs selected on clean SRC-CAL by each me
 R2 metric: image->text R@1 / R@5 on the clean SRC-EVAL and TGT-EVAL (own caption 4) vs m; degradation = R@1(m) - R@1(0).
 R3: at m in --r3-mismatch, rank the SRC-FIT training pairs (fixed pairing: injected partner or the fixed topic partner, caption 0) by each
 method's native score with no clean calibration; AUROC of "clean" vs "injected"; raw CLIP cosine as reference.
+
+--pairing exact (P79, repairs P72 §1): the clean training positive of image i is its OWN caption (captions 0-3), SRC-CAL selection uses exact
+pairs, injected images get one random other image's captions as before; R3 scores the pairing (own image, or injected partner), caption 0.
+A raw-CLIP R2 reference row (identity adapters, no training) is added.  --crossfit (exact only): R3 additionally reports a 2-fold
+cross-fitted AUROC — SRC-FIT split once into two identity-disjoint halves (seeded), the selected configuration is trained on one half
+(with that half's injected pairs; K-pool negatives drawn from that half's captions) and scores the other half's pairs; halves swapped;
+AUROC over the pooled out-of-fold scores.  --pairing topic (default) is unchanged.
 """
 from __future__ import annotations
 
@@ -119,11 +126,29 @@ def r3_scores(m, method, fit_img, fit_txt, fixed_topic, wrong, device, raw=False
         return native_score(m, u, v).cpu()
 
 
+def crossfit_scores(method, fit_img, fit_txt, cal_img, cal_txt, lr, ep, seed, device, K, wrong, fold_seed):
+    """2-fold cross-fitted native scores of the exact-pairing training pairs (own caption, or the injected partner), caption 0."""
+    n = len(fit_img); perm = torch.randperm(n, generator=torch.Generator().manual_seed(fold_seed)); halves = (perm[: n // 2], perm[n // 2:])
+    part = torch.tensor([wrong.get(i, i) for i in range(n)]); out = torch.empty(n)
+    for tr, te in (halves, halves[::-1]):
+        tr_l = tr.tolist(); pos = {i: k for k, i in enumerate(tr_l)}
+        extra = sorted({wrong[i] for i in tr_l if i in wrong and wrong[i] not in pos}); epos = {j: len(tr_l) + k for k, j in enumerate(extra)}
+        sub_img = fit_img[tr]; sub_txt = torch.cat([fit_txt[tr], fit_txt[torch.tensor(extra, dtype=torch.long)]]) if extra else fit_txt[tr]
+        cands = [[pos.get(wrong[i], epos.get(wrong[i]))] if i in wrong else [pos[i]] for i in tr_l]
+        # train_r draws K-pool negatives from indices < len(sub_img): the fold's own captions only
+        m, _ = train_r(method, sub_img, sub_txt, cal_img, cal_txt, lr, ep, seed, device, K=K, fit_partners=cands, cal_partners=None)
+        with torch.no_grad():
+            u, v = m.enc(fit_img[te].to(device), fit_txt[part[te], 0].to(device)); out[te] = native_score(m, u, v).cpu()
+    return out
+
+
 def run(a) -> int:
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
     shift_dirs = dict(kv.split("=", 1) for kv in a.shift_dirs.split(","))
     lrs = [float(x) for x in a.lrs.split(",")]; epochs = [int(x) for x in a.epochs.split(",")]; seeds = [int(x) for x in a.seeds.split(",")]
     mism = [float(x) for x in a.mismatch.split(",")]; r3m = [float(x) for x in a.r3_mismatch.split(",")]; methods = [x for x in a.methods.split(",") if x in METHODS]
+    if a.crossfit and a.pairing != "exact":
+        raise SystemExit("--crossfit is implemented for --pairing exact only")
     if a.smoke:
         lrs, epochs, seeds, mism, r3m = [1e-3], [1], [0], [0.0, 0.4], [0.4]
     R = {"settings": {**vars(a), "device": str(device), "lrs": lrs, "epochs": epochs, "seeds": seeds, "mismatch": mism, "r3_mismatch": r3m, "methods": methods, "K": a.K},
@@ -135,8 +160,14 @@ def run(a) -> int:
             raw = {k: (v[0][:2000], v[1][:2000], v[2][:2000]) for k, v in raw.items()}
         fit_img, fit_txt, fit_ids = raw["SRC-FIT"]; cal_img, cal_txt, cal_ids = raw["SRC-CAL"]
         topic_fit, fixed_fit = topic_partners(fit_ids, a.index_dir, 20260927); topic_cal, _ = topic_partners(cal_ids, a.index_dir, 20260927)
+        if a.pairing == "exact":  # own caption as the clean positive; exact pairs on CAL; R3 fixed pairing = the image itself
+            topic_fit, fixed_fit, topic_cal = [[i] for i in range(len(fit_img))], torch.arange(len(fit_img)), None
         shash = int(hashlib.sha256(shift.encode()).hexdigest()[:8], 16)
         S = {"n_fit": int(len(fit_img)), "fit_ids_sha256": hashlib.sha256(",".join(str(int(i)) for i in fit_ids).encode()).hexdigest(), "levels": {}}
+        if a.pairing == "exact":  # raw CLIP R2 reference (identity adapters, no training)
+            S["raw_clip"] = {}
+            for split in ("SRC-EVAL", "TGT-EVAL"):
+                img, txt, _ = raw[split]; r1, r5 = retrieval(F.normalize(img, dim=-1), F.normalize(txt[:, 4], dim=-1)); S["raw_clip"][split] = {"R1": r1, "R5": r5}
         # raw CLIP reference for R3 (independent of m: only the injected labels change)
         for m_frac in mism:
             cands, inj, wrong = inject(len(fit_img), m_frac, topic_fit, [20260928, int(round(m_frac * 1000)), shash])
@@ -164,11 +195,15 @@ def run(a) -> int:
                         r["r3_auroc"] = auroc(sc, 1 - lab)
                         if method == "logistic":  # +log K intercept correction: rank-equivalent, reported for completeness
                             r["r3_auroc_logk"] = auroc(sc + math.log(255), 1 - lab)
+                        if a.crossfit:
+                            cs = crossfit_scores(method, fit_img, fit_txt, cal_img, cal_txt, best["lr"], best["epochs"], seed, device, a.K, wrong, 20260929 + shash)
+                            r["r3_auroc_crossfit"] = auroc(cs, 1 - lab)
                     P["seeds"][str(seed)] = r
                 L["methods"][method] = P
                 mean = lambda sp, f: float(np.mean([P["seeds"][s][sp][f] for s in P["seeds"]]))
                 print(f"[{shift}] m={m_frac:g} {method} lr={best['lr']:g} ep={best['epochs']}: SRC R@1 {mean('SRC-EVAL', 'R1'):.3f} TGT R@1 {mean('TGT-EVAL', 'R1'):.3f}"
-                      + (f" | R3 AUROC {np.mean([P['seeds'][s]['r3_auroc'] for s in P['seeds']]):.3f}" if m_frac in r3m and len(inj) else "") + f" ({time.time() - t0:.0f}s)", flush=True)
+                      + (f" | R3 AUROC {np.mean([P['seeds'][s]['r3_auroc'] for s in P['seeds']]):.3f}" if m_frac in r3m and len(inj) else "")
+                      + (f" cross-fit {np.mean([P['seeds'][s]['r3_auroc_crossfit'] for s in P['seeds']]):.3f}" if a.crossfit and m_frac in r3m and len(inj) else "") + f" ({time.time() - t0:.0f}s)", flush=True)
             S["levels"][f"{m_frac:g}"] = L
         R["shifts"][shift] = S
     Path(a.out + ".json").parent.mkdir(parents=True, exist_ok=True)
@@ -178,13 +213,15 @@ def run(a) -> int:
 
 
 def write_markdown(R, a):
-    st = R["settings"]; L = [f"# R2 / R3 — noisy pairing (R2) and mismatch identification (R3) on frozen CLIP + identity adapters, topic pairing — {R['utc']}",
+    st = R["settings"]; L = [f"# R2 / R3 — noisy pairing (R2) and mismatch identification (R3) on frozen CLIP + identity adapters, {st.get('pairing', 'topic')} pairing — {R['utc']}",
                             f"Mismatch fractions m = {st['mismatch']}; grid lr {st['lrs']} x epochs {st['epochs']} selected on clean SRC-CAL by each method's own loss; seeds {st['seeds']}; K = {st['K']}. "
                             "R@1 / R@5 = image->text retrieval of the own caption on the clean evaluation splits (mean ± sd over seeds).", ""]
     for shift, S in R["shifts"].items():
         L += [f"## {shift} (SRC-FIT n = {S['n_fit']})", "", "### R2 — retrieval vs mismatch fraction", "",
               "| m | method | selected lr / ep | SRC-EVAL R@1 | Δ vs m=0 | SRC-EVAL R@5 | TGT-EVAL R@1 | Δ vs m=0 | TGT-EVAL R@5 |", "|---|---|---|---|---|---|---|---|---|"]
         base = {}
+        if "raw_clip" in S:
+            rc = S["raw_clip"]; L.append(f"| – | raw CLIP (no training) | – | {rc['SRC-EVAL']['R1']:.3f} | – | {rc['SRC-EVAL']['R5']:.3f} | {rc['TGT-EVAL']['R1']:.3f} | – | {rc['TGT-EVAL']['R5']:.3f} |")
         for mk, Lv in S["levels"].items():
             for method, P in Lv["methods"].items():
                 def ms(sp, f):
@@ -203,6 +240,9 @@ def write_markdown(R, a):
                 xs = [P["seeds"][s]["r3_auroc"] for s in P["seeds"] if "r3_auroc" in P["seeds"][s]]
                 if xs:
                     L.append(f"| {mk} | {method} | {np.mean(xs):.3f} ± {(np.std(xs, ddof=1) if len(xs) > 1 else 0):.3f} |")
+                xs3 = [P["seeds"][s]["r3_auroc_crossfit"] for s in P["seeds"] if "r3_auroc_crossfit" in P["seeds"][s]]
+                if xs3:
+                    L.append(f"| {mk} | {method} (2-fold cross-fitted) | {np.mean(xs3):.3f} ± {(np.std(xs3, ddof=1) if len(xs3) > 1 else 0):.3f} |")
                 if method == "logistic":
                     xs2 = [P["seeds"][s]["r3_auroc_logk"] for s in P["seeds"] if "r3_auroc_logk" in P["seeds"][s]]
                     if xs2:
@@ -217,6 +257,7 @@ def main() -> int:
     ap.add_argument("--mismatch", default="0,0.1,0.2,0.4,0.6"); ap.add_argument("--r3-mismatch", default="0.2,0.4")
     ap.add_argument("--methods", default="vcs,infonce,logistic,js"); ap.add_argument("--lrs", default="1e-3,3e-4,1e-4"); ap.add_argument("--epochs", default="5,15,40")
     ap.add_argument("--seeds", default="0,1,2"); ap.add_argument("--K", type=int, default=8)
+    ap.add_argument("--pairing", choices=("topic", "exact"), default="topic"); ap.add_argument("--crossfit", action="store_true")
     ap.add_argument("--index-dir", default="/home/infres/yinwang/CS_QMI/data/coco_index"); ap.add_argument("--smoke", action="store_true")
     return run(ap.parse_args())
 
