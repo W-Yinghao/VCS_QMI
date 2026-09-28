@@ -1,6 +1,6 @@
 # P41_control_tuning — neutral results table (observed values only)
 
-Generated 2026-09-28T13:36:28Z. Failed / stopped runs are listed, never dropped.
+Generated 2026-09-28T13:39:23Z. Failed / stopped runs are listed, never dropped.
 
 | run | method | K | seed | epochs done | linear-val (%) | kNN-val (%) | heldout-J (mean±sd) | h-rank | train time (s) | peak GPU MB (alloc/res) | status |
 |---|---|---|---|---|---|---|---|---|---|---|---|
