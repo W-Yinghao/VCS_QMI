@@ -18,3 +18,10 @@ but cannot resume.  The SimCLR blur job (1 600 repeats, ~21 h) is at risk as wel
    repeat is an independent draw of N | Y and the data subsample).  Null cells that the monolithic jobs happen to finish before
    cancellation are **not** read (the split jobs are the pre-declared source for every null cell), so no cell is chosen after seeing it.
 4. The P74 report merges: power cells from the monolithic partial/final JSONs, null cells from the split-job JSONs.
+
+**Packaging note 2 (2026-09-28T18:33:19Z, execution only, no design change).**  The 30-job submit cap (shared with the owner's jobs) blocked the package-v2 main
+units while 14 pending split jobs held slots at nice 200.  Ten of them were cancelled *before they started* — 1013197, 1013200 (VCS colour nulls at
+n ∈ {200, 1000}, seeds 103 / 106) and 1013201–1013208 (all SimCLR colour and blur null jobs, seeds 107–114) — and are re-fed later with identical
+arguments and seeds by `slurm/feed_lines.sbatch` from `slurm/t1_split_refeed_lines.txt` (lines recorded there; new ids in `job_ids.json`).
+The four VCS colour level cells (1013195, 1013196, 1013198, 1013199; seeds 101, 102, 104, 105) stay queued as gap fillers.  Cells, R, seeds,
+tests and the read-out rules are unchanged; nothing had run.
