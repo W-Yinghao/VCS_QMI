@@ -247,3 +247,9 @@ Configs: `configs/cifar10_hp{A..O}_*.yaml` with `configs/HPARAM_*_SHA256.json`; 
 Run directories: `/home/infres/yinwang/CS_QMI/outputs/<run_id>/` (config.resolved.yaml, manifest, checkpoints, logs, evaluations).
 
 **Official test set (evaluated once, 2026-09-28; `P68_FINAL_OFFICIAL_TEST_REPORT_20260928.md`).**  Test linear, 3 seeds: VCS 82.98 ± 0.45 / 84.52 ± 0.18 / 85.87 ± 0.07 / 86.65 ± 0.26 at 1× / 2× / 4× / 8× (kNN 78.57 / 81.31 / 83.69 / 85.30); tuned SimCLR 86.94 / 87.99 / 88.21 / 88.13; tuned VICReg 87.00 / 87.11 / 86.91 / 86.87.  Test and selection agree within seed noise in every cell.
+
+**Conclusion on objective-side tuning (S3 of the next-round plan, 2026-09-28).**  Every objective-side knob explored for VCS — critic family
+(concatenation MLP, cosine, diagonal metric, monotone spline), scale initialisation, K, projector variants, EMA target and predictor — was neutral or
+worse; the monotone spline re-learns a sharper threshold than the cosine (P29).  The reason is structural: augmentation pairs are almost
+deterministic (S ≈ 0.97), the optimal critic takes ±1, and any sufficiently flexible critic degenerates to a threshold.  No further tuning of the
+SSL objective is planned; the SSL section reports the frozen recipe, the equal-budget controls (P41) and the standard-protocol placement (S2).
