@@ -79,3 +79,10 @@ isotropic ≤ 6.3e-10 (CKA-RBF ≤ 1.1e-6); per-feature scaling changes all thre
 that each closed half of the gap in the report), same 60 images and seed.  Reading unchanged: the family is re-opened only if J* matches
 MI/NMI on local maxima (≤ NMI's) *and* success at R = 20 / 30 within 0.05 — and even then the report states that parity, not advantage, is
 what was shown.  One GPU job (≈ 1.7 h).
+
+**Addendum 2 (2026-09-28T06:08:22Z, frozen before launch; owner asked for further experiments while GPUs are idle).**  The combination variant of addendum 1
+(patch features + coarse-to-fine) reached parity with MI on the constructed pairs; it is now run on the three real B-T2 sources with the same
+60 pairs / subjects and seeds as their P52-path runs: RGB–NIR (P60 RGB–NIR prereg), IXI PD/T2 (P60 IXI), AOMIC-PIOP1 EPI/T1w (P60 fMRI).
+Reading unchanged (parity = maxima ≤ NMI's and success within 0.05; parity is not advantage; the family stays closed either way); the value of
+the unit is to state whether the plain closed form's deficit on real data is removable to the same degree as on constructed pairs.  Three GPU
+jobs, ≈ 1.7 h each.  The three scripts gain the two flags as pass-throughs (default path byte-identical: `Variant()` = P52).

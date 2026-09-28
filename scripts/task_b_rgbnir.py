@@ -26,7 +26,7 @@ import torch
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from precheck_b2_registration import COCO, S, aggregate, load_grey, make_modality_b, progress_line, run_pair, write_outputs  # noqa: E402
+from precheck_b2_registration import COCO, S, aggregate, load_grey, make_modality_b, progress_line, run_pair, write_outputs  # noqa: E402, Variant
 
 
 def load_any_grey(path):
@@ -79,7 +79,9 @@ def main() -> int:
     ap.add_argument("--data", default="/home/infres/yinwang/CS_QMI/data/rgb_nir/nirscene1"); ap.add_argument("--out", required=True)
     ap.add_argument("--n-images", type=int, default=60); ap.add_argument("--n-pairs", type=int, default=20000); ap.add_argument("--seed", type=int, default=20260927)
     ap.add_argument("--inits-per-radius", type=int, default=10); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--synthetic-smoke", default=None, help="directory: build 3 constructed pairs there and run the smoke on them")
+    ap.add_argument("--patch-features", action="store_true", help="B-S2 variant: add the 8x8 block-mean channel to the J* features"); ap.add_argument("--coarse-to-fine", action="store_true", help="B-S2 variant: Nelder-Mead 64 -> 128 -> 256 px")
     a = ap.parse_args()
+    VAR = Variant(patch=a.patch_features, ctf=a.coarse_to_fine)
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
     if a.synthetic_smoke:
         a.data = str(build_synthetic(Path(a.synthetic_smoke))); a.smoke = True
@@ -94,12 +96,12 @@ def main() -> int:
     rng = np.random.default_rng(a.seed); per_image = []; t0 = time.time()
     for n_i, p in enumerate(chosen):
         A_, B_ = load_any_grey(p["rgb"]), load_any_grey(p["nir"])
-        rec = run_pair(A_, B_, p["id"], a.seed, a.n_pairs, a.inits_per_radius, rng, device); rec["category"] = p["category"]; per_image.append(rec)
+        rec = run_pair(A_, B_, p["id"], a.seed, a.n_pairs, a.inits_per_radius, rng, device, var=VAR); rec["category"] = p["category"]; per_image.append(rec)
         print(progress_line(n_i, len(chosen), p["id"], rec, t0), flush=True)
     agg = aggregate(per_image)
     settings = dict(vars(a)); settings.update({"id_list_sha256": list_sha, "n_pairs_available": len(pairs), "categories": sorted(set(p["category"] for p in pairs)),
                                               "per_category_used": {c: sum(p["category"] == c for p in chosen) for c in sorted(set(p["category"] for p in chosen))}})
-    write_outputs(a.out, f"Task pre-check B-T2 — closed-form VCS J* vs histogram MI/NMI as a rigid-registration energy on {len(chosen)} real RGB–NIR pairs (EPFL IVRL scene dataset)",
+    write_outputs(a.out, f"Task pre-check B-T2 [{VAR.tag or 'P52'}] — closed-form VCS J* vs histogram MI/NMI as a rigid-registration energy on {len(chosen)} real RGB–NIR pairs (EPFL IVRL scene dataset)",
                   f"{a.n_pairs} pixel pairs per evaluation, identical overlap mask and samples for all measures; translation grid ±24 px step 2 (θ = 0); rotation ±30° step 1 (t = 0); "
                   f"Nelder–Mead ≤ 150 evaluations from {a.inits_per_radius} random initial offsets per radius; success = < 1 px and < 1°; truth = the authors' registration.", settings, device, ids, agg, per_image)
     return 0
