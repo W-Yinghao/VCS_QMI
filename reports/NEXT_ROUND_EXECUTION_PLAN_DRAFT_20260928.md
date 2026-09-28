@@ -69,3 +69,14 @@ prereg (P-series numbering continues at P69), probe, fleet, results-only commit,
 (they follow the brief's falsification conditions; the margins 1.2× / 0.05 / 0.02 / 1 point are mine)?  3. S2: exemption for the official test set,
 or selection split?  4. "Learned-kernel HSIC" = deep-kernel HSIC selected on a validation split — acceptable as the control?  5. Anything from the
 proposed-only list of the final summary (momentum queue, 16× control) to fold in, or is that closed?
+
+## 7. Owner decisions (2026-09-28, verbatim: "RESULTS_20260928.md在这个，然后开跑，数字可以放宽一些，给S2也豁免")
+- The oracle analysis is `CS_QMI/RESULTS_20260928.md` (bivariate Gaussian, n = 10 000; single-shuffle table with NWJ/VCS 1.6 → 37.7, JS/VCS 0.97 → 1.06; in-batch
+  table with InfoNCE/VCS 0.92 → 1.32 at N = 64 and 0.91 → 0.41 at N = 1024).  E's first unit re-derives it as a cross-check.
+- The round is authorised.  Threshold numbers are loosened relative to §1–3: E1 spike > 5 nats and "KL-family narrowing" if JS/InfoNCE separability
+  within 15 %; E2 VCS ≥ 1.1 × InfoNCE and ≥ 0.95 × JS at N = 64, MI ≥ 6.5; E3 at 2 of 3 lrs; E4 agreement within 2 %; R1 ≤ 1.5 resolution units per
+  0.1 ε, JS "alike" within 25 %; R2 margin 0.5 point; R3 AUROC margin 0.01; T1 power ≥ max(controls) − 0.10, JS "within 0.05" as the learned-critic
+  attribution; S2 gap < 1.5.  Each fork writes these into its draft prereg; I freeze them (P69 E, P71 R2/R3, P73 T1, P75 S2) before compute.
+- **S2 is exempt from the test-set discipline**: the solo-learn protocol's end-of-run official-test evaluation is allowed, once per run, pre-registered.
+- Implementation in parallel by four forks (E + R1 module; R2 / R3 on the CLIP-adapter infrastructure; T1 on the D machinery; S2 solo-learn port);
+  each delivers code + CPU smoke + draft prereg; no fleet before the freeze.
