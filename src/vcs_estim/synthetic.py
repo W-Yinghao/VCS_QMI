@@ -58,9 +58,34 @@ def make_gaussian(I: float, d: int = 20, seed: int = 0, sizes: dict | None = Non
     return rho, out
 
 
-def truth(I: float, d: int, rho: float, T: RoleData) -> dict:
+def eta_signal(x, y, rho, d_signal: int | None = None):
+    """eta on the signal coordinates only (the leading d_signal columns); the padded independent coordinates cancel in p/q exactly."""
+    if d_signal is None:
+        return eta(x, y, rho)
+    return eta(x[..., :d_signal], y[..., :d_signal], rho)
+
+
+def make_gaussian_padded(I: float, d_signal: int, d_total: int, seed: int = 0, sizes: dict | None = None) -> tuple[float, dict]:
+    """v2 spec §5.1 irrelevant-dimension design: X = (X_s, N_x), Y = (Y_s, N_y) with N_x, N_y independent N(0, I) of dimension
+    d_total - d_signal on both sides, drawn from their own streams; S(X; Y) = S(X_s; Y_s).  TRUTH is not padded (eta needs only X_s, Y_s)."""
+    assert d_total >= d_signal
+    rho, data = make_gaussian(I, d_signal, seed, sizes); k = d_total - d_signal
+    if k == 0:
+        return rho, data
+    for role in ROLES:
+        if role == "TRUTH":
+            continue
+        r = data[role]; n = len(r.xp)
+        gp, gq = _gen(("PAD-P", role, I, d_signal, d_total, seed)), _gen(("PAD-Q", role, I, d_signal, d_total, seed))
+        nxp, nyp = torch.randn(n, k, generator=gp, dtype=r.xp.dtype), torch.randn(n, k, generator=gp, dtype=r.xp.dtype)
+        nxq, nyq = torch.randn(len(r.xq), k, generator=gq, dtype=r.xq.dtype), torch.randn(len(r.xq), k, generator=gq, dtype=r.xq.dtype)
+        data[role] = RoleData(torch.cat([r.xp, nxp], 1), torch.cat([r.yp, nyp], 1), torch.cat([r.xq, nxq], 1), torch.cat([r.yq, nyq], 1), r.ep)
+    return rho, data
+
+
+def truth(I: float, d: int, rho: float, T: RoleData, d_signal: int | None = None) -> dict:
     """S = E_M eta^2 = 1/2 E_P eta^2 + 1/2 E_Q eta^2 and the oracle J(eta) on the TRUTH pairs (MC consistency: J(eta) -> S)."""
-    ep, eq = eta(T.xp, T.yp, rho), eta(T.xq, T.yq, rho)
+    ep, eq = eta_signal(T.xp, T.yp, rho, d_signal), eta_signal(T.xq, T.yq, rho, d_signal)
     s_terms_p, s_terms_q = ep ** 2, eq ** 2
     S = 0.5 * s_terms_p.mean() + 0.5 * s_terms_q.mean()
     se = math.sqrt(0.25 * float(s_terms_p.var()) / len(ep) + 0.25 * float(s_terms_q.var()) / len(eq))
