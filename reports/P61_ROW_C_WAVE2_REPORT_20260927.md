@@ -49,3 +49,18 @@ un-pre-registered unit; it is listed as *proposed* and needs the owner's go, bec
 Micro-batch / large-voxel, memory-bank / streaming, k-way and asymmetric-sample-size families: **closed** on this evidence — no batch effect
 specific to VCS from scratch (seed 0; seeds pending), and the naive queue collapses for both objectives.  The one open question is technical,
 not property-level: whether a momentum-encoder queue behaves differently for the two objectives.
+
+## 4. C-S1 with seeds 1–2 (addendum 1; 39 runs; table `P61_batchsweep_table.md`, commit cd06514)
+| method | B = 32 (3 seeds) | B = 64 | B = 128 | B = 256 (reference) | retention at B = 32: linear (per seed) | kNN |
+|---|---|---|---|---|---|---|
+| VCS | 79.91 ± 0.50 | 80.71 ± 0.34 | 81.09 ± 0.22 | 81.62 ± 0.21 | **0.979** (0.973 / 0.979 / 0.985); lr × 2 single seed 0.983 | 0.971 |
+| SimCLR | 84.39 ± 0.46 | 85.16 ± 0.11 | 85.49 ± 0.38 | 86.35 ± 0.38 | **0.977** (0.980 / 0.981 / 0.971); lr × 2 0.978 | 0.947 |
+| VICReg | 85.31 ± 0.26 | 86.10 ± 0.24 | 85.83 ± 0.27 | 85.23 ± 0.31 | **1.001** (0.998 / 1.004 / 1.001); lr × 2 1.005 | 0.987 |
+
+**Final reading (frozen rule on the 3-seed means).**  VCS retains 0.979 at B = 32 (0.983 with the lr × 2 check), SimCLR 0.977, VICReg 1.001.  No
+control is at or below 0.95, so *holds* fails; VCS does *not* degrade at least as much as every control (2.1 % vs SimCLR's 2.3 %), so
+*does-not-hold* fails; the data land in the *conditional* clause — VCS at the 0.98 line with all controls above 0.95.  **C-S1: holds
+conditionally**, and the seed-0 interim reading flips on a 0.2 % difference that is inside the seed spread (± 0.4–0.5).  Substance unchanged:
+from scratch at 2 views / 200 epochs there is no batch effect specific to VCS to be immune to — VCS and SimCLR lose 2 % from B = 256 to B = 32
+under the linear lr rule, VICReg loses nothing.  On kNN SimCLR degrades most (0.947), VCS 0.971, VICReg 0.987.  The family reading in §3
+stands (closed): no advantage, and the queue form collapses.

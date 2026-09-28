@@ -34,3 +34,11 @@ result.  Official test set: once, at the end, for the frozen best of each method
 
 ## Not done until the owner confirms
 No control config has been generated or submitted.  The generator (`make_n_control_tuning_configs.py`) is written but not run.
+
+**Addendum 1 (2026-09-28T01:33:39Z) — winners and their seeds.**  Single-seed results (`P41_control_tuning_table.md`, linear-val %): SimCLR — 1×: views4_b128_100ep
+86.42 (b128 86.36, τ 0.5 86.36 within noise; the frozen P5 2v/200ep is 86.09 ± 0.38), 2×: views4 87.48, 4×: 800ep 88.38; τ = 0.1 84.30.  VICReg — 1×:
+views4_b128_100ep 87.24 (b128 86.52), 2×: views4 86.64, 4×: 800ep 86.70; cov 0.1 83.36, (10, 10, 1) 86.28.  Per the frozen rule the best configuration
+at each compute point gets seeds 1 and 2: the six winners above (`configs/HPARAM_N_SEEDS_SHA256.json`, 12 runs).  Comparison points for the paper
+(selection split, 3 seeds each side when these land): 1× VCS 83.19 ± 0.40 (4v/B128/100ep) vs SimCLR 86.42 / VICReg 87.24; 2× VCS 84.54 ± 0.16 vs
+87.48 / 86.64; 4× VCS 85.30 ± 0.21 (2v/800ep; 4v/400ep 85.90, 8v/200ep 85.95 ± 0.35) vs 88.38 / 86.70.  The 8× and 16× VCS points (87.01 ± 0.53;
+87.50) have no equal-compute control in this grid; a SimCLR 4v/800ep unit would be the equal-compute control at 8× and is *proposed*.
