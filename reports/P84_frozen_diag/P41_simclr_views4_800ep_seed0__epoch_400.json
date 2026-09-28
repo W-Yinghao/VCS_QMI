@@ -1,0 +1,1524 @@
+{
+ "checkpoint": {
+  "run_dir": "/home/infres/yinwang/CS_QMI/outputs/P41_simclr_views4_800ep_seed0",
+  "ckpt": "epoch_400",
+  "run_id": "P41_simclr_views4_800ep_seed0",
+  "code_commit": "1b85af029ec6fd60548b8e1d150d47bd4235836c",
+  "config_hash": "af1eb8ed0835259998d234a61095873dd76ca117408c7da39661f748b8a0603c",
+  "manifest_hash": "c35d7cd336e79680c2e2c077e5612ed9eb6779ff70a427f5e085bc4df2d617a9",
+  "method": "simclr_matched",
+  "seed": 0,
+  "stage": "P41_control_tuning",
+  "completed_epoch": 400,
+  "optimizer_step": 70000,
+  "K": null,
+  "method_cfg": "simclr_matched",
+  "negative_detach": false,
+  "views": 4
+ },
+ "roles": {
+  "seed": 20260928,
+  "sizes": {
+   "FIT": 27000,
+   "TUNE": 6000,
+   "SELECT": 6000,
+   "EVAL": 6000
+  },
+  "hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+  "pairing": {
+   "FIT": {
+    "negative_construction": "cyclic_K8",
+    "shifts": [
+     1249,
+     12904,
+     5175,
+     1474,
+     18320,
+     12420,
+     26589,
+     14181
+    ]
+   },
+   "TUNE": {
+    "negative_construction": "independent_blocks",
+    "n_blocks": 3000
+   },
+   "SELECT": {
+    "negative_construction": "independent_blocks",
+    "n_blocks": 3000
+   },
+   "EVAL": {
+    "negative_construction": "independent_blocks",
+    "n_blocks": 3000
+   }
+  }
+ },
+ "device": "cuda",
+ "feature_seconds": 14.269246578216553,
+ "rows": [
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_vcs_C0",
+   "status": "completed",
+   "estimator": "vcs_single",
+   "critic_family": "C0",
+   "loss_scale_convention": "minus_J",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 2,
+   "selected_checkpoint": 2000,
+   "select_risk": -0.8999797701835632,
+   "select_curve": [
+    [
+     0,
+     -0.0
+    ],
+    [
+     100,
+     -0.14298424124717712
+    ],
+    [
+     200,
+     -0.26737743616104126
+    ],
+    [
+     300,
+     -0.3732963502407074
+    ],
+    [
+     400,
+     -0.462396502494812
+    ],
+    [
+     500,
+     -0.5368762612342834
+    ],
+    [
+     600,
+     -0.5988258123397827
+    ],
+    [
+     700,
+     -0.6502958536148071
+    ],
+    [
+     800,
+     -0.6932080984115601
+    ],
+    [
+     900,
+     -0.729022741317749
+    ],
+    [
+     1000,
+     -0.7591198682785034
+    ],
+    [
+     1100,
+     -0.7845144271850586
+    ],
+    [
+     1200,
+     -0.8060474991798401
+    ],
+    [
+     1300,
+     -0.8244271874427795
+    ],
+    [
+     1400,
+     -0.8402191400527954
+    ],
+    [
+     1500,
+     -0.8538274765014648
+    ],
+    [
+     1600,
+     -0.8656494617462158
+    ],
+    [
+     1700,
+     -0.8759450912475586
+    ],
+    [
+     1800,
+     -0.8849807977676392
+    ],
+    [
+     1900,
+     -0.8929270505905151
+    ],
+    [
+     2000,
+     -0.8999797701835632
+    ]
+   ],
+   "fit_seconds": 2.6569316387176514,
+   "eval_seconds": 0.011699199676513672,
+   "n_positive_pairs": 3000,
+   "n_negative_pairs": 3000,
+   "J_eval": 0.8973526614238895,
+   "J_eval_se_block": 0.0025237936808605254,
+   "delta_J_vs_training_critic": null,
+   "J_fit": 0.8968446985573896,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.09310508470149101,
+     0.6413060448958822,
+     0.7571151297484374,
+     0.7746221190747787,
+     0.7790349020315116
+    ],
+    "neg_quantiles": [
+     -0.8702385309171199,
+     -0.7827519948515408,
+     -0.724420720681785,
+     -0.650061194555056,
+     -0.12211109826534654
+    ],
+    "pos_sat_right": 0.0,
+    "pos_sat_wrong": 0.0,
+    "neg_sat_right": 0.0003333333333333333,
+    "neg_sat_wrong": 0.0,
+    "gate_pos": {
+     "mean": 0.46828002513952893,
+     "q01": 0.39310462141205266,
+     "q10": 0.39996057263543433,
+     "q50": 0.4267766802947319,
+     "q90": 0.585161536457201,
+     "q99": 0.9573341176771158
+    },
+    "gate_neg": {
+     "mean": 0.48432395584175614,
+     "q01": 0.2426848928373381,
+     "q10": 0.3872993134769079,
+     "q50": 0.47521461897489575,
+     "q90": 0.5773732040905344,
+     "q99": 0.9449591343711077
+    },
+    "residual_pos_mean": 0.2871718169591101,
+    "residual_neg_mean": -0.29177751210764297,
+    "T_minus_C_gate_pos": {
+     "mean": -0.14771949309906723,
+     "quantiles": [
+      -0.9923230201305505,
+      -0.2111726679249682,
+      -0.10365759863685123,
+      -0.09014226632143929,
+      -0.08686240118950352
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.15229168596728074,
+     "quantiles": [
+      0.0314911594845889,
+      0.08414000493753931,
+      0.130959302902417,
+      0.2020618297117438,
+      0.8647984632295618
+     ]
+    }
+   }
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_vcs_C1",
+   "status": "completed",
+   "estimator": "vcs_single",
+   "critic_family": "C1",
+   "loss_scale_convention": "minus_J",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 4097,
+   "selected_checkpoint": 2000,
+   "select_risk": -0.8763331174850464,
+   "select_curve": [
+    [
+     0,
+     -0.00043194147292524576
+    ],
+    [
+     100,
+     -0.058494824916124344
+    ],
+    [
+     200,
+     -0.16194406151771545
+    ],
+    [
+     300,
+     -0.30451256036758423
+    ],
+    [
+     400,
+     -0.44003212451934814
+    ],
+    [
+     500,
+     -0.5455136895179749
+    ],
+    [
+     600,
+     -0.6213825941085815
+    ],
+    [
+     700,
+     -0.6764693260192871
+    ],
+    [
+     800,
+     -0.7173066735267639
+    ],
+    [
+     900,
+     -0.7484699487686157
+    ],
+    [
+     1000,
+     -0.7728787660598755
+    ],
+    [
+     1100,
+     -0.7926487922668457
+    ],
+    [
+     1200,
+     -0.8087832927703857
+    ],
+    [
+     1300,
+     -0.8221777677536011
+    ],
+    [
+     1400,
+     -0.833502471446991
+    ],
+    [
+     1500,
+     -0.8430777788162231
+    ],
+    [
+     1600,
+     -0.851570188999176
+    ],
+    [
+     1700,
+     -0.8590008020401001
+    ],
+    [
+     1800,
+     -0.8655678033828735
+    ],
+    [
+     1900,
+     -0.8712161779403687
+    ],
+    [
+     2000,
+     -0.8763331174850464
+    ]
+   ],
+   "fit_seconds": 4.336053371429443,
+   "eval_seconds": 0.001600027084350586,
+   "n_positive_pairs": 3000,
+   "n_negative_pairs": 3000,
+   "J_eval": 0.869758524753851,
+   "J_eval_se_block": 0.003995337110243457,
+   "delta_J_vs_training_critic": null,
+   "J_fit": 0.8769948096455864,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.06930080859950778,
+     0.534164791948092,
+     0.8262603224355524,
+     0.9502557558808655,
+     0.9857674076418351
+    ],
+    "neg_quantiles": [
+     -0.9895692376606522,
+     -0.9659525656004432,
+     -0.8286287033209687,
+     -0.34565922136440497,
+     0.4167484859074491
+    ],
+    "pos_sat_right": 0.10133333333333333,
+    "pos_sat_wrong": 0.0,
+    "neg_sat_right": 0.16566666666666666,
+    "neg_sat_wrong": 0.0,
+    "gate_pos": {
+     "mean": 0.36440517091125607,
+     "q01": 0.028262618024992477,
+     "q10": 0.09701399671662979,
+     "q50": 0.31695619794221813,
+     "q90": 0.7101756683647339,
+     "q99": 0.9952522941237025
+    },
+    "gate_neg": {
+     "mean": 0.38481364667561413,
+     "q01": 0.02075272381901327,
+     "q10": 0.06693564079763387,
+     "q50": 0.3129976905436924,
+     "q90": 0.8613558512981766,
+     "q99": 0.9984303251921168
+    },
+    "residual_pos_mean": 0.2328597254207333,
+    "residual_neg_mean": -0.27199115861885087,
+    "T_minus_C_gate_pos": {
+     "mean": -0.12948900856733425,
+     "quantiles": [
+      -1.0294606945776905,
+      -0.33238393118833404,
+      -0.05512655732214415,
+      -0.004825891164145025,
+      -0.00040225033335779904
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.17759362077116297,
+     "quantiles": [
+      0.00021646684227630172,
+      0.002278987249177698,
+      0.053703390076401875,
+      0.5744041033392343,
+      1.1657554345683647
+     ]
+    }
+   }
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_vcs_C2",
+   "status": "completed",
+   "estimator": "vcs_single",
+   "critic_family": "C2",
+   "loss_scale_convention": "minus_J",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 131841,
+   "selected_checkpoint": 500,
+   "select_risk": -0.9729011058807373,
+   "select_curve": [
+    [
+     0,
+     0.0005310997366905212
+    ],
+    [
+     100,
+     -0.8945329785346985
+    ],
+    [
+     200,
+     -0.9637877345085144
+    ],
+    [
+     300,
+     -0.9682561159133911
+    ],
+    [
+     400,
+     -0.9708918929100037
+    ],
+    [
+     500,
+     -0.9729011058807373
+    ],
+    [
+     600,
+     -0.9692649841308594
+    ],
+    [
+     700,
+     -0.9675067067146301
+    ],
+    [
+     800,
+     -0.9703899025917053
+    ],
+    [
+     900,
+     -0.96848464012146
+    ],
+    [
+     1000,
+     -0.9668354988098145
+    ],
+    [
+     1100,
+     -0.9700493812561035
+    ],
+    [
+     1200,
+     -0.9670662879943848
+    ],
+    [
+     1300,
+     -0.9652672410011292
+    ],
+    [
+     1400,
+     -0.9600837230682373
+    ],
+    [
+     1500,
+     -0.9654384851455688
+    ],
+    [
+     1600,
+     -0.9636565446853638
+    ],
+    [
+     1700,
+     -0.9615093469619751
+    ],
+    [
+     1800,
+     -0.9610242247581482
+    ],
+    [
+     1900,
+     -0.9597930908203125
+    ],
+    [
+     2000,
+     -0.9611400365829468
+    ]
+   ],
+   "fit_seconds": 7.044055223464966,
+   "eval_seconds": 0.0020287036895751953,
+   "n_positive_pairs": 3000,
+   "n_negative_pairs": 3000,
+   "J_eval": 0.963503340152272,
+   "J_eval_se_block": 0.0038679104530763295,
+   "delta_J_vs_training_critic": null,
+   "J_fit": 0.9812904183131198,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.4292364656139459,
+     0.9472792029085043,
+     0.9910280765201049,
+     0.9968585032903519,
+     0.9984173345433057
+    ],
+    "neg_quantiles": [
+     -0.9986488972282263,
+     -0.9967733495233757,
+     -0.987325190801442,
+     -0.9294158741869315,
+     -0.39942740738764615
+    ],
+    "pos_sat_right": 0.8956666666666667,
+    "pos_sat_wrong": 0.003,
+    "neg_sat_right": 0.8526666666666667,
+    "neg_sat_wrong": 0.0013333333333333333,
+    "gate_pos": {
+     "mean": 0.05612662882066722,
+     "q01": 0.0031628260833449083,
+     "q10": 0.00627312441663973,
+     "q50": 0.017863351548787876,
+     "q90": 0.09922254804081043,
+     "q99": 0.8774716564309953
+    },
+    "gate_neg": {
+     "mean": 0.06203908984576562,
+     "q01": 0.0027003800616012754,
+     "q10": 0.006442889679940622,
+     "q50": 0.02514348661847321,
+     "q90": 0.13367281302755846,
+     "q99": 0.7718392930344333
+    },
+    "residual_pos_mean": 0.05354616466996895,
+    "residual_neg_mean": -0.042033354510975264,
+    "T_minus_C_gate_pos": {
+     "mean": -0.02215646999580385,
+     "quantiles": [
+      -0.8312788861682288,
+      -0.005412437307191486,
+      -0.00016026862333515685,
+      -1.970700186698812e-05,
+      -5.005695778918183e-06
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.015003198501770839,
+     "quantiles": [
+      3.6484974697385055e-06,
+      2.0788953075824047e-05,
+      0.00031926545217722427,
+      0.00961257925139659,
+      0.46595215131881296
+     ]
+    }
+   }
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_js_C0",
+   "status": "completed",
+   "estimator": "js_single",
+   "critic_family": "C0",
+   "loss_scale_convention": "matched_JS",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 2,
+   "selected_checkpoint": 2000,
+   "select_risk": 0.2564140558242798,
+   "select_curve": [
+    [
+     0,
+     1.3862942457199097
+    ],
+    [
+     100,
+     1.2429019212722778
+    ],
+    [
+     200,
+     1.1159061193466187
+    ],
+    [
+     300,
+     1.004119873046875
+    ],
+    [
+     400,
+     0.9058367013931274
+    ],
+    [
+     500,
+     0.8193424940109253
+    ],
+    [
+     600,
+     0.743310272693634
+    ],
+    [
+     700,
+     0.6764366626739502
+    ],
+    [
+     800,
+     0.6174088716506958
+    ],
+    [
+     900,
+     0.5653572082519531
+    ],
+    [
+     1000,
+     0.5191857814788818
+    ],
+    [
+     1100,
+     0.47824639081954956
+    ],
+    [
+     1200,
+     0.4418068528175354
+    ],
+    [
+     1300,
+     0.40925124287605286
+    ],
+    [
+     1400,
+     0.3800767660140991
+    ],
+    [
+     1500,
+     0.3539314866065979
+    ],
+    [
+     1600,
+     0.33037227392196655
+    ],
+    [
+     1700,
+     0.30909305810928345
+    ],
+    [
+     1800,
+     0.28983330726623535
+    ],
+    [
+     1900,
+     0.27235543727874756
+    ],
+    [
+     2000,
+     0.2564140558242798
+    ]
+   ],
+   "fit_seconds": 2.189542055130005,
+   "eval_seconds": 0.0012099742889404297,
+   "n_positive_pairs": 3000,
+   "n_negative_pairs": 3000,
+   "J_eval": 0.9244958284738065,
+   "J_eval_se_block": 0.0026810235606425587,
+   "delta_J_vs_training_critic": null,
+   "J_fit": 0.9241301766902525,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.10301629391809326,
+     0.7058697051471216,
+     0.8152249340591631,
+     0.8309355927827067,
+     0.8348570560090423
+    ],
+    "neg_quantiles": [
+     -0.9105677953557664,
+     -0.8357224732969983,
+     -0.7821409861787112,
+     -0.7104453112295007,
+     -0.13629565521850195
+    ],
+    "pos_sat_right": 0.0,
+    "pos_sat_wrong": 0.0,
+    "neg_sat_right": 0.0013333333333333333,
+    "neg_sat_wrong": 0.0,
+    "gate_pos": {
+     "mean": 0.38030808966470186,
+     "q01": 0.3030136960282042,
+     "q10": 0.3095460406431416,
+     "q50": 0.3354083068791202,
+     "q90": 0.4979044014675727,
+     "q99": 0.9422211309361674
+    },
+    "gate_neg": {
+     "mean": 0.401053969269451,
+     "q01": 0.17086628582053714,
+     "q10": 0.301567946760481,
+     "q50": 0.3882554773218351,
+     "q90": 0.4952165199081502,
+     "q99": 0.930011211215835
+    },
+    "residual_pos_mean": 0.22996287368634982,
+    "residual_neg_mean": -0.2362223273069203,
+    "T_minus_C_gate_pos": {
+     "mean": -0.10267264227912862,
+     "quantiles": [
+      -0.9756481869931458,
+      -0.14757928779006488,
+      -0.06197509203555221,
+      -0.05233321787395886,
+      -0.05004057383787484
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.10696329620754617,
+     "quantiles": [
+      0.015280956365369105,
+      0.04954083787403136,
+      0.08458495605322716,
+      0.14340702622146767,
+      0.828253053834743
+     ]
+    }
+   },
+   "JS_native_eval": 0.5631564900678431,
+   "note": "J_eval of a JS model = the common-posterior VCS regression evaluation, not JS's native estimate"
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_js_C1",
+   "status": "completed",
+   "estimator": "js_single",
+   "critic_family": "C1",
+   "loss_scale_convention": "matched_JS",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 4097,
+   "selected_checkpoint": 2000,
+   "select_risk": 0.2566690444946289,
+   "select_curve": [
+    [
+     0,
+     1.3865463733673096
+    ],
+    [
+     100,
+     1.3292205333709717
+    ],
+    [
+     200,
+     1.2263147830963135
+    ],
+    [
+     300,
+     1.075139045715332
+    ],
+    [
+     400,
+     0.9159195423126221
+    ],
+    [
+     500,
+     0.7785395979881287
+    ],
+    [
+     600,
+     0.6709439754486084
+    ],
+    [
+     700,
+     0.5892925262451172
+    ],
+    [
+     800,
+     0.526481568813324
+    ],
+    [
+     900,
+     0.477426677942276
+    ],
+    [
+     1000,
+     0.43791264295578003
+    ],
+    [
+     1100,
+     0.4058064818382263
+    ],
+    [
+     1200,
+     0.3785826563835144
+    ],
+    [
+     1300,
+     0.3554674983024597
+    ],
+    [
+     1400,
+     0.3356081247329712
+    ],
+    [
+     1500,
+     0.31837397813796997
+    ],
+    [
+     1600,
+     0.30300581455230713
+    ],
+    [
+     1700,
+     0.2893805205821991
+    ],
+    [
+     1800,
+     0.2771764397621155
+    ],
+    [
+     1900,
+     0.26641523838043213
+    ],
+    [
+     2000,
+     0.2566690444946289
+    ]
+   ],
+   "fit_seconds": 3.893393039703369,
+   "eval_seconds": 0.0015652179718017578,
+   "n_positive_pairs": 3000,
+   "n_negative_pairs": 3000,
+   "J_eval": 0.8794524642504987,
+   "J_eval_se_block": 0.004629873732759904,
+   "delta_J_vs_training_critic": null,
+   "J_fit": 0.8840814581977795,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.1298020397917854,
+     0.6206078647033679,
+     0.9099316292816577,
+     0.9845446276577801,
+     0.9969793672454417
+    ],
+    "neg_quantiles": [
+     -0.9953786772149951,
+     -0.9814835904817059,
+     -0.874369321747837,
+     -0.34608651473726826,
+     0.5451064015434248
+    ],
+    "pos_sat_right": 0.32466666666666666,
+    "pos_sat_wrong": 0.001,
+    "neg_sat_right": 0.25133333333333335,
+    "neg_sat_wrong": 0.0006666666666666666,
+    "gate_pos": {
+     "mean": 0.24782765611053256,
+     "q01": 0.006032141250903538,
+     "q10": 0.03050858615098039,
+     "q50": 0.17132441940549042,
+     "q90": 0.6092567091557537,
+     "q99": 0.9760032354524953
+    },
+    "gate_neg": {
+     "mean": 0.33925832769117376,
+     "q01": 0.009221288918000219,
+     "q10": 0.03668996038253586,
+     "q50": 0.23449126153688388,
+     "q90": 0.8354955363266117,
+     "q99": 0.9960179183086098
+    },
+    "residual_pos_mean": 0.15987715686849482,
+    "residual_neg_mean": -0.25421337078185957,
+    "T_minus_C_gate_pos": {
+     "mean": -0.08115105213086513,
+     "quantiles": [
+      -0.9782563201109411,
+      -0.23028394992878018,
+      -0.015493964326841497,
+      -0.0004740456133564194,
+      -1.8220955177744413e-05
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.16422557542420266,
+     "quantiles": [
+      4.2614607781995816e-05,
+      0.0006793687513280333,
+      0.029583304468497326,
+      0.5677379513674441,
+      1.1600819422563104
+     ]
+    }
+   },
+   "JS_native_eval": 0.5605837584037896,
+   "note": "J_eval of a JS model = the common-posterior VCS regression evaluation, not JS's native estimate"
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_js_C2",
+   "status": "completed",
+   "estimator": "js_single",
+   "critic_family": "C2",
+   "loss_scale_convention": "matched_JS",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 131841,
+   "selected_checkpoint": 500,
+   "select_risk": 0.05065657198429108,
+   "select_curve": [
+    [
+     0,
+     1.3864370584487915
+    ],
+    [
+     100,
+     0.18717113137245178
+    ],
+    [
+     200,
+     0.0659218579530716
+    ],
+    [
+     300,
+     0.05695812404155731
+    ],
+    [
+     400,
+     0.05501389503479004
+    ],
+    [
+     500,
+     0.05065657198429108
+    ],
+    [
+     600,
+     0.05610049515962601
+    ],
+    [
+     700,
+     0.06242452934384346
+    ],
+    [
+     800,
+     0.05901484191417694
+    ],
+    [
+     900,
+     0.06389380246400833
+    ],
+    [
+     1000,
+     0.06706826388835907
+    ],
+    [
+     1100,
+     0.06277541071176529
+    ],
+    [
+     1200,
+     0.07904183864593506
+    ],
+    [
+     1300,
+     0.07711612433195114
+    ],
+    [
+     1400,
+     0.08339054882526398
+    ],
+    [
+     1500,
+     0.07865669578313828
+    ],
+    [
+     1600,
+     0.08513221144676208
+    ],
+    [
+     1700,
+     0.08813656866550446
+    ],
+    [
+     1800,
+     0.08220407366752625
+    ],
+    [
+     1900,
+     0.08697175234556198
+    ],
+    [
+     2000,
+     0.09310247749090195
+    ]
+   ],
+   "fit_seconds": 6.535462856292725,
+   "eval_seconds": 0.0020880699157714844,
+   "n_positive_pairs": 3000,
+   "n_negative_pairs": 3000,
+   "J_eval": 0.9642115405639633,
+   "J_eval_se_block": 0.004157981481325654,
+   "delta_J_vs_training_critic": null,
+   "J_fit": 0.986722400731361,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.6669251249337363,
+     0.9863357046548203,
+     0.9989917169311439,
+     0.9997623162203525,
+     0.9999026806543371
+    ],
+    "neg_quantiles": [
+     -0.9999659598889216,
+     -0.9998433459563567,
+     -0.9985992646557269,
+     -0.9824884852357068,
+     -0.49811504851206
+    ],
+    "pos_sat_right": 0.9456666666666667,
+    "pos_sat_wrong": 0.005,
+    "neg_sat_right": 0.954,
+    "neg_sat_wrong": 0.001,
+    "gate_pos": {
+     "mean": 0.027288903691752908,
+     "q01": 0.0001946292202625899,
+     "q10": 0.0004753110656948945,
+     "q50": 0.002014704785599508,
+     "q90": 0.024636314129648697,
+     "q99": 0.7298674290349764
+    },
+    "gate_neg": {
+     "mean": 0.02392994813841159,
+     "q01": 6.807906342600866e-05,
+     "q10": 0.0003132835467968831,
+     "q50": 0.002799508627820524,
+     "q90": 0.034307229431966554,
+     "q99": 0.5247449611561845
+    },
+    "residual_pos_mean": 0.0391566711025993,
+    "residual_neg_mean": -0.02224121424851966,
+    "T_minus_C_gate_pos": {
+     "mean": -0.015762610291072968,
+     "quantiles": [
+      -0.7073556578424823,
+      -0.00037087555846368085,
+      -2.0322445165583793e-06,
+      -1.129737725921357e-07,
+      -1.894120462682004e-08
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.008571972411430021,
+     "quantiles": [
+      2.317422253270744e-09,
+      4.907713509747746e-08,
+      3.921373120088378e-06,
+      0.0006079366595966771,
+      0.23722197493143843
+     ]
+    }
+   },
+   "JS_native_eval": 0.6556005902470831,
+   "note": "J_eval of a JS model = the common-posterior VCS regression evaluation, not JS's native estimate"
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_vcs_C0_converged_diag",
+   "status": "completed",
+   "estimator": "vcs_single_diagnostic",
+   "critic_family": "C0 (converged, L-BFGS)",
+   "loss_scale_convention": "minus_J",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 2,
+   "fit_risk": -0.9692493677139282,
+   "fit_seconds": 0.20389938354492188,
+   "optimizer": "L-BFGS full batch, max_iter 500",
+   "a": 1.6538892984390259,
+   "b": -1.8153599500656128,
+   "J_eval": 0.9692195962821215,
+   "J_eval_se_block": 0.00368405283670195,
+   "delta_J_vs_training_critic": null,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.1506630406189215,
+     0.9752077514592697,
+     0.9928753477062985,
+     0.9943479808087953,
+     0.9946816797285432
+    ],
+    "neg_quantiles": [
+     -0.998362388852049,
+     -0.9923516462704886,
+     -0.9839843471673784,
+     -0.9655323506826065,
+     -0.22819772038949707
+    ],
+    "pos_sat_right": 0.9376666666666666,
+    "pos_sat_wrong": 0.002,
+    "neg_sat_right": 0.9343333333333333,
+    "neg_sat_wrong": 0.0006666666666666666,
+    "gate_pos": {
+     "mean": 0.03890735305164331,
+     "q01": 0.010608356012378034,
+     "q10": 0.011272093061444078,
+     "q50": 0.014198543917004036,
+     "q90": 0.048816752815190795,
+     "q99": 0.6845077171890314
+    },
+    "gate_neg": {
+     "mean": 0.05292862227254509,
+     "q01": 0.00327254051689421,
+     "q10": 0.015238210131711317,
+     "q50": 0.0317748045137094,
+     "q90": 0.0677246944105904,
+     "q99": 0.737782761692425
+    },
+    "residual_pos_mean": 0.03864906831351409,
+    "residual_neg_mean": -0.038049323066458474,
+    "T_minus_C_gate_pos": {
+     "mean": -0.013497558467486688,
+     "quantiles": [
+      -0.4915803494484986,
+      -0.0012140736545135143,
+      -0.00010115968866982668,
+      -6.37100863631805e-05,
+      -5.641863487872782e-05
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.013190777070534466,
+     "quantiles": [
+      5.359166276297566e-06,
+      0.00011654724617982321,
+      0.0005088942691649523,
+      0.002335091454757306,
+      0.48931100998628096
+     ]
+    }
+   }
+  },
+  {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "run_id": "P41_simclr_views4_800ep_seed0_epoch_400_js_C0_converged_diag",
+   "status": "completed",
+   "estimator": "js_single_diagnostic",
+   "critic_family": "C0 (converged, L-BFGS)",
+   "loss_scale_convention": "matched_JS",
+   "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks",
+   "trainable_parameters": 2,
+   "fit_risk": 0.061492592096328735,
+   "fit_seconds": 0.09250807762145996,
+   "optimizer": "L-BFGS full batch, max_iter 500",
+   "a": 2.0143086910247803,
+   "b": -2.1629066467285156,
+   "J_eval": 0.9690075224594693,
+   "J_eval_se_block": 0.003875195567153446,
+   "delta_J_vs_training_critic": null,
+   "score_diagnostics": {
+    "pos_quantiles": [
+     -0.13599376512024727,
+     0.9912551990079959,
+     0.9980990915800325,
+     0.9985671592509398,
+     0.9986697189830944
+    ],
+    "neg_quantiles": [
+     -0.9996166290194685,
+     -0.9974882580746275,
+     -0.9938009756725616,
+     -0.9841306044756192,
+     -0.2306227296654174
+    ],
+    "pos_sat_right": 0.961,
+    "pos_sat_wrong": 0.003,
+    "neg_sat_right": 0.9583333333333334,
+    "neg_sat_wrong": 0.0016666666666666668,
+    "gate_pos": {
+     "mean": 0.021131005720192247,
+     "q01": 0.002658792386224789,
+     "q10": 0.002863628465505663,
+     "q50": 0.003798203387104071,
+     "q90": 0.01740113301989178,
+     "q99": 0.5538973508689571
+    },
+    "gate_neg": {
+     "mean": 0.030552789564104583,
+     "q01": 0.0007665949870460653,
+     "q10": 0.005017175001228936,
+     "q50": 0.012359620748702171,
+     "q90": 0.03147392239666872,
+     "q99": 0.6793882903235189
+    },
+    "residual_pos_mean": 0.02963463777330103,
+    "residual_neg_mean": -0.027199737409377988,
+    "T_minus_C_gate_pos": {
+     "mean": -0.010054982312731206,
+     "quantiles": [
+      -0.3474918208119073,
+      -0.00015227458604545163,
+      -7.220036819102674e-06,
+      -4.103123560865554e-06,
+      -3.536941044095551e-06
+     ]
+    },
+    "T_minus_C_gate_neg": {
+     "mean": 0.010880021210620339,
+     "quantiles": [
+      2.938916878728193e-07,
+      1.2601852820200091e-05,
+      7.661759677952149e-05,
+      0.0004996795673522056,
+      0.4384184565388721
+     ]
+    }
+   }
+  }
+ ],
+ "combos": {
+  "vcs_best_single_by_select": {
+   "family": "C2",
+   "select_risk": {
+    "C0": -0.8999797701835632,
+    "C1": -0.8763331174850464,
+    "C2": -0.9729011058807373
+   },
+   "J_eval": 0.963503340152272
+  },
+  "vcs_mix": {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "estimator": "vcs_mix",
+   "critic_family": "C0+C1+C2",
+   "combination_fit_role": "TUNE",
+   "combination_weights": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "tune_objective": 0.9741572123260522,
+   "kkt_gap": 0.0,
+   "J_eval": 0.963503340152272,
+   "J_eval_se_block": 0.0038679104530763295,
+   "delta_J_vs_training_critic": null,
+   "trainable_parameters": 135940
+  },
+  "js_mix": {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "estimator": "js_mix",
+   "critic_family": "C0+C1+C2",
+   "combination_fit_role": "TUNE",
+   "weights": [
+    1.2985359188543248e-17,
+    0.006783647795867081,
+    0.993216352204133
+   ],
+   "objective_native_logloss": 0.04900856320205854,
+   "kkt_gap": 1.688498230123514e-10,
+   "solver": "SLSQP (convex, not the exact QP)",
+   "JS_native_eval": 0.6557565617543724,
+   "J_eval": 0.9643032678850726,
+   "J_eval_se_block": 0.004141342062538387,
+   "delta_J_vs_training_critic": null,
+   "note": "J_eval uses T = 2 q_w - 1: the common-posterior VCS regression evaluation"
+  },
+  "vcs_residual": {
+   "code_commit": "ded9e6b01126de7fc4a777ae98ffc3559d579f55",
+   "source_reference_commit": "7b7402c05161c33d77a4301f6efc27bb55420e6a",
+   "setting": "frozen",
+   "seed": 0,
+   "target_kind": "S",
+   "roles_hash": "2a2c0598c87e02fbb7a5bebc536156672ea2bcf91433fc8c667ecfd9ac0cd688",
+   "gradient_routing": "measurement critic only (encoder / projector frozen, eval mode)",
+   "noise_coordinate_sd": 0.0,
+   "noise_total_rms": 0.0,
+   "critic_input": "z_l2 (L2-normalised projector output)",
+   "n_independent_units": {
+    "FIT": 27000,
+    "TUNE": 6000,
+    "SELECT": 6000,
+    "EVAL": 6000
+   },
+   "S_truth": null,
+   "S_truth_absent_reason": "no oracle for image pairs (dependence of augmented views is unknown)",
+   "posterior_mse": null,
+   "posterior_mse_absent_reason": "eta unknown for image pairs",
+   "excess_to_bayes_risk": null,
+   "excess_to_bayes_risk_absent_reason": "requires S and eta",
+   "estimator": "vcs_residual",
+   "critic_family": "C2 + C2 residual",
+   "lambda0_train": 0.5,
+   "combination_fit_role": "TUNE",
+   "lambda": 0.3428010268611454,
+   "A": 0.0029479317952003136,
+   "B": 0.008599541903923175,
+   "predicted_tune_gain": 0.0010105540465112875,
+   "zero_direction": false,
+   "selected_checkpoint": 400,
+   "fit_seconds": 9.26764178276062,
+   "trainable_parameters": 131841,
+   "base_J_eval": 0.963503340152272,
+   "U_alone_J_eval": 0.9630204799724823,
+   "J_eval": 0.9650737850561841,
+   "J_eval_se_block": 0.0037047691410732686,
+   "delta_J_vs_training_critic": null
+  }
+ },
+ "training_critic": null,
+ "training_critic_absent_reason": "method has no critic (measurement critics only)",
+ "c0_standardisation": {
+  "mu": 0.1041758611695484,
+  "sd": 0.3090382115825178,
+  "role": "FIT",
+  "a0": 0.0
+ },
+ "wall_seconds": 53.586262941360474,
+ "args": {
+  "stage": "frozen_diagnostics",
+  "run_dir": "/home/infres/yinwang/CS_QMI/outputs/P41_simclr_views4_800ep_seed0",
+  "ckpt": "epoch_400",
+  "out": "/home/infres/yinwang/CS_QMI/outputs/P83_estim_frozen_diag/P41_simclr_views4_800ep_seed0__epoch_400.json",
+  "inputs": null,
+  "seed": 0,
+  "updates": 2000,
+  "lam0": 0.5,
+  "workers": 7,
+  "smoke": false,
+  "cpu": false,
+  "c0_a0": 0.0,
+  "grad_diag": false
+ }
+}
