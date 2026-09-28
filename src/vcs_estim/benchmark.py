@@ -144,7 +144,13 @@ def _dev(t, device):
 def _peak_mem(device) -> dict:
     out = {"cpu_maxrss_mb": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024.0}
     if device.type == "cuda":
-        out["cuda_peak_alloc_mb"] = torch.cuda.max_memory_allocated(device) / 2 ** 20; torch.cuda.reset_peak_memory_stats(device)
+        # the caching allocator must exist before its statistics can be reset ("Invalid device argument" otherwise: pilot job 1013286);
+        # a zero-size allocation initialises it without changing any measurement
+        torch.empty(0, device=device)
+        try:
+            out["cuda_peak_alloc_mb"] = torch.cuda.max_memory_allocated(device) / 2 ** 20; torch.cuda.reset_peak_memory_stats(device)
+        except RuntimeError as e:  # never let bookkeeping kill a cell
+            out["cuda_peak_alloc_mb"] = None; out["cuda_stat_error"] = str(e)[:120]
     return out
 
 

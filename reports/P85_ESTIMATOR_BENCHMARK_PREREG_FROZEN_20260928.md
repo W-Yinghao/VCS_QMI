@@ -158,3 +158,8 @@ the six B = 1024 in-batch cells (1 M pairs per step) and ≈ 10–15 min for N =
 - `src/vcs_estim/kernel_cs.py` (untracked at HEAD): `rls_fit` now delegates to `rls_moments` + `rls_from_moments` (same numbers; tested equal to 1e-12).
 - Committed package modules (`objectives`, `candidates`, `fitting`, `convex_mix`, `bounded_core`, `pairing`, `synthetic`, `evaluation`, `run`, `frozen`) are
   not modified by this fork (`synthetic.py`'s padded generator was already in the working tree; `_gen` is imported for the P85 streams).
+
+## Addendum (execution only, 2026-09-28T19:16:38Z) — pilot job 1013286 failed on a GPU-only bookkeeping call
+All four pilot cells raised `RuntimeError: Invalid device argument` in `_peak_mem` (`torch.cuda.reset_peak_memory_stats` before the caching
+allocator existed; unreachable on the CPU gate).  Fix in `src/vcs_estim/benchmark.py`: a zero-size allocation initialises the allocator and the
+statistics call is guarded.  No estimator, grid, role or read-out code changed.  Pilot resubmitted after this line.
