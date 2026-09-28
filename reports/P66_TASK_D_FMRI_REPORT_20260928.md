@@ -43,3 +43,24 @@ n = 240 null, which is a defect to be explained before any of this is cited.
 Only one dataset, resting state, one cleaning model, a low-motion cohort; no clinical statement.  Not run: the within-block conditional version
 (block-wise circular shifts are not exact).  Follow-ups that would change the picture, all *proposed*: a high-motion cohort or task runs;
 aCompCor / ICA-AROMA cleaning as the α = 1 reference; a block-bootstrap null if the diagnosis attributes the n = 240 excess to circular wrap.
+
+## 4. P66b — the same tests with the exact circular-orbit null (addendum 1; GPU job 1012119; same prep, same seeds)
+Addendum 1 traced the n = 240 anomaly to the frozen admissible-shift rule: on the 72-TR evaluation block only 13 distinct shifts satisfied
+"≥ 30 TRs from either end", so the 200 null draws were ~15 copies of each and the p-value could only be 1/201 or ≥ 0.08 — every n = 240 rejection
+in P66 was exactly 1/201, for the fit-free QC-FC correlation as much as for VCS.  P66b uses all L − 1 circular shifts once.
+
+| cell | vcs_shift | hsic_shift | qcfc_corr | note |
+|---|---|---|---|---|
+| swapped null, all α, n = 120 / 240 / all | 0.00–0.10 | 0.02–0.08 | 0.03–0.10 | calibrated; two cells at 6/60 = 0.10 (VCS α = 1 n = 240; QC-FC α = 0.5 n = 240) |
+| α = 0, n = 240, τ = 0 (rule ii) | **0.10** | 0.28 | 0.23 | |
+| α = 0, n = all, τ = 0 / 1 / 2 / 4 / 8 | 0.43 / 0.45 / 0.37 / 0.37 / 0.13 | 0.47 / 0.37 / 0.32 / 0.17 / 0.08 | 0.30 / 0.15 / 0.13 / 0.17 / 0.05 | lag profile |
+| α = 1, n = all, τ = 0 / 1 / 2 / 4 | 0.03 / 0.15 / 0.08 / 0.13 | 0.13 / 0.20 / 0.18 / 0.17 | 0.00 / 0.05 / 0.07 / 0.08 | residual after cleaning |
+| Ĵ strictly decreasing in α (n = all) | 26 / 60 = 0.43 | | | rule iii |
+
+**Re-read of the frozen grid on P66b.**  (i) holds up to two 6/60 cells (by the letter those two cells are invalid; the construction is now
+sound).  (ii) 0.10 at n = 240 — the fitted critic has 72 evaluation TRs and no power there; HSIC 0.28, QC-FC 0.23; at full length VCS 0.43 vs
+HSIC 0.47.  (iii) 43 %.  **Verdict unchanged: does not hold.**  What the corrected run adds: with a clean null the picture is the same but
+sharper — in this low-motion cohort the leakage is weak, HSIC is the better detector at short windows because it fits nothing, the three
+detectors agree at full length, the lag profile is flat over 0–3 s and gone by 6 s, and the residual lagged dependence after 24-parameter
+cleaning is 0.08–0.15 (VCS) / 0.17–0.20 (HSIC) against a null of ≤ 0.08.  The family reading for row D is not changed by this unit: the
+bounded statistic and the exact within-class shuffle were not the limiting factor here; the signal was.
