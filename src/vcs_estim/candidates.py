@@ -13,11 +13,14 @@ from torch import nn
 
 
 class C0(nn.Module):
-    def __init__(self, d):
-        super().__init__(); self.a = nn.Parameter(torch.zeros(())); self.b = nn.Parameter(torch.zeros(()))
+    """a s + b with s = x'y, optionally standardised by fixed FIT statistics (mu, sd): an affine reparametrisation of the same class."""
+    def __init__(self, d, a0: float = 0.0, std: tuple | None = None):
+        super().__init__(); self.a = nn.Parameter(torch.tensor(float(a0))); self.b = nn.Parameter(torch.zeros(()))
+        mu, sd = std if std is not None else (0.0, 1.0)
+        self.register_buffer("mu", torch.tensor(float(mu))); self.register_buffer("sd", torch.tensor(float(sd)))
 
     def forward(self, x, y):
-        return self.a * (x * y).sum(-1) + self.b
+        return self.a * (((x * y).sum(-1) - self.mu) / self.sd) + self.b
 
 
 class C1(nn.Module):
@@ -50,8 +53,11 @@ class CQ(nn.Module):
 FAMILIES = {"C0": C0, "C1": C1, "C2": C2, "CQ": CQ}
 
 
-def build(family: str, d: int) -> nn.Module:
-    return FAMILIES[family](d)
+def build(family: str, d: int, c0_a0: float = 0.0, c0_std: tuple | None = None) -> nn.Module:
+    """c0_a0 / c0_std: starting scale and fixed FIT standardisation of C0's inner product (defaults = the Gaussian probe: raw x'y, a = 0).
+    The frozen-feature stage standardises by FIT (mean, sd): on unit vectors in a narrow cone the raw cosine has a tiny spread, so neither
+    a = 0 (2 000 Adam steps cannot reach the needed scale) nor a = 5, b = 0 (tanh saturates on every pair) is readable — disclosed in P83."""
+    return C0(d, c0_a0, c0_std) if family == "C0" else FAMILIES[family](d)
 
 
 def n_params(m: nn.Module) -> int:

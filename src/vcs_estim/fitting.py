@@ -73,3 +73,18 @@ def outputs(model, x, y, device="cpu", chunk=65536) -> torch.Tensor:
     for s in range(0, len(x), chunk):
         out.append(model(x[s: s + chunk].float().to(device), y[s: s + chunk].float().to(device)).double().cpu())
     return torch.cat(out)
+
+
+def fit_full_batch(model, loss_fn, fit, *, device="cpu", max_iter=500):
+    """Converged full-batch L-BFGS fit on FIT (for few-parameter diagnostic classes only; no SELECT needed at 2 parameters).
+    Labelled as a diagnostic: it removes the optimisation budget, it is not the spec's per-candidate update budget."""
+    t0 = time.time(); model = model.to(device)
+    F = [t.float().to(device) for t in (fit.xp, fit.yp, fit.xq, fit.yq)]
+    opt = torch.optim.LBFGS(model.parameters(), lr=1.0, max_iter=max_iter, tolerance_grad=1e-9, tolerance_change=1e-12, line_search_fn="strong_wolfe")
+
+    def closure():
+        opt.zero_grad(); loss = loss_fn(model, *F); loss.backward(); return loss
+    opt.step(closure); model.eval()
+    with torch.no_grad():
+        v = float(loss_fn(model, *F))
+    return model, {"fit_risk": v, "fit_seconds": time.time() - t0, "optimizer": f"L-BFGS full batch, max_iter {max_iter}"}

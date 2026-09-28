@@ -34,7 +34,7 @@ import yaml
 
 from . import candidates as C
 from .convex_mix import fit_js_mixture, fit_small_simplex, js_mixture_logq, residual_step
-from .fitting import native_loss, outputs, residual_loss, train
+from .fitting import fit_full_batch, native_loss, outputs, residual_loss, train
 from .objectives import j_hat, js_match_loss, js_native, score_diagnostics
 from .pairing import ROLE_SEED, check_disjoint, eval_blocks, role_split, split_hash
 from .run import SOURCE_REF, git_commit
@@ -212,10 +212,12 @@ def run_checkpoint(a) -> dict:
 
     # 2. measurement critics
     d = FIT.xp.shape[1]; fitted = {}
+    s_fit = torch.cat([(FIT.xp * FIT.yp).sum(-1), (FIT.xq * FIT.yq).sum(-1)]).double()   # C0 standardisation: FIT only, P and Q pooled
+    c0_std = (float(s_fit.mean()), float(s_fit.std())); R["c0_standardisation"] = {"mu": c0_std[0], "sd": c0_std[1], "role": "FIT", "a0": a.c0_a0}
     for kind in ("vcs", "js"):
         for fam in DICT:
             torch.manual_seed(1000 * a.seed + {"C0": 1, "C1": 2, "C2": 3}[fam] + (0 if kind == "vcs" else 500))
-            m, info = train(C.build(fam, d), native_loss(kind), FIT, RP["SELECT"], updates=a.updates, seed=a.seed, device=dev)
+            m, info = train(C.build(fam, d, c0_a0=a.c0_a0, c0_std=c0_std), native_loss(kind), FIT, RP["SELECT"], updates=a.updates, seed=a.seed, device=dev)
             t0 = time.time(); fp, fn = outputs(m, E.xp, E.yp, dev), outputs(m, E.xq, E.yq, dev); ev = time.time() - t0
             tp, tn = torch.tanh(fp), torch.tanh(fn); bj = block_J(tp, tn)
             row = {**common, "run_id": f"{run_dir.name}_{a.ckpt}_{kind}_{fam}", "status": "completed", "estimator": f"{kind}_single",
@@ -230,6 +232,15 @@ def run_checkpoint(a) -> dict:
                 row["JS_native_eval"] = js_native(float(js_match_loss(fp, fn)))
                 row["note"] = "J_eval of a JS model = the common-posterior VCS regression evaluation, not JS's native estimate"
             R["rows"].append(row); fitted[(kind, fam)] = (m, row)
+    # diagnostic: C0 fitted to convergence (full-batch L-BFGS) — separates C0's step budget from its function class; not in the dictionary
+    for kind in ("vcs", "js"):
+        m, info = fit_full_batch(C.build("C0", d, c0_a0=a.c0_a0, c0_std=c0_std), native_loss(kind), FIT, device=dev)
+        fp, fn = outputs(m, E.xp, E.yp, dev), outputs(m, E.xq, E.yq, dev); bj = block_J(torch.tanh(fp), torch.tanh(fn))
+        R["rows"].append({**common, "run_id": f"{run_dir.name}_{a.ckpt}_{kind}_C0_converged_diag", "status": "completed", "estimator": f"{kind}_single_diagnostic",
+                          "critic_family": "C0 (converged, L-BFGS)", "loss_scale_convention": "minus_J" if kind == "vcs" else "matched_JS",
+                          "negative_construction": "FIT cyclic_K8 / EVAL independent_blocks", "trainable_parameters": 2, **info,
+                          "a": float(m.a), "b": float(m.b), "J_eval": bj["J"], "J_eval_se_block": bj["J_se_block"],
+                          "delta_J_vs_training_critic": (bj["J"] - base_J) if base_J is not None else None, "score_diagnostics": critic_diag(torch.tanh(fp), torch.tanh(fn))})
     sel = {fam: fitted[("vcs", fam)][1]["select_risk"] for fam in DICT}; best = min(sel, key=sel.get)
     R["combos"]["vcs_best_single_by_select"] = {"family": best, "select_risk": sel, "J_eval": fitted[("vcs", best)][1]["J_eval"]}
 
@@ -275,8 +286,8 @@ def markdown(results: list[dict]) -> str:
     L = ["# Estimator package v1 §8 — frozen-checkpoint estimator diagnostics", "",
          f"EVAL = {results[0]['roles']['sizes']['EVAL'] // 2 if results else '?'} independent (anchor, partner) blocks per checkpoint; J ± block SE; ΔJ vs the run's own training critic (VCS runs only). "
          "No oracle: S_truth / posterior MSE absent by design.", "",
-         "| run | ckpt | training critic J | vcs C0 | vcs C1 | vcs C2 | vcs mix (w) | vcs residual (λ) | js C0 / C1 / C2 (common-posterior J) | js mix J | train-mode |grad_left| / |grad_right| |",
-         "|---|---|---|---|---|---|---|---|---|---|---|"]
+         "| run | ckpt | training critic J | vcs C0 | vcs C1 | vcs C2 | C0 converged (diag) vcs / js | vcs mix (w) | vcs residual (λ) | js C0 / C1 / C2 (common-posterior J) | js mix J | train-mode |grad_left| / |grad_right| |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for R in results:
         ck = R["checkpoint"]; tc = R.get("training_critic"); rows = {(r["estimator"], r["critic_family"]): r for r in R["rows"]}
         f = lambda r: f"{r['J_eval']:.4f} ± {r['J_eval_se_block']:.4f}"
@@ -284,6 +295,7 @@ def markdown(results: list[dict]) -> str:
         L.append(f"| {Path(ck['run_dir']).name} | {ck['ckpt']} (ep {ck.get('completed_epoch')}) | "
                  f"{(f'{tc['J']:.4f} ± {tc['J_se_block']:.4f}') if tc else '— (no critic)'} | "
                  + " | ".join(f(rows[("vcs_single", fam)]) for fam in DICT)
+                 + " | " + " / ".join(f"{rows[(k + '_single_diagnostic', 'C0 (converged, L-BFGS)')]['J_eval']:.4f}" if (k + '_single_diagnostic', 'C0 (converged, L-BFGS)') in rows else "—" for k in ("vcs", "js"))
                  + f" | {f(R['combos']['vcs_mix'])} ({', '.join(f'{x:.2f}' for x in R['combos']['vcs_mix']['combination_weights'])})"
                  + f" | {f(R['combos']['vcs_residual'])} ({R['combos']['vcs_residual']['lambda']:.2f})"
                  + " | " + " / ".join(f"{rows[('js_single', fam)]['J_eval']:.4f}" for fam in DICT)
@@ -299,6 +311,7 @@ def main():
     ap.add_argument("--inputs", nargs="*", help="aggregate: per-checkpoint JSONs")
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--updates", type=int, default=2000); ap.add_argument("--lam0", type=float, default=0.5)
     ap.add_argument("--workers", type=int, default=6); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--cpu", action="store_true")
+    ap.add_argument("--c0-a0", type=float, default=0.0, help="C0 starting scale a on the FIT-standardised inner product (same rule as the Gaussian probe; see candidates.build)")
     ap.add_argument("--grad-diag", action="store_true", help="smoke: also run the train-mode gradient diagnostic")
     a = ap.parse_args()
     if a.stage == "aggregate":
