@@ -5,8 +5,7 @@ Scope: everything run for the second-application brief (`CS_QMI/VCS_QMI_Second_A
 the two fMRI units, and the equal-budget control tuning of the first application (P41), which the owner asked to run in the same pass.
 Every unit was pre-registered before its compute (frozen files and dated addenda), uses identity splits with recorded hashes, touched no
 official test set, gave competitors the same tuning grid, kept failed configurations, and stayed inside the movable set.  Per the brief §4 no
-task is selected here; the surviving families are handed back.  Pending at the time of writing: two VICReg seeds at the 8× control point and
-the one-shot official test-set evaluation (P67, prepared, not run).
+task is selected here; the surviving families are handed back.  Pending at the time of writing: the one-shot official test-set evaluation (P67, frozen and running).
 
 ## 1. Verdict table (property level and task level)
 | row | unit | verdict | one-line evidence | report |
@@ -39,7 +38,7 @@ the one-shot official test-set evaluation (P67, prepared, not run).
 
 ## 3. First application, comparison state (selection split; `P41_CONTROL_TUNING_REPORT_20260928.md`)
 VCS frozen recipe: 83.19 ± 0.40 / 84.54 ± 0.16 / 85.95 ± 0.35 / 87.01 ± 0.53 linear at 1× / 2× / 4× / 8× (16× singles 87.50, 87.14).  Tuned SimCLR:
-86.64 / 87.84 / 88.35 / 88.32; tuned VICReg: 87.12 / 86.73 / 87.28 / 87.50 (8×: one seed).  Under equal tuning both controls exceed VCS at every
+86.64 / 87.84 / 88.35 / 88.32; tuned VICReg: 87.12 / 86.73 / 87.28 / 87.11.  Under equal tuning both controls exceed VCS at every
 budget; the gap narrows with compute (SimCLR +3.5 → +1.3).  The mechanism results (bounded calibrated critic, h-uniformity ordering, no batch
 statistics) stand and are not accuracy claims.
 
@@ -64,6 +63,6 @@ GPU-hours over two days; every job id is in `reports/job_ids.json`; every unit h
 (two exceptions where a glob hit ignored files are disclosed in their commit messages).
 
 ## 6. Pending and proposed
-Pending: VICReg 8× seeds 1–2 (resuming); P67 official test-set evaluation (52 units, once, after those land).  Proposed, not run: 16× control
+Pending: P67 official test-set evaluation (52 units, once; running).  Proposed, not run: 16× control
 (SimCLR 4v/1600ep); momentum-encoder queue for both objectives; high-motion or task-fMRI cohort and aCompCor reference for P65; the D
 conditional cases with N re-drawn; a within-block exact conditional test for time series.
