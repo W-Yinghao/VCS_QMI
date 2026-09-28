@@ -1042,3 +1042,62 @@ def test_queue_negatives_trainer_smoke_and_exact_resume(tmp_path, name):
     assert torch.equal(tr_a.neg_queue.features(), tr_c.neg_queue.features())
     la = [r["loss"] for r in steps_log(tr_a.run_dir)]; lc = [r["loss"] for r in steps_log(tr_c.run_dir) if r["step"] >= 3]
     assert la[3:] == lc
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# 11–12. final round (P67): the official test partition opens only through the double unlock; the final protocol's
+#        stand-in path runs on the selection split and never touches the test partition.
+# ----------------------------------------------------------------------------------------------------------------------
+def test_11_official_test_double_unlock(tmp_path, monkeypatch):
+    from vcs_ssl.data.cifar import FINAL_ROUND_ENV, official_test_unlocked
+
+    monkeypatch.delenv(FINAL_ROUND_ENV, raising=False)
+    assert not official_test_unlocked(True)
+    with pytest.raises(PermissionError):  # flag without the environment
+        load_cifar10_train(tmp_path, train=False, allow_official_test=True)
+    monkeypatch.setenv(FINAL_ROUND_ENV, "1")
+    assert not official_test_unlocked(False)
+    with pytest.raises(PermissionError):  # environment without the flag
+        load_cifar10_train(tmp_path, train=False)
+    assert official_test_unlocked(True)
+    with pytest.raises(FileNotFoundError):  # both: the gate opens, and only then is the (absent) test batch looked for
+        load_cifar10_train(tmp_path, train=False, allow_official_test=True)
+
+
+def test_12_final_protocol_standin_and_refusals(tmp_path, monkeypatch):
+    from vcs_ssl.data.cifar import FINAL_ROUND_ENV
+    from vcs_ssl.evaluate import evaluate_run
+
+    monkeypatch.delenv(FINAL_ROUND_ENV, raising=False)
+    cfg = small_cfg(tmp_path, "vcs")
+    data, m = synthetic_bundle()
+    cfg["data"]["val_per_class"] = m["val_per_class"]  # evaluate_run cross-checks the manifest against the frozen config (the trainer does not)
+    tr, st = run_trainer(tmp_path, cfg, data, m, run_id="final_standin", device=torch.device("cpu"), smoke_steps=3, smoke_epoch_steps=3, epoch_eval=False)
+    run_dir = Path(cfg["run"]["output_root"]) / "final_standin"
+    ckpts = sorted(p.name for p in (run_dir / "checkpoints").glob("epoch_*.pt"))
+    assert ckpts, "smoke run wrote no epoch checkpoint"
+    ckpt = ckpts[-1]
+    with pytest.raises(ValueError):
+        evaluate_run(run_dir, ckpt, protocol="not_a_protocol", data=data, device=torch.device("cpu"), num_workers=0)
+    # official path without the unlock: refused before anything is evaluated
+    with pytest.raises(PermissionError):
+        evaluate_run(run_dir, ckpt, protocol="final_official_test", data=data, device=torch.device("cpu"), num_workers=0)
+    # stand-in: same code path, selection split, no test partition, no unlock needed
+    res = evaluate_run(run_dir, ckpt, protocol="final_official_test", standin_selection=True, data=data, device=torch.device("cpu"), num_workers=0)
+    tag = Path(ckpt).stem
+    assert (run_dir / "evaluations" / f"final_standin_{tag}.json").is_file()
+    assert not (run_dir / "evaluations" / f"final_official_test_{tag}.json").exists()
+    assert res["standin_selection"] is True and "selection" in res["eval_split"]["name"] and res["eval_split"]["n"] == m["n_selection"]
+    assert 0.0 <= res["linear_val_top1_pct"] <= 100.0 and 0.0 <= res["knn_val_top1_pct"] <= 100.0
+    assert res["encoder_state_unchanged"] is True and res["head_and_bank"].startswith("45k fit")
+    # official path with an injected synthetic "test" partition (no disk access): runs once, then refuses, then --force redoes it
+    monkeypatch.setenv(FINAL_ROUND_ENV, "1")
+    rng = np.random.default_rng(1)
+    test = CifarTrain(data=rng.integers(0, 256, size=(40, 32, 32, 3), dtype=np.uint8), targets=np.repeat(np.arange(10), 4), root="synthetic",
+                      file_hashes={"test_batch": {"md5": "0", "sha256": "synthetic-test", "bytes": "0"}}, source={"dataset": "synthetic test", "test_batch_sha256": "synthetic-test"})
+    r1 = evaluate_run(run_dir, ckpt, protocol="final_official_test", data=data, test_data=test, device=torch.device("cpu"), num_workers=0)
+    assert (run_dir / "evaluations" / f"final_official_test_{tag}.json").is_file() and r1["eval_split"]["n"] == 40 and "linear_test_top1_pct" in r1
+    with pytest.raises(FileExistsError):
+        evaluate_run(run_dir, ckpt, protocol="final_official_test", data=data, test_data=test, device=torch.device("cpu"), num_workers=0)
+    r2 = evaluate_run(run_dir, ckpt, protocol="final_official_test", data=data, test_data=test, device=torch.device("cpu"), num_workers=0, force=True)
+    assert r2["linear_test_top1_pct"] == r1["linear_test_top1_pct"]
