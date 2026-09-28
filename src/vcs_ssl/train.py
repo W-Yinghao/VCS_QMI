@@ -23,8 +23,9 @@ from torch import nn
 from . import SCHEMA_VERSION, __version__
 from .checkpoint import atomic_torch_save, capture_rng, load_checkpoint, restore_rng, rng_fingerprint
 from .config import ConfigError, dump_resolved, load_config
-from .data.cifar import CifarTrain, load_cifar10_train
+from .data.cifar import CifarTrain, load_train_partition, n_classes_of
 from .data.datasets import SSLMultiViewDataset, SSLTwoViewDataset, make_ssl_loader
+from .kernel_cs import median_pairwise_distance
 from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, two_view_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_report
@@ -34,7 +35,7 @@ from .objectives import (NegativeQueue, compute_objective, compute_objective_tar
 from .optim import all_grads_finite, build_optimizer, grad_norms, has_trainable_params, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
-                    precision_flags, read_json, sha256_file, utc_now)
+                    precision_flags, read_json, sha256_file, utc_now, sha256_bytes)
 
 STATUS = ("NOT_RUN", "RUNNING", "COMPLETED", "FAILED_NUMERICAL", "FAILED_INFRA", "STOPPED_BUDGET")
 EXIT_CODES = {"COMPLETED": 0, "FAILED_INFRA": 2, "FAILED_NUMERICAL": 3, "STOPPED_BUDGET": 143}
@@ -86,6 +87,9 @@ class Trainer:
         self.sel_uids = np.asarray(manifest["selection_uids"], dtype=np.int64)
         self.fit_mask = np.zeros(len(data), dtype=bool)
         self.fit_mask[self.fit_uids] = True
+        self.n_classes = n_classes_of(data)  # 10 (CIFAR-10) or 100 (CIFAR-100, P91); drives kNN votes and the probe head
+        if manifest.get("n_classes") is not None and int(manifest["n_classes"]) != self.n_classes:
+            raise ConfigError(f"manifest n_classes {manifest['n_classes']} differs from the data ({self.n_classes})")
         full_steps_per_epoch = len(self.fit_uids) // self.batch  # drop_last
         if self.smoke:
             self.total_steps = int(smoke_steps)
@@ -186,6 +190,8 @@ class Trainer:
 
         self.save_view_examples()
         self.calibration = self.calibrate_cosine_bias() if self.cfg["model"]["critic"].get("cosine_bias_calibrate", False) else None
+        self.kernel_sigma: float | None = None  # cs_kernel_native only (Server Spec v2 §3.2)
+        self.bandwidth_calibration = self.calibrate_bandwidths()  # cs_kernel_native / rff_tanh; None otherwise
         self.run_manifest = {
             "run_id": self.run_id, "method": self.method, "stage": self.stage, "seed": self.seed, "smoke": self.smoke,
             "code_commit": self.git.get("commit"), "code_dirty": self.git.get("is_dirty"),
@@ -193,7 +199,7 @@ class Trainer:
             "split_hash": self.manifest["manifest_sha256"], "physical_batch_images": self.batch, "views_per_image": 2,
             "K": int(self.cfg["pairing"]["k"]) if self.method == "vcs_qmi" else None,
             "pair_sampling": (f"queue{self.cfg['pairing']['queue_size']}_detached" if uses_queue(self.cfg) else self.cfg["pairing"]["sampler"]) if self.method == "vcs_qmi" else
-            (("MoCo-style queue negatives (NT-Xent, no momentum encoder)" if uses_queue(self.cfg) else "2B-2 in-batch negatives (NT-Xent)") if self.method == "simclr_matched" else "none (VICReg)"),
+            (("MoCo-style queue negatives (NT-Xent, no momentum encoder)" if uses_queue(self.cfg) else "2B-2 in-batch negatives (NT-Xent)") if self.method == "simclr_matched" else ("kernel CS plug-in on all B x B cross pairs of the batch (native; no negative branch)" if self.method == "cs_kernel_native" else "none (VICReg)")),
             "negative_source": self.cfg["pairing"].get("negative_source", "cyclic"), "queue_size": int(self.cfg["pairing"]["queue_size"]) if uses_queue(self.cfg) else None,
             "world_size": 1, "encoder_dim": int(self.cfg["model"]["h_dim"]), "projector_dim": int(self.cfg["model"]["projector"]["output_dim"]),
             "critic_params": self.param_counts["critic"] or None, "critic_impl": self.critic_impl, "encoder_params": self.param_counts["encoder"],
@@ -215,8 +221,12 @@ class Trainer:
                         "cosine_scale_fixed": self.cfg["model"]["critic"].get("cosine_scale_fixed", False),
                         "cosine_bias_calibrate": self.cfg["model"]["critic"].get("cosine_bias_calibrate", False),
                         "projector_output_bn": self.cfg["model"]["projector"]["output_batchnorm"], "n_views": self.n_views,
-                        "projector_kind": self.cfg["model"]["projector"].get("kind", "mlp")},
+                        "projector_kind": self.cfg["model"]["projector"].get("kind", "mlp"),
+                        "rff_features": self.cfg["model"]["critic"].get("rff_features"), "rff_bandwidth_multiple": self.cfg["model"]["critic"].get("rff_bandwidth_multiple"),
+                        "kernel_cs_bandwidth_multiple": self.cfg["objective"].get("kernel_cs_bandwidth_multiple"), "kernel_cs_chunk": self.cfg["objective"].get("kernel_cs_chunk")},
             "cosine_bias_calibration": getattr(self, "calibration", None),
+            "bandwidth_calibration": self.bandwidth_calibration, "kernel_sigma": self.kernel_sigma,
+            "dataset": self.cfg["data"]["name"], "n_classes": int(self.n_classes),
             "projector_params": self.param_counts["projector"], "objective_target": self.cfg["objective"]["target"],
             "steps_per_epoch": self.steps_per_epoch, "epochs": self.epochs, "intended_total_steps": self.total_steps,
             "warmup_steps": self.warmup_steps, "min_lr_ratio": self.min_lr_ratio,
@@ -237,6 +247,67 @@ class Trainer:
                 if self.epoch_eval and 0 in self.knn_epochs:
                     self.epoch_evaluation(self.ckpt_dir / "initial.pt", epoch=0)
                 self.append_epoch_record(epoch=0, epoch_stats=None, status="RUNNING")
+
+    @torch.no_grad()
+    def _calibration_views(self, n_images: int = 1024) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
+        """Two train-distribution views of the first ``n_images`` fit UIDs (dedicated RNG streams), forward in training mode (batch
+        statistics = the distribution the objective sees at step 0), BN buffers restored afterwards.  Returns z1, z2 (L2-normalised
+        projector outputs) and the record of how they were drawn."""
+        uids = self.fit_uids[:n_images]
+        seed = self.seed + 515151
+        from .data.datasets import TwoViewNoLabelEvalDataset, make_eval_loader  # noqa: PLC0415
+        loader = make_eval_loader(TwoViewNoLabelEvalDataset(self.data.data, uids, self.two_view), batch_size=256, num_workers=0,
+                                  generator=torch.Generator().manual_seed(seed), pin_memory=False)
+        enc_snap = {k: v.clone() for k, v in self.encoder.state_dict().items()}
+        proj_snap = {k: v.clone() for k, v in self.projector.state_dict().items()}
+        self.encoder.train(); self.projector.train()
+        z1s, z2s = [], []
+        devices = [self.device.index or 0] if self.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=devices):
+            torch.manual_seed(seed)  # augmentation parameters (num_workers=0 draws them from the global stream)
+            for x1, x2, _ in loader:
+                f = forward_features(self.encoder, self.projector, x1.to(self.device), x2.to(self.device), eps=self.cfg["model"]["normalization"]["eps"])
+                a, b = f["z_l2"].chunk(2, dim=0)
+                z1s.append(a); z2s.append(b)
+        self.encoder.load_state_dict(enc_snap); self.projector.load_state_dict(proj_snap)
+        rec = {"n_images": int(len(uids)), "uid_first": int(uids[0]), "uid_last": int(uids[-1]), "rng_seed": seed, "batch_size": 256,
+               "bn_mode": "train (batch statistics; buffers restored afterwards)", "model_state": "initial weights (before the first optimizer step)"}
+        return torch.cat(z1s), torch.cat(z2s), rec
+
+    def calibrate_bandwidths(self) -> dict[str, Any] | None:
+        """Server Spec v2 §3.2 / §3.4: kernel bandwidths are fixed multiples of the FIT median pairwise distance, measured once at the start
+        of the run on the step-0 critic-input distribution (:meth:`_calibration_views`).  cs_kernel_native: sigma for the Gaussian kernels
+        on z_l2 (both views pooled).  rff_tanh: sigma of the random-Fourier features on the pair vector w = [z1; z2] (positive pairs plus one
+        cyclic-shift partner per image, i.e. an M-like pool).  Recorded in ``bandwidth_calibration.json``, the run manifest and every
+        checkpoint; resume refuses a differing value."""
+        is_rff = self.critic is not None and hasattr(self.critic, "set_bandwidth")
+        if self.method != "cs_kernel_native" and not is_rff:
+            return None
+        z1, z2, rec = self._calibration_views()
+        if self.method == "cs_kernel_native":
+            med = median_pairwise_distance(torch.cat((z1, z2)))
+            mult = float(self.cfg["objective"]["kernel_cs_bandwidth_multiple"])
+            self.kernel_sigma = mult * med
+            rec.update({"kind": "cs_kernel_native", "statistic": "median pairwise distance of z_l2 over both views pooled (i < j, first 4096 rows)",
+                        "median_pair_distance": med, "bandwidth_multiple": mult, "sigma": self.kernel_sigma,
+                        "chunk": int(self.cfg["objective"]["kernel_cs_chunk"]), "kernel": "exp(-||z_i - z_j||^2 / (2 sigma^2)) on each view"})
+        else:
+            from reference.ssl_core import cyclic_negative_indices  # noqa: PLC0415
+            pg = torch.Generator().manual_seed(self.seed + 5151)
+            idx, sh = cyclic_negative_indices(len(z1), 1, generator=pg, device=z1.device)
+            w = torch.cat((torch.cat((z1, z2), dim=1), torch.cat((z1, z2[idx[0]]), dim=1)))
+            med = median_pairwise_distance(w)
+            sigma = self.critic.set_bandwidth(med)
+            rec.update({"kind": "rff_tanh", "statistic": "median pairwise distance of pair vectors w = [z1; z2] over the positive pairs and one "
+                                                         "cyclic-shift partner per image (i < j, first 4096 rows)",
+                        "pair_rng_seed": self.seed + 5151, "shift": int(sh[0]), "median_pair_distance": med,
+                        "bandwidth_multiple": float(self.critic.bandwidth_multiple), "sigma": sigma, "n_features": int(self.critic.n_features),
+                        "omega0_sha256": sha256_bytes(self.critic.omega0.detach().cpu().numpy().tobytes()),
+                        "phase_sha256": sha256_bytes(self.critic.phase.detach().cpu().numpy().tobytes()),
+                        "trainable_params": int(sum(p.numel() for p in self.critic.parameters() if p.requires_grad)),
+                        "features": "sqrt(2/m) cos(Omega w + b), Omega = Omega0 / sigma fixed, read-out theta (m + 1 trainable), tanh output"})
+        atomic_write_json(self.run_dir / "bandwidth_calibration.json", rec)
+        return rec
 
     @torch.no_grad()
     def calibrate_cosine_bias(self, n_images: int = 512) -> dict[str, Any]:
@@ -355,6 +426,7 @@ class Trainer:
             **rng, "precision_flags": precision_flags(), "model_hparams": self.cfg["model"], "best_metric_policy": None,
             "init_hashes": self.init_hashes, "smoke": self.smoke, "saved_utc": utc_now(), "torch_version": torch.__version__,
             "neg_queue_state": None if self.neg_queue is None else self.neg_queue.state_dict(), "queue_fallback_steps": self.queue_fallback_steps,
+            "kernel_sigma": self.kernel_sigma, "bandwidth_calibration": self.bandwidth_calibration,
         }
 
     def save_checkpoint(self, path: Path) -> None:
@@ -384,6 +456,11 @@ class Trainer:
                 raise ConfigError("resume refused: checkpoint has no negative-queue state but the config uses queue negatives")
             self.neg_queue.load_state_dict(ck["neg_queue_state"])
             self.queue_fallback_steps = int(ck.get("queue_fallback_steps", 0))
+        if self.method == "cs_kernel_native":
+            cs = ck.get("kernel_sigma")
+            if cs is None or self.kernel_sigma is None or abs(float(cs) - self.kernel_sigma) > 1e-6 * max(1.0, abs(self.kernel_sigma)):
+                raise ConfigError(f"resume refused: checkpoint kernel_sigma={cs!r} differs from the recalibrated value {self.kernel_sigma!r}")
+            self.kernel_sigma = float(cs)  # the checkpoint's value is the one every previous step used
         restore_rng(ck, self.loader_gen, self.pair_gen)
         self.completed_epoch = int(ck["completed_epoch"])
         self.step = int(ck["optimizer_step"])
@@ -424,7 +501,7 @@ class Trainer:
                                    num_workers=self.eval_num_workers, seed=eval_seed + 1)
             kcfg = ecfg["knn"]
             knn = knn_eval(fit["h"], fit["labels"], sel["h"], sel["labels"], k=kcfg["k"], temperature=kcfg["temperature"],
-                           chunk=kcfg["query_chunk"], device=self.device)
+                           chunk=kcfg["query_chunk"], device=self.device, n_classes=self.n_classes)
             result["knn"] = knn
             result["knn_val_top1_pct"] = knn["knn_val_top1_pct"]
             scfg = ecfg["spectrum"]
@@ -506,9 +583,10 @@ class Trainer:
                 self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
         if multi:
-            obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen)
+            obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, kernel_sigma=self.kernel_sigma)
         else:
-            obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, queue=self.neg_queue) if self.target_branch == "shared"
+            obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, queue=self.neg_queue,
+                                     kernel_sigma=self.kernel_sigma) if self.target_branch == "shared"
                    else compute_objective_target(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen))
         loss = obj["loss"]
         if not torch.isfinite(loss):
@@ -718,7 +796,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"ERROR: run dir {run_dir} exists and overwrite=false", file=sys.stderr)
             return EXIT_CODES["FAILED_INFRA"]
     run_dir.mkdir(parents=True, exist_ok=True)
-    data = load_cifar10_train(cfg["data"]["root"])
+    data = load_train_partition(cfg["data"]["name"], cfg["data"]["root"])
     manifest = load_manifest(cfg["data"]["manifest"], expected_seed=cfg["data"]["split_seed"], expected_val_per_class=cfg["data"]["val_per_class"])
     if manifest["raw_file_hashes"] != data.file_hashes:
         raise ConfigError("manifest raw file hashes differ from the data on disk")

@@ -18,7 +18,8 @@ from .utils import sha256_file, sha256_json
 
 _ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
-METHODS = ("vcs_qmi", "simclr_matched", "vicreg_matched_128")
+METHODS = ("vcs_qmi", "simclr_matched", "vicreg_matched_128", "cs_kernel_native")
+DATASETS = {"cifar10": {"val_per_class": 500, "manifest_tag": "cifar10_"}, "cifar100": {"val_per_class": 50, "manifest_tag": "cifar100_"}}
 
 
 class ConfigError(ValueError):
@@ -57,10 +58,12 @@ SCHEMA: dict[str, Any] = {
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
                          "feature_source": _Opt(str, "z"), "cosine_scale_init": _Opt((int, float), 1.0),
-                         "cosine_scale_fixed": _Opt(bool, False), "cosine_bias_calibrate": _Opt(bool, False)}},
+                         "cosine_scale_fixed": _Opt(bool, False), "cosine_bias_calibrate": _Opt(bool, False),
+                         "rff_features": _Opt(int, 1024), "rff_bandwidth_multiple": _Opt((int, float), 1.0)}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
-                  "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num},
+                  "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num,
+                  "kernel_cs_bandwidth_multiple": _Opt((int, float), 1.0), "kernel_cs_chunk": _Opt(int, 0)},
     "pairing": {"sampler": str, "k": int, "unique_shifts": bool, "allow_self": bool, "label_filter": bool, "queue": bool,
                 "negative_detach": bool, "rng": str, "rng_seed_offset": int,
                 "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096)},
@@ -135,6 +138,14 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     m = cfg["run"]["method"]
     if m not in METHODS:
         raise ConfigError(f"run.method must be one of {METHODS}, got {m!r}")
+    dname = cfg["data"]["name"]
+    if dname not in DATASETS:
+        raise ConfigError(f"data.name must be one of {tuple(DATASETS)}, got {dname!r}")
+    if cfg["data"]["split"] != "dev45k_val5k" or not (isinstance(cfg["data"]["val_per_class"], int) and cfg["data"]["val_per_class"] > 0):
+        raise ConfigError(f"{dname}: the identity split is dev45k_val5k with a positive integer val_per_class (500 for cifar10, 50 for cifar100 on the real "
+                          "manifests; the value is cross-checked against the manifest at load time)")
+    if DATASETS[dname]["manifest_tag"] not in Path(cfg["data"]["manifest"]).name or (dname == "cifar10" and "cifar100" in Path(cfg["data"]["manifest"]).name):
+        raise ConfigError(f"data.manifest file name must carry the dataset tag {DATASETS[dname]['manifest_tag']!r} (no cross-dataset manifest reuse)")
     if cfg["model"]["weights"] is not None:
         raise ConfigError("model.weights must be null (no pretrained weights)")
     if cfg["objective"]["extra_regularizers"] != []:
@@ -214,8 +225,9 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     ct = cfg["run"].get("control_tuning", False)
     if ct and m == "vcs_qmi":
         raise ConfigError("run.control_tuning applies to control methods only")
-    if cfg["views"]["count"] != 2 and m != "vcs_qmi" and not (ct and cfg["views"]["count"] == 4):
-        raise ConfigError("control runs keep two views unless run.control_tuning=true (then 4 views: the control loss averaged over the 6 view pairs)")
+    if cfg["views"]["count"] != 2 and m not in ("vcs_qmi", "cs_kernel_native") and not (ct and cfg["views"]["count"] == 4):
+        raise ConfigError("control runs keep two views unless run.control_tuning=true (then 4 views: the control loss averaged over the 6 view pairs); "
+                          "cs_kernel_native (S-CS table B) uses the same multi-view averaging as VCS natively")
     if cfg["pairing"]["sampler"] == "all_pairs_matrix" and (m != "vcs_qmi" or cfg["model"]["critic"]["input"] not in ("cosine", "shared_metric", "mono_spline", "diag_metric")):
         raise ConfigError("all_pairs_matrix is a VCS-only sampler for similarity-type critics (cosine|shared_metric|mono_spline|diag_metric)")
     if cfg["views"]["solarize_p"] != 0.0:
@@ -234,16 +246,33 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     cv = cfg["evaluation"]["critic_validation"]["enabled"]
     loss = cfg["objective"]["loss"]
     expect = {"vcs_qmi": ("negative_J", True), "simclr_matched": ("nt_xent", False),
-              "vicreg_matched_128": ("variance_invariance_covariance", False)}[m]
+              "vicreg_matched_128": ("variance_invariance_covariance", False), "cs_kernel_native": ("negative_kernel_cs", False)}[m]
     if loss != expect[0]:
         raise ConfigError(f"objective.loss {loss!r} inconsistent with method {m!r}")
     if crit != expect[1] or cv != expect[1]:
         raise ConfigError(f"critic.enabled / critic_validation.enabled must be {expect[1]} for method {m!r}")
+    if m == "cs_kernel_native":
+        # CS-K-native (Server Spec v2 §3.2): classical kernel CS-QMI on L2-normalised pair representations, native autodiff, no detach,
+        # no negative branch; bandwidth = objective.kernel_cs_bandwidth_multiple x FIT median pairwise distance (calibrated at run start).
+        if not (cfg["objective"]["kernel_cs_bandwidth_multiple"] > 0):
+            raise ConfigError("objective.kernel_cs_bandwidth_multiple must be > 0")
+        if cfg["objective"]["kernel_cs_chunk"] < 0:
+            raise ConfigError("objective.kernel_cs_chunk must be >= 0 (0 = dense)")
+        if cfg["model"]["normalization"]["vcs_and_simclr"] != "l2":
+            raise ConfigError("cs_kernel_native computes its kernels on the L2-normalised projector output (same input as the VCS critic)")
+        if cfg["objective"]["target"] != "classical_kernel_CS_QMI":
+            raise ConfigError("cs_kernel_native must declare objective.target = classical_kernel_CS_QMI (fixed reference measure, not S)")
     if m == "vcs_qmi":
         c = cfg["model"]["critic"]
-        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric") or c["activation"] != "relu" \
+        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric", "rff_tanh") or c["activation"] != "relu" \
                 or c["output"] != "tanh" or c["batchnorm"] or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
-            raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine|interact_only|shared_metric); ReLU, tanh, no BN/dropout")
+            raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine|interact_only|shared_metric|mono_spline|diag_metric|rff_tanh); ReLU, tanh, no BN/dropout")
+        if c["input"] == "rff_tanh":
+            # S-Kernel (Server Spec v2 §3.4): fixed random-Fourier features of [z1; z2], trainable read-out + intercept, tanh; same J / K / detach
+            if not (isinstance(c["rff_features"], int) and c["rff_features"] >= 1) or not (c["rff_bandwidth_multiple"] > 0):
+                raise ConfigError("critic.rff_features must be a positive int and critic.rff_bandwidth_multiple > 0")
+            if c["feature_source"] != "z":
+                raise ConfigError("rff_tanh reads the projector output z (feature_source 'z')")
         hd = c["hidden_dims"]
         if not (isinstance(hd, list) and len(hd) >= 1 and all(isinstance(w, int) and w > 0 for w in hd)):
             raise ConfigError("critic.hidden_dims must be a non-empty list of positive ints (hyper-parameter variant)")

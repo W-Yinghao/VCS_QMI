@@ -24,7 +24,7 @@ import torch
 
 from .checkpoint import load_checkpoint
 from .config import load_resolved
-from .data.cifar import load_cifar10_train
+from .data.cifar import load_cifar10_train, load_train_partition, n_classes_of
 from .data.splits import load_manifest
 from .data.transforms import build_clean_transform, build_two_view_transform, clean_transform_signature
 from .diagnostics import critic_holdout, extract_features, knn_eval, linear_probe, spectrum_report
@@ -84,9 +84,12 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
     if ck["manifest_hash"] != manifest["manifest_sha256"]:
         raise ValueError("checkpoint manifest_hash does not match the run's manifest")
 
-    data = data if data is not None else load_cifar10_train(cfg["data"]["root"])
+    data = data if data is not None else load_train_partition(cfg["data"]["name"], cfg["data"]["root"])
     if manifest["raw_file_hashes"] != data.file_hashes:
         raise ValueError("manifest raw file hashes differ from the data on disk")
+    n_classes = n_classes_of(data)
+    if manifest.get("n_classes") is not None and int(manifest["n_classes"]) != n_classes:
+        raise ValueError(f"manifest n_classes {manifest['n_classes']} differs from the data ({n_classes})")
     fit_uids = np.asarray(manifest["fit_uids"], dtype=np.int64)
     sel_uids = np.asarray(manifest["selection_uids"], dtype=np.int64)
     clean = build_clean_transform(cfg["views"])
@@ -100,6 +103,7 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
     result: dict[str, Any] = {"run_id": run_dir.name, "method": cfg["run"]["method"], "seed": cfg["run"]["seed"], "checkpoint": checkpoint,
                               "checkpoint_sha256": ckpt_sha, "checkpoint_completed_epoch": ck["completed_epoch"], "checkpoint_step": ck["optimizer_step"],
                               "split_hash": manifest["manifest_sha256"], "clean_transform_sha256": tsig, "protocol": protocol,
+                              "dataset": cfg["data"]["name"], "n_classes": int(n_classes),
                               "device": str(device), "gpu": environment_info().get("gpus"), "precision_flags": precision_flags(), "utc": utc_now()}
     with Timer(device) as total_t, torch.random.fork_rng(devices=devices):
         torch.manual_seed(0)
@@ -133,13 +137,14 @@ def evaluate_run(run_dir: Path, checkpoint: str, *, protocol: str = "pilot", dev
                                    "fit_extract_seconds": fit["seconds"], "sel_extract_seconds": sel["seconds"], "dtype": dtype}
 
         # main endpoint: frozen linear probe on h (fit labels train the head, selection labels score it)
-        lp = linear_probe(fit["h"], fit["labels"], sel["h"], sel["labels"], ecfg["linear"], device=device)
+        lp = linear_probe(fit["h"], fit["labels"], sel["h"], sel["labels"], ecfg["linear"], device=device, n_classes=n_classes)
         result["linear"] = lp
         result["linear_val_top1_pct"] = lp["linear_val_top1_pct"]
         result["linear_val_ce"] = lp["linear_val_ce"]
         # kNN monitor
         kc = ecfg["knn"]
-        knn = knn_eval(fit["h"], fit["labels"], sel["h"], sel["labels"], k=kc["k"], temperature=kc["temperature"], chunk=kc["query_chunk"], device=device)
+        knn = knn_eval(fit["h"], fit["labels"], sel["h"], sel["labels"], k=kc["k"], temperature=kc["temperature"], chunk=kc["query_chunk"], device=device,
+                       n_classes=n_classes)
         result["knn"] = knn
         result["knn_val_top1_pct"] = knn["knn_val_top1_pct"]
         # spectrum
@@ -228,6 +233,9 @@ def evaluate_final_official_test(run_dir: Path, checkpoint: str, *, device: torc
         if not official_test_unlocked(True):
             raise PermissionError("final_official_test needs the final-round unlock: export VCS_FINAL_ROUND=1 (owner's rule: once, at the end)")
     cfg, manifest, ck, ckpt_sha, enc, proj = _load_run_and_models(run_dir, checkpoint, device)
+    if cfg["data"]["name"] != "cifar10":
+        raise PermissionError(f"final_official_test is defined for the CIFAR-10 protocol only (P67/P68, run once); the official test partition of "
+                              f"{cfg['data']['name']!r} is closed — new datasets are read on the selection split (Server Spec v2 §1.2, §6.3)")
     data = data if data is not None else load_cifar10_train(cfg["data"]["root"])
     if manifest["raw_file_hashes"] != data.file_hashes:
         raise ValueError("manifest raw file hashes differ from the data on disk")

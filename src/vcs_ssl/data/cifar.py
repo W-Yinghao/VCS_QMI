@@ -38,6 +38,20 @@ CIFAR10_CLASSES = ["airplane", "automobile", "bird", "cat", "deer", "dog", "frog
 # First ten labels of data_batch_1 in official order; used as an index-order sentinel in preflight.
 CIFAR10_FIRST10_LABELS = [6, 9, 9, 4, 1, 1, 2, 7, 8, 3]
 
+# CIFAR-100 (python version; https://www.cs.toronto.edu/~kriz/cifar.html; md5 values as published / used by torchvision).  Only the
+# 50,000-image training partition is read (fine labels, 100 classes x 500).  The 10,000-image test partition is never opened here.
+CIFAR100_DIR = "cifar-100-python"
+CIFAR100_ARCHIVE_MD5 = "eb9058c3a382ffc7106e4002c42a8d85"
+CIFAR100_TRAIN = ("train", "16019d7e3df5f24257cddd939b257f8d")
+CIFAR100_META = ("meta", "7973b15100ade9c7d40fb424638fde48")
+CIFAR100_TEST = ("test", "f0ef6b0ae62326f3e7ffdfab6717acfc")  # listed for provenance only; not read
+CIFAR100_N_TRAIN = 50000
+CIFAR100_N_CLASSES = 100
+CIFAR100_PER_CLASS = 500
+# First ten fine labels of the train file in official order (index-order sentinel; verified on the local copy 2026-09-28).
+CIFAR100_FIRST10_LABELS = [19, 29, 0, 11, 1, 86, 90, 28, 23, 31]
+DATASET_FIRST10 = {"cifar10": CIFAR10_FIRST10_LABELS, "cifar100": CIFAR100_FIRST10_LABELS}
+
 
 @dataclass
 class CifarTrain:
@@ -155,3 +169,62 @@ def load_cifar10_train(root: str | Path, *, train: bool = True, allow_official_t
         "classes": CIFAR10_CLASSES,
     }
     return CifarTrain(data=data, targets=targets, root=str(root), file_hashes=hashes, source=source)
+
+
+def verify_cifar100_train_files(root: str | Path) -> dict[str, dict[str, str]]:
+    """md5/sha256 of the CIFAR-100 train file and meta; raises if missing or corrupt.  The test file is hashed if present, never read."""
+    base = Path(root) / CIFAR100_DIR
+    out: dict[str, dict[str, str]] = {}
+    for name, expected_md5 in (CIFAR100_TRAIN, CIFAR100_META):
+        p = base / name
+        if not p.is_file():
+            raise FileNotFoundError(f"CIFAR-100 file missing: {p}. Data is never downloaded implicitly; link the verified local copy.")
+        md5 = md5_file(p)
+        if md5 != expected_md5:
+            raise ValueError(f"md5 mismatch for {p}: {md5} != {expected_md5}")
+        out[name] = {"md5": md5, "sha256": sha256_file(p), "bytes": str(p.stat().st_size)}
+    t = base / CIFAR100_TEST[0]
+    if t.is_file():  # provenance of the untouched test partition (hash only; torchvision's integrity check also only hashes it)
+        out[CIFAR100_TEST[0] + "_UNREAD"] = {"md5": md5_file(t), "sha256": sha256_file(t), "bytes": str(t.stat().st_size)}
+    return out
+
+
+def load_cifar100_train(root: str | Path) -> CifarTrain:
+    """Official CIFAR-100 training partition (50,000 images, fine labels 0..99) via torchvision; the test partition is not opened."""
+    hashes = verify_cifar100_train_files(root)
+    import torchvision  # noqa: PLC0415
+    from torchvision.datasets import CIFAR100  # noqa: PLC0415
+
+    ds = CIFAR100(str(root), train=True, download=False)
+    data = np.ascontiguousarray(ds.data)
+    targets = np.asarray(ds.targets, dtype=np.int64)
+    if data.shape != (CIFAR100_N_TRAIN, 32, 32, 3) or data.dtype != np.uint8 or targets.shape != (CIFAR100_N_TRAIN,):
+        raise ValueError(f"unexpected CIFAR-100 train tensor {data.shape} {data.dtype} / {targets.shape}")
+    if targets[:10].tolist() != CIFAR100_FIRST10_LABELS:
+        raise ValueError(f"CIFAR-100 index order sentinel failed: {targets[:10].tolist()} != {CIFAR100_FIRST10_LABELS}")
+    counts = np.bincount(targets, minlength=CIFAR100_N_CLASSES)
+    if len(counts) != CIFAR100_N_CLASSES or not (counts == CIFAR100_PER_CLASS).all():
+        raise ValueError(f"CIFAR-100 class counts unexpected: {counts.tolist()}")
+    source = {
+        "dataset": "CIFAR-100 python version, official training partition only (fine labels)",
+        "official_page": "https://www.cs.toronto.edu/~kriz/cifar.html",
+        "loader": "torchvision.datasets.CIFAR100(train=True, download=False)",
+        "torchvision_version": torchvision.__version__,
+        "index_order": "train file order (official index = position 0..49999)",
+        "num_images": int(len(targets)),
+        "classes": list(ds.classes),
+    }
+    return CifarTrain(data=data, targets=targets, root=str(root), file_hashes=hashes, source=source)
+
+
+def load_train_partition(name: str, root: str | Path) -> CifarTrain:
+    """Dispatch on ``data.name``: 'cifar10' (frozen first-round loader) or 'cifar100' (independent visual confirmation)."""
+    if name == "cifar10":
+        return load_cifar10_train(root)
+    if name == "cifar100":
+        return load_cifar100_train(root)
+    raise ValueError(f"unknown dataset {name!r}")
+
+
+def n_classes_of(data: CifarTrain) -> int:
+    return int(data.targets.max()) + 1

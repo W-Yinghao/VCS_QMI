@@ -9,7 +9,31 @@ from torch.nn import functional as F
 
 from reference.ssl_core import cyclic_negative_indices, simclr_nt_xent, vcs_from_scores, vcs_pair_loss, vicreg_loss
 
+from .kernel_cs import KERNEL_CS_STAT_KEYS, kernel_cs_pair_loss
+
 VCS_STAT_KEYS = ("J_raw", "R_binary", "t_pos_mean", "t_neg_mean", "t_pos_second", "t_neg_second", "sat_pos_frac", "sat_neg_frac")
+
+
+def _empty_stats() -> dict[str, Any]:
+    stats: dict[str, Any] = {k: None for k in VCS_STAT_KEYS}
+    stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    stats.update({k: None for k in KERNEL_CS_STAT_KEYS})
+    return stats
+
+
+def _kernel_cs_objective(pairs: list[tuple[Tensor, Tensor]], *, cfg: dict[str, Any], kernel_sigma: float | None) -> dict[str, Any]:
+    """CS-K-native (Server Spec v2 §3.2): −D_CS averaged over the given view pairs; kernels on z_l2 with the calibrated bandwidth."""
+    if kernel_sigma is None or not (kernel_sigma > 0):
+        raise ValueError("cs_kernel_native needs the calibrated bandwidth (kernel_sigma > 0) from the trainer")
+    chunk = int(cfg["objective"].get("kernel_cs_chunk", 0))
+    outs = [kernel_cs_pair_loss(a, b_, sigma=float(kernel_sigma), chunk=chunk) for a, b_ in pairs]
+    loss = torch.stack([o["loss"] for o in outs]).mean()
+    stats = _empty_stats()
+    for k in KERNEL_CS_STAT_KEYS:
+        stats[k] = float(torch.stack([o[k].detach() for o in outs]).mean())
+    stats["kcs_sigma"] = float(kernel_sigma)
+    B = pairs[0][0].shape[0]
+    return {"loss": loss, "stats": stats, "shift": None, "n_pos": B * len(pairs), "n_neg": B * (B - 1) * len(pairs)}
 
 
 def forward_features(encoder, projector, x1: Tensor, x2: Tensor, eps: float) -> dict[str, Tensor]:
@@ -181,14 +205,17 @@ def uses_queue(cfg: dict[str, Any]) -> bool:
 
 
 def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, Any], critic=None,
-                      pair_generator: torch.Generator | None = None, queue: NegativeQueue | None = None) -> dict[str, Any]:
+                      pair_generator: torch.Generator | None = None, queue: NegativeQueue | None = None,
+                      kernel_sigma: float | None = None) -> dict[str, Any]:
     """Return ``{"loss": Tensor, "stats": {...floats/None}, "shift": int|None, "n_pos": int, "n_neg": int}``.
     With pairing.negative_source == 'queue' a NegativeQueue must be passed; while it holds fewer than K entries (first step) the
-    cyclic-shift negatives are used and ``stats['queue_fallback']`` is 1.0."""
+    cyclic-shift negatives are used and ``stats['queue_fallback']`` is 1.0.  ``kernel_sigma`` is the calibrated bandwidth of cs_kernel_native."""
     ocfg = cfg["objective"]
     b = feats["p_raw"].shape[0] // 2
-    stats: dict[str, Any] = {k: None for k in VCS_STAT_KEYS}
-    stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    stats = _empty_stats()
+    if method == "cs_kernel_native":
+        z1, z2 = feats["z_l2"].chunk(2, dim=0)
+        return _kernel_cs_objective([(z1, z2)], cfg=cfg, kernel_sigma=kernel_sigma)
     if uses_queue(cfg):
         if queue is None:
             raise ValueError("pairing.negative_source == 'queue' requires a NegativeQueue")
@@ -289,8 +316,7 @@ def compute_objective_target(feats: dict[str, Tensor], *, cfg: dict[str, Any], c
     l2 = s2.unsqueeze(0).expand(k, -1, -1).reshape(-1, s2.shape[1])
     t_neg = torch.cat((critic(l1, t2[indices].reshape(-1, t2.shape[1])), critic(l2, t1[indices].reshape(-1, t1.shape[1]))))
     st = vcs_from_scores(t_pos, t_neg)
-    stats: dict[str, Any] = {k_: None for k_ in VCS_STAT_KEYS}
-    stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    stats = _empty_stats()
     for k_ in VCS_STAT_KEYS:
         stats[k_] = float(st[k_].detach())
     b = s1.shape[0]
@@ -309,17 +335,20 @@ def forward_features_views(encoder, projector, views: list[Tensor], eps: float) 
             "views_z": list(z.chunk(n, dim=0)), "views_p": list(p.chunk(n, dim=0)), "views_h": list(F.normalize(h, dim=1, eps=eps).chunk(n, dim=0))}
 
 
-def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any]:
+def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None,
+                            kernel_sigma: float | None = None) -> dict[str, Any]:
     """Named variant (views.count = 4): the same J averaged over all view pairs (a < b) of the same images; each pair draws its own shifts.
     Q still comes from different UIDs (cyclic shifts). Not a new loss: more Monte-Carlo coverage of the same P and Q."""
     method = cfg["run"]["method"]
     ocfg = cfg["objective"]
+    if method == "cs_kernel_native":
+        vs = feats["views_z"]
+        return _kernel_cs_objective([(vs[a], vs[b_]) for a in range(len(vs)) for b_ in range(a + 1, len(vs))], cfg=cfg, kernel_sigma=kernel_sigma)
     if method != "vcs_qmi":
         # control-tuning named variant: the control's own pairwise loss averaged over all view pairs (a < b); nothing else changes
         vs = feats["views_z"] if method == "simclr_matched" else feats["views_p"]
         pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
-        stats: dict[str, Any] = {kk: None for kk in VCS_STAT_KEYS}
-        stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+        stats = _empty_stats()
         B = vs[0].shape[0]
         if method == "simclr_matched":
             losses = [simclr_nt_xent(vs[a], vs[b_], temperature=ocfg["simclr_temperature"]) for a, b_ in pairs]
@@ -348,7 +377,7 @@ def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], criti
         for kk in VCS_STAT_KEYS:
             acc[kk] += float(s[kk].detach()) / len(pairs)
     loss = torch.stack(losses).mean()
-    stats: dict[str, Any] = dict(acc)
-    stats.update({"nt_xent": None, "vicreg_invariance": None, "vicreg_variance": None, "vicreg_covariance": None})
+    stats = _empty_stats()
+    stats.update(acc)
     B = vs[0].shape[0]
     return {"loss": loss, "stats": stats, "shift": shifts, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs)}

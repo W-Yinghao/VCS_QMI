@@ -1,0 +1,17 @@
+/home/infres/yinwang/CS_QMI/env/lib/python3.12/site-packages/torch/backends/__init__.py:46: UserWarning: Please use the new API settings to control TF32 behavior, such as torch.backends.cudnn.conv.fp32_precision = 'tf32' or torch.backends.cuda.matmul.fp32_precision = 'ieee'. Old settings, e.g, torch.backends.cuda.matmul.allow_tf32 = True, torch.backends.cudnn.allow_tf32 = True, allowTF32CuDNN() and allowTF32CuBLAS() will be deprecated after Pytorch 2.9. Please see https://pytorch.org/docs/main/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices (Triggered internally at /pytorch/aten/src/ATen/Context.cpp:80.)
+  self.setter(val)
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_ssl/evaluate.py", line 313, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_ssl/evaluate.py", line 302, in main
+    res = evaluate_run(Path(args.run_dir), args.checkpoint, protocol=args.protocol, num_workers=args.num_workers,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_ssl/evaluate.py", line 71, in evaluate_run
+    return evaluate_final_official_test(run_dir, checkpoint, device=device, num_workers=num_workers,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_ssl/evaluate.py", line 237, in evaluate_final_official_test
+    raise PermissionError(f"final_official_test is defined for the CIFAR-10 protocol only (P67/P68, run once); the official test partition of "
+PermissionError: final_official_test is defined for the CIFAR-10 protocol only (P67/P68, run once); the official test partition of 'cifar100' is closed — new datasets are read on the selection split (Server Spec v2 §1.2, §6.3)

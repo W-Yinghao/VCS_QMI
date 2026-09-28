@@ -194,6 +194,53 @@ class DiagMetricCritic(nn.Module):
         return torch.tanh(self.scale * (self.embed(left) * self.embed(right)).sum(-1) + self.bias)
 
 
+class RFFTanhCritic(nn.Module):
+    """S-Kernel (Server Spec v2 §3.4): fixed random-Fourier features of the pair vector w = [z1; z2], a trainable linear read-out
+    with intercept, tanh output — the same J, pairing and gradient routing as the neural critics, only the function class changes.
+
+        φ(w) = sqrt(2/m) cos(Ω w + b),   Ω = Ω0 / σ,  Ω0 ~ N(0, I) fixed,  b ~ U(0, 2π) fixed,   T = tanh(θᵀ [φ(w); 1]).
+
+    σ (Gaussian-kernel bandwidth) = ``bandwidth_multiple`` × the FIT median pairwise distance of w, measured once at the start of the run
+    (``set_bandwidth``; stored as a buffer so checkpoints / resume / evaluation carry it).  Ω0 and b are drawn from the critic's own
+    seed stream at construction (recorded through ``critic_init_sha256``).  θ is Xavier-uniform with the configured small gain (an exactly
+    zero θ would block the encoder gradient at step 1, as for the MLP critics).  Trainable parameters: m + 1.
+    """
+
+    def __init__(self, feature_dim: int, n_features: int, bandwidth_multiple: float, last_layer_gain: float = 0.1) -> None:
+        super().__init__()
+        if feature_dim < 1 or n_features < 1 or bandwidth_multiple <= 0 or last_layer_gain <= 0:
+            raise ValueError("feature_dim, n_features >= 1; bandwidth_multiple, gain > 0")
+        self.feature_dim = int(feature_dim)
+        self.n_features = int(n_features)
+        self.bandwidth_multiple = float(bandwidth_multiple)
+        self.register_buffer("omega0", torch.randn(self.n_features, 2 * self.feature_dim))
+        self.register_buffer("phase", torch.rand(self.n_features) * (2.0 * torch.pi))
+        self.register_buffer("sigma", torch.tensor(1.0))  # replaced by set_bandwidth() at run start
+        self.register_buffer("calibrated", torch.tensor(0, dtype=torch.int64))
+        self.readout = nn.Linear(self.n_features, 1, bias=True)  # θ (m weights + intercept)
+        nn.init.xavier_uniform_(self.readout.weight, gain=last_layer_gain)
+        nn.init.zeros_(self.readout.bias)
+
+    @torch.no_grad()
+    def set_bandwidth(self, median_pair_distance: float) -> float:
+        if not (median_pair_distance > 0):
+            raise ValueError("median pair distance must be > 0")
+        self.sigma.fill_(self.bandwidth_multiple * float(median_pair_distance))
+        self.calibrated.fill_(1)
+        return float(self.sigma)
+
+    def features(self, w: Tensor) -> Tensor:
+        return torch.cos(w @ (self.omega0 / self.sigma).T + self.phase) * (2.0 / self.n_features) ** 0.5
+
+    def logit(self, left: Tensor, right: Tensor) -> Tensor:
+        return self.readout(self.features(torch.cat((left, right), dim=-1))).squeeze(-1)
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        return torch.tanh(self.logit(left, right))
+
+
 # matrix-form hooks for the all-pairs sampler (similarity-type critics only)
 def _cos_embed(self, z):  # noqa: ANN001
     return z
@@ -214,11 +261,13 @@ def _sm_embed(self, z):  # noqa: ANN001
 SharedMetricCritic.embed = _sm_embed
 SharedMetricCritic.score_matrix = _cos_score_matrix
 
-CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric")
+CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric", "rff_tanh")
 
 
 def critic_impl_name(c: dict[str, Any]) -> str:
     inp = c["input"]
+    if inp == "rff_tanh":
+        return "vcs_ssl.models.critic.RFFTanhCritic"
     if inp == "concat_interact":
         return "vcs_ssl.models.critic.InteractCritic"
     if inp == "bilinear_concat":
@@ -251,6 +300,8 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
     name = critic_impl_name(c)
     if name == "reference.ssl_core.PairCritic":
         return PairCritic(feature_dim=feature_dim, hidden_dim=hd[0])
+    if name.endswith("RFFTanhCritic"):
+        return RFFTanhCritic(feature_dim, int(c.get("rff_features", 1024)), float(c.get("rff_bandwidth_multiple", 1.0)), last_layer_gain=gain)
     if name.endswith("InteractCritic"):
         return InteractCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("BilinearConcatCritic"):
