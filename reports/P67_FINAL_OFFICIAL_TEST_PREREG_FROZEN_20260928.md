@@ -20,7 +20,7 @@ tuning including the winners' seeds 1–2 (`P41_vicreg_800ep_seed2` was still at
   `scripts/final_official_test_eval.py --units slurm/final_official_test_units.txt`.
 - Stand-in smoke (allowed before freezing, disclosed below): the same code path on the selection split (`--standin`), which never opens the test batch.
 
-## Units (46 checkpoints; `slurm/final_official_test_units.txt`; all present on disk except where noted)
+## Units (52 checkpoints = the 46 listed here + the six 8× controls added by P41 addendum 2; `slurm/final_official_test_units.txt`; all present on disk at freezing)
 | method | compute point | cell | runs (checkpoint) | seeds | selection linear % (mean ± sd) |
 |---|---|---|---|---|---|
 | VCS | 1× | 4 views, B 128, 100 ep | `P39_vcs_a5_views4_b128_100ep_seed{0,1,2}` (epoch_100) | 3 | 83.19 ± 0.40 |
