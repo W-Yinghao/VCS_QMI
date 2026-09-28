@@ -1,0 +1,410 @@
+diff --git a/main_pretrain.py b/main_pretrain.py
+index e83d559..9cc5b51 100644
+--- a/main_pretrain.py
++++ b/main_pretrain.py
+@@ -95,6 +95,7 @@ def main(cfg: DictConfig):
+             data_format=val_data_format,
+             batch_size=cfg.optimizer.batch_size,
+             num_workers=cfg.data.num_workers,
++            download=False,  # CS_QMI S2: local CIFAR copy only, never download
+         )
+ 
+     # pretrain dataloader
+@@ -149,6 +150,7 @@ def main(cfg: DictConfig):
+             data_format=cfg.data.format,
+             no_labels=cfg.data.no_labels,
+             data_fraction=cfg.data.fraction,
++            download=False,  # CS_QMI S2: local CIFAR copy only, never download
+         )
+         train_loader = prepare_dataloader(
+             train_dataset, batch_size=cfg.optimizer.batch_size, num_workers=cfg.data.num_workers
+@@ -231,7 +233,32 @@ def main(cfg: DictConfig):
+     if cfg.data.format == "dali":
+         trainer.fit(model, ckpt_path=ckpt_path, datamodule=dali_datamodule)
+     else:
++        if os.environ.get("S2_NO_TEST") == "1":  # smoke runs: no validation loader at all
++            val_loader = None
+         trainer.fit(model, train_loader, val_loader, ckpt_path=ckpt_path)
++        _s2_final_metrics(cfg, trainer, model, val_loader)
++
++
++def _s2_final_metrics(cfg, trainer, model, val_loader):
++    """CS_QMI S2 (P75): the official test split (solo-learn's CIFAR 'val') is evaluated once, at the end of
++    epoch max_epochs (check_val_every_n_epoch = max_epochs, num_sanity_val_steps = 0).  If the run finished
++    but that validation pass is missing (e.g. a resume from the final checkpoint), run it exactly once here.
++    Writes <checkpoint.dir>/final_metrics.json; a later invocation that finds the file does nothing."""
++    import json
++
++    if os.environ.get("S2_NO_TEST") == "1":  # smoke runs: never evaluate the official test split
++        return
++    out = os.path.join(cfg.checkpoint.dir, "final_metrics.json")
++    if os.path.exists(out) or trainer.current_epoch < cfg.max_epochs:
++        return
++    metrics = {k: float(v) for k, v in trainer.callback_metrics.items()}
++    source = "fit_final_epoch_validation"
++    if "val_acc1" not in metrics:
++        metrics.update({k: float(v) for k, v in trainer.validate(model, val_loader)[0].items()})
++        source = "post_fit_single_validate"
++    if trainer.is_global_zero:
++        json.dump({"source": source, "epoch": int(trainer.current_epoch), "metrics": metrics,
++                   "method": cfg.method, "seed": int(cfg.seed), "name": cfg.name}, open(out, "w"), indent=1)
+ 
+ 
+ if __name__ == "__main__":
+diff --git a/scripts/pretrain/cifar/s2_simclr.yaml b/scripts/pretrain/cifar/s2_simclr.yaml
+new file mode 100644
+index 0000000..8b8c205
+--- /dev/null
++++ b/scripts/pretrain/cifar/s2_simclr.yaml
+@@ -0,0 +1,60 @@
++defaults:
++  - _self_
++  - augmentations: symmetric.yaml
++  - wandb: s2_disabled.yaml
++  - override hydra/hydra_logging: disabled
++  - override hydra/job_logging: disabled
++
++# disable hydra outputs
++hydra:
++  output_subdir: null
++  run:
++    dir: .
++
++name: "s2-simclr-cifar10"
++method: "simclr"
++backbone:
++  name: "resnet18"
++method_kwargs:
++  proj_hidden_dim: 2048
++  proj_output_dim: 256
++  temperature: 0.2
++data:
++  dataset: cifar10 # change here for cifar100
++  train_path: "/home/infres/yinwang/CS_QMI/data/cifar10"
++  val_path: "/home/infres/yinwang/CS_QMI/data/cifar10"
++  format: "image_folder"
++  num_workers: 8
++optimizer:
++  name: "lars"
++  batch_size: 256
++  lr: 0.4
++  classifier_lr: 0.1
++  weight_decay: 1e-4
++  kwargs:
++    clip_lr: True
++    eta: 0.02
++    exclude_bias_n_norm: True
++scheduler:
++  name: "warmup_cosine"
++checkpoint:
++  enabled: True
++  dir: "trained_models"
++  frequency: 1
++auto_resume:
++  enabled: True
++  max_hours: 2000
++
++# overwrite PL stuff
++max_epochs: 1000
++devices: [0]
++sync_batchnorm: True
++accelerator: "gpu"
++strategy: "ddp"
++precision: 16-mixed
++
++# ---- CS_QMI S2 (P75) additions ----
++# official CIFAR-10 test split (solo-learn's "val") is read exactly once, at the end of epoch max_epochs:
++check_val_every_n_epoch: 1000
++num_sanity_val_steps: 0
++seed: 0
+diff --git a/scripts/pretrain/cifar/s2_vcs.yaml b/scripts/pretrain/cifar/s2_vcs.yaml
+new file mode 100644
+index 0000000..45d004b
+--- /dev/null
++++ b/scripts/pretrain/cifar/s2_vcs.yaml
+@@ -0,0 +1,64 @@
++defaults:
++  - _self_
++  - augmentations: symmetric.yaml
++  - wandb: s2_disabled.yaml
++  - override hydra/hydra_logging: disabled
++  - override hydra/job_logging: disabled
++
++# disable hydra outputs
++hydra:
++  output_subdir: null
++  run:
++    dir: .
++
++name: "s2-vcs-cifar10"
++method: "vcs"
++backbone:
++  name: "resnet18"
++method_kwargs:
++  proj_hidden_dim: 2048
++  proj_output_dim: 256
++  k: 8
++  critic_scale_init: 5.0
++  negative_detach: True
++  pair_seed_offset: 100003
++  proj_hidden_bn: True
++data:
++  dataset: cifar10 # change here for cifar100
++  train_path: "/home/infres/yinwang/CS_QMI/data/cifar10"
++  val_path: "/home/infres/yinwang/CS_QMI/data/cifar10"
++  format: "image_folder"
++  num_workers: 8
++optimizer:
++  name: "lars"
++  batch_size: 256
++  lr: 0.4
++  classifier_lr: 0.1
++  weight_decay: 1e-4
++  kwargs:
++    clip_lr: True
++    eta: 0.02
++    exclude_bias_n_norm: True
++scheduler:
++  name: "warmup_cosine"
++checkpoint:
++  enabled: True
++  dir: "trained_models"
++  frequency: 1
++auto_resume:
++  enabled: True
++  max_hours: 2000
++
++# overwrite PL stuff
++max_epochs: 1000
++devices: [0]
++sync_batchnorm: True
++accelerator: "gpu"
++strategy: "ddp"
++precision: 16-mixed
++
++# ---- CS_QMI S2 (P75) additions ----
++# official CIFAR-10 test split (solo-learn's "val") is read exactly once, at the end of epoch max_epochs:
++check_val_every_n_epoch: 1000
++num_sanity_val_steps: 0
++seed: 0
+diff --git a/scripts/pretrain/cifar/wandb/s2_disabled.yaml b/scripts/pretrain/cifar/wandb/s2_disabled.yaml
+new file mode 100644
+index 0000000..c469c8a
+--- /dev/null
++++ b/scripts/pretrain/cifar/wandb/s2_disabled.yaml
+@@ -0,0 +1,4 @@
++enabled: False
++entity: None
++project: "solo-learn"
++offline: True
+diff --git a/solo/args/pretrain.py b/solo/args/pretrain.py
+index 0d86fb3..676ad36 100644
+--- a/solo/args/pretrain.py
++++ b/solo/args/pretrain.py
+@@ -150,7 +150,7 @@ def parse_cfg(cfg: omegaconf.DictConfig):
+ 
+     # adjust lr according to batch size
+     cfg.num_nodes = omegaconf_select(cfg, "num_nodes", 1)
+-    scale_factor = cfg.optimizer.batch_size * len(cfg.devices) * cfg.num_nodes / 256
++    scale_factor = cfg.optimizer.batch_size * (cfg.devices if isinstance(cfg.devices, int) else len(cfg.devices)) * cfg.num_nodes / 256  # CS_QMI S2: int devices for the CPU smoke
+     cfg.optimizer.lr = cfg.optimizer.lr * scale_factor
+     if cfg.data.val_path is not None:
+         assert not OmegaConf.is_missing(cfg, "optimizer.classifier_lr")
+diff --git a/solo/methods/__init__.py b/solo/methods/__init__.py
+index 7201826..2429588 100644
+--- a/solo/methods/__init__.py
++++ b/solo/methods/__init__.py
+@@ -36,6 +36,7 @@ from solo.methods.supcon import SupCon
+ from solo.methods.swav import SwAV
+ from solo.methods.vibcreg import VIbCReg
+ from solo.methods.vicreg import VICReg
++from solo.methods.vcs import VCS
+ from solo.methods.wmse import WMSE
+ from solo.methods.all4one import All4One
+ 
+@@ -62,6 +63,7 @@ METHODS = {
+     "swav": SwAV,
+     "vibcreg": VIbCReg,
+     "vicreg": VICReg,
++    "vcs": VCS,
+     "wmse": WMSE,
+     "all4one": All4One,
+ }
+@@ -85,6 +87,7 @@ __all__ = [
+     "SwAV",
+     "VIbCReg",
+     "VICReg",
++    "VCS",
+     "WMSE",
+     "All4One",
+ ]
+diff --git a/solo/methods/vcs.py b/solo/methods/vcs.py
+new file mode 100644
+index 0000000..3d3b55c
+--- /dev/null
++++ b/solo/methods/vcs.py
+@@ -0,0 +1,164 @@
++# VCS-QMI port for solo-learn (S2, CS_QMI next round).  Objective and critic replicate
++# CS_QMI/ssl_pilot reference/ssl_core.py (vcs_from_scores, cyclic_negative_indices) and
++# src/vcs_ssl/objectives.py (vcs_pair_loss_negdetach), src/vcs_ssl/models/critic.py (CosineCritic)
++# of the final VCS recipe: cosine critic tanh(a <z1, z2> + b), a0 = 5, b0 = 0, K = 8 distinct nonzero
++# cyclic shifts drawn from a dedicated CPU generator, shifted partner detached, loss = -J with the
++# positive and negative distributions averaged separately; no CS log transform, J not clipped.
++
++from typing import Any, Dict, List, Sequence
++
++import omegaconf
++import torch
++import torch.nn as nn
++import torch.nn.functional as F
++from solo.methods.base import BaseMethod
++
++
++def vcs_from_scores(t_pos: torch.Tensor, t_neg: torch.Tensor) -> Dict[str, torch.Tensor]:
++    """Each distribution averaged separately (reference/ssl_core.py). loss = -J."""
++    mp, mq, sp, sq = t_pos.mean(), t_neg.mean(), t_pos.square().mean(), t_neg.square().mean()
++    j = mp - mq - 0.5 * sp - 0.5 * sq
++    return {
++        "loss": -j,
++        "J_raw": j,
++        "t_pos_mean": mp,
++        "t_neg_mean": mq,
++        "sat_pos_frac": (t_pos.abs() > 0.95).float().mean(),
++        "sat_neg_frac": (t_neg.abs() > 0.95).float().mean(),
++    }
++
++
++def cyclic_negative_indices(batch_size: int, k: int, generator: torch.Generator, device) -> torch.Tensor:
++    """[K,B] partner indices with K distinct nonzero cyclic shifts (reference/ssl_core.py)."""
++    if not 1 <= k <= batch_size - 1:
++        raise ValueError("require 1 <= k <= batch_size - 1")
++    shifts = torch.randperm(batch_size - 1, generator=generator, device="cpu")[:k] + 1
++    base = torch.arange(batch_size, device=device)
++    return (base[None, :] + shifts.to(device)[:, None]) % batch_size
++
++
++class CosineCritic(nn.Module):
++    """tanh(a * <z1, z2> + b) on L2-normalised projector outputs.  a, b are stored with shape [1] so that
++    solo-learn's LARS (exclude_bias_n_norm) skips the trust-ratio scaling and weight decay for them: they
++    get plain SGD-momentum steps at the scheduled lr (disclosed in the P75 prereg)."""
++
++    def __init__(self, scale_init: float = 5.0) -> None:
++        super().__init__()
++        self.scale = nn.Parameter(torch.tensor([float(scale_init)]))
++        self.bias = nn.Parameter(torch.tensor([0.0]))
++
++    def forward(self, left: torch.Tensor, right: torch.Tensor) -> torch.Tensor:
++        return torch.tanh(self.scale * (left * right).sum(-1) + self.bias)
++
++
++class VCS(BaseMethod):
++    def __init__(self, cfg: omegaconf.DictConfig):
++        """VCS-QMI (J objective, M = (P+Q)/2 mixture reference, tanh critic).
++
++        Extra cfg settings:
++            method_kwargs:
++                proj_output_dim (int), proj_hidden_dim (int): projector as in solo-learn SimCLR.
++                k (int): number of cyclic-shift negatives per anchor (8).
++                critic_scale_init (float): a0 (5.0).
++                negative_detach (bool): detach the shifted partner in negative pairs (True).
++                pair_seed_offset (int): the pairing generator is seeded with cfg.seed + offset.
++        """
++
++        super().__init__(cfg)
++
++        proj_hidden_dim: int = cfg.method_kwargs.proj_hidden_dim
++        proj_output_dim: int = cfg.method_kwargs.proj_output_dim
++        self.k: int = cfg.method_kwargs.k
++        self.negative_detach: bool = cfg.method_kwargs.negative_detach
++
++        # projector structure of the ssl_pilot VCS recipe (hidden Linear without bias -> BN -> ReLU -> Linear with
++        # bias, no output BN) at the protocol's 2048/256 width.  solo-learn's SimCLR head (Linear-ReLU-Linear, no BN)
++        # is not usable for a bounded cosine critic: at initialisation all post-ReLU features share one direction,
++        # cos ~ 1 for every pair, tanh(5 cos) saturates for positives and negatives alike (CPU smoke 1013082:
++        # t_pos = t_neg = 0.9996, J = -0.999) and the gradient (1 - T^2) vanishes.
++        if cfg.method_kwargs.proj_hidden_bn:
++            self.projector = nn.Sequential(
++                nn.Linear(self.features_dim, proj_hidden_dim, bias=False),
++                nn.BatchNorm1d(proj_hidden_dim),
++                nn.ReLU(),
++                nn.Linear(proj_hidden_dim, proj_output_dim),
++            )
++        else:
++            self.projector = nn.Sequential(
++                nn.Linear(self.features_dim, proj_hidden_dim),
++                nn.ReLU(),
++                nn.Linear(proj_hidden_dim, proj_output_dim),
++            )
++        self.critic = CosineCritic(cfg.method_kwargs.critic_scale_init)
++        # dedicated CPU pairing stream (not checkpointed: after a resume the shifts continue from a
++        # re-seeded stream, which only changes which shifts are drawn, not their distribution)
++        self.pair_generator = torch.Generator().manual_seed(int(cfg.seed) + int(cfg.method_kwargs.pair_seed_offset))
++
++    @staticmethod
++    def add_and_assert_specific_cfg(cfg: omegaconf.DictConfig) -> omegaconf.DictConfig:
++        cfg = super(VCS, VCS).add_and_assert_specific_cfg(cfg)
++
++        assert not omegaconf.OmegaConf.is_missing(cfg, "method_kwargs.proj_output_dim")
++        assert not omegaconf.OmegaConf.is_missing(cfg, "method_kwargs.proj_hidden_dim")
++        cfg.method_kwargs.k = omegaconf.OmegaConf.select(cfg, "method_kwargs.k", default=8)
++        cfg.method_kwargs.critic_scale_init = omegaconf.OmegaConf.select(
++            cfg, "method_kwargs.critic_scale_init", default=5.0
++        )
++        cfg.method_kwargs.negative_detach = omegaconf.OmegaConf.select(
++            cfg, "method_kwargs.negative_detach", default=True
++        )
++        cfg.method_kwargs.proj_hidden_bn = omegaconf.OmegaConf.select(
++            cfg, "method_kwargs.proj_hidden_bn", default=True
++        )
++        cfg.method_kwargs.pair_seed_offset = omegaconf.OmegaConf.select(
++            cfg, "method_kwargs.pair_seed_offset", default=100003
++        )
++        return cfg
++
++    @property
++    def learnable_params(self) -> List[dict]:
++        extra_learnable_params = [
++            {"name": "projector", "params": self.projector.parameters()},
++            {"name": "critic", "params": self.critic.parameters(), "weight_decay": 0.0},
++        ]
++        return super().learnable_params + extra_learnable_params
++
++    def forward(self, X: torch.tensor) -> Dict[str, Any]:
++        out = super().forward(X)
++        z = self.projector(out["feats"])
++        out.update({"z": z})
++        return out
++
++    def vcs_loss(self, z1: torch.Tensor, z2: torch.Tensor) -> Dict[str, torch.Tensor]:
++        # fp32 critic on L2-normalised projector outputs (the run uses 16-mixed autocast)
++        z1 = F.normalize(z1.float(), dim=1, eps=1e-8)
++        z2 = F.normalize(z2.float(), dim=1, eps=1e-8)
++        with torch.autocast(device_type=z1.device.type, enabled=False):
++            idx = cyclic_negative_indices(len(z1), self.k, self.pair_generator, z1.device)
++            t_pos = self.critic(z1, z2)
++            left = z1.unsqueeze(0).expand(self.k, -1, -1).reshape(-1, z1.shape[1])
++            partner = z2.detach() if self.negative_detach else z2
++            right = partner[idx].reshape(-1, z2.shape[1])
++            t_neg = self.critic(left, right)
++            return vcs_from_scores(t_pos, t_neg)
++
++    def training_step(self, batch: Sequence[Any], batch_idx: int) -> torch.Tensor:
++        out = super().training_step(batch, batch_idx)
++        class_loss = out["loss"]
++        z1, z2 = out["z"][:2]
++
++        s = self.vcs_loss(z1, z2)
++        self.log_dict(
++            {
++                "train_vcs_J": s["J_raw"],
++                "train_vcs_t_pos": s["t_pos_mean"],
++                "train_vcs_t_neg": s["t_neg_mean"],
++                "train_vcs_sat_pos": s["sat_pos_frac"],
++                "train_vcs_sat_neg": s["sat_neg_frac"],
++                "critic_a": self.critic.scale.detach()[0],
++                "critic_b": self.critic.bias.detach()[0],
++            },
++            on_epoch=True,
++            sync_dist=True,
++        )
++        return s["loss"] + class_loss
