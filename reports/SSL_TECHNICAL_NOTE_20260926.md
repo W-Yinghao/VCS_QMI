@@ -1,6 +1,6 @@
 # VCS-QMI self-supervised learning on CIFAR-10 — technical note (implementation, recipe, evidence)
 
-Version 2026-09-27 06:40 UTC (all SSL runs finished; no further submissions per the owner) (commit trail in this repository; every number below is traceable to a run directory, a results table and a
+Version 2026-09-28 21:30 UTC (all SSL runs finished; P41 controls, P68 test set and the 2026-09-28 corrections of the draft-v3 Table 6 items included) (commit trail in this repository; every number below is traceable to a run directory, a results table and a
 frozen pre-registration).  Purpose: a complete, defensible reference for the SSL part of the paper.  Sections marked **[pending]** are
 filled when the corresponding runs land (ceiling runs: 2026-09-27 morning UTC; control tuning P41: after the owner's go).
 
@@ -74,7 +74,7 @@ No EMA, no predictor, no stop-gradient branch, no extra critic steps (all tested
 | critic | tanh(a⟨z₁,z₂⟩+b), a₀ = 5, b₀ = 0 | §5.2 |
 | negatives | K = 8 non-zero cyclic shifts per view pair, shifted partner detached | §5.2 |
 | views | 4 per image (6 pairs) | §5.3; 8 views under study (§5.5) |
-| augmentation | RandomResizedCrop(32, scale [0.2, 1], ratio [3/4, 4/3], bilinear, antialias) → HFlip 0.5 → ColorJitter(0.4, 0.4, 0.4, 0.1) p 0.8 → Grayscale p 0.2; no blur, no solarize; normalise with CIFAR mean/std | weak −7, stronger −0.8…−1.5 at 200 ep on the old recipe (P17); at 800 ep with 4 views, crop 0.08 + jitter 0.8 gives 87.78 vs 87.01 ± 0.53 (single seed, +0.8; heldout-J 0.877 vs 0.974, threshold 0.95) — stronger augmentation pays only on long schedules |
+| augmentation | RandomResizedCrop(32, scale [0.2, 1], ratio [3/4, 4/3], bilinear, antialias) → HFlip 0.5 → ColorJitter(0.4, 0.4, 0.4, 0.1) p 0.8 → Grayscale p 0.2; no blur, no solarize; ToTensor then fixed normalisation with mean (0.5, 0.5, 0.5) and std (0.5, 0.5, 0.5) (as in every YAML; an earlier version of this line said "CIFAR mean/std", which was wrong — corrected 2026-09-28) | weak −7, stronger −0.8…−1.5 at 200 ep on the old recipe (P17); at 800 ep with 4 views, crop 0.08 + jitter 0.8 gives 87.78 vs 87.01 ± 0.53 (single seed, +0.8; heldout-J 0.877 vs 0.974, threshold 0.95) — stronger augmentation pays only on long schedules |
 | batch | 256 images (B = 128 for the 1×-compute recipe) | P17, P40 |
 | optimiser | AdamW, lr 1e-3, betas (0.9, 0.999), eps 1e-8, wd 1e-4 on matrix weights (0 on bias/norm), critic lr ×1, critic wd 0 | lr 3e-4…1e-2, wd 1e-5…5e-4, critic lr ×0.1…×10 (P13/P15/P17/P40) |
 | schedule | linear warm-up 10 epochs → cosine to 1 % of peak, per step | schedule shape neutral (P15); warm-up 5 hurts on short runs (P40) |
@@ -106,7 +106,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 
 ## 5. Results
 
-### 5.1 Final recipe by compute budget (1× = 2 views × 200 epochs = 8.96 M image-forwards)
+### 5.1 Final recipe by compute budget (1× = 2 views × 200 epochs = 8.96 M base-image presentations = 17.92 M encoded views; "compute" here is encoded-view exposure, not measured FLOPs or time)
 | compute | recipe | linear-val (%) | kNN (%) | h eff-rank | seeds | table |
 |---|---|---|---|---|---|---|
 | 1× | 4 views, B 128, 100 ep | **83.19 ± 0.40** | 78.43 ± 0.11 | 56 | 3 | P40 |
@@ -193,8 +193,9 @@ augmentation (87.78) and 4 views × 1600 epochs (87.50) as single-seed upper poi
    vs +4.7 for SimCLR).  Similarity-type critics restore both (rank 58, +3…+4 for the last stage).  Any *extra* freedom given to the critic
    (learnable shared metric, interaction MLP) is spent on collapsing the code (rank 1–3), not on enriching h.
 2. **The objective is satisfied by separability, not spread.**  Learned critics converge to a threshold cos* = −b/a ≈ 0.8–0.9; negatives are
-   pushed just below it and no further.  Under negative detach the positives stay unsaturated for the whole run (0 % with |T| > 0.95 vs 83 %
-   without detach): detach turns "push negatives below a low threshold" into "pull positives above a high threshold".
+   pushed just below it and no further.  Under negative detach the positives stay unsaturated for the whole 200-epoch two-view run (0 % with |T| > 0.95 vs 83 %
+   without detach): detach turns "push negatives below a low threshold" into "pull positives above a high threshold".  This is horizon-specific: at
+   4 views × 800 epochs 61 % of positives are above 0.95 (median T 0.96; P84), so saturation statements must name the configuration and epoch.
 3. **h-uniformity (Wang–Isola) orders every VCS run by linear accuracy and separates them from the controls** (−1.5…−1.8 for the 2-view
    recipes, −2.0 at 4 views, −2.3 at 800 epochs; SimCLR −2.8, VICReg −2.5).  z-uniformity does not: under detach z lives in a narrow cone
    (negatives at cosine 0.76 in the 800-ep run) while h spreads — where the spreading happens is the mechanism, not how much.
