@@ -101,6 +101,22 @@ non-matching* stages by a small margin only, and it is not a better probe than C
   EPI/T1w) and the constructed pairs now agree, with the same signature each time: correct global maximum, no divergence, narrower basin.
 
 
+- **Addendum 2 — the combination variant (patch features + coarse-to-fine) on the three real sources (GPU jobs 1012288–1012290; the P52-path
+  numbers of each source are the rows above).**
+
+  | source | J* maxima: plain → combo (MI) | J* success R = 20 / 30: plain → combo (MI with the same coarse-to-fine) | J* peak at truth (transl. / rot.) | reading |
+  |---|---|---|---|---|
+  | RGB–NIR | 16.4 → 11.6 (8.1) | 0.50 / 0.32 → 0.67 / 0.48 (0.82 / 0.65) | 0.93 / 0.95 | closes about half the gap; still 0.15 short |
+  | IXI PD/T2 | 1.8 → 1.1 (1.0) | 0.90 / 0.83 → 1.00 / 1.00 (1.00 / 1.00) | 1.00 / 1.00 | parity in success; maxima 1.1 vs 1.0 (letter: not ≤); rotation basin still 14° vs 30° |
+  | fMRI EPI/T1w | 1.2 → 1.1 (1.0) | 0.88 / 0.84 → 0.81 / 0.81 (1.00 / 0.99) | **0.50 / 0.80** | the block-mean channel *hurts*: the translation surface peaks off the truth in half the subjects |
+
+  **Reading (addendum 2; family unchanged either way): not re-opened.**  The removability of the plain closed form's deficit is
+  source-dependent: complete on dual-echo PD/T2 (where MI was already perfect), partial on cross-spectral pairs, and negative on EPI/T1w, where
+  the 8 × 8 block-mean channel — a low-frequency intensity feature — biases the surface for a modality pair whose intensities are not even
+  monotonically related.  Coarse-to-fine helps every measure (MI's own success on RGB–NIR rises 0.71 / 0.50 → 0.82 / 0.65), so the optimiser
+  is not where J* gains on MI.  Conclusion for row B: as an alignment energy the closed form can be engineered to MI's level on the easy
+  case and nowhere past it; the family stays closed on constructed pairs and on all three real sources.
+
 ## 4. Family table (brief appendix A, row B) after B-S1 / B-T1
 Unlabelled embedding probes / measurement on frozen features: *candidate*, with the qualification that the closed-form J* offers
 cost and determinism, not better discrimination than CKA in the strong-dependence regime.  Registration / calibration / stereo energies: **closed** — P52 (constructed pairs) is confirmed on real cross-spectral pairs (RGB–NIR) and on
