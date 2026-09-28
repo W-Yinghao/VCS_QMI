@@ -125,7 +125,7 @@ CPU resume is bit-exact (test_7); GPU resume is exact at the epoch boundary up t
 
 Reference points on the same split and protocol (P5, 3 seeds, 200 epochs, 2 views, **untuned** frozen recipes): SimCLR-matched 86.09 ± 0.38 /
 kNN 83.98 / rank 90; VICReg-matched-128 85.46 ± 0.26 / 81.92 / 76.  Original VCS recipe (concat-MLP critic, K = 1): 74.34 ± 0.46 / 63.93 / 13.
-**Comparison claims wait for the equal-budget control tuning (P41, draft pre-registration written, not launched).**
+**Equal-budget control tuning (P41) is done (2026-09-28; `P41_CONTROL_TUNING_REPORT_20260928.md`): with the same knobs VCS was given, SimCLR reaches 86.64 / 87.84 / 88.35 / 88.32 and VICReg 87.12 / 86.73 / 87.28 / 87.50 (one seed at 8×) at 1× / 2× / 4× / 8× versus VCS 83.19 / 84.54 / 85.95 / 87.01 — the tuned controls lead at every budget; the gap narrows with compute (3.5 → 1.3 points to SimCLR).**
 
 ### 5.2 How the recipe was found — the factors that mattered (200 epochs unless stated)
 | step | change | linear | Δ | kNN | rank | seeds | stage |
@@ -227,9 +227,9 @@ augmentation (87.78) and 4 views × 1600 epochs (87.50) as single-seed upper poi
 - All numbers are on the 5 k selection split of the official training set, chosen repeatedly during the search; the official test set is
   evaluated once at the end for the frozen recipes.  Single-seed cells are marked; the recipe's 1× and 2× numbers and the 2-view 800-ep number
   are 3-seed means.
-- Controls are the frozen P5 recipes (2 views, 200 epochs, untuned).  Equal-budget tuning of SimCLR / VICReg (temperature / weights, 4 views,
-  batch, 800 epochs; code ready, `run.control_tuning`) is pre-registered as a draft (P41) and **not launched**; no "beats SimCLR" claim is made
-  before it.  With 4 views the VCS runs use 2× the encoder compute of the 2-view controls at equal epochs (stated wherever compared).
+- Controls: the frozen P5 recipes (2 views, 200 epochs, untuned: SimCLR 86.09 ± 0.38, VICReg 85.46 ± 0.26) *and* the equal-budget tuned
+  controls of P41 (temperature / weights, 4 views, batch, 800 epochs, 4v × 800ep; 3 seeds per winner).  Tuned SimCLR / VICReg exceed VCS at
+  every compute point (`P41_CONTROL_TUNING_REPORT_20260928.md` §3–4); no "beats SimCLR" claim exists in this note.  With 4 views the VCS runs use 2× the encoder compute of the 2-view controls at equal epochs (stated wherever compared).
 - Mechanism statements are observational (diagnostics on frozen checkpoints) except where an intervention exists (detach on/off, critic form,
   views, a₀).
 - Theory-side questions raised by the experiments (for the paper's discussion, not implemented): the fixed 1 : 1 P/Q weight implied by
