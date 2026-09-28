@@ -88,3 +88,20 @@ nuisance strength and shortcut reliance, and a guaranteed bound that needs S ≳
 of 0.06–0.07 (up to 0.14 in R = 50 cells), shared with HSIC and tied to the single-N-draw design; addendum 6 settles whether it is design or
 procedure.  Family status stays as the D report §3.1 left it — closed by the letter of the frozen false-alarm clause, conditional by its intent
 — and the owner's reading of that clause is now informed by four more data sets that all show the same shape.
+
+## 6. D-T replicate with a texture shortcut (P55 addendum 1: Gaussian blur, radius 1 px; ρ ∈ {0.5, 0.95, 1.0} × 2 seeds; 6 models, 12 tests)
+| ρ | reliance (seeds 0 / 1) | mean conditional Ĵ (n = 1000) | conditional vcs_perm at n = 500 | HSIC | guaranteed test at n = 1000 | null vcs_perm cells (n = 200 / 500 / 1000) |
+|---|---|---|---|---|---|---|
+| 0.5 | +0.000 / +0.006 | 0.101 | 1.00 / 1.00 | 0.94 / 0.98 | 0.00 | .06/.04/.00; .06/.06/**.16** |
+| 0.95 | +0.293 / +0.395 | 0.274 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | .02/.04/.00; .04/**.12**/**.12** |
+| 1.0 | +0.860 / +0.856 | 0.292 | 1.00 / 1.00 | 1.00 / 1.00 | 1.00 / 1.00 | .04/.04/.02; .00/.06/.02 |
+
+The blur shortcut is learned far more strongly than the colour one (reliance 0.86 vs 0.66 at ρ = 1.0; 0.29–0.40 vs 0.19 at ρ = 0.95).  **Reading
+(P55 rules with "colour" read as "blur"):** (i) Ĵ increases with ρ and Spearman(Ĵ, reliance) over the 6 models = 0.94 ≥ 0.9 — holds; (ii) every
+ρ ≥ 0.95 model detected at n = 500 with power 1.00, HSIC equal — holds; (iii) null ≤ 0.09 in every cell — fails for vcs_perm in 3 of 18 cells (max
+0.16 = 8/50; pooled 45/900 = 0.050) and for HSIC in 2 cells (0.10, 0.12).  **Holds conditionally**, for the same reason as the colour family:
+the per-model null uses one N draw over a 5 000-image pool, so cells scatter 0.00–0.16 around a pooled 0.05.  Two observations repeat with more
+force: (a) sensitivity is not reliance — at ρ = 0.5, with zero reliance, the blur is detected in 100 % of draws at n = 500 with Ĵ ≈ 0.10 (colour: 0.02),
+because a 1-px blur is a large change to the features whether or not the classifier uses it; (b) the magnitude saturates — Ĵ moves 0.27 → 0.29
+while reliance moves 0.29 → 0.86.  The guaranteed test now fires at ρ ≥ 0.95 (Ĵ 0.27–0.29 > τ_{1000} = 0.19), which the weaker colour shortcut
+never reached below ρ = 1.0.  The contingency (radius 1.5 px) was not needed.
