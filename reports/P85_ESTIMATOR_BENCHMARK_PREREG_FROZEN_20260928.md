@@ -164,7 +164,7 @@ All four pilot cells raised `RuntimeError: Invalid device argument` in `_peak_me
 allocator existed; unreachable on the CPU gate).  Fix in `src/vcs_estim/benchmark.py`: a zero-size allocation initialises the allocator and the
 statistics call is guarded.  No estimator, grid, role or read-out code changed.  Pilot resubmitted after this line.
 
-## Pilot measurement (results-only addendum, 2026-09-28T19:42:59Z; job 1013331, H100, )
+## Pilot measurement (results-only addendum, 2026-09-28T19:42:59Z; job 1013331, H100, files `outputs/P85_estim_benchmark/P85_gaussian_ds2_dt{2,100}_I1.5_N{256,16384}_B256_U2000_s0.json`)
 Wall time per cell 162–176 s (47 rows each: 9 VCS-N rows 4–14 s fit, kernel rows ≤ 3 s), CUDA peak 3.3–3.8 GB, CPU RSS 2.1 GB.  Full grid (81 distinct
 cells, 8 cost-balanced chunks; the six B = 1024 in-batch cells and the N = 16384 cells are the heavier ones): ≈ 4–14 GPU-h in total, ≈ 0.5–2 h per chunk on
 H100; `slurm/estim_p85_cells.sbatch` keeps its 12 h limit.  Derivative self-check: oracle envelope − finite difference = 1.07 combined SE (threshold 3; no
