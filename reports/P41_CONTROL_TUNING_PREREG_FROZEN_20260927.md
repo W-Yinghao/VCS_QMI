@@ -42,3 +42,9 @@ at each compute point gets seeds 1 and 2: the six winners above (`configs/HPARAM
 (selection split, 3 seeds each side when these land): 1× VCS 83.19 ± 0.40 (4v/B128/100ep) vs SimCLR 86.42 / VICReg 87.24; 2× VCS 84.54 ± 0.16 vs
 87.48 / 86.64; 4× VCS 85.30 ± 0.21 (2v/800ep; 4v/400ep 85.90, 8v/200ep 85.95 ± 0.35) vs 88.38 / 86.70.  The 8× and 16× VCS points (87.01 ± 0.53;
 87.50) have no equal-compute control in this grid; a SimCLR 4v/800ep unit would be the equal-compute control at 8× and is *proposed*.
+
+**Addendum 2 (2026-09-28T06:07:22Z, frozen before launch; owner asked for further experiments while GPUs are idle).**  The 8× compute point — where the paper's
+headline VCS number lives (4 views × 800 epochs, B 256: 87.01 ± 0.53 linear / 85.46 ± 0.12 kNN, 3 seeds; strong-aug 87.78 single seed) — had no
+equal-compute control in the frozen grid.  Added: SimCLR and VICReg at 4 views × 800 epochs × B 256 (their P5 recipes otherwise unchanged; the
+same views/schedule knobs VCS received), seeds 0–2 → 6 runs (`configs/HPARAM_N_8X_SHA256.json`, ≈ 5 h each on PRO6000/H100).  Reading as the main
+text: VCS vs each control's 3-seed mean at 8×.  Not added: a 16× control (SimCLR 4v/1600ep, ≈ 10 h per seed) — proposed.
