@@ -1,0 +1,67 @@
+defaults:
+  - _self_
+  - augmentations: symmetric.yaml
+  - wandb: s2_disabled.yaml
+  - override hydra/hydra_logging: disabled
+  - override hydra/job_logging: disabled
+
+# disable hydra outputs
+hydra:
+  output_subdir: null
+  run:
+    dir: .
+
+name: "s2b-vcs-cifar10"
+method: "vcs_s2b"
+backbone:
+  name: "resnet18"
+method_kwargs:
+  proj_hidden_dim: 2048
+  proj_output_dim: 256
+  k: 8
+  critic_scale_init: 5.0
+  negative_detach: True
+  pair_seed_offset: 100003
+  proj_hidden_bn: True
+  critic_optimizer: adamw   # S2b: recipe optimiser for a, b (P77)
+  critic_adamw_lr: 1.0e-3
+  critic_adamw_min_lr_ratio: 0.01
+data:
+  dataset: cifar10 # change here for cifar100
+  train_path: "/home/infres/yinwang/CS_QMI/data/cifar10"
+  val_path: "/home/infres/yinwang/CS_QMI/data/cifar10"
+  format: "image_folder"
+  num_workers: 8
+optimizer:
+  name: "lars"
+  batch_size: 256
+  lr: 0.4
+  classifier_lr: 0.1
+  weight_decay: 1e-4
+  kwargs:
+    clip_lr: True
+    eta: 0.02
+    exclude_bias_n_norm: True
+scheduler:
+  name: "warmup_cosine"
+checkpoint:
+  enabled: True
+  dir: "trained_models"
+  frequency: 1
+auto_resume:
+  enabled: True
+  max_hours: 2000
+
+# overwrite PL stuff
+max_epochs: 1000
+devices: [0]
+sync_batchnorm: True
+accelerator: "gpu"
+strategy: "ddp"
+precision: 16-mixed
+
+# ---- CS_QMI S2b (P77) = S2 (P75) config + method vcs_s2b (critic scalars on AdamW 1e-3); test-set rule identical ----
+# official CIFAR-10 test split (solo-learn's "val") is read exactly once, at the end of epoch max_epochs:
+check_val_every_n_epoch: 1000
+num_sanity_val_steps: 0
+seed: 0
