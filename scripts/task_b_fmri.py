@@ -29,7 +29,8 @@ from PIL import Image
 from nibabel.processing import resample_from_to
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from precheck_b2_registration import S, aggregate, progress_line, run_pair, write_outputs  # noqa: E402, Variant
+from precheck_b2_registration import S, aggregate, progress_line, run_pair, write_outputs  # noqa: E402
+from precheck_b2_registration import Variant  # noqa: E402
 
 
 def mask_box(mask):

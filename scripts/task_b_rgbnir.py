@@ -26,7 +26,8 @@ import torch
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from precheck_b2_registration import COCO, S, aggregate, load_grey, make_modality_b, progress_line, run_pair, write_outputs  # noqa: E402, Variant
+from precheck_b2_registration import COCO, S, aggregate, load_grey, make_modality_b, progress_line, run_pair, write_outputs  # noqa: E402
+from precheck_b2_registration import Variant  # noqa: E402
 
 
 def load_any_grey(path):
