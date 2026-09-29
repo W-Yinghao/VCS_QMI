@@ -1,0 +1,135 @@
+{
+  "stages": {
+    "P95_v1_in_ssl_stageA": {
+      "generated_utc": "2026-09-29T20:15:54Z",
+      "units": [
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "residual",
+          "value": 0.25,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_residual_lam0.25_views4_800ep_seed0.yaml",
+          "run_id": "P95_residual_lam0.25_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.input": "residual_cosine_mlp",
+            "model.critic.residual_lambda": 0.25
+          },
+          "sha256": "b669c40990956b0ca74f952668b46cd55bdf6b3c40916a972ecc81ea592d12ce"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "residual",
+          "value": 0.5,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_residual_lam0.5_views4_800ep_seed0.yaml",
+          "run_id": "P95_residual_lam0.5_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.input": "residual_cosine_mlp",
+            "model.critic.residual_lambda": 0.5
+          },
+          "sha256": "cc9201bfa9eabab00c9d04b6e1be4e334786d13760944c851005cf328ac7df78"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "dictionary",
+          "value": null,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_dictionary_views4_800ep_seed0.yaml",
+          "run_id": "P95_dictionary_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.input": "dictionary_simplex"
+          },
+          "sha256": "baeb86b490b1520ccad2966e838c761a46bdff6df3b884d43daa7049c5154f55"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "noise",
+          "value": 0.1,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_noise_tau0.1_views4_800ep_seed0.yaml",
+          "run_id": "P95_noise_tau0.1_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.observation_noise_tau": 0.1
+          },
+          "sha256": "6cb22974d1aa1a1845221759c2cb21fada5352a536f15f4cd109eb65f27a55cf"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "noise",
+          "value": 0.3,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_noise_tau0.3_views4_800ep_seed0.yaml",
+          "run_id": "P95_noise_tau0.3_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.observation_noise_tau": 0.3
+          },
+          "sha256": "a63404a0aa8741192135fb3cebabd87e71c86184ab610e02e53a818f92eb7473"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "refresh",
+          "value": 50,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_refresh_R50_views4_800ep_seed0.yaml",
+          "run_id": "P95_refresh_R50_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.refresh_every_epochs": 50,
+            "model.critic.refresh_batches": 16
+          },
+          "sha256": "a6d633cc593facfe47a2fad99cd9971c3dab83b240e32391ec3999ba33488614"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "refresh",
+          "value": 200,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_refresh_R200_views4_800ep_seed0.yaml",
+          "run_id": "P95_refresh_R200_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.refresh_every_epochs": 200,
+            "model.critic.refresh_batches": 16
+          },
+          "sha256": "e15316e50c683eae3f9ab82cf51d4d63995ff2d190fec56535aa58a0f3501a65"
+        },
+        {
+          "stage": "P95_v1_in_ssl",
+          "family": "js",
+          "value": null,
+          "seed": 0,
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpV_js_matched_views4_800ep_seed0.yaml",
+          "run_id": "P95_js_matched_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "objective.loss": "js_matched_logistic"
+          },
+          "sha256": "90b267d1168bfb05d28fdb6ba4ce34e9694b383e39607fa7dcc0835ac60d7471"
+        }
+      ],
+      "files": {
+        "cifar10_hpV_residual_lam0.25_views4_800ep_seed0.yaml": "b669c40990956b0ca74f952668b46cd55bdf6b3c40916a972ecc81ea592d12ce",
+        "cifar10_hpV_residual_lam0.5_views4_800ep_seed0.yaml": "cc9201bfa9eabab00c9d04b6e1be4e334786d13760944c851005cf328ac7df78",
+        "cifar10_hpV_dictionary_views4_800ep_seed0.yaml": "baeb86b490b1520ccad2966e838c761a46bdff6df3b884d43daa7049c5154f55",
+        "cifar10_hpV_noise_tau0.1_views4_800ep_seed0.yaml": "6cb22974d1aa1a1845221759c2cb21fada5352a536f15f4cd109eb65f27a55cf",
+        "cifar10_hpV_noise_tau0.3_views4_800ep_seed0.yaml": "a63404a0aa8741192135fb3cebabd87e71c86184ab610e02e53a818f92eb7473",
+        "cifar10_hpV_refresh_R50_views4_800ep_seed0.yaml": "a6d633cc593facfe47a2fad99cd9971c3dab83b240e32391ec3999ba33488614",
+        "cifar10_hpV_refresh_R200_views4_800ep_seed0.yaml": "e15316e50c683eae3f9ab82cf51d4d63995ff2d190fec56535aa58a0f3501a65",
+        "cifar10_hpV_js_matched_views4_800ep_seed0.yaml": "90b267d1168bfb05d28fdb6ba4ce34e9694b383e39607fa7dcc0835ac60d7471"
+      }
+    }
+  }
+}

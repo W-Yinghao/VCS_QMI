@@ -241,6 +241,138 @@ class RFFTanhCritic(nn.Module):
         return torch.tanh(self.logit(left, right))
 
 
+# ----------------------------------------------------------------------------------------------------------------------
+# P95 (package v1 estimator improvements inside full SSL; owner 2026-09-29).  Each is a named critic variant; the frozen recipe critics
+# above are untouched.  All outputs stay in [-1, 1] (the collaborator's bounded-critic contract); J, pairing and detach are unchanged.
+class _BatchStats:
+    """Accumulates detached per-call statistics while the critic is in training mode; ``pop_stats`` returns call-averaged floats
+    (one call = the positive or the negative block of one view pair, so the average weights P and Q equally = E_M)."""
+
+    def _stats_reset(self) -> None:
+        self._acc: dict[str, Tensor] = {}
+        self._n_calls = 0
+
+    def _stats_add(self, **vals: Tensor) -> None:
+        if not self.training:
+            return
+        for k, v in vals.items():
+            v = v.detach().float()
+            self._acc[k] = v if k not in self._acc else self._acc[k] + v
+        self._n_calls += 1
+
+    def pop_stats(self) -> dict[str, float]:
+        n = max(1, self._n_calls)
+        out = {k: float(v) / n for k, v in self._acc.items()}
+        out.update(self._extra_stats())
+        self._stats_reset()
+        return out
+
+    def _extra_stats(self) -> dict[str, float]:
+        return {}
+
+
+class ResidualCosineMLPCritic(_BatchStats, nn.Module):
+    """P95 variant 1 (v1 plan §5.1, bounded residual): T = (1 − λ)·tanh(a⟨z1, z2⟩ + b) + λ·tanh(g([z1; z2])), λ fixed.
+    The cosine part is the recipe critic (a0 from the config); g is the recipe's ordered-concat MLP class (hidden_dims, ReLU,
+    last layer Xavier gain, bias 0).  |T| ≤ 1 because it is a convex combination of two tanh outputs."""
+
+    def __init__(self, feature_dim: int, hidden_dims: list[int], *, lam: float, scale_init: float, last_layer_gain: float = 0.1) -> None:
+        super().__init__()
+        if not (0.0 < lam < 1.0):
+            raise ValueError("residual lambda must be in (0, 1)")
+        self.feature_dim = feature_dim
+        self.lam = float(lam)
+        self.cos = CosineCritic(feature_dim, scale_init=scale_init)
+        self.mlp = PairCriticMLP(feature_dim, hidden_dims, last_layer_gain=last_layer_gain)
+        self._stats_reset()
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        tc = self.cos(left, right)
+        tm = self.mlp(left, right)
+        t = (1.0 - self.lam) * tc + self.lam * tm
+        self._stats_add(res_cos_part_mean=((1.0 - self.lam) * tc).mean(), res_mlp_part_mean=(self.lam * tm).mean(),
+                        res_cos_T2=tc.square().mean(), res_mlp_T2=tm.square().mean())
+        return t
+
+    def _extra_stats(self) -> dict[str, float]:
+        return {"res_lambda": self.lam, "cos_scale": float(self.cos.scale.detach()), "cos_bias": float(self.cos.bias.detach())}
+
+
+class DictionarySimplexCritic(_BatchStats, nn.Module):
+    """P95 variant 2 (v1 plan §5.2, simplex dictionary): T = Σ_j w_j T_j with w = softmax(θ), θ learnable (init 0 = equal weights),
+    members {cosine (a0 from config), ordered-concat MLP, bilinear_concat}; all trained jointly by the same J.  Logs w and the dictionary
+    disagreement D(w) = Σ_j w_j E_M[T_j²] − E_M[T_w²] (≥ 0; the exact gain of the mix over the weighted member average)."""
+
+    MEMBERS = ("cosine", "mlp", "bilinear")
+
+    def __init__(self, feature_dim: int, hidden_dims: list[int], *, scale_init: float, last_layer_gain: float = 0.1) -> None:
+        super().__init__()
+        self.feature_dim = feature_dim
+        self.cos = CosineCritic(feature_dim, scale_init=scale_init)
+        self.mlp = PairCriticMLP(feature_dim, hidden_dims, last_layer_gain=last_layer_gain)
+        self.bil = BilinearConcatCritic(feature_dim, hidden_dims, last_layer_gain=last_layer_gain)
+        self.theta = nn.Parameter(torch.zeros(3))
+        self._stats_reset()
+
+    def weights(self) -> Tensor:
+        return torch.softmax(self.theta, dim=0)
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        ts = torch.stack((self.cos(left, right), self.mlp(left, right), self.bil(left, right)), dim=-1)  # [N, 3]
+        w = self.weights()
+        t = ts @ w
+        if self.training:
+            sq = ts.square().mean(0)
+            self._stats_add(dict_member_T2_weighted=(sq * w).sum(), dict_mix_T2=t.square().mean(),
+                            dict_T2_cos=sq[0], dict_T2_mlp=sq[1], dict_T2_bil=sq[2])
+        return t
+
+    def _extra_stats(self) -> dict[str, float]:
+        w = self.weights().detach()
+        out = {f"dict_w_{m}": float(w[i]) for i, m in enumerate(self.MEMBERS)}
+        out.update({"cos_scale": float(self.cos.scale.detach()), "cos_bias": float(self.cos.bias.detach())})
+        return out
+
+    def pop_stats(self) -> dict[str, float]:
+        out = super().pop_stats()
+        if "dict_member_T2_weighted" in out:
+            out["dict_disagreement_D"] = out["dict_member_T2_weighted"] - out["dict_mix_T2"]
+        return out
+
+
+class NoisyCosineCritic(_BatchStats, CosineCritic):
+    """P95 variant 3 (v1 plan §6, observation scale): the recipe cosine critic reading u = z + τ·ε/√d on both sides of every pair
+    (positive and negative blocks each draw fresh ε; z is the L2-normalised projector output and is *not* re-normalised).  Training
+    mode only; evaluation / hold-out read clean z.  Noise stream: counter-based, ε of call c drawn from a generator seeded with
+    (noise_seed, c); noise_seed comes from the critic's own seed stream at construction and both are buffers, so checkpoints / resume
+    reproduce the sequence.  Parameters and their init are identical to the recipe critic (same state_dict keys for scale / bias)."""
+
+    def __init__(self, feature_dim: int, scale_init: float = 1.0, *, tau: float) -> None:
+        CosineCritic.__init__(self, feature_dim, scale_init=scale_init)
+        if not (tau > 0):
+            raise ValueError("observation noise tau must be > 0")
+        self.tau = float(tau)
+        self.register_buffer("noise_seed", torch.randint(0, 2**31 - 1, (1,), dtype=torch.int64))
+        self.register_buffer("noise_calls", torch.zeros(1, dtype=torch.int64))
+        self._stats_reset()
+
+    def _noise(self, x: Tensor) -> Tensor:
+        g = torch.Generator(device=x.device)
+        g.manual_seed(int(self.noise_seed) * 1_000_003 + int(self.noise_calls))
+        self.noise_calls += 1
+        return torch.randn(x.shape, generator=g, device=x.device, dtype=x.dtype) * (self.tau / x.shape[1] ** 0.5)
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if self.training:
+            el, er = self._noise(left), self._noise(right)
+            self._stats_add(noise_coord_sd_emp=torch.cat((el, er)).std(), noise_total_rms_emp=torch.cat((el, er)).square().sum(-1).mean().sqrt())
+            left, right = left + el, right + er
+        return torch.tanh(self.scale * (left * right).sum(-1) + self.bias)
+
+    def _extra_stats(self) -> dict[str, float]:
+        return {"noise_total_rms": self.tau, "noise_coordinate_sd": self.tau / self.feature_dim ** 0.5}
+
+
 # matrix-form hooks for the all-pairs sampler (similarity-type critics only)
 def _cos_embed(self, z):  # noqa: ANN001
     return z
@@ -261,11 +393,17 @@ def _sm_embed(self, z):  # noqa: ANN001
 SharedMetricCritic.embed = _sm_embed
 SharedMetricCritic.score_matrix = _cos_score_matrix
 
-CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric", "rff_tanh")
+CRITIC_INPUTS = ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric", "rff_tanh", "residual_cosine_mlp", "dictionary_simplex")
 
 
 def critic_impl_name(c: dict[str, Any]) -> str:
     inp = c["input"]
+    if inp == "residual_cosine_mlp":
+        return "vcs_ssl.models.critic.ResidualCosineMLPCritic"
+    if inp == "dictionary_simplex":
+        return "vcs_ssl.models.critic.DictionarySimplexCritic"
+    if inp == "cosine" and float(c.get("observation_noise_tau", 0.0)) > 0:
+        return "vcs_ssl.models.critic.NoisyCosineCritic"
     if inp == "rff_tanh":
         return "vcs_ssl.models.critic.RFFTanhCritic"
     if inp == "concat_interact":
@@ -300,6 +438,14 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
     name = critic_impl_name(c)
     if name == "reference.ssl_core.PairCritic":
         return PairCritic(feature_dim=feature_dim, hidden_dim=hd[0])
+    if name.endswith("ResidualCosineMLPCritic"):
+        return ResidualCosineMLPCritic(feature_dim, hd, lam=float(c["residual_lambda"]), scale_init=float(c.get("cosine_scale_init", 1.0)), last_layer_gain=gain)
+    if name.endswith("DictionarySimplexCritic"):
+        return DictionarySimplexCritic(feature_dim, hd, scale_init=float(c.get("cosine_scale_init", 1.0)), last_layer_gain=gain)
+    if name.endswith("NoisyCosineCritic"):
+        if c.get("cosine_scale_fixed", False):
+            raise ValueError("observation noise is defined for the recipe cosine critic (learnable scale)")
+        return NoisyCosineCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), tau=float(c["observation_noise_tau"]))
     if name.endswith("RFFTanhCritic"):
         return RFFTanhCritic(feature_dim, int(c.get("rff_features", 1024)), float(c.get("rff_bandwidth_multiple", 1.0)), last_layer_gain=gain)
     if name.endswith("InteractCritic"):

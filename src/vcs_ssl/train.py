@@ -223,7 +223,11 @@ class Trainer:
                         "projector_output_bn": self.cfg["model"]["projector"]["output_batchnorm"], "n_views": self.n_views,
                         "projector_kind": self.cfg["model"]["projector"].get("kind", "mlp"),
                         "rff_features": self.cfg["model"]["critic"].get("rff_features"), "rff_bandwidth_multiple": self.cfg["model"]["critic"].get("rff_bandwidth_multiple"),
-                        "kernel_cs_bandwidth_multiple": self.cfg["objective"].get("kernel_cs_bandwidth_multiple"), "kernel_cs_chunk": self.cfg["objective"].get("kernel_cs_chunk")},
+                        "kernel_cs_bandwidth_multiple": self.cfg["objective"].get("kernel_cs_bandwidth_multiple"), "kernel_cs_chunk": self.cfg["objective"].get("kernel_cs_chunk"),
+                        "p95_residual_lambda": self.cfg["model"]["critic"].get("residual_lambda"),
+                        "p95_observation_noise_tau": self.cfg["model"]["critic"].get("observation_noise_tau"),
+                        "p95_refresh_every_epochs": self.cfg["model"]["critic"].get("refresh_every_epochs"),
+                        "p95_refresh_batches": self.cfg["model"]["critic"].get("refresh_batches"), "objective_loss": self.cfg["objective"]["loss"]},
             "cosine_bias_calibration": getattr(self, "calibration", None),
             "bandwidth_calibration": self.bandwidth_calibration, "kernel_sigma": self.kernel_sigma,
             "dataset": self.cfg["data"]["name"], "n_classes": int(self.n_classes),
@@ -344,6 +348,76 @@ class Trainer:
         rec = {"n_images": int(len(uids)), "uid_first": int(uids[0]), "uid_last": int(uids[-1]), "rng_seed": self.seed + 424242, "pair_rng_seed": self.seed + 4242,
                "bn_mode": "train (buffers restored afterwards)", "mean_s_pos": mp, "mean_s_neg": mn, "mu": mu, "a0": a0, "b0": float(crit.bias)}
         atomic_write_json(self.run_dir / "cosine_bias_calibration.json", rec)
+        return rec
+
+    @torch.no_grad()
+    def _refresh_scores(self, epoch: int) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
+        """Cosine similarities of positive pairs and K cyclic-shift negatives on ``refresh_batches`` x B FIT images (two views drawn
+        from the training augmentation with dedicated RNG streams; encoder / projector in eval(), so BN buffers are neither used from the
+        batch nor updated).  Training RNG streams (global, loader, pairing) are untouched (fork_rng + own generators)."""
+        from reference.ssl_core import cyclic_negative_indices  # noqa: PLC0415
+        from .data.datasets import TwoViewNoLabelEvalDataset, make_eval_loader  # noqa: PLC0415
+        nb = int(self.cfg["model"]["critic"].get("refresh_batches", 16))
+        k = int(self.cfg["pairing"]["k"])
+        seed = self.seed * 1000 + 616161 + epoch
+        perm = torch.randperm(len(self.fit_uids), generator=torch.Generator().manual_seed(seed))
+        uids = self.fit_uids[perm[: nb * self.batch].numpy()]
+        loader = make_eval_loader(TwoViewNoLabelEvalDataset(self.data.data, uids, self.two_view), batch_size=self.batch, num_workers=0,
+                                  generator=torch.Generator().manual_seed(seed + 1), pin_memory=False)
+        pg = torch.Generator().manual_seed(seed + 2)
+        was = (self.encoder.training, self.projector.training)
+        self.encoder.eval(); self.projector.eval()
+        s_pos, s_neg = [], []
+        devices = [self.device.index or 0] if self.device.type == "cuda" else []
+        with torch.random.fork_rng(devices=devices):
+            torch.manual_seed(seed + 3)  # augmentation parameters (num_workers=0 draws them from the global stream)
+            for x1, x2, _ in loader:
+                f = forward_features(self.encoder, self.projector, x1.to(self.device), x2.to(self.device), eps=self.cfg["model"]["normalization"]["eps"])
+                z1, z2 = f["z_l2"].chunk(2, dim=0)
+                idx, _ = cyclic_negative_indices(len(z1), k, generator=pg, device=z1.device)
+                s_pos.append((z1 * z2).sum(-1))
+                s_neg.append((z1.unsqueeze(0) * z2[idx]).sum(-1).reshape(-1))
+        self.encoder.train(was[0]); self.projector.train(was[1])
+        rec = {"refresh_seed": seed, "n_images": int(len(uids)), "batches": nb, "K": k, "bn_mode": "eval (running buffers; not updated)"}
+        return torch.cat(s_pos).double(), torch.cat(s_neg).double(), rec
+
+    def refresh_cosine_critic(self, epoch: int) -> dict[str, Any]:
+        """P95 variant 4 (v1 plan §5 / Spec v2 §8.3 caution, tested online): refit (a, b) of the recipe cosine critic to convergence on
+        fixed features (full-batch L-BFGS on −J, strong-Wolfe line search, float64), then continue training.  Only the two critic scalars
+        change; AdamW moments of a, b are kept as they are (disclosed).  Logged to logs/critic_refresh.jsonl."""
+        crit = self.critic
+        if crit is None or not (hasattr(crit, "scale") and hasattr(crit, "bias")):
+            raise ConfigError("critic refresh needs the cosine critic")
+        t0 = time.perf_counter()
+        sp, sn, rec = self._refresh_scores(epoch)
+        a0, b0 = float(crit.scale.detach()), float(crit.bias.detach())
+
+        def J_of(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
+            tp, tn = torch.tanh(a * sp + b), torch.tanh(a * sn + b)
+            return (tp - 0.5 * tp.square()).mean() + (-tn - 0.5 * tn.square()).mean()
+
+        with torch.enable_grad():
+            a = torch.tensor(a0, dtype=torch.float64, requires_grad=True)
+            b = torch.tensor(b0, dtype=torch.float64, requires_grad=True)
+            opt = torch.optim.LBFGS([a, b], lr=1.0, max_iter=500, tolerance_grad=1e-10, tolerance_change=1e-14, history_size=20, line_search_fn="strong_wolfe")
+
+            def closure():
+                opt.zero_grad()
+                loss = -J_of(a, b)
+                loss.backward()
+                return loss
+            opt.step(closure)
+        with torch.no_grad():
+            J_before, J_after = float(J_of(torch.tensor(a0, dtype=torch.float64), torch.tensor(b0, dtype=torch.float64))), float(J_of(a, b))
+            ok = np.isfinite(J_after) and J_after >= J_before
+            if ok:
+                crit.scale.fill_(float(a)); crit.bias.fill_(float(b))
+        rec.update({"epoch": epoch, "a_before": a0, "b_before": b0, "a_after": float(crit.scale.detach()), "b_after": float(crit.bias.detach()),
+                    "J_before": J_before, "J_after": J_after, "delta_J": J_after - J_before, "applied": bool(ok),
+                    "seconds": time.perf_counter() - t0, "utc": utc_now()})
+        append_jsonl(self.log_dir / "critic_refresh.jsonl", rec)
+        print(f"[{self.run_id}] critic refresh at epoch {epoch}: a {a0:.3f}->{rec['a_after']:.3f}, b {b0:.3f}->{rec['b_after']:.3f}, "
+              f"J {J_before:.5f}->{J_after:.5f} ({rec['seconds']:.1f}s)", flush=True)
         return rec
 
     def save_view_examples(self, n: int = 16) -> None:
@@ -702,6 +776,9 @@ class Trainer:
                 del it
                 self.train_seconds += epoch_timer.elapsed
                 self.completed_epoch = epoch
+                R_ref = int(self.cfg["model"]["critic"].get("refresh_every_epochs", 0))
+                if R_ref > 0 and epoch % R_ref == 0 and epoch < self.epochs:  # P95 critic refresh, before the epoch's checkpoint
+                    self.refresh_cosine_critic(epoch)
                 epoch_stats = {k: sums[k] / counts[k] for k in sums}
                 epoch_stats["epoch_seconds"] = epoch_timer.elapsed
                 epoch_stats["mean_step_seconds"] = float(np.mean(step_times)) if step_times else None

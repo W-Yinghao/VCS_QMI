@@ -33,9 +33,11 @@ _Num = (int, float)
 class _Opt:
     """Optional field: absent in older frozen configs -> filled with ``default`` (so downstream code always sees it)."""
 
-    def __init__(self, types: Any, default: Any) -> None:
+    def __init__(self, types: Any, default: Any, fill: bool = True) -> None:
         self.types = types if isinstance(types, tuple) else (types,)
         self.default = default
+        self.fill = fill  # False (P95 fields): validated when present, never inserted, so the resolved dict / config_hash of every
+        #                   existing config is unchanged (resume and evaluation compare that hash); code reads them with .get(default)
 
 
 SCHEMA: dict[str, Any] = {
@@ -59,7 +61,10 @@ SCHEMA: dict[str, Any] = {
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
                          "feature_source": _Opt(str, "z"), "cosine_scale_init": _Opt((int, float), 1.0),
                          "cosine_scale_fixed": _Opt(bool, False), "cosine_bias_calibrate": _Opt(bool, False),
-                         "rff_features": _Opt(int, 1024), "rff_bandwidth_multiple": _Opt((int, float), 1.0)}},
+                         "rff_features": _Opt(int, 1024), "rff_bandwidth_multiple": _Opt((int, float), 1.0),
+                         # P95 (package v1 improvements inside SSL), not filled when absent:
+                         "residual_lambda": _Opt((int, float), 0.5, fill=False), "observation_noise_tau": _Opt((int, float), 0.0, fill=False),
+                         "refresh_every_epochs": _Opt(int, 0, fill=False), "refresh_batches": _Opt(int, 16, fill=False)}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num,
@@ -103,6 +108,8 @@ def _validate(node: Any, schema: Any, path: str) -> None:
             raise ConfigError(f"{path}: missing field(s) {missing}")
         for k, sub in schema.items():
             if isinstance(sub, _Opt) and k not in node:
+                if not sub.fill:
+                    continue  # P95 optional field absent: left out (hash of older configs unchanged)
                 node[k] = sub.default  # optional field absent (older frozen config): filled with its default
             _validate(node[k], sub.types if isinstance(sub, _Opt) else sub, f"{path}.{k}")
         return
@@ -129,6 +136,40 @@ def _resolve_env(node: Any, path: str, env: dict[str, str]) -> Any:
             return env[name]
         return _ENV_RE.sub(sub, node)
     return node
+
+
+def _p95_policy(cfg: dict[str, Any]) -> None:
+    """P95 named variants (package v1 improvements inside full SSL, owner 2026-09-29).  Each is allowed only on the recipe wiring it
+    was designed for; none changes J (except the js_matched control, which is labelled as a control loss)."""
+    c = cfg["model"]["critic"]
+    loss = cfg["objective"]["loss"]
+    tau = float(c.get("observation_noise_tau", 0.0))
+    R = int(c.get("refresh_every_epochs", 0))
+    lam = c.get("residual_lambda")
+    if c["input"] == "residual_cosine_mlp":
+        if lam is None or not (0.0 < float(lam) < 1.0):
+            raise ConfigError("residual_cosine_mlp needs critic.residual_lambda in (0, 1)")
+    elif lam is not None:
+        raise ConfigError("critic.residual_lambda is only defined for residual_cosine_mlp")
+    if tau < 0:
+        raise ConfigError("critic.observation_noise_tau must be >= 0")
+    if tau > 0 and c["input"] != "cosine":
+        raise ConfigError("observation noise is defined for the recipe cosine critic only")
+    if R < 0 or int(c.get("refresh_batches", 16)) < 1:
+        raise ConfigError("critic.refresh_every_epochs must be >= 0 and refresh_batches >= 1")
+    if R > 0 and (c["input"] != "cosine" or c.get("cosine_scale_fixed", False)):
+        raise ConfigError("critic refresh refits (a, b) of the recipe cosine critic only")
+    if loss == "js_matched_logistic":
+        if c["input"] != "cosine" or tau > 0 or R > 0 or c.get("cosine_scale_fixed", False):
+            raise ConfigError("js_matched_logistic is the control for the plain recipe cosine critic (no noise / refresh)")
+        if cfg["pairing"]["sampler"] != "random_nonzero_cyclic_shift" or cfg["pairing"].get("negative_source", "cyclic") != "cyclic":
+            raise ConfigError("js_matched_logistic uses the recipe's cyclic-shift pairing")
+    p95 = c["input"] in ("residual_cosine_mlp", "dictionary_simplex") or tau > 0 or R > 0 or loss == "js_matched_logistic"
+    if p95:
+        if cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint" or c.get("feature_source", "z") != "z":
+            raise ConfigError("P95 variants use the recipe wiring (shared branch, joint mode, critic on z)")
+        if cfg["model"]["normalization"]["vcs_and_simclr"] != "l2":
+            raise ConfigError("P95 variants read the L2-normalised projector output")
 
 
 def policy_checks(cfg: dict[str, Any]) -> None:
@@ -247,7 +288,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
     loss = cfg["objective"]["loss"]
     expect = {"vcs_qmi": ("negative_J", True), "simclr_matched": ("nt_xent", False),
               "vicreg_matched_128": ("variance_invariance_covariance", False), "cs_kernel_native": ("negative_kernel_cs", False)}[m]
-    if loss != expect[0]:
+    js_matched = m == "vcs_qmi" and loss == "js_matched_logistic"  # P95 control (Server Spec v2 §2.2), same critic / pairing / detach
+    if loss != expect[0] and not js_matched:
         raise ConfigError(f"objective.loss {loss!r} inconsistent with method {m!r}")
     if crit != expect[1] or cv != expect[1]:
         raise ConfigError(f"critic.enabled / critic_validation.enabled must be {expect[1]} for method {m!r}")
@@ -264,7 +306,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
             raise ConfigError("cs_kernel_native must declare objective.target = classical_kernel_CS_QMI (fixed reference measure, not S)")
     if m == "vcs_qmi":
         c = cfg["model"]["critic"]
-        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric", "rff_tanh") or c["activation"] != "relu" \
+        if c["input"] not in ("ordered_concat", "concat_interact", "bilinear_concat", "cosine", "interact_only", "shared_metric", "mono_spline", "diag_metric", "rff_tanh",
+                              "residual_cosine_mlp", "dictionary_simplex") or c["activation"] != "relu" \
                 or c["output"] != "tanh" or c["batchnorm"] or c["dropout"] != 0.0 or c["last_layer_bias"] != 0.0:
             raise ConfigError("critic input must be a named variant (ordered_concat|concat_interact|bilinear_concat|cosine|interact_only|shared_metric|mono_spline|diag_metric|rff_tanh); ReLU, tanh, no BN/dropout")
         if c["input"] == "rff_tanh":
@@ -273,6 +316,7 @@ def policy_checks(cfg: dict[str, Any]) -> None:
                 raise ConfigError("critic.rff_features must be a positive int and critic.rff_bandwidth_multiple > 0")
             if c["feature_source"] != "z":
                 raise ConfigError("rff_tanh reads the projector output z (feature_source 'z')")
+        _p95_policy(cfg)
         hd = c["hidden_dims"]
         if not (isinstance(hd, list) and len(hd) >= 1 and all(isinstance(w, int) and w > 0 for w in hd)):
             raise ConfigError("critic.hidden_dims must be a non-empty list of positive ints (hyper-parameter variant)")

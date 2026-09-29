@@ -200,6 +200,31 @@ def simclr_nt_xent_queue(p1: Tensor, p2: Tensor, queue_feats: Tensor, temperatur
     return F.cross_entropy(logits, torch.zeros(len(x), dtype=torch.long, device=x.device))
 
 
+def js_matched_pair_loss_negdetach(z1: Tensor, z2: Tensor, critic, *, k: int, generator: torch.Generator | None, negative_detach: bool = True):
+    """P95 control (Server Spec v2 §2.2): the balanced logistic (JS) loss on the *same* cosine critic logit f = a⟨z1, z2⟩ + b, the same
+    K cyclic-shift negatives from the same generator draw and the same detach of the shifted partner:
+        L = mean_P softplus(−2f) + mean_Q softplus(2f)        (P and Q averaged separately = 1:1 total weight).
+    Its f-gradient at f = 0 equals that of −J (both ∓1), so the two losses start at the same step size.  The posterior is
+    q = σ(2f) = (1 + tanh f)/2; J and the VCS statistics are computed from T = tanh(f) (detached) for comparison."""
+    if z1.ndim != 2 or z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes")
+    if not (hasattr(critic, "scale") and hasattr(critic, "bias")):
+        raise ValueError("js_matched_logistic needs the cosine critic (scale, bias)")
+    indices, shifts = cyclic_negative_indices(len(z1), k, generator=generator, device=z1.device)
+    f_pos = critic.scale * (z1 * z2).sum(-1) + critic.bias
+    left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
+    partner = z2.detach() if negative_detach else z2
+    right = partner[indices].reshape(-1, z2.shape[1])
+    f_neg = critic.scale * (left * right).sum(-1) + critic.bias
+    loss = F.softplus(-2.0 * f_pos).mean() + F.softplus(2.0 * f_neg).mean()
+    with torch.no_grad():
+        st = vcs_from_scores(torch.tanh(f_pos), torch.tanh(f_neg))
+    st = dict(st)
+    st["loss"] = loss
+    st["js_loss"] = loss.detach()
+    return st, shifts
+
+
 def uses_queue(cfg: dict[str, Any]) -> bool:
     return cfg["pairing"].get("negative_source", "cyclic") == "queue"
 
@@ -251,11 +276,18 @@ def compute_objective(method: str, feats: dict[str, Tensor], *, cfg: dict[str, A
             for k in VCS_STAT_KEYS:
                 stats[k] = float(s[k].detach())
             return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": b, "n_neg": b * (b - 1)}
-        fn = vcs_pair_loss_symmetric if sym else (vcs_pair_loss_negdetach if cfg["pairing"]["negative_detach"] else vcs_pair_loss)
-        s, shifts = fn(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
+        if ocfg["loss"] == "js_matched_logistic":  # P95 control
+            s, shifts = js_matched_pair_loss_negdetach(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator,
+                                                       negative_detach=cfg["pairing"]["negative_detach"])
+            stats["js_loss"] = float(s["js_loss"])
+        else:
+            fn = vcs_pair_loss_symmetric if sym else (vcs_pair_loss_negdetach if cfg["pairing"]["negative_detach"] else vcs_pair_loss)
+            s, shifts = fn(z1, z2, critic, k=cfg["pairing"]["k"], generator=pair_generator)
         loss = s["loss"]
         for k in VCS_STAT_KEYS:
             stats[k] = float(s[k].detach())
+        if hasattr(critic, "pop_stats"):  # P95 critic variants
+            stats.update(critic.pop_stats())
         mult = 2 if sym else 1
         return {"loss": loss, "stats": stats, "shift": int(shifts[0]) if len(shifts) == 1 else [int(v) for v in shifts],
                 "n_pos": b * mult, "n_neg": b * cfg["pairing"]["k"] * mult}
@@ -368,16 +400,24 @@ def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], criti
     vs = feats[key]
     k = cfg["pairing"]["k"]
     nd = cfg["pairing"]["negative_detach"]
+    js = ocfg["loss"] == "js_matched_logistic"  # P95 control: same critic, pairs, shifts and detach; balanced logistic loss
     fn = vcs_pair_loss_negdetach if nd else vcs_pair_loss
     losses, acc, shifts = [], {kk: 0.0 for kk in VCS_STAT_KEYS}, []
     pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
     for a, b_ in pairs:
-        s, sh = fn(vs[a], vs[b_], critic, k=k, generator=pair_generator)
+        if js:
+            s, sh = js_matched_pair_loss_negdetach(vs[a], vs[b_], critic, k=k, generator=pair_generator, negative_detach=nd)
+        else:
+            s, sh = fn(vs[a], vs[b_], critic, k=k, generator=pair_generator)
         losses.append(s["loss"]); shifts.append(int(sh[0]))
         for kk in VCS_STAT_KEYS:
             acc[kk] += float(s[kk].detach()) / len(pairs)
     loss = torch.stack(losses).mean()
     stats = _empty_stats()
     stats.update(acc)
+    if js:
+        stats["js_loss"] = float(loss.detach())
+    if hasattr(critic, "pop_stats"):  # P95 critic variants (call-averaged over the 2 x n_pairs critic calls = E_M)
+        stats.update(critic.pop_stats())
     B = vs[0].shape[0]
     return {"loss": loss, "stats": stats, "shift": shifts, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs)}
