@@ -106,3 +106,10 @@ status: <status>
 2. CIFAR-100 uses the coarse-free fine labels (100 classes) in the probe; the coarse labels are not used anywhere.
 3. `views`, model, optimizer and schedule blocks are byte-identical to the CIFAR-10 recipes (config sha table in `configs/S_LINE_SHA256.json`); the only
    code difference on the training path is the dataset dispatch (`load_train_partition`) and the class count passed to kNN / probe.
+
+## Measured 2× cost and 8× launch (execution addendum, 2026-09-29T14:18:20Z; results-only commit 1f132d4)
+Train seconds per 2× run (200 epochs, 4 views, B 256; several runs were moved A100 → RTX6000PRO/H100 mid-run, so the totals mix devices): SimCLR 4 966–9 583 s,
+VICReg 6 824–8 880 s, VCS 10 678–13 445 s.  Clean RTX6000PRO runs: SimCLR ≈ 25 s / epoch, VCS ≈ 50 s / epoch (the cosine critic's K = 8 negative pairs over the
+six view pairs on 100-class data; data-loader shared).  Projected 8× (800 epochs): SimCLR / VICReg ≈ 6–8 h, VCS ≈ 11–13 h on RTX6000PRO, ≈ 1.6× on H100 —
+all within one 23 h wall.  The nine 8× runs (`slurm/s_units_P91_8x.txt`) are submitted fast-only (`--partition=RTX6000PRO,H100 --exclude=node60`, owner
+2026-09-29).  Values of the 2× table are not read here; the pre-stated reading (a)–(c) is applied once, after the 8× cells.
