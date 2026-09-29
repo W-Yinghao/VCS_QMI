@@ -704,6 +704,121 @@
         "cifar10_hpS_gate_skernel_2v.yaml": "ae3ce016a23197c5ee9841191e8c7218ce47597576fbc6b6165bc127cceaf402",
         "cifar10_hpS_gate_kcs_2v.yaml": "b0158f7c5d6baea81605a0ad44055edff415be0774dfeb140c1e1636a22c2332"
       }
+    },
+    "P87_s_cs": {
+      "generated_utc": "2026-09-29T08:36:37Z",
+      "units": [
+        {
+          "stage": "P87_s_cs",
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed0.yaml",
+          "run_id": "P87_skernel_m4096_bw0.5_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.input": "rff_tanh",
+            "model.critic.rff_features": 4096,
+            "model.critic.rff_bandwidth_multiple": 0.5
+          },
+          "note": "S-CS table A: S-Kernel at 8x (selected on the 1x dev grid)",
+          "sha256": "b3c0b538c4cb5f5f5f7fb2cae97029c6a8b363b7440601ae16b0ce6ddd227aee"
+        },
+        {
+          "stage": "P87_s_cs",
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed1.yaml",
+          "config": "configs/cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed1.yaml",
+          "run_id": "P87_skernel_m4096_bw0.5_views4_800ep_seed1",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.input": "rff_tanh",
+            "model.critic.rff_features": 4096,
+            "model.critic.rff_bandwidth_multiple": 0.5
+          },
+          "note": "S-CS table A: S-Kernel at 8x (selected on the 1x dev grid)",
+          "sha256": "b7fabebd0cf105c9aba3e18b59386940e7c796c30c66a80855eb7a6894949180"
+        },
+        {
+          "stage": "P87_s_cs",
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed2.yaml",
+          "config": "configs/cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed2.yaml",
+          "run_id": "P87_skernel_m4096_bw0.5_views4_800ep_seed2",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "model.critic.input": "rff_tanh",
+            "model.critic.rff_features": 4096,
+            "model.critic.rff_bandwidth_multiple": 0.5
+          },
+          "note": "S-CS table A: S-Kernel at 8x (selected on the 1x dev grid)",
+          "sha256": "b8ff5ec27d713f99609ffec05d895744e119489f2c765be301a3f28ac08792ad"
+        },
+        {
+          "stage": "P87_s_cs",
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed0.yaml",
+          "config": "configs/cifar10_hpS_kcs_bw0.5_views4_800ep_seed0.yaml",
+          "run_id": "P87_kcs_bw0.5_views4_800ep_seed0",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "run.method": "cs_kernel_native",
+            "model.critic.enabled": false,
+            "objective.target": "classical_kernel_CS_QMI",
+            "objective.loss": "negative_kernel_cs",
+            "objective.kernel_cs_bandwidth_multiple": 0.5,
+            "objective.kernel_cs_chunk": 0,
+            "pairing.k": 1,
+            "pairing.negative_detach": false,
+            "evaluation.critic_validation.enabled": false
+          },
+          "note": "S-CS table B: CS-K-native at 8x (selected on the 1x dev grid)",
+          "sha256": "dcd70bc8f28a1d84d57ae7ec4be4e54bf5e23dfd1e743f7337e37e8c34c3c31b"
+        },
+        {
+          "stage": "P87_s_cs",
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed1.yaml",
+          "config": "configs/cifar10_hpS_kcs_bw0.5_views4_800ep_seed1.yaml",
+          "run_id": "P87_kcs_bw0.5_views4_800ep_seed1",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "run.method": "cs_kernel_native",
+            "model.critic.enabled": false,
+            "objective.target": "classical_kernel_CS_QMI",
+            "objective.loss": "negative_kernel_cs",
+            "objective.kernel_cs_bandwidth_multiple": 0.5,
+            "objective.kernel_cs_chunk": 0,
+            "pairing.k": 1,
+            "pairing.negative_detach": false,
+            "evaluation.critic_validation.enabled": false
+          },
+          "note": "S-CS table B: CS-K-native at 8x (selected on the 1x dev grid)",
+          "sha256": "79c2918d66e285cda08894ebddd3a866a1adc48c6765b8d93f575733cbb3877a"
+        },
+        {
+          "stage": "P87_s_cs",
+          "base_config": "cifar10_hpK_a5_views4_800ep_vcs_seed2.yaml",
+          "config": "configs/cifar10_hpS_kcs_bw0.5_views4_800ep_seed2.yaml",
+          "run_id": "P87_kcs_bw0.5_views4_800ep_seed2",
+          "final_ckpt": "epoch_800.pt",
+          "changes": {
+            "run.method": "cs_kernel_native",
+            "model.critic.enabled": false,
+            "objective.target": "classical_kernel_CS_QMI",
+            "objective.loss": "negative_kernel_cs",
+            "objective.kernel_cs_bandwidth_multiple": 0.5,
+            "objective.kernel_cs_chunk": 0,
+            "pairing.k": 1,
+            "pairing.negative_detach": false,
+            "evaluation.critic_validation.enabled": false
+          },
+          "note": "S-CS table B: CS-K-native at 8x (selected on the 1x dev grid)",
+          "sha256": "97fd4d4ce50b079cd9264cca806ed76fdb46d77433a52b71927507fcb689dd4b"
+        }
+      ],
+      "files": {
+        "cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed0.yaml": "b3c0b538c4cb5f5f5f7fb2cae97029c6a8b363b7440601ae16b0ce6ddd227aee",
+        "cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed1.yaml": "b7fabebd0cf105c9aba3e18b59386940e7c796c30c66a80855eb7a6894949180",
+        "cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed2.yaml": "b8ff5ec27d713f99609ffec05d895744e119489f2c765be301a3f28ac08792ad",
+        "cifar10_hpS_kcs_bw0.5_views4_800ep_seed0.yaml": "dcd70bc8f28a1d84d57ae7ec4be4e54bf5e23dfd1e743f7337e37e8c34c3c31b",
+        "cifar10_hpS_kcs_bw0.5_views4_800ep_seed1.yaml": "79c2918d66e285cda08894ebddd3a866a1adc48c6765b8d93f575733cbb3877a",
+        "cifar10_hpS_kcs_bw0.5_views4_800ep_seed2.yaml": "97fd4d4ce50b079cd9264cca806ed76fdb46d77433a52b71927507fcb689dd4b"
+      }
     }
   },
   "cifar100": {
