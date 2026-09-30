@@ -125,3 +125,14 @@ n_positive_pairs: N per cell; n_negative_pairs: 8N (cyclic) | B(B-1) per batch (
 split_manifest_hash: seeded role streams recorded per cell JSON
 status: complete (SMILE rows void; addendum pending)
 ```
+
+## Addendum (2026-09-30) — SMILE rows after the implementation fix (P85 addendum 2; job 1015177; `P86_smile_fix_aggregate.md`)
+The voided SMILE rows (§8) were re-run on all 85 cells with the reference implementation (clipped-DV value, τ = 5; JS training gradient).  All values are
+finite now.  Readings under the same rules (cross-target: resolution and native error on the MI scale only):
+- **In-batch SMILE** behaves like the other in-batch MI estimators: native error 0.03 → 1.41 nats over d_total 2 → 100 (InfoNCE in-batch 0.02 → 1.40,
+  DV in-batch 0.02 → 1.15); 1.85 → 0.09 nats over N 256 → 16 384.  It orders every adjacent staircase level with probability 1.00 on all three settings;
+  resolution |Δmean| / sd on the gaussian staircase 61 / 42 / 14 / 7 — between VCS-N (88 / 57 / 41 / 16) at high I and below in-batch InfoNCE (118 / 114 / 81 / 52).
+- **Single-negative SMILE** is biased upward by several nats (native error 11.1 at I = 4, d = 20, N = 4 096) and loses resolution at the top of the gaussian and
+  xor staircases (P 0.43–0.78) — the known behaviour of a DV partition term with one negative and a τ = 5 clip.
+- Nothing in §§1–7 changes: SMILE carries no posterior and enters no same-target comparison.  The §9 statement on dependence resolution becomes: in-batch
+  InfoNCE resolves adjacent levels most finely; VCS-N, JS and in-batch SMILE are within a factor ≈ 2 of each other.
