@@ -509,8 +509,8 @@ def run_cell(cell: dict, device, smoke: bool = False, methods: str | None = None
                             "rls_lambda": kw.get("lams", RLS_LAM), "eval_block": 128 if smoke else EVAL_BLOCK, "bootstrap_reps": kw.get("reps", BOOT)}},
          "truth": tr, "rows": []}
     T_fns = {}
-    if methods in ("all", "neural", "vcs_kernel"):
-        kinds = ("vcs",) if methods == "vcs_kernel" else None
+    if methods in ("all", "neural", "vcs_kernel", "smile"):
+        kinds = ("vcs",) if methods == "vcs_kernel" else (("smile",) if methods == "smile" else None)
         rows = neural_rows(setting, d_signal, roles, tr, cell, device, lrs, smoke_kinds=kinds, block=128 if smoke else EVAL_BLOCK, reps=kw.get("reps", BOOT))
         for r in rows:
             if r["selected"] and r["negative_construction"] == "product" and r["kind"] in ("vcs", "js"):
@@ -566,7 +566,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--setting", default="gaussian"); ap.add_argument("--d-signal", type=int, default=20); ap.add_argument("--d-total", type=int, default=20)
     ap.add_argument("--I", type=float, default=4.0); ap.add_argument("--N", type=int, default=4096); ap.add_argument("--B", type=int, default=256)
-    ap.add_argument("--updates", type=int, default=2000); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--methods", default="all", choices=("all", "neural", "kernel", "vcs_kernel"))
+    ap.add_argument("--updates", type=int, default=2000); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--methods", default="all", choices=("all", "neural", "kernel", "vcs_kernel", "smile"))
     ap.add_argument("--out", default=None); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--cpu", action="store_true"); ap.add_argument("--truth-table", action="store_true")
     a = ap.parse_args(argv)
     if a.truth_table:

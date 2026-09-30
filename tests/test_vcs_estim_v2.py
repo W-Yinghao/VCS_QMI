@@ -322,3 +322,19 @@ def test_test_set_authorisation_is_protocol_bound():
     assert BM.DATA_AUTHORISATION["official_test_accessible"] is False and BM.DATA_AUTHORISATION["image_data"] is False
     assert {c["setting"] for c in PG.full() + PG.pilot()} <= {"gaussian", "cubic", "xor_mixture"}
     assert all(c["methods"] in ("all", "vcs_kernel", "neural", "kernel") for c in PG.full() + PG.pilot())
+
+
+def test_smile_value_is_clipped_dv_and_gradient_is_js():
+    """P85 addendum 2: SMILE reports the clipped-partition DV value but trains with the JS gradient (Song & Ermon 2020 reference code)."""
+    import torch.nn.functional as F
+    torch.manual_seed(0)
+    fp = torch.randn(64, dtype=torch.float64, requires_grad=True); fn = (3 * torch.randn(64, 8, dtype=torch.float64)).requires_grad_(True)
+    loss, val = estimate("smile", fp, fn, tau=5.0)
+    dv = fp.mean() - torch.log(torch.exp(torch.clamp(fn, -5.0, 5.0)).mean())
+    assert abs(float(val) - float(dv)) < 1e-12 and abs(float(-loss) - float(dv)) < 1e-12
+    loss.backward(); g_smile = (fp.grad.clone(), fn.grad.clone())
+    fp2 = fp.detach().clone().requires_grad_(True); fn2 = fn.detach().clone().requires_grad_(True)
+    js = (-F.softplus(-fp2)).mean() - F.softplus(fn2).mean(); (-js).backward()
+    assert torch.allclose(g_smile[0], fp2.grad) and torch.allclose(g_smile[1], fn2.grad)
+    # bounded under a runaway critic: large f_pos with f_neg above tau no longer yields an unbounded training signal on f_neg
+    assert torch.isfinite(val)

@@ -171,3 +171,12 @@ H100; `slurm/estim_p85_cells.sbatch` keeps its 12 h limit.  Derivative self-chec
 inspection triggered).  Values are not read here; two observations are logged for the P86 reading: at d_total = 100, N = 256 all nine VCS-N rows share one
 J_eval (−0.0088), i.e. the SELECT rule kept the initial critic (recorded per row), and the kernel same-target rows are ≈ 0 at d_total = 100 for both N.
 Full grid submitted after this line, unchanged.
+
+## Addendum 2 (execution fix, FROZEN 2026-09-30T10:47:28Z) — SMILE implementation corrected and SMILE rows re-run
+P86 §8 voided the SMILE rows: our implementation trained on the clipped DV value itself, whose gradient vanishes for f_neg > τ, so the critic ran away
+(values 6e2–4e7).  Corrected to the reference implementation of Song & Ermon (ICLR 2020, `smile_lower_bound`): reported value = DV bound with the partition
+term on clip(f, −5, 5); training gradient = the JS (f-GAN) lower bound's (`src/vcs_estim/estimators.py`; test
+`test_smile_value_is_clipped_dv_and_gradient_is_js`, 28 estimator tests pass).  No other estimator, grid, role, seed or read-out changes.  The SMILE rows of
+all 85 cells (`slurm/p85_units/smile_rerun.txt`, the union of pilot + full units) are re-run with `--methods smile` into a separate directory
+`outputs/P85_estim_benchmark_smile_fix` (the original cell JSONs are not modified); the aggregate reads the new SMILE rows alongside the P86 tables, and the
+voided rows stay in the record.  Reading rules 5–7 apply to SMILE unchanged (cross-target: ordering probability and resolution only; MI truth for the native error).

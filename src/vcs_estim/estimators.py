@@ -71,9 +71,14 @@ def estimate(kind: str, f_pos: torch.Tensor, f_neg: torch.Tensor, *, ema: EMA | 
             loss = -val
         return loss, val
     if kind == "smile":
+        # SMILE (Song & Ermon, ICLR 2020, reference code `smile_lower_bound`): the *reported* value is the DV bound with the partition term
+        # computed on clipped scores, clip(f, -tau, tau); the *training* gradient is the JS (f-GAN) lower bound's.  The earlier version trained on the
+        # clipped DV itself, whose gradient is zero for f_neg > tau, so f grew without bound (P86 §8: values 6e2-4e7).  Fixed 2026-09-30 (P85 addendum 2).
         eq = torch.exp(torch.clamp(f_neg, -tau, tau)).mean()
-        val = f_pos.mean() - torch.log(eq)
-        return -val, val
+        dv = f_pos.mean() - torch.log(eq)
+        js = (-F.softplus(-f_pos)).mean() - F.softplus(f_neg).mean()
+        val = js + (dv - js).detach()                 # value = clipped DV, gradient = JS
+        return -val, dv
     raise ValueError(kind)
 
 
