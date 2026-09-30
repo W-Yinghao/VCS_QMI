@@ -162,6 +162,14 @@ class NegativeQueue:
         r = torch.rand(n_anchor, self.count, generator=generator)  # CPU generator (dedicated pairing stream)
         return r.argsort(dim=1)[:, :k].T.contiguous().to(self.buffer.device)
 
+    def sample_indices_fast(self, n_anchor: int, k: int, generator: torch.Generator | None) -> Tensor:
+        """P100: [K, n_anchor] indices into `features()` drawn uniformly *with* replacement (dedicated CPU pair generator).  The
+        without-replacement sampler above costs an argsort of n_anchor x Q per call (6 view pairs per step at Q = 4096); with replacement a
+        duplicate partner occurs for ~K(K-1)/(2Q) = 0.7 % of anchors at K = 8, Q = 4096 (disclosed)."""
+        if not self.ready(k):
+            raise ValueError("queue holds fewer entries than K")
+        return torch.randint(0, self.count, (k, n_anchor), generator=generator).to(self.buffer.device)
+
     def state_dict(self) -> dict[str, Any]:
         return {"buffer": self.buffer.detach().cpu().clone(), "ptr": self.ptr, "count": self.count, "size": self.size, "dim": self.dim}
 
@@ -198,6 +206,33 @@ def simclr_nt_xent_queue(p1: Tensor, p2: Tensor, queue_feats: Tensor, temperatur
     l_neg = x @ q.T
     logits = torch.cat((l_pos, l_neg), dim=1) / temperature
     return F.cross_entropy(logits, torch.zeros(len(x), dtype=torch.long, device=x.device))
+
+
+def simclr_nt_xent_plus_queue(p1: Tensor, p2: Tensor, queue_feats: Tensor, temperature: float) -> Tensor:
+    """P100: the reference NT-Xent (2B anchors, self masked, the other 2B-2 in-batch samples as negatives) with the Q momentum keys of the
+    queue appended as *additional* negatives (no gradient through the queue).  With an empty queue this equals `simclr_nt_xent`."""
+    if p1.ndim != 2 or p1.shape != p2.shape or len(p1) < 2 or queue_feats.ndim != 2 or queue_feats.shape[1] != p1.shape[1]:
+        raise ValueError("require matching [B,D] views and a [Q,D] queue")
+    x = F.normalize(torch.cat((p1, p2), dim=0).float(), dim=-1, eps=1e-8)
+    q = F.normalize(queue_feats.detach().float(), dim=-1, eps=1e-8)
+    n, b = len(x), len(p1)
+    inb = (x @ x.T).masked_fill(torch.eye(n, dtype=torch.bool, device=x.device), -torch.inf)
+    logits = torch.cat((inb, x @ q.T), dim=1) / temperature
+    targets = (torch.arange(n, device=x.device) + b) % n
+    return F.cross_entropy(logits, targets)
+
+
+def vcs_pair_loss_momentum_queue(z1: Tensor, z2: Tensor, critic, *, k: int, queue: "NegativeQueue", generator: torch.Generator | None):
+    """P100: positives (z1[i], z2[i]) as in the recipe; the K partners of anchor z1[i] in the product term are momentum keys of *previous*
+    steps drawn from the queue (other images; no gradient by construction = the recipe's negative-detach rule).  Same separate averaging."""
+    if z1.ndim != 2 or z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes")
+    q = queue.features()
+    idx = queue.sample_indices_fast(len(z1), k, generator)
+    t_pos = critic(z1, z2)
+    left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
+    t_neg = critic(left, q[idx].reshape(-1, q.shape[1]))
+    return vcs_from_scores(t_pos, t_neg)
 
 
 def js_matched_pair_loss_negdetach(z1: Tensor, z2: Tensor, critic, *, k: int, generator: torch.Generator | None, negative_detach: bool = True):
@@ -368,11 +403,13 @@ def forward_features_views(encoder, projector, views: list[Tensor], eps: float) 
 
 
 def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None,
-                            kernel_sigma: float | None = None) -> dict[str, Any]:
+                            kernel_sigma: float | None = None, queue: "NegativeQueue | None" = None) -> dict[str, Any]:
     """Named variant (views.count = 4): the same J averaged over all view pairs (a < b) of the same images; each pair draws its own shifts.
     Q still comes from different UIDs (cyclic shifts). Not a new loss: more Monte-Carlo coverage of the same P and Q."""
     method = cfg["run"]["method"]
     ocfg = cfg["objective"]
+    if queue is not None:
+        return _views_momentum_queue(feats, cfg=cfg, critic=critic, pair_generator=pair_generator, queue=queue)
     if method == "cs_kernel_native":
         vs = feats["views_z"]
         return _kernel_cs_objective([(vs[a], vs[b_]) for a in range(len(vs)) for b_ in range(a + 1, len(vs))], cfg=cfg, kernel_sigma=kernel_sigma)
@@ -421,3 +458,41 @@ def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], criti
         stats.update(critic.pop_stats())
     B = vs[0].shape[0]
     return {"loss": loss, "stats": stats, "shift": shifts, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs)}
+
+
+def _views_momentum_queue(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None, queue: "NegativeQueue") -> dict[str, Any]:
+    """P100 (named variant; views.count = 2 or 4): the recipe's loss averaged over all view pairs (a < b) with negatives from the
+    momentum-key queue.  VCS: K = 8 queue keys replace the K cyclic-shift partners (same J, same critic).  SimCLR: the queue keys are
+    appended to the in-batch negatives (temperature unchanged).  While the queue holds fewer than K keys (first step) the recipe's own
+    loss is used and stats['queue_fallback'] = 1.0."""
+    method = cfg["run"]["method"]
+    k = int(cfg["pairing"]["k"])
+    stats = _empty_stats()
+    stats["queue_fill"] = float(queue.filled)
+    if not queue.ready(k):
+        out = compute_objective_views(feats, cfg=cfg, critic=critic, pair_generator=pair_generator, queue=None)
+        out["stats"]["queue_fill"] = float(queue.filled); out["stats"]["queue_fallback"] = 1.0
+        return out
+    stats["queue_fallback"] = 0.0
+    if method == "simclr_matched":
+        vs = feats["views_z"]
+        pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
+        qf = queue.features()
+        loss = torch.stack([simclr_nt_xent_plus_queue(vs[a], vs[b_], qf, temperature=cfg["objective"]["simclr_temperature"]) for a, b_ in pairs]).mean()
+        stats["nt_xent"] = float(loss.detach())
+        B = vs[0].shape[0]
+        return {"loss": loss, "stats": stats, "shift": None, "n_pos": 2 * B * len(pairs), "n_neg": 2 * B * (2 * B - 2 + queue.filled) * len(pairs)}
+    if method != "vcs_qmi":
+        raise ValueError(f"momentum-queue negatives are not defined for {method!r}")
+    key = {"z_l2": "views_z", "p_raw": "views_p", "h_l2": "views_h"}[critic_input_key(cfg)]
+    vs = feats[key]
+    pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
+    losses, acc = [], {kk: 0.0 for kk in VCS_STAT_KEYS}
+    for a, b_ in pairs:
+        s = vcs_pair_loss_momentum_queue(vs[a], vs[b_], critic, k=k, queue=queue, generator=pair_generator)
+        losses.append(s["loss"])
+        for kk in VCS_STAT_KEYS:
+            acc[kk] += float(s[kk].detach()) / len(pairs)
+    stats.update(acc)
+    B = vs[0].shape[0]
+    return {"loss": torch.stack(losses).mean(), "stats": stats, "shift": None, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs)}

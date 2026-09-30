@@ -71,7 +71,9 @@ SCHEMA: dict[str, Any] = {
                   "kernel_cs_bandwidth_multiple": _Opt((int, float), 1.0), "kernel_cs_chunk": _Opt(int, 0)},
     "pairing": {"sampler": str, "k": int, "unique_shifts": bool, "allow_self": bool, "label_filter": bool, "queue": bool,
                 "negative_detach": bool, "rng": str, "rng_seed_offset": int,
-                "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096)},
+                "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096),
+                # P100 (momentum-encoder key queue), not filled when absent so older configs keep their resolved dict / config_hash:
+                "momentum_encoder": _Opt(bool, False, fill=False), "momentum_m": _Opt((int, float), 0.99, fill=False)},
     "train": {"mode": str, "target_branch": _Opt(str, "shared"), "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
               "replacement": bool, "world_size": int, "grad_accumulation_steps": int, "precision": str, "allow_tf32": bool,
               "compile": bool, "num_workers": int, "pin_memory": bool, "persistent_workers": bool,
@@ -213,8 +215,20 @@ def policy_checks(cfg: dict[str, Any]) -> None:
             raise ConfigError("queue negatives require the default sampler (no symmetric / all-pairs combination)")
         if not isinstance(p["queue_size"], int) or p["queue_size"] < max(2, p["k"]):
             raise ConfigError("pairing.queue_size must be an int >= max(2, K)")
-        if cfg["views"]["count"] != 2 or cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint":
-            raise ConfigError("queue negatives are implemented for 2 views, the shared branch and a single joint step only")
+        mom = bool(p.get("momentum_encoder", False))
+        if (cfg["views"]["count"] != 2 and not mom) or cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint":
+            raise ConfigError("queue negatives are implemented for 2 views (4 views with the P100 momentum encoder), the shared branch and a single joint step only")
+    if p.get("momentum_encoder", False):
+        # P100: momentum (EMA) copy of encoder + projector produces the queue keys; the objective is unchanged
+        if ns != "queue":
+            raise ConfigError("pairing.momentum_encoder requires pairing.negative_source == 'queue'")
+        mm = p.get("momentum_m", 0.99)
+        if not (isinstance(mm, (int, float)) and 0.0 < float(mm) < 1.0):
+            raise ConfigError("pairing.momentum_m must be in (0, 1)")
+        if cfg["views"]["count"] != 4:
+            raise ConfigError("the momentum-encoder queue is implemented for the 4-view recipe (views.count = 4) only")
+    elif "momentum_m" in p:
+        raise ConfigError("pairing.momentum_m is only meaningful with pairing.momentum_encoder: true")
     if p["negative_detach"] and m != "vcs_qmi":
         raise ConfigError("negative_detach is a VCS-only named variant")
     if m == "vcs_qmi" and cfg["model"]["critic"]["cosine_scale_init"] <= 0:

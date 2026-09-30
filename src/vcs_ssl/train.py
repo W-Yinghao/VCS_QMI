@@ -6,6 +6,8 @@ contract, schedule, logging, checkpoints, failure artifacts and the in-training 
 """
 from __future__ import annotations
 
+import copy
+
 import argparse
 import os
 import shutil
@@ -180,6 +182,17 @@ class Trainer:
             self.queue_key = critic_input_key(self.cfg) if self.method == "vcs_qmi" else "z_l2"
             qdim = critic_feature_dim(self.cfg) if self.method == "vcs_qmi" else int(self.cfg["model"]["projector"]["output_dim"])
             self.neg_queue = NegativeQueue(int(self.cfg["pairing"]["queue_size"]), qdim, device=self.device)
+        # P100: momentum (EMA) copy of encoder + projector that produces the queue keys (not optimised, no gradient).  Its BatchNorm runs
+        # in train mode with its *own* running buffers (MoCo convention; single GPU, so no shuffle-BN); its parameters follow
+        # theta_k <- m * theta_k + (1 - m) * theta_q after every optimiser step.  Keys = the critic-input features of view 0 (one key per image).
+        self.momentum = bool(self.cfg["pairing"].get("momentum_encoder", False))
+        self.key_model: dict[str, Any] | None = None
+        if self.momentum:
+            self.momentum_m = float(self.cfg["pairing"].get("momentum_m", 0.99))
+            self.key_model = {"encoder": copy.deepcopy(self.encoder), "projector": copy.deepcopy(self.projector)}
+            for mod in self.key_model.values():
+                for prm in mod.parameters():
+                    prm.requires_grad_(False)
 
         self.loader = make_ssl_loader(self.dataset, batch_size=self.batch, num_workers=self.cfg["train"]["num_workers"],
                                       pin_memory=self.cfg["train"]["pin_memory"] and self.device.type == "cuda",
@@ -198,9 +211,13 @@ class Trainer:
             "config_hash": self.cfg["_meta"]["config_hash"], "config_file_sha256": self.cfg["_meta"]["config_file_sha256"],
             "split_hash": self.manifest["manifest_sha256"], "physical_batch_images": self.batch, "views_per_image": 2,
             "K": int(self.cfg["pairing"]["k"]) if self.method == "vcs_qmi" else None,
-            "pair_sampling": (f"queue{self.cfg['pairing']['queue_size']}_detached" if uses_queue(self.cfg) else self.cfg["pairing"]["sampler"]) if self.method == "vcs_qmi" else
-            (("MoCo-style queue negatives (NT-Xent, no momentum encoder)" if uses_queue(self.cfg) else "2B-2 in-batch negatives (NT-Xent)") if self.method == "simclr_matched" else ("kernel CS plug-in on all B x B cross pairs of the batch (native; no negative branch)" if self.method == "cs_kernel_native" else "none (VICReg)")),
-            "negative_source": self.cfg["pairing"].get("negative_source", "cyclic"), "queue_size": int(self.cfg["pairing"]["queue_size"]) if uses_queue(self.cfg) else None,
+            "pair_sampling": ((f"momentum_key_queue{self.cfg['pairing']['queue_size']}" if self.momentum else f"queue{self.cfg['pairing']['queue_size']}_detached") if uses_queue(self.cfg) else self.cfg["pairing"]["sampler"]) if self.method == "vcs_qmi" else
+            ((("2B-2 in-batch + momentum-key queue negatives (NT-Xent)" if self.momentum else "MoCo-style queue negatives (NT-Xent, no momentum encoder)") if uses_queue(self.cfg) else "2B-2 in-batch negatives (NT-Xent)") if self.method == "simclr_matched" else ("kernel CS plug-in on all B x B cross pairs of the batch (native; no negative branch)" if self.method == "cs_kernel_native" else "none (VICReg)")),
+            "negative_source": self.cfg["pairing"].get("negative_source", "cyclic"),
+            **({"momentum_queue": {"m": self.momentum_m, "queue_size": int(self.cfg["pairing"]["queue_size"]), "keys": "view 0 of each image, critic-input space",
+                                    "key_bn": "momentum encoder in train mode with its own BN buffers (single GPU, no shuffle-BN)",
+                                    "vcs_negatives": "K keys per anchor from the queue, uniform with replacement (dedicated CPU pair generator)",
+                                    "simclr_negatives": "2B-2 in-batch + all queue keys (additional)"}} if self.momentum else {}), "queue_size": int(self.cfg["pairing"]["queue_size"]) if uses_queue(self.cfg) else None,
             "world_size": 1, "encoder_dim": int(self.cfg["model"]["h_dim"]), "projector_dim": int(self.cfg["model"]["projector"]["output_dim"]),
             "critic_params": self.param_counts["critic"] or None, "critic_impl": self.critic_impl, "encoder_params": self.param_counts["encoder"],
             "hparams": {"K": int(self.cfg["pairing"]["k"]), "critic_hidden_dims": list(self.cfg["model"]["critic"]["hidden_dims"]),
@@ -501,6 +518,8 @@ class Trainer:
             "init_hashes": self.init_hashes, "smoke": self.smoke, "saved_utc": utc_now(), "torch_version": torch.__version__,
             "neg_queue_state": None if self.neg_queue is None else self.neg_queue.state_dict(), "queue_fallback_steps": self.queue_fallback_steps,
             "kernel_sigma": self.kernel_sigma, "bandwidth_calibration": self.bandwidth_calibration,
+            **({"momentum_key_encoder_state": self.key_model["encoder"].state_dict(), "momentum_key_projector_state": self.key_model["projector"].state_dict(),
+                "momentum_m": self.momentum_m} if self.key_model is not None else {}),
         }
 
     def save_checkpoint(self, path: Path) -> None:
@@ -530,6 +549,11 @@ class Trainer:
                 raise ConfigError("resume refused: checkpoint has no negative-queue state but the config uses queue negatives")
             self.neg_queue.load_state_dict(ck["neg_queue_state"])
             self.queue_fallback_steps = int(ck.get("queue_fallback_steps", 0))
+        if self.key_model is not None:
+            if ck.get("momentum_key_encoder_state") is None:
+                raise ConfigError("resume refused: checkpoint has no momentum-encoder state but the config uses the momentum queue")
+            self.key_model["encoder"].load_state_dict(ck["momentum_key_encoder_state"])
+            self.key_model["projector"].load_state_dict(ck["momentum_key_projector_state"])
         if self.method == "cs_kernel_native":
             cs = ck.get("kernel_sigma")
             if cs is None or self.kernel_sigma is None or abs(float(cs) - self.kernel_sigma) > 1e-6 * max(1.0, abs(self.kernel_sigma)):
@@ -656,8 +680,12 @@ class Trainer:
                 cobj["loss"].backward()
                 self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
+        keys = None
+        if multi and self.key_model is not None:
+            keys = self.momentum_keys(views[0])
         if multi:
-            obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, kernel_sigma=self.kernel_sigma)
+            obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, kernel_sigma=self.kernel_sigma,
+                                          **({"queue": self.neg_queue} if self.key_model is not None else {}))
         else:
             obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, queue=self.neg_queue,
                                      kernel_sigma=self.kernel_sigma) if self.target_branch == "shared"
@@ -675,7 +703,9 @@ class Trainer:
         if self.neg_queue is not None:  # queue update after the step: both views' detached features of this batch
             if obj["stats"].get("queue_fallback") == 1.0:
                 self.queue_fallback_steps += 1
-            self.neg_queue.enqueue(feats[self.queue_key].detach())
+            self.neg_queue.enqueue(keys if keys is not None else feats[self.queue_key].detach())
+        if self.key_model is not None:
+            self.momentum_update()
         if self.teacher is not None:
             ema_update(self.teacher, self.encoder, self.projector)
         cos_extra = ({"cos_scale": float(self.critic.scale.detach()), "cos_bias": float(self.critic.bias.detach())}
@@ -683,6 +713,23 @@ class Trainer:
         out = {"loss": float(loss.detach()), **obj["stats"], **cos_extra, "shift": obj["shift"], "n_pos": obj["n_pos"], "n_neg": obj["n_neg"],
                "lr_factor": factor, **{f"lr_{k}": v for k, v in lrs.items()}, **gn}
         return out
+
+    @torch.no_grad()
+    def momentum_keys(self, x: torch.Tensor) -> torch.Tensor:
+        """P100: queue keys of this batch from the momentum encoder (train-mode BN with its own buffers), in the critic-input space."""
+        enc, proj = self.key_model["encoder"], self.key_model["projector"]
+        enc.train(); proj.train()
+        eps = self.cfg["model"]["normalization"]["eps"]
+        h = enc(x); p = proj(h)
+        key = self.queue_key
+        return {"z_l2": torch.nn.functional.normalize(p, dim=1, eps=eps), "p_raw": p, "h_l2": torch.nn.functional.normalize(h, dim=1, eps=eps)}[key].detach()
+
+    @torch.no_grad()
+    def momentum_update(self) -> None:
+        m = self.momentum_m
+        for k_mod, q_mod in ((self.key_model["encoder"], self.encoder), (self.key_model["projector"], self.projector)):
+            for kp, qp in zip(k_mod.parameters(), q_mod.parameters()):
+                kp.mul_(m).add_(qp.detach(), alpha=1.0 - m)
 
     def first_step_gradient_check(self, gn: dict[str, Any]) -> None:
         """Spec §7.2: every module has a nonzero finite gradient on the first real step; parameters then change."""
