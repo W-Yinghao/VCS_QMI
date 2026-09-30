@@ -1,0 +1,6 @@
+# P97 16x controls (2-link chains, fast GPUs) and P99 S2b continuation (3 seeds)
+PARTITION=RTX6000PRO,H100 slurm/submit_chain.sh P97_simclr_views4_1600ep_seed0 configs/cifar10_hpW_simclr_views4_1600ep_seed0.yaml epoch_1600.pt 2 | cut -d" " -f1
+PARTITION=RTX6000PRO,H100 slurm/submit_chain.sh P97_vicreg_views4_1600ep_seed0 configs/cifar10_hpW_vicreg_views4_1600ep_seed0.yaml epoch_1600.pt 2 | cut -d" " -f1
+sbatch --parsable --partition=H100,RTX6000PRO --exclude=node60 --job-name=s2b_solo_vcs_1000ep_seed0 --export=ALL,SEED=0 slurm/s2b_solo_unit.sbatch
+sbatch --parsable --partition=H100,RTX6000PRO --exclude=node60 --job-name=s2b_solo_vcs_1000ep_seed1 --export=ALL,SEED=1 slurm/s2b_solo_unit.sbatch
+sbatch --parsable --partition=H100,RTX6000PRO --exclude=node60 --job-name=s2b_solo_vcs_1000ep_seed2 --export=ALL,SEED=2 slurm/s2b_solo_unit.sbatch
