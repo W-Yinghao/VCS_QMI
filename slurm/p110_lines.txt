@@ -1,0 +1,6 @@
+# P110 (package v4 V1 / V2 / V3) launch lines — FROZEN — submitted by the orchestrator after all p104_/p107_/p108_/p109_ jobs have left the queue.  Owner 2026-10-01: submit after the currently submitted P104 / P107 / P108 / P109 jobs finish.
+# Main session: freeze the prereg, then register with the orchestrator (condition: no p104_ / p107_ / p108_ / p109_ job left in squeue).  Normal QOS only; 3 GPU bundle jobs.
+# RUNS / MODULES / OUT pass through the environment (--export=ALL; run lists contain commas).  Aggregate afterwards: scripts/p110_aggregate.py --in reports/P110 --out reports/P110_v_results
+RUNS='P35_vcs_a5_views4_800ep_seed0,P41_simclr_views4_800ep_seed0,P104_G2_views4_800ep_seed0,P104_U2_views4_800ep_seed0' MODULES='v1,v2,v3' OUT=reports/P110 sbatch --parsable --job-name=p110_v_seed0 --export=ALL slurm/p110_unit.sbatch
+RUNS='P35_vcs_a5_views4_800ep_seed1,P41_simclr_views4_800ep_seed1,P104_G2_views4_800ep_seed1,P104_U2_views4_800ep_seed1' MODULES='v1,v2,v3' OUT=reports/P110 sbatch --parsable --job-name=p110_v_seed1 --export=ALL slurm/p110_unit.sbatch
+RUNS='P35_vcs_a5_views4_800ep_seed2,P41_simclr_views4_800ep_seed2,P104_G2_views4_800ep_seed2,P104_U2_views4_800ep_seed2' MODULES='v1,v2,v3' OUT=reports/P110 sbatch --parsable --job-name=p110_v_seed2 --export=ALL slurm/p110_unit.sbatch
