@@ -15,7 +15,7 @@ Results-only commit: `e1376b9`, files `P105_t1_ablation_*.json`. The rule script
 | d3 = vcs3 − js3 (each with its exact linear solution available) | **7** | 2 | 0 | +0.081 |
 | dc = vcs3 − vcs2 (what the closed form adds to VCS) | — | — | — | **+0.187** |
 | replication: vcs3 − js2 (the T1 comparison) | 9 | 0 | 0 | +0.119 |
-| forced: vcs_closed − js_exact (exact linear solution, both objectives) | 0 | 7 | **2** | **−0.040** |
+| forced: vcs_closed − js_exact (exact linear solution, both objectives) | 0 | 6 | **3** | **−0.040** |
 | forced: vcs_lin − js_lin | | | | +0.032 |
 | forced: vcs_mlp − js_mlp | | | | −0.070 |
 
