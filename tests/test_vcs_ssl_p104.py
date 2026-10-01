@@ -344,7 +344,8 @@ def test_generated_configs_hashes_and_routing(tmp_path):
         pytest.skip("configs not generated")
     m = json.loads(man.read_text())
     want = {"G1": "FixedCosineCritic", "G2": "FixedCosineCritic", "G3": "FixedCosineCritic", "U2": "FixedCosineCritic",
-            "G4": "CosineCritic", "U1": "CosineCritic", "N1": "NoisyCosineCritic", "N2": "NoisyCosineCritic"}
+            "G4": "CosineCritic", "U1": "CosineCritic", "N1": "NoisyCosineCritic", "N2": "NoisyCosineCritic",
+            "G2F": "CosineCritic", "U2F": "CosineCritic"}  # P104 addenda 1 / 3: same-initialisation learned controls
     for f, rec in m["configs"].items():
         p = REPO / "configs" / f
         assert hashlib.sha256(p.read_bytes()).hexdigest() == rec["sha256"]
