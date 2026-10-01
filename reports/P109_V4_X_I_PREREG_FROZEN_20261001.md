@@ -1,6 +1,6 @@
 # Pre-registration — P109: package v4 modules X1 (training score vs independent measurement), I1 (paired conditional nuisance audit), I2 (nested-critic / exact-product pilot), 2026-10-01 — FROZEN 2026-10-01T18:35:27Z before the measurement jobs (CPU gate 1017246, CPU timing 1017271)
 
-Status: DRAFT (P109 fork). The main session freezes it, renaming it to `*_FROZEN_*`, before any of the jobs below run.
+Status: FROZEN (main session, see the title time); owner 2026-10-01 shared the v4 package; standing go "除了imagenet的先不提交，后续都可以提交".
 Source: `VCS_Next_Experiments_v4_Package.zip` → `VCS_Next_Experiment_Plan_v4_CN.md` §X, §I, §4–5; owner's standing go "除了imagenet的先不提交，后续都可以提交".
 No SSL pretraining. Only the official TRAIN file is used: the selection split and FIT images of the frozen 45k/5k split. The official test set stays closed.
 
