@@ -49,6 +49,9 @@ def apply(c: dict, uid: str) -> dict:
         fixed(1.0, 0.0); pair["negative_detach"] = False
     elif uid == "G2F":  # §4.1 same-initialisation control for G2: a, b start at (2, -1) and are learned
         crit["affine_mode"] = "learned"; crit["cosine_scale_init"] = 2.0; crit["cosine_bias_init"] = -1.0
+    elif uid == "U2F":  # §4.1 same-initialisation control for U2: a, b start at (1, 0) and are learned; all-view-token pairs as U2
+        crit["affine_mode"] = "learned"; crit["cosine_scale_init"] = 1.0; crit["cosine_bias_init"] = 0.0
+        pair["pair_scope"] = "all_view_tokens"; pair["all_view_chunk"] = 256
     elif uid == "G4":
         learned(); pair["negative_detach"] = False
     elif uid == "U1":
