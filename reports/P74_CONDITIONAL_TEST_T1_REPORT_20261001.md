@@ -84,7 +84,7 @@ What the table shows:
   Code is commit `6e709ba` plus the uncommitted P95/P100-era working tree; the T1 runner itself is unchanged since the P73 freeze.
 
 ## 6. Scope and caveats
-- **One caveat on attribution.** The VCS permutation test chooses on VAL among three critic classes. One of them, the closed-form linear critic, has no JS counterpart, and it is picked in about 75–80 % of repeats.
+- **One caveat on attribution.** The VCS permutation test chooses on VAL among three critic classes. One of them, the closed-form linear critic, has no JS counterpart, and it is picked in 73–82 % of repeats.
   The JS control uses linear and MLP classes with the same fitter. So "VCS beats JS" means the VCS objective together with its closed-form critic beats JS with learned linear or MLP critics.
   This run cannot separate the objective from the closed-form class. A VCS test restricted to linear and MLP critics would be the clean ablation; it is not run and not claimed.
 - **Not claimed (as pre-registered):** continuous or multi-class N; other encoders or datasets; nuisances other than the two planted families; the unconditional test.
