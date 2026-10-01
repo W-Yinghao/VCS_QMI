@@ -47,6 +47,8 @@ def apply(c: dict, uid: str) -> dict:
         fixed(2.0, -1.0)
     elif uid == "G3":
         fixed(1.0, 0.0); pair["negative_detach"] = False
+    elif uid == "G2F":  # §4.1 same-initialisation control for G2: a, b start at (2, -1) and are learned
+        crit["affine_mode"] = "learned"; crit["cosine_scale_init"] = 2.0; crit["cosine_bias_init"] = -1.0
     elif uid == "G4":
         learned(); pair["negative_detach"] = False
     elif uid == "U1":
@@ -75,12 +77,13 @@ def flat(d: dict, pre: str = "") -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--write", action="store_true"); ap.add_argument("--seeds", default="0")
+    ap.add_argument("--uids", default="", help="comma list (confirmation stage); merges into P104_SHA256.json, leaves p104_units.txt untouched")
     a = ap.parse_args()
     rows, shas = [], {}
     for s in [int(x) for x in a.seeds.split(",")]:
         base = yaml.safe_load(open(ROOT / "configs" / BASE.format(s=s)))
         assert base["train"]["epochs"] == 800 and base["views"]["count"] == 4 and base["pairing"]["negative_detach"] is True
-        for uid in ORDER:
+        for uid in (a.uids.split(",") if a.uids else ORDER):
             c = apply(json.loads(json.dumps(base)), uid)
             c["run"]["stage"] = STAGE
             ce = c["logging"]["checkpoint_epochs"]
@@ -97,7 +100,12 @@ def main() -> int:
             print(f"{run_id:34s} {sha[:16]}  " + "; ".join(f"{k}: {v[0]} -> {v[1]}" for k, v in diff.items()))
             if a.write:
                 (ROOT / "configs" / name).write_text(txt)
-    if a.write:
+    if a.write and a.uids:
+        j = json.load(open(ROOT / "configs" / "P104_SHA256.json")); j["configs"].update(shas)
+        j.setdefault("confirmation_generated_utc", []).append(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()))
+        (ROOT / "configs" / "P104_SHA256.json").write_text(json.dumps(j, indent=1))
+        print("merged into configs/P104_SHA256.json")
+    elif a.write:
         (ROOT / "configs" / "P104_SHA256.json").write_text(json.dumps({"stage": STAGE, "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "configs": shas}, indent=1))
         (ROOT / "slurm" / "p104_units.txt").write_text("".join(f"{r} {c} {f}\n" for r, c, f in rows))
         print("wrote configs, configs/P104_SHA256.json, slurm/p104_units.txt")
