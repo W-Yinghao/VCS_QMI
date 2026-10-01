@@ -131,7 +131,14 @@ class Trainer:
         self.failure_reason: str | None = None
         self.collapse_streak = 0
         self.steady_step_times: list[float] = []
+        # P104 (package v3 §9.3): cost counters carried by checkpoints (new key; older checkpoints resume with zeros + a flag)
+        self.cost = {"positive_pairs": 0, "negative_pairs": 0, "critic_pair_evaluations": 0, "encoder_updates": 0, "critic_updates": 0,
+                     "refresh_seconds": 0.0}
         self.git = git_info(repo_root())
+
+    def _p104(self) -> bool:
+        c, p = self.cfg["model"]["critic"], self.cfg["pairing"]
+        return any(k in c for k in ("affine_mode", "cosine_bias_init", "noise_repeats", "noise_eval_repeats")) or any(k in p for k in ("pair_scope", "all_view_chunk"))
 
     # -- paths ---------------------------------------------------------------------------------------------------------
     @property
@@ -244,7 +251,14 @@ class Trainer:
                         "p95_residual_lambda": self.cfg["model"]["critic"].get("residual_lambda"),
                         "p95_observation_noise_tau": self.cfg["model"]["critic"].get("observation_noise_tau"),
                         "p95_refresh_every_epochs": self.cfg["model"]["critic"].get("refresh_every_epochs"),
-                        "p95_refresh_batches": self.cfg["model"]["critic"].get("refresh_batches"), "objective_loss": self.cfg["objective"]["loss"]},
+                        "p95_refresh_batches": self.cfg["model"]["critic"].get("refresh_batches"), "objective_loss": self.cfg["objective"]["loss"],
+                        "p104_affine_mode": self.cfg["model"]["critic"].get("affine_mode"), "p104_cosine_bias_init": self.cfg["model"]["critic"].get("cosine_bias_init"),
+                        "p104_pair_scope": self.cfg["pairing"].get("pair_scope"), "p104_all_view_chunk": self.cfg["pairing"].get("all_view_chunk"),
+                        "p104_noise_repeats": self.cfg["model"]["critic"].get("noise_repeats"),
+                        "p104_noise_eval_repeats": self.cfg["model"]["critic"].get("noise_eval_repeats"),
+                        "trainable_affine": (None if self.critic is None or not hasattr(self.critic, "scale") else
+                                             bool(getattr(self.critic, "trainable_affine", True) and any(p.requires_grad for p in (self.critic.scale, self.critic.bias) if isinstance(p, torch.nn.Parameter)))),
+                        "critic_trainable_params": None if self.critic is None else int(sum(p.numel() for p in self.critic.parameters() if p.requires_grad))},
             "cosine_bias_calibration": getattr(self, "calibration", None),
             "bandwidth_calibration": self.bandwidth_calibration, "kernel_sigma": self.kernel_sigma,
             "dataset": self.cfg["data"]["name"], "n_classes": int(self.n_classes),
@@ -487,6 +501,10 @@ class Trainer:
             "vicreg_variance": None if epoch_stats is None else epoch_stats.get("vicreg_variance"),
             "vicreg_covariance": None if epoch_stats is None else epoch_stats.get("vicreg_covariance"),
             "heldout_J": ev.get("heldout_J") if ev.get("epoch") == epoch else None,
+            **({"heldout_J_noisy": ev.get("heldout_J_noisy") if ev.get("epoch") == epoch else None,
+                "heldout_gate_clean": ev.get("heldout_gate_clean") if ev.get("epoch") == epoch else None,
+                "heldout_gate_noisy": ev.get("heldout_gate_noisy") if ev.get("epoch") == epoch else None,
+                "cost": dict(self.cost)} if self._p104() else {}),
             "linear_val_top1_pct": None,  # filled by vcs_ssl.evaluate (separate frozen-feature protocol)
             "knn_val_top1_pct": ev.get("knn_val_top1_pct") if ev.get("epoch") == epoch else None,
             "h_effective_rank": ev.get("h_effective_rank") if ev.get("epoch") == epoch else None,
@@ -517,7 +535,7 @@ class Trainer:
             **rng, "precision_flags": precision_flags(), "model_hparams": self.cfg["model"], "best_metric_policy": None,
             "init_hashes": self.init_hashes, "smoke": self.smoke, "saved_utc": utc_now(), "torch_version": torch.__version__,
             "neg_queue_state": None if self.neg_queue is None else self.neg_queue.state_dict(), "queue_fallback_steps": self.queue_fallback_steps,
-            "kernel_sigma": self.kernel_sigma, "bandwidth_calibration": self.bandwidth_calibration,
+            "kernel_sigma": self.kernel_sigma, "bandwidth_calibration": self.bandwidth_calibration, "p104_cost": dict(self.cost),
             **({"momentum_key_encoder_state": self.key_model["encoder"].state_dict(), "momentum_key_projector_state": self.key_model["projector"].state_dict(),
                 "momentum_m": self.momentum_m} if self.key_model is not None else {}),
         }
@@ -565,6 +583,10 @@ class Trainer:
         self.seen_base_images = int(ck["seen_base_images"])
         self.train_seconds = float(ck["train_seconds"])
         self.eval_seconds = float(ck["eval_seconds"])
+        if ck.get("p104_cost") is not None:
+            self.cost.update(ck["p104_cost"])
+        else:
+            self.cost["resumed_without_cost_counters"] = True
         if self.step != self.completed_epoch * self.steps_per_epoch:
             raise ConfigError("resume refused: checkpoint is not at an epoch boundary")
         self.resumed_from = {"path": str(path), "sha256": sha256_file(path), "completed_epoch": self.completed_epoch, "optimizer_step": self.step}
@@ -621,9 +643,16 @@ class Trainer:
                                     batch_size=cv["batch_size"], repeats=cv["repeats"], rng_seed=cv["rng_seed"], k=int(self.cfg["pairing"]["k"]),
                                     num_workers=self.eval_num_workers, l2_eps=self.cfg["model"]["normalization"]["eps"],
                                     normalize_input=self.cfg["model"]["normalization"]["vcs_and_simclr"] != "none", symmetric=pair_symmetric(self.cfg),
-                                    target_branch=self.target_branch, teacher=ev_teacher, predictor=ev_pred)
+                                    target_branch=self.target_branch, teacher=ev_teacher, predictor=ev_pred,
+                                    **({"noise_tau": float(self.cfg["model"]["critic"]["observation_noise_tau"]),
+                                        "noise_repeats": int(self.cfg["model"]["critic"]["noise_eval_repeats"])}
+                                       if getattr(crit, "is_noisy", False) and "noise_eval_repeats" in self.cfg["model"]["critic"] else {}))
                 result["critic_holdout"] = ch
                 result["heldout_J"] = ch["heldout_J_mean"]
+                result["heldout_gate_clean"] = ch.get("heldout_gate_clean_mean")
+                if "heldout_J_noisy_mean" in ch:
+                    result["heldout_J_noisy"] = ch["heldout_J_noisy_mean"]
+                    result["heldout_gate_noisy"] = ch["heldout_gate_noisy_mean"]
             del enc, proj, crit, built, ck, sel, fit, ev_pred, ev_teacher
         after = rng_fingerprint(capture_rng(self.device, self.loader_gen, self.pair_gen))
         result["training_rng_untouched"] = before == after
@@ -711,6 +740,7 @@ class Trainer:
         cos_extra = ({"cos_scale": float(self.critic.scale.detach()), "cos_bias": float(self.critic.bias.detach())}
                      if self.critic is not None and hasattr(self.critic, "scale") and hasattr(self.critic, "bias") else {})
         out = {"loss": float(loss.detach()), **obj["stats"], **cos_extra, "shift": obj["shift"], "n_pos": obj["n_pos"], "n_neg": obj["n_neg"],
+               **({"critic_pair_evals": obj["critic_pair_evals"]} if "critic_pair_evals" in obj else {}),
                "lr_factor": factor, **{f"lr_{k}": v for k, v in lrs.items()}, **gn}
         return out
 
@@ -805,8 +835,13 @@ class Trainer:
                             self.steady_step_times.append(st.elapsed)
                         self.step += 1
                         self.seen_base_images += int(batch[0].shape[0])
+                        self.cost["positive_pairs"] += int(out.get("n_pos") or 0); self.cost["negative_pairs"] += int(out.get("n_neg") or 0)
+                        self.cost["critic_pair_evaluations"] += int(out.get("critic_pair_evals") or ((out.get("n_pos") or 0) + (out.get("n_neg") or 0)))
+                        self.cost["encoder_updates"] += 1
+                        if self.critic is not None and any(p.requires_grad for p in self.critic.parameters()):
+                            self.cost["critic_updates"] += critic_steps(self.cfg)
                         for k, v in out.items():
-                            if isinstance(v, (int, float)) and not isinstance(v, bool) and k not in ("shift", "n_pos", "n_neg"):
+                            if isinstance(v, (int, float)) and not isinstance(v, bool) and k not in ("shift", "n_pos", "n_neg", "critic_pair_evals"):
                                 sums[k] = sums.get(k, 0.0) + float(v)
                                 counts[k] = counts.get(k, 0) + 1
                         if log_this:
@@ -825,7 +860,7 @@ class Trainer:
                 self.completed_epoch = epoch
                 R_ref = int(self.cfg["model"]["critic"].get("refresh_every_epochs", 0))
                 if R_ref > 0 and epoch % R_ref == 0 and epoch < self.epochs:  # P95 critic refresh, before the epoch's checkpoint
-                    self.refresh_cosine_critic(epoch)
+                    self.cost["refresh_seconds"] += float(self.refresh_cosine_critic(epoch)["seconds"])  # package v3 §12: counted separately
                 epoch_stats = {k: sums[k] / counts[k] for k in sums}
                 epoch_stats["epoch_seconds"] = epoch_timer.elapsed
                 epoch_stats["mean_step_seconds"] = float(np.mean(step_times)) if step_times else None
@@ -868,6 +903,11 @@ class Trainer:
             "steady_state_step_seconds_mean": float(np.mean(steady)) if steady else None,
             "steady_state_images_per_s": (self.batch / float(np.mean(steady))) if steady else None,
             "steady_state_views_per_s": (2 * self.batch / float(np.mean(steady))) if steady else None,
+            # package v3 §12: the field above assumed 2 views; the real number of encoded views per step is n_views * batch (new field;
+            # historical summaries are not rewritten)
+            "steady_state_views_per_s_actual": (self.n_views * self.batch / float(np.mean(steady))) if steady else None,
+            "cost": {**self.cost, "base_images": self.seen_base_images, "encoded_views": self.n_views * self.seen_base_images,
+                     "training_seconds_total": self.train_seconds + float(self.cost.get("refresh_seconds", 0.0))},
             **mem, "collapse_suspected": self.collapse_streak >= 2, "finished_utc": utc_now(), "queue_fallback_steps": self.queue_fallback_steps,
             "last_eval": {k: v for k, v in (getattr(self, "_last_eval", None) or {}).items() if k not in ("spectrum", "critic_holdout", "knn")},
         }

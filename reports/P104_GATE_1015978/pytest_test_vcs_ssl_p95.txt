@@ -1,0 +1,36 @@
+.....F.........                                                          [100%]
+=================================== FAILURES ===================================
+_______________ test_config_policy_and_old_config_hash_unchanged _______________
+
+tmp_path = PosixPath('/tmp/pytest-of-yinwang/pytest-2/test_config_policy_and_old_con0')
+
+    def test_config_policy_and_old_config_hash_unchanged(tmp_path):
+        for name in ("residual", "dictionary", "noise", "refresh", "js"):
+            policy_checks(_load(tmp_path, variant(_base(), name), f"p{name}.yaml"))
+        bad = []
+        d = variant(_base(), "noise"); d["model"]["critic"]["input"] = "ordered_concat"; bad.append(d)
+        d = variant(_base(), "refresh"); d["model"]["critic"]["input"] = "residual_cosine_mlp"; d["model"]["critic"]["residual_lambda"] = 0.5; bad.append(d)
+        d = variant(_base(), "js"); d["model"]["critic"]["observation_noise_tau"] = 0.1; bad.append(d)
+        d = variant(_base(), "residual"); d["model"]["critic"]["residual_lambda"] = 1.0; bad.append(d)
+        d = cosine(_base()); d["model"]["critic"]["residual_lambda"] = 0.5; bad.append(d)
+        d = variant(_base(), "js"); d["run"]["method"] = "simclr_matched"; bad.append(d)
+        for i, b in enumerate(bad):
+>           with pytest.raises(ConfigError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ConfigError
+
+tests/test_vcs_ssl_p95.py:188: Failed
+=============================== warnings summary ===============================
+tests/test_vcs_ssl_p95.py::test_residual_and_dictionary_bounded_grads_and_weights
+  /home/infres/yinwang/CS_QMI/ssl_pilot/tests/test_vcs_ssl_p95.py:94: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    D_manual = float((ts.square().mean(0) * w).sum() - t.square().mean())
+
+tests/test_vcs_ssl_p95.py::test_trainer_smoke_variants[residual]
+  /home/infres/yinwang/CS_QMI/env/lib/python3.12/site-packages/torch/backends/__init__.py:42: UserWarning: Please use the new API settings to control TF32 behavior, such as torch.backends.cudnn.conv.fp32_precision = 'tf32' or torch.backends.cuda.matmul.fp32_precision = 'ieee'. Old settings, e.g, torch.backends.cuda.matmul.allow_tf32 = True, torch.backends.cudnn.allow_tf32 = True, allowTF32CuDNN() and allowTF32CuBLAS() will be deprecated after Pytorch 2.9. Please see https://pytorch.org/docs/main/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices (Triggered internally at /pytorch/aten/src/ATen/Context.cpp:80.)
+    return self.getter()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_vcs_ssl_p95.py::test_config_policy_and_old_config_hash_unchanged
+1 failed, 14 passed, 2 warnings in 248.56s (0:04:08)

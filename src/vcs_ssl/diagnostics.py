@@ -148,7 +148,8 @@ def spectrum_report(feats: dict[str, Any], names: tuple[str, ...] = ("h", "p_raw
 def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, images: np.ndarray, sel_uids: np.ndarray,
                    two_view_transform, *, device: torch.device, batch_size: int, repeats: int, rng_seed: int, k: int,
                    num_workers: int = 4, l2_eps: float = 1e-8, normalize_input: bool = True, symmetric: bool = False,
-                   feature_source: str = "z", target_branch: str = "shared", teacher: dict | None = None, predictor: nn.Module | None = None) -> dict[str, Any]:
+                   feature_source: str = "z", target_branch: str = "shared", teacher: dict | None = None, predictor: nn.Module | None = None,
+                   noise_tau: float = 0.0, noise_repeats: int = 0) -> dict[str, Any]:
     """Train-distribution two-view pairs on selection images; whole model eval; global (count-weighted) means.
 
     With a target branch (stopgrad / ema_<tau>) and/or a predictor, the scored pairs follow the TRAINING wiring: online side =
@@ -181,6 +182,9 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 batches.pop()
             shifts = []
             k_eff_min = k
+            npos_sum = npos_sq = nneg_sum = nneg_sq = 0.0
+            nn_pos = nn_neg = 0
+            noise_gen = torch.Generator(device=device).manual_seed(seed + 777_000) if noise_repeats > 0 else None
             for x1, x2, _ in batches:
                 bsz = x1.shape[0]
                 if bsz < 2:
@@ -217,6 +221,19 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                     if symmetric:  # named variant: also score the reversed order with the same shifts
                         tp = torch.cat((tp, critic(z2, z1)))
                         tn = torch.cat((tn, critic(z2.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z2.shape[1]), z1[idx].reshape(-1, z1.shape[1]))))
+                if noise_repeats > 0 and not use_target and not symmetric:
+                    # P104 (package v3 §7.3, §12): noisy estimator evaluation with its OWN generator (the critic stays in eval mode and its
+                    # training noise counter is untouched): the same pairs scored R_eval times with fresh u = z + tau*eps/sqrt(d) per pair
+                    # occurrence and side; pooled over draws (equal counts per draw, so the pooled J equals the mean of the per-draw J).
+                    left_n = z1.unsqueeze(0).expand(k_eff, -1, -1).reshape(-1, z1.shape[1]); right_n = z2[idx].reshape(-1, z2.shape[1])
+                    sd = noise_tau / z1.shape[1] ** 0.5
+                    for _r in range(noise_repeats):
+                        def _nz(x):
+                            return x + sd * torch.randn(x.shape, generator=noise_gen, device=x.device, dtype=x.dtype)
+                        tpn = torch.tanh(critic.scale * (_nz(z1) * _nz(z2)).sum(-1) + critic.bias)
+                        tnn = torch.tanh(critic.scale * (_nz(left_n) * _nz(right_n)).sum(-1) + critic.bias)
+                        npos_sum += float(tpn.sum()); npos_sq += float(tpn.square().sum()); nn_pos += tpn.numel()
+                        nneg_sum += float(tnn.sum()); nneg_sq += float(tnn.square().sum()); nn_neg += tnn.numel()
                 pos_sum += float(tp.sum()); pos_sq += float(tp.square().sum()); n_pos += tp.numel()
                 neg_sum += float(tn.sum()); neg_sq += float(tn.square().sum()); n_neg += tn.numel()
                 sat_pos += int((tp.abs() > 0.95).sum()); sat_neg += int((tn.abs() > 0.95).sum())
@@ -224,13 +241,24 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
                 neg_hist += torch.histc(tn.float().cpu(), bins=40, min=-1, max=1)
             mp, mq, sp, sq = pos_sum / n_pos, neg_sum / n_neg, pos_sq / n_pos, neg_sq / n_neg
             j = mp - mq - 0.5 * sp - 0.5 * sq
+            noisy_rec = {}
+            if nn_pos > 0:
+                a_, b_, c_, d_ = npos_sum / nn_pos, nneg_sum / nn_neg, npos_sq / nn_pos, nneg_sq / nn_neg
+                noisy_rec = {"heldout_J_noisy": a_ - b_ - 0.5 * c_ - 0.5 * d_, "heldout_gate_noisy": 1.0 - 0.5 * (c_ + d_),
+                             "noise_eval_repeats": noise_repeats, "noise_seed": seed + 777_000}
             per_repeat.append({"repeat": r, "seed": seed, "n_pos": n_pos, "n_neg": n_neg, "k_effective_min": k_eff_min, "heldout_J": j, "heldout_R_binary": 1.0 - j,
+                               "heldout_gate_clean": 1.0 - 0.5 * (sp + sq), **noisy_rec,
                                "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
                                "sat_pos_frac": sat_pos / n_pos, "sat_neg_frac": sat_neg / n_neg,
                                "shifts": shifts, "pos_hist": pos_hist.tolist(), "neg_hist": neg_hist.tolist()})
     assert_unchanged(before, encoder, projector, critic, predictor, t_enc, t_proj)
     js = torch.tensor([r["heldout_J"] for r in per_repeat], dtype=torch.float64)
-    return {"n_selection_images": int(n), "repeats": repeats, "batch_size": batch_size, "k": k,
+    extra = {"heldout_gate_clean_mean": float(sum(r["heldout_gate_clean"] for r in per_repeat) / len(per_repeat))}
+    if all("heldout_J_noisy" in r for r in per_repeat) and per_repeat:
+        extra.update({"heldout_J_noisy_mean": float(sum(r["heldout_J_noisy"] for r in per_repeat) / len(per_repeat)),
+                      "heldout_gate_noisy_mean": float(sum(r["heldout_gate_noisy"] for r in per_repeat) / len(per_repeat)),
+                      "noise_tau": noise_tau, "noise_eval_repeats": noise_repeats})
+    return {**extra, "n_selection_images": int(n), "repeats": repeats, "batch_size": batch_size, "k": k,
             "heldout_J_mean": float(js.mean()), "heldout_J_sd": float(js.std(unbiased=True)) if repeats > 1 else None,
             "heldout_R_binary_mean": float(1.0 - js.mean()), "per_repeat": per_repeat, "hist_bin_edges": hist_bins.tolist(),
             "seconds": t.elapsed,

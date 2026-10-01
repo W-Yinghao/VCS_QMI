@@ -87,16 +87,50 @@ class BilinearConcatCritic(nn.Module):
 class CosineCritic(nn.Module):
     """Named variant: tanh(a * <z1, z2> + b); a, b scalars (a optionally fixed; b optionally calibrated at init)."""
 
-    def __init__(self, feature_dim: int, scale_init: float = 1.0, scale_fixed: bool = False) -> None:
+    def __init__(self, feature_dim: int, scale_init: float = 1.0, scale_fixed: bool = False, bias_init: float = 0.0) -> None:
         super().__init__()
         self.feature_dim = feature_dim
         self.scale = nn.Parameter(torch.tensor(float(scale_init)), requires_grad=not scale_fixed)
-        self.bias = nn.Parameter(torch.tensor(0.0))
+        self.bias = nn.Parameter(torch.tensor(float(bias_init)))  # bias_init 0.0 (every config before P104) = the frozen init
+
+    def logits(self, left: Tensor, right: Tensor) -> Tensor:
+        """f = a<z1, z2> + b (P104: shared interface of learned / fixed / noisy angular critics)."""
+        return self.scale * (left * right).sum(-1) + self.bias
 
     def forward(self, left: Tensor, right: Tensor) -> Tensor:
         if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
             raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
         return torch.tanh(self.scale * (left * right).sum(-1) + self.bias)
+
+
+class FixedCosineCritic(nn.Module):
+    """P104 G line (package v3 §5.1): T = tanh(a<z1, z2> + b) with a, b FIXED — registered as buffers, not parameters, so the critic has
+    zero trainable parameters and nothing re-introduces a free output affine.  Same interface as CosineCritic (scale, bias, logits,
+    forward, embed, score_matrix); ``trainable_affine`` is recorded explicitly (do not infer it from model.parameters())."""
+
+    trainable_affine = False
+
+    def __init__(self, feature_dim: int, scale: float, bias: float) -> None:
+        super().__init__()
+        if not (torch.isfinite(torch.tensor(float(scale))) and torch.isfinite(torch.tensor(float(bias)))):
+            raise ValueError("fixed affine parameters must be finite")
+        self.feature_dim = feature_dim
+        self.register_buffer("scale", torch.tensor(float(scale)))
+        self.register_buffer("bias", torch.tensor(float(bias)))
+
+    def logits(self, left: Tensor, right: Tensor) -> Tensor:
+        return self.scale * (left * right).sum(-1) + self.bias
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        return torch.tanh(self.logits(left, right))
+
+    def embed(self, z: Tensor) -> Tensor:
+        return z
+
+    def score_matrix(self, C: Tensor) -> Tensor:
+        return torch.tanh(self.scale * C + self.bias)
 
 
 class InteractOnlyCritic(nn.Module):
@@ -347,6 +381,8 @@ class NoisyCosineCritic(_BatchStats, CosineCritic):
     (noise_seed, c); noise_seed comes from the critic's own seed stream at construction and both are buffers, so checkpoints / resume
     reproduce the sequence.  Parameters and their init are identical to the recipe critic (same state_dict keys for scale / bias)."""
 
+    is_noisy = True  # P104: objectives use logits() so that the matched-JS control sees the same noisy logit
+
     def __init__(self, feature_dim: int, scale_init: float = 1.0, *, tau: float) -> None:
         CosineCritic.__init__(self, feature_dim, scale_init=scale_init)
         if not (tau > 0):
@@ -362,12 +398,23 @@ class NoisyCosineCritic(_BatchStats, CosineCritic):
         self.noise_calls += 1
         return torch.randn(x.shape, generator=g, device=x.device, dtype=x.dtype) * (self.tau / x.shape[1] ** 0.5)
 
-    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+    def logits(self, left: Tensor, right: Tensor) -> Tensor:
+        """Noisy logit f = a<u1, u2> + b, u = z + tau*eps/sqrt(d) with fresh eps per call and side (training mode only)."""
         if self.training:
             el, er = self._noise(left), self._noise(right)
             self._stats_add(noise_coord_sd_emp=torch.cat((el, er)).std(), noise_total_rms_emp=torch.cat((el, er)).square().sum(-1).mean().sqrt())
             left, right = left + el, right + er
-        return torch.tanh(self.scale * (left * right).sum(-1) + self.bias)
+        return self.scale * (left * right).sum(-1) + self.bias
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        return torch.tanh(self.logits(left, right))
+
+    def score_matrix(self, C: Tensor) -> Tensor:  # noqa: ARG002
+        raise TypeError("P104 (package v3 §6.4): the noisy critic has no matrix hook — a score_matrix path would skip the noise; "
+                        "use the per-pair path (forward / logits)")
+
+    def embed(self, z: Tensor) -> Tensor:  # noqa: ARG002
+        raise TypeError("the noisy critic has no matrix hook (package v3 §6.4)")
 
     def _extra_stats(self) -> dict[str, float]:
         return {"noise_total_rms": self.tau, "noise_coordinate_sd": self.tau / self.feature_dim ** 0.5}
@@ -404,6 +451,8 @@ def critic_impl_name(c: dict[str, Any]) -> str:
         return "vcs_ssl.models.critic.DictionarySimplexCritic"
     if inp == "cosine" and float(c.get("observation_noise_tau", 0.0)) > 0:
         return "vcs_ssl.models.critic.NoisyCosineCritic"
+    if inp == "cosine" and c.get("affine_mode", "learned") == "fixed":
+        return "vcs_ssl.models.critic.FixedCosineCritic"
     if inp == "rff_tanh":
         return "vcs_ssl.models.critic.RFFTanhCritic"
     if inp == "concat_interact":
@@ -452,8 +501,11 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
         return InteractCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("BilinearConcatCritic"):
         return BilinearConcatCritic(feature_dim, hd, last_layer_gain=gain)
+    if name.endswith("FixedCosineCritic"):
+        return FixedCosineCritic(feature_dim, float(c.get("cosine_scale_init", 1.0)), float(c.get("cosine_bias_init", 0.0)))
     if name.endswith("CosineCritic"):
-        return CosineCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), scale_fixed=bool(c.get("cosine_scale_fixed", False)))
+        return CosineCritic(feature_dim, scale_init=float(c.get("cosine_scale_init", 1.0)), scale_fixed=bool(c.get("cosine_scale_fixed", False)),
+                            bias_init=float(c.get("cosine_bias_init", 0.0)))
     if name.endswith("InteractOnlyCritic"):
         return InteractOnlyCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("SharedMetricCritic"):

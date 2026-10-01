@@ -246,11 +246,12 @@ def js_matched_pair_loss_negdetach(z1: Tensor, z2: Tensor, critic, *, k: int, ge
     if not (hasattr(critic, "scale") and hasattr(critic, "bias")):
         raise ValueError("js_matched_logistic needs the cosine critic (scale, bias)")
     indices, shifts = cyclic_negative_indices(len(z1), k, generator=generator, device=z1.device)
-    f_pos = critic.scale * (z1 * z2).sum(-1) + critic.bias
+    noisy = getattr(critic, "is_noisy", False)  # P104 N2: the matched-JS control on the same *noisy* logit (fresh noise per call and side)
+    f_pos = critic.logits(z1, z2) if noisy else critic.scale * (z1 * z2).sum(-1) + critic.bias
     left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
     partner = z2.detach() if negative_detach else z2
     right = partner[indices].reshape(-1, z2.shape[1])
-    f_neg = critic.scale * (left * right).sum(-1) + critic.bias
+    f_neg = critic.logits(left, right) if noisy else critic.scale * (left * right).sum(-1) + critic.bias
     loss = F.softplus(-2.0 * f_pos).mean() + F.softplus(2.0 * f_neg).mean()
     with torch.no_grad():
         st = vcs_from_scores(torch.tanh(f_pos), torch.tanh(f_neg))
@@ -410,6 +411,10 @@ def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], criti
     ocfg = cfg["objective"]
     if queue is not None:
         return _views_momentum_queue(feats, cfg=cfg, critic=critic, pair_generator=pair_generator, queue=queue)
+    if method == "vcs_qmi":  # P104 paths (inactive unless the new optional fields are set)
+        p104 = compute_objective_views_p104(feats, cfg=cfg, critic=critic, pair_generator=pair_generator)
+        if p104 is not None:
+            return p104
     if method == "cs_kernel_native":
         vs = feats["views_z"]
         return _kernel_cs_objective([(vs[a], vs[b_]) for a in range(len(vs)) for b_ in range(a + 1, len(vs))], cfg=cfg, kernel_sigma=kernel_sigma)
@@ -496,3 +501,130 @@ def _views_momentum_queue(feats: dict[str, Any], *, cfg: dict[str, Any], critic,
     stats.update(acc)
     B = vs[0].shape[0]
     return {"loss": torch.stack(losses).mean(), "stats": stats, "shift": None, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs)}
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# P104 (package v3, owner 2026-09-30): N line (noise-draw average of losses) and U line (all view tokens).  The frozen paths above are
+# unchanged; these functions are reached only through the new optional config fields (critic.noise_repeats, pairing.pair_scope).
+def pair_scope(cfg: dict[str, Any]) -> str:
+    return cfg["pairing"].get("pair_scope", "cross_view_k")
+
+
+def noise_repeats(cfg: dict[str, Any]) -> int:
+    return int(cfg["model"]["critic"].get("noise_repeats", 1))
+
+
+def noisy_pair_loss_repeats(z1: Tensor, z2: Tensor, critic, *, k: int, generator: torch.Generator | None, negative_detach: bool,
+                            repeats: int, objective: str = "vcs") -> tuple[dict[str, Any], Tensor]:
+    """P104 N1 / N2 (package v3 §7.1): ONE draw of the K cyclic shifts (same pair stream as the R = 1 path), then R independent noise
+    draws on the same encoded features and the same pairs; each draw scores positives and negatives with fresh noise per pair
+    occurrence and side (the critic's counter-based, checkpointed stream); the returned loss is the MEAN OF THE PER-DRAW LOSSES
+    (never the loss of the mean score).  objective 'vcs': −J per draw; 'js': the balanced logistic loss on the noisy logit.  The
+    negative partner is detached before the noise is added (noise does not depend on parameters).  Stats: per-draw means of the VCS
+    statistics computed from T = tanh(f)."""
+    if z1.ndim != 2 or z1.shape != z2.shape:
+        raise ValueError("z1 and z2 must have equal [B,D] shapes")
+    if repeats < 1 or objective not in ("vcs", "js"):
+        raise ValueError("repeats >= 1 and objective in {vcs, js}")
+    indices, shifts = cyclic_negative_indices(len(z1), k, generator=generator, device=z1.device)
+    left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
+    partner = z2.detach() if negative_detach else z2
+    right = partner[indices].reshape(-1, z2.shape[1])
+    total = None
+    acc: dict[str, float] = {}
+    for _ in range(repeats):
+        f_pos, f_neg = critic.logits(z1, z2), critic.logits(left, right)
+        if objective == "vcs":
+            st = vcs_from_scores(torch.tanh(f_pos), torch.tanh(f_neg))
+            term = st["loss"]
+        else:
+            term = F.softplus(-2.0 * f_pos).mean() + F.softplus(2.0 * f_neg).mean()
+            with torch.no_grad():
+                st = vcs_from_scores(torch.tanh(f_pos), torch.tanh(f_neg))
+        total = term if total is None else total + term
+        for kk in VCS_STAT_KEYS:
+            acc[kk] = acc.get(kk, 0.0) + float(st[kk].detach()) / repeats
+    out: dict[str, Any] = {kk: torch.tensor(v) for kk, v in acc.items()}
+    out["loss"] = total / repeats
+    return out, shifts
+
+
+def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool, chunk_size: int = 256) -> dict[str, Any]:
+    """P104 U line (package v3 §6): the original J over ALL view tokens of the batch.  Tokens are the flat view-major [V·B, D] matrix
+    (flat index = view·B + image); P = ordered pairs of distinct tokens of the same base image, N_P = VB(V−1); Q = ordered pairs of
+    different base images (same view index allowed), N_Q = V·B·V(B−1); self and same-image pairs never enter Q.  P and Q are averaged
+    separately over their GLOBAL counts: row chunks accumulate SUMS, divided once at the end.  Negative right detach: Q scores use
+    flat @ flat.detach().T (critic parameters keep their full gradient).  Deterministic scorer only (no noise hook; package v3 §6.4)."""
+    if getattr(critic, "is_noisy", False):
+        raise TypeError("the all-view-token path has no noise model (package v3 §6.4)")
+    if not hasattr(critic, "score_matrix"):
+        raise TypeError("all_view_tokens needs a similarity critic exposing score_matrix (cosine: learned or fixed)")
+    V = len(views_z)
+    if V < 2 or chunk_size < 1:
+        raise ValueError("need >= 2 views and chunk_size >= 1")
+    B = views_z[0].shape[0]
+    flat = torch.cat(views_z, dim=0)  # view-major
+    n = flat.shape[0]
+    ids = torch.arange(n, device=flat.device) % B
+    idx = torch.arange(n, device=flat.device)
+    keys = flat.detach() if negative_detach else flat
+    zero = flat.new_zeros(())
+    s_p = s_q = s_p2 = s_q2 = sat_p = sat_q = zero
+    tp_first = tq_first = zero
+    n_p = n_q = 0
+    for lo in range(0, n, chunk_size):
+        hi = min(lo + chunk_size, n)
+        same = ids[lo:hi, None] == ids[None, :]
+        diag = idx[lo:hi, None] == idx[None, :]
+        mask_p, mask_q = same & ~diag, ~same
+        tp = critic.score_matrix(flat[lo:hi] @ flat.T)[mask_p]
+        tq = critic.score_matrix(flat[lo:hi] @ keys.T)[mask_q]
+        s_p = s_p + tp.sum(); s_q = s_q + tq.sum()
+        s_p2 = s_p2 + tp.square().sum(); s_q2 = s_q2 + tq.square().sum()
+        sat_p = sat_p + (tp.detach().abs() > 0.95).sum(); sat_q = sat_q + (tq.detach().abs() > 0.95).sum()
+        n_p += int(mask_p.sum()); n_q += int(mask_q.sum())
+    if n_p != V * B * (V - 1) or n_q != V * B * V * (B - 1):
+        raise RuntimeError("all-view-token pair counting failed")
+    mp, mq, sp, sq = s_p / n_p, s_q / n_q, s_p2 / n_p, s_q2 / n_q
+    j = mp - mq - 0.5 * sp - 0.5 * sq
+    risk = 0.5 * (1.0 - 2.0 * mp + sp) + 0.5 * (1.0 + 2.0 * mq + sq)
+    return {"loss": -j, "J_raw": j, "R_binary": risk, "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
+            "sat_pos_frac": sat_p.float() / n_p, "sat_neg_frac": sat_q.float() / n_q, "n_pos": n_p, "n_neg": n_q, "n_views": V, "n_base_images": B}
+
+
+def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any] | None:
+    """Dispatcher for the P104 paths; returns None when the config uses none of them (the caller then runs the frozen path).
+    Adds 'critic_pair_evals' (pair scorings actually computed, incl. noise repeats) to the returned dict."""
+    scope = pair_scope(cfg)
+    R = noise_repeats(cfg)
+    js = cfg["objective"]["loss"] == "js_matched_logistic"
+    noisy = getattr(critic, "is_noisy", False)
+    key = {"z_l2": "views_z", "p_raw": "views_p", "h_l2": "views_h"}[critic_input_key(cfg)]
+    vs = feats[key]
+    nd = cfg["pairing"]["negative_detach"]
+    stats = _empty_stats()
+    if scope == "all_view_tokens":
+        s = all_view_tokens_loss(vs, critic, negative_detach=nd, chunk_size=int(cfg["pairing"].get("all_view_chunk", 256)))
+        for kk in VCS_STAT_KEYS:
+            stats[kk] = float(s[kk].detach())
+        return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"], "critic_pair_evals": s["n_pos"] + s["n_neg"]}
+    if not (R > 1 or (js and noisy)):
+        return None
+    k = cfg["pairing"]["k"]
+    pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
+    losses, acc, shifts = [], {kk: 0.0 for kk in VCS_STAT_KEYS}, []
+    for a, b_ in pairs:
+        s, sh = noisy_pair_loss_repeats(vs[a], vs[b_], critic, k=k, generator=pair_generator, negative_detach=nd, repeats=R, objective="js" if js else "vcs")
+        losses.append(s["loss"]); shifts.append(int(sh[0]))
+        for kk in VCS_STAT_KEYS:
+            acc[kk] += float(s[kk]) / len(pairs)
+    loss = torch.stack(losses).mean()
+    stats.update(acc)
+    stats["noise_repeats"] = float(R)
+    if js:
+        stats["js_loss"] = float(loss.detach())
+    if hasattr(critic, "pop_stats"):
+        stats.update(critic.pop_stats())
+    B = vs[0].shape[0]
+    return {"loss": loss, "stats": stats, "shift": shifts, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs),
+            "critic_pair_evals": R * (B + B * k) * len(pairs)}

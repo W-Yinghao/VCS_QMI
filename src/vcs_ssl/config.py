@@ -64,7 +64,10 @@ SCHEMA: dict[str, Any] = {
                          "rff_features": _Opt(int, 1024), "rff_bandwidth_multiple": _Opt((int, float), 1.0),
                          # P95 (package v1 improvements inside SSL), not filled when absent:
                          "residual_lambda": _Opt((int, float), 0.5, fill=False), "observation_noise_tau": _Opt((int, float), 0.0, fill=False),
-                         "refresh_every_epochs": _Opt(int, 0, fill=False), "refresh_batches": _Opt(int, 16, fill=False)}},
+                         "refresh_every_epochs": _Opt(int, 0, fill=False), "refresh_batches": _Opt(int, 16, fill=False),
+                         # P104 (package v3), not filled when absent:
+                         "affine_mode": _Opt(str, "learned", fill=False), "cosine_bias_init": _Opt((int, float), 0.0, fill=False),
+                         "noise_repeats": _Opt(int, 1, fill=False), "noise_eval_repeats": _Opt(int, 16, fill=False)}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num,
@@ -73,7 +76,9 @@ SCHEMA: dict[str, Any] = {
                 "negative_detach": bool, "rng": str, "rng_seed_offset": int,
                 "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096),
                 # P100 (momentum-encoder key queue), not filled when absent so older configs keep their resolved dict / config_hash:
-                "momentum_encoder": _Opt(bool, False, fill=False), "momentum_m": _Opt((int, float), 0.99, fill=False)},
+                "momentum_encoder": _Opt(bool, False, fill=False), "momentum_m": _Opt((int, float), 0.99, fill=False),
+                # P104 U line (package v3 §6), not filled when absent:
+                "pair_scope": _Opt(str, "cross_view_k", fill=False), "all_view_chunk": _Opt(int, 256, fill=False)},
     "train": {"mode": str, "target_branch": _Opt(str, "shared"), "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
               "replacement": bool, "world_size": int, "grad_accumulation_steps": int, "precision": str, "allow_tf32": bool,
               "compile": bool, "num_workers": int, "pin_memory": bool, "persistent_workers": bool,
@@ -162,8 +167,10 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
     if R > 0 and (c["input"] != "cosine" or c.get("cosine_scale_fixed", False)):
         raise ConfigError("critic refresh refits (a, b) of the recipe cosine critic only")
     if loss == "js_matched_logistic":
-        if c["input"] != "cosine" or tau > 0 or R > 0 or c.get("cosine_scale_fixed", False):
-            raise ConfigError("js_matched_logistic is the control for the plain recipe cosine critic (no noise / refresh)")
+        n2 = "noise_repeats" in c  # P104 N2 marker: the noisy matched-JS control is declared explicitly (P95 rule kept otherwise)
+        if c["input"] != "cosine" or (tau > 0 and not n2) or R > 0 or c.get("cosine_scale_fixed", False) or c.get("affine_mode", "learned") != "learned":
+            raise ConfigError("js_matched_logistic is the control for the recipe cosine critic (learned a, b; no refresh); "
+                              "observation noise is allowed only as the P104 N2 control (critic.noise_repeats set)")
         if cfg["pairing"]["sampler"] != "random_nonzero_cyclic_shift" or cfg["pairing"].get("negative_source", "cyclic") != "cyclic":
             raise ConfigError("js_matched_logistic uses the recipe's cyclic-shift pairing")
     p95 = c["input"] in ("residual_cosine_mlp", "dictionary_simplex") or tau > 0 or R > 0 or loss == "js_matched_logistic"
@@ -172,6 +179,57 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("P95 variants use the recipe wiring (shared branch, joint mode, critic on z)")
         if cfg["model"]["normalization"]["vcs_and_simclr"] != "l2":
             raise ConfigError("P95 variants read the L2-normalised projector output")
+
+
+def _p104_policy(cfg: dict[str, Any]) -> None:
+    """P104 (package v3, owner 2026-09-30): G (fixed angular scale, full negative routing), U (all view tokens), N (noise-draw average,
+    noisy matched-JS control).  Each option is allowed only on the wiring it was specified for; J / tanh / product negatives unchanged."""
+    c, p = cfg["model"]["critic"], cfg["pairing"]
+    m, loss = cfg["run"]["method"], cfg["objective"]["loss"]
+    tau = float(c.get("observation_noise_tau", 0.0))
+    am = c.get("affine_mode", "learned")
+    scope = p.get("pair_scope", "cross_view_k")
+    R = c.get("noise_repeats", 1)
+    Re = c.get("noise_eval_repeats")
+    new = any(x in c for x in ("affine_mode", "cosine_bias_init", "noise_repeats", "noise_eval_repeats")) or any(x in p for x in ("pair_scope", "all_view_chunk"))
+    if not new:
+        return
+    if m != "vcs_qmi":
+        raise ConfigError("P104 options are VCS-only")
+    if c["input"] != "cosine":
+        raise ConfigError("P104 options are defined for the angular (cosine) critic")
+    if am not in ("learned", "fixed"):
+        raise ConfigError("critic.affine_mode must be 'learned' or 'fixed'")
+    if am == "fixed":
+        if tau > 0 or c.get("cosine_scale_fixed", False) or c.get("cosine_bias_calibrate", False) or int(c.get("refresh_every_epochs", 0)) > 0:
+            raise ConfigError("affine_mode 'fixed' (G line): a, b are buffers; no noise / scale_fixed / bias calibration / refresh on top")
+        if loss != "negative_J":
+            raise ConfigError("the fixed-scale critic is used with the original J")
+    if not isinstance(c.get("cosine_bias_init", 0.0), (int, float)):
+        raise ConfigError("critic.cosine_bias_init must be a number")
+    if c.get("cosine_bias_calibrate", False) and "cosine_bias_init" in c:
+        raise ConfigError("cosine_bias_init and cosine_bias_calibrate are exclusive")
+    if scope not in ("cross_view_k", "all_view_tokens"):
+        raise ConfigError("pairing.pair_scope must be 'cross_view_k' or 'all_view_tokens'")
+    if scope == "all_view_tokens":
+        if cfg["views"]["count"] <= 2:
+            raise ConfigError("all_view_tokens is implemented for the multi-view path (views.count > 2)")
+        if tau > 0:
+            raise ConfigError("package v3 §6.4: a noisy critic with the all-view matrix path is refused (the matrix hook would skip the noise)")
+        if loss != "negative_J" or p["sampler"] != "random_nonzero_cyclic_shift" or p.get("negative_source", "cyclic") != "cyclic":
+            raise ConfigError("all_view_tokens uses the original J and replaces the cyclic-shift sampler (keep the frozen sampler field)")
+        if not (isinstance(p.get("all_view_chunk", 256), int) and p.get("all_view_chunk", 256) >= 1):
+            raise ConfigError("pairing.all_view_chunk must be a positive int")
+    elif "all_view_chunk" in p:
+        raise ConfigError("pairing.all_view_chunk is only meaningful with pair_scope 'all_view_tokens'")
+    if not (isinstance(R, int) and R >= 1):
+        raise ConfigError("critic.noise_repeats must be an int >= 1")
+    if R > 1 and (tau <= 0 or cfg["views"]["count"] <= 2 or scope != "cross_view_k"):
+        raise ConfigError("noise_repeats > 1 needs observation noise, the multi-view path and the cross-view K pairing")
+    if Re is not None and (not isinstance(Re, int) or Re < 1 or tau <= 0):
+        raise ConfigError("critic.noise_eval_repeats must be an int >= 1 and requires observation noise")
+    if loss == "js_matched_logistic" and tau > 0 and cfg["views"]["count"] <= 2:
+        raise ConfigError("the noisy matched-JS control (N2) is implemented for the multi-view path")
 
 
 def policy_checks(cfg: dict[str, Any]) -> None:
@@ -285,6 +343,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
                           "cs_kernel_native (S-CS table B) uses the same multi-view averaging as VCS natively")
     if cfg["pairing"]["sampler"] == "all_pairs_matrix" and (m != "vcs_qmi" or cfg["model"]["critic"]["input"] not in ("cosine", "shared_metric", "mono_spline", "diag_metric")):
         raise ConfigError("all_pairs_matrix is a VCS-only sampler for similarity-type critics (cosine|shared_metric|mono_spline|diag_metric)")
+    if cfg["pairing"]["sampler"] == "all_pairs_matrix" and float(cfg["model"]["critic"].get("observation_noise_tau", 0.0)) > 0:
+        raise ConfigError("package v3 §6.4: a noisy critic with the all_pairs_matrix hook is refused (the matrix hook would skip the noise)")
     if cfg["views"]["solarize_p"] != 0.0:
         raise ConfigError("solarize is not part of any recipe here")
     if not 0.0 <= cfg["views"]["gaussian_blur_p"] <= 1.0:
@@ -331,6 +391,7 @@ def policy_checks(cfg: dict[str, Any]) -> None:
             if c["feature_source"] != "z":
                 raise ConfigError("rff_tanh reads the projector output z (feature_source 'z')")
         _p95_policy(cfg)
+        _p104_policy(cfg)
         hd = c["hidden_dims"]
         if not (isinstance(hd, list) and len(hd) >= 1 and all(isinstance(w, int) and w > 0 for w in hd)):
             raise ConfigError("critic.hidden_dims must be a non-empty list of positive ints (hyper-parameter variant)")

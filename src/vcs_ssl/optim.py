@@ -25,8 +25,8 @@ def build_optimizer(encoder: nn.Module, projector: nn.Module, critic: nn.Module 
         {"name": "enc_proj_bias_norm", "params": no_decay, "lr": ocfg["lr"], "base_lr": ocfg["lr"],
          "weight_decay": ocfg["weight_decay_bias_norm"]},
     ]
-    if critic is not None:
-        cparams = [p for p in critic.parameters() if p.requires_grad]
+    cparams = [] if critic is None else [p for p in critic.parameters() if p.requires_grad]
+    if critic is not None and cparams:  # P104 G line: a fixed-affine critic has zero trainable parameters -> no critic group (expected)
         groups.append({"name": "critic", "params": cparams, "lr": ocfg["lr"] * ocfg["critic_lr_multiplier"],
                        "base_lr": ocfg["lr"] * ocfg["critic_lr_multiplier"], "weight_decay": ocfg["critic_weight_decay"]})
     opt = torch.optim.AdamW(groups, betas=tuple(ocfg["betas"]), eps=ocfg["eps"])

@@ -1,0 +1,12 @@
+# P104 (package v3 first batch) launch lines — DRAFT, NOT SUBMITTED. Owner approval required before running.
+# Order per spec §4: G1 G3 U1 N1 N2 first, then G2 G4 U2. Normal QOS (never runfill). Check 'squeue -h -u yinwang | wc -l' < 29 and the 8-GPU quota first.
+# GPU smoke (B 256 x 4 views): 800 ep projects 13.3-14.8 h on A100 and 4.4-5.0 h on RTX6000PRO (measured: recipe 0.114, N1 0.128 s/step) -> single 23 h run_unit jobs, no chain.
+# run from /home/infres/yinwang/CS_QMI/ssl_pilot
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_G1 --export=ALL,CFG=configs/cifar10_hpX_G1_views4_800ep_seed0.yaml,RUN_ID=P104_G1_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_G3 --export=ALL,CFG=configs/cifar10_hpX_G3_views4_800ep_seed0.yaml,RUN_ID=P104_G3_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_U1 --export=ALL,CFG=configs/cifar10_hpX_U1_views4_800ep_seed0.yaml,RUN_ID=P104_U1_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_N1 --export=ALL,CFG=configs/cifar10_hpX_N1_views4_800ep_seed0.yaml,RUN_ID=P104_N1_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_N2 --export=ALL,CFG=configs/cifar10_hpX_N2_views4_800ep_seed0.yaml,RUN_ID=P104_N2_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_G2 --export=ALL,CFG=configs/cifar10_hpX_G2_views4_800ep_seed0.yaml,RUN_ID=P104_G2_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_G4 --export=ALL,CFG=configs/cifar10_hpX_G4_views4_800ep_seed0.yaml,RUN_ID=P104_G4_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --exclude=node60 --job-name=p104_U2 --export=ALL,CFG=configs/cifar10_hpX_U2_views4_800ep_seed0.yaml,RUN_ID=P104_U2_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch

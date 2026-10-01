@@ -1,0 +1,68 @@
+............F.................                                           [100%]
+=================================== FAILURES ===================================
+_________________ test_R1_equals_P95_noise_path_and_js_control _________________
+
+tmp_path = PosixPath('/tmp/pytest-of-yinwang/pytest-4/test_R1_equals_P95_noise_path_0')
+
+    def test_R1_equals_P95_noise_path_and_js_control(tmp_path):
+        for loss in ("negative_J", "js_matched_logistic"):
+            d = cosine(_base()); d["model"]["critic"]["observation_noise_tau"] = 0.3; d["objective"]["loss"] = loss
+>           cfg_p95 = _small(_load(tmp_path, d, f"p95_{loss}.yaml"))
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_vcs_ssl_p104.py:265: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/test_vcs_ssl_v2.py:55: in _load
+    return load_config(p, env=_env(tmp))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/vcs_ssl/config.py:434: in load_config
+    policy_checks(resolved)
+src/vcs_ssl/config.py:393: in policy_checks
+    _p95_policy(cfg)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+cfg = {'schema_version': 'vcs_ssl_agent_1.0', 'run': {'stage': 'P3_pilot', 'method': 'vcs_qmi', 'seed': 0, 'output_root': '/...ntal_flip_p': 0.5, 'color_jitter': {'brightness': 0.4, 'contrast': 0.4, 'saturation': 0.4, 'hue': 0.1, ...}, ...}, ...}
+
+    def _p95_policy(cfg: dict[str, Any]) -> None:
+        """P95 named variants (package v1 improvements inside full SSL, owner 2026-09-29).  Each is allowed only on the recipe wiring it
+        was designed for; none changes J (except the js_matched control, which is labelled as a control loss)."""
+        c = cfg["model"]["critic"]
+        loss = cfg["objective"]["loss"]
+        tau = float(c.get("observation_noise_tau", 0.0))
+        R = int(c.get("refresh_every_epochs", 0))
+        lam = c.get("residual_lambda")
+        if c["input"] == "residual_cosine_mlp":
+            if lam is None or not (0.0 < float(lam) < 1.0):
+                raise ConfigError("residual_cosine_mlp needs critic.residual_lambda in (0, 1)")
+        elif lam is not None:
+            raise ConfigError("critic.residual_lambda is only defined for residual_cosine_mlp")
+        if tau < 0:
+            raise ConfigError("critic.observation_noise_tau must be >= 0")
+        if tau > 0 and c["input"] != "cosine":
+            raise ConfigError("observation noise is defined for the recipe cosine critic only")
+        if R < 0 or int(c.get("refresh_batches", 16)) < 1:
+            raise ConfigError("critic.refresh_every_epochs must be >= 0 and refresh_batches >= 1")
+        if R > 0 and (c["input"] != "cosine" or c.get("cosine_scale_fixed", False)):
+            raise ConfigError("critic refresh refits (a, b) of the recipe cosine critic only")
+        if loss == "js_matched_logistic":
+            n2 = "noise_repeats" in c  # P104 N2 marker: the noisy matched-JS control is declared explicitly (P95 rule kept otherwise)
+            if c["input"] != "cosine" or (tau > 0 and not n2) or R > 0 or c.get("cosine_scale_fixed", False) or c.get("affine_mode", "learned") != "learned":
+>               raise ConfigError("js_matched_logistic is the control for the recipe cosine critic (learned a, b; no refresh); "
+                                  "observation noise is allowed only as the P104 N2 control (critic.noise_repeats set)")
+E               vcs_ssl.config.ConfigError: js_matched_logistic is the control for the recipe cosine critic (learned a, b; no refresh); observation noise is allowed only as the P104 N2 control (critic.noise_repeats set)
+
+src/vcs_ssl/config.py:172: ConfigError
+=============================== warnings summary ===============================
+tests/test_vcs_ssl_p104.py::test_risk_identity_with_unequal_counts
+  /home/infres/yinwang/CS_QMI/ssl_pilot/tests/test_vcs_ssl_p104.py:94: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    assert float(out["J_raw"]) == pytest.approx(1.0 - float(out["R_binary"]), abs=1e-6)
+
+tests/test_vcs_ssl_p104.py::test_trainer_smoke_variants[G1]
+  /home/infres/yinwang/CS_QMI/env/lib/python3.12/site-packages/torch/backends/__init__.py:42: UserWarning: Please use the new API settings to control TF32 behavior, such as torch.backends.cudnn.conv.fp32_precision = 'tf32' or torch.backends.cuda.matmul.fp32_precision = 'ieee'. Old settings, e.g, torch.backends.cuda.matmul.allow_tf32 = True, torch.backends.cudnn.allow_tf32 = True, allowTF32CuDNN() and allowTF32CuBLAS() will be deprecated after Pytorch 2.9. Please see https://pytorch.org/docs/main/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices (Triggered internally at /pytorch/aten/src/ATen/Context.cpp:80.)
+    return self.getter()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_vcs_ssl_p104.py::test_R1_equals_P95_noise_path_and_js_control
+1 failed, 29 passed, 2 warnings in 378.84s (0:06:18)
