@@ -107,3 +107,9 @@ status: draft
    after P104 addenda 1 / 3, fixed in the main session (test now passes); it is not a P107 effect.
 3. The v4 §A1 optimiser / learning-rate sensitivity control for any JS-vs-VCS winner claim is deferred to its own unit, designed only if A-L1 or
    A-L2 is selected.  Selection after this screen follows v4 §4 (≤ 2 candidates; seeds 1–2 with method controls; fixed new seeds 3–4 later).
+
+## GPU smoke result (job 1017269; launch condition met 2026-10-01T19:09Z, orchestrator submitted the five units)
+100 real-CIFAR steps each on RTX6000PRO: steady step time AL1 0.1123 / AL2 0.1137 / AP1 0.1142 / AP2 0.1140 / AP3 0.1139 s vs G2 0.1140 s (ratio ≈ 1.00);
+peak 5.27 GB allocated / ≤ 7.95 GB reserved for all; finite gradients; stop/resume COMPLETED, resumed-vs-uninterrupted |ΔJ| ≤ 0.0028.
+J at step 100: G2 0.457, AL1 0.465, AL2 0.459 (a, b drift to 1.97 / −1.04), AP1 0.551, AP2 0.466, AP3 0.548.  Projected 800 epochs ≈ 4.4 h each on RTX6000PRO.
+Summary: `reports/P107_GATE_SMOKE_1017269/summary.json`.
