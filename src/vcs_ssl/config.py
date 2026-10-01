@@ -71,7 +71,9 @@ SCHEMA: dict[str, Any] = {
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num,
-                  "kernel_cs_bandwidth_multiple": _Opt((int, float), 1.0), "kernel_cs_chunk": _Opt(int, 0)},
+                  "kernel_cs_bandwidth_multiple": _Opt((int, float), 1.0), "kernel_cs_chunk": _Opt(int, 0),
+                  # P107 (package v4 A-L1) explicit marker, not filled when absent:
+                  "js_fixed_scorer": _Opt(bool, False, fill=False)},
     "pairing": {"sampler": str, "k": int, "unique_shifts": bool, "allow_self": bool, "label_filter": bool, "queue": bool,
                 "negative_detach": bool, "rng": str, "rng_seed_offset": int,
                 "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096),
@@ -168,11 +170,18 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
         raise ConfigError("critic refresh refits (a, b) of the recipe cosine critic only")
     if loss == "js_matched_logistic":
         n2 = "noise_repeats" in c  # P104 N2 marker: the noisy matched-JS control is declared explicitly (P95 rule kept otherwise)
-        if c["input"] != "cosine" or (tau > 0 and not n2) or R > 0 or c.get("cosine_scale_fixed", False) or c.get("affine_mode", "learned") != "learned":
-            raise ConfigError("js_matched_logistic is the control for the recipe cosine critic (learned a, b; no refresh); "
+        # P107 A-L1 (package v4 §A1): the matched JS loss on the FIXED angular scorer f = 2s - 1 (affine_mode 'fixed', no noise) is the
+        # named JS counterpart of P104 G2; every other refusal is kept.
+        fixed_js = bool(cfg["objective"].get("js_fixed_scorer", False)) and c.get("affine_mode", "learned") == "fixed" and tau == 0
+        if cfg["objective"].get("js_fixed_scorer", False) and not fixed_js:
+            raise ConfigError("objective.js_fixed_scorer marks the P107 A-L1 cell: affine_mode 'fixed', no observation noise")
+        if c["input"] != "cosine" or (tau > 0 and not n2) or R > 0 or c.get("cosine_scale_fixed", False) or (c.get("affine_mode", "learned") != "learned" and not fixed_js):
+            raise ConfigError("js_matched_logistic is the control for the recipe cosine critic (learned a, b, or the P107 fixed scorer; no refresh); "
                               "observation noise is allowed only as the P104 N2 control (critic.noise_repeats set)")
         if cfg["pairing"]["sampler"] != "random_nonzero_cyclic_shift" or cfg["pairing"].get("negative_source", "cyclic") != "cyclic":
             raise ConfigError("js_matched_logistic uses the recipe's cyclic-shift pairing")
+    if cfg["objective"].get("js_fixed_scorer", False) and loss != "js_matched_logistic":
+        raise ConfigError("objective.js_fixed_scorer is only meaningful with the matched JS loss (P107 A-L1)")
     p95 = c["input"] in ("residual_cosine_mlp", "dictionary_simplex") or tau > 0 or R > 0 or loss == "js_matched_logistic"
     if p95:
         if cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint" or c.get("feature_source", "z") != "z":
@@ -203,8 +212,11 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
     if am == "fixed":
         if tau > 0 or c.get("cosine_scale_fixed", False) or c.get("cosine_bias_calibrate", False) or int(c.get("refresh_every_epochs", 0)) > 0:
             raise ConfigError("affine_mode 'fixed' (G line): a, b are buffers; no noise / scale_fixed / bias calibration / refresh on top")
-        if loss != "negative_J":
-            raise ConfigError("the fixed-scale critic is used with the original J")
+        if not (loss == "negative_J" or (loss == "js_matched_logistic" and cfg["objective"].get("js_fixed_scorer", False))):
+            raise ConfigError("the fixed-scale critic is used with the original J, or with the matched JS loss only when objective.js_fixed_scorer "
+                              "is set (P107 A-L1)")
+    if cfg["objective"].get("js_fixed_scorer", False) and (loss != "js_matched_logistic" or am != "fixed"):
+        raise ConfigError("objective.js_fixed_scorer marks the P107 A-L1 cell: matched JS loss on the fixed angular scorer only")
     if not isinstance(c.get("cosine_bias_init", 0.0), (int, float)):
         raise ConfigError("critic.cosine_bias_init must be a number")
     if c.get("cosine_bias_calibrate", False) and "cosine_bias_init" in c:

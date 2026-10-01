@@ -1,0 +1,36 @@
+................F.............                                           [100%]
+=================================== FAILURES ===================================
+__________________ test_generated_configs_hashes_and_routing ___________________
+
+tmp_path = PosixPath('/tmp/pytest-of-yinwang/pytest-4/test_generated_configs_hashes_0')
+
+    def test_generated_configs_hashes_and_routing(tmp_path):
+        man = REPO / "configs" / "P104_SHA256.json"
+        if not man.is_file():
+            pytest.skip("configs not generated")
+        m = json.loads(man.read_text())
+        want = {"G1": "FixedCosineCritic", "G2": "FixedCosineCritic", "G3": "FixedCosineCritic", "U2": "FixedCosineCritic",
+                "G4": "CosineCritic", "U1": "CosineCritic", "N1": "NoisyCosineCritic", "N2": "NoisyCosineCritic"}
+        for f, rec in m["configs"].items():
+            p = REPO / "configs" / f
+            assert hashlib.sha256(p.read_bytes()).hexdigest() == rec["sha256"]
+            cfg = load_config(p, env=_env(tmp_path))
+>           assert critic_impl_name(cfg["model"]["critic"]).endswith(want[rec["logical_variant"]])
+                                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'G2F'
+
+tests/test_vcs_ssl_p104.py:352: KeyError
+=============================== warnings summary ===============================
+tests/test_vcs_ssl_p104.py::test_risk_identity_with_unequal_counts
+  /home/infres/yinwang/CS_QMI/ssl_pilot/tests/test_vcs_ssl_p104.py:94: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    assert float(out["J_raw"]) == pytest.approx(1.0 - float(out["R_binary"]), abs=1e-6)
+
+tests/test_vcs_ssl_p104.py::test_trainer_smoke_variants[G1]
+  /home/infres/yinwang/CS_QMI/env/lib/python3.12/site-packages/torch/backends/__init__.py:42: UserWarning: Please use the new API settings to control TF32 behavior, such as torch.backends.cudnn.conv.fp32_precision = 'tf32' or torch.backends.cuda.matmul.fp32_precision = 'ieee'. Old settings, e.g, torch.backends.cuda.matmul.allow_tf32 = True, torch.backends.cudnn.allow_tf32 = True, allowTF32CuDNN() and allowTF32CuBLAS() will be deprecated after Pytorch 2.9. Please see https://pytorch.org/docs/main/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices (Triggered internally at /pytorch/aten/src/ATen/Context.cpp:80.)
+    return self.getter()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_vcs_ssl_p104.py::test_generated_configs_hashes_and_routing
+1 failed, 29 passed, 2 warnings in 415.17s (0:06:55)
