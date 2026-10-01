@@ -150,3 +150,11 @@ def verdict(cs,label):
 verdict(inf,"POOLED")
 for g in SRC: verdict([c for c in inf if c[0]==g],g)
 ```
+
+## Addendum (2026-10-01, after P105 / P106)
+The attribution caveat of §6 was tested in `P106_T1_CRITIC_CLASS_ABLATION_REPORT_20261001.md`.
+- **Finding.** VCS's lead over JS comes from the exactly solved linear critic and VCS's VAL criterion selecting it reliably, not from the VCS objective.
+  - Restricted to linear and MLP critics, VCS is level with JS or behind it.
+  - An exactly solved JS critic in the same class is at least as powerful as VCS's closed form.
+- **What stands.** The verdict "T1 holds" stands as pre-registered.
+- **Recommended wording.** Attribute it to the closed-form exact critic, not the VCS objective.
