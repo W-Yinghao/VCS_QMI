@@ -29,7 +29,8 @@ from make_p104_configs import BASE, apply as p104_apply, flat  # noqa: E402
 
 STAGE = "P107_v4_A_batch"
 ORDER = ["A-L1", "A-L2", "A-P1", "A-P2", "A-P3"]
-PARENT = {"A-L1": "G2", "A-L2": "G2F", "A-P1": "G2", "A-P2": "G2", "A-P3": "G2"}
+PARENT = {"A-L1": "G2", "A-L2": "G2F", "A-P1": "G2", "A-P2": "G2", "A-P3": "G2",
+          "A-P2F": "G2F", "A-P3F": "G2F"}  # addendum 1: same-initialisation learned controls of the selected A-P2 / A-P3
 
 
 def apply(c: dict, uid: str) -> dict:
@@ -41,6 +42,10 @@ def apply(c: dict, uid: str) -> dict:
             obj["js_fixed_scorer"] = True  # explicit marker required by the config policy for JS on the fixed scorer
     elif uid == "A-P1":
         pair["negative_detach"] = False
+    elif uid in ("A-P2F", "A-P3F"):  # P107 addendum 1 (§4.1 control): a, b learned from (2, -1); pairing / routing exactly as A-P2 / A-P3
+        pair["pair_scope"] = "all_view_tokens"; pair["all_view_chunk"] = 256
+        if uid == "A-P3F":
+            pair["negative_detach"] = False
     elif uid == "A-P2":
         pair["pair_scope"] = "all_view_tokens"; pair["all_view_chunk"] = 256
     elif uid == "A-P3":

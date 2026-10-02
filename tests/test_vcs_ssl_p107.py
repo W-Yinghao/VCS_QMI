@@ -141,7 +141,10 @@ def test_generated_configs_hashes_and_routing(tmp_path):
             "A-L2": ("CosineCritic", "js_matched_logistic", "cross_view_k", True),
             "A-P1": ("FixedCosineCritic", "negative_J", "cross_view_k", False),
             "A-P2": ("FixedCosineCritic", "negative_J", "all_view_tokens", True),
-            "A-P3": ("FixedCosineCritic", "negative_J", "all_view_tokens", False)}
+            "A-P3": ("FixedCosineCritic", "negative_J", "all_view_tokens", False),
+            # P107 addendum 1: same-initialisation learned controls of the selected A-P2 / A-P3
+            "A-P2F": ("CosineCritic", "negative_J", "all_view_tokens", True),
+            "A-P3F": ("CosineCritic", "negative_J", "all_view_tokens", False)}
     for f, rec in json.loads(man.read_text())["configs"].items():
         p = REPO / "configs" / f
         assert hashlib.sha256(p.read_bytes()).hexdigest() == rec["sha256"]
