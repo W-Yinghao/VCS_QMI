@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=vcs_unit
 #SBATCH --partition=RTX6000PRO,H100,A100,L40S
-#SBATCH --exclude=node51,node60
+#SBATCH --exclude=node51
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=40G
