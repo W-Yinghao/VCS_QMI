@@ -1,0 +1,20 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+______________________ test_aggregator_labels_and_pattern ______________________
+
+    def test_aggregator_labels_and_pattern():
+        import p124_aggregate as A
+        assert A.label(0.2, -1, 1) == "close" and A.label(0.5, 0.1, 0.9) == "clear +" and A.label(-0.6, -1.0, -0.2) == "clear −"
+        assert A.label(0.8, -0.3, 1.9) == "inconclusive"
+        assert A.pattern("clear +", "close").startswith("coarse-specific") and A.pattern("close", "clear +").startswith("within-coarse")
+        assert A.pattern("clear +", "clear +") == "both up" and A.pattern("close", "close").startswith("neither")
+        assert A.pattern("inconclusive", "close").startswith("no pattern")
+        p = A.paired({0: 1.0, 1: 1.2, 2: 0.8}, {0: 0.0, 1: 0.1, 2: -0.1})
+>       assert abs(p["mean"] - 0.9667) < 1e-3 and p["label"] == "clear +"
+E       assert (0.033299999999999885 < 0.001)
+E        +  where 0.033299999999999885 = abs((0.9999999999999999 - 0.9667))
+
+tests/test_p124.py:90: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_p124.py::test_aggregator_labels_and_pattern - assert (0.033...
+1 failed, 6 passed in 9.98s
