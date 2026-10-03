@@ -73,7 +73,9 @@ SCHEMA: dict[str, Any] = {
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num,
                   "kernel_cs_bandwidth_multiple": _Opt((int, float), 1.0), "kernel_cs_chunk": _Opt(int, 0),
                   # P107 (package v4 A-L1) explicit marker, not filled when absent:
-                  "js_fixed_scorer": _Opt(bool, False, fill=False)},
+                  "js_fixed_scorer": _Opt(bool, False, fill=False),
+                  # P114 (v5 NEXT-A-JS-AP3) explicit marker for the matched JS loss on the all-view-token path, not filled when absent:
+                  "js_all_view_tokens": _Opt(bool, False, fill=False)},
     "pairing": {"sampler": str, "k": int, "unique_shifts": bool, "allow_self": bool, "label_filter": bool, "queue": bool,
                 "negative_detach": bool, "rng": str, "rng_seed_offset": int,
                 "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096),
@@ -182,6 +184,8 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("js_matched_logistic uses the recipe's cyclic-shift pairing")
     if cfg["objective"].get("js_fixed_scorer", False) and loss != "js_matched_logistic":
         raise ConfigError("objective.js_fixed_scorer is only meaningful with the matched JS loss (P107 A-L1)")
+    if cfg["objective"].get("js_all_view_tokens", False) and cfg["pairing"].get("pair_scope", "cross_view_k") != "all_view_tokens":
+        raise ConfigError("objective.js_all_view_tokens is only meaningful with pairing.pair_scope all_view_tokens (P114)")
     p95 = c["input"] in ("residual_cosine_mlp", "dictionary_simplex") or tau > 0 or R > 0 or loss == "js_matched_logistic"
     if p95:
         if cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint" or c.get("feature_source", "z") != "z":
@@ -216,7 +220,7 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("the fixed-scale critic is used with the original J, or with the matched JS loss only when objective.js_fixed_scorer "
                               "is set (P107 A-L1)")
     if cfg["objective"].get("js_fixed_scorer", False) and (loss != "js_matched_logistic" or am != "fixed"):
-        raise ConfigError("objective.js_fixed_scorer marks the P107 A-L1 cell: matched JS loss on the fixed angular scorer only")
+        raise ConfigError("objective.js_fixed_scorer marks the P107 A-L1 / P114 cells: matched JS loss on the fixed angular scorer only")
     if not isinstance(c.get("cosine_bias_init", 0.0), (int, float)):
         raise ConfigError("critic.cosine_bias_init must be a number")
     if c.get("cosine_bias_calibrate", False) and "cosine_bias_init" in c:
@@ -228,12 +232,20 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("all_view_tokens is implemented for the multi-view path (views.count > 2)")
         if tau > 0:
             raise ConfigError("package v3 §6.4: a noisy critic with the all-view matrix path is refused (the matrix hook would skip the noise)")
-        if loss != "negative_J" or p["sampler"] != "random_nonzero_cyclic_shift" or p.get("negative_source", "cyclic") != "cyclic":
-            raise ConfigError("all_view_tokens uses the original J and replaces the cyclic-shift sampler (keep the frozen sampler field)")
+        # P114 (v5 NEXT-A-JS-AP3): the matched JS loss is allowed on the all-view-token path ONLY as the named control of the fixed scorer
+        # (objective.js_fixed_scorer AND objective.js_all_view_tokens markers + affine_mode 'fixed'); every other loss stays refused.
+        js_av = (loss == "js_matched_logistic" and bool(cfg["objective"].get("js_all_view_tokens", False))
+                 and bool(cfg["objective"].get("js_fixed_scorer", False)) and am == "fixed")
+        if (loss != "negative_J" and not js_av) or p["sampler"] != "random_nonzero_cyclic_shift" or p.get("negative_source", "cyclic") != "cyclic":
+            raise ConfigError("all_view_tokens uses the original J (or, as the named P114 control, the matched JS loss on the fixed scorer with BOTH "
+                              "objective.js_fixed_scorer and objective.js_all_view_tokens) and replaces the cyclic-shift sampler (keep the frozen sampler field)")
         if not (isinstance(p.get("all_view_chunk", 256), int) and p.get("all_view_chunk", 256) >= 1):
             raise ConfigError("pairing.all_view_chunk must be a positive int")
     elif "all_view_chunk" in p:
         raise ConfigError("pairing.all_view_chunk is only meaningful with pair_scope 'all_view_tokens'")
+    if cfg["objective"].get("js_all_view_tokens", False) and not (scope == "all_view_tokens" and loss == "js_matched_logistic"
+                                                                  and cfg["objective"].get("js_fixed_scorer", False) and am == "fixed"):
+        raise ConfigError("objective.js_all_view_tokens marks the P114 cell only: matched JS on the fixed scorer with pair_scope all_view_tokens")
     if not (isinstance(R, int) and R >= 1):
         raise ConfigError("critic.noise_repeats must be an int >= 1")
     if R > 1 and (tau <= 0 or cfg["views"]["count"] <= 2 or scope != "cross_view_k"):

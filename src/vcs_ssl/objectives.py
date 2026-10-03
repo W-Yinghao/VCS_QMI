@@ -549,16 +549,23 @@ def noisy_pair_loss_repeats(z1: Tensor, z2: Tensor, critic, *, k: int, generator
     return out, shifts
 
 
-def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool, chunk_size: int = 256) -> dict[str, Any]:
+def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool, chunk_size: int = 256, objective: str = "vcs") -> dict[str, Any]:
     """P104 U line (package v3 §6): the original J over ALL view tokens of the batch.  Tokens are the flat view-major [V·B, D] matrix
     (flat index = view·B + image); P = ordered pairs of distinct tokens of the same base image, N_P = VB(V−1); Q = ordered pairs of
     different base images (same view index allowed), N_Q = V·B·V(B−1); self and same-image pairs never enter Q.  P and Q are averaged
     separately over their GLOBAL counts: row chunks accumulate SUMS, divided once at the end.  Negative right detach: Q scores use
-    flat @ flat.detach().T (critic parameters keep their full gradient).  Deterministic scorer only (no noise hook; package v3 §6.4)."""
+    flat @ flat.detach().T (critic parameters keep their full gradient).  Deterministic scorer only (no noise hook; package v3 §6.4).
+    objective "js" (P114, v5 NEXT-A-JS-AP3): the matched balanced-logistic loss on the SAME logit matrix f = a·C + b, the SAME tokens,
+    masks, chunks and separate P / Q means:  L = mean_P softplus(−2f) + mean_Q softplus(2f)  (its f-gradient at f = 0 equals −J's per
+    pair).  The VCS statistics are then computed from T = tanh(f) under no_grad, for comparison only."""
     if getattr(critic, "is_noisy", False):
         raise TypeError("the all-view-token path has no noise model (package v3 §6.4)")
     if not hasattr(critic, "score_matrix"):
         raise TypeError("all_view_tokens needs a similarity critic exposing score_matrix (cosine: learned or fixed)")
+    if objective not in ("vcs", "js"):
+        raise ValueError("objective must be 'vcs' or 'js'")
+    if objective == "js" and not (hasattr(critic, "scale") and hasattr(critic, "bias")):
+        raise TypeError("the all-view matched-JS loss needs the angular critic logit f = a·C + b (scale, bias)")
     V = len(views_z)
     if V < 2 or chunk_size < 1:
         raise ValueError("need >= 2 views and chunk_size >= 1")
@@ -570,6 +577,7 @@ def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool
     keys = flat.detach() if negative_detach else flat
     zero = flat.new_zeros(())
     s_p = s_q = s_p2 = s_q2 = sat_p = sat_q = zero
+    l_p = l_q = zero  # P114: summed softplus terms of the matched-JS loss
     tp_first = tq_first = zero
     n_p = n_q = 0
     for lo in range(0, n, chunk_size):
@@ -577,8 +585,15 @@ def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool
         same = ids[lo:hi, None] == ids[None, :]
         diag = idx[lo:hi, None] == idx[None, :]
         mask_p, mask_q = same & ~diag, ~same
-        tp = critic.score_matrix(flat[lo:hi] @ flat.T)[mask_p]
-        tq = critic.score_matrix(flat[lo:hi] @ keys.T)[mask_q]
+        if objective == "js":
+            fp = (critic.scale * (flat[lo:hi] @ flat.T) + critic.bias)[mask_p]
+            fq = (critic.scale * (flat[lo:hi] @ keys.T) + critic.bias)[mask_q]
+            l_p = l_p + F.softplus(-2.0 * fp).sum(); l_q = l_q + F.softplus(2.0 * fq).sum()
+            with torch.no_grad():
+                tp, tq = torch.tanh(fp), torch.tanh(fq)
+        else:
+            tp = critic.score_matrix(flat[lo:hi] @ flat.T)[mask_p]
+            tq = critic.score_matrix(flat[lo:hi] @ keys.T)[mask_q]
         s_p = s_p + tp.sum(); s_q = s_q + tq.sum()
         s_p2 = s_p2 + tp.square().sum(); s_q2 = s_q2 + tq.square().sum()
         sat_p = sat_p + (tp.detach().abs() > 0.95).sum(); sat_q = sat_q + (tq.detach().abs() > 0.95).sum()
@@ -588,7 +603,8 @@ def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool
     mp, mq, sp, sq = s_p / n_p, s_q / n_q, s_p2 / n_p, s_q2 / n_q
     j = mp - mq - 0.5 * sp - 0.5 * sq
     risk = 0.5 * (1.0 - 2.0 * mp + sp) + 0.5 * (1.0 + 2.0 * mq + sq)
-    return {"loss": -j, "J_raw": j, "R_binary": risk, "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
+    loss = (l_p / n_p + l_q / n_q) if objective == "js" else -j
+    return {"loss": loss, "js_loss": loss.detach() if objective == "js" else None, "J_raw": j, "R_binary": risk, "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
             "sat_pos_frac": sat_p.float() / n_p, "sat_neg_frac": sat_q.float() / n_q, "n_pos": n_p, "n_neg": n_q, "n_views": V, "n_base_images": B}
 
 
@@ -604,9 +620,11 @@ def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], 
     nd = cfg["pairing"]["negative_detach"]
     stats = _empty_stats()
     if scope == "all_view_tokens":
-        s = all_view_tokens_loss(vs, critic, negative_detach=nd, chunk_size=int(cfg["pairing"].get("all_view_chunk", 256)))
+        s = all_view_tokens_loss(vs, critic, negative_detach=nd, chunk_size=int(cfg["pairing"].get("all_view_chunk", 256)), objective="js" if js else "vcs")
         for kk in VCS_STAT_KEYS:
             stats[kk] = float(s[kk].detach())
+        if js:
+            stats["js_loss"] = float(s["js_loss"])
         return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"], "critic_pair_evals": s["n_pos"] + s["n_neg"]}
     if not (R > 1 or (js and noisy)):
         return None
