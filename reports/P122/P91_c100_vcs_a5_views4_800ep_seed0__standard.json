@@ -1,0 +1,1393 @@
+{
+  "protocol": "P122_v6_evidence",
+  "utc": "2026-10-03T19:32:14Z",
+  "run": "P91_c100_vcs_a5_views4_800ep_seed0",
+  "dataset": "cifar100",
+  "measurement_law": "standard",
+  "train_augmentation": {
+    "crop_scale": [
+      0.2,
+      1.0
+    ],
+    "color_jitter": {
+      "brightness": 0.4,
+      "contrast": 0.4,
+      "saturation": 0.4,
+      "hue": 0.1,
+      "p": 0.8
+    }
+  },
+  "measurement_augmentation": {
+    "source": "configs/cifar100_hpS_vcs_a5_views4_800ep_seed0.yaml",
+    "signature": "22f3b58bfde64c92"
+  },
+  "pools": {
+    "sizes": {
+      "fit": 8192,
+      "tune": 2048,
+      "eval": 8192
+    },
+    "hash": "ba51cfac0aae07ab",
+    "seed": 20261003,
+    "units": {
+      "fit": 4096,
+      "tune": 1024,
+      "eval": 4096
+    }
+  },
+  "aug_seed": 122,
+  "cache_keys": {
+    "aug": "448770762d0da6ea0d5a",
+    "feat": "86586f10cf914a4b965b"
+  },
+  "checkpoint_sha256": "60ab6ad97d8b2244e143e40597f08dc50f5262b29b1a9382fe5d5684d8f43321",
+  "dtype": "float32",
+  "method": "vcs_qmi",
+  "device": "cuda:0",
+  "budget": {
+    "steps": 1000,
+    "lrs": [
+      0.0001,
+      0.0005,
+      0.002
+    ],
+    "inits": [
+      0,
+      1,
+      2
+    ]
+  },
+  "smoke": false,
+  "losses": {
+    "vcs": {
+      "loss": "vcs",
+      "levels": {
+        "s": {
+          "candidates": [
+            {
+              "name": "TrainScorer",
+              "params": {
+                "parent": "train scorer"
+              },
+              "tune_risk": -0.9846670627593994,
+              "eval": {
+                "J": 0.9865075570196453,
+                "sq_risk": 0.01349244298035468,
+                "js_native": 1.3298324728294966
+              },
+              "seconds": 0.0
+            },
+            {
+              "name": "affine",
+              "params": {
+                "a": 80.82210190095688,
+                "b": -74.07907898500625,
+                "a_init": 1.0
+              },
+              "tune_risk": -0.9949925541877747,
+              "eval": {
+                "J": 0.9930076957575564,
+                "sq_risk": 0.00699230424244357,
+                "js_native": 1.3731490076461774
+              },
+              "seconds": 0.36348676681518555
+            },
+            {
+              "name": "affine",
+              "params": {
+                "a": 80.83308543057363,
+                "b": -74.08933453825293,
+                "a_init": 5.0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 0.16553235054016113
+            },
+            {
+              "name": "affine",
+              "params": {
+                "a": 20.0,
+                "b": 0.0,
+                "a_init": 20.0
+              },
+              "tune_risk": 1.0,
+              "eval": {
+                "J": -0.9999999999969124,
+                "sq_risk": 1.9999999999969122,
+                "js_native": -29.239416104825413
+              },
+              "seconds": 0.0008549690246582031
+            },
+            {
+              "name": "bins16",
+              "params": {
+                "K": 16,
+                "empty_bins": 0
+              },
+              "tune_risk": -0.9904079437255859,
+              "eval": {
+                "J": 0.9913573469908075,
+                "sq_risk": 0.008642653009192536,
+                "js_native": 1.364032479683419
+              },
+              "seconds": 0.4021885395050049
+            },
+            {
+              "name": "bins32",
+              "params": {
+                "K": 32,
+                "empty_bins": 0
+              },
+              "tune_risk": -0.9905712604522705,
+              "eval": {
+                "J": 0.9914673795213451,
+                "sq_risk": 0.008532620478654884,
+                "js_native": 1.364266116461462
+              },
+              "seconds": 0.0006079673767089844
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0001,
+                "init": 0,
+                "best_step": 1000
+              },
+              "tune_risk": -0.6142733097076416,
+              "eval": {
+                "J": 0.6157542490401159,
+                "sq_risk": 0.3842457509598841,
+                "js_native": 0.6543085458887813
+              },
+              "seconds": 2.041424512863159
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0001,
+                "init": 1,
+                "best_step": 1000
+              },
+              "tune_risk": -0.2921576201915741,
+              "eval": {
+                "J": 0.2928649112027242,
+                "sq_risk": 0.7071350887972758,
+                "js_native": 0.29633961448968216
+              },
+              "seconds": 1.747575283050537
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0001,
+                "init": 2,
+                "best_step": 1000
+              },
+              "tune_risk": -0.5664710998535156,
+              "eval": {
+                "J": 0.5682497225604227,
+                "sq_risk": 0.4317502774395773,
+                "js_native": 0.5983363915503623
+              },
+              "seconds": 1.7526297569274902
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0005,
+                "init": 0,
+                "best_step": 1000
+              },
+              "tune_risk": -0.9801353216171265,
+              "eval": {
+                "J": 0.9819847387398808,
+                "sq_risk": 0.01801526126011921,
+                "js_native": 1.3084326200118965
+              },
+              "seconds": 1.7700657844543457
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0005,
+                "init": 1,
+                "best_step": 1000
+              },
+              "tune_risk": -0.9718574285507202,
+              "eval": {
+                "J": 0.9742210205844325,
+                "sq_risk": 0.025778979415567504,
+                "js_native": 1.2780313550523221
+              },
+              "seconds": 1.7623858451843262
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0005,
+                "init": 2,
+                "best_step": 1000
+              },
+              "tune_risk": -0.977805495262146,
+              "eval": {
+                "J": 0.9798876356471413,
+                "sq_risk": 0.02011236435285868,
+                "js_native": 1.2993581744494695
+              },
+              "seconds": 1.7700190544128418
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.002,
+                "init": 0,
+                "best_step": 1000
+              },
+              "tune_risk": -0.9941011667251587,
+              "eval": {
+                "J": 0.9929993540564676,
+                "sq_risk": 0.007000645943532446,
+                "js_native": 1.3687286225336646
+              },
+              "seconds": 1.771798849105835
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.002,
+                "init": 1,
+                "best_step": 1000
+              },
+              "tune_risk": -0.9925792813301086,
+              "eval": {
+                "J": 0.9922309014002935,
+                "sq_risk": 0.0077690985997065365,
+                "js_native": 1.3621156433319193
+              },
+              "seconds": 1.7543928623199463
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.002,
+                "init": 2,
+                "best_step": 1000
+              },
+              "tune_risk": -0.9926038980484009,
+              "eval": {
+                "J": 0.9922566095591008,
+                "sq_risk": 0.007743390440899223,
+                "js_native": 1.362266267944314
+              },
+              "seconds": 1.7502858638763428
+            }
+          ],
+          "selected": "affine",
+          "seconds": 17.179197549819946
+        },
+        "Z": {
+          "candidates": [
+            {
+              "name": "z:none",
+              "params": {
+                "residual": false
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 0.0
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.1511833667755127
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.1345407962799072
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.1422760486602783
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.1675608158111572
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.177013874053955
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.1692450046539307
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.303692579269409
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": -0.9949929118156433,
+              "eval": {
+                "J": 0.9930068815705907,
+                "sq_risk": 0.006993118429409306,
+                "js_native": 1.373147711349596
+              },
+              "seconds": 3.2995142936706543
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 2,
+                "best_step": 350
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.302243232727051
+            }
+          ],
+          "selected": {
+            "residual": true,
+            "lr": 0.002,
+            "init": 2,
+            "best_step": 350
+          },
+          "seconds": 28.870527982711792
+        },
+        "H": {
+          "candidates": [
+            {
+              "name": "h:none",
+              "params": {
+                "residual": false
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 0.0
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2863080501556396
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2203633785247803
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.218510866165161
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2225852012634277
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.219364881515503
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2202935218811035
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2183964252471924
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2253258228302
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": -0.9954928159713745,
+              "eval": {
+                "J": 0.9927823114162628,
+                "sq_risk": 0.00721768858373717,
+                "js_native": 1.372661450819006
+              },
+              "seconds": 3.2076220512390137
+            }
+          ],
+          "selected": {
+            "residual": false
+          },
+          "seconds": 29.0863995552063
+        }
+      },
+      "eval": {
+        "train": {
+          "J": 0.9865075570196453,
+          "sq_risk": 0.01349244298035468,
+          "js_native": 1.3298324728294966
+        },
+        "s": {
+          "J": 0.9930068815705907,
+          "sq_risk": 0.006993118429409306,
+          "js_native": 1.373147711349596
+        },
+        "Z": {
+          "J": 0.9927823114162628,
+          "sq_risk": 0.00721768858373717,
+          "js_native": 1.372661450819006
+        },
+        "H": {
+          "J": 0.9927823114162628,
+          "sq_risk": 0.00721768858373717,
+          "js_native": 1.372661450819006
+        }
+      },
+      "density_diag": {
+        "train": {
+          "global_log_mean_exp_2f_Q": -3.624410372551883,
+          "per_anchor_mean": -3.6518464164193576,
+          "per_anchor_sd": 0.5828170420232038,
+          "per_anchor_ess_mean": 21.91838167785899,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        },
+        "s": {
+          "global_log_mean_exp_2f_Q": -2.170370355043641,
+          "per_anchor_mean": -5.243865094943635,
+          "per_anchor_sd": 2.631793942054898,
+          "per_anchor_ess_mean": 2.3007896517268858,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        },
+        "Z": {
+          "global_log_mean_exp_2f_Q": -1.959515879179885,
+          "per_anchor_mean": -5.483976104252447,
+          "per_anchor_sd": 2.9199562146591185,
+          "per_anchor_ess_mean": 2.068031182794416,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        },
+        "H": {
+          "global_log_mean_exp_2f_Q": -1.959515879179885,
+          "per_anchor_mean": -5.483976104252447,
+          "per_anchor_sd": 2.9199562146591185,
+          "per_anchor_ess_mean": 2.068031182794416,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        }
+      },
+      "increments": {
+        "s_minus_train": {
+          "mean": 0.0064993245509453795,
+          "ci95": [
+            0.004532029373163537,
+            0.008549397897462637
+          ],
+          "units": 4096
+        },
+        "Z_minus_s": {
+          "mean": -0.00022457015432779165,
+          "ci95": [
+            -0.0005459690793326198,
+            4.245444978030737e-05
+          ],
+          "units": 4096
+        },
+        "H_minus_Z": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "units": 4096
+        },
+        "H_minus_s": {
+          "mean": -0.00022457015432779165,
+          "ci95": [
+            -0.0005459690793326198,
+            4.245444978030737e-05
+          ],
+          "units": 4096
+        }
+      },
+      "wording": "additional score recovered in these function classes and budgets (not true information terms)",
+      "seconds": 76.75387477874756
+    },
+    "js": {
+      "loss": "js",
+      "levels": {
+        "s": {
+          "candidates": [
+            {
+              "name": "TrainScorer",
+              "params": {
+                "parent": "train scorer"
+              },
+              "tune_risk": 0.057537369430065155,
+              "eval": {
+                "J": 0.9865075570196453,
+                "sq_risk": 0.01349244298035468,
+                "js_native": 1.3298324728294966
+              },
+              "seconds": 0.0
+            },
+            {
+              "name": "affine",
+              "params": {
+                "a": 85.43022651240852,
+                "b": -78.18531287563458,
+                "a_init": 1.0
+              },
+              "tune_risk": 0.009431005455553532,
+              "eval": {
+                "J": 0.993443484474819,
+                "sq_risk": 0.006556515525180995,
+                "js_native": 1.3738996412901152
+              },
+              "seconds": 0.07857346534729004
+            },
+            {
+              "name": "affine",
+              "params": {
+                "a": 85.43739167851551,
+                "b": -78.1919501720548,
+                "a_init": 5.0
+              },
+              "tune_risk": 0.009430565871298313,
+              "eval": {
+                "J": 0.9934432130559139,
+                "sq_risk": 0.006556786944086124,
+                "js_native": 1.3738991498818773
+              },
+              "seconds": 0.06690835952758789
+            },
+            {
+              "name": "affine",
+              "params": {
+                "a": 85.41406865592157,
+                "b": -78.1703779943391,
+                "a_init": 20.0
+              },
+              "tune_risk": 0.009431781247258186,
+              "eval": {
+                "J": 0.9934439676473894,
+                "sq_risk": 0.006556032352610597,
+                "js_native": 1.3739005294632622
+              },
+              "seconds": 0.0528864860534668
+            },
+            {
+              "name": "bins16",
+              "params": {
+                "K": 16,
+                "empty_bins": 0
+              },
+              "tune_risk": 0.02433425933122635,
+              "eval": {
+                "J": 0.9913573469908075,
+                "sq_risk": 0.008642653009192536,
+                "js_native": 1.364032479683419
+              },
+              "seconds": 0.0009162425994873047
+            },
+            {
+              "name": "bins32",
+              "params": {
+                "K": 32,
+                "empty_bins": 0
+              },
+              "tune_risk": 0.021095197647809982,
+              "eval": {
+                "J": 0.9914673795213451,
+                "sq_risk": 0.008532620478654884,
+                "js_native": 1.364266116461462
+              },
+              "seconds": 0.0004086494445800781
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0001,
+                "init": 0,
+                "best_step": 1000
+              },
+              "tune_risk": 0.7102640867233276,
+              "eval": {
+                "J": 0.6344151251269796,
+                "sq_risk": 0.3655848748730204,
+                "js_native": 0.6776025986266255
+              },
+              "seconds": 1.6309056282043457
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0001,
+                "init": 1,
+                "best_step": 1000
+              },
+              "tune_risk": 1.0893912315368652,
+              "eval": {
+                "J": 0.29404507485299036,
+                "sq_risk": 0.7059549251470096,
+                "js_native": 0.29762224865834686
+              },
+              "seconds": 1.629450798034668
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0001,
+                "init": 2,
+                "best_step": 1000
+              },
+              "tune_risk": 0.7736759185791016,
+              "eval": {
+                "J": 0.5813186788671673,
+                "sq_risk": 0.41868132113283274,
+                "js_native": 0.6145639193061259
+              },
+              "seconds": 1.6292712688446045
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0005,
+                "init": 0,
+                "best_step": 1000
+              },
+              "tune_risk": 0.03312112018465996,
+              "eval": {
+                "J": 0.9907596398628888,
+                "sq_risk": 0.009240360137111159,
+                "js_native": 1.356060364391963
+              },
+              "seconds": 1.62626314163208
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0005,
+                "init": 1,
+                "best_step": 1000
+              },
+              "tune_risk": 0.05652973800897598,
+              "eval": {
+                "J": 0.985725563351603,
+                "sq_risk": 0.014274436648397004,
+                "js_native": 1.3337609379734416
+              },
+              "seconds": 1.633312463760376
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.0005,
+                "init": 2,
+                "best_step": 1000
+              },
+              "tune_risk": 0.039735112339258194,
+              "eval": {
+                "J": 0.9893817620443601,
+                "sq_risk": 0.010618237955639875,
+                "js_native": 1.3499774823581514
+              },
+              "seconds": 1.6284911632537842
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.002,
+                "init": 0,
+                "best_step": 1000
+              },
+              "tune_risk": 0.01079636812210083,
+              "eval": {
+                "J": 0.9937485155132133,
+                "sq_risk": 0.006251484486786696,
+                "js_native": 1.373924380974828
+              },
+              "seconds": 1.6300978660583496
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.002,
+                "init": 1,
+                "best_step": 1000
+              },
+              "tune_risk": 0.012621929869055748,
+              "eval": {
+                "J": 0.9938136071898493,
+                "sq_risk": 0.006186392810150654,
+                "js_native": 1.3730638344005677
+              },
+              "seconds": 1.6283855438232422
+            },
+            {
+              "name": "mlp1d",
+              "params": {
+                "lr": 0.002,
+                "init": 2,
+                "best_step": 1000
+              },
+              "tune_risk": 0.010555161163210869,
+              "eval": {
+                "J": 0.9937230301823223,
+                "sq_risk": 0.006276969817677669,
+                "js_native": 1.374000494095542
+              },
+              "seconds": 1.6282823085784912
+            }
+          ],
+          "selected": "affine",
+          "seconds": 14.876363515853882
+        },
+        "Z": {
+          "candidates": [
+            {
+              "name": "z:none",
+              "params": {
+                "residual": false
+              },
+              "tune_risk": 0.009430565871298313,
+              "eval": {
+                "J": 0.9934432130559139,
+                "sq_risk": 0.006556786944086124,
+                "js_native": 1.3738991498818773
+              },
+              "seconds": 0.0
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 0,
+                "best_step": 340
+              },
+              "tune_risk": 0.009179679676890373,
+              "eval": {
+                "J": 0.9932187074492689,
+                "sq_risk": 0.006781292550731122,
+                "js_native": 1.3708042702976762
+              },
+              "seconds": 3.0301613807678223
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 1,
+                "best_step": 200
+              },
+              "tune_risk": 0.009368880651891232,
+              "eval": {
+                "J": 0.9928963909893989,
+                "sq_risk": 0.007103609010601142,
+                "js_native": 1.371473836869923
+              },
+              "seconds": 3.030308961868286
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 2,
+                "best_step": 310
+              },
+              "tune_risk": 0.009017330594360828,
+              "eval": {
+                "J": 0.9930551247798522,
+                "sq_risk": 0.00694487522014775,
+                "js_native": 1.3707219520401932
+              },
+              "seconds": 3.028831958770752
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 0,
+                "best_step": 70
+              },
+              "tune_risk": 0.009206410497426987,
+              "eval": {
+                "J": 0.9926952840738767,
+                "sq_risk": 0.007304715926123251,
+                "js_native": 1.370533532777934
+              },
+              "seconds": 3.038377046585083
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 1,
+                "best_step": 60
+              },
+              "tune_risk": 0.009344179183244705,
+              "eval": {
+                "J": 0.9926691997814312,
+                "sq_risk": 0.0073308002185688,
+                "js_native": 1.3706153204156133
+              },
+              "seconds": 3.039134979248047
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 2,
+                "best_step": 70
+              },
+              "tune_risk": 0.00895526260137558,
+              "eval": {
+                "J": 0.9926393635497113,
+                "sq_risk": 0.007360636450288727,
+                "js_native": 1.370501500899603
+              },
+              "seconds": 3.0503203868865967
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 0,
+                "best_step": 30
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.0216822624206543
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 1,
+                "best_step": 30
+              },
+              "tune_risk": 0.009220551699399948,
+              "eval": {
+                "J": 0.9929096699326155,
+                "sq_risk": 0.007090330067384465,
+                "js_native": 1.3709856632008117
+              },
+              "seconds": 3.026118278503418
+            },
+            {
+              "name": "z:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 2,
+                "best_step": 30
+              },
+              "tune_risk": 0.009349897503852844,
+              "eval": {
+                "J": 0.9931889111975991,
+                "sq_risk": 0.006811088802400889,
+                "js_native": 1.3715510570707565
+              },
+              "seconds": 3.028960943222046
+            }
+          ],
+          "selected": {
+            "residual": true,
+            "lr": 0.002,
+            "init": 0,
+            "best_step": 30
+          },
+          "seconds": 27.316648483276367
+        },
+        "H": {
+          "candidates": [
+            {
+              "name": "h:none",
+              "params": {
+                "residual": false
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 0.0
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.0860912799835205
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.0937066078186035
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0001,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.1090595722198486
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.108419418334961
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.1053712368011475
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.0005,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.110602617263794
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 0,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.1647212505340576
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 1,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.265942096710205
+            },
+            {
+              "name": "h:residual",
+              "params": {
+                "residual": true,
+                "lr": 0.002,
+                "init": 2,
+                "best_step": 0
+              },
+              "tune_risk": 0.008285565301775932,
+              "eval": {
+                "J": 0.9921569986241261,
+                "sq_risk": 0.007843001375873904,
+                "js_native": 1.3696224000387074
+              },
+              "seconds": 3.098118543624878
+            }
+          ],
+          "selected": {
+            "residual": false
+          },
+          "seconds": 28.189173221588135
+        }
+      },
+      "eval": {
+        "train": {
+          "J": 0.9865075570196453,
+          "sq_risk": 0.01349244298035468,
+          "js_native": 1.3298324728294966
+        },
+        "s": {
+          "J": 0.9934432130559139,
+          "sq_risk": 0.006556786944086124,
+          "js_native": 1.3738991498818773
+        },
+        "Z": {
+          "J": 0.9921569986241261,
+          "sq_risk": 0.007843001375873904,
+          "js_native": 1.3696224000387074
+        },
+        "H": {
+          "J": 0.9921569986241261,
+          "sq_risk": 0.007843001375873904,
+          "js_native": 1.3696224000387074
+        }
+      },
+      "density_diag": {
+        "train": {
+          "global_log_mean_exp_2f_Q": -3.624410372551883,
+          "per_anchor_mean": -3.6518464164193576,
+          "per_anchor_sd": 0.5828170420232038,
+          "per_anchor_ess_mean": 21.91838167785899,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        },
+        "s": {
+          "global_log_mean_exp_2f_Q": -1.6052751194503,
+          "per_anchor_mean": -5.0051948131104025,
+          "per_anchor_sd": 2.802384512258931,
+          "per_anchor_ess_mean": 2.1847092161291046,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        },
+        "Z": {
+          "global_log_mean_exp_2f_Q": 0.13224434184467704,
+          "per_anchor_mean": -4.962799717208625,
+          "per_anchor_sd": 3.3799301773634656,
+          "per_anchor_ess_mean": 2.0714322800689757,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        },
+        "H": {
+          "global_log_mean_exp_2f_Q": 0.13224434184467704,
+          "per_anchor_mean": -4.962799717208625,
+          "per_anchor_sd": 3.3799301773634656,
+          "per_anchor_ess_mean": 2.0714322800689757,
+          "n_anchor": 512,
+          "n_partner": 512,
+          "note": "necessary-condition diagnostic only (0 for a correct full density ratio; f = 0 also gives 0)"
+        }
+      },
+      "increments": {
+        "s_minus_train": {
+          "mean": 0.006935656036268533,
+          "ci95": [
+            0.005100480019832181,
+            0.008826025533533713
+          ],
+          "units": 4096
+        },
+        "Z_minus_s": {
+          "mean": -0.0012862144317877617,
+          "ci95": [
+            -0.0025661520228629237,
+            -0.00021450914161971025
+          ],
+          "units": 4096
+        },
+        "H_minus_Z": {
+          "mean": 0.0,
+          "ci95": [
+            0.0,
+            0.0
+          ],
+          "units": 4096
+        },
+        "H_minus_s": {
+          "mean": -0.0012862144317877617,
+          "ci95": [
+            -0.0025661520228629237,
+            -0.00021450914161971025
+          ],
+          "units": 4096
+        }
+      },
+      "wording": "additional score recovered in these function classes and budgets (not true information terms)",
+      "seconds": 71.99379539489746
+    }
+  },
+  "seconds": {
+    "features": 2.1908445358276367,
+    "total": 150.94324398040771
+  },
+  "memory": {
+    "peak_allocated_mb": 1372.55908203125,
+    "peak_reserved_mb": 1658.0
+  }
+}
