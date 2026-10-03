@@ -18,7 +18,7 @@ import numpy as np
 
 REPO = Path(__file__).resolve().parents[1]
 OUT_ROOT = Path("/home/infres/yinwang/CS_QMI/outputs")
-FAMILY = {"P35_vcs_a5": "recipe VCS (P35)", "P41_simclr": "tuned SimCLR (P41)", "P104_G2": "G2", "P104_U2": "U2"}
+FAMILY = {"P35_vcs_a5": "recipe VCS (P35)", "P41_simclr": "tuned SimCLR (P41)", "P104_G2": "G2", "P104_U2": "U2", "P107_AP3": "A-P3 (P113)"}
 CANDS = ("zero", "cosine", "mlp", "prod_ridge", "rff_ridge")
 LAYERS = ("layer3", "h", "z", "logits")
 STATS = ("vcs_closed", "js_exact")
