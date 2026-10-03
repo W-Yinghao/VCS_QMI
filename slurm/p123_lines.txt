@@ -1,0 +1,6 @@
+# P123 (v6 V6-GRAD) launch lines — FROZEN — submitted by the main session.  Main session freezes the prereg first.  Normal QOS only (never runfill); node60 allowed.
+# RUNS / EXTRA via the environment (run lists contain commas); resumable (finished run JSONs skipped).  Output: /home/infres/yinwang/CS_QMI/outputs/P123_grad_results/<run>.json
+# Job 1 — CIFAR-10, 8 runs x epochs 100 / 400 / 800, 4 batches, 11 counterfactual scorers + actual.
+RUNS='P107_AP3_views4_800ep_seed0,P107_AP3_augstrong_views4_800ep_seed0,P104_G2_views4_800ep_seed0,P111_G2_augstrong_views4_800ep_seed0,P41_simclr_views4_800ep_seed0,P89_simclr_views4_800ep_augstrong_seed0,P35_vcs_a5_views4_800ep_seed0,P43_vcs_a5_views4_800ep_augstrong_seed0' sbatch --parsable --job-name=p123_grad_c10 --export=ALL slurm/p123_unit.sbatch
+# Job 2 — CIFAR-100, 3 runs (P91 runs: epoch 800 only — epoch 100 / 400 requests recorded as mapping to 800, measured once).
+RUNS='P107_AP3_c100_views4_800ep_seed0,P91_c100_vcs_a5_views4_800ep_seed0,P91_c100_simclr_views4_800ep_seed0' sbatch --parsable --job-name=p123_grad_c100 --export=ALL slurm/p123_unit.sbatch

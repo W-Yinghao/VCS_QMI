@@ -278,3 +278,224 @@ def resolve_checkpoints(available: list[str], requested=(20, 100, 400, 800)) -> 
         else:
             used.add(e); out.append({"requested": r, "checkpoint": ep[e], "epoch": e, "note": note, "duplicate": False})
     return out
+
+
+# =============================================================================================================================
+# P123 (v6 V6-GRAD): the same fixed batches, (i) ACTUAL — each checkpoint's own loss / pairing / scale — and (ii) COUNTERFACTUAL-READONLY —
+# same checkpoint, images, pairs and gradient routing, only the scorer f replaced; instantaneous derivatives, no parameter update, never a
+# training result.  Everything above this line is the frozen P115 code and is not modified (P115 outputs stay reproducible).
+#   For A_c(T) = cT − T²/2 with T = tanh f(s):   ∂A_c/∂s = (c − T)(1 − T²) f′(s)   (c = +1 on P, −1 on Q; the loss is −J = −mean_P A_+ − mean_Q A_−).
+#   Affine f = a(s − κ): scalar peaks s± = κ ∓ log2 / (2a) (T = ∓1/3), max |∂A/∂s| = 32a/27 when the peak lies in [−1, 1].
+#   Curvature (v6 §7): f = a[(s − κ) + λ s(1 − s)], f′ = a[1 + λ(1 − 2s)]; κ is the affine anchor, the actual zero is solved numerically.
+# =============================================================================================================================
+LOG2 = math.log(2.0)
+PEAK_WINDOW = 0.05                                    # |s − s_peak| <= 0.05 counts as "near the scalar peak" (fixed before any run)
+COUNTERFACTUAL_SCORERS = tuple([{"name": f"affine_a{a:g}_k{k:g}", "kind": "affine", "a": float(a), "kappa": float(k), "lam": 0.0}
+                                for a in (1, 2, 3) for k in (0.25, 0.5, 0.75)]
+                               + [{"name": f"curv_a2_k0.5_lam{l:+g}", "kind": "curv", "a": 2.0, "kappa": 0.5, "lam": float(l)} for l in (-0.25, 0.25)])
+
+
+def scorer_f(spec: dict, s: Tensor) -> Tensor:
+    a, k, lam = spec["a"], spec["kappa"], spec.get("lam", 0.0)
+    return a * ((s - k) + lam * s * (1.0 - s))
+
+
+def scorer_fprime(spec: dict, s: Tensor) -> Tensor:
+    return spec["a"] * (1.0 + spec.get("lam", 0.0) * (1.0 - 2.0 * s))
+
+
+def scorer_from_critic(crit) -> dict:
+    """The run's own cosine-family critic as an affine spec f = a s + b = a(s − κ), κ = −b/a."""
+    a, b = float(crit.scale), float(crit.bias)
+    return {"name": "actual", "kind": "affine", "a": a, "kappa": -b / a, "lam": 0.0}
+
+
+def scorer_zero(spec: dict) -> float | None:
+    """Actual zero of f on [−1, 1] (bisection); None if f has no sign change there."""
+    lo, hi = -1.0, 1.0
+    f = lambda x: float(scorer_f(spec, torch.tensor(x, dtype=torch.float64)))
+    if f(lo) * f(hi) > 0:
+        return None
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        if f(lo) * f(mid) <= 0:
+            hi = mid
+        else:
+            lo = mid
+    return 0.5 * (lo + hi)
+
+
+def scorer_peaks(spec: dict) -> dict:
+    """In-range argmax of |∂A_c/∂s| on [−1, 1] (grid of 8001 points), plus the affine closed form and whether it lies in range."""
+    s = torch.linspace(-1.0, 1.0, 8001, dtype=torch.float64); t = torch.tanh(scorer_f(spec, s)); fp = scorer_fprime(spec, s)
+    out = {"actual_zero": scorer_zero(spec)}
+    for name, c in (("pos", 1.0), ("neg", -1.0)):
+        g = ((c - t) * (1 - t.square()) * fp).abs(); i = int(g.argmax())
+        out[name] = {"s_peak_in_range": float(s[i]), "max_abs_dA_ds_in_range": float(g[i])}
+    if spec["kind"] == "affine":
+        sp, sn = spec["kappa"] - LOG2 / (2 * spec["a"]), spec["kappa"] + LOG2 / (2 * spec["a"])
+        out["pos"].update({"s_peak_closed_form": sp, "closed_form_in_range": -1.0 <= sp <= 1.0})
+        out["neg"].update({"s_peak_closed_form": sn, "closed_form_in_range": -1.0 <= sn <= 1.0})
+        out["max_abs_dA_ds_closed_form"] = 32 * spec["a"] / 27
+    return out
+
+
+def pair_sets(cfg: dict, V: int, B: int, *, pair_seed: int, device, simclr_counterfactual_scope: str = "all_view_tokens") -> dict:
+    """Token-index pair sets reproducing the run's VCS pairing exactly (objective_terms above): cross-view K cyclic shifts with the same
+    pair generator, or all view tokens.  SimCLR checkpoints have no VCS pairing; their counterfactual uses `simclr_counterfactual_scope`
+    (all view tokens, full gradient = A-P3's structure), recorded in the output."""
+    method = cfg["run"]["method"]
+    if method == "vcs_qmi":
+        scope = cfg["pairing"].get("pair_scope", "cross_view_k"); nd = bool(cfg["pairing"]["negative_detach"]); k = int(cfg["pairing"].get("k", 8))
+    else:
+        scope, nd, k = simclr_counterfactual_scope, False, int(cfg["pairing"].get("k", 8))
+    ar = torch.arange(B, device=device)
+    if scope == "all_view_tokens":
+        n = V * B; ids = torch.arange(n, device=device) % B; same = ids[:, None] == ids[None, :]; diag = torch.eye(n, dtype=torch.bool, device=device)
+        pl, pr = (same & ~diag).nonzero(as_tuple=True); ql, qr = (~same).nonzero(as_tuple=True)
+        return {"scope": scope, "negative_detach": nd, "pl": pl, "pr": pr, "ql": ql, "qr": qr, "wp": 1.0 / len(pl), "wq": 1.0 / len(ql),
+                "p_img": ids[pl], "p_va": pl // B, "p_vb": pr // B, "q_img_l": ids[ql], "q_img_r": ids[qr]}
+    from reference.ssl_core import cyclic_negative_indices  # noqa: PLC0415
+    g = torch.Generator().manual_seed(pair_seed); pairs = [(a, b) for a in range(V) for b in range(a + 1, V)]
+    pl, pr, ql, qr, pva, pvb = [], [], [], [], [], []
+    for a, b in pairs:
+        idx, _ = cyclic_negative_indices(B, k, generator=g, device=device)
+        pl.append(a * B + ar); pr.append(b * B + ar); pva.append(torch.full_like(ar, a)); pvb.append(torch.full_like(ar, b))
+        ql.append((a * B + ar).unsqueeze(0).expand(k, -1).reshape(-1)); qr.append((b * B + idx).reshape(-1))
+    pl, pr, ql, qr = torch.cat(pl), torch.cat(pr), torch.cat(ql), torch.cat(qr)
+    return {"scope": scope, "negative_detach": nd, "pl": pl, "pr": pr, "ql": ql, "qr": qr, "wp": 1.0 / len(pl), "wq": 1.0 / len(ql),
+            "p_img": pl % B, "p_va": torch.cat(pva), "p_vb": torch.cat(pvb), "q_img_l": ql % B, "q_img_r": qr % B}
+
+
+def pair_similarities(z: Tensor, sets: dict) -> tuple[Tensor, Tensor]:
+    """s on the fixed P and Q sets (with graph); Q's right side detached iff the run detaches negatives.  All-view scope via the token Gram
+    matrix (same values as the elementwise products, far less memory)."""
+    zr = z.detach() if sets["negative_detach"] else z
+    if sets["scope"] == "all_view_tokens":
+        return (z @ z.T)[sets["pl"], sets["pr"]], (z @ zr.T)[sets["ql"], sets["qr"]]
+    return (z[sets["pl"]] * z[sets["pr"]]).sum(-1), (z[sets["ql"]] * zr[sets["qr"]]).sum(-1)
+
+
+def cf_terms(z: Tensor, sets: dict, spec: dict, sims: tuple[Tensor, Tensor] | None = None) -> dict:
+    """−J with scorer `spec` on the fixed pair sets: Lp = Σ_P wp (−T + T²/2), Lq = Σ_Q wq (T + T²/2).
+    Returns the losses (with graph) and detached per-pair arrays s, f, T, c − T, f′, |∂A_c/∂s|."""
+    sp, sq = sims if sims is not None else pair_similarities(z, sets)
+    fp_, fq_ = scorer_f(spec, sp), scorer_f(spec, sq); tp, tq = torch.tanh(fp_), torch.tanh(fq_)
+    c_pos = sets["wp"] * (-tp + 0.5 * tp.square()); c_neg = sets["wq"] * (tq + 0.5 * tq.square())
+    out = {"Lp": c_pos.sum(), "Lq": c_neg.sum(), "c_pos": c_pos, "c_neg": c_neg}
+    for nm, s, f, t, c in (("pos", sp, fp_, tp, 1.0), ("neg", sq, fq_, tq, -1.0)):
+        s, f, t = s.detach(), f.detach(), t.detach(); fpr = scorer_fprime(spec, s)
+        out[nm] = {"s": s, "f": f, "T": t, "c_minus_T": c - t, "fprime": fpr, "abs_dA_ds": ((c - t) * (1 - t.square()) * fpr).abs()}
+    return out
+
+
+def _gradblock(L: Tensor, z: Tensor, r: Tensor, h: Tensor, pe: list, pp: list) -> dict:
+    gs = torch.autograd.grad(L, [z, r, h] + pe + pp, retain_graph=True, allow_unused=True)
+    flat = lambda xs, ps: torch.cat([(g if g is not None else torch.zeros_like(p)).flatten() for g, p in zip(xs, ps)])
+    return {"z": gs[0], "r": gs[1], "h": gs[2], "enc": flat(gs[3:3 + len(pe)], pe), "proj": flat(gs[3 + len(pe):], pp)}
+
+
+def _norms(gp: dict, gq: dict) -> dict:
+    return {k: {"P": float(gp[k].norm()), "Q": float(gq[k].norm()), "total": float((gp[k] + gq[k]).norm()), "cos_P_Q": _cos(gp[k].flatten(), gq[k].flatten())}
+            for k in ("z", "r", "h", "enc", "proj")}
+
+
+def _group_shares(c_pos: Tensor, mask_list: list, labels: list, gP: dict, h: Tensor, pe: list) -> list:
+    """Projection contributions ⟨g_b, g_P⟩ / ‖g_P‖² of disjoint positive groups (sum to 1; may be negative) at the encoder-parameter and h
+    levels, with ‖g_b‖; plus each group's share of the scalar loss."""
+    rows, eP2, hP2 = [], float(gP["enc"] @ gP["enc"]), float((gP["h"] * gP["h"]).sum())
+    for lab, m in zip(labels, mask_list):
+        row = {"bin": lab, "n_pos": int(m.sum())}
+        if int(m.sum()):
+            Lb = c_pos[m].sum()
+            gs = torch.autograd.grad(Lb, [h] + pe, retain_graph=True, allow_unused=True)
+            ge = torch.cat([(g if g is not None else torch.zeros_like(p)).flatten() for g, p in zip(gs[1:], pe)])
+            row.update({"enc_proj_contribution": float(ge @ gP["enc"]) / max(eP2, 1e-30), "enc_norm": float(ge.norm()),
+                        "h_proj_contribution": float((gs[0] * gP["h"]).sum()) / max(hP2, 1e-30), "h_norm": float(gs[0].norm())})
+        rows.append(row)
+    return rows
+
+
+def scorer_block(cfg: dict, z: Tensor, r: Tensor, h: Tensor, pe: list, pp: list, sets: dict, spec: dict, iou_pos: Tensor, labels_img: Tensor | None,
+                 *, groups_at_encoder: bool = True, sims: tuple[Tensor, Tensor] | None = None) -> dict:
+    """All recorded quantities for one scorer on one batch (positives and negatives separately)."""
+    t = cf_terms(z, sets, spec, sims)
+    gp, gq = _gradblock(t["Lp"], z, r, h, pe, pp), _gradblock(t["Lq"], z, r, h, pe, pp)
+    pk = scorer_peaks(spec)
+    out: dict[str, Any] = {"scorer": {k: spec[k] for k in ("name", "kind", "a", "kappa", "lam")}, "peaks": pk,
+                           "Lp": float(t["Lp"].detach()), "Lq": float(t["Lq"].detach()), "loss": float((t["Lp"] + t["Lq"]).detach()),
+                           "grad_vector_norms": _norms(gp, gq)}
+    for nm in ("pos", "neg"):
+        d = t[nm]; w = sets["wp"] if nm == "pos" else sets["wq"]
+        sp_ = pk[nm]["s_peak_in_range"]
+        out[nm] = {k: summary(d[k]) for k in ("s", "f", "T", "c_minus_T", "fprime", "abs_dA_ds")}
+        out[nm]["scalar_total_abs_action"] = float(w * d["abs_dA_ds"].sum())
+        out[nm]["mass_near_peak"] = float(((d["s"] - sp_).abs() <= PEAK_WINDOW).float().mean())
+    # positive groups by true crop IoU
+    masks = [(iou_pos >= lo) & (iou_pos < hi) for lo, hi in zip(IOU_BINS[:-1], IOU_BINS[1:])]
+    labs = [[lo, min(hi, 1.0)] for lo, hi in zip(IOU_BINS[:-1], IOU_BINS[1:])]
+    rows = _group_shares(t["c_pos"], masks, labs, gp, h, pe) if groups_at_encoder else [{"bin": l, "n_pos": int(m.sum())} for l, m in zip(labs, masks)]
+    act = t["pos"]["abs_dA_ds"]; tot_act = float(act.sum())
+    for row, m in zip(rows, masks):
+        if int(m.sum()):
+            row.update({"scalar_action_share": float(act[m].sum()) / max(tot_act, 1e-30), "s_pos_mean": float(t["pos"]["s"][m].mean()),
+                        "T_pos_mean": float(t["pos"]["T"][m].mean())})
+    out["iou_groups_pos"] = rows
+    # isolated semantic diagnostic view (labels NEVER filter or weight anything; negatives stay the random population)
+    if labels_img is not None:
+        same = labels_img[sets["q_img_l"]] == labels_img[sets["q_img_r"]]
+        sem = {"frac_same_class_neg": float(same.float().mean()), "n_neg": int(same.numel())}
+        if int(same.sum()):
+            aq = t["neg"]["abs_dA_ds"]
+            sem["scalar_action_share_same_class"] = float(aq[same].sum()) / max(float(aq.sum()), 1e-30)
+            gh = torch.autograd.grad(t["c_neg"][same].sum(), h, retain_graph=True)[0]
+            sem["h_proj_contribution_same_class"] = float((gh * gq["h"]).sum()) / max(float((gq["h"] * gq["h"]).sum()), 1e-30)
+            sem["h_norm_same_class"] = float(gh.norm())
+        out["semantic_view_isolated"] = sem
+    return out
+
+
+def grad_batch_diagnostics(cfg: dict, enc, proj, crit, views: list[Tensor], boxes: np.ndarray, device, *, pair_seed: int,
+                           labels_img: Tensor | None = None, scorers=COUNTERFACTUAL_SCORERS, only_actual: bool = False) -> dict[str, Any]:
+    """One fixed batch.  BN in training mode on throw-away copies (as a training step, buffers discarded) — the read-only copy restores the
+    train-mode BN condition of the update; eval-mode measurement (geometry) is kept separate.  Critic scored clean (eval)."""
+    enc, proj = copy.deepcopy(enc).train(), copy.deepcopy(proj).train()
+    if crit is not None:
+        crit = copy.deepcopy(crit).eval()
+    eps = cfg["model"]["normalization"]["eps"]; V, B = len(views), views[0].shape[0]
+    h = enc(torch.cat([v.to(device) for v in views])); r = proj(h); z = F.normalize(r, dim=1, eps=eps)
+    pe = [q for q in enc.parameters() if q.requires_grad]; pp = [q for q in proj.parameters() if q.requires_grad]
+    sets = pair_sets(cfg, V, B, pair_seed=pair_seed, device=device)
+    ov = np.zeros((B, V, V), dtype=np.float64)
+    for i in range(B):
+        for x in range(V):
+            for y in range(V):
+                ov[i, x, y] = crop_overlap(boxes[i, x], boxes[i, y])[0]
+    ovt = torch.as_tensor(ov, device=device)
+    iou_pos = ovt[sets["p_img"], sets["p_va"], sets["p_vb"]]
+    lab = labels_img.to(device) if labels_img is not None else None
+    sims = pair_similarities(z, sets)
+    out: dict[str, Any] = {"bn_mode": "train (throw-away copy)", "pairing": {"scope": sets["scope"], "negative_detach": sets["negative_detach"],
+                           "n_pos": int(len(sets["pl"])), "n_neg": int(len(sets["ql"])), "simclr_counterfactual_pairing": cfg["run"]["method"] != "vcs_qmi"}}
+    # ---- ACTUAL: the checkpoint's own loss
+    if cfg["run"]["method"] == "vcs_qmi":
+        spec = scorer_from_critic(crit)
+        act = scorer_block(cfg, z, r, h, pe, pp, sets, spec, iou_pos, lab, sims=sims)
+        ref = objective_terms(cfg, crit, list(z.chunk(V)), pair_seed=pair_seed)       # P115 decomposition of the training loss
+        act["check_vs_training_loss"] = {"Lp_rel_err": abs(act["Lp"] - float(ref["Lp"].detach())) / max(abs(float(ref["Lp"].detach())), 1e-30),
+                                         "Lq_rel_err": abs(act["Lq"] - float(ref["Lq"].detach())) / max(abs(float(ref["Lq"].detach())), 1e-30)}
+        out["actual"] = act
+    else:
+        ref = objective_terms(cfg, None, list(z.chunk(V)), pair_seed=pair_seed)        # SimCLR NT-Xent split L = mean(−logit_pos) + mean(lse)
+        gp, gq = _gradblock(ref["Lp"], z, r, h, pe, pp), _gradblock(ref["Lq"], z, r, h, pe, pp)
+        im, va, vb = ref["img"], ref["va"], ref["vb"]
+        iou_s = ovt[im, va, vb]
+        masks = [(iou_s >= lo) & (iou_s < hi) for lo, hi in zip(IOU_BINS[:-1], IOU_BINS[1:])]
+        out["actual"] = {"loss_kind": "simclr_nt_xent", "Lp": float(ref["Lp"].detach()), "Lq": float(ref["Lq"].detach()),
+                         "grad_vector_norms": _norms(gp, gq), "pos": {"s": summary(ref["s_pos"])}, "neg": {"s": summary(ref["s_neg"])},
+                         "iou_groups_pos": _group_shares(ref["c_pos"], masks, [[lo, min(hi, 1.0)] for lo, hi in zip(IOU_BINS[:-1], IOU_BINS[1:])], gp, h, pe)}
+    if only_actual:
+        return out
+    # ---- COUNTERFACTUAL-READONLY: same z, pairs, routing; only f replaced
+    out["counterfactual"] = {spec["name"]: scorer_block(cfg, z, r, h, pe, pp, sets, spec, iou_pos, lab, sims=sims) for spec in scorers}
+    return out
