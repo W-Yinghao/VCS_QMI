@@ -40,14 +40,23 @@ def _phi(zz, nn_):
     return torch.cat((zz * (2 * nn_.float() - 1)[:, None], torch.ones(len(zz), 1, device=zz.device)), 1).double()
 
 
-def exact_js_critic(z, n, n_neg, seed, lams=(1e-3, 1e-2, 1e-1, 1.0), max_iter=200):
-    """JS / balanced-logistic objective, linear class phi (the class of `closed_form_critic`), solved exactly: L-BFGS on the convex ridge-penalised
-    loss E_P softplus(−f) + E_Q softplus(f) + lam·sc·|w|² / 2 (sc = mean diag of the second-moment matrix, as in the closed form), lam chosen on VAL JS."""
-    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
-    perm = torch.randperm(len(z), generator=g); nv = max(8, int(0.2 * len(z))); vi, ti = perm[:nv], perm[nv:]
+def exact_js_critic(z, n, n_neg, seed, lams=(1e-3, 1e-2, 1e-1, 1.0), max_iter=200, split=None):
+    """JS / balanced-logistic objective, linear class phi (the class of `closed_form_critic`): L-BFGS on the convex ridge-penalised
+    loss E_P softplus(−f) + E_Q softplus(f) + lam·sc·|w|² / 2 (sc = mean diag of the second-moment matrix, as in the closed form), lam chosen on VAL JS.
+
+    NAMING (P116 / v5 NEXT-E-SOLVE, 2026-10-03): this is a NUMERICAL solve (torch L-BFGS, strong-Wolfe, max_iter per lam, tolerance_grad 1e-10 on the
+    max-abs gradient, tolerance_change 1e-12), not a symbolic exact solution.  The returned object carries `solver` with, per lam, the iterations,
+    closure evaluations, termination reason, final max-abs / L2 gradient and last objective change (bookkeeping only: the fitted weights and every
+    historical number are unchanged).  `split` = optional explicit (ti, vi) data split (None: historical seed-based split)."""
+    torch.manual_seed(seed)
+    if split is not None:
+        ti, vi = split
+    else:
+        g = torch.Generator().manual_seed(seed)
+        perm = torch.randperm(len(z), generator=g); nv = max(8, int(0.2 * len(z))); vi, ti = perm[:nv], perm[nv:]
     pp, pn = _phi(z[ti], n[ti]), _phi(z[ti], n_neg[ti]); vp, vn = _phi(z[vi], n[vi]), _phi(z[vi], n_neg[vi])
     sc = float(0.5 * ((pp ** 2).mean(0) + (pn ** 2).mean(0)).mean())
-    best = (-9.0, None, None)
+    best = (-9.0, None, None); diag = []
     for lam in lams:
         w = torch.zeros(pp.shape[1], dtype=torch.float64, device=pp.device, requires_grad=True)
         opt = torch.optim.LBFGS([w], lr=1.0, max_iter=max_iter, tolerance_grad=1e-10, tolerance_change=1e-12, line_search_fn="strong_wolfe")
@@ -58,6 +67,8 @@ def exact_js_critic(z, n, n_neg, seed, lams=(1e-3, 1e-2, 1e-1, 1.0), max_iter=20
             loss.backward()
             return loss
         opt.step(closure)
+        diag.append(_lbfgs_residuals(opt, w, lambda v: SOFTPLUS(-(pp @ v)).mean() + SOFTPLUS(pn @ v).mean() + 0.5 * lam * sc * (v ** 2).sum(),
+                                     max_iter=max_iter, max_eval=int(max_iter * 1.25), tol_grad=1e-10, tol_change=1e-12, lam=lam))
         with torch.no_grad():
             jv = js_value((vp @ w).float(), (vn @ w).float())
         if jv > best[0]:
@@ -69,7 +80,30 @@ def exact_js_critic(z, n, n_neg, seed, lams=(1e-3, 1e-2, 1e-1, 1.0), max_iter=20
         def __call__(self, zz, nn_):
             return (_phi(zz, nn_) @ self.w).float()
     m = EX(best[1]); m.val_J = best[0]; m.lam = best[2]
+    m.solver = {"name": "js_lbfgs_numerical", "legacy_name": "exact_js_critic / js_exact", "selection": "VAL JS", "per_lam": diag,
+                "chosen": next(d for d in diag if d["lam"] == best[2])}
     return m
+
+
+def _lbfgs_residuals(opt, w, objective, *, max_iter, max_eval, tol_grad, tol_change, lam):
+    """Bookkeeping after torch.optim.LBFGS.step (reads the optimiser state and evaluates the objective at a detached COPY of w; w is not modified)."""
+    st = opt.state[opt._params[0]]
+    v = w.detach().clone().requires_grad_(True)
+    f = objective(v); (gr,) = torch.autograd.grad(f, v)
+    gmax, gl2 = float(gr.abs().max()), float(gr.norm())
+    n_iter, n_eval = int(st.get("n_iter", 0)), int(st.get("func_evals", 0))
+    prev = st.get("prev_loss"); fv = float(f.detach())
+    dloss = float(abs(fv - float(prev))) if prev is not None else float("nan")
+    if gmax <= tol_grad:
+        reason = "tolerance_grad"
+    elif n_iter >= max_iter:
+        reason = "max_iter"
+    elif n_eval >= max_eval:
+        reason = "max_eval"
+    else:
+        reason = "tolerance_change"
+    return {"lam": lam, "n_iter": n_iter, "func_evals": n_eval, "termination": reason, "final_grad_maxabs": gmax, "final_grad_l2": gl2,
+            "final_objective": fv, "last_objective_change": dloss, "max_iter": max_iter, "max_eval": max_eval}
 
 
 def run_repeat(fam: Family, n, rng, *, mode, strength, delta, perms, steps, seed):

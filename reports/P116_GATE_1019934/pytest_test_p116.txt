@@ -1,0 +1,35 @@
+......F                                                                  [100%]
+=================================== FAILURES ===================================
+________________ test_reproduces_historical_P105_smoke_instance ________________
+
+    @pytest.mark.skipif(not (SMOKE.is_file() and FEAT.is_dir()), reason="historical smoke or features absent")
+    def test_reproduces_historical_P105_smoke_instance():
+        """The edited fitters with their DEFAULT arguments reproduce instance 0 of the P105 CPU smoke (job 1016884; colour s0.2, n 200, 20 perms,
+        60 steps, seed 999, 8 threads) for every critic."""
+        if DEVICE_IS_CUDA:
+            pytest.skip("historical smoke ran on CPU")
+        torch.set_num_threads(8)
+        from cond_test_t1 import Family
+        fam = Family(FEAT)
+        rng = np.random.default_rng(999)
+        inst = AB.run_repeat(fam, 200, rng, mode="planted", strength=0.2, delta=0.05, perms=20, steps=60, seed=999 * 1000 + 0)
+        hist = json.loads(SMOKE.read_text())["cases"]["colour_s0.2"]["by_n"]["200"]["instances"][0]
+        for k in AB.FORCED:
+            assert inst[k]["p"] == hist[k]["p"], k
+>           assert math.isclose(inst[k]["stat"], hist[k]["stat"], rel_tol=1e-6, abs_tol=1e-9), (k, inst[k]["stat"], hist[k]["stat"])
+E           AssertionError: ('vcs_mlp', -0.0016213830094784498, -0.001621378120034933)
+E           assert False
+E            +  where False = <built-in function isclose>(-0.0016213830094784498, -0.001621378120034933, rel_tol=1e-06, abs_tol=1e-09)
+E            +    where <built-in function isclose> = math.isclose
+
+tests/test_p116.py:136: AssertionError
+=============================== warnings summary ===============================
+tests/test_p116.py::test_shared_split_identical_across_methods
+  /home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_measure/solve.py:144: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    return {"fit_objective": float(f), "grad_maxabs": float(g.abs().max()), "grad_l2": float(g.norm())}
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_p116.py::test_reproduces_historical_P105_smoke_instance - A...
+1 failed, 6 passed, 1 warning in 14.45s

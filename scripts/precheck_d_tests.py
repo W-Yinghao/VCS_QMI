@@ -56,15 +56,27 @@ class PairLinear(nn.Module):
         return self.w(z).squeeze(1) * (2 * n.float() - 1)
 
 
+def _split(n_items, seed, val_frac, split):
+    """Data-split role.  split=None reproduces the historical seed-based 80 / 20 split exactly (randperm on a Generator seeded with `seed`);
+    an explicit (ti, vi) pair of index tensors (P116 / v5 NEXT-E-SOLVE) lets several fitters share one FIT / VAL split."""
+    if split is not None:
+        ti, vi = split
+        return ti, vi
+    g = torch.Generator().manual_seed(seed)
+    perm = torch.randperm(n_items, generator=g); nv = max(8, int(val_frac * n_items))
+    return perm[nv:], perm[:nv]
+
+
 def _j_loss(m, z, n, n_neg):
     tp = torch.tanh(m(z, n)); tn = torch.tanh(m(z, n_neg))
     return -((tp - 0.5 * tp ** 2).mean() + (-tn - 0.5 * tn ** 2).mean())
 
 
-def fit_vcs_critic(z, n, n_neg, steps, seed, lr=1e-3, kind="linear", wd=1e-2, val_frac=0.2):
-    """Fit on 80 % of FIT, early-stop on the remaining 20 % (VAL J); the returned critic is fixed before EVAL is touched (bound premise)."""
-    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
-    perm = torch.randperm(len(z), generator=g); nv = max(8, int(val_frac * len(z))); vi, ti = perm[:nv], perm[nv:]
+def fit_vcs_critic(z, n, n_neg, steps, seed, lr=1e-3, kind="linear", wd=1e-2, val_frac=0.2, split=None):
+    """Fit on 80 % of FIT, early-stop on the remaining 20 % (VAL J); the returned critic is fixed before EVAL is touched (bound premise).
+    `seed` = initialisation role (torch.manual_seed); `split` = optional explicit (ti, vi) data-split role (None: historical seed-based split)."""
+    torch.manual_seed(seed)
+    ti, vi = _split(len(z), seed, val_frac, split)
     m = (PairLinear(z.shape[1]) if kind == "linear" else PairMLP(z.shape[1])).to(z.device)
     opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd)
     best, best_state, best_step = float("inf"), {k: v.clone() for k, v in m.state_dict().items()}, 0
@@ -79,10 +91,16 @@ def fit_vcs_critic(z, n, n_neg, steps, seed, lr=1e-3, kind="linear", wd=1e-2, va
     return m
 
 
-def closed_form_critic(z, n, n_neg, seed):
-    """Linear class phi(z, n) = [z * (2n-1), 1]: w* = 1/2 (A_M + lam I)^-1 d (ridge chosen on VAL J), then tanh(c * phi w*) with c on VAL."""
-    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
-    perm = torch.randperm(len(z), generator=g); nv = max(8, int(0.2 * len(z))); vi, ti = perm[:nv], perm[nv:]
+def closed_form_critic(z, n, n_neg, seed, split=None):
+    """Linear class phi(z, n) = [z * (2n-1), 1]: w* = 1/2 (A_M + lam I)^-1 d (ridge chosen on VAL J), then tanh(c * phi w*) with c on VAL.
+
+    NAMING (P116 / v5 NEXT-E-SOLVE, 2026-10-03): this is a TWO-STAGE estimator, canonical name `ridge_tanh_calibrated` (module-level alias below).
+    Only the ridge step is exact, and it solves the quadratic sub-problem of the RAW (un-squashed) linear J; the output scale c is then chosen on
+    VAL from 25 grid values and T = tanh(c * phi w).  It is NOT an exact optimiser of the tanh-wrapped bounded J.  Historical reports call it
+    "closed form" / "vcs_closed"; those outputs are unchanged — the returned object now also carries `solver` metadata.
+    `split` = optional explicit (ti, vi) data split (None: historical seed-based split, numerics unchanged)."""
+    torch.manual_seed(seed)
+    ti, vi = _split(len(z), seed, 0.2, split)
     def phi(zz, nn_):
         return torch.cat((zz * (2 * nn_.float() - 1)[:, None], torch.ones(len(zz), 1, device=zz.device)), 1).double()
     pp, pn = phi(z[ti], n[ti]), phi(z[ti], n_neg[ti]); d = pp.mean(0) - pn.mean(0); A = 0.5 * (pp.T @ pp / len(pp) + pn.T @ pn / len(pn)); sc = float(torch.diag(A).mean())
@@ -101,13 +119,18 @@ def closed_form_critic(z, n, n_neg, seed):
         def __call__(self, zz, nn_):
             return torch.atanh(torch.tanh(self.c * (phi(zz, nn_) @ self.w)).float().clamp(-0.999999, 0.999999))  # pre-activation so that tanh() outside gives T
     m = CF(best[1], best[2]); m.val_J = best[0]; m.lam = best[3]
+    m.solver = {"name": "ridge_tanh_calibrated", "legacy_name": "closed_form_critic / vcs_closed", "exact_part": "ridge solution of the raw linear J",
+                "lam_grid": [1e-3, 1e-2, 1e-1, 1.0], "c_grid": "logspace(-1, 1.5, 25)", "selection": "VAL J", "n_linear_solves": 4, "n_val_evals": 100}
     return m
 
 
-def fit_c2st(z, n, n_neg, steps, seed, lr=1e-3, wd=1e-2, val_frac=0.2):
-    """Same MLP, BCE, AdamW and early stopping on a validation part of FIT as the VCS MLP critic (equal budget)."""
-    torch.manual_seed(seed); g = torch.Generator().manual_seed(seed)
-    perm = torch.randperm(len(z), generator=g); nv = max(8, int(val_frac * len(z))); vi, ti = perm[:nv], perm[nv:]
+ridge_tanh_calibrated = closed_form_critic  # canonical name (P116); the old name is kept for every historical call site
+
+
+def fit_c2st(z, n, n_neg, steps, seed, lr=1e-3, wd=1e-2, val_frac=0.2, split=None):
+    """Same MLP, BCE, AdamW and early stopping on a validation part of FIT as the VCS MLP critic (equal budget).  `split` as in fit_vcs_critic."""
+    torch.manual_seed(seed)
+    ti, vi = _split(len(z), seed, val_frac, split)
     m = PairMLP(z.shape[1]).to(z.device); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd); bce = nn.BCEWithLogitsLoss()
     def batch(ix):
         return torch.cat((z[ix], z[ix])), torch.cat((n[ix], n_neg[ix])), torch.cat((torch.ones(len(ix), device=z.device), torch.zeros(len(ix), device=z.device)))
