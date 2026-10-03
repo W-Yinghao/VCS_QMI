@@ -1,0 +1,7 @@
+# P115 diagnostics (v5 §3 "对应诊断") launch lines — FROZEN — job 1 submitted by the main session (CPU); job 2 via the orchestrator after the P115 runs.  Read-only on checkpoints; normal QOS only (never runfill); node60 allowed.
+# RUNS / EXTRA pass through the environment (--export=ALL; run lists contain commas).  Output: /home/infres/yinwang/CS_QMI/outputs/P115_diag_results/<run>.json
+# Job 1 — the eight existing standard / strong-augmentation runs (seed 0), one GPU job, sequential, finished runs skipped.
+RUNS='P107_AP3_views4_800ep_seed0,P107_AP3_augstrong_views4_800ep_seed0,P104_G2_views4_800ep_seed0,P111_G2_augstrong_views4_800ep_seed0,P41_simclr_views4_800ep_seed0,P89_simclr_views4_800ep_augstrong_seed0,P35_vcs_a5_views4_800ep_seed0,P43_vcs_a5_views4_800ep_augstrong_seed0' sbatch --parsable --job-name=p115_diag_existing --export=ALL slurm/p115_diag.sbatch
+# Job 2 — the four P115 crop-only / jitter-only runs, AFTER all four are COMPLETED (orchestrator condition on their status.json).
+# Run ids are PROVISIONAL: replace with the frozen P115 run ids before registering.
+RUNS='P115_AP3_croponly_seed0,P115_AP3_jitteronly_seed0,P115_simclr_croponly_seed0,P115_simclr_jitteronly_seed0' sbatch --parsable --job-name=p115_diag_ablation --export=ALL slurm/p115_diag.sbatch
