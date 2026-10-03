@@ -33,3 +33,9 @@ G2's positive cosines; why that costs G2 accuracy is not answered here (P112 sho
 - **I1:** all A-P3 level cells ≤ 0.075 (nothing flagged).  Like G2, colour s 0.05 is detected in layer3 but largely removed from h (power 0.10 / 0.06 at
   n 2000); at colour s 0.2 h still detects it (1.00) but the prediction effect is small (Δ true-class probability −0.008, flip rate 0.047; recipe VCS
   0.097) — "retained but largely not used".  Blur σ 1.0 damages class evidence (accuracy 0.87 → 0.65) for A-P3 as for every encoder.
+
+## Correction addendum (2026-10-03, v5 review)
+Source: v5 review §3.2.  In §2 (V1), "(SimCLR 38.15, probe caveat of P110 applies)" is replaced by: the CIFAR-10 → CIFAR-100
+transfer order (recipe VCS 52.70, G2 47.63, A-P3 46.81, U2 45.73, SimCLR 38.15; FIT-selected linear probe on raw h) is reported as observed, with no
+explanation claimed; the P110 P98-based probe caveat has been withdrawn (see the P110 correction addendum) and the question is examined symmetrically
+for all methods in P119.

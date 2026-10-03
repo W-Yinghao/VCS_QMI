@@ -105,3 +105,24 @@ for k in keys:
 print(f"cells: {len(keys)}; rotation-sensitive by the 2xSE rule: {len(sens)}")
 for s in sens: print("  ", s)
 ```
+
+## Correction addendum (2026-10-03, v5 review)
+Source: `VCS_Results_Review_and_Next_Plan_v5_CN.md` §4.1.  Numbers recounted from the committed `P108_estim_aggregate.json` (E1, 72 cells =
+3 conditions × 4 N × 3 budgets × 2 fit losses; seed means over 5 FIT seeds); no new computation.
+
+1. **Win counts per metric.**  Cells where Ĵ is closer than Ŝ_plug (no ties):
+
+   | fit loss | cells | Ĵ smaller \|bias\| | Ĵ smaller RMSE |
+   |---|---|---|---|
+   | VCS | 36 | 1 | 1 |
+   | JS | 36 | 1 | 2 |
+   | total | 72 | **2** | **3** |
+
+   Ŝ_plug therefore has the smaller |bias| in 70 / 72 cells and the smaller RMSE in **69 / 72** cells.  The "70 of 72 cells" in §2 and §6 is the
+   **bias** count only; it must not be used for RMSE.
+2. **"Lower readout" wording withdrawn.**  §2 ("it remains a valid lower readout") and §6 ("a guaranteed lower readout (bias < 0 in every cell)") are
+   replaced by: the **population** value satisfies J(T) ≤ S for every bounded T (J(T) − S = −E_M(T − η)²); the **finite-sample** Ĵ(T) on EVAL carries
+   sampling error and is **not** a per-draw lower bound.  The negative seed-mean bias observed in all 72 cells is an empirical observation for these
+   generators and budgets, not a guarantee.  A confidence lower bound needs an independent concentration interval on held-out data (as T1's
+   Hoeffding test), which P108 did not compute.
+The remaining conclusions of this report are unchanged.

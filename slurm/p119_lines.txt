@@ -1,0 +1,5 @@
+# P119 (v5 NEXT-V-PROBE) launch lines — FROZEN — submitted by the main session.  Normal QOS only (never runfill); node60 allowed.
+# Part 3 (fp16 check, GPU smoke 1019932) said the float16 cache MATTERS → --fp32 for all methods.  RUNS / MODULES / OUT / EXTRA via the environment
+# (run lists contain commas).  Aggregate afterwards: python scripts/p119_aggregate.py --in reports/P119 --out reports/P119_v5_probe_results
+RUNS='P35_vcs_a5_views4_800ep_seed0,P35_vcs_a5_views4_800ep_seed1,P35_vcs_a5_views4_800ep_seed2,P41_simclr_views4_800ep_seed0,P41_simclr_views4_800ep_seed1,P41_simclr_views4_800ep_seed2,P104_G2_views4_800ep_seed0,P104_G2_views4_800ep_seed1' MODULES='transfer,c10extra' OUT=reports/P119 EXTRA='--fp32' sbatch --parsable --job-name=p119_v_a --export=ALL slurm/p119_unit.sbatch
+RUNS='P104_G2_views4_800ep_seed2,P104_U2_views4_800ep_seed0,P104_U2_views4_800ep_seed1,P104_U2_views4_800ep_seed2,P107_AP3_views4_800ep_seed0,P107_AP3_views4_800ep_seed1,P107_AP3_views4_800ep_seed2' MODULES='transfer,c10extra' OUT=reports/P119 EXTRA='--fp32' sbatch --parsable --job-name=p119_v_b --export=ALL slurm/p119_unit.sbatch

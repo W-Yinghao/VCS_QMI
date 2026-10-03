@@ -158,3 +158,21 @@ The attribution caveat of §6 was tested in `P106_T1_CRITIC_CLASS_ABLATION_REPOR
   - An exactly solved JS critic in the same class is at least as powerful as VCS's closed form.
 - **What stands.** The verdict "T1 holds" stands as pre-registered.
 - **Recommended wording.** Attribute it to the closed-form exact critic, not the VCS objective.
+
+## Correction addendum (2026-10-03, v5 review)
+The 2026-10-01 addendum above is corrected (source: v5 review §4.3; see the matching addendum in
+`P106_T1_CRITIC_CLASS_ABLATION_REPORT_20261001.md`).
+- **`vcs_closed`** (`scripts/precheck_d_tests.py::closed_form_critic`) is a **two-stage estimator**: the ridge solution of the *raw linear* quadratic J in
+  φ(z, n) = [z(2n − 1), 1], w_λ = ½(A + λ·sc·I)⁻¹d for λ ∈ {1e-3, 1e-2, 1e-1, 1}, followed by an output scale c chosen from 25 log-spaced values on the
+  internal VAL split, output T = tanh(c φᵀw_λ).  The closed form solves the linear quadratic sub-problem, **not** the bounded tanh-wrapped J.  It is renamed
+  **`ridge_tanh_calibrated`** (historical result files keep the key `vcs_closed`; metadata mapping only, no number changes).
+- **`js_exact`** (`scripts/cond_test_t1_ablation.py::exact_js_critic`) is an **L-BFGS numerical solve** of the convex ridge-penalised balanced-logistic loss
+  in the same class (one `LBFGS.step` per λ, max_iter 200, tolerance_grad 1e-10, tolerance_change 1e-12, strong-Wolfe line search; λ on internal VAL).
+  Termination reason and final gradient were not recorded.  It is not a symbolic / exact solution.
+- **Internal splits differ:** VCS critics use `seed`, JS critics `seed + 3` for their internal 80 / 20 FIT / VAL split (same FIT sample, same EVAL sample
+  and permutations).
+
+The verdict "T1 holds" and every rejection rate stand.  Withdrawn: "exactly solved linear critic", "an exactly solved JS critic", and the recommended
+wording "closed-form exact critic".  **Recommended wording now:** the advantage is associated with the ridge-initialised, VAL-calibrated linear candidate
+(`ridge_tanh_calibrated`) that VCS's VAL criterion selects, not with the VCS objective; whether it reflects the solver, the calibration or the split
+difference is open (P116).

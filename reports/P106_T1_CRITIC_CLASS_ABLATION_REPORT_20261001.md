@@ -89,3 +89,24 @@ print(f"       d3>=+.05: {(d3>=0.05).sum()}  |d3|<=.05: {(abs(d3)<=0.05).sum()} 
 print(f"       mean dc {dc.mean():+.3f}; replication vcs3-js2 mean {np.mean(rep):+.3f} (>=.05 in {(np.array(rep)>=0.05).sum()}); forced closed-exact mean {np.mean(fcl):+.3f}; lin-lin {np.mean(fl):+.3f}; mlp-mlp {np.mean(fm):+.3f}")
 print("VERDICT:", "VCS objective" if objective else ("critic class / exact solver" if klass else "MIXED"))
 ```
+
+## Correction addendum (2026-10-03, v5 review)
+Source: `VCS_Results_Review_and_Next_Plan_v5_CN.md` §4.3 / §5.2; code re-read at the P105 commit.
+- **`vcs_closed`** (`scripts/precheck_d_tests.py::closed_form_critic`) is a **two-stage estimator**: the ridge solution of the *raw linear* quadratic J in
+  φ(z, n) = [z(2n − 1), 1], w_λ = ½(A + λ·sc·I)⁻¹d for λ ∈ {1e-3, 1e-2, 1e-1, 1}, followed by an output scale c chosen from 25 log-spaced values on the
+  internal VAL split, output T = tanh(c φᵀw_λ).  The closed form solves the linear quadratic sub-problem, **not** the bounded tanh-wrapped J.  It is renamed
+  **`ridge_tanh_calibrated`** (historical result files keep the key `vcs_closed`; metadata mapping only, no number changes).
+- **`js_exact`** (`scripts/cond_test_t1_ablation.py::exact_js_critic`) is an **L-BFGS numerical solve** of the convex ridge-penalised balanced-logistic loss
+  in the same class (one `LBFGS.step` per λ, max_iter 200, tolerance_grad 1e-10, tolerance_change 1e-12, strong-Wolfe line search; λ on internal VAL).
+  Termination reason and final gradient were not recorded.  It is not a symbolic / exact solution.
+- **Internal splits differ:** VCS critics use `seed`, JS critics `seed + 3` for their internal 80 / 20 FIT / VAL split (same FIT sample, same EVAL sample
+  and permutations).
+
+**Consequences.**  The observed rejection rates in §1–3 are unchanged.  Withdrawn wording: "exactly solved linear critic", "exact linear solution",
+"exact convex solve", "Given the same exact linear solution, JS is at least as powerful", and the attribution "the advantage is the exact linear critic plus
+VCS's selection of it".  Corrected statement: VCS's lead over JS in T1 is associated with the **ridge-initialised, VAL-calibrated linear candidate**
+(`ridge_tanh_calibrated`) and with VCS's VAL criterion selecting it; with SGD-fitted linear / MLP critics VCS is level with or behind JS; a **numerically
+solved** JS critic in the same linear class (`js_exact`) is at least as powerful in 8 of 9 cells.  P105 does not separate the solver, the calibration step
+and the different internal splits, so the solver attribution is weakened.  The secondary observation in §2 (a closed-form solution as a computational
+advantage) holds only for the linear quadratic sub-problem.  A like-for-like comparison — explicit shared splits; ridge → tanh → calibration vs continued
+optimisation of the bounded J vs a numerically solved JS in the same features, with residuals, risk, power and time — is planned as **P116**.

@@ -54,3 +54,9 @@ disagree on G2 vs SimCLR (+1.68 vs −3.08); under P98 (the linear probe is prob
 - Against tuned SimCLR, G2 is on par in linear accuracy and behind in kNN at 5 seeds; under strong augmentation SimCLR leads clearly.
 - For the paper: "a fixed angular scale lifts the VCS recipe by ≈ 1.7 points on CIFAR-10 (standard augmentation), and the gain comes from fixing the
   scale throughout training, not from its initial value" is supported (P104); generalisation to other datasets / augmentation is **not**.
+
+## Correction addendum (2026-10-03, v5 review)
+Source: v5 review §3.2.  §3's phrase "under P98 (the linear probe is probe-limited for SimCLR on CIFAR-100)" is withdrawn.
+P98 found the CIFAR-100 VCS-vs-SimCLR ordering *probe-dependent* and withdrew the simple under-fitting explanation; it does not show that the linear probe
+under-fits SimCLR.  The statement that stands: **linear and kNN disagree on G2 vs SimCLR on CIFAR-100 (+1.68 vs −3.08), and P98 showed this comparison
+is probe-dependent; no ordering is stated.**

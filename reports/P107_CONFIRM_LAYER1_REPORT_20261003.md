@@ -23,3 +23,10 @@ A-P2 − SimCLR +0.08 (not stable).
   (sd 0.06); on kNN it is level with SimCLR (−0.27).  Its gain over G2 (+0.33) is small but positive on every seed.
 - Layer 2 (addendum 2: seeds 3–4, strong augmentation, CIFAR-100) is running; the paper-level statement waits for it.  Interim: strong augmentation seeds
   0–1 give 88.66 / 88.26 (vs A-P3 std 89.06 / 88.96; G2 lost 1.25 under strong augmentation).
+
+## Correction addendum (2026-10-03, v5 review)
+Source: v5 review §2.1.  "So the full negative gradient is only usable with a fixed scorer" (Reading, first bullet) is narrowed to:
+**in the tested optimisation settings** (recipe AdamW, lr, schedule, a/b initialisations (2, −1) and (5, 0), 800 epochs), the full negative gradient
+combined with a learned (a, b) degraded (A-P3F 82.92, G4 81.70) while it worked with the fixed scorer.  This is an empirical statement about these
+settings, not a general result.  Also note: A-P3's three seeds include seed 0, which was used for the P107 screen selection; seeds 3–4 are reported
+separately in the layer-2 report.
