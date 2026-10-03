@@ -1,0 +1,6 @@
+# P126 (v6 V6-CURVE) launch lines — DRAFT, NOT SUBMITTED.  Start condition: stage-B review + separate batch approval (v6 §7.1).
+# Normal QOS only (never runfill); node60 allowed (no --exclude).  lambda = 0 baselines = existing A-P3 runs (P107 seed 0, both datasets).
+sbatch --parsable --partition=RTX6000PRO,H100 --job-name=p126_c10_lamm025 --export=ALL,CFG=configs/cifar10_hpCV_AP3_c10_lamm025_views4_800ep_seed0.yaml,RUN_ID=P126_CV_AP3_c10_lamm025_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --job-name=p126_c10_lamp025 --export=ALL,CFG=configs/cifar10_hpCV_AP3_c10_lamp025_views4_800ep_seed0.yaml,RUN_ID=P126_CV_AP3_c10_lamp025_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --job-name=p126_c100_lamm025 --export=ALL,CFG=configs/cifar100_hpCV_AP3_c100_lamm025_views4_800ep_seed0.yaml,RUN_ID=P126_CV_AP3_c100_lamm025_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100 --job-name=p126_c100_lamp025 --export=ALL,CFG=configs/cifar100_hpCV_AP3_c100_lamp025_views4_800ep_seed0.yaml,RUN_ID=P126_CV_AP3_c100_lamp025_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch

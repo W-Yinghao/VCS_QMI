@@ -133,6 +133,93 @@ class FixedCosineCritic(nn.Module):
         return torch.tanh(self.scale * C + self.bias)
 
 
+class FixedCurvedCosineCritic(nn.Module):
+    """P126 (v6 V6-CURVE): fixed anchored-quadratic angular scorer, T = tanh f with
+        f(s) = a·s + b + a·λ·s(1 − s) = a[(s − κ) + λ s(1 − s)],   κ = −b/a  (the AFFINE anchor; not the zero of f when λ ≠ 0).
+    a, b, λ are buffers fixed for the whole run (no trainable affine; the optimizer gets no critic group).  f(0) = b = −aκ, f(1) = a + b
+    = a(1 − κ) for every λ; f′(s) = a[1 + λ(1 − 2s)] ∈ [a/4, 7a/4] on s ∈ [−1, 1] when a > 0 and |λ| ≤ 1/4, so f is strictly monotone.
+    logits(left, right), forward and score_matrix(C) all go through ``logits_from_similarity`` (the all-view matrix path and the matched-JS
+    loss read the same non-linearity).  λ = 0 evaluates exactly FixedCosineCritic's expression a·s + b (the curvature term is skipped), so
+    logits, losses and gradients equal A-P3's bit for bit.  Inputs must already be row-L2-normalised (no silent renormalisation)."""
+
+    trainable_affine = False
+    is_curved = True
+
+    def __init__(self, feature_dim: int, scale: float, bias: float, curvature: float) -> None:
+        super().__init__()
+        vals = torch.tensor([float(scale), float(bias), float(curvature)], dtype=torch.float64)
+        if not bool(torch.isfinite(vals).all()):
+            raise ValueError("fixed curved scorer parameters must be finite")
+        if not float(scale) > 0.0:
+            raise ValueError("fixed curved scorer needs a > 0 (monotonicity a/4 <= f' <= 7a/4)")
+        if abs(float(curvature)) > 0.25:
+            raise ValueError("fixed curved scorer needs |lambda| <= 1/4 (keeps f strictly monotone on [-1, 1])")
+        self.feature_dim = feature_dim
+        self._lam = float(curvature)
+        self.register_buffer("scale", torch.tensor(float(scale)))
+        self.register_buffer("bias", torch.tensor(float(bias)))
+        self.register_buffer("curvature", torch.tensor(float(curvature)))
+
+    def logits_from_similarity(self, s: Tensor) -> Tensor:
+        f = self.scale * s + self.bias
+        if self._lam != 0.0:
+            f = f + self.scale * self.curvature * s * (1.0 - s)
+        return f
+
+    def logits(self, left: Tensor, right: Tensor) -> Tensor:
+        return self.logits_from_similarity((left * right).sum(-1))
+
+    def forward(self, left: Tensor, right: Tensor) -> Tensor:
+        if left.ndim != 2 or left.shape != right.shape or left.shape[1] != self.feature_dim:
+            raise ValueError("critic inputs must have matching [N,D] shapes with D = feature_dim")
+        return torch.tanh(self.logits(left, right))
+
+    def embed(self, z: Tensor) -> Tensor:
+        return z
+
+    def score_matrix(self, C: Tensor) -> Tensor:
+        return torch.tanh(self.logits_from_similarity(C))
+
+    def slope_from_similarity(self, s: Tensor) -> Tensor:
+        """f′(s) = a[1 + λ(1 − 2s)] (closed form; tests compare it with autograd)."""
+        return self.scale * (1.0 + self.curvature * (1.0 - 2.0 * s))
+
+    def curve_record(self) -> dict[str, Any]:
+        """Run-manifest record: the anchor κ, the endpoints, the slope bounds on [−1, 1] and the ACTUAL zero s0 of f (bisection, float64)."""
+        a, b, lam = float(self.scale), float(self.bias), self._lam
+        ends = (a * (1.0 + 3.0 * lam), a * (1.0 - lam))  # f'(-1), f'(1); f' is linear in s, so these are the extremes on [-1, 1]
+        return {"formula": "f(s) = a*s + b + a*lambda*s*(1-s); T = tanh f", "a": a, "b": b, "kappa_anchor": -b / a, "lambda": lam,
+                "actual_zero_s0": curve_actual_zero(a, b, lam), "f_at_0": b, "f_at_1": a + b,
+                "slope_min_on_cos": min(ends), "slope_max_on_cos": max(ends),
+                "slope_bounds_guaranteed": [a / 4.0, 7.0 * a / 4.0]}
+
+
+def curve_logit_float(s: float, a: float, b: float, lam: float) -> float:
+    return a * s + b + a * lam * s * (1.0 - s)
+
+
+def curve_actual_zero(a: float, b: float, lam: float, iters: int = 200) -> float | None:
+    """Unique zero of f(s) = a·s + b + a·λ·s(1 − s) on [−1, 1] (f strictly increasing there for a > 0, |λ| ≤ 1/4); None if f has no sign change
+    on [−1, 1] (then every cosine maps to one sign of T)."""
+    lo, hi = -1.0, 1.0
+    flo, fhi = curve_logit_float(lo, a, b, lam), curve_logit_float(hi, a, b, lam)
+    if flo == 0.0:
+        return lo
+    if fhi == 0.0:
+        return hi
+    if flo * fhi > 0:
+        return None
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        if curve_logit_float(mid, a, b, lam) > 0:
+            hi = mid
+        else:
+            lo = mid
+        if hi - lo < 1e-15:
+            break
+    return 0.5 * (lo + hi)
+
+
 class InteractOnlyCritic(nn.Module):
     """Named variant: MLP on [z1*z2, |z1-z2|] only (no raw z1/z2 channel); symmetric in the two views; ReLU; tanh output."""
 
@@ -451,6 +538,8 @@ def critic_impl_name(c: dict[str, Any]) -> str:
         return "vcs_ssl.models.critic.DictionarySimplexCritic"
     if inp == "cosine" and float(c.get("observation_noise_tau", 0.0)) > 0:
         return "vcs_ssl.models.critic.NoisyCosineCritic"
+    if inp == "cosine" and c.get("affine_mode", "learned") == "fixed_curved":  # P126 (v6 V6-CURVE)
+        return "vcs_ssl.models.critic.FixedCurvedCosineCritic"
     if inp == "cosine" and c.get("affine_mode", "learned") == "fixed":
         return "vcs_ssl.models.critic.FixedCosineCritic"
     if inp == "rff_tanh":
@@ -501,6 +590,9 @@ def build_critic(c: dict[str, Any], *, feature_dim: int) -> nn.Module:
         return InteractCritic(feature_dim, hd, last_layer_gain=gain)
     if name.endswith("BilinearConcatCritic"):
         return BilinearConcatCritic(feature_dim, hd, last_layer_gain=gain)
+    if name.endswith("FixedCurvedCosineCritic"):  # before the generic *CosineCritic match
+        return FixedCurvedCosineCritic(feature_dim, float(c.get("cosine_scale_init", 1.0)), float(c.get("cosine_bias_init", 0.0)),
+                                       float(c["curvature_lambda"]))
     if name.endswith("FixedCosineCritic"):
         return FixedCosineCritic(feature_dim, float(c.get("cosine_scale_init", 1.0)), float(c.get("cosine_bias_init", 0.0)))
     if name.endswith("CosineCritic"):

@@ -247,11 +247,13 @@ def js_matched_pair_loss_negdetach(z1: Tensor, z2: Tensor, critic, *, k: int, ge
         raise ValueError("js_matched_logistic needs the cosine critic (scale, bias)")
     indices, shifts = cyclic_negative_indices(len(z1), k, generator=generator, device=z1.device)
     noisy = getattr(critic, "is_noisy", False)  # P104 N2: the matched-JS control on the same *noisy* logit (fresh noise per call and side)
-    f_pos = critic.logits(z1, z2) if noisy else critic.scale * (z1 * z2).sum(-1) + critic.bias
+    # P126: the fixed curved scorer's logit is non-affine in s -> read it through critic.logits (never re-hard-code a*s + b)
+    via_logits = noisy or getattr(critic, "is_curved", False)
+    f_pos = critic.logits(z1, z2) if via_logits else critic.scale * (z1 * z2).sum(-1) + critic.bias
     left = z1.unsqueeze(0).expand(k, -1, -1).reshape(-1, z1.shape[1])
     partner = z2.detach() if negative_detach else z2
     right = partner[indices].reshape(-1, z2.shape[1])
-    f_neg = critic.logits(left, right) if noisy else critic.scale * (left * right).sum(-1) + critic.bias
+    f_neg = critic.logits(left, right) if via_logits else critic.scale * (left * right).sum(-1) + critic.bias
     loss = F.softplus(-2.0 * f_pos).mean() + F.softplus(2.0 * f_neg).mean()
     with torch.no_grad():
         st = vcs_from_scores(torch.tanh(f_pos), torch.tanh(f_neg))
@@ -585,7 +587,13 @@ def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool
         same = ids[lo:hi, None] == ids[None, :]
         diag = idx[lo:hi, None] == idx[None, :]
         mask_p, mask_q = same & ~diag, ~same
-        if objective == "js":
+        if objective == "js" and getattr(critic, "is_curved", False):  # P126: same non-linear logit matrix as score_matrix uses
+            fp = critic.logits_from_similarity(flat[lo:hi] @ flat.T)[mask_p]
+            fq = critic.logits_from_similarity(flat[lo:hi] @ keys.T)[mask_q]
+            l_p = l_p + F.softplus(-2.0 * fp).sum(); l_q = l_q + F.softplus(2.0 * fq).sum()
+            with torch.no_grad():
+                tp, tq = torch.tanh(fp), torch.tanh(fq)
+        elif objective == "js":
             fp = (critic.scale * (flat[lo:hi] @ flat.T) + critic.bias)[mask_p]
             fq = (critic.scale * (flat[lo:hi] @ keys.T) + critic.bias)[mask_q]
             l_p = l_p + F.softplus(-2.0 * fp).sum(); l_q = l_q + F.softplus(2.0 * fq).sum()

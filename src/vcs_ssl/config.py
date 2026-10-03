@@ -67,7 +67,9 @@ SCHEMA: dict[str, Any] = {
                          "refresh_every_epochs": _Opt(int, 0, fill=False), "refresh_batches": _Opt(int, 16, fill=False),
                          # P104 (package v3), not filled when absent:
                          "affine_mode": _Opt(str, "learned", fill=False), "cosine_bias_init": _Opt((int, float), 0.0, fill=False),
-                         "noise_repeats": _Opt(int, 1, fill=False), "noise_eval_repeats": _Opt(int, 16, fill=False)}},
+                         "noise_repeats": _Opt(int, 1, fill=False), "noise_eval_repeats": _Opt(int, 16, fill=False),
+                         # P126 (v6 V6-CURVE), not filled when absent: lambda of the fixed anchored-quadratic scorer (affine_mode 'fixed_curved')
+                         "curvature_lambda": _Opt((int, float), 0.0, fill=False)}},
     "objective": {"target": str, "loss": str, "positive_weight": _Num, "negative_weight": _Num,
                   "training_cs_transform": bool, "clip_J": bool, "extra_regularizers": list, "simclr_temperature": _Num,
                   "vicreg_weights": {"invariance": _Num, "variance": _Num, "covariance": _Num}, "vicreg_variance_eps": _Num,
@@ -174,7 +176,7 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
         n2 = "noise_repeats" in c  # P104 N2 marker: the noisy matched-JS control is declared explicitly (P95 rule kept otherwise)
         # P107 A-L1 (package v4 §A1): the matched JS loss on the FIXED angular scorer f = 2s - 1 (affine_mode 'fixed', no noise) is the
         # named JS counterpart of P104 G2; every other refusal is kept.
-        fixed_js = bool(cfg["objective"].get("js_fixed_scorer", False)) and c.get("affine_mode", "learned") == "fixed" and tau == 0
+        fixed_js = bool(cfg["objective"].get("js_fixed_scorer", False)) and c.get("affine_mode", "learned") in FIXED_AFFINE_MODES and tau == 0
         if cfg["objective"].get("js_fixed_scorer", False) and not fixed_js:
             raise ConfigError("objective.js_fixed_scorer marks the P107 A-L1 cell: affine_mode 'fixed', no observation noise")
         if c["input"] != "cosine" or (tau > 0 and not n2) or R > 0 or c.get("cosine_scale_fixed", False) or (c.get("affine_mode", "learned") != "learned" and not fixed_js):
@@ -194,6 +196,28 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("P95 variants read the L2-normalised projector output")
 
 
+FIXED_AFFINE_MODES = ("fixed", "fixed_curved")  # P104 G line + P126 (v6 V6-CURVE): a, b (and lambda) are buffers fixed for the whole run
+
+
+def _p126_curve_policy(c: dict[str, Any], am: str) -> None:
+    """P126 (v6 V6-CURVE): affine_mode 'fixed_curved' needs an explicit critic.curvature_lambda with |lambda| <= 1/4, a = cosine_scale_init > 0
+    and an explicit cosine_bias_init (b = -a*kappa): then f'(s) = a[1 + lambda(1 - 2s)] lies in [a/4, 7a/4] on s in [-1, 1] (strictly monotone).
+    curvature_lambda is refused with any other affine_mode."""
+    lam = c.get("curvature_lambda")
+    if am == "fixed_curved":
+        if lam is None:
+            raise ConfigError("affine_mode 'fixed_curved' needs critic.curvature_lambda (P126)")
+        if isinstance(lam, bool) or not isinstance(lam, (int, float)) or lam != lam or abs(float(lam)) > 0.25:
+            raise ConfigError("critic.curvature_lambda must be a finite number with |lambda| <= 1/4 (keeps a/4 <= f' <= 7a/4 on [-1, 1])")
+        a = c.get("cosine_scale_init", 1.0)
+        if isinstance(a, bool) or not isinstance(a, (int, float)) or not float(a) > 0.0:
+            raise ConfigError("affine_mode 'fixed_curved' needs critic.cosine_scale_init > 0 (monotone scorer)")
+        if "cosine_bias_init" not in c:
+            raise ConfigError("affine_mode 'fixed_curved' needs an explicit critic.cosine_bias_init (b = -a*kappa)")
+    elif lam is not None:
+        raise ConfigError("critic.curvature_lambda is only meaningful with affine_mode 'fixed_curved' (P126)")
+
+
 def _p104_policy(cfg: dict[str, Any]) -> None:
     """P104 (package v3, owner 2026-09-30): G (fixed angular scale, full negative routing), U (all view tokens), N (noise-draw average,
     noisy matched-JS control).  Each option is allowed only on the wiring it was specified for; J / tanh / product negatives unchanged."""
@@ -204,22 +228,23 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
     scope = p.get("pair_scope", "cross_view_k")
     R = c.get("noise_repeats", 1)
     Re = c.get("noise_eval_repeats")
-    new = any(x in c for x in ("affine_mode", "cosine_bias_init", "noise_repeats", "noise_eval_repeats")) or any(x in p for x in ("pair_scope", "all_view_chunk"))
+    new = any(x in c for x in ("affine_mode", "cosine_bias_init", "noise_repeats", "noise_eval_repeats", "curvature_lambda")) or any(x in p for x in ("pair_scope", "all_view_chunk"))
     if not new:
         return
     if m != "vcs_qmi":
         raise ConfigError("P104 options are VCS-only")
     if c["input"] != "cosine":
         raise ConfigError("P104 options are defined for the angular (cosine) critic")
-    if am not in ("learned", "fixed"):
-        raise ConfigError("critic.affine_mode must be 'learned' or 'fixed'")
-    if am == "fixed":
+    if am not in ("learned",) + FIXED_AFFINE_MODES:
+        raise ConfigError("critic.affine_mode must be 'learned', 'fixed' or 'fixed_curved' (P126)")
+    _p126_curve_policy(c, am)
+    if am in FIXED_AFFINE_MODES:
         if tau > 0 or c.get("cosine_scale_fixed", False) or c.get("cosine_bias_calibrate", False) or int(c.get("refresh_every_epochs", 0)) > 0:
             raise ConfigError("affine_mode 'fixed' (G line): a, b are buffers; no noise / scale_fixed / bias calibration / refresh on top")
         if not (loss == "negative_J" or (loss == "js_matched_logistic" and cfg["objective"].get("js_fixed_scorer", False))):
             raise ConfigError("the fixed-scale critic is used with the original J, or with the matched JS loss only when objective.js_fixed_scorer "
                               "is set (P107 A-L1)")
-    if cfg["objective"].get("js_fixed_scorer", False) and (loss != "js_matched_logistic" or am != "fixed"):
+    if cfg["objective"].get("js_fixed_scorer", False) and (loss != "js_matched_logistic" or am not in FIXED_AFFINE_MODES):
         raise ConfigError("objective.js_fixed_scorer marks the P107 A-L1 / P114 cells: matched JS loss on the fixed angular scorer only")
     if not isinstance(c.get("cosine_bias_init", 0.0), (int, float)):
         raise ConfigError("critic.cosine_bias_init must be a number")
@@ -235,7 +260,7 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
         # P114 (v5 NEXT-A-JS-AP3): the matched JS loss is allowed on the all-view-token path ONLY as the named control of the fixed scorer
         # (objective.js_fixed_scorer AND objective.js_all_view_tokens markers + affine_mode 'fixed'); every other loss stays refused.
         js_av = (loss == "js_matched_logistic" and bool(cfg["objective"].get("js_all_view_tokens", False))
-                 and bool(cfg["objective"].get("js_fixed_scorer", False)) and am == "fixed")
+                 and bool(cfg["objective"].get("js_fixed_scorer", False)) and am in FIXED_AFFINE_MODES)
         if (loss != "negative_J" and not js_av) or p["sampler"] != "random_nonzero_cyclic_shift" or p.get("negative_source", "cyclic") != "cyclic":
             raise ConfigError("all_view_tokens uses the original J (or, as the named P114 control, the matched JS loss on the fixed scorer with BOTH "
                               "objective.js_fixed_scorer and objective.js_all_view_tokens) and replaces the cyclic-shift sampler (keep the frozen sampler field)")
@@ -244,7 +269,7 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
     elif "all_view_chunk" in p:
         raise ConfigError("pairing.all_view_chunk is only meaningful with pair_scope 'all_view_tokens'")
     if cfg["objective"].get("js_all_view_tokens", False) and not (scope == "all_view_tokens" and loss == "js_matched_logistic"
-                                                                  and cfg["objective"].get("js_fixed_scorer", False) and am == "fixed"):
+                                                                  and cfg["objective"].get("js_fixed_scorer", False) and am in FIXED_AFFINE_MODES):
         raise ConfigError("objective.js_all_view_tokens marks the P114 cell only: matched JS on the fixed scorer with pair_scope all_view_tokens")
     if not (isinstance(R, int) and R >= 1):
         raise ConfigError("critic.noise_repeats must be an int >= 1")

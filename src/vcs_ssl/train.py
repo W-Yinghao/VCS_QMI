@@ -258,7 +258,9 @@ class Trainer:
                         "p104_noise_eval_repeats": self.cfg["model"]["critic"].get("noise_eval_repeats"),
                         "trainable_affine": (None if self.critic is None or not hasattr(self.critic, "scale") else
                                              bool(getattr(self.critic, "trainable_affine", True) and any(p.requires_grad for p in (self.critic.scale, self.critic.bias) if isinstance(p, torch.nn.Parameter)))),
-                        "critic_trainable_params": None if self.critic is None else int(sum(p.numel() for p in self.critic.parameters() if p.requires_grad))},
+                        "critic_trainable_params": None if self.critic is None else int(sum(p.numel() for p in self.critic.parameters() if p.requires_grad)),
+                        # P126 (v6 V6-CURVE): only for the fixed curved scorer — anchor kappa, lambda, endpoints, slope bounds and the ACTUAL zero s0
+                        **({"p126_curve": self.critic.curve_record()} if hasattr(self.critic, "curve_record") else {})},
             "cosine_bias_calibration": getattr(self, "calibration", None),
             "bandwidth_calibration": self.bandwidth_calibration, "kernel_sigma": self.kernel_sigma,
             "dataset": self.cfg["data"]["name"], "n_classes": int(self.n_classes),
