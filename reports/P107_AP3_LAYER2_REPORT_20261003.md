@@ -51,4 +51,4 @@ On CIFAR-100, A-P3 equals the recipe and G2 on linear, improves on G2 in kNN (+1
 - **Not supported / boundaries:** under the strong-augmentation block on both sides SimCLR leads (−1.25 linear, −2.60 kNN); on CIFAR-100 A-P3 does not beat
   the recipe and has no readout-consistent ordering vs SimCLR; on CIFAR-10→CIFAR-100 frozen transfer the recipe transfers best (P119, readout-robust).
 - The matched-JS control of A-P3 (P114, running) decides whether the quadratic objective contributes beyond the scorer / pairing / gradient structure;
-  the augmentation decomposition (P115) is launched by the orchestrator now that layer 2 and P112's follow-ups are complete.
+  the augmentation decomposition (P115) is launched by the orchestrator once the P112 strong-augmentation follow-up seeds are also complete (layer 2 is now complete).
