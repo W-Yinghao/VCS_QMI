@@ -1,0 +1,4 @@
+# P118 (v5 NEXT-I-NEST) launch lines — FROZEN — submitted by the main session.  Main session freezes the prereg first.  Normal QOS (never runfill); node60 allowed.
+# Two CPU bundle jobs (measured on 16 CPUs: truth 1 repeat ≈ 2 min, visual 1 cell-repeat ≈ 5 min → A ≈ 0.5 h + 5 h; B = 16 I1 audit units ≈ 5 h by the P109 audit rate); finished outputs skipped.  Aggregate: scripts/p118_aggregate.py --out reports/P118_nest_results
+sbatch --parsable -p CPU --gres=gpu:0 --cpus-per-task=16 --mem=96G --job-name=p118_A_truth_visual --export=ALL,BUNDLE=slurm/p118_bundle_A.txt slurm/p118_bundle.sbatch
+sbatch --parsable -p CPU --gres=gpu:0 --cpus-per-task=16 --mem=96G --job-name=p118_B_audit --export=ALL,BUNDLE=slurm/p118_bundle_B.txt slurm/p118_bundle.sbatch
