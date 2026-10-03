@@ -1,0 +1,5 @@
+# P122 (v6 V6-EVIDENCE) launch lines — FROZEN — submitted by the main session.  Main session freezes the prereg first.  Normal QOS only (never runfill); node60 allowed.
+# DATASET / RUNS / LAWS pass through the environment (--export=ALL; run lists contain commas).  Aggregate: scripts/p122_aggregate.py --in outputs/P122_evidence --out reports/P122_v6_evidence_results
+# Job A — CIFAR-10: 5 seed-0 encoders x 2 common measurement laws (standard, strong); job B — CIFAR-100: 3 seed-0 encoders x common-standard.
+DATASET=cifar10 RUNS='P35_vcs_a5_views4_800ep_seed0,P107_AP3_views4_800ep_seed0,P41_simclr_views4_800ep_seed0,P107_AP3_augstrong_views4_800ep_seed0,P89_simclr_views4_800ep_augstrong_seed0' LAWS='standard,strong' sbatch --parsable --job-name=p122_c10 --export=ALL slurm/p122_unit.sbatch
+DATASET=cifar100 RUNS='P91_c100_vcs_a5_views4_800ep_seed0,P107_AP3_c100_views4_800ep_seed0,P91_c100_simclr_views4_800ep_seed0' LAWS='standard' sbatch --parsable --job-name=p122_c100 --export=ALL slurm/p122_unit.sbatch
