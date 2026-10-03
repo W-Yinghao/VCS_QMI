@@ -42,3 +42,9 @@ Launch: `slurm/p115_lines.txt`.
 1. Launch via the orchestrator when P107 layer 2 (A-P3 CIFAR-100 seeds 0–2) and the P112 strong-augmentation follow-up seeds (4 units) have their epoch-800
    evaluations (v5 §3).  Normal QOS; node60 allowed.
 2. P115 diagnostics job 2 (the four runs here) is registered with the orchestrator, condition: all four P115 runs have their epoch-800 evaluation.
+
+## Execution note (2026-10-03T18:49:58Z, main session; no design change)
+Submitted directly instead of waiting for the orchestrator condition: the last P112 follow-up run (strong κ 0.25 seed 2) was at epoch 697 / 800, all
+other conditions (P107 layer 2, three of the four P112 follow-ups) were complete, and the owner asked why GPU quota sat idle.  The P115 design does not
+depend on the pending P112 run (P112 thresholds are not mixed into P115 — §1 of this prereg), so queueing now only gains SLURM age priority.  The
+orchestrator marker `P115_v5_aug.submitted` was created to prevent a duplicate submission.
