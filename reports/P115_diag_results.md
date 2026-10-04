@@ -188,7 +188,7 @@ Cancellation ratios = ‖Σg‖ / Σ‖g‖ (1 = fully aligned, smaller = more c
 | recipe VCS (+0.65) | 400 | +0.008 | +0.012 | +0.123 | +0.0156 | 5.3 → 4.6 | -0.003 | 2.8 → 2.1 | 0.101 → 0.299 | 0.801 → 0.856 | 0.289 → 0.443 | 0.993 → 0.994 | 0.655 → 0.644 | -22.4 |
 | recipe VCS (+0.65) | 800 | +0.008 | +0.010 | +0.122 | +0.0098 | 3.4 → 7.3 | +0.173 | 2.5 → 2.1 | 0.101 → 0.299 | 0.730 → 0.969 | 0.360 → 0.543 | 0.994 → 0.995 | 0.589 → 0.764 | -27.3 |
 
-## 5. Job 2 (P115 crop-only / jitter-only runs) — pending (orchestrator unit P115_diag_job2)
+## 5. Job 2 (crop-only / jitter-only) — present
 
 ## Anomalies
 
@@ -200,6 +200,10 @@ Cancellation ratios = ‖Σg‖ / Σ‖g‖ (1 = fully aligned, smaller = more c
 - P89_simclr_views4_800ep_augstrong_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
 - P35_vcs_a5_views4_800ep_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
 - P43_vcs_a5_views4_800ep_augstrong_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
+- P115_AP3_croponly_views4_800ep_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
+- P115_AP3_jitteronly_views4_800ep_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
+- P115_simclr_croponly_views4_800ep_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
+- P115_simclr_jitteronly_views4_800ep_seed0: per-checkpoint 'epoch' field is None (epochs taken from checkpoint_map)
 - P107_AP3_views4_800ep_seed0 epoch_020.pt: view-pair cos_matrix diagonal min 0.9933, max asymmetry 0.0016 (expected 1 / 0)
 - P107_AP3_views4_800ep_seed0 epoch_100.pt: view-pair cos_matrix diagonal min 0.9949, max asymmetry 0.0013 (expected 1 / 0)
 - P107_AP3_views4_800ep_seed0 epoch_400.pt: view-pair cos_matrix diagonal min 0.9942, max asymmetry 0.0014 (expected 1 / 0)
@@ -228,3 +232,19 @@ Cancellation ratios = ‖Σg‖ / Σ‖g‖ (1 = fully aligned, smaller = more c
 - P43_vcs_a5_views4_800ep_augstrong_seed0 epoch_100.pt: view-pair cos_matrix diagonal min 0.9978, max asymmetry 0.0006 (expected 1 / 0)
 - P43_vcs_a5_views4_800ep_augstrong_seed0 epoch_400.pt: view-pair cos_matrix diagonal min 0.9949, max asymmetry 0.0012 (expected 1 / 0)
 - P43_vcs_a5_views4_800ep_augstrong_seed0 epoch_800.pt: view-pair cos_matrix diagonal min 0.9941, max asymmetry 0.0010 (expected 1 / 0)
+- P115_AP3_croponly_views4_800ep_seed0 epoch_020.pt: view-pair cos_matrix diagonal min 0.9931, max asymmetry 0.0014 (expected 1 / 0)
+- P115_AP3_croponly_views4_800ep_seed0 epoch_100.pt: view-pair cos_matrix diagonal min 0.9960, max asymmetry 0.0007 (expected 1 / 0)
+- P115_AP3_croponly_views4_800ep_seed0 epoch_400.pt: view-pair cos_matrix diagonal min 0.9948, max asymmetry 0.0013 (expected 1 / 0)
+- P115_AP3_croponly_views4_800ep_seed0 epoch_800.pt: view-pair cos_matrix diagonal min 0.9941, max asymmetry 0.0014 (expected 1 / 0)
+- P115_AP3_jitteronly_views4_800ep_seed0 epoch_020.pt: view-pair cos_matrix diagonal min 0.9963, max asymmetry 0.0016 (expected 1 / 0)
+- P115_AP3_jitteronly_views4_800ep_seed0 epoch_100.pt: view-pair cos_matrix diagonal min 0.9961, max asymmetry 0.0008 (expected 1 / 0)
+- P115_AP3_jitteronly_views4_800ep_seed0 epoch_400.pt: view-pair cos_matrix diagonal min 0.9940, max asymmetry 0.0016 (expected 1 / 0)
+- P115_AP3_jitteronly_views4_800ep_seed0 epoch_800.pt: view-pair cos_matrix diagonal min 0.9942, max asymmetry 0.0017 (expected 1 / 0)
+- P115_simclr_croponly_views4_800ep_seed0 epoch_020.pt: view-pair cos_matrix diagonal min 0.9950, max asymmetry 0.0017 (expected 1 / 0)
+- P115_simclr_croponly_views4_800ep_seed0 epoch_100.pt: view-pair cos_matrix diagonal min 0.9950, max asymmetry 0.0017 (expected 1 / 0)
+- P115_simclr_croponly_views4_800ep_seed0 epoch_400.pt: view-pair cos_matrix diagonal min 0.9947, max asymmetry 0.0019 (expected 1 / 0)
+- P115_simclr_croponly_views4_800ep_seed0 epoch_800.pt: view-pair cos_matrix diagonal min 0.9938, max asymmetry 0.0024 (expected 1 / 0)
+- P115_simclr_jitteronly_views4_800ep_seed0 epoch_020.pt: view-pair cos_matrix diagonal min 0.9952, max asymmetry 0.0016 (expected 1 / 0)
+- P115_simclr_jitteronly_views4_800ep_seed0 epoch_100.pt: view-pair cos_matrix diagonal min 0.9964, max asymmetry 0.0011 (expected 1 / 0)
+- P115_simclr_jitteronly_views4_800ep_seed0 epoch_400.pt: view-pair cos_matrix diagonal min 0.9938, max asymmetry 0.0018 (expected 1 / 0)
+- P115_simclr_jitteronly_views4_800ep_seed0 epoch_800.pt: view-pair cos_matrix diagonal min 0.9935, max asymmetry 0.0011 (expected 1 / 0)
