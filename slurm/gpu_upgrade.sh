@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Owner 2026-10-04: "你来按运行时间的快慢来选择GPU，H100和L40S也可以选择" — v6 (v4's all-node exclusion made SLURM flag jobs BadConstraints).
+# STATUS 2026-10-04: OFF. Unpinned rotation failed (SLURM best-fit put the waiting unit on the GPU just vacated) and other users can take an idle
+# GPU within seconds; GPU moves are now done manually (soft-block pending jobs into a partition without idle GPUs, requeue, pin with ReqNodeList).
 # Measured epoch times (A-P3 4v/B256, 2026-10-04): healthy RTX6000PRO 20 s, H100 35 s, L40S 39 s; throttled RTX6000PRO GPUs (nvidia-smi throttle
 # reason 0x88 = HW slowdown + power brake, ~255 W vs ~450 W) 44 s: node60 GPU 0 and 1 (node excluded for every job), node61 GPU 1 (cannot be
 # excluded per GPU).  SLURM fills a multi-partition job in partition order RTX6000PRO > H100 > L40S, i.e. fastest first.
