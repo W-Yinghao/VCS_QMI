@@ -272,7 +272,8 @@ def critic_holdout(encoder: nn.Module, projector: nn.Module, critic: nn.Module, 
 # linear probe (spec §10.2)
 # ----------------------------------------------------------------------------------------------------------------------
 def linear_probe(h_fit: Tensor, y_fit: Tensor, h_sel: Tensor, y_sel: Tensor, lcfg: dict[str, Any], *, device: torch.device,
-                 n_classes: int = 10) -> dict[str, Any]:
+                 n_classes: int = 10, return_head: bool = False) -> dict[str, Any]:
+    """``return_head=True`` (P131) adds the trained eval-mode head under key "head"; the training path is unchanged."""
     if lcfg["normalize_h"] or lcfg["head"] != "linear_with_bias" or lcfg["optimizer"] != "sgd" or lcfg["schedule"] != "cosine" \
             or lcfg["checkpoint_rule"] != "final_probe_epoch":
         raise ValueError("probe config deviates from the frozen pilot protocol")
@@ -313,6 +314,10 @@ def linear_probe(h_fit: Tensor, y_fit: Tensor, h_sel: Tensor, y_sel: Tensor, lcf
                     ce = float(F.cross_entropy(logits, ys))
                 curve.append({"probe_epoch": ep + 1, "train_ce": run_loss / n, "val_top1_pct": acc, "val_ce": ce, "lr_end": lr})
     final = curve[-1]
-    return {"linear_val_top1_pct": final["val_top1_pct"], "linear_val_ce": final["val_ce"], "final_train_ce": final["train_ce"],
-            "probe_epochs": epochs, "probe_steps": step, "curve": curve, "seconds": t.elapsed, "selection_rule": "final probe epoch",
-            "n_fit": int(n), "n_selection": int(len(xs))}
+    out = {"linear_val_top1_pct": final["val_top1_pct"], "linear_val_ce": final["val_ce"], "final_train_ce": final["train_ce"],
+           "probe_epochs": epochs, "probe_steps": step, "curve": curve, "seconds": t.elapsed, "selection_rule": "final probe epoch",
+           "n_fit": int(n), "n_selection": int(len(xs))}
+    if return_head:
+        head.eval()
+        out["head"] = head
+    return out
