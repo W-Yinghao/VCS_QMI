@@ -25,3 +25,18 @@ so this is a VCS dataset-selection table only (no tuned-vs-tuned VCS-vs-SimCLR s
 - The CIFAR-100 coarse / fine / conditional readouts (P124 protocol, evaluation-only) for the five new cells run as job 1021612 (`reports/P127_gran`)
   and are appended as an addendum.
 - Next in this line: P129 (the same grid for matched JS) → tuned-VCS vs tuned-JS (frozen in P129); P135 (lr check for both losses).
+
+## Addendum — CIFAR-100 granularity readouts (P124 protocol, evaluation only; jobs 1021612 + 1021647; `reports/P127_gran/`, `P127_gran_table.txt`)
+
+| (a, κ), seed 0 | coarse 20-way | fine 100-way | conditional 5-way (macro) |
+|---|---|---|---|
+| **(2, 0.5)** A-P3 | **72.06** | 60.20 | 76.84 |
+| (1.5, 0.5) | 71.68 (−0.38) | 58.96 (−1.24) | 75.12 (−1.72) |
+| (2, 0.25) | 70.42 (−1.64) | 60.24 (+0.04) | 76.32 (−0.52) |
+| (2, 0.75) | 70.20 (−1.86) | 58.34 (−1.86) | 75.60 (−1.24) |
+| (3, 0.5) | 71.04 (−1.02) | 60.64 (+0.44) | 76.92 (+0.08) |
+| (3, 0.25) | 70.70 (−1.36) | 60.18 (−0.02) | 76.30 (−0.54) |
+
+The P124 question carried into P127 ("does any κ / a improve the within-superclass readout without losing the coarse gain?"): **no** — every
+cell loses coarse accuracy relative to (2, 0.5) (−0.4 to −1.9) and none gains materially within superclasses ((3, 0.5) +0.08).  (2, 0.5) keeps the
+best coarse readout; the small fine-grained gain of (3, 0.5) comes with a coarse loss.  One seed per cell; descriptive.
