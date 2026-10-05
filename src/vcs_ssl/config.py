@@ -55,7 +55,8 @@ SCHEMA: dict[str, Any] = {
     "model": {"backbone": str, "weights": (str, type(None)), "h_dim": int,
               "stem": {"kernel_size": int, "stride": int, "padding": int, "bias": bool, "maxpool": bool},
               "projector": {"hidden_dim": int, "output_dim": int, "hidden_batchnorm": bool, "hidden_linear_bias": bool,
-                            "output_linear_bias": bool, "output_batchnorm": bool, "depth": _Opt(int, 2), "predictor": _Opt(bool, False), "kind": _Opt(str, "mlp")},
+                            "output_linear_bias": bool, "output_batchnorm": bool, "depth": _Opt(int, 2), "predictor": _Opt(bool, False), "kind": _Opt(str, "mlp"),
+                            "v7_head_width": _Opt(int, 0, fill=False)},  # P137 marker (absent -> unchanged hashes)
               "normalization": {"vcs_and_simclr": str, "eps": _Num, "vicreg": str},
               "critic": {"enabled": bool, "input": str, "hidden_dims": list, "activation": str, "output": str,
                          "batchnorm": bool, "dropout": _Num, "last_layer_xavier_gain": _Num, "last_layer_bias": _Num,
@@ -496,8 +497,15 @@ def policy_checks(cfg: dict[str, Any]) -> None:
             raise ConfigError("output BN variant requires output_linear_bias=false (bias absorbed by BN)")
     elif not pr["output_linear_bias"]:
         raise ConfigError("without output BN the last projector layer keeps its bias (frozen recipe)")
-    if m != "vcs_qmi" and (pr["hidden_dim"] != 512 or pr["output_dim"] != 128):
+    # ---- P137 (v7 V7-HEAD): the projector output width may change for every method only with the explicit marker
+    # model.projector.v7_head_width == output_dim (512); otherwise control runs keep the frozen 512/128 projector ----
+    vh = pr.get("v7_head_width", 0)
+    if vh:
+        if vh != 512 or pr["output_dim"] != 512 or pr["hidden_dim"] != 512:
+            raise ConfigError("model.projector.v7_head_width is only defined for the P137 512->512->512 projector")
+    elif m != "vcs_qmi" and (pr["hidden_dim"] != 512 or pr["output_dim"] != 128):
         raise ConfigError("control runs keep the frozen 512/128 projector")
+    # ---- end P137 ----
     if cfg["evaluation"]["feature"] != "h_before_projector" or not cfg["evaluation"]["freeze_encoder_parameters"] \
             or not cfg["evaluation"]["freeze_bn_buffers"]:
         raise ConfigError("evaluation must use frozen h before the projector")
