@@ -1,0 +1,4 @@
+# submitted by slurm/feed_normal.sh when a normal-QOS slot frees (cap 30)
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node60 --dependency=afterany:1021707 --job-name=p130_simclr_c2 --export=ALL,CFG=configs/cifar100_hpR50_simclr_views4_800ep_seed0.yaml,RUN_ID=P130_simclr_c100_r50_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=L40S --exclude=node51,node60 slurm/p132_gpu_throughput.sbatch
+sbatch --parsable slurm/p132_cpu_check.sbatch
