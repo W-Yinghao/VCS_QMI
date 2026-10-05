@@ -34,6 +34,7 @@ from .diagnostics import critic_holdout, extract_features, knn_eval, spectrum_re
 from .models import build_models, ema_update
 from .objectives import (NegativeQueue, compute_objective, compute_objective_target, compute_objective_views, critic_feature_dim, critic_steps,
                          critic_input_key, forward_features, forward_features_target, forward_features_views, pair_symmetric, uses_queue)
+from .objectives import KeyUidQueue, compute_objective_moco_consistent  # P133
 from .optim import all_grads_finite, build_optimizer, grad_norms, has_trainable_params, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
@@ -200,6 +201,19 @@ class Trainer:
             for mod in self.key_model.values():
                 for prm in mod.parameters():
                     prm.requires_grad_(False)
+        # ---- P133 (MoCo-consistent momentum queue; pairing.moco_consistent): every pair is (online query, momentum key).  The key
+        # encoder runs in EVAL mode (BN = its running buffers, which follow the online buffers by the same EMA as the parameters), so each key
+        # is a per-sample function of the momentum network and carries no batch-statistics signature (single-GPU substitute for shuffle-BN).
+        # The P100 queue (self.neg_queue) is replaced by a key + uid ring (self.p133_queue); keys of all V views are computed, view 0 is enqueued.
+        self.moco = bool(self.cfg["pairing"].get("moco_consistent", False))
+        self.p133_queue: KeyUidQueue | None = None
+        self.p133_use_queue = bool(self.cfg["pairing"].get("moco_use_queue", True))
+        if self.moco:
+            self.neg_queue = None
+            if self.p133_use_queue:  # variant (a) (moco_use_queue false): negatives = current-batch momentum keys only, no ring
+                self.p133_queue = KeyUidQueue(int(self.cfg["pairing"]["queue_size"]), critic_feature_dim(self.cfg) if self.method == "vcs_qmi"
+                                              else int(self.cfg["model"]["projector"]["output_dim"]), device=self.device)
+        # ---- end P133
 
         self.loader = make_ssl_loader(self.dataset, batch_size=self.batch, num_workers=self.cfg["train"]["num_workers"],
                                       pin_memory=self.cfg["train"]["pin_memory"] and self.device.type == "cuda",
@@ -273,6 +287,16 @@ class Trainer:
             "two_view_transform_sha256": two_view_transform_signature(self.cfg["views"]),
             "started_utc": utc_now(), "hostname": environment_info()["hostname"], "slurm_job_id": os.environ.get("SLURM_JOB_ID"),
         }
+        if self.moco:  # P133: replaces the P100 description of the momentum queue
+            self.run_manifest["pair_sampling"] = "P133 MoCo-consistent: (online query, momentum key) pairs; Q = keys of other images (batch + uid-masked queue)"
+            self.run_manifest.pop("momentum_queue", None)
+            self.run_manifest["p133_moco_consistent"] = {
+                "m": self.momentum_m, "use_queue": self.p133_use_queue,
+                "queue_size": int(self.cfg["pairing"]["queue_size"]) if self.p133_use_queue else None, "key_encoder_bn": "eval mode; BN buffers EMA of the online buffers (same m)",
+                "keys": "all V views from the momentum encoder (no gradient)" + ("; view-0 keys + image uids enqueued after the optimiser step" if self.p133_use_queue else ""),
+                "positives": "(q_i(x), k_j(x)) for all ordered view pairs i != j",
+                "negatives": "(q_i(x), k) for keys of other images: current batch (all views)" + (" + queue (uid-masked)" if self.p133_use_queue else " only (no queue)"),
+                "vcs": "original J, scorer critic.score_matrix (A-P3: fixed tanh(2s - 1)), P / Q averaged separately", "simclr": "InfoNCE per (x, i, j != i), same negatives, tau from config"}
         atomic_write_json(self.run_dir / "run_manifest.json", self.run_manifest)
         self.write_status("RUNNING")
 
@@ -540,6 +564,7 @@ class Trainer:
             "kernel_sigma": self.kernel_sigma, "bandwidth_calibration": self.bandwidth_calibration, "p104_cost": dict(self.cost),
             **({"momentum_key_encoder_state": self.key_model["encoder"].state_dict(), "momentum_key_projector_state": self.key_model["projector"].state_dict(),
                 "momentum_m": self.momentum_m} if self.key_model is not None else {}),
+            **({"p133_queue_state": self.p133_queue.state_dict()} if self.p133_queue is not None else {}),  # P133
         }
 
     def save_checkpoint(self, path: Path) -> None:
@@ -574,6 +599,10 @@ class Trainer:
                 raise ConfigError("resume refused: checkpoint has no momentum-encoder state but the config uses the momentum queue")
             self.key_model["encoder"].load_state_dict(ck["momentum_key_encoder_state"])
             self.key_model["projector"].load_state_dict(ck["momentum_key_projector_state"])
+        if self.p133_queue is not None:  # P133
+            if ck.get("p133_queue_state") is None:
+                raise ConfigError("resume refused: checkpoint has no P133 key/uid queue state but the config uses pairing.moco_consistent")
+            self.p133_queue.load_state_dict(ck["p133_queue_state"])
         if self.method == "cs_kernel_native":
             cs = ck.get("kernel_sigma")
             if cs is None or self.kernel_sigma is None or abs(float(cs) - self.kernel_sigma) > 1e-6 * max(1.0, abs(self.kernel_sigma)):
@@ -712,9 +741,13 @@ class Trainer:
                 self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
         keys = None
-        if multi and self.key_model is not None:
+        p133_keys = None
+        if multi and self.key_model is not None and not self.moco:
             keys = self.momentum_keys(views[0])
-        if multi:
+        if multi and self.moco:  # P133: (online query, momentum key) objective
+            p133_keys = self.p133_momentum_keys(views)
+            obj = compute_objective_moco_consistent(feats, p133_keys, uids, cfg=self.cfg, critic=self.critic, queue=self.p133_queue)
+        elif multi:
             obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, kernel_sigma=self.kernel_sigma,
                                           **({"queue": self.neg_queue} if self.key_model is not None else {}))
         else:
@@ -735,6 +768,8 @@ class Trainer:
             if obj["stats"].get("queue_fallback") == 1.0:
                 self.queue_fallback_steps += 1
             self.neg_queue.enqueue(keys if keys is not None else feats[self.queue_key].detach())
+        if self.p133_queue is not None:  # P133: view-0 momentum keys of this batch (computed before the step) + their image uids
+            self.p133_queue.enqueue(p133_keys[0], uids)
         if self.key_model is not None:
             self.momentum_update()
         if self.teacher is not None:
@@ -762,6 +797,26 @@ class Trainer:
         for k_mod, q_mod in ((self.key_model["encoder"], self.encoder), (self.key_model["projector"], self.projector)):
             for kp, qp in zip(k_mod.parameters(), q_mod.parameters()):
                 kp.mul_(m).add_(qp.detach(), alpha=1.0 - m)
+            if self.moco:  # P133: the eval-mode key encoder's BN buffers follow the online buffers by the same EMA
+                for (kn, kb), (qn, qb) in zip(k_mod.named_buffers(), q_mod.named_buffers()):
+                    if kn != qn:
+                        raise RuntimeError("momentum / online buffer layouts differ")
+                    if kb.dtype.is_floating_point:
+                        kb.mul_(m).add_(qb.detach(), alpha=1.0 - m)
+                    else:
+                        kb.copy_(qb)
+
+    @torch.no_grad()
+    def p133_momentum_keys(self, views: list[torch.Tensor]) -> list[torch.Tensor]:
+        """P133: momentum keys of all V views in EVAL mode (per-sample; no batch-statistics channel), in the critic-input space, L2-normalised."""
+        enc, proj = self.key_model["encoder"], self.key_model["projector"]
+        enc.eval(); proj.eval()
+        eps = self.cfg["model"]["normalization"]["eps"]
+        h = enc(torch.cat(views, dim=0)); p = proj(h)
+        src = critic_input_key(self.cfg) if self.method == "vcs_qmi" else "z_l2"
+        if src != "z_l2":
+            raise RuntimeError("P133 keys are defined in the z (L2-normalised projector) space")
+        return list(torch.nn.functional.normalize(p, dim=1, eps=eps).detach().chunk(len(views), dim=0))
 
     def first_step_gradient_check(self, gn: dict[str, Any]) -> None:
         """Spec §7.2: every module has a nonzero finite gradient on the first real step; parameters then change."""

@@ -1,0 +1,3 @@
+# P133 = momentum-encoder keys WITHOUT a queue (variant noqueue; gate job 1021714 passed).  q4096m99 (gate 1021175) and q1024m999 (gate 1021714) FAILED - never launch them.
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 --job-name=p133_vcs_noqueue_s0 --export=ALL,CFG=configs/cifar10_hpMC_vcs_noqueue_views4_800ep_seed0.yaml,RUN_ID=P133_vcs_moco_noqueue_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 --job-name=p133_simclr_noqueue_s0 --export=ALL,CFG=configs/cifar10_hpMC_simclr_noqueue_views4_800ep_seed0.yaml,RUN_ID=P133_simclr_moco_noqueue_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch

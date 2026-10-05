@@ -654,3 +654,139 @@ def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], 
     B = vs[0].shape[0]
     return {"loss": loss, "stats": stats, "shift": shifts, "n_pos": B * len(pairs), "n_neg": B * k * len(pairs),
             "critic_pair_evals": R * (B + B * k) * len(pairs)}
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# P133 (owner 2026-10-04, "全部提交"; the follow-up proposed in the P100 report §3): MoCo-CONSISTENT momentum-key queue.  Reached only
+# through the optional marker pairing.moco_consistent (not filled when absent); the frozen paths above and the P100 path are unchanged.
+# Every pair is (online query, momentum key):  P = (q_i(x), k_j(x)), i != j (all ordered different-view pairs of one image);
+# Q = (q_i(x), k) for every key k of ANOTHER image: the current batch's momentum keys of the other B - 1 images (all views) and the queue of
+# momentum keys of previous steps, masked by image uid (an image re-drawn across an epoch boundary never enters its own Q).  P and Q
+# therefore differ only in image identity (and, for queue keys, by <= queue_size / keys_per_step steps of key-encoder staleness).
+class KeyUidQueue:
+    """FIFO ring of detached momentum keys together with the uid of the image each key came from (P133).  Composes the existing
+    NegativeQueue for the keys (same state layout) and a parallel int64 uid ring; state_dict carries both."""
+
+    def __init__(self, size: int, dim: int, device: torch.device | str = "cpu") -> None:
+        self.keys = NegativeQueue(size, dim, device=device)
+        self.uid_buffer = torch.full((int(size),), -1, dtype=torch.long, device=device)
+
+    @property
+    def size(self) -> int:
+        return self.keys.size
+
+    @property
+    def filled(self) -> int:
+        return self.keys.filled
+
+    def features(self) -> Tensor:
+        return self.keys.features()
+
+    def uids(self) -> Tensor:
+        """uids aligned with features() (oldest first)."""
+        k = self.keys
+        if k.count < k.size:
+            return self.uid_buffer[: k.count]
+        return torch.cat((self.uid_buffer[k.ptr:], self.uid_buffer[: k.ptr]), dim=0)
+
+    @torch.no_grad()
+    def enqueue(self, feats: Tensor, uids: Tensor) -> None:
+        u = uids.detach().to(self.uid_buffer.device, torch.long).reshape(-1)
+        if len(u) != len(feats):
+            raise ValueError("one uid per key")
+        ptr0, size = self.keys.ptr, self.keys.size
+        if len(u) >= size:
+            self.uid_buffer.copy_(u[-size:])
+        else:
+            idx = (ptr0 + torch.arange(len(u), device=u.device)) % size
+            self.uid_buffer[idx] = u
+        self.keys.enqueue(feats)
+
+    def state_dict(self) -> dict[str, Any]:
+        return {"keys": self.keys.state_dict(), "uids": self.uid_buffer.detach().cpu().clone()}
+
+    def load_state_dict(self, st: dict[str, Any]) -> None:
+        self.keys.load_state_dict(st["keys"])
+        if st["uids"].shape != self.uid_buffer.shape:
+            raise ValueError("uid ring shape mismatch")
+        self.uid_buffer.copy_(st["uids"].to(self.uid_buffer.device))
+
+
+def moco_consistent_scores(views_q: list[Tensor], views_k: list[Tensor], batch_uids: Tensor, queue: "KeyUidQueue | None"):
+    """Cosine matrices of the P133 design.  views_q: V tensors [B, D] (online, L2-normalised, with gradient); views_k: V tensors [B, D]
+    (momentum keys, L2-normalised, no gradient).  Returns (s_pos [V, V-1, B]: s_pos[i, r, b] = <q_i(b), k_j(b)> for the r-th j != i,
+    C_in [VB, VB] = Q_flat @ K_flat.T with mask_in (True = valid negative: different image), C_q [VB, Qn] with mask_q (uid differs))."""
+    V = len(views_q)
+    if V < 2 or len(views_k) != V or any(q.shape != views_q[0].shape or k.shape != views_q[0].shape for q, k in zip(views_q, views_k)):
+        raise ValueError("need V >= 2 query views and V key views of equal [B, D] shape")
+    B = views_q[0].shape[0]
+    if batch_uids.numel() != B:
+        raise ValueError("one uid per base image")
+    kflat = torch.cat(views_k, dim=0).detach()
+    qflat = torch.cat(views_q, dim=0)
+    s_pos = torch.stack([torch.stack([(views_q[i] * views_k[j].detach()).sum(-1) for j in range(V) if j != i]) for i in range(V)])
+    ids = torch.arange(V * B, device=qflat.device) % B
+    C_in = qflat @ kflat.T
+    mask_in = ids[:, None] != ids[None, :]
+    if queue is not None and queue.filled > 0:
+        qk = queue.features().detach().to(qflat.dtype)
+        qu = queue.uids().to(qflat.device)
+        bu = batch_uids.to(qflat.device, torch.long).reshape(-1)[ids]
+        C_q = qflat @ qk.T
+        mask_q = bu[:, None] != qu[None, :]
+    else:
+        C_q, mask_q = qflat.new_zeros((V * B, 0)), torch.zeros((V * B, 0), dtype=torch.bool, device=qflat.device)
+    return s_pos, C_in, mask_in, C_q, mask_q
+
+
+def moco_consistent_vcs(views_q: list[Tensor], views_k: list[Tensor], batch_uids: Tensor, queue: "KeyUidQueue | None", critic) -> dict[str, Any]:
+    """P133 VCS: the original J with the scorer T = critic.score_matrix(cos) (A-P3: fixed tanh(2s - 1)); P and Q averaged separately over
+    their global counts (balanced, as in every VCS run).  Keys carry no gradient (MoCo), queries carry the full gradient."""
+    if not hasattr(critic, "score_matrix"):
+        raise TypeError("P133 needs a similarity critic exposing score_matrix")
+    s_pos, C_in, mask_in, C_q, mask_q = moco_consistent_scores(views_q, views_k, batch_uids, queue)
+    tp = critic.score_matrix(s_pos).reshape(-1)
+    tq = torch.cat((critic.score_matrix(C_in)[mask_in], critic.score_matrix(C_q)[mask_q]))
+    out = vcs_from_scores(tp, tq)
+    out["n_pos"], out["n_neg"] = int(tp.numel()), int(tq.numel())
+    out["n_neg_queue"] = int(mask_q.sum()); out["n_queue_uid_masked"] = int((~mask_q).sum())
+    out["s_pos_mean"] = float(s_pos.detach().mean()); out["s_neg_mean"] = float(torch.cat((C_in.detach()[mask_in], C_q.detach()[mask_q])).mean())
+    return out
+
+
+def moco_consistent_infonce(views_q: list[Tensor], views_k: list[Tensor], batch_uids: Tensor, queue: "KeyUidQueue | None", temperature: float) -> dict[str, Any]:
+    """P133 SimCLR / MoCo-v2 counterpart: for every (image b, query view i, key view j != i) the InfoNCE term
+    -log softmax over [<q_i(b), k_j(b)>, <q_i(b), k> for the SAME negative keys as the VCS cell] / tau, target = the positive; mean over
+    the V(V-1)B terms.  The negative log-sum-exp of a query row is shared across its V - 1 positives."""
+    s_pos, C_in, mask_in, C_q, mask_q = moco_consistent_scores(views_q, views_k, batch_uids, queue)
+    neg = torch.cat((C_in.masked_fill(~mask_in, float("-inf")), C_q.masked_fill(~mask_q, float("-inf"))), dim=1) / temperature
+    neg_lse = torch.logsumexp(neg, dim=1)  # [VB], row = view-major query token (view i, image b)
+    V, B = len(views_q), views_q[0].shape[0]
+    lpos = s_pos / temperature  # [V, V-1, B]
+    nl = neg_lse.reshape(V, 1, B).expand_as(lpos)
+    terms = torch.logaddexp(lpos, nl) - lpos
+    loss = terms.mean()
+    return {"loss": loss, "nt_xent": loss.detach(), "n_pos": int(lpos.numel()), "n_neg": int(mask_in.sum() + mask_q.sum()),
+            "n_neg_queue": int(mask_q.sum()), "n_queue_uid_masked": int((~mask_q).sum()),
+            "s_pos_mean": float(s_pos.detach().mean()), "s_neg_mean": float(torch.cat((C_in.detach()[mask_in], C_q.detach()[mask_q])).mean())}
+
+
+def compute_objective_moco_consistent(feats: dict[str, Any], keys_views: list[Tensor], batch_uids: Tensor, *, cfg: dict[str, Any], critic,
+                                      queue: "KeyUidQueue | None") -> dict[str, Any]:
+    """P133 dispatcher (views.count = 4, shared branch, joint step).  VCS reads the critic-input views (z); SimCLR reads z."""
+    method = cfg["run"]["method"]
+    stats = _empty_stats()
+    stats["queue_fill"] = float(0 if queue is None else queue.filled)
+    if method == "vcs_qmi":
+        vs = feats[{"z_l2": "views_z", "p_raw": "views_p", "h_l2": "views_h"}[critic_input_key(cfg)]]
+        s = moco_consistent_vcs(vs, keys_views, batch_uids, queue, critic)
+        for kk in VCS_STAT_KEYS:
+            stats[kk] = float(s[kk].detach())
+    elif method == "simclr_matched":
+        s = moco_consistent_infonce(feats["views_z"], keys_views, batch_uids, queue, float(cfg["objective"]["simclr_temperature"]))
+        stats["nt_xent"] = float(s["nt_xent"])
+    else:
+        raise ValueError(f"P133 is defined for vcs_qmi and simclr_matched only, got {method!r}")
+    for kk in ("n_neg_queue", "n_queue_uid_masked", "s_pos_mean", "s_neg_mean"):
+        stats[f"p133_{kk}"] = float(s[kk])
+    return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"]}
