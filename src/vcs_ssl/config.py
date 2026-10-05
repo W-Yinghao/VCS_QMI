@@ -83,6 +83,10 @@ SCHEMA: dict[str, Any] = {
                 "negative_source": _Opt(str, "cyclic"), "queue_size": _Opt(int, 4096),
                 # P100 (momentum-encoder key queue), not filled when absent so older configs keep their resolved dict / config_hash:
                 "momentum_encoder": _Opt(bool, False, fill=False), "momentum_m": _Opt((int, float), 0.99, fill=False),
+                # P133 (MoCo-consistent momentum queue), not filled when absent:
+                "moco_consistent": _Opt(bool, False, fill=False),
+                # P133 variant (a): false = negatives are the current batch's momentum keys only (no queue); not filled when absent:
+                "moco_use_queue": _Opt(bool, True, fill=False),
                 # P104 U line (package v3 §6), not filled when absent:
                 "pair_scope": _Opt(str, "cross_view_k", fill=False), "all_view_chunk": _Opt(int, 256, fill=False)},
     "train": {"mode": str, "target_branch": _Opt(str, "shared"), "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
@@ -281,6 +285,28 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
         raise ConfigError("the noisy matched-JS control (N2) is implemented for the multi-view path")
 
 
+def _p133_moco_policy(cfg: dict[str, Any]) -> None:
+    """P133 (MoCo-consistent momentum queue, P100 report §3): every pair is (online query, momentum key); P = different views of one image,
+    Q = keys of other images (current batch + uid-masked queue).  Allowed only on the wiring it was built for."""
+    p, m = cfg["pairing"], cfg["run"]["method"]
+    if p.get("moco_consistent") is not True:
+        raise ConfigError("pairing.moco_consistent may only be set to true (omit it otherwise)")
+    if "moco_use_queue" in p and not isinstance(p["moco_use_queue"], bool):
+        raise ConfigError("pairing.moco_use_queue must be a bool (false = current-batch momentum keys only; queue_size is then unused)")
+    if not (p.get("momentum_encoder", False) and p.get("negative_source", "cyclic") == "queue" and p["queue"]):
+        raise ConfigError("pairing.moco_consistent requires the momentum-encoder key queue (momentum_encoder true, negative_source 'queue')")
+    if cfg["views"]["count"] != 4 or cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint":
+        raise ConfigError("P133 is implemented for 4 views, the shared branch and a single joint step")
+    if "pair_scope" in p or "all_view_chunk" in p:
+        raise ConfigError("P133 defines its own pairing (all ordered cross-view (query, key) positives); drop pair_scope / all_view_chunk")
+    if m == "vcs_qmi":
+        c = cfg["model"]["critic"]
+        if c.get("affine_mode", "learned") != "fixed" or cfg["objective"]["loss"] != "negative_J" or c.get("feature_source", "z") != "z":
+            raise ConfigError("P133 VCS uses the A-P3 scorer: fixed affine (affine_mode 'fixed'), the original J, critic on z")
+    elif m != "simclr_matched":
+        raise ConfigError("P133 is defined for vcs_qmi and simclr_matched only")
+
+
 def policy_checks(cfg: dict[str, Any]) -> None:
     """First-round invariants from spec §1.2, §6, §8, §12, §15.2(8)."""
     if cfg["schema_version"] != "vcs_ssl_agent_1.0":
@@ -336,6 +362,10 @@ def policy_checks(cfg: dict[str, Any]) -> None:
             raise ConfigError("the momentum-encoder queue is implemented for the 4-view recipe (views.count = 4) only")
     elif "momentum_m" in p:
         raise ConfigError("pairing.momentum_m is only meaningful with pairing.momentum_encoder: true")
+    if "moco_consistent" in p:  # P133
+        _p133_moco_policy(cfg)
+    elif "moco_use_queue" in p:
+        raise ConfigError("pairing.moco_use_queue is only meaningful with pairing.moco_consistent: true (P133)")
     if p["negative_detach"] and m != "vcs_qmi":
         raise ConfigError("negative_detach is a VCS-only named variant")
     if m == "vcs_qmi" and cfg["model"]["critic"]["cosine_scale_init"] <= 0:
@@ -400,8 +430,10 @@ def policy_checks(cfg: dict[str, Any]) -> None:
         raise ConfigError("gaussian_blur_p must be in [0, 1]")
     if m != "vcs_qmi" and cfg["views"]["gaussian_blur_p"] != 0.0:
         raise ConfigError("control runs keep the frozen augmentation recipe (no blur)")
-    if cfg["model"]["backbone"] != "resnet18_cifar" or cfg["model"]["h_dim"] != 512:
-        raise ConfigError("backbone must be resnet18_cifar with h_dim 512")
+    # ---- P130 (v6 §8.3): resnet50_cifar with h_dim 2048 is the only other allowed backbone (architecture check) ----
+    if (cfg["model"]["backbone"], cfg["model"]["h_dim"]) not in (("resnet18_cifar", 512), ("resnet50_cifar", 2048)):
+        raise ConfigError("backbone must be resnet18_cifar with h_dim 512 (or, P130, resnet50_cifar with h_dim 2048)")
+    # ---- end P130 ----
     if cfg["optimizer"]["name"] != "adamw" or cfg["schedule"]["kind"] != "linear_warmup_cosine" \
             or cfg["schedule"]["unit"] != "optimizer_step" or cfg["schedule"]["scale_lr_with_batch"]:
         raise ConfigError("optimizer/schedule deviate from the frozen recipe")

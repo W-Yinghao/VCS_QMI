@@ -9,7 +9,7 @@ import torch
 from torch import nn
 
 from ..utils import state_dict_sha256
-from .backbone import build_resnet18_cifar
+from .backbone import build_backbone, build_resnet18_cifar
 from .critic import build_critic, critic_impl_name
 from .projector import build_predictor, build_projector
 
@@ -32,7 +32,7 @@ def build_models(cfg: dict[str, Any], *, seed: int, device: torch.device | str =
     if mcfg["weights"] is not None:
         raise ValueError("pretrained weights are forbidden")
     torch.manual_seed(seed)
-    encoder = build_resnet18_cifar(mcfg["stem"])
+    encoder = build_backbone(mcfg["backbone"], mcfg["stem"])  # P130: dispatch; resnet18_cifar path unchanged
     projector = build_projector(mcfg["projector"], in_dim=mcfg["h_dim"])
     critic = None
     if mcfg["critic"]["enabled"]:
