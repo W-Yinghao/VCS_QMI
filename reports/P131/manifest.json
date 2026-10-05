@@ -1,0 +1,332 @@
+{
+ "label": "CIFAR-10-C-style, regenerated locally",
+ "unit": "P131",
+ "authorisation": "owner 2026-10-04 '\u5168\u90e8\u63d0\u4ea4' \u2014 CIFAR-10-C reporting only; clean test images never stored or scored",
+ "source": {
+  "partition": "official CIFAR-10 test (test_batch), corruption input only",
+  "test_batch_sha256": "f53d8d457504f7cff4ea9e021afcf0e0ad8e24a91f3fc42091b8adef61157831",
+  "n_images": 10000
+ },
+ "layout": "per corruption: severities 1..5 concatenated, n_images each, in test_batch order; labels.npy = test labels tiled 5x",
+ "reference": "Hendrycks & Dietterich 2019, hendrycks/robustness ImageNet-C/create_c/make_cifar_c.py (CIFAR severity parameters)",
+ "primary": [
+  "gaussian_noise",
+  "shot_noise",
+  "impulse_noise",
+  "defocus_blur",
+  "glass_blur",
+  "zoom_blur",
+  "fog",
+  "brightness",
+  "contrast",
+  "elastic_transform",
+  "pixelate",
+  "jpeg_compression"
+ ],
+ "families": {
+  "noise": [
+   "gaussian_noise",
+   "shot_noise",
+   "impulse_noise"
+  ],
+  "blur": [
+   "defocus_blur",
+   "glass_blur",
+   "zoom_blur"
+  ],
+  "weather": [
+   "fog",
+   "brightness"
+  ],
+  "digital": [
+   "contrast",
+   "elastic_transform",
+   "pixelate",
+   "jpeg_compression"
+  ]
+ },
+ "extra": [
+  "speckle_noise",
+  "gaussian_blur",
+  "saturate"
+ ],
+ "omitted": {
+  "motion_blur": "needs ImageMagick through Wand (MotionImage.motion_blur); Wand / ImageMagick bindings not installed, no pip installs allowed",
+  "snow": "the snow layer is motion-blurred with Wand (ImageMagick); same reason as motion_blur",
+  "frost": "needs the frost texture images shipped with the original repository (frost1.png ... frost6.jpg); not available, no downloads",
+  "spatter (extra set)": "needs cv2 Canny / distanceTransform / morphology; cv2 not installed"
+ },
+ "approximations": {
+  "elastic_transform": "cv2.warpAffine replaced by scipy.ndimage.affine_transform (bilinear, mirror); cv2 quantises to 1/32 px",
+  "all": "RandomState per (corruption, severity) block (original: legacy global state) -> same distribution, not the released pixels; scipy >= 1.6 boundary handling in zoom / map_coordinates"
+ },
+ "cast": "np.uint8(float output) as the original (truncation)",
+ "base_seed": 131,
+ "files": {
+  "gaussian_noise": {
+   "sha256": "43a141d2dfdfb7b7e7ff0ff90adec8cad005912b0ddf51129344ab2c94900922",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 7.1,
+   "block_seeds": [
+    131001,
+    131002,
+    131003,
+    131004,
+    131005
+   ]
+  },
+  "shot_noise": {
+   "sha256": "cf2d0ab3bebfcdc7787cd076be255ff45978b1387dcc4fb3175cfbcca97f45c0",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 19.7,
+   "block_seeds": [
+    131011,
+    131012,
+    131013,
+    131014,
+    131015
+   ]
+  },
+  "impulse_noise": {
+   "sha256": "dd87c4a7155f01b857da2780f3628bea67a928dab5bd1408ef751531d8922bec",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 11.2,
+   "block_seeds": [
+    131021,
+    131022,
+    131023,
+    131024,
+    131025
+   ]
+  },
+  "defocus_blur": {
+   "sha256": "28229687250a2922289ee5ba6a58f89071cd203c448803062c58ea6cf9760093",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 57.7,
+   "block_seeds": [
+    131031,
+    131032,
+    131033,
+    131034,
+    131035
+   ]
+  },
+  "glass_blur": {
+   "sha256": "1e85e9886693e6592b65a7d06dcb13672dfedd6a3b8d02d7ae035de41239b726",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 501.3,
+   "block_seeds": [
+    131041,
+    131042,
+    131043,
+    131044,
+    131045
+   ]
+  },
+  "zoom_blur": {
+   "sha256": "a3af830b0759addce9ac555f938643f3dcf2b9fef9df7f4479750a568c62006f",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 225.5,
+   "block_seeds": [
+    131051,
+    131052,
+    131053,
+    131054,
+    131055
+   ]
+  },
+  "fog": {
+   "sha256": "bd5b02e25e5100387776a0304a880f5923b74c45a20378f8fb40011ed54391cd",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 38.9,
+   "block_seeds": [
+    131061,
+    131062,
+    131063,
+    131064,
+    131065
+   ]
+  },
+  "brightness": {
+   "sha256": "3bb5990e41b0212b62bc0b4385f4f95d68ecb94da627eacba4552381228a17c3",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 47.8,
+   "block_seeds": [
+    131071,
+    131072,
+    131073,
+    131074,
+    131075
+   ]
+  },
+  "contrast": {
+   "sha256": "cb5e3765f52a172a380ce8c8c3096b78669d2f01f4f6e958ee30729f680bb9fb",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 5.4,
+   "block_seeds": [
+    131081,
+    131082,
+    131083,
+    131084,
+    131085
+   ]
+  },
+  "elastic_transform": {
+   "sha256": "99e5fd9c7dd17ef3a76aa1838c0cb8312b67f4d6854c59d7d944827419043ee8",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 62.7,
+   "block_seeds": [
+    131091,
+    131092,
+    131093,
+    131094,
+    131095
+   ]
+  },
+  "pixelate": {
+   "sha256": "6657f75ac66c907ad8206248bc1f48bef0dac219a1617f4dfd1b15e46ccf5ac7",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 6.6,
+   "block_seeds": [
+    131101,
+    131102,
+    131103,
+    131104,
+    131105
+   ]
+  },
+  "jpeg_compression": {
+   "sha256": "63bc79decc4d2882e0ba69b969b18003142d6558e20ffa70797c949a9c67c8ae",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 12.8,
+   "block_seeds": [
+    131111,
+    131112,
+    131113,
+    131114,
+    131115
+   ]
+  },
+  "speckle_noise": {
+   "sha256": "edd199589c78f24486548461470676a72c54e52561f322fb471ee2e4b12abd87",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 8.0,
+   "block_seeds": [
+    131121,
+    131122,
+    131123,
+    131124,
+    131125
+   ]
+  },
+  "gaussian_blur": {
+   "sha256": "704835158ce2e0e1e16b54186b13fd963c0e7338072f430f82bb5a638a055393",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 10.7,
+   "block_seeds": [
+    131131,
+    131132,
+    131133,
+    131134,
+    131135
+   ]
+  },
+  "saturate": {
+   "sha256": "a26d5ea189fd96181476b22e57ffa826981f95c8482a07c3d177779eb69bc89b",
+   "shape": [
+    50000,
+    32,
+    32,
+    3
+   ],
+   "seconds": 32.1,
+   "block_seeds": [
+    131141,
+    131142,
+    131143,
+    131144,
+    131145
+   ]
+  }
+ },
+ "labels_sha256": "eb90c9b0785ff486d47e2a64ef87a2ae7360a91799d3d24fbe23016b565ac375",
+ "versions": {
+  "python": "3.12.12",
+  "numpy": "2.5.2",
+  "scipy": "1.18.1",
+  "PIL": "12.3.0",
+  "torch": "2.9.0+cu128"
+ },
+ "seconds_total": 504.5,
+ "smoke": false
+}
