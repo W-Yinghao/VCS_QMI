@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=p124_unit
 #SBATCH --partition=A100,L40S,RTX6000PRO,H100
-#SBATCH --exclude=node51
+#SBATCH --exclude=node51,node52,node60
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G

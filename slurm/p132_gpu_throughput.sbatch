@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=p132_gpu_tp
-#SBATCH --exclude=node51,node60
+#SBATCH --exclude=node51,node52,node60
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=64G
