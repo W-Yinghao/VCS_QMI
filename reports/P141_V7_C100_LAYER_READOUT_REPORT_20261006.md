@@ -1,0 +1,35 @@
+# P141 — CIFAR-100 coarse / fine / conditional readouts at four feature sites (layer3 / h / r / z) — report — 2026-10-06
+
+Pre-registration `P141_V7_C100_LAYER_READOUT_PREREG_FROZEN_20261006.md` (v7 §4.4); job 1023371 exit 0; results-only commit `967ac04`
+(`P141_v7_layer_readout_results.{md,json}`, `P141_rawstd_contrasts.txt`, per-encoder files `reports/P141/`).  22 frozen CIFAR-100 encoders (A-P3 ×5, JS-AP3 ×5,
+SimCLR ×3, recipe VCS ×3, G2 ×3, tuned JS (3, 0.5) ×3); P130 ResNet-50 added later by re-running the same job.  Development split.  Per site, the same
+probe rules; raw_std is co-primary across sites (the recipe probe underfits unit-norm z); r → z is a deterministic compression; L2-normalised h is not
+a parent of r / z.
+
+## 1. Where the information sits (raw_std, mean over seeds; fine = 100-way, conditional = 5-way within the true superclass)
+
+| method | layer3 (256) coarse / fine / cond | h (512) | r (128) | z (128) |
+|---|---|---|---|---|
+| A-P3 | 63.7 / 57.8 / 75.7 | **71.4 / 59.2 / 72.5** | 68.4 / 55.1 / 72.2 | 68.7 / 55.6 / 72.1 |
+| JS-AP3 | 64.0 / 57.6 / 75.4 | 70.7 / 58.2 / 72.0 | 67.7 / 52.9 / 70.7 | 67.7 / 53.9 / 70.6 |
+| tuned JS (3, 0.5) | 63.5 / 57.5 / 75.6 | 71.4 / 59.5 / 73.6 | 68.1 / 55.3 / 72.8 | 68.4 / 55.6 / 73.0 |
+| SimCLR | 63.1 / 58.0 / 75.8 | 69.6 / 56.6 / 70.1 | 68.7 / 54.9 / 71.2 | **69.8 / 56.7 / 72.5** |
+| recipe VCS | 61.3 / 55.0 / 73.9 | 68.7 / 59.2 / 74.3 | 60.4 / 52.9 / 72.3 | 60.5 / 52.9 / 72.3 |
+| G2 | 64.1 / 57.8 / 75.8 | 70.5 / 59.1 / 73.1 | 65.6 / 52.2 / 70.4 | 65.9 / 52.5 / 71.1 |
+
+## 2. Paired contrasts (raw_std; recipe_raw gives the same signs, see the results file)
+- **A-P3 − SimCLR changes sign along the network:** layer3 ≈ 0 (fine −0.10, close); **h: A-P3 clearly ahead on all three tasks** (coarse +1.79, fine +2.77,
+  conditional +2.68, 3 seeds); **z: SimCLR clearly ahead** (coarse −1.13, fine −1.07).  A-P3 concentrates the extra information in h, SimCLR keeps more of it
+  in z — the readout SimCLR's own objective sees.  This also explains why A-P3 leads on frozen-h linear but trails on kNN: h-site kNN favours
+  SimCLR (71.97 vs 71.44 coarse kNN; 57.21 vs 55.88 fine kNN).
+- **A-P3 − JS-AP3 (shared scorer) grows towards the head:** layer3 close on all tasks; h fine +1.08 (clear); r and z clearly ahead on all three tasks
+  (fine +2.16 / +1.79).  The quadratic objective shapes the projector output more than the backbone.
+- **A-P3 − tuned JS (3, 0.5):** close at layer3 / h / r on coarse and fine; tuned JS clearly better on the conditional readout at r and z (−0.85 / −0.89).
+- **Fine-grained information is lost in the projector for every method** (h → z fine: A-P3 −3.6, JS −4.3, SimCLR +0.1 at h vs z but SimCLR's h is lower;
+  recipe VCS −6.3 / coarse −8.2): the 128-d head compresses fine structure; the P137 (projector 512) runs test whether a wider head keeps more of it.
+- layer3 is nearly method-independent (all within ≈ 1 point), i.e. the method differences arise in layer4 / the head.
+
+## 3. Reading (descriptive, frozen)
+The plan's question (§4.4) is answered in part: the head (r, z) loses fine-grained information relative to h for every method, and the VCS-vs-SimCLR
+ordering flips between h and z.  The R50-vs-wider-R18-projector comparison waits for P130 / P137.  Not claimed: causal statements; anything beyond the
+three readouts and this split.
