@@ -1,0 +1,45 @@
+{
+ "package_id": "CVPR-MV6-HANDOFF-20261006-r2",
+ "fixtures": [
+  {
+   "fixture_id": "F-SOLVER-P116",
+   "comparison_axis": "fixed_encoder_vary_estimator",
+   "encoder": "P5_simclr_seed0 epoch_200 (2 views, 200 ep, in-repo)",
+   "encoder_sha256_16": "f180f84ccef5ea7c",
+   "vcs_cells_encoder": "P35_vcs_a5_views4_800ep_seed0",
+   "representation_site": "h (512, FIT-standardised); phi=[h(2N-1),1]",
+   "split_hash": "c35d7cd336e79680c2e2c077e5612ed9eb6779ff70a427f5e085bc4df2d617a9",
+   "planting": "colour: R*(1+s), B*(1-s) on uint8, clipped; blur: PIL GaussianBlur(radius=s px) at 32x32; N~Bernoulli(1/2) one draw for all s",
+   "n_base": 45000,
+   "per_repeat": "disjoint FIT/EVAL/POOL of n; FIT 80/20; within-class POOL negatives; B=200 within-class perms",
+   "features_on_disk": "outputs/P45_precheck_D_simclr{,_blur}/",
+   "results": "reports/P116/*.json"
+  },
+  {
+   "fixture_id": "F-PAIRED-P109/P118",
+   "comparison_axis": "fixed_measurement_vary_encoder",
+   "encoders": [
+    "P107_AP3_views4_800ep_seed1",
+    "P107_AP3_views4_800ep_seed2",
+    "P41_simclr_views4_800ep_seed1",
+    "P41_simclr_views4_800ep_seed2"
+   ],
+   "layers": "layer3 (pooled 256), h (512), z (L2 projector 128), logits (10-way logistic on clean standardised h, L-BFGS, FIT)",
+   "n_base": 20000,
+   "split": "FIT 10000 / VAL 2000 / EVAL 8000 by base id",
+   "versions": "clean, colour .05/.1/.2, blur .25/.5/1",
+   "features_on_disk": null,
+   "features_note": "outputs/P109_I1_features deleted by cleanup v4 rule R6; regenerable by scripts/p109_i1_features.py",
+   "results": "reports/P118_i1_*_{power,level}.json; reports/P109_i1_*_effects.json",
+   "head_sha256": null
+  },
+  {
+   "fixture_id": "F-NEST-P118-visual",
+   "maps": "h vs logit_h (probe on 4k PROBE subset); h>pca64>pca16>logit16",
+   "n": 3000,
+   "repeats": 5,
+   "results": "reports/P118_visual_*.json",
+   "missing": "h->r, r->z, h->fixed head"
+  }
+ ]
+}
