@@ -118,7 +118,7 @@ def prediction_effects(D: AuditData, version: str, boot: int = 1000, seed: int =
            "d_margin_ci": ci(dmar), "acc_clean": float(ac.mean()), "acc_planted": float(apl.mean()), "d_acc": float((apl - ac).mean()),
            "d_acc_ci": ci(apl - ac), "prediction_flip_rate": float(flip.mean())}, "per_class": {}}
     yy = y.numpy()
-    for c in range(10):
+    for c in [int(c) for c in np.unique(yy)]:  # P143: all classes present (10 for CIFAR-10, unchanged; 100 for CIFAR-100)
         m = yy == c
         res["per_class"][c] = {"n": int(m.sum()), "d_prob_true": float(dprob[m].mean()), "d_margin": float(dmar[m].mean()),
                                "acc_clean": float(ac[m].mean()), "acc_planted": float(apl[m].mean()), "flip": float(flip[m].mean())}

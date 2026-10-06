@@ -1,7 +1,7 @@
-# Pre-registration — P142 (MV6-I1): Table 3 completion — same-target kernel and conditional HSIC on the fixed-encoder fixture — DRAFT 2026-10-06
+# Pre-registration — P142 (MV6-I1): Table 3 completion — same-target kernel and conditional HSIC on the fixed-encoder fixture — FROZEN 2026-10-06
 
 Source: CVPR-MV6-HANDOFF-20261006-r2 (docs/04 §5, docs/05 §C), intake `reports/manuscript_v6_handoff/intake_report.md`.  Axis
-`fixed_encoder_vary_estimator` only; nothing here is pooled with Table 4.  No encoder training.  DRAFT until the owner's go (decision D1/D2).
+`fixed_encoder_vary_estimator` only; nothing here is pooled with Table 4.  No encoder training.  Owner go 2026-10-06 (D1, D2).
 
 ## 1. Question
 On the fixed encoder of Table 3, with the same data, splits, N | Y draws and within-class permutations as P116, how do a same-target kernel
@@ -40,9 +40,21 @@ colour s ∈ {0, 0.1, 0.2}, blur s ∈ {0.25, 0.5}, cond-label null files.  Cell
 strength) + the same three nulls; all methods (A1, A3@50/200/800, K1, H1, H2); seeds 621–625.  Reported as a separate block; Block A rows are
 not replaced.
 
-## 6. Cost (estimate; a 2-repeat smoke per method replaces it before the freeze)
-Block A CPU ≈ 4–8 h on 8 cores (P116 SimCLR units took 54 min for A1–A3 + JS_P105; K1 ≈ 3 × A1, H2 dominates).  Block B GPU ≈ 0.2 h
-(extraction) + CPU ≈ 6 h.  CPU jobs bundled to keep the normal-QOS job count low.
+## 6. Cost (measured in the smoke, 16 CPU cores, n 2000)
+Per repeat: A1 0.03 s, A3@50/200/800 0.06/0.35/1.39 s, K1 0.25 s (3 bandwidths), H1 0.74 s (200 permutations), H2 ≈ 65 s (300 steps; the P74
+setting) — H2 dominates.  Block A 900 repeats ≈ 15 h, block B 1 000 repeats ≈ 16 h, in four CPU bundles (no GPU).  Block B extraction ≈ 15 min
+on CPU inside the P143 extraction job.
 
 ## 7. Not claimed
 Encoder properties; ranking across native targets; any S error on image data; results at other strengths, n or encoders.
+
+## Decisions at the freeze (main session, 2026-10-06; owner go: "Submit all", "Add block B")
+- Owner chose block B; both blocks run.  P116 seeds and unit grouping are reused exactly (colour 612; blur 614 with n 1000 then n 2000; level
+  616 with label-only then all-planted); new cells: 617 (n-1000 null), 621 / 622 / 623 (block B).
+- Smoke (job 1024513): reproduction gate on the first two repeats of colour 0.2 / n 2000 passed (max |Δstat| 1.1e-13, 0 decision mismatches).
+  The gate needs the CPU device (P116 ran on CPU), so all P142 bundles run on the CPU partition.
+- K1's same-target kernel is the RFF-critic family of P86 (critic on J); RuLSIF / S-KDE are not added (one same-target kernel row, fixed
+  here).  H1 / H2 are the existing P74 implementations, with H2's base permutations drawn from a separate generator so that the main stream stays
+  identical to P116.
+- Launch: `slurm/mv6/p142_A1.txt`, `p142_A2.txt` (immediately), `p142_B1.txt`, `p142_B2.txt` (after the extraction job), via
+  `slurm/mv6_bundle.sbatch`; aggregation by a results-only commit, then the report.

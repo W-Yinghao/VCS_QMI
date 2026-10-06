@@ -26,7 +26,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src")); sys.path.insert(0, str(REPO / "scripts"))
 from precheck_d_features import PlantedDataset  # noqa: E402
 from vcs_measure.common import layer_features, load_run, split_base_ids  # noqa: E402
-from vcs_ssl.data.cifar import load_cifar10_train  # noqa: E402
+from vcs_ssl.data.cifar import load_train_partition  # noqa: E402  (P143: dataset from the run's config; CIFAR-10 path unchanged)
 from vcs_ssl.data.transforms import build_clean_transform  # noqa: E402
 from vcs_ssl.utils import atomic_write_json, utc_now  # noqa: E402
 
@@ -36,10 +36,12 @@ VERSIONS = [("clean", "colour", 0.0), ("colour_s0.05", "colour", 0.05), ("colour
 
 
 @torch.no_grad()
-def extract(R, ds, device, workers) -> dict[str, torch.Tensor]:
-    out = {k: [] for k in ("layer3", "h", "z")}
+def extract(R, ds, device, workers, with_r: bool = False) -> dict[str, torch.Tensor]:
+    out = {k: [] for k in ("layer3", "h", "z") + (("r",) if with_r else ())}
     for x, _, _, _ in DataLoader(ds, batch_size=512, shuffle=False, num_workers=workers):
         f = layer_features(R["encoder"], R["projector"], x.to(device), R["eps"])
+        if with_r:  # P144: projector output before L2 normalisation (eval mode), for the h -> r -> z maps
+            f["r"] = R["projector"](f["h"])
         for k in out:
             out[k].append(f[k].float().cpu())
     return {k: torch.cat(v) for k, v in out.items()}
@@ -48,7 +50,8 @@ def extract(R, ds, device, workers) -> dict[str, torch.Tensor]:
 def fit_classifier(h: torch.Tensor, y: torch.Tensor, wd: float = 1e-4, iters: int = 300) -> dict:
     """Multinomial logistic regression on standardised h (full-batch L-BFGS, L2 wd); deterministic."""
     mu, sd = h.mean(0), h.std(0) + 1e-6; X = ((h - mu) / sd).double(); Y = y.long()
-    W = torch.zeros(X.shape[1], 10, dtype=torch.float64, requires_grad=True); b = torch.zeros(10, dtype=torch.float64, requires_grad=True)
+    k = int(Y.max()) + 1  # P143: 10 for CIFAR-10 (unchanged), 100 for CIFAR-100
+    W = torch.zeros(X.shape[1], k, dtype=torch.float64, requires_grad=True); b = torch.zeros(k, dtype=torch.float64, requires_grad=True)
     opt = torch.optim.LBFGS([W, b], lr=1.0, max_iter=iters, line_search_fn="strong_wolfe")
 
     def closure():
@@ -66,16 +69,17 @@ def main() -> int:
     ap.add_argument("--runs", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--fit", type=int, default=10000); ap.add_argument("--val", type=int, default=2000); ap.add_argument("--eval", type=int, default=8000)
     ap.add_argument("--workers", type=int, default=6); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--fp32-maps", action="store_true", help="P144: also store fp32 h and r (projector output) per version for the h->r->z / h->O maps")
     a = ap.parse_args()
     if a.smoke:
         a.fit, a.val, a.eval = 600, 300, 600
     device = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
     torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
-    data = None
+    data, dname = None, None
     for run in a.runs.split(","):
         t0 = time.time(); R = load_run(run, device=device)
-        if data is None:
-            data = load_cifar10_train(R["cfg"]["data"]["root"])
+        if data is None or R["cfg"]["data"]["name"] != dname:
+            dname = R["cfg"]["data"]["name"]; data = load_train_partition(dname, R["cfg"]["data"]["root"])
         fit_pool = np.asarray(R["manifest"]["fit_uids"], dtype=np.int64)
         sp = split_base_ids(fit_pool, {"fit": a.fit, "val": a.val, "eval": a.eval}, SPLIT_SEED)
         ids = np.concatenate([sp["fit"], sp["val"], sp["eval"]]); part = np.repeat([0, 1, 2], [len(sp["fit"]), len(sp["val"]), len(sp["eval"])])
@@ -83,17 +87,20 @@ def main() -> int:
         feats = {}
         for name, kind, s in VERSIONS:
             ds = PlantedDataset(data.data, data.targets, ids, np.ones(len(ids), dtype=np.int64), s, tf, kind=kind)
-            feats[name] = extract(R, ds, device, a.workers)
+            feats[name] = extract(R, ds, device, a.workers, with_r=a.fp32_maps)
         clf = fit_classifier(feats["clean"]["h"][part == 0], y[part == 0])
         acc = {}
         for name in feats:
             lg = logits(clf, feats[name]["h"]); feats[name]["logits"] = lg
             acc[name] = {k: float((lg[part == i].argmax(1) == y[part == i]).float().mean()) for i, k in enumerate(("fit", "val", "eval"))}
         store = {"run": run, "ids": torch.as_tensor(ids), "part": torch.as_tensor(part), "y": y, "versions": [v[0] for v in VERSIONS],
-                 "features": {n: {k: (v.half() if k != "logits" else v.float()) for k, v in f.items()} for n, f in feats.items()},
-                 "classifier": {k: v for k, v in clf.items()}, "split_seed": SPLIT_SEED}
+                 "features": {n: {k: (v.half() if k != "logits" else v.float()) for k, v in f.items() if k != "r"} for n, f in feats.items()},
+                 "classifier": {k: v for k, v in clf.items()}, "split_seed": SPLIT_SEED, "dataset": dname}
+        if a.fp32_maps:  # P144: fp32 copies for the deterministic-map measurements (h, r; z and logits are recomputed and checked)
+            store["maps_fp32"] = {n: {"h": f["h"].float(), "r": f["r"].float()} for n, f in feats.items()}
+            store["projector_state"] = {k: v.detach().cpu() for k, v in R["projector"].state_dict().items()}
         od = Path(a.out) / run; od.mkdir(parents=True, exist_ok=True); torch.save(store, od / "features.pt")
-        atomic_write_json(od / "manifest.json", {"run": run, "utc": utc_now(), "epoch": R["epoch"], "sizes": {k: int(len(v)) for k, v in sp.items()},
+        atomic_write_json(od / "manifest.json", {"run": run, "dataset": dname, "fp32_maps": bool(a.fp32_maps), "utc": utc_now(), "epoch": R["epoch"], "sizes": {k: int(len(v)) for k, v in sp.items()},
                                                   "split_seed": SPLIT_SEED, "versions": [list(v) for v in VERSIONS], "classifier_acc": acc,
                                                   "label_use": "classifier fitted on FIT base images (clean h) with labels; analysis only",
                                                   "seconds": time.time() - t0})
