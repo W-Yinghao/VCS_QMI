@@ -616,6 +616,71 @@ def all_view_tokens_loss(views_z: list[Tensor], critic, *, negative_detach: bool
             "sat_pos_frac": sat_p.float() / n_p, "sat_neg_frac": sat_q.float() / n_q, "n_pos": n_p, "n_neg": n_q, "n_views": V, "n_base_images": B}
 
 
+# ---- P138 (v7 V7-PAIR, plan §5): sampled image shifts x all view pairs -------------------------------------------------------------
+# Same expected objective as all_view_tokens, cheaper negatives.  Tokens z[a, i] (view a, image i).  P = all ordered different-view pairs of
+# the same image (N_P = B·V(V−1), computed exactly — no self-similarities).  For each of K DISTINCT nonzero cyclic image shifts d (drawn per
+# step without replacement from the dedicated pair generator), the B·V² pairs (z[a, i], z[b, (i + d) mod B]) for ALL (a, b), a = b included.
+# L_K = L_P + (1/K) Σ_d H_d, H_d = mean over its B·V² pairs of ℓ_Q; since every H_d has the same count this is the mean over the selected
+# K·B·V² negatives.  K = B − 1 reproduces all_view_tokens exactly (same P set, same Q set, same separate means); for random d it is unbiased
+# for that loss and its gradient (finite-population sampling of shifts).  Full (non-detached) gradients on both sides; only the selected
+# pairs are scored (no full matrix + mask).  Reached only through pairing.pair_scope 'sampled_image_shifts_all_view_pairs'.
+P138_SCOPE = "sampled_image_shifts_all_view_pairs"
+
+
+def sample_image_shifts(B: int, K: int, generator: torch.Generator | None) -> list[int]:
+    """K distinct shifts uniformly from {1, …, B−1} (without replacement); K = B − 1 returns every shift (in random order)."""
+    if not 1 <= K <= B - 1:
+        raise ValueError("require 1 <= K <= B-1")
+    return (torch.randperm(B - 1, generator=generator)[:K] + 1).tolist()
+
+
+def sampled_shift_all_view_loss(views_z: list[Tensor], critic, *, shifts: list[int], objective: str = "vcs") -> dict[str, Any]:
+    if getattr(critic, "is_noisy", False):
+        raise TypeError("the P138 sampled-shift path has no noise model")
+    if not hasattr(critic, "score_matrix"):
+        raise TypeError("the P138 sampled-shift path needs a similarity critic exposing score_matrix")
+    if objective not in ("vcs", "js"):
+        raise ValueError("objective must be 'vcs' or 'js'")
+    if objective == "js" and not (hasattr(critic, "scale") and hasattr(critic, "bias")):
+        raise TypeError("the P138 matched-JS loss needs the angular critic logit f = a·C + b (scale, bias)")
+    V = len(views_z)
+    B = views_z[0].shape[0]
+    if V < 2 or B < 2:
+        raise ValueError("need >= 2 views and >= 2 images")
+    shifts = [int(d) for d in shifts]
+    if not shifts or len(set(shifts)) != len(shifts) or any(not 1 <= d <= B - 1 for d in shifts):
+        raise ValueError("shifts must be distinct integers in 1..B-1")
+    z = torch.stack(views_z, dim=0)  # [V, B, D]
+    dev = z.device
+    ia, ib = zip(*[(a, b) for a in range(V) for b in range(V) if a != b])
+    ia, ib = torch.tensor(ia, device=dev), torch.tensor(ib, device=dev)
+    cp = (z[ia] * z[ib]).sum(-1)  # [V(V−1), B]: exactly the positive pairs
+    cq = torch.stack([torch.einsum("aid,bid->iab", z, torch.roll(z, shifts=-d, dims=1)) for d in shifts])  # [K, B, V, V]
+
+    def logits(c: Tensor) -> Tensor:
+        return critic.logits_from_similarity(c) if getattr(critic, "is_curved", False) else critic.scale * c + critic.bias
+
+    if objective == "js":
+        fp, fq = logits(cp), logits(cq)
+        l_p, l_q = F.softplus(-2.0 * fp).mean(), F.softplus(2.0 * fq).mean()
+        with torch.no_grad():
+            tp, tq = torch.tanh(fp), torch.tanh(fq)
+    else:
+        tp, tq = critic.score_matrix(cp), critic.score_matrix(cq)
+    n_p, n_q = int(cp.numel()), int(cq.numel())
+    if n_p != B * V * (V - 1) or n_q != len(shifts) * B * V * V:
+        raise RuntimeError("P138 pair counting failed")
+    mp, mq, sp, sq = tp.mean(), tq.mean(), tp.square().mean(), tq.square().mean()
+    j = mp - mq - 0.5 * sp - 0.5 * sq
+    risk = 0.5 * (1.0 - 2.0 * mp + sp) + 0.5 * (1.0 + 2.0 * mq + sq)
+    loss = (l_p + l_q) if objective == "js" else -j
+    return {"loss": loss, "js_loss": loss.detach() if objective == "js" else None, "J_raw": j, "R_binary": risk, "t_pos_mean": mp, "t_neg_mean": mq,
+            "t_pos_second": sp, "t_neg_second": sq, "sat_pos_frac": (tp.detach().abs() > 0.95).float().mean(),
+            "sat_neg_frac": (tq.detach().abs() > 0.95).float().mean(), "n_pos": n_p, "n_neg": n_q, "n_views": V, "n_base_images": B,
+            "score_elements_computed": n_p + n_q, "shifts": shifts}
+# ---- end P138 block ------------------------------------------------------------------------------------------------------------------------
+
+
 def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any] | None:
     """Dispatcher for the P104 paths; returns None when the config uses none of them (the caller then runs the frozen path).
     Adds 'critic_pair_evals' (pair scorings actually computed, incl. noise repeats) to the returned dict."""
@@ -634,6 +699,15 @@ def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], 
         if js:
             stats["js_loss"] = float(s["js_loss"])
         return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"], "critic_pair_evals": s["n_pos"] + s["n_neg"]}
+    if scope == P138_SCOPE:  # ---- P138 (v7 V7-PAIR): K sampled image shifts x all view pairs; one draw of K shifts per step ----
+        shifts = sample_image_shifts(vs[0].shape[0], int(cfg["pairing"]["k"]), pair_generator)
+        s = sampled_shift_all_view_loss(vs, critic, shifts=shifts, objective="js" if js else "vcs")
+        for kk in VCS_STAT_KEYS:
+            stats[kk] = float(s[kk].detach())
+        if js:
+            stats["js_loss"] = float(s["js_loss"])
+        return {"loss": s["loss"], "stats": stats, "shift": shifts, "n_pos": s["n_pos"], "n_neg": s["n_neg"],
+                "critic_pair_evals": s["score_elements_computed"]}
     if not (R > 1 or (js and noisy)):
         return None
     k = cfg["pairing"]["k"]

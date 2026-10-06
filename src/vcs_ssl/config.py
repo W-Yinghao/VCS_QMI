@@ -191,8 +191,8 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("js_matched_logistic uses the recipe's cyclic-shift pairing")
     if cfg["objective"].get("js_fixed_scorer", False) and loss != "js_matched_logistic":
         raise ConfigError("objective.js_fixed_scorer is only meaningful with the matched JS loss (P107 A-L1)")
-    if cfg["objective"].get("js_all_view_tokens", False) and cfg["pairing"].get("pair_scope", "cross_view_k") != "all_view_tokens":
-        raise ConfigError("objective.js_all_view_tokens is only meaningful with pairing.pair_scope all_view_tokens (P114)")
+    if cfg["objective"].get("js_all_view_tokens", False) and cfg["pairing"].get("pair_scope", "cross_view_k") not in ("all_view_tokens", P138_SCOPE):
+        raise ConfigError("objective.js_all_view_tokens is only meaningful with pairing.pair_scope all_view_tokens (P114) or the P138 sampled-shift scope")
     p95 = c["input"] in ("residual_cosine_mlp", "dictionary_simplex") or tau > 0 or R > 0 or loss == "js_matched_logistic"
     if p95:
         if cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint" or c.get("feature_source", "z") != "z":
@@ -202,6 +202,7 @@ def _p95_policy(cfg: dict[str, Any]) -> None:
 
 
 FIXED_AFFINE_MODES = ("fixed", "fixed_curved")  # P104 G line + P126 (v6 V6-CURVE): a, b (and lambda) are buffers fixed for the whole run
+P138_SCOPE = "sampled_image_shifts_all_view_pairs"  # P138 (v7 V7-PAIR) pairing branch
 
 
 def _p126_curve_policy(c: dict[str, Any], am: str) -> None:
@@ -255,8 +256,21 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
         raise ConfigError("critic.cosine_bias_init must be a number")
     if c.get("cosine_bias_calibrate", False) and "cosine_bias_init" in c:
         raise ConfigError("cosine_bias_init and cosine_bias_calibrate are exclusive")
-    if scope not in ("cross_view_k", "all_view_tokens"):
-        raise ConfigError("pairing.pair_scope must be 'cross_view_k' or 'all_view_tokens'")
+    if scope not in ("cross_view_k", "all_view_tokens", P138_SCOPE):
+        raise ConfigError("pairing.pair_scope must be 'cross_view_k', 'all_view_tokens' or (P138) 'sampled_image_shifts_all_view_pairs'")
+    # ---- P138 (v7 V7-PAIR): K sampled image shifts x all V² view pairs; the all_view_tokens wiring otherwise (same losses, markers, full grads) ----
+    if scope == P138_SCOPE:
+        if cfg["views"]["count"] <= 2 or tau > 0:
+            raise ConfigError("P138 sampled shifts: multi-view path (views.count > 2), no observation noise")
+        js_av138 = (loss == "js_matched_logistic" and bool(cfg["objective"].get("js_all_view_tokens", False))
+                    and bool(cfg["objective"].get("js_fixed_scorer", False)) and am in FIXED_AFFINE_MODES)
+        if (loss != "negative_J" and not js_av138) or (loss == "negative_J" and am not in FIXED_AFFINE_MODES):
+            raise ConfigError("P138 sampled shifts: the original J on the fixed scorer, or the matched JS control (js_fixed_scorer + js_all_view_tokens)")
+        if p["sampler"] != "random_nonzero_cyclic_shift" or p.get("negative_source", "cyclic") != "cyclic" or p["negative_detach"]:
+            raise ConfigError("P138 sampled shifts: cyclic image shifts from the dedicated generator, full (non-detached) negative gradients")
+        if "all_view_chunk" in p:
+            raise ConfigError("pairing.all_view_chunk is not used by the P138 sampled-shift path (only selected pairs are scored)")
+    # ---- end P138 ----
     if scope == "all_view_tokens":
         if cfg["views"]["count"] <= 2:
             raise ConfigError("all_view_tokens is implemented for the multi-view path (views.count > 2)")
@@ -273,7 +287,7 @@ def _p104_policy(cfg: dict[str, Any]) -> None:
             raise ConfigError("pairing.all_view_chunk must be a positive int")
     elif "all_view_chunk" in p:
         raise ConfigError("pairing.all_view_chunk is only meaningful with pair_scope 'all_view_tokens'")
-    if cfg["objective"].get("js_all_view_tokens", False) and not (scope == "all_view_tokens" and loss == "js_matched_logistic"
+    if cfg["objective"].get("js_all_view_tokens", False) and not (scope in ("all_view_tokens", P138_SCOPE) and loss == "js_matched_logistic"
                                                                   and cfg["objective"].get("js_fixed_scorer", False) and am in FIXED_AFFINE_MODES):
         raise ConfigError("objective.js_all_view_tokens marks the P114 cell only: matched JS on the fixed scorer with pair_scope all_view_tokens")
     if not (isinstance(R, int) and R >= 1):
