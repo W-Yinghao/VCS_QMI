@@ -406,7 +406,7 @@ def forward_features_views(encoder, projector, views: list[Tensor], eps: float) 
 
 
 def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None,
-                            kernel_sigma: float | None = None, queue: "NegativeQueue | None" = None) -> dict[str, Any]:
+                            kernel_sigma: float | None = None, queue: "NegativeQueue | None" = None, stress: dict | None = None) -> dict[str, Any]:
     """Named variant (views.count = 4): the same J averaged over all view pairs (a < b) of the same images; each pair draws its own shifts.
     Q still comes from different UIDs (cyclic shifts). Not a new loss: more Monte-Carlo coverage of the same P and Q."""
     method = cfg["run"]["method"]
@@ -414,7 +414,7 @@ def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], criti
     if queue is not None:
         return _views_momentum_queue(feats, cfg=cfg, critic=critic, pair_generator=pair_generator, queue=queue)
     if method == "vcs_qmi":  # P104 paths (inactive unless the new optional fields are set)
-        p104 = compute_objective_views_p104(feats, cfg=cfg, critic=critic, pair_generator=pair_generator)
+        p104 = compute_objective_views_p104(feats, cfg=cfg, critic=critic, pair_generator=pair_generator, stress=stress)
         if p104 is not None:
             return p104
     if method == "cs_kernel_native":
@@ -426,6 +426,11 @@ def compute_objective_views(feats: dict[str, Any], *, cfg: dict[str, Any], criti
         pairs = [(a, b_) for a in range(len(vs)) for b_ in range(a + 1, len(vs))]
         stats = _empty_stats()
         B = vs[0].shape[0]
+        if method == "simclr_matched" and stress is not None:  # P145 (v7 V7-STRESS): moved targets, denominators unchanged
+            s = stress_simclr_views(vs, temperature=ocfg["simclr_temperature"], repl=stress["repl"], replaced=stress["replaced"], diag=stress["diag"])
+            stats["nt_xent"] = float(s["nt_xent"])
+            stats.update({k: v for k, v in s.items() if k.startswith("stress_")})
+            return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"]}
         if method == "simclr_matched":
             losses = [simclr_nt_xent(vs[a], vs[b_], temperature=ocfg["simclr_temperature"]) for a, b_ in pairs]
             loss = torch.stack(losses).mean()
@@ -681,7 +686,8 @@ def sampled_shift_all_view_loss(views_z: list[Tensor], critic, *, shifts: list[i
 # ---- end P138 block ------------------------------------------------------------------------------------------------------------------------
 
 
-def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None) -> dict[str, Any] | None:
+def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], critic, pair_generator: torch.Generator | None,
+                                 stress: dict | None = None) -> dict[str, Any] | None:
     """Dispatcher for the P104 paths; returns None when the config uses none of them (the caller then runs the frozen path).
     Adds 'critic_pair_evals' (pair scorings actually computed, incl. noise repeats) to the returned dict."""
     scope = pair_scope(cfg)
@@ -692,6 +698,15 @@ def compute_objective_views_p104(feats: dict[str, Any], *, cfg: dict[str, Any], 
     vs = feats[key]
     nd = cfg["pairing"]["negative_detach"]
     stats = _empty_stats()
+    if scope == "all_view_tokens" and stress is not None:  # P145 (v7 V7-STRESS): positives from P_eps, negatives unchanged
+        s = stress_all_view_tokens_loss(vs, critic, repl=stress["repl"], replaced=stress["replaced"], negative_detach=nd,
+                                        chunk_size=int(cfg["pairing"].get("all_view_chunk", 256)), objective="js" if js else "vcs", diag=stress["diag"])
+        for kk in VCS_STAT_KEYS:
+            stats[kk] = float(s[kk].detach()) if torch.is_tensor(s[kk]) else float(s[kk])
+        if js:
+            stats["js_loss"] = float(s["js_loss"])
+        stats.update({k: v for k, v in s.items() if k.startswith("stress_")})
+        return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"], "critic_pair_evals": s["n_pos"] + s["n_neg"]}
     if scope == "all_view_tokens":
         s = all_view_tokens_loss(vs, critic, negative_detach=nd, chunk_size=int(cfg["pairing"].get("all_view_chunk", 256)), objective="js" if js else "vcs")
         for kk in VCS_STAT_KEYS:
@@ -864,3 +879,136 @@ def compute_objective_moco_consistent(feats: dict[str, Any], keys_views: list[Te
     for kk in ("n_neg_queue", "n_queue_uid_masked", "s_pos_mean", "s_neg_mean"):
         stats[f"p133_{kk}"] = float(s[kk])
     return {"loss": s["loss"], "stats": stats, "shift": None, "n_pos": s["n_pos"], "n_neg": s["n_neg"]}
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+# P145 (v7 V7-STRESS, plan §6): controlled contamination of the TRAINING positive pairs.  Reached only through the optional marker
+# pairing.stress_epsilon (not filled when absent; every frozen path above is unchanged).  For each ordered positive (z[a, i], z[b, i]), a != b,
+# with probability eps the right end is replaced by z[b, j] of another image j != i (same view b, j uniform); otherwise kept.  The number of
+# positives, the P / Q means and the negative set Q (all different-image pairs, nothing removed) are unchanged, so the positive distribution
+# becomes P_eps = (1 - eps) P + eps Q while the negatives stay Q.  One replacement draw per step from a generator seeded by (run seed, step),
+# identical for every method with the same seed (VCS / matched JS on the all-view-token path; SimCLR keeps its NT-Xent denominators and only
+# its target index moves to the replacement, the original positive staying in the denominator).
+def stress_replacements(V: int, B: int, eps: float, generator: torch.Generator) -> tuple[Tensor, Tensor]:
+    """[V, V, B] right-end image index for every ordered (a, b, i) and the boolean replaced mask (diagonal a == b unused, never replaced)."""
+    if not (0.0 <= eps < 1.0) or B < 2:
+        raise ValueError("need 0 <= eps < 1 and B >= 2")
+    u = torch.rand(V, V, B, generator=generator)
+    off = torch.randint(1, B, (V, V, B), generator=generator)            # uniform over the B - 1 other images
+    eye = torch.eye(V, dtype=torch.bool)[:, :, None].expand(V, V, B)
+    replaced = (u < eps) & ~eye
+    base = torch.arange(B).expand(V, V, B)
+    return torch.where(replaced, (base + off) % B, base), replaced
+
+
+def stress_all_view_tokens_loss(views_z: list[Tensor], critic, *, repl: Tensor, replaced: Tensor, negative_detach: bool, chunk_size: int = 256,
+                                objective: str = "vcs", diag: bool = False) -> dict[str, Any]:
+    """all_view_tokens_loss with the positives drawn from P_eps.  Q part identical (chunked masks over different-image pairs); P part scored
+    directly as the VB(V-1) ordered (a, b, i) pairs with right end z[b, repl[a, b, i]].  With no replacement this is all_view_tokens_loss up to
+    summation order (tested).  diag=True also returns gradient norms w.r.t. the token matrix of the kept-positive, replaced-positive and negative
+    parts of the loss and the cosine of the replaced part with the total."""
+    if objective not in ("vcs", "js") or getattr(critic, "is_curved", False) or getattr(critic, "is_noisy", False):
+        raise TypeError("the P145 stress path supports the fixed affine scorer (A-P3) with the VCS or matched-JS loss")
+    if objective == "js" and not (hasattr(critic, "scale") and hasattr(critic, "bias")):
+        raise TypeError("matched JS needs the angular critic logit f = a·C + b")
+    V, B = len(views_z), views_z[0].shape[0]
+    flat = torch.cat(views_z, dim=0)                                      # view-major, flat index = view·B + image
+    dev = flat.device
+    repl, replaced = repl.to(dev), replaced.to(dev)
+    pa, pb = torch.meshgrid(torch.arange(V, device=dev), torch.arange(V, device=dev), indexing="ij")
+    off = pa != pb
+    a_idx = pa[off][:, None] * B + torch.arange(B, device=dev)[None, :]       # [V(V-1), B] left tokens
+    b_idx = pb[off][:, None] * B + repl[off]                               # right tokens (replaced or not)
+    rmask = replaced[off]                                                  # [V(V-1), B]
+    sim_p = (flat[a_idx.reshape(-1)] * flat[b_idx.reshape(-1)]).sum(-1)
+    rm = rmask.reshape(-1)
+    if objective == "js":
+        fp = critic.scale * sim_p + critic.bias
+        lp_terms = F.softplus(-2.0 * fp)
+        tp = torch.tanh(fp)
+    else:
+        tp = critic.score_matrix(sim_p)
+        lp_terms = -(tp - 0.5 * tp.square())
+    n_p = V * B * (V - 1)
+    ids = torch.arange(V * B, device=dev) % B
+    keys = flat.detach() if negative_detach else flat
+    zero = flat.new_zeros(())
+    s_q = s_q2 = sat_q = lq_sum = zero
+    n_q = 0
+    for lo in range(0, V * B, chunk_size):
+        hi = min(lo + chunk_size, V * B)
+        mask_q = ids[lo:hi, None] != ids[None, :]
+        sq_ = flat[lo:hi] @ keys.T
+        if objective == "js":
+            fq = (critic.scale * sq_ + critic.bias)[mask_q]
+            lq_sum = lq_sum + F.softplus(2.0 * fq).sum()
+            tq = torch.tanh(fq)
+        else:
+            tq = critic.score_matrix(sq_)[mask_q]
+            lq_sum = lq_sum + (tq + 0.5 * tq.square()).sum()
+        s_q = s_q + tq.sum(); s_q2 = s_q2 + tq.square().sum(); sat_q = sat_q + (tq.detach().abs() > 0.95).sum()
+        n_q += int(mask_q.sum())
+    if n_q != V * B * V * (B - 1):
+        raise RuntimeError("stress all-view negative counting failed")
+    lp_kept, lp_repl = lp_terms[~rm].sum() / n_p, lp_terms[rm].sum() / n_p
+    lq = lq_sum / n_q
+    loss = lp_kept + lp_repl + lq
+    tpd = tp.detach()
+    mp, sp, mq, sq = tpd.mean(), tpd.square().mean(), s_q.detach() / n_q, s_q2.detach() / n_q
+    j = mp - mq - 0.5 * sp - 0.5 * sq
+    n_r = int(rm.sum())
+    out = {"loss": loss, "js_loss": loss.detach() if objective == "js" else None, "J_raw": j, "R_binary": 0.5 * (1 - 2 * mp + sp) + 0.5 * (1 + 2 * mq + sq),
+           "t_pos_mean": mp, "t_neg_mean": mq, "t_pos_second": sp, "t_neg_second": sq,
+           "sat_pos_frac": (tpd.abs() > 0.95).float().mean(), "sat_neg_frac": sat_q.float() / n_q, "n_pos": n_p, "n_neg": n_q,
+           "stress_n_replaced": n_r, "stress_frac_replaced": n_r / n_p,
+           "stress_t_pos_kept": float(tpd[~rm].mean()), "stress_t_pos_repl": float(tpd[rm].mean()) if n_r else None,
+           "stress_sim_pos_kept": float(sim_p.detach()[~rm].mean()), "stress_sim_pos_repl": float(sim_p.detach()[rm].mean()) if n_r else None}
+    if diag:
+        parts = {"kept": lp_kept, "repl": lp_repl, "neg": lq}
+        gs = {k: torch.autograd.grad(v, flat, retain_graph=True, allow_unused=True)[0] for k, v in parts.items() if v.requires_grad}
+        gs = {k: (g if g is not None else torch.zeros_like(flat)) for k, g in gs.items()}
+        gt = sum(gs.values())
+        for k, g in gs.items():
+            out[f"stress_gnorm_{k}"] = float(g.norm())
+        if "repl" in gs and float(gs["repl"].norm()) > 0:
+            out["stress_cos_repl_total"] = float(F.cosine_similarity(gs["repl"].reshape(1, -1), gt.reshape(1, -1)))
+    return out
+
+
+def stress_simclr_views(views_z: list[Tensor], *, temperature: float, repl: Tensor, replaced: Tensor, diag: bool = False) -> dict[str, Any]:
+    """SimCLR multi-view (mean of NT-Xent over the 6 view pairs a < b) with moved targets: anchor (a, i) targets (b, repl[a, b, i]) and anchor
+    (b, i) targets (a, repl[b, a, i]); logits, self-mask and denominators exactly as reference.simclr_nt_xent (the original positive stays in the
+    denominator).  With no replacement this equals the frozen SimCLR loss (tested)."""
+    V, B = len(views_z), views_z[0].shape[0]
+    dev = views_z[0].device
+    repl, replaced = repl.to(dev), replaced.to(dev)
+    pairs = [(a, b_) for a in range(V) for b_ in range(a + 1, V)]
+    ce_all, rm_all, sim_kept, sim_repl = [], [], [], []
+    for a, b_ in pairs:
+        x = F.normalize(torch.cat((views_z[a], views_z[b_]), 0).float(), dim=-1, eps=1e-8)
+        logits = (x @ x.T / temperature).masked_fill(torch.eye(2 * B, dtype=torch.bool, device=dev), -torch.inf)
+        tgt = torch.cat((B + repl[a, b_], repl[b_, a]))
+        rmk = torch.cat((replaced[a, b_], replaced[b_, a]))
+        ce = F.cross_entropy(logits, tgt, reduction="none")
+        ce_all.append(ce); rm_all.append(rmk)
+        with torch.no_grad():
+            s = (logits.gather(1, tgt[:, None]).squeeze(1) * temperature)
+            sim_kept.append(s[~rmk]); sim_repl.append(s[rmk])
+    ce, rm = torch.cat(ce_all), torch.cat(rm_all)
+    n = len(ce)
+    l_kept, l_repl = ce[~rm].sum() / n, ce[rm].sum() / n
+    loss = l_kept + l_repl
+    sk, sr = torch.cat(sim_kept), torch.cat(sim_repl)
+    out = {"loss": loss, "nt_xent": loss.detach(), "n_pos": n, "n_neg": n * (2 * B - 2), "stress_n_replaced": int(rm.sum()),
+           "stress_frac_replaced": float(rm.float().mean()), "stress_sim_pos_kept": float(sk.mean()),
+           "stress_sim_pos_repl": float(sr.mean()) if len(sr) else None}
+    if diag:
+        flat = views_z  # gradients w.r.t. every view's projector output
+        gk = torch.autograd.grad(l_kept, flat, retain_graph=True, allow_unused=True)
+        gr = torch.autograd.grad(l_repl, flat, retain_graph=True, allow_unused=True) if l_repl.requires_grad else [None] * V
+        cat = lambda gs: torch.cat([(g if g is not None else torch.zeros_like(v)).reshape(-1) for g, v in zip(gs, views_z)])
+        gk, gr = cat(gk), cat(gr)
+        out["stress_gnorm_kept"], out["stress_gnorm_repl"] = float(gk.norm()), float(gr.norm())
+        if float(gr.norm()) > 0:
+            out["stress_cos_repl_total"] = float(F.cosine_similarity(gr[None], (gk + gr)[None]))
+    return out

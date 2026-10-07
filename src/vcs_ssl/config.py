@@ -89,7 +89,9 @@ SCHEMA: dict[str, Any] = {
                 # P133 variant (a): false = negatives are the current batch's momentum keys only (no queue); not filled when absent:
                 "moco_use_queue": _Opt(bool, True, fill=False),
                 # P104 U line (package v3 §6), not filled when absent:
-                "pair_scope": _Opt(str, "cross_view_k", fill=False), "all_view_chunk": _Opt(int, 256, fill=False)},
+                "pair_scope": _Opt(str, "cross_view_k", fill=False), "all_view_chunk": _Opt(int, 256, fill=False),
+                # P145 (v7 V7-STRESS) positive-pair contamination rate, not filled when absent:
+                "stress_epsilon": _Opt((int, float), 0.0, fill=False)},
     "train": {"mode": str, "target_branch": _Opt(str, "shared"), "epochs": int, "warmup_epochs": _Num, "batch_size_images": int, "drop_last": bool, "shuffle": bool,
               "replacement": bool, "world_size": int, "grad_accumulation_steps": int, "precision": str, "allow_tf32": bool,
               "compile": bool, "num_workers": int, "pin_memory": bool, "persistent_workers": bool,
@@ -322,6 +324,29 @@ def _p133_moco_policy(cfg: dict[str, Any]) -> None:
         raise ConfigError("P133 is defined for vcs_qmi and simclr_matched only")
 
 
+def _p145_stress_policy(cfg: dict[str, Any]) -> None:
+    """P145 (v7 V7-STRESS): training positives contaminated at rate eps (right end -> another image's same view).  Only on the wiring it was
+    built for: 4 views, shared branch, one joint step; VCS / matched JS with the fixed A-P3 scorer on the all-view-token path, or SimCLR."""
+    p, m = cfg["pairing"], cfg["run"]["method"]
+    eps = p["stress_epsilon"]
+    if isinstance(eps, bool) or not isinstance(eps, (int, float)) or not (0.0 < float(eps) < 1.0):
+        raise ConfigError("pairing.stress_epsilon must be a number in (0, 1) (omit it for clean training)")
+    if cfg["views"]["count"] != 4 or cfg["train"].get("target_branch", "shared") != "shared" or cfg["train"]["mode"] != "joint":
+        raise ConfigError("P145 is implemented for 4 views, the shared branch and a single joint step")
+    if p["queue"] or p.get("momentum_encoder", False) or p.get("moco_consistent", False):
+        raise ConfigError("P145 does not combine with queues or momentum encoders")
+    if m == "vcs_qmi":
+        c = cfg["model"]["critic"]
+        if p.get("pair_scope", "cross_view_k") != "all_view_tokens":
+            raise ConfigError("P145 VCS / JS use the all-view-token pairing (pair_scope 'all_view_tokens')")
+        if c.get("affine_mode", "learned") != "fixed" or c.get("curvature_lambda", 0.0) not in (0, 0.0) or c.get("noise_repeats", 1) not in (1, None):
+            raise ConfigError("P145 VCS / JS use the fixed A-P3 scorer (affine_mode 'fixed', no curvature, no observation noise)")
+        if cfg["objective"]["loss"] not in ("negative_J", "js_matched_logistic"):
+            raise ConfigError("P145 VCS uses the original J; the matched control uses js_matched_logistic")
+    elif m != "simclr_matched":
+        raise ConfigError("P145 is defined for vcs_qmi (VCS / matched JS) and simclr_matched only")
+
+
 def policy_checks(cfg: dict[str, Any]) -> None:
     """First-round invariants from spec §1.2, §6, §8, §12, §15.2(8)."""
     if cfg["schema_version"] != "vcs_ssl_agent_1.0":
@@ -377,6 +402,8 @@ def policy_checks(cfg: dict[str, Any]) -> None:
             raise ConfigError("the momentum-encoder queue is implemented for the 4-view recipe (views.count = 4) only")
     elif "momentum_m" in p:
         raise ConfigError("pairing.momentum_m is only meaningful with pairing.momentum_encoder: true")
+    if "stress_epsilon" in p:  # P145
+        _p145_stress_policy(cfg)
     if "moco_consistent" in p:  # P133
         _p133_moco_policy(cfg)
     elif "moco_use_queue" in p:

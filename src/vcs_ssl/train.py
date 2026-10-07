@@ -35,6 +35,7 @@ from .models import build_models, ema_update
 from .objectives import (NegativeQueue, compute_objective, compute_objective_target, compute_objective_views, critic_feature_dim, critic_steps,
                          critic_input_key, forward_features, forward_features_target, forward_features_views, pair_symmetric, uses_queue)
 from .objectives import KeyUidQueue, compute_objective_moco_consistent  # P133
+from .objectives import stress_replacements  # P145
 from .optim import all_grads_finite, build_optimizer, grad_norms, has_trainable_params, set_lrs, verify_optimizer_coverage
 from .schedule import lr_factor, warmup_steps_for
 from .utils import (Timer, append_jsonl, apply_precision_policy, atomic_write_json, atomic_write_text, environment_info, git_info,
@@ -748,8 +749,14 @@ class Trainer:
             p133_keys = self.p133_momentum_keys(views)
             obj = compute_objective_moco_consistent(feats, p133_keys, uids, cfg=self.cfg, critic=self.critic, queue=self.p133_queue)
         elif multi:
+            stress = None
+            eps = float(self.cfg["pairing"].get("stress_epsilon", 0.0))
+            if eps > 0:  # P145 (v7 V7-STRESS): one replacement draw per step, seeded by (run seed, step) -> identical across methods and resumes
+                g = torch.Generator().manual_seed(self.seed * 1_000_003 + 145 + self.step)
+                repl, replaced = stress_replacements(len(views), views[0].shape[0], eps, g)
+                stress = {"repl": repl, "replaced": replaced, "diag": bool(log_this)}
             obj = compute_objective_views(feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, kernel_sigma=self.kernel_sigma,
-                                          **({"queue": self.neg_queue} if self.key_model is not None else {}))
+                                          **({"queue": self.neg_queue} if self.key_model is not None else {}), **({"stress": stress} if stress is not None else {}))
         else:
             obj = (compute_objective(self.method, feats, cfg=self.cfg, critic=self.critic, pair_generator=self.pair_gen, queue=self.neg_queue,
                                      kernel_sigma=self.kernel_sigma) if self.target_branch == "shared"
