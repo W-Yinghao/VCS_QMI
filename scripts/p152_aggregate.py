@@ -52,21 +52,26 @@ def main() -> int:
                 e = [r["checkpoints"][c] for r in rs]
                 row["checkpoints"][c] = {"native_value": ms([x["native_value"] for x in e]), "own_truth": e[0]["own_truth"], "signed_error": ms([x["signed_error"] for x in e]),
                                          "eval_block_sd": ms([np.sqrt(x["eval_blocks"]["var_conditional_fit"]) if x["eval_blocks"]["var_conditional_fit"] is not None else None for x in e]),
+                                         "eval_block_rel_sd": ms([np.sqrt(x["eval_blocks"]["var_conditional_fit"]) / abs(x["native_value"]) if x["eval_blocks"]["var_conditional_fit"] is not None and x["native_value"] else None for x in e]),
+                                         "eval_block_mean": ms([x["eval_blocks"]["mean"] for x in e]), "eval_block_n": e[0]["eval_blocks"].get("block_n"),
                                          "eval_block_nonfinite": [x["eval_blocks"]["n_nonfinite"] for x in e],
                                          "sat95_P": ms([x["hist_P"]["sat_T_0.95"] for x in e]), "sat95_Q": ms([x["hist_Q"]["sat_T_0.95"] for x in e]),
                                          "sat99_P": ms([x["hist_P"]["sat_T_0.99"] for x in e]), "f_overflow_P": [x["hist_P"]["f_below"] + x["hist_P"]["f_above"] for x in e]}
                 if kind in ("vcs", "js"):
                     row["checkpoints"][c]["posterior_mse"] = ms([x["posterior"].get("posterior_mse") for x in e])
             if kind == "smile":
-                row["note"] = "corrected SMILE trains on the JS gradient: fit / gradient / histograms equal JS; only the value read-out differs"
+                same = [units[(I, s)]["kinds"]["smile"]["lr_from_P85_selection"] == units[(I, s)]["kinds"]["js"]["lr_from_P85_selection"] for s in SEEDS if (I, s) in units]
+                row["same_lr_as_js"] = same
+                row["note"] = ("corrected SMILE trains on the JS gradient: where P85 selected the same lr as for JS the fit, gradient series and histograms equal "
+                               "JS's (only the value read-out and the SELECT state differ); elsewhere it is a JS-gradient fit at a different lr")
             table[f"{kind}/I{I}"] = row
     json.dump({"table": table, "missing": missing}, open(a.out, "w"), indent=1)
     f = lambda m, k=3: "—" if m["mean"] is None else (f"{m['mean']:.{k}f}" + (f"±{m['sd']:.{k}f}" if m["sd"] is not None else ""))
-    print("kind/I        gnorm(last half)   CV(last half)   CV(whole)   nonfinite   value (truth)           eval-block sd    sat95 P/Q      post-MSE   repro")
+    print("kind/I        gnorm(last half)   CV(last half)   CV(whole)   nonfinite   value (truth)           eval-block sd (rel)          sat95 P/Q      post-MSE   repro")
     for k, r in table.items():
         sb = r["checkpoints"]["select_best"]; rep = r["reproduction_abs_diff_max"]; rep = "—" if rep is None else f"{rep:.1e}"
         print(f"{k:12s} {f(r['gnorm_last_half_mean']):>16s} {f(r['gnorm_last_half_cv']):>15s} {f(r['gnorm_cv_whole']):>11s} {str(r['nonfinite_steps']):>10s}  "
-              f"{f(sb['native_value']):>14s} ({sb['own_truth']:.3f})  {f(sb['eval_block_sd'], 4):>15s}  {f(sb['sat95_P'], 2)}/{f(sb['sat95_Q'], 2)}  "
+              f"{f(sb['native_value']):>14s} ({sb['own_truth']:.3f})  {f(sb['eval_block_sd'], 4):>15s} ({f(sb['eval_block_rel_sd'], 3)})  {f(sb['sat95_P'], 2)}/{f(sb['sat95_Q'], 2)}  "
               f"{f(sb['posterior_mse'], 3) if 'posterior_mse' in sb else '':>9s}  {rep}")
     if missing:
         print("missing:", missing)
