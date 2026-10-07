@@ -1,0 +1,3 @@
+# P146 v7 §7.1 direct-CS controls, CIFAR-100 — normal QOS; RTX6000PRO / H100 / L40S; node51, node52, node60 excluded
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 --job-name=p146_skernel --export=ALL,CFG=configs/cifar100_hpDCS_skernel_views4_800ep_seed0.yaml,RUN_ID=P146_skernel_c100_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 --job-name=p146_kcs --export=ALL,CFG=configs/cifar100_hpDCS_kcs_views4_800ep_seed0.yaml,RUN_ID=P146_kcs_c100_views4_800ep_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch

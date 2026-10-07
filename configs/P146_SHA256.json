@@ -1,0 +1,34 @@
+{
+ "stage": "P146_v7_direct_cs_c100",
+ "generated_utc": "2026-10-07T04:12:59Z",
+ "configs": {
+  "cifar100_hpDCS_skernel_views4_800ep_seed0.yaml": {
+   "sha256": "178ec5fca3351953d9b8c0e63c1cc04edab908d129e88e0a899aa280da9c9c2a",
+   "run_id": "P146_skernel_c100_views4_800ep_seed0",
+   "c100_base": "cifar100_hpS_vcs_a5_views4_800ep_seed0.yaml",
+   "c10_route": "cifar10_hpS_skernel_m4096_bw0.5_views4_800ep_seed0.yaml",
+   "applied_diff": {
+    "model.critic.input": "rff_tanh",
+    "model.critic.rff_features": 4096,
+    "model.critic.rff_bandwidth_multiple": 0.5
+   }
+  },
+  "cifar100_hpDCS_kcs_views4_800ep_seed0.yaml": {
+   "sha256": "b3820e1523e4cb06b4e73b8d571f783750546f2a60df4904129d57eecf541f2f",
+   "run_id": "P146_kcs_c100_views4_800ep_seed0",
+   "c100_base": "cifar100_hpS_vcs_a5_views4_800ep_seed0.yaml",
+   "c10_route": "cifar10_hpS_kcs_bw0.5_views4_800ep_seed0.yaml",
+   "applied_diff": {
+    "run.method": "cs_kernel_native",
+    "model.critic.enabled": false,
+    "objective.target": "classical_kernel_CS_QMI",
+    "objective.loss": "negative_kernel_cs",
+    "objective.kernel_cs_bandwidth_multiple": 0.5,
+    "objective.kernel_cs_chunk": 0,
+    "pairing.k": 1,
+    "pairing.negative_detach": false,
+    "evaluation.critic_validation.enabled": false
+   }
+  }
+ }
+}
