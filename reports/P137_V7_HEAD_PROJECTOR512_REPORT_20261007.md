@@ -21,8 +21,26 @@ Wall time varies with the GPU type the job landed on (L40S ≈ 2× a healthy RTX
 - Descriptive, one seed: the wider head helps matched JS (+0.18 / +1.06) and not VCS or SimCLR, so the JS-vs-VCS shared-scorer gap narrows at
   512 on CIFAR-100 (VCS 59.88 vs JS 59.82).  This is a seed-0 observation and is not used to change any comparison (the plan forbids new-VCS vs
   old-JS readings; both 128 parents remain the reference pair).
-- The pre-stated CIFAR-100 coarse / fine / conditional readout (P141 protocol, evaluation only) of the three 512 encoders runs as job 1025487;
-  it is appended when done.
+- The pre-stated CIFAR-100 coarse / fine / conditional readout (P141 protocol, evaluation only; job 1025487, CPU, exit 0) is in the addendum below.
 
 ## Not claimed
 Multi-seed effects; other widths or depths; any change of the main VCS configuration.
+
+## Addendum — CIFAR-100 four-site readout of the 512 encoders (results-only commit `fb3eee2`, `reports/P137_readout/`)
+raw_std probe, 512 encoder (Δ vs its 128 parent, seed 0, from `reports/P141/`); r and z are 512-d in the new encoders, 128-d in the parents.
+
+| method | site | coarse | fine | conditional |
+|---|---|---|---|---|
+| VCS | h | 71.22 (−0.72) | 59.58 (+0.00) | 72.82 (−0.20) |
+| VCS | r | 67.92 (−0.78) | 55.04 (−0.18) | 71.66 (−0.56) |
+| VCS | z | 68.44 (−0.40) | 55.52 (−0.56) | 72.26 (−0.06) |
+| JS | h | 70.06 (−0.08) | 57.84 (+0.10) | 71.46 (−0.32) |
+| JS | r | 67.58 (+0.08) | 53.16 (+0.48) | 70.64 (+0.30) |
+| JS | z | 67.30 (−0.30) | 53.60 (−0.44) | 71.12 (+0.90) |
+| SimCLR | h | 70.02 (+0.28) | 57.14 (+0.32) | 70.50 (+0.86) |
+| SimCLR | r | 69.46 (+1.54) | 55.56 (+0.90) | 70.72 (−0.60) |
+| SimCLR | z | 70.46 (+0.96) | 56.58 (−0.66) | 71.98 (−0.80) |
+
+Reading (descriptive, one seed; P141 seed sd ≈ 0.2–0.7): the wider head does **not** recover the fine-grained information that P141 found lost
+between h and the 128-d head — fine at z changes by −0.56 (VCS), −0.44 (JS), −0.66 (SimCLR), and the h → z fine gap stays (VCS 59.58 → 55.52).
+kNN at every site is lower or unchanged for VCS and SimCLR.  Consistent with the main result: no reason to widen the head.
