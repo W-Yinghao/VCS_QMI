@@ -69,14 +69,16 @@ def eval_checkpoint(critic, kind, roles, tr, d_signal, seed, want_T: bool) -> tu
     out = {"native_value": BM.combine(a, b, how), "own_truth": tr[BM.TARGET[kind]], "n_pos": n_pos, "n_neg": n_neg}
     out["signed_error"] = out["native_value"] - out["own_truth"]
     # 64 independent EVAL blocks (512 anchors each; in-batch negatives inside the block) -> eval variance conditional on the fit
+    # (full EVAL = 32768 = 64 x 512 exactly; the smoke EVAL of 512 gets 8 blocks of 64)
+    nb = EVAL_BLOCKS if E.n >= EVAL_BLOCKS * EVAL_BLOCK_N else 8; bn = EVAL_BLOCK_N if nb == EVAL_BLOCKS else E.n // nb
     vals = []
     with torch.no_grad():
-        for j in range(EVAL_BLOCKS):
-            s, e = j * EVAL_BLOCK_N, (j + 1) * EVAL_BLOCK_N
+        for j in range(nb):
+            s, e = j * bn, (j + 1) * bn
             fp, fn = scores(critic, BM._dev(E.xp[s:e], DEV), BM._dev(E.yp[s:e], DEV), "inbatch", None)
             aa, bb, hh = BM.per_anchor(kind, fp.cpu(), fn.cpu()); vals.append(BM.combine(aa, bb, hh))
     vals = np.array(vals, dtype=float); fin = vals[np.isfinite(vals)]
-    out["eval_blocks"] = {"n": int(len(vals)), "mean": float(fin.mean()) if len(fin) else None, "var_conditional_fit": float(fin.var(ddof=1)) if len(fin) > 1 else None,
+    out["eval_blocks"] = {"n": int(len(vals)), "block_n": int(bn), "mean": float(fin.mean()) if len(fin) else None, "var_conditional_fit": float(fin.var(ddof=1)) if len(fin) > 1 else None,
                           "n_nonfinite": int((~np.isfinite(vals)).sum()), "values": [round(float(v), 6) for v in vals]}
     with torch.no_grad():
         n_h = min(8192, E.n)

@@ -1,4 +1,4 @@
-# Pre-registration — P152 (r3 R3-E1): the missing stability fields on the registered Gaussian ladder — DRAFT 2026-10-08
+# Pre-registration — P152 (r3 R3-E1): the missing stability fields on the registered Gaussian ladder — FROZEN 2026-10-08
 
 Trigger: the P151 field matrix — the P85 / P86 / P108 records hold oracle truths, bootstraps, SELECT curves and costs, but **no** critic weights,
 per-sample T, per-update gradient norms, output histograms or repeated independent EVAL batches; [O1] §12.2 asks for gradient-norm variance,
@@ -26,4 +26,13 @@ in-batch MI methods show equal or smaller gradient variance, that is the result.
 
 ## 4. Cost
 Per unit ≈ 2 000 in-batch updates (256 × 256 pair matrix through a 40 → 256 → 256 → 1 MLP) + 4 checkpoint evaluations; measured in the gate
-(`slurm/p152_gate.sbatch`, one full unit for VCS + JS).  Expected 5–10 min per method-unit on 16 CPU cores → ≈ 5–9 h over three CPU jobs (one per I).
+(`slurm/p152_gate.sbatch`, one full unit for VCS + JS).  Measured in the gate: ≈ 2.5 min fit + ≈ 1.8 min checkpoint evaluation per method-unit on 16 CPU cores → ≈ 1.5 h per dependence level; three CPU jobs (one per I), 6 h limit.
+
+## 5. Decisions at the freeze (2026-10-08)
+- Gate `p152_gate` 1027920: regression tests 28 / 28; the full-size unit I 6, seed 0, VCS + JS reproduces the P85 stored SELECT-best values to
+  |Δ| = 1.4e-5 (VCS 0.86503 vs 0.86505) and 1.8e-5 (JS 1.16858 vs 1.16860) on CPU — the recorded loop is the P85 fit; posterior MSE 0.050 / 0.042
+  (P151 panel 0.050 / 0.041).  Its smoke step failed on an EVAL-block slicing bug that only affects the 512-sample smoke EVAL (the full EVAL is
+  exactly 64 × 512); fixed (`nb = 8` blocks when EVAL < 32 768) and re-gated alone: 1027933, all six methods run, 0 non-finite steps.
+- Corrected SMILE shares the JS gradient by construction: its fit, gradient-norm series and checkpoints equal JS's; only the value read-out differs
+  (reported once, flagged, not counted as independent evidence).
+- Submission: `slurm/p152_run.sbatch <I>` for I ∈ {2, 6, 10} (the I 6 seed-0 unit is recomputed with all six methods; identical by construction).

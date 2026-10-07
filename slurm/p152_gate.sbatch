@@ -13,6 +13,7 @@ export OMP_NUM_THREADS=16 MKL_NUM_THREADS=16
 G=reports/P152_GATE_${SLURM_JOB_ID:-local}; mkdir -p $G; rc=0
 "$PYTHON" -m pytest -q tests/test_vcs_estim_v2.py tests/test_vcs_estim_stage0.py 2>&1 | tee $G/pytest_regression.txt | tail -2; [ ${PIPESTATUS[0]} -eq 0 ] || rc=1
 "$PYTHON" scripts/p152_e1_stability.py --I 6 --seed 0 --out $OUTPUT_ROOT/P152_smoke --smoke 2>&1 | tail -8; [ ${PIPESTATUS[0]} -eq 0 ] || rc=1
+if [ -n "$P152_SMOKE_ONLY" ]; then echo "{\"gate_rc\": $rc, \"smoke_only\": true}" > $G/summary.json; echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc; fi
 t0=$(date +%s); "$PYTHON" scripts/p152_e1_stability.py --I 6 --seed 0 --kinds vcs,js --out $OUTPUT_ROOT/P152_e1 2>&1 | tail -4; [ ${PIPESTATUS[0]} -eq 0 ] || rc=1
 echo "[timing] full unit (2 kinds) seconds $(( $(date +%s) - t0 ))" | tee $G/timing.txt
 "$PYTHON" - "$OUTPUT_ROOT/P152_e1/I6_s0.json" <<'PY' | tee $G/reproduction.txt
