@@ -1,4 +1,4 @@
-# Pre-registration — P149 (r3 R3-V0 + R3-V1): two-view dependence of frozen encoders under invertible coordinates and a common random channel — DRAFT 2026-10-08
+# Pre-registration — P149 (r3 R3-V0 + R3-V1): two-view dependence of frozen encoders under invertible coordinates and a common random channel — FROZEN 2026-10-08
 
 Source: r3 package §7–9, `docs/03` §6–7, `contracts/task_manifest.json` `visual_default`; intake `reports/r3_intake/R3_DELTA_INTAKE_20261008.md`.  Owner go 2026-10-07
 ("准备并提交相关实验").  No encoder training; CPU only; frozen after the gate (`slurm/p149_gate.sbatch`).
@@ -51,3 +51,15 @@ Resolution of SSL checkpoints (P101 negative stands); noise as a training device
 ## 6. Cost
 Fixture: ≈ 15 s augmentation + ≈ 65 s CPU encoding per encoder (P122 / P143 rates).  Measurement: 288 MLP fits (≤ 1 000 steps on 4 096 pairs × 1 024-d) +
 144 RFF solves; measured in the gate; expected ≈ 1–2 h CPU per fixture → four CPU jobs.
+
+## 7. Decisions at the freeze (2026-10-08)
+- First gate (1027900) caught an implementation error: TUNE pools of 1 000 P / 500 Q pairs, while the P122 per-unit J adds P and Q rows → TUNE is
+  now **500 P / 500 Q pairs** (balanced; §3 updated).  Nothing else changed.
+- Gate 1027918: `tests/test_p149.py` 6 / 6 (Brownian replay / coupling / order invariance against the reference formula, Haar orthogonality,
+  standardiser, exact MLP and RFF transport, readout formulas, RFF fit on dependent Gaussian pairs), P116 regression 8 / 8; smoke fixture (600 / 200 /
+  800 base images) and smoke measurement (all 4 settings × 3 estimators × 3 seeds ran; nulls negative; transport check max |Δf| 4e-7 / 3e-7 / 6e-8).
+- Timing: one full-size MLP selection (3 lr × 1 000 steps on 2 048 + 2 048 pairs) 43.5 s, RFF 0.5 s → ≈ 1 h per fixture expected.  The smoke ran
+  slower per step than the full-size probe (node contention on tiny matrices, not understood in detail); because `measure` has no resume, the time
+  limit is 16 h per fixture (pessimistic bound ≈ 7.5 h).  Partial JSON is written after every (setting, estimator).
+- Permutation floor: B = 200 derangements → minimum p = 1 / 201.
+- Submission: `slurm/p149_run.sbatch <dataset> <run>`, one CPU job per fixture (4).

@@ -5,7 +5,7 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=48G
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
-#SBATCH --time=12:00:00
+#SBATCH --time=16:00:00
 # P149 (FROZEN prereg) one fixture: build the two-view fixture (skipped if its manifest exists), then the 4 settings x 3 estimators x 3 seeds measurement.
 #   sbatch slurm/p149_run.sbatch <cifar10|cifar100> <run_id>
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
