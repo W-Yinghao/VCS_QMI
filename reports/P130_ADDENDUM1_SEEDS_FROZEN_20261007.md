@@ -5,3 +5,5 @@ seeds 1–2.  Units: `configs/cifar100_hpR50_{AP3,JS_AP3,simclr}_views4_800ep_se
 changed (`configs/make_p130a1_configs.py`, `configs/P130A1_SHA256.json`, `slurm/p130a1_lines.txt`); each a 2-link chain (afterany).
 Reading: A-P3 − SimCLR and A-P3 − JS-AP3, paired by seed (0–2), 95 % t interval, P114 labels (close / clear / inconclusive); kNN alongside;
 per-method ResNet-50 − ResNet-18 descriptive (ResNet-18 seeds 0–2 exist for all three).
+
+Submission note: the normal-QOS cap (30) was reached after the A-P3 chains (jobs 1027191-94); the JS / SimCLR chains are fed by `slurm/feed_normal.sh slurm/p130a1_feed.txt` as slots free (link 2 = same job name with `--dependency=singleton`, i.e. after link 1 ends).
