@@ -2,6 +2,9 @@
 # Reclaim disk under $OUTPUT_ROOT without touching anything a running / resumable / final / pending result depends on.
 #   dry run (default):  bash scripts/cleanup_outputs.sh          -> lists candidates per rule with sizes
 #   delete:             DO_DELETE=1 bash scripts/cleanup_outputs.sh
+# Version 5 (2026-10-07, home disk quota exceeded; owner: "You run v4 + I add v5"): DROP_INTER += P120 P126 P127 P128 P129 P133 P135 P136 P137 (closed,
+# reports written); R6 += P124 / P141 / P142 / P143 feature caches (analyses closed; deterministic re-extraction verified by the P143 gate);
+# R5 += MV6_smoke, P146_smoke.  Still open and untouched: P130, P138, P139, P145, P146, P147 (and every RUNNING / STOPPED_BUDGET run).
 # Version 4 (2026-10-04, owner "检查一下有什么可以删除的"): DROP_INTER += P100 P104 P107 P111 P112 P114 (reports written), with KEEP_INTER = the
 # trajectory reference set (P115 diagnostics: A-P3 / A-P3-strong / G2 / G2-strong seed 0, A-P3 CIFAR-100 seed 0; all P115 factor cells kept by stage);
 # KEEP_FEAT = P35 / P41 only; R6 = analysis caches of closed analysis units (P109 / P110 / P119 / P122; regenerable from final checkpoints);
@@ -19,7 +22,7 @@ set -euo pipefail
 OUT=${OUTPUT_ROOT:-/home/infres/yinwang/CS_QMI/outputs}
 PY=/home/infres/yinwang/CS_QMI/env/bin/python
 # closed stages whose intermediate checkpoints are no longer used (reports written; mechanism records done where planned)
-DROP_INTER='^P([5-9]|[12][0-9]|3[0-4]|3[6-9]|4[024]|6[1-9]|87|91|95|97|100|104|107|111|112|114)_'
+DROP_INTER='^P([5-9]|[12][0-9]|3[0-4]|3[6-9]|4[024]|6[1-9]|87|91|95|97|100|104|107|111|112|114|120|126|127|128|129|133|135|136|137)_'
 KEEP_INTER='^(P107_AP3_views4_800ep_seed0|P107_AP3_augstrong_views4_800ep_seed0|P104_G2_views4_800ep_seed0|P111_G2_augstrong_views4_800ep_seed0|P107_AP3_c100_views4_800ep_seed0)$'
 # intermediate checkpoints additionally kept inside dropped stages (none) and kept stages: P35 recipe, P41 controls, P43 ceiling, P89 S4, P95 (P96 pending), P97+
 KEEP_FEAT='^P(35|41)_'   # P35 / P41 references (re-probing); P100 / P104 active.  P91 / P95 / P97-P99 caches no longer read (P98 done)
@@ -28,8 +31,8 @@ add() { echo "$2" >> "$list"; echo "$1" >> "$tag"; }
 for d in "$OUT"/*/; do
   run=$(basename "$d")
   if [[ "$run" == RESUME_TEST_* ]]; then add R4 "$d"; continue; fi
-  if [[ "$run" =~ ^(smoke_|det_vcs_|SMOKE_|P75_S2_smoke_|P98_P101_smoke_|P85_gate_|P109_GATE_|P109_timing_|P117_GATE_|P122_GATE_|P123_GATE|P125_GATE_) ]]; then add R5 "$d"; continue; fi
-  if [[ "$run" =~ ^(P109_I1_features|P110_features|P119_features|P122_cache)$ ]]; then add R6 "$d"; continue; fi
+  if [[ "$run" =~ ^(smoke_|det_vcs_|SMOKE_|P75_S2_smoke_|P98_P101_smoke_|P85_gate_|P109_GATE_|P109_timing_|P117_GATE_|P122_GATE_|P123_GATE|P125_GATE_|MV6_smoke$|P146_smoke$) ]]; then add R5 "$d"; continue; fi
+  if [[ "$run" =~ ^(P109_I1_features|P110_features|P119_features|P122_cache|P124_features|P141_features|P142_features|P143_features)$ ]]; then add R6 "$d"; continue; fi
   [ -f "$d/status.json" ] || continue
   read -r status ep < <("$PY" -c "import json;s=json.load(open('$d/status.json'));print(s.get('status'), s.get('completed_epoch'))" 2>/dev/null || echo "NONE NONE")
   [ "$status" = "COMPLETED" ] || continue
