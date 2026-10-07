@@ -56,6 +56,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--features", required=True); ap.add_argument("--run", required=True); ap.add_argument("--out", required=True)
     ap.add_argument("--repeats", type=int, default=20); ap.add_argument("--seed", type=int, default=601); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--only-cell", default=None, help="compute one cell; the other cell's draws / pools / permutations are still drawn (no fits) so every random stream is identical to the single-job run")
     a = ap.parse_args()
     torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
     D = AuditData(Path(a.features) / a.run / "features.pt")
@@ -79,6 +80,8 @@ def main() -> int:
                 perm_N.append(torch.as_tensor(pn).to(DEV))
             p1e = p_n1(Ye); p1f = torch.as_tensor(p_n1(Yf), dtype=torch.float32).to(DEV)
             bidx = np.random.default_rng(a.seed * 100 + r).integers(0, n, size=(boot, n))  # shared bootstrap indices for this draw
+            if a.only_cell and cname != a.only_cell:
+                continue  # fast-forward: the shared rng was consumed exactly as in the single-job run; no fits for this cell
             rec = {"draw": r, "n1_frac_eval": float(Ne.mean()), "sites": {}}
             for site, layer in SITES.items():
                 mu, sd = Xf[layer].mean(0), Xf[layer].std(0) + 1e-6

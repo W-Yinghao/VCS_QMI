@@ -1,4 +1,4 @@
-# Pre-registration — P150 (r3 R3-C0): one crossed diagnostic of detection (P143) vs estimation (P144) — DRAFT 2026-10-08
+# Pre-registration — P150 (r3 R3-C0): one crossed diagnostic of detection (P143) vs estimation (P144) — FROZEN 2026-10-08
 
 Source: r3 §10; P144 report (J at h ≤ 0 at n 3 000) vs P143 (colour 0.1 detected at h with power 0.60 for the same encoder).  CPU; frozen after the gate.
 
@@ -27,4 +27,15 @@ if both are positive at h and near 0 at O, h → O loses the attribute dependenc
 registered classes; the P144 result is not rewritten.
 
 ## 5. Cost
-≈ 1 min per draw (two sites × four critics, 300-step nested fits, 200 permutations) → ≈ 30 min CPU, plus ≈ 4 min feature regeneration.
+The draft estimate (≈ 1 min per draw) was wrong: the gate smoke (n 200, 30 nested steps, 20 permutations) took ≈ 150 s per draw, ≈ 60 s of it in
+the nested fits (3 seeds × 2 objectives × 2 sites).  At n 2 000 and 300 steps a single job could need 6–18 h; the run is split into **one CPU job per
+cell** (`--only-cell`), each 48 h limit, with the other cell's draws / pools / permutations fast-forwarded so every random stream equals the
+single-job run (verified by `slurm/p150_ffcheck.sbatch` before submission).  Feature regeneration took 791 s (done in the gate).
+
+## 6. Decisions at the freeze (2026-10-08)
+- Gate 1027919: feature store regenerated (791 s; clean-h head accuracy val 0.864 / eval 0.877; colour 0.1 0.876 — as P143), smoke of all four critics
+  × two sites × both cells, exact-Q readout, paired bootstrap and shared permutations: exit 0.  Smoke readings (n 200, 2 draws — not evidence) already
+  show exact-Q J ≤ 0 for every critic at h and O in both cells.
+- Split into one job per cell (`--only-cell`); fast-forward verified by `p150_ffcheck` 1028001: the null-only smoke reproduces the gate smoke's null
+  draws exactly (identical draws, max |ΔJ| = 0 over critics).
+- The P144 nested class is fitted with 3 optimiser seeds per draw; seed 0 enters the common readout, seeds 1–2 only the refit spread (as drafted).
