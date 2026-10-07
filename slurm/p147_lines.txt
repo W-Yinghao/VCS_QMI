@@ -1,0 +1,3 @@
+# P147 A-P3 b512 lr 2e-3 — normal QOS; RTX6000PRO / H100 / L40S; node51, node52, node60 excluded
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 --job-name=p147_c10 --export=ALL,CFG=configs/cifar10_hpBL_AP3_c10_b512_lr2x_seed0.yaml,RUN_ID=P147_AP3_c10_b512_lr2x_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
+sbatch --parsable --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 --job-name=p147_c100 --export=ALL,CFG=configs/cifar100_hpBL_AP3_c100_b512_lr2x_seed0.yaml,RUN_ID=P147_AP3_c100_b512_lr2x_seed0,FINAL_CKPT=epoch_800.pt slurm/run_unit.sbatch
