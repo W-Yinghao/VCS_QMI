@@ -21,7 +21,7 @@ echo "[smoke] measure seconds $(( $(date +%s) - t0 ))"
 import time, torch, sys; sys.path.insert(0,'scripts'); sys.path.insert(0,'src'); import p149_twoview as P
 torch.set_num_threads(16); P.DEV=torch.device('cpu'); d=512; g=torch.Generator().manual_seed(0)
 mk=lambda n:(torch.randn(n,d,generator=g),torch.randn(n,d,generator=g))
-Pf,Qf,Pt,Qt=mk(2048),mk(2048),mk(1000),mk(500)
+Pf,Qf,Pt,Qt=mk(2048),mk(2048),mk(500),mk(500)
 t=time.perf_counter(); r=P.fit_mlp('vcs',Pf,Qf,Pt,Qt,d,0,1000); print('mlp 3 candidates x 1000 steps:', round(time.perf_counter()-t,1),'s')
 t=time.perf_counter(); r=P.fit_rff(Pf,Qf,Pt,Qt,d,0); print('rff 3 candidates:', round(time.perf_counter()-t,1),'s')
 PY

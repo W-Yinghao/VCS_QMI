@@ -8,7 +8,7 @@ P pool = 2 000 base images (A1_i, A2_i); Q-left = 2 000 other base images (A1); 
 Nothing of the official test partition is read.
 
 Measurement (`measure`, representation h): FIT standardisation per view (mean mu_j, scalar gamma_j = sqrt(mean squared deviation per coordinate),
-P/Q-fit 2 048 pairs each (P from 2 048 FIT base images; Q from 2 048 + 2 048 disjoint FIT base images), TUNE from VAL (1 000 P pairs, 500 Q pairs).
+P/Q-fit 2 048 pairs each (P from 2 048 FIT base images; Q from 2 048 + 2 048 disjoint FIT base images), TUNE from VAL (500 P pairs, 500 Q pairs; balanced).
 Settings: identity_t0 | orthogonal_refit_t0 (fixed Haar-orthogonal R1, R2 on view 1 / 2, registered seeds, applied to all roles, critics refitted) |
 identity_t0.25 | identity_t1 (Brownian channel W_t ~ N(0, t I) per coordinate on the standardised representation, independent across views and
 base images, coupled across t by increments, replayable from (seed, role, uid, view) — the reference_core convention).  Estimators: vcs_mlp
@@ -62,7 +62,7 @@ TIMES = (0.0, 0.25, 1.0)
 SETTINGS = ("identity_t0", "orthogonal_refit_t0", "identity_t0.25", "identity_t1")
 ESTIMATORS = ("vcs_mlp", "js_mlp", "rff_ridge_tanh")
 LRS, BWS, RFF_D, FIT_SEEDS = (1e-4, 5e-4, 2e-3), (0.5, 1.0, 2.0), 1024, (0, 1, 2)
-N_FIT, N_TUNE_P, N_TUNE_Q, N_EVAL = 2048, 1000, 500, 2000
+N_FIT, N_TUNE_P, N_TUNE_Q, N_EVAL = 2048, 500, 500, 2000  # TUNE balanced: P122's per-unit J adds P and Q terms row-wise
 ROT_SEEDS, NOISE_SEED, PERM_SEED, BOOT_SEED = (149001, 149002), 149, 1490, 14900
 B_PERM, N_REPAIR = 200, 64
 DEV = torch.device("cuda", 0) if torch.cuda.is_available() else torch.device("cpu")
@@ -225,7 +225,7 @@ def measure(fix_dir: Path, out: Path, smoke: bool) -> None:
     nf = len(ids["fit"]); gf = np.random.default_rng(SPLIT_SEED + 149); pf = gf.permutation(nf)
     kf = N_FIT if not smoke else nf // 3
     fit_P, fit_QL, fit_QR = pf[:kf], pf[kf:2 * kf], pf[2 * kf:3 * kf]
-    nv = len(ids["val"]); kp, kq = (N_TUNE_P, N_TUNE_Q) if not smoke else (nv // 2, nv // 4); pv = np.random.default_rng(SPLIT_SEED + 150).permutation(nv)
+    nv = len(ids["val"]); kp = kq = (N_TUNE_P if not smoke else nv // 4); pv = np.random.default_rng(SPLIT_SEED + 150).permutation(nv)
     tune_P, tune_QL, tune_QR = pv[:kp], pv[kp:kp + kq], pv[kp + kq:kp + 2 * kq]
     EP, EQL, EQR = (S["eval_pools"][k].numpy() for k in ("P", "Q_left", "Q_right"))
     perm_rng = np.random.default_rng(PERM_SEED)
