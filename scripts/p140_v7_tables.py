@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT = Path("/home/infres/yinwang/CS_QMI/outputs")
 LOGS = Path("/home/infres/yinwang/CS_QMI/slurm_logs")
 REP = ROOT / "reports"
-LINES = ("P35", "P41", "P91", "P104", "P107", "P111", "P112", "P114", "P115", "P120", "P120A1", "P126", "P127", "P129", "P130", "P133", "P135", "P136", "P137")
+LINES = ("P35", "P41", "P91", "P104", "P107", "P111", "P112", "P114", "P115", "P120", "P120A1", "P126", "P127", "P129", "P130", "P133", "P135", "P136", "P137", "P138", "P145", "P146", "P147", "P148")
 RUN_RE = re.compile(r"^(%s)_" % "|".join(sorted(LINES, key=len, reverse=True)))
 CLOSE, THR = 0.3, {"cifar10": 0.30, "cifar100": 0.50}  # P114 labels; P127 / P129 / P135 replacement thresholds
 GRID = [(1.5, 0.5), (2.0, 0.25), (2.0, 0.5), (2.0, 0.75), (3.0, 0.5), (3.0, 0.25)]

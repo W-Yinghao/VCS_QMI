@@ -1,13 +1,13 @@
 # status_v7 — V7-CORE (P140): executive summary, task map, incidents
 
-Generated 2026-10-05T20:55:28Z by `scripts/p140_v7_tables.py` from raw per-run files only (145 finished runs in table A; details in `results_v7.json`, `paired_comparisons_v7.json`, `runtime_v7.json`).  Development selection split; official test closed.  Seed-0 selection runs and confirmation seeds are kept apart; different scorer / lr runs are never pooled as seeds.
+Generated 2026-10-07T20:31:35Z by `scripts/p140_v7_tables.py` from raw per-run files only (184 finished runs in table A; details in `results_v7.json`, `paired_comparisons_v7.json`, `runtime_v7.json`).  Development selection split; official test closed.  Seed-0 selection runs and confirmation seeds are kept apart; different scorer / lr runs are never pooled as seeds.
 
 ## 1. Executive summary
 
 - **Shared configuration, VCS − matched JS** (only the loss differs): CIFAR-10 3 seeds 89.03 vs 88.81: Δ +0.21 [-1.03, +1.46] (close; n=3); kNN Δ -0.29 (close); CIFAR-100 5 seeds 60.15 vs 59.35: Δ +0.80 [+0.06, +1.54] (clear; n=5); kNN Δ +0.60 (clear).
 - **Same contrast at other learning rates (seed 0):** c10 lr0.5x +0.44; c10 lr2x +0.08; c100 lr0.5x +1.08; c100 lr2x +1.16 (lr 1e-3 seed 0: c10 +0.34, c100 +1.44) — the sign of VCS − JS matches lr 1e-3 in every cell.
 - **Selected-vs-selected cifar10** (VCS (2,0.5) vs JS (2,0.25); each loss with its own rule-selected scorer — not a single-factor contrast): 89.03 vs 88.97: Δ +0.05 [-0.65, +0.76] (close; n=3); kNN Δ -0.01 (close).
-- **Selected-vs-selected cifar100** (VCS (2,0.5) vs JS (3,0.5); each loss with its own rule-selected scorer — not a single-factor contrast): 60.14 vs 60.58: Δ -0.44 [-1.46, +0.58] (INCOMPLETE (2/3 seeds; label not final); n=2); kNN Δ -0.29 (INCOMPLETE (2/3 seeds; label not final)).
+- **Selected-vs-selected cifar100** (VCS (2,0.5) vs JS (3,0.5); each loss with its own rule-selected scorer — not a single-factor contrast): 60.00 vs 60.49: Δ -0.49 [-0.77, -0.20] (clear; n=3); kNN Δ -0.51 (inconclusive).
 - Grid VCS_cifar10_(a,kappa): default 89.06; highest tested (2,0.75) 89.30 (+0.24); rule-selected (2,0.5); full range 87.28–89.30.
 - Grid VCS_cifar100_(a,kappa): default 60.20; highest tested (3,0.5) 60.64 (+0.44); rule-selected (2,0.5); full range 58.34–60.64.
 - Grid JS_cifar10_(a,kappa): default 88.72; highest tested (2,0.25) 89.26 (+0.54); rule-selected (2,0.25); full range 88.28–89.26.
@@ -17,44 +17,23 @@ Generated 2026-10-05T20:55:28Z by `scripts/p140_v7_tables.py` from raw per-run f
 
 ## 2. Task map (P129, P130, P133, P135, P136, P137)
 
-**P129** — completed 14; running / resumable 2; in queue 2.
-  - running/resumable: P129_JS_c100_a2_k0.25_seed1 (RUNNING, epoch 762)
-  - running/resumable: P129_JS_c100_a3_k0.5_seed2 (RUNNING, epoch 581)
-  - queue: 1022273 p129a3_s2 RUNNING L40S node50 None
-  - queue: 1022270 p129a2_s1 RUNNING L40S node39 None
-**P130** — completed 0; running / resumable 0; in queue 6.
-  - queue: 1022280 p130_ap3 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1022282 p130_js PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1022284 p130_simclr PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1022285 p130_simclr_c2 PENDING RTX6000PRO,H100,L40S  Dependency
-  - queue: 1022283 p130_js_c2 PENDING RTX6000PRO,H100,L40S  Dependency
-  - queue: 1022281 p130_ap3_c2 PENDING RTX6000PRO,H100,L40S  Dependency
-**P133** — completed 0; running / resumable 0; in queue 2.
-  - queue: 1022297 p133_vcs_noqueue_s0 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1022298 p133_simclr_noqueue_s0 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-**P135** — completed 8; running / resumable 0; in queue 2.
-  - queue: 1023051 p135a1_s2 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1023050 p135a1_s1 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-**P136** — completed 0; running / resumable 6; in queue 6.
-  - running/resumable: P136_AP3_c100_b512_seed0 (RUNNING, epoch 33)
-  - running/resumable: P136_AP3_c100_ep1600_seed0 (RUNNING, epoch 105)
-  - running/resumable: P136_AP3_c100_v8_seed0 (RUNNING, epoch 21)
-  - running/resumable: P136_AP3_c10_b512_seed0 (RUNNING, epoch 139)
-  - running/resumable: P136_AP3_c10_ep1600_seed0 (RUNNING, epoch 300)
-  - running/resumable: P136_AP3_c10_v8_seed0 (RUNNING, epoch 212)
-  - queue: 1022279 p136_c100_b512 RUNNING L40S node57 None
-  - queue: 1022278 p136_c100_v8 RUNNING L40S node57 None
-  - queue: 1022277 p136_c100_ep1600 RUNNING L40S node39 None
-  - queue: 1022276 p136_c10_b512 RUNNING L40S node50 None
-  - queue: 1022274 p136_c10_ep1600 RUNNING L40S node50 None
-  - queue: 1022275 p136_c10_v8 RUNNING RTX6000PRO node58 None
-**P137** — completed 0; running / resumable 0; in queue 6.
-  - queue: 1023081 p137_simclr_c100 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1023080 p137_js_c100 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1023079 p137_vcs_c100 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1023078 p137_simclr_c10 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1023077 p137_js_c10 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
-  - queue: 1023076 p137_vcs_c10 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
+**P129** — completed 18; running / resumable 0; in queue 0.
+**P130** — completed 3; running / resumable 0; in queue 11.
+  - queue: 1027193 p130a1_ap3_s2 PENDING RTX6000PRO,H100,L40S  None
+  - queue: 1027191 p130a1_ap3_s1 PENDING RTX6000PRO,H100,L40S  None
+  - queue: 1027253 p130a1_js_s1 PENDING RTX6000PRO,H100,L40S  None
+  - queue: 1027285 p130a1_js_s2 PENDING RTX6000PRO,H100,L40S  None
+  - queue: 1027529 p130a1_simclr_s1 PENDING RTX6000PRO,H100,L40S  None
+  - queue: 1027724 p130a1_simclr_s2 PENDING RTX6000PRO,H100,L40S  None
+  - queue: 1027710 p130a1_simclr_s1 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1027384 p130a1_js_s2 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1027274 p130a1_js_s1 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1027194 p130a1_ap3_s2_c2 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1027192 p130a1_ap3_s1_c2 PENDING RTX6000PRO,H100,L40S  Dependency
+**P133** — completed 2; running / resumable 0; in queue 0.
+**P135** — completed 10; running / resumable 0; in queue 0.
+**P136** — completed 6; running / resumable 0; in queue 0.
+**P137** — completed 6; running / resumable 0; in queue 0.
 
 ## 3. Infrastructure incidents (kept separate from algorithm results)
 
