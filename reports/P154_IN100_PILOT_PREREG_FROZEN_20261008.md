@@ -1,4 +1,4 @@
-# Pre-registration — P154: ImageNet-100 pilot — VCS (A-P3) / matched JS / SimCLR, ResNet-18, 224 px, single seed — DRAFT 2026-10-08
+# Pre-registration — P154: ImageNet-100 pilot — VCS (A-P3) / matched JS / SimCLR, ResNet-18, 224 px, single seed — FROZEN 2026-10-08
 
 Owner 2026-10-08: selected "ImageNet-100 pilot" (≈ 100+ GPU-h envelope) when asked how to use free GPU time.  Builds on P132 (ImageNet data and
 the A-P3 / SimCLR losses with exact single-process reduction) and P139 (GPU-side augmentation, tested against torchvision / PIL).  First
@@ -32,3 +32,11 @@ direction.  Otherwise the pilot is reported as single-seed "within ±1.0".  No c
 Measured in the gate (`slurm/p154_gate.sbatch`): throughput, data wait, evaluation time.  Expected ≈ 1 000–1 400 images / s on RTX6000PRO with 30
 decode workers → ≈ 1.5–2 min per epoch → ≈ 5–7 h per 200-epoch run; three runs ≈ 15–21 GPU-h.  One GPU per run (32 CPUs), RTX6000PRO / H100,
 nodes 51 / 52 / 60 excluded; resume from `last.pt` (singleton second link only if the measured rate exceeds 22 h).
+
+## 6. Decisions at the freeze (2026-10-08)
+Gate 1028562 (node58, RTX PRO 6000 Blackwell, 32 CPUs): `tests/test_p154.py` 8 / 8 (split, schedule, weight-decay groups, VCS / JS / SimCLR losses
+against independent references, view-major bookkeeping, resume == uninterrupted, evaluation path) and the P139 pipeline tests 12 / 12; real
+ImageNet-100 VCS smoke: steady-state 924 images / s at 4 views with 2 s of 17 s waiting on data (GPU-bound; first epoch of a process 320–420
+images / s from CUDA / cuDNN warm-up), resume from epoch 2 exact, JS and SimCLR loss paths run, full readout (121.7 k + 5 k centre crops, probe,
+kNN) 44 s; after 180 steps the readout gives 26.8 % linear / 17.0 % kNN (chance 1 %).  Expected ≈ 135 s per epoch → ≈ 7.5 h per 200-epoch run,
+one 23 h job each (resume available).  Runs: P154_IN100_{vcs,js,simclr}_r18_200ep_seed0 (`slurm/p154_run.sbatch`).
