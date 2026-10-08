@@ -31,16 +31,18 @@ def boot_J(tp: np.ndarray, tq: np.ndarray, ip: np.ndarray, iq: np.ndarray) -> np
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--out", default="reports/P149_results.json"); a = ap.parse_args()
-    res, missing = {}, [r for r in RUNS if not (O / f"measure_{r}.json").exists()]
-    for run in RUNS:
+    ap = argparse.ArgumentParser(); ap.add_argument("--out", default="reports/P149_results.json"); ap.add_argument("--dir", default=str(O))
+    ap.add_argument("--runs", default=",".join(RUNS)); ap.add_argument("--suffix", default="", help="measure file suffix, e.g. _z (P149 add. 1)")
+    a = ap.parse_args(); D, runs = Path(a.dir), a.runs.split(",")
+    res, missing = {}, [r for r in runs if not (D / f"measure_{r}{a.suffix}.json").exists()]
+    for run in runs:
         if run in missing:
             continue
-        d = json.load(open(O / f"measure_{run}.json")); z = np.load(O / f"measure_{run}.npz")
+        d = json.load(open(D / f"measure_{run}{a.suffix}.json")); z = np.load(D / f"measure_{run}{a.suffix}.npz")
         nP, nQ = len(z["eval_P_rows"]), len(z["eval_QL_rows"]); g = np.random.default_rng(BOOT_SEED)
         ip, iq = g.integers(0, nP, (BOOT, nP)), g.integers(0, nQ, (BOOT, nQ))  # shared across settings / estimators / seeds
         T = lambda s, e, k, side: z[f"{s}/{e}/seed{k}/T_{side}"].astype(np.float64)
-        out = {"transport_check": {e: v["max_abs_f_diff"] for e, v in d["transport_check"].items()}, "estimators": {}}
+        out = {"site": d["protocol"].get("site", "h"), "transport_check": {e: v["max_abs_f_diff"] for e, v in d["transport_check"].items()}, "estimators": {}}
         for est in ESTS:
             cell = lambda s, k: d["settings"][s][f"{est}/seed{k}"]
             Jb = {s: np.stack([boot_J(T(s, est, k, "P"), T(s, est, k, "Q"), ip, iq) for k in SEEDS]) for s in (*LADDER, "orthogonal_refit_t0")}  # [seed, rep]

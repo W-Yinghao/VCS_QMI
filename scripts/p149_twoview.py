@@ -208,11 +208,11 @@ def readout(tp: np.ndarray, tq: np.ndarray, delta: float = 0.05) -> dict:
             "approximation_bias_covered": False}
 
 
-def measure(fix_dir: Path, out: Path, smoke: bool) -> None:
+def measure(fix_dir: Path, out: Path, smoke: bool, site: str = "h") -> None:
     t_all = time.time()
     S = torch.load(fix_dir / "fixture.pt", map_location="cpu", weights_only=False); man = json.load(open(fix_dir / "manifest.json"))
     steps = 1000 if not smoke else 40
-    H = {r: {v: S["features"][r][v]["h"].numpy().astype(np.float64) for v in ("A1", "A2")} for r in ROLES}
+    H = {r: {v: S["features"][r][v][site].numpy().astype(np.float64) for v in ("A1", "A2")} for r in ROLES}  # site h (P149) or z (P149 add. 1)
     ids = {r: S["roles"][r].numpy() for r in ROLES}
     d = H["fit"]["A1"].shape[1]
     # standardisation per view on FIT (all FIT base images)
@@ -245,7 +245,7 @@ def measure(fix_dir: Path, out: Path, smoke: bool) -> None:
         return a1, a2
 
     results, arrays = {"run": S["run"], "dataset": S["dataset"], "fixture_manifest": man, "settings": {}, "transport_check": {}}, {}
-    results["protocol"] = {"n_fit_P": int(kf), "n_fit_Q": int(kf), "n_tune_P": int(kp), "n_tune_Q": int(kq), "n_eval_P": int(len(EP)), "n_eval_Q": int(len(EQL)),
+    results["protocol"] = {"site": site, "n_fit_P": int(kf), "n_fit_Q": int(kf), "n_tune_P": int(kp), "n_tune_Q": int(kq), "n_eval_P": int(len(EP)), "n_eval_Q": int(len(EQL)),
                            "steps_max": steps, "lrs": LRS, "bw_mults": BWS, "rff_D": RFF_D, "fit_seeds": FIT_SEEDS, "times": TIMES, "rot_seeds": ROT_SEEDS, "noise_seed": NOISE_SEED,
                            "standardizer": {v: {"gamma": std[v][1]} for v in std}, "logit_coordinate": {"vcs_mlp": "f, T = tanh f", "js_mlp": "half_logit_f (D = sigmoid 2f), T = tanh f", "rff_ridge_tanh": "f, T = tanh f"},
                            "permutations": len(derange), "repairings": len(repair), "device": str(DEV)}
@@ -312,13 +312,13 @@ def measure(fix_dir: Path, out: Path, smoke: bool) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     f = sub.add_parser("fixture"); f.add_argument("--dataset", required=True, choices=list(ROOTS)); f.add_argument("--run", required=True); f.add_argument("--out", required=True); f.add_argument("--smoke", action="store_true")
-    m = sub.add_parser("measure"); m.add_argument("--fixture", required=True); m.add_argument("--out", required=True); m.add_argument("--smoke", action="store_true")
+    m = sub.add_parser("measure"); m.add_argument("--fixture", required=True); m.add_argument("--out", required=True); m.add_argument("--smoke", action="store_true"); m.add_argument("--site", default="h", choices=["h", "z"])
     a = ap.parse_args()
     torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
     if a.cmd == "fixture":
         build_fixture(a.dataset, a.run, Path(a.out) / a.run, a.smoke)
     else:
-        measure(Path(a.fixture), Path(a.out), a.smoke)
+        measure(Path(a.fixture), Path(a.out), a.smoke, a.site)
     return 0
 
 
