@@ -71,3 +71,27 @@ A CVPR paper needs T1 + T2 at scale, T4 as the vision application, T3 as diagnos
 4. Vision-language: Table A (same features), Table B (public models on given boxes), Table C (grounding feasibility, appendix if short).
 5. Measurement diagnostics (T3) in the appendix; limitations: JS ≥ VCS on S; VCS vs tuned JS within ±0.5 on CIFAR; saturation at z; S_plugin on
    real data; detection ≠ estimation.
+
+## 5. Design recommendation (owner 2026-10-08: the paper is about the estimator / critic; JS ≈ VCS on CIFAR is expected, not a target)
+**Thesis:** one bounded quadratic critic with an exact gap identity, used three ways — estimate a dependence (S), train a representation by
+maximising it, and probe frozen representations with it.  Matched JS / logistic is the *same-posterior control*: equality with it confirms the
+theory (same η) and is reported as such; no further VCS-vs-JS tuning units.
+**Experiment design per section**
+1. Estimator (centrepiece): the decisive figure — precision / stability / resolution vs dependence on the oracle ladders, VCS and JS as the
+   bounded pair against MINE/DV, NWJ, InfoNCE, SMILE and the kernel routes; the real two-view relation (P149) as the no-oracle panel
+   (invariance, channel ordering, saturation).  Done except the figure.
+2. Learning: "maximising J trains an encoder as well as the best contrastive recipe, with no temperature and no log-sum-exp" — a sufficiency
+   result (CIFAR R18, R50, ImageNet-100), plus the link objective-value ↔ measurement (J of the trained z ≈ 0.97, P149 add. 1).  No SimCLR
+   tuning, no JS tuning; ablations in the appendix.
+3. Probing: detection tables (P142 / P143) with the detection ≠ estimation caveat (P150).
+4. Vision-language (the application): **keep the given-box design** — it isolates the critic and is the one setting where the theory's object
+   (conditional joint vs product with explicit multi-positive laws) is exactly realised.  Primary readouts: common J / calibration on CAL and
+   the sample-efficiency curve N ∈ {1k, 4k, all}; task Top-1 as the sanity check against the same-backbone zero-shot method (ReCLIP).  Two
+   theory-driven additions, both cheap: (a) **prior-corrected ranking** — with non-uniform candidate priors (referred + distractor objects)
+   rank by 2f + log p(r) and test that it beats raw f (O1 §3.4 prediction); (b) **estimator as a probe of foundation features** — the same
+   P/Q laws on CLIP, FG-CLIP 2 and SigLIP 2 features: J measures how much region–phrase relation each feature set carries.
+   **Drop Table C (full grounding vs MDETR / Grounding DINO) from the main paper**: those systems are trained on 1.3M grounding pairs and answer a
+   different question; at most one appendix row (Grounding DINO Swin-T zero-shot vs proposer + VCS) if time allows.  SigLIP 2 / FLAIR rows
+   optional.
+**Consequences for the queue:** finish the running closers (P130 R50, P145 add. 2, P138 add. 2, P153) and add no SSL exploration or robustness
+cells; re-enable P154 (ImageNet-100) when GPUs free; VL order = raw CLIP → Table A → ReCLIP → FG-CLIP 2 probe → prior-correction test.
