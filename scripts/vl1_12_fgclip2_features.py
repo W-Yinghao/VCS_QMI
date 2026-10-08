@@ -49,9 +49,10 @@ def load():
 
 
 @torch.no_grad()
-def region_feats(model, proc, path: str, boxes_xyxy: list[list[float]]) -> torch.Tensor:
+def region_feats(model, proc, path: str, boxes_xyxy: list[list[float]], readme_rule: bool = False) -> torch.Tensor:
+    """Default: the official box-classification setting (fgclip2/eval/coco_box_ddp.py: image processor defaults = 256 patches, NaFlex)."""
     im = Image.open(path).convert("RGB"); W, H = im.size
-    inp = proc(images=im, max_num_patches=determine_max_value(im), return_tensors="pt").to("cuda")
+    inp = proc(images=im, max_num_patches=determine_max_value(im), return_tensors="pt").to("cuda") if readme_rule else proc(images=im, return_tensors="pt").to("cuda")
     feats = model.get_image_region_features(pixel_values=inp["pixel_values"], pixel_attention_mask=inp["pixel_attention_mask"],
                                             spatial_shapes=inp["spatial_shapes"], image_sizes=[(H, W)], region_infos=[boxes_xyxy])
     return feats[0].float().cpu()
@@ -66,12 +67,24 @@ def text_feats(model, tok, texts: list[str], walk_type: str = "box") -> torch.Te
     return torch.cat(out)
 
 
+def class_embeddings(model, tok, names):
+    """As fgclip2/eval/coco_box_ddp.py zeroshot_classifier: per class, encode every ImageNet template, L2-normalise, average, renormalise."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("fgtemplates", "/projects/EEG-foundation-model/yinghao/external/FG-CLIP/fgclip2/eval/templates.py")
+    mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod); templates = mod.imagenet_templates
+    out = []
+    for nm in names:
+        e = torch.nn.functional.normalize(text_feats(model, tok, [t.format(nm).lower() for t in templates]), dim=1).mean(0)
+        out.append(e / e.norm())
+    return torch.stack(out)
+
+
 def check(a) -> int:
     model, tok, proc = load(); ann = json.load(open(COCO_VAL_ANN)); cats = {c["id"]: c["name"] for c in ann["categories"]}
-    cat_ids = sorted(cats); T = torch.nn.functional.normalize(text_feats(model, tok, [f"a photo of a {cats[c]}." for c in cat_ids]), dim=1)
+    cat_ids = sorted(cats); T = class_embeddings(model, tok, [cats[c] for c in cat_ids])   # official: ImageNet template ensemble, mean, renormalised
     by_img = {}
     for x in ann["annotations"]:
-        if not x["iscrowd"] and x["bbox"][2] >= 1 and x["bbox"][3] >= 1:
+        if x["bbox"][2] > 0 and x["bbox"][3] > 0:   # official script scores every annotation (crowd included)
             by_img.setdefault(x["image_id"], []).append(x)
     imgs = {i["id"]: i for i in ann["images"]}; ids = sorted(by_img)[:a.n_images]
     hit = n = 0; t0 = time.time()
@@ -80,7 +93,7 @@ def check(a) -> int:
         boxes = [[b["bbox"][0], b["bbox"][1], b["bbox"][0] + b["bbox"][2], b["bbox"][1] + b["bbox"][3]] for b in xs]
         R = torch.nn.functional.normalize(region_feats(model, proc, str(COCO_VAL / im["file_name"]), boxes), dim=1)
         pred = (R @ T.T).argmax(1).tolist(); hit += sum(cat_ids[p] == b["category_id"] for p, b in zip(pred, xs)); n += len(xs)
-    res = {"protocol": "COCO val2017 ground-truth boxes, 80 category prompts 'a photo of a {name}.' (lower-cased, walk_type box, max_length 64), RoIAlign region features via get_image_region_features, max_num_patches by the README rule",
+    res = {"protocol": "official coco_box_ddp.py setting: COCO val2017 GT boxes (all annotations), class embedding = mean over the ImageNet templates (lower-cased, walk_type box, max_length 64), image processor defaults (256 patches, NaFlex), RoIAlign region features via get_image_region_features",
            "n_images": len(ids), "n_boxes": n, "top1": hit / n, "paper_reference_top1_base": 74.9, "seconds": time.time() - t0, "snapshot": str(SNAP)}
     OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_fgclip2_region_check.json", "w"), indent=1)
     print(f"[check] COCO val2017 GT-box top-1 {100 * hit / n:.2f} on {n} boxes / {len(ids)} images (paper Base 74.9) {res['seconds']:.0f}s"); return 0
