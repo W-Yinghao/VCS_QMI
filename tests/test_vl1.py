@@ -191,3 +191,16 @@ class PriorCorrectionPaddedTests(unittest.TestCase):
                "P": torch.tensor(p, dtype=torch.float32), "Q": torch.tensor(q, dtype=torch.float32), "target": torch.tensor(A.argmax(0))}
         out = V.evaluate(lambda U, Vv: f[None], [rec], "vcs")
         self.assertEqual(out["top1_query"], out["top1_query_prior_corrected"])
+
+
+class ResidualScorerTests(unittest.TestCase):
+    def test_init_equals_ap3_affine_cosine(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        g = torch.Generator().manual_seed(0)
+        U = torch.nn.functional.normalize(torch.randn(3, 4, 16, generator=g), dim=-1); W = torch.nn.functional.normalize(torch.randn(3, 5, 16, generator=g), dim=-1)
+        m = V.PairMLP(d=16, kind="residual"); f = m(U, W)
+        torch.testing.assert_close(f, 2.0 * torch.einsum("nrd,nwd->nrw", U, W) - 1.0, atol=1e-6, rtol=0)   # starts exactly at raw-CLIP ranking
+
+    def test_concat_shapes(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        m = V.PairMLP(d=8, kind="concat"); self.assertEqual(tuple(m(torch.randn(2, 3, 8), torch.randn(2, 4, 8)).shape), (2, 3, 4))

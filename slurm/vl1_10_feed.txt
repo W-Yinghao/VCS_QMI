@@ -1,0 +1,9 @@
+# VL1-10 / VL1-11 FROZEN jobs
+sbatch --parsable --job-name=vl1_10_vcs slurm/vl1_10_run.sbatch --route vcs --ns 1000,4000,all --seeds 0,1,2
+sbatch --parsable --job-name=vl1_10_js slurm/vl1_10_run.sbatch --route js --ns 1000,4000,all --seeds 0,1,2
+sbatch --parsable --job-name=vl1_10_softmax slurm/vl1_10_run.sbatch --route softmax --ns 1000,4000,all --seeds 0,1,2
+sbatch --parsable --job-name=vl1_10_siglip slurm/vl1_10_run.sbatch --route siglip --ns 1000,4000,all --seeds 0,1,2
+sbatch --parsable --job-name=vl1_10_rff slurm/vl1_10_run.sbatch --route rff --ns 1000,4000,all --seeds 0,1,2
+sbatch --parsable --job-name=vl1_10_raw slurm/vl1_10_run.sbatch --route raw
+sbatch --parsable --job-name=vl1_10_concat slurm/vl1_10_run.sbatch --route vcs --ns all --seeds 0 --scorer concat --then --route js --ns all --seeds 0 --scorer concat
+sbatch --parsable --job-name=vl1_11_prior slurm/vl1_10_run.sbatch --route vcs --ns all --seeds 0,1,2 --law phrase_uniform --then --route js --ns all --seeds 0,1,2 --law phrase_uniform --then --route softmax --ns all --seeds 0,1,2 --law phrase_uniform

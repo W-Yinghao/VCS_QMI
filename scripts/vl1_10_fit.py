@@ -82,15 +82,30 @@ def pad(recs, with_distractors: bool = False):
 
 # ----------------------------------------------------------------------------------------------------------- scorer
 class PairMLP(nn.Module):
-    def __init__(self, d: int = 512, hidden: int = 256) -> None:
-        super().__init__()
-        self.net = nn.Sequential(nn.Linear(2 * d, hidden), nn.GELU(), nn.Linear(hidden, hidden), nn.GELU(), nn.Linear(hidden, 1))
-        nn.init.xavier_uniform_(self.net[-1].weight, gain=0.1); nn.init.zeros_(self.net[-1].bias)
+    """Scorer class shared by every learned route.
+    residual (primary, VL1-10 freeze): f = a * cos(u, v) + b + g([u, v, u*v]) with a = softplus(alpha) > 0, (a, b) initialised at the A-P3 scorer
+      (2, -1) and g's last layer zero-initialised, so every route starts exactly at the raw-CLIP ranking and learns corrections (the package's
+      identity-initialisation principle; a positive affine map of cos alone cannot change the ranking, the MLP can).
+    concat (package F2, sensitivity row): f = MLP(concat(u, v)), last layer small init, zero bias."""
 
-    def forward(self, U, V):                       # U [n, R, d], V [n, W, d] -> f [n, R, W]
+    def __init__(self, d: int = 512, hidden: int = 256, kind: str = "residual") -> None:
+        super().__init__()
+        self.kind = kind
+        din = 3 * d if kind == "residual" else 2 * d
+        self.net = nn.Sequential(nn.Linear(din, hidden), nn.GELU(), nn.Linear(hidden, hidden), nn.GELU(), nn.Linear(hidden, 1))
+        if kind == "residual":
+            nn.init.zeros_(self.net[-1].weight); nn.init.zeros_(self.net[-1].bias)
+            self.alpha = nn.Parameter(torch.tensor(math.log(math.expm1(2.0)))); self.b = nn.Parameter(torch.tensor(-1.0))
+        else:
+            nn.init.xavier_uniform_(self.net[-1].weight, gain=0.1); nn.init.zeros_(self.net[-1].bias)
+
+    def forward(self, U, V):                       # U [n, R, d], V [n, W, d] (L2-normalised) -> f [n, R, W]
         n, R, d = U.shape; W = V.shape[1]
-        x = torch.cat([U[:, :, None, :].expand(n, R, W, d), V[:, None, :, :].expand(n, R, W, d)], dim=-1)
-        return self.net(x).squeeze(-1)
+        Ue, Ve = U[:, :, None, :].expand(n, R, W, d), V[:, None, :, :].expand(n, R, W, d)
+        if self.kind == "residual":
+            cos = torch.einsum("nrd,nwd->nrw", U, V)
+            return F.softplus(self.alpha) * cos + self.b + self.net(torch.cat([Ue, Ve, Ue * Ve], dim=-1)).squeeze(-1)
+        return self.net(torch.cat([Ue, Ve], dim=-1)).squeeze(-1)
 
 
 def route_loss(route: str, f, b):
@@ -139,8 +154,8 @@ def evaluate(score_fn, recs, route: str) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------------------- neural routes
-def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES):
-    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1]); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=WD)
+def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES, scorer="residual"):
+    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1], kind=scorer); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=WD)
     g = np.random.default_rng(seed * 1000 + 17); upd, curve = 0, []
     best = {"est": (-math.inf, 0, None), "task": (-math.inf, 0, None)}; since = 0
     t0 = time.time()
@@ -182,28 +197,31 @@ def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES):
 # ----------------------------------------------------------------------------------------------------------- RFF route
 def fit_rff(fit_recs, cal, dev, seed):
     g = torch.Generator().manual_seed(1000 + seed); d = fit_recs[0]["U"].shape[1]
-    Xs = torch.cat([torch.cat([r["U"][:, None, :].expand(-1, len(r["V"]), -1), r["V"][None].expand(len(r["U"]), -1, -1)], -1).reshape(-1, 2 * d) for r in fit_recs[:500]])
+    def pairs3(U, V):  # [u, v, u*v] — the same input as the residual MLP
+        Ue, Ve = U[:, None, :].expand(-1, len(V), -1), V[None].expand(len(U), -1, -1); return torch.cat([Ue, Ve, Ue * Ve], -1).reshape(-1, 3 * d)
+    Xs = torch.cat([pairs3(r["U"], r["V"]) for r in fit_recs[:500]])
     idx = torch.randint(0, len(Xs), (2000, 2), generator=g); med = float((Xs[idx[:, 0]] - Xs[idx[:, 1]]).norm(dim=1).median())
 
     def make_phi(Wf, bf):
-        def phi(U, V):
+        def phi(U, V):  # [cos(u, v), RFF([u, v, u*v]), 1]: the kernel route sees the raw similarity, like the residual MLP
             n, R, _ = U.shape; Wn = V.shape[1]
-            x = torch.cat([U[:, :, None, :].expand(n, R, Wn, d), V[:, None, :, :].expand(n, R, Wn, d)], -1).double()
-            return torch.cat([math.sqrt(2.0 / RFF_D) * torch.cos(x @ Wf + bf), torch.ones(n, R, Wn, 1, dtype=torch.float64)], -1)
+            Ue, Ve = U[:, :, None, :].expand(n, R, Wn, d), V[:, None, :, :].expand(n, R, Wn, d); x = torch.cat([Ue, Ve, Ue * Ve], -1).double()
+            cos = torch.einsum("nrd,nwd->nrw", U, V).double()[..., None]
+            return torch.cat([cos, math.sqrt(2.0 / RFF_D) * torch.cos(x @ Wf + bf), torch.ones(n, R, Wn, 1, dtype=torch.float64)], -1)
         return phi
     t0 = time.time(); cands = []
     cal_pads = [pad(cal[s:s + 64]) for s in range(0, len(cal), 64)]
     for bw in RFF_BW:
-        Wf = torch.randn(2 * d, RFF_D, generator=g, dtype=torch.float64) / (bw * med); bf = torch.rand(RFF_D, generator=g, dtype=torch.float64) * 2 * math.pi
+        Wf = torch.randn(3 * d, RFF_D, generator=g, dtype=torch.float64) / (bw * med); bf = torch.rand(RFF_D, generator=g, dtype=torch.float64) * 2 * math.pi
         phi = make_phi(Wf, bf)
-        A = torch.zeros(RFF_D + 1, RFF_D + 1, dtype=torch.float64); dvec = torch.zeros(RFF_D + 1, dtype=torch.float64)
+        A = torch.zeros(RFF_D + 2, RFF_D + 2, dtype=torch.float64); dvec = torch.zeros(RFF_D + 2, dtype=torch.float64)
         for s in range(0, len(fit_recs), 64):
             b = pad(fit_recs[s:s + 64]); ph = phi(b["U"], b["V"]); M = 0.5 * (b["P"] + b["Q"]).double(); lab = (b["P"] - b["Q"]).double()
             A += torch.einsum("nrw,nrwi,nrwj->ij", M, ph, ph); dvec += torch.einsum("nrw,nrwi->i", lab, ph)
         A /= len(fit_recs); dvec /= len(fit_recs); sc = float(torch.diag(A).mean())
         cal_phi = [phi(b["U"], b["V"]) for b in cal_pads]
         for lam in RFF_LAM:
-            w = 0.5 * torch.linalg.solve(A + lam * sc * torch.eye(RFF_D + 1, dtype=torch.float64), dvec)
+            w = 0.5 * torch.linalg.solve(A + lam * sc * torch.eye(RFF_D + 2, dtype=torch.float64), dvec)
             svals = [ph @ w for ph in cal_phi]
             for c in torch.logspace(-2, 2, 25).tolist():
                 J = float(torch.cat([padded_j((c * sv).float(), b["P"], b["Q"]) for sv, b in zip(svals, cal_pads)]).mean())
@@ -220,7 +238,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--route", required=True, choices=["vcs", "js", "softmax", "siglip", "rff", "raw"]); ap.add_argument("--ns", default="1000,4000,all")
     ap.add_argument("--seeds", default="0,1,2"); ap.add_argument("--lrs", default="1e-4,5e-4,2e-3"); ap.add_argument("--out", required=True)
-    ap.add_argument("--law", default="region_uniform", choices=["region_uniform", "phrase_uniform"]); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
+    ap.add_argument("--scorer", default="residual", choices=["residual", "concat"]); ap.add_argument("--law", default="region_uniform", choices=["region_uniform", "phrase_uniform"]); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
     a = ap.parse_args(); torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
     data, pref = load_scene_tensors(a.smoke, Path(a.features), a.law); out_dir = Path(a.out); out_dir.mkdir(parents=True, exist_ok=True)
     cal, dev = data["CAL"], data["DEV"]
@@ -233,13 +251,13 @@ def main() -> int:
         if a.smoke:
             fit = fit[:96]
         for seed in [int(x) for x in a.seeds.split(",")]:
-            tag = f"{a.route}_N{n_tag}_s{seed}"
+            tag = f"{a.route}_N{n_tag}_s{seed}" + ("" if a.scorer == "residual" else "_concat") + ("" if a.law == "region_uniform" else "_phraseuniform")
             if (out_dir / f"{tag}.json").exists():
                 print("skip", tag); continue
             if a.route == "rff":
                 res = fit_rff(fit, cal, dev, seed)
             else:
-                runs = [fit_neural(a.route, fit, cal, dev, float(lr), seed, max_updates=60 if a.smoke else MAX_UPDATES) for lr in a.lrs.split(",")]
+                runs = [fit_neural(a.route, fit, cal, dev, float(lr), seed, max_updates=60 if a.smoke else MAX_UPDATES, scorer=a.scorer) for lr in a.lrs.split(",")]
                 pick = lambda key, crit: max((r for r in runs if f"{key}_selected" in r), key=crit, default=None)
                 est = pick("est", lambda r: r["est_selected"]["cal"]["J_common"]) if a.route != "softmax" else None
                 task = pick("task", lambda r: r["task_selected"]["dev"]["top1_image_macro"])
@@ -252,7 +270,7 @@ def main() -> int:
                        "estimator_selected": {"lr": est["lr"], **est["est_selected"]} if est else None,
                        "task_selected": {"lr": task["lr"], **task["task_selected"]}}
                 torch.save(states, out_dir / f"{tag}_states.pt")
-            res.update({"route": a.route, "n_fit_images": len(fit), "n_tag": n_tag, "law": a.law, "features": a.features})
+            res.update({"route": a.route, "n_fit_images": len(fit), "n_tag": n_tag, "law": a.law, "features": a.features, "scorer": a.scorer})
             json.dump(res, open(out_dir / f"{tag}.json", "w"), indent=1)
             ts = res.get("task_selected", res).get("dev", res.get("dev")); es = res.get("estimator_selected") or {}
             print(f"[{tag}] N {len(fit)} task DEV top1 macro {ts['top1_image_macro']:.4f} (all-obj {ts['top1_all_objects']:.4f})"
