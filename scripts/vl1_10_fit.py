@@ -43,8 +43,8 @@ RFF_D, RFF_BW, RFF_LAM = 1024, (0.5, 1.0, 2.0), (1e-4, 1e-2, 1.0)
 
 
 # ----------------------------------------------------------------------------------------------------------- data
-def load_scene_tensors(smoke: bool = False):
-    D = torch.load(FEAT, weights_only=False)
+def load_scene_tensors(smoke: bool = False, feat: Path = FEAT):
+    D = torch.load(feat, weights_only=False)
     img = F.normalize(D["image_feat_fp16"].float(), dim=1); txt = F.normalize(D["text_feat_fp16"].float(), dim=1)
     oi = {tuple(k): i for i, k in enumerate(D["obj_keys"])}; ti = {tuple(k): i for i, k in enumerate(D["text_keys"])}
     scenes, _ = RG.load_scenes(resolve_paths=False); role = RG.dev_roles(scenes); pref = RG.fit_prefixes(scenes, role)
@@ -134,7 +134,7 @@ def evaluate(score_fn, recs, route: str) -> dict:
 
 # ----------------------------------------------------------------------------------------------------------- neural routes
 def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES):
-    torch.manual_seed(seed); m = PairMLP(); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=WD)
+    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1]); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=WD)
     g = np.random.default_rng(seed * 1000 + 17); upd, curve = 0, []
     best = {"est": (-math.inf, 0, None), "task": (-math.inf, 0, None)}; since = 0
     t0 = time.time()
@@ -214,9 +214,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--route", required=True, choices=["vcs", "js", "softmax", "siglip", "rff", "raw"]); ap.add_argument("--ns", default="1000,4000,all")
     ap.add_argument("--seeds", default="0,1,2"); ap.add_argument("--lrs", default="1e-4,5e-4,2e-3"); ap.add_argument("--out", required=True)
-    ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
     a = ap.parse_args(); torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
-    data, pref = load_scene_tensors(a.smoke); out_dir = Path(a.out); out_dir.mkdir(parents=True, exist_ok=True)
+    data, pref = load_scene_tensors(a.smoke, Path(a.features)); out_dir = Path(a.out); out_dir.mkdir(parents=True, exist_ok=True)
     cal, dev = data["CAL"], data["DEV"]
     if a.route == "raw":
         res = {"cal": evaluate(lambda U, V: torch.einsum("nrd,nwd->nrw", U, V), cal, "raw"), "dev": evaluate(lambda U, V: torch.einsum("nrd,nwd->nrw", U, V), dev, "raw")}
