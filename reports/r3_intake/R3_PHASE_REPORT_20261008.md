@@ -34,3 +34,8 @@ early stopping at low dependence for every method (P152 §3).
 ## What remains (my judgement)
 No further r3 measurement is needed for the plan's metrics.  Optional, only if the owner wants them in the paper: (i) P149 at the z-site and a second
 encoder seed (≈ 1 h CPU per fixture); (ii) P152 at a larger N to see whether the I 2 overfitting persists (cheap).  Neither is submitted.
+
+## Addendum (2026-10-08, P149 add. 1)
+z-site (seeds 1–2) and seed-2 encoders at h: resolution holds in 47 / 48 new cells; J coordinate-stable to ~2 SE; the P149 model observation is
+seed-stable at h.  **W11**: J at z exceeds J at h by 0.10–0.17 — fitted J is not a data-processing quantity across sites / dimensions; only the
+within-site channel ladder supports a DPI-direction reading (`P149_ADDENDUM1_ZSITE_SEED2_REPORT_20261008.md`).
