@@ -72,7 +72,8 @@ def main() -> int:
     for j, k in enumerate(keys):
         lab, col = ({**SAME, **NATIVE}[k][0], {**SAME, **NATIVE}[k][1])
         gz = [reso["gaussian"][s]["methods"][k]["standardised"] for s in steps]; xz = [reso["xor_mixture"][s]["methods"][k]["standardised"] if k in reso["xor_mixture"][s]["methods"] else np.nan for s in steps]
-        f.bar(x + (j - 2.5) * w, gz, w, color=col, label=lab); f.scatter(x + (j - 2.5) * w, xz, color=col, marker="x", s=18)
+        f.bar(x + (j - 2.5) * w, gz, w, color=col, label=lab)
+        f.scatter(x + (j - 2.5) * w, xz, color="k", marker="x", s=22, zorder=3, label="xor ladder (×)" if j == 0 else None)
     f.set_yscale("log"); f.axhline(2, color="k", lw=0.6, ls=":"); f.set_xticks(x); f.set_xticklabels([s.replace("->", "→") for s in steps])
     f.set_xlabel("adjacent MI levels (nats)"); f.set_ylabel("|ΔJ| / pooled sd  (bars Gaussian, × xor)"); f.set_title("(f) resolution of adjacent levels"); f.legend(fontsize=6)
     fig.suptitle("Bounded quadratic estimator vs matched JS, kernel routes and MI estimators — synthetic ladders with oracles (P85/P86 → P151; P152)", fontsize=11)
