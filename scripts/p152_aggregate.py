@@ -18,6 +18,16 @@ KINDS = ("vcs", "js", "infonce", "nwj", "dv", "smile")
 CKPTS = ("u250", "u1000", "u2000", "select_best")
 
 
+HALF = {"vcs": 1.0, "js": 0.5}  # registered T coordinate: VCS T = tanh f, matched JS T = tanh(u / 2) (benchmark.neural_rows)
+
+
+def sat_from_hist(h: dict, half: float, level: float) -> float:
+    """Fraction with |tanh(half * f)| > level from the 201-bin f histogram on [-10, 10] plus overflow counts (bin-centre approximation)."""
+    c = np.asarray(h["f_counts"], float); centres = np.linspace(-10, 10, 202)[:-1] + 10.0 / 201; thr = np.arctanh(level) / half
+    n = c.sum() + h["f_below"] + h["f_above"]
+    return float((c[np.abs(centres) > thr].sum() + h["f_below"] + h["f_above"]) / n) if thr < 10 else float((h["f_below"] + h["f_above"]) / n)
+
+
 def ms(x) -> dict:
     x = np.asarray([v for v in x if v is not None and np.isfinite(v)], dtype=float)
     return {"mean": float(x.mean()) if len(x) else None, "sd": float(x.std(ddof=1)) if len(x) > 1 else None, "n": int(len(x))}
@@ -55,8 +65,12 @@ def main() -> int:
                                          "eval_block_rel_sd": ms([np.sqrt(x["eval_blocks"]["var_conditional_fit"]) / abs(x["native_value"]) if x["eval_blocks"]["var_conditional_fit"] is not None and x["native_value"] else None for x in e]),
                                          "eval_block_mean": ms([x["eval_blocks"]["mean"] for x in e]), "eval_block_n": e[0]["eval_blocks"].get("block_n"),
                                          "eval_block_nonfinite": [x["eval_blocks"]["n_nonfinite"] for x in e],
-                                         "sat95_P": ms([x["hist_P"]["sat_T_0.95"] for x in e]), "sat95_Q": ms([x["hist_Q"]["sat_T_0.95"] for x in e]),
-                                         "sat99_P": ms([x["hist_P"]["sat_T_0.99"] for x in e]), "f_overflow_P": [x["hist_P"]["f_below"] + x["hist_P"]["f_above"] for x in e]}
+                                         "f_overflow_P": [x["hist_P"]["f_below"] + x["hist_P"]["f_above"] for x in e], "f_overflow_Q": [x["hist_Q"]["f_below"] + x["hist_Q"]["f_above"] for x in e],
+                                         "f_q99_P": ms([x["hist_P"]["f_quantiles"]["q99"] for x in e]), "f_q01_Q": ms([x["hist_Q"]["f_quantiles"]["q01"] for x in e])}
+                if kind in HALF:  # saturation on the registered T coordinate (the recorder's sat_T fields use tanh f for every kind)
+                    for side in ("P", "Q"):
+                        row["checkpoints"][c][f"sat95_{side}"] = ms([sat_from_hist(x[f"hist_{side}"], HALF[kind], 0.95) for x in e])
+                        row["checkpoints"][c][f"sat99_{side}"] = ms([sat_from_hist(x[f"hist_{side}"], HALF[kind], 0.99) for x in e])
                 if kind in ("vcs", "js"):
                     row["checkpoints"][c]["posterior_mse"] = ms([x["posterior"].get("posterior_mse") for x in e])
             if kind == "smile":
@@ -67,12 +81,13 @@ def main() -> int:
             table[f"{kind}/I{I}"] = row
     json.dump({"table": table, "missing": missing}, open(a.out, "w"), indent=1)
     f = lambda m, k=3: "—" if m["mean"] is None else (f"{m['mean']:.{k}f}" + (f"±{m['sd']:.{k}f}" if m["sd"] is not None else ""))
-    print("kind/I        gnorm(last half)   CV(last half)   CV(whole)   nonfinite   value (truth)           eval-block sd (rel)          sat95 P/Q      post-MSE   repro")
+    print("kind/I        gnorm(last half)   CV(last half)   CV(whole)   nonfinite   value (truth)           eval-block sd (rel)          sat95 P/Q (own T)  post-MSE   repro")
     for k, r in table.items():
         sb = r["checkpoints"]["select_best"]; rep = r["reproduction_abs_diff_max"]; rep = "—" if rep is None else f"{rep:.1e}"
+        sat = f"{f(sb['sat95_P'], 2)}/{f(sb['sat95_Q'], 2)}" if "sat95_P" in sb else f"|f|>10: {sum(sb['f_overflow_P'])}/{sum(sb['f_overflow_Q'])}"
+        post = f(sb["posterior_mse"], 3) if "posterior_mse" in sb else ""
         print(f"{k:12s} {f(r['gnorm_last_half_mean']):>16s} {f(r['gnorm_last_half_cv']):>15s} {f(r['gnorm_cv_whole']):>11s} {str(r['nonfinite_steps']):>10s}  "
-              f"{f(sb['native_value']):>14s} ({sb['own_truth']:.3f})  {f(sb['eval_block_sd'], 4):>15s} ({f(sb['eval_block_rel_sd'], 3)})  {f(sb['sat95_P'], 2)}/{f(sb['sat95_Q'], 2)}  "
-              f"{f(sb['posterior_mse'], 3) if 'posterior_mse' in sb else '':>9s}  {rep}")
+              f"{f(sb['native_value']):>14s} ({sb['own_truth']:.3f})  {f(sb['eval_block_sd'], 4):>15s} ({f(sb['eval_block_rel_sd'], 3)})  {sat:>18s}  {post:>9s}  {rep}")
     if missing:
         print("missing:", missing)
     return 0
