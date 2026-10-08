@@ -1,6 +1,6 @@
 # status_v7 — V7-CORE (P140): executive summary, task map, incidents
 
-Generated 2026-10-07T20:31:35Z by `scripts/p140_v7_tables.py` from raw per-run files only (184 finished runs in table A; details in `results_v7.json`, `paired_comparisons_v7.json`, `runtime_v7.json`).  Development selection split; official test closed.  Seed-0 selection runs and confirmation seeds are kept apart; different scorer / lr runs are never pooled as seeds.
+Generated 2026-10-08T07:37:15Z by `scripts/p140_v7_tables.py` from raw per-run files only (197 finished runs in table A; details in `results_v7.json`, `paired_comparisons_v7.json`, `runtime_v7.json`).  Development selection split; official test closed.  Seed-0 selection runs and confirmation seeds are kept apart; different scorer / lr runs are never pooled as seeds.
 
 ## 1. Executive summary
 
@@ -18,18 +18,23 @@ Generated 2026-10-07T20:31:35Z by `scripts/p140_v7_tables.py` from raw per-run f
 ## 2. Task map (P129, P130, P133, P135, P136, P137)
 
 **P129** — completed 18; running / resumable 0; in queue 0.
-**P130** — completed 3; running / resumable 0; in queue 11.
-  - queue: 1027193 p130a1_ap3_s2 PENDING RTX6000PRO,H100,L40S  None
-  - queue: 1027191 p130a1_ap3_s1 PENDING RTX6000PRO,H100,L40S  None
-  - queue: 1027253 p130a1_js_s1 PENDING RTX6000PRO,H100,L40S  None
-  - queue: 1027285 p130a1_js_s2 PENDING RTX6000PRO,H100,L40S  None
-  - queue: 1027529 p130a1_simclr_s1 PENDING RTX6000PRO,H100,L40S  None
-  - queue: 1027724 p130a1_simclr_s2 PENDING RTX6000PRO,H100,L40S  None
-  - queue: 1027710 p130a1_simclr_s1 PENDING RTX6000PRO,H100,L40S  Dependency
-  - queue: 1027384 p130a1_js_s2 PENDING RTX6000PRO,H100,L40S  Dependency
-  - queue: 1027274 p130a1_js_s1 PENDING RTX6000PRO,H100,L40S  Dependency
-  - queue: 1027194 p130a1_ap3_s2_c2 PENDING RTX6000PRO,H100,L40S  Dependency
-  - queue: 1027192 p130a1_ap3_s1_c2 PENDING RTX6000PRO,H100,L40S  Dependency
+**P130** — completed 3; running / resumable 5; in queue 11.
+  - running/resumable: P130_AP3_c100_r50_views4_800ep_seed1 (RUNNING, epoch 261)
+  - running/resumable: P130_AP3_c100_r50_views4_800ep_seed2 (RUNNING, epoch 160)
+  - running/resumable: P130_JS_AP3_c100_r50_views4_800ep_seed1 (RUNNING, epoch 151)
+  - running/resumable: P130_JS_AP3_c100_r50_views4_800ep_seed2 (RUNNING, epoch 11)
+  - running/resumable: P130_simclr_c100_r50_views4_800ep_seed1 (RUNNING, epoch 2)
+  - queue: 1027285 p130a1_js_s2 RUNNING H100 node53 None
+  - queue: 1027529 p130a1_simclr_s1 RUNNING H100 nodesumo01 None
+  - queue: 1027193 p130a1_ap3_s2 RUNNING RTX6000PRO node59 None
+  - queue: 1027253 p130a1_js_s1 RUNNING RTX6000PRO node61 None
+  - queue: 1027191 p130a1_ap3_s1 RUNNING RTX6000PRO node58 None
+  - queue: 1027724 p130a1_simclr_s2 PENDING RTX6000PRO,H100,L40S  QOSMaxGRESPerUser
+  - queue: 1028242 p130a1_simclr_s1 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1028226 p130a1_js_s2 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1028174 p130a1_js_s1 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1028169 p130a1_ap3_s2 PENDING RTX6000PRO,H100,L40S  Dependency
+  - queue: 1028140 p130a1_ap3_s1 PENDING RTX6000PRO,H100,L40S  Dependency
 **P133** — completed 2; running / resumable 0; in queue 0.
 **P135** — completed 10; running / resumable 0; in queue 0.
 **P136** — completed 6; running / resumable 0; in queue 0.

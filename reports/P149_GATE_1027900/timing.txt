@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "<stdin>", line 5, in <module>
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/scripts/p149_twoview.py", line 150, in fit_mlp
+    risk, step = ev._train(fn, list(m.parameters()), (Pf, Qf), (Pt, Qt), loss, lr, seed, steps=steps, every=10)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_measure/evidence.py", line 254, in _train
+    best = float(own_risk(*model_fn(Pt, tune_cache), loss)); best_step = 0
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_measure/evidence.py", line 126, in own_risk
+    return -j_terms(fp, fq).mean()
+            ^^^^^^^^^^^^^^^
+  File "/home/infres/yinwang/CS_QMI/ssl_pilot/src/vcs_measure/evidence.py", line 121, in j_terms
+    return (tp - 0.5 * tp ** 2) + (-tq - 0.5 * tq ** 2)
+           ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~
+RuntimeError: The size of tensor a (1000) must match the size of tensor b (500) at non-singleton dimension 0
