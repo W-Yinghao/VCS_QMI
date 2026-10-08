@@ -74,8 +74,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--roles", default="FIT,CAL,DEV"); ap.add_argument("--workers", type=int, default=14); a = ap.parse_args()
     import open_clip
     dev = torch.device("cuda", 0); t_all = time.time()
-    model, _, pre = open_clip.create_model_and_transforms("ViT-B-16", pretrained="openai", cache_dir=CLIP_CACHE)
-    model = model.to(dev).eval(); tok = open_clip.get_tokenizer("ViT-B-16")
+    # "ViT-B-16-quickgelu": the OpenAI weights were trained with QuickGELU; open_clip's plain "ViT-B-16" + "openai" only warns and runs GELU
+    model, _, pre = open_clip.create_model_and_transforms("ViT-B-16-quickgelu", pretrained="openai", cache_dir=CLIP_CACHE)
+    acts = {type(m).__name__ for m in model.modules() if "GELU" in type(m).__name__}
+    assert acts == {"QuickGELU"}, f"expected QuickGELU activations, found {acts}"
+    model = model.to(dev).eval(); tok = open_clip.get_tokenizer("ViT-B-16-quickgelu")
     prov = json.load(open(Path(CLIP_CACHE) / "PROVENANCE_ViT-B-16_openai.json"))
     scenes, st = RG.load_scenes(); cats = st["categories"]; role = RG.dev_roles(scenes)
     want = set(a.roles.split(",")); sc = [s for s in scenes if role[s.image_id] in want and len(s.referred) >= 2 and s.path]
@@ -94,7 +97,7 @@ def main() -> int:
             "argmax_agreement_over_512_queries": float((c16.argmax(0) == c32.argmax(0)).float().mean())}
     key_obj = [(s.image_id, o.ann_id) for s, o in objs]; key_txt = [(s.image_id, o.ann_id, e["sent_id"]) for s, o, e in texts]
     torch.save({"image_feat_fp16": img.half(), "text_feat_fp16": txt.half(), "obj_keys": key_obj, "text_keys": key_txt, "roles": sorted(want),
-                "model": "open_clip ViT-B-16 openai", "provenance": prov, "preprocess": str(pre), "crop": "tight clipped box, then official preprocess"},
+                "model": "open_clip ViT-B-16-quickgelu openai", "provenance": prov, "preprocess": str(pre), "crop": "tight clipped box, then official preprocess"},
                FEAT_DIR / "train_side_features.pt")
     cache_bytes = os.path.getsize(FEAT_DIR / "train_side_features.pt")
     # category-name text features for the shortcut control
@@ -129,7 +132,7 @@ def main() -> int:
                   "by_candidate_count": {str(k): {"n": int((m == k).sum()), "top1": float(P[m == k].mean())} for k in sorted(set(m.tolist())) if (m == k).sum() >= 20},
                   "same_category_scenes": {"n": int(scat.sum()), "top1": float(P[scat].mean()) if scat.any() else None, "random": float(np.mean(1 / m[scat])) if scat.any() else None},
                   "long_expressions_gt12_tokens": {"n": int(lg.sum()), "top1": float(P[lg].mean()) if lg.any() else None}}
-    out = {"model": "open_clip ViT-B-16 openai", "provenance_sha256": {k: v["sha256"] for k, v in prov["files"].items()}, "roles": sorted(want),
+    out = {"model": "open_clip ViT-B-16-quickgelu openai", "provenance_sha256": {k: v["sha256"] for k, v in prov["files"].items()}, "roles": sorted(want),
            "n_crops": len(items), "n_texts": len(texts), "precision_check_fp16_vs_fp32": prec,
            "resources": {"image_encode_seconds": t_img, "crops_per_second": len(items) / t_img, "text_encode_seconds": t_txt, "cache_bytes": cache_bytes,
                          "peak_gpu_mem_gb": torch.cuda.max_memory_allocated(dev) / 1e9, "gpu": torch.cuda.get_device_name(dev), "total_seconds": time.time() - t_all},
