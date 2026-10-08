@@ -160,3 +160,34 @@ class RefCocogAdapterTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PriorCorrectionPaddedTests(unittest.TestCase):
+    """VL1-11: with the exact half-log-ratio f = ½ log(p/q), ranking by 2 f + log p_G(r) recovers argmax_r p_G(r | w) (O1 §3.4); under the
+    region-uniform law the correction is a constant per image, so corrected and raw Top-1 coincide."""
+
+    def _laws(self, A, prior):
+        p, q = pair_laws(A, prior); f = 0.5 * np.log(np.where(p > 0, p, 1e-300) / q); return p, q, f
+
+    def test_phrase_uniform_prior_changes_ranking(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        A = np.array([[1, 1, 1, 0], [0, 0, 0, 1.0]]); prior = A.sum(1) / A.sum()           # region 0 has 3 aliases, region 1 one
+        p, q, f = self._laws(A, prior)
+        self.assertNotAlmostEqual(prior[0], prior[1])
+        corrected = (2 * f + np.log(prior)[:, None]).argmax(0); np.testing.assert_array_equal(corrected, p.argmax(0))
+        rec = {"image_id": 1, "U": torch.zeros(2, 4), "Ud": torch.zeros(0, 4), "V": torch.zeros(4, 4), "A": torch.tensor(A, dtype=torch.float32),
+               "P": torch.tensor(p, dtype=torch.float32), "Q": torch.tensor(q, dtype=torch.float32), "target": torch.tensor(A.argmax(0))}
+        ft = torch.tensor(f, dtype=torch.float32); ft[~torch.isfinite(ft)] = -50.0
+        out = V.evaluate(lambda U, Vv: ft[None], [rec], "vcs")
+        self.assertEqual(out["top1_query_prior_corrected"], 1.0)
+        # raw f ranks phrase 3 (column 3) correctly but the correction cannot hurt the exact posterior ranking
+        self.assertLessEqual(out["top1_query"], out["top1_query_prior_corrected"])
+
+    def test_region_uniform_correction_is_identity(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        rng = np.random.default_rng(0); A = np.array([[1, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1.0]]); p, q = pair_laws(A)
+        f = torch.tensor(rng.normal(size=A.shape), dtype=torch.float32)
+        rec = {"image_id": 2, "U": torch.zeros(3, 4), "Ud": torch.zeros(0, 4), "V": torch.zeros(4, 4), "A": torch.tensor(A, dtype=torch.float32),
+               "P": torch.tensor(p, dtype=torch.float32), "Q": torch.tensor(q, dtype=torch.float32), "target": torch.tensor(A.argmax(0))}
+        out = V.evaluate(lambda U, Vv: f[None], [rec], "vcs")
+        self.assertEqual(out["top1_query"], out["top1_query_prior_corrected"])

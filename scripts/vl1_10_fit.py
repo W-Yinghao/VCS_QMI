@@ -43,7 +43,7 @@ RFF_D, RFF_BW, RFF_LAM = 1024, (0.5, 1.0, 2.0), (1e-4, 1e-2, 1.0)
 
 
 # ----------------------------------------------------------------------------------------------------------- data
-def load_scene_tensors(smoke: bool = False, feat: Path = FEAT):
+def load_scene_tensors(smoke: bool = False, feat: Path = FEAT, law: str = "region_uniform"):
     D = torch.load(feat, weights_only=False)
     img = F.normalize(D["image_feat_fp16"].float(), dim=1); txt = F.normalize(D["text_feat_fp16"].float(), dim=1)
     oi = {tuple(k): i for i, k in enumerate(D["obj_keys"])}; ti = {tuple(k): i for i, k in enumerate(D["text_keys"])}
@@ -53,7 +53,9 @@ def load_scene_tensors(smoke: bool = False, feat: Path = FEAT):
         r = role[s.image_id]
         if r not in ("FIT", "CAL", "DEV") or len(s.referred) < 2 or (s.image_id, s.referred[0].ann_id) not in oi:
             continue
-        A, anns, sents = s.compatibility(); p, q = pair_laws(A)
+        A, anns, sents = s.compatibility()
+        prior = None if law == "region_uniform" else A.sum(1) / A.sum()   # phrase_uniform: p(r) ∝ number of expressions of r (VL1-11)
+        p, q = pair_laws(A, prior)
         rec = {"image_id": s.image_id, "U": img[[oi[(s.image_id, a)] for a in anns]], "Ud": img[[oi[(s.image_id, o.ann_id)] for o in s.distractors]],
                "V": txt[[ti[(s.image_id, anns[int(np.argmax(A[:, j]))], sid)] for j, sid in enumerate(sents)]],
                "A": torch.as_tensor(A, dtype=torch.float32), "P": torch.as_tensor(p, dtype=torch.float32), "Q": torch.as_tensor(q, dtype=torch.float32),
@@ -114,7 +116,7 @@ def siglip_prior(b) -> torch.Tensor:
 @torch.no_grad()
 def evaluate(score_fn, recs, route: str) -> dict:
     """score_fn(U, V) -> f.  Common J on referred rows (not for softmax / raw); Top-1 over referred rows (primary) and referred + distractors."""
-    Js, q1, macro, q1_all = [], [], [], []
+    Js, q1, macro, q1_all, q1c, macroc = [], [], [], [], [], []
     for s in range(0, len(recs), 64):
         chunk = recs[s:s + 64]; b = pad(chunk); f = score_fn(b["U"], b["V"])
         if route in ("vcs", "js", "rff"):
@@ -123,10 +125,14 @@ def evaluate(score_fn, recs, route: str) -> dict:
             pi = siglip_prior(b).clamp(1e-6, 1 - 1e-6); Js.append(padded_j(f - 0.5 * torch.log(pi / (1 - pi))[:, None, None], b["P"], b["Q"]))
         fm = f.masked_fill(~b["rmask"][:, :, None], -torch.inf); pred = fm.argmax(1); hit = (pred == b["tgt"]) & b["wmask"]
         q1.append(hit.sum().item()); macro += (hit.sum(1).float() / b["wmask"].sum(1).float()).tolist()
+        # VL1-11 prior-corrected ranking: 2 f + log p_G(r) (O1 §3.4); identical to f under the region-uniform law
+        logp = torch.log(b["P"].sum(2).clamp_min(1e-12))[:, :, None]; fc = (2 * f + logp).masked_fill(~b["rmask"][:, :, None], -torch.inf)
+        hitc = (fc.argmax(1) == b["tgt"]) & b["wmask"]; q1c.append(hitc.sum().item()); macroc += (hitc.sum(1).float() / b["wmask"].sum(1).float()).tolist()
         ba = pad(chunk, with_distractors=True); fa = score_fn(ba["U"], ba["V"]).masked_fill(~ba["rmask"][:, :, None], -torch.inf)
         q1_all.append(((fa.argmax(1) == ba["tgt"]) & ba["wmask"]).sum().item())
     nq = sum(len(r["V"]) for r in recs)
-    out = {"top1_query": sum(q1) / nq, "top1_image_macro": float(np.mean(macro)), "top1_all_objects": sum(q1_all) / nq, "n_images": len(recs), "n_queries": nq}
+    out = {"top1_query": sum(q1) / nq, "top1_image_macro": float(np.mean(macro)), "top1_all_objects": sum(q1_all) / nq, "n_images": len(recs), "n_queries": nq,
+           "top1_query_prior_corrected": sum(q1c) / nq, "top1_image_macro_prior_corrected": float(np.mean(macroc))}
     if Js:
         out["J_common"] = float(torch.cat(Js).mean())
     return out
@@ -214,9 +220,9 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--route", required=True, choices=["vcs", "js", "softmax", "siglip", "rff", "raw"]); ap.add_argument("--ns", default="1000,4000,all")
     ap.add_argument("--seeds", default="0,1,2"); ap.add_argument("--lrs", default="1e-4,5e-4,2e-3"); ap.add_argument("--out", required=True)
-    ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
+    ap.add_argument("--law", default="region_uniform", choices=["region_uniform", "phrase_uniform"]); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
     a = ap.parse_args(); torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
-    data, pref = load_scene_tensors(a.smoke, Path(a.features)); out_dir = Path(a.out); out_dir.mkdir(parents=True, exist_ok=True)
+    data, pref = load_scene_tensors(a.smoke, Path(a.features), a.law); out_dir = Path(a.out); out_dir.mkdir(parents=True, exist_ok=True)
     cal, dev = data["CAL"], data["DEV"]
     if a.route == "raw":
         res = {"cal": evaluate(lambda U, V: torch.einsum("nrd,nwd->nrw", U, V), cal, "raw"), "dev": evaluate(lambda U, V: torch.einsum("nrd,nwd->nrw", U, V), dev, "raw")}
@@ -246,7 +252,7 @@ def main() -> int:
                        "estimator_selected": {"lr": est["lr"], **est["est_selected"]} if est else None,
                        "task_selected": {"lr": task["lr"], **task["task_selected"]}}
                 torch.save(states, out_dir / f"{tag}_states.pt")
-            res.update({"route": a.route, "n_fit_images": len(fit), "n_tag": n_tag})
+            res.update({"route": a.route, "n_fit_images": len(fit), "n_tag": n_tag, "law": a.law, "features": a.features})
             json.dump(res, open(out_dir / f"{tag}.json", "w"), indent=1)
             ts = res.get("task_selected", res).get("dev", res.get("dev")); es = res.get("estimator_selected") or {}
             print(f"[{tag}] N {len(fit)} task DEV top1 macro {ts['top1_image_macro']:.4f} (all-obj {ts['top1_all_objects']:.4f})"
