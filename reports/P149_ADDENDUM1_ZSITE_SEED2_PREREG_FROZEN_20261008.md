@@ -1,4 +1,4 @@
-# P149 addendum 1 — the projector site z and a second encoder seed — DRAFT 2026-10-08
+# P149 addendum 1 — the projector site z and a second encoder seed — FROZEN 2026-10-08
 
 Source: P149 prereg §5 deferred "z-site and other encoder seeds (later protocol)"; P149 report §4 (model observation on one encoder seed each);
 owner rule: keep ≥ 15 experiment jobs queued (the queue falls to 14 when P138 add. 1 closes; no triggered follow-up, the SSL exploration axes are
@@ -25,3 +25,7 @@ smoke of `--site z`.
 
 ## 4. Cost
 P149: 21–43 min per fixture-measurement → per job ≈ 3 measurements + 1 fixture build ≈ 1.5–2.5 h; 16 h limit (no resume; skips finished outputs).
+
+## 5. Decisions at the freeze (2026-10-08)
+Gate 1028346: `tests/test_p149.py` 6 / 6; the default h path on the P149 smoke fixture reproduces the P149 gate smoke exactly (max |ΔJ| = 0.0);
+`--site z` smoke runs (128-d).  Submitted as four CPU jobs (one per encoder family); nothing else changed.
