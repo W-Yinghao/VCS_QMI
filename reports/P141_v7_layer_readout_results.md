@@ -1,6 +1,6 @@
 # P141 — CIFAR-100 four-site (layer3 / h / r / z) readouts: results
 
-22 encoders.  Primary readout recipe_raw (P124 rule); conditional = macro 5-way given the coarse label.  h is the backbone metric.
+25 encoders.  Primary readout recipe_raw (P124 rule); conditional = macro 5-way given the coarse label.  h is the backbone metric.
 
 ## 1. Per method and site (mean ± sd over seeds)
 
@@ -30,6 +30,18 @@
 | JS (3,0.5) tuned | h | 512 | 3 | 71.77 ± 0.20 | 71.38 ± 0.40 | 71.41 ± 0.12 | 60.49 ± 0.22 | 59.54 ± 0.36 | 56.33 ± 0.14 | 77.03 ± 0.50 | 73.61 ± 0.43 | 73.17 ± 0.32 |
 | JS (3,0.5) tuned | r | 128 | 3 | 68.45 ± 0.42 | 68.11 ± 0.44 | 69.80 ± 0.26 | 55.03 ± 0.17 | 55.26 ± 0.34 | 53.59 ± 0.53 | 70.95 ± 0.33 | 72.76 ± 0.49 | 71.66 ± 0.19 |
 | JS (3,0.5) tuned | z | 128 | 3 | 67.15 ± 0.28 | 68.41 ± 0.30 | 69.80 ± 0.26 | 52.84 ± 0.26 | 55.56 ± 0.24 | 53.59 ± 0.53 | 71.67 ± 0.16 | 72.98 ± 0.23 | 71.66 ± 0.19 |
+| R50 A-P3 | layer3 | 1024 | 1 | 65.14 ± 0.00 | 66.18 ± 0.00 | 50.96 ± 0.00 | 60.22 ± 0.00 | 60.36 ± 0.00 | 37.56 ± 0.00 | 77.14 ± 0.00 | 76.64 ± 0.00 | 59.94 ± 0.00 |
+| R50 A-P3 | h | 2048 | 1 | 74.86 ± 0.00 | 71.36 ± 0.00 | 73.28 ± 0.00 | 64.66 ± 0.00 | 61.42 ± 0.00 | 57.86 ± 0.00 | 78.72 ± 0.00 | 76.56 ± 0.00 | 74.18 ± 0.00 |
+| R50 A-P3 | r | 128 | 1 | 70.40 ± 0.00 | 70.22 ± 0.00 | 71.58 ± 0.00 | 55.74 ± 0.00 | 56.12 ± 0.00 | 54.70 ± 0.00 | 70.98 ± 0.00 | 72.58 ± 0.00 | 71.28 ± 0.00 |
+| R50 A-P3 | z | 128 | 1 | 69.68 ± 0.00 | 70.82 ± 0.00 | 71.58 ± 0.00 | 54.08 ± 0.00 | 57.74 ± 0.00 | 54.70 ± 0.00 | 72.20 ± 0.00 | 73.28 ± 0.00 | 71.28 ± 0.00 |
+| R50 JS-AP3 | layer3 | 1024 | 1 | 67.52 ± 0.00 | 67.04 ± 0.00 | 52.04 ± 0.00 | 60.96 ± 0.00 | 61.10 ± 0.00 | 38.56 ± 0.00 | 77.34 ± 0.00 | 77.04 ± 0.00 | 60.96 ± 0.00 |
+| R50 JS-AP3 | h | 2048 | 1 | 73.90 ± 0.00 | 69.74 ± 0.00 | 73.16 ± 0.00 | 62.56 ± 0.00 | 59.92 ± 0.00 | 57.16 ± 0.00 | 77.34 ± 0.00 | 75.64 ± 0.00 | 73.24 ± 0.00 |
+| R50 JS-AP3 | r | 128 | 1 | 69.02 ± 0.00 | 68.78 ± 0.00 | 69.74 ± 0.00 | 52.96 ± 0.00 | 53.24 ± 0.00 | 51.72 ± 0.00 | 68.06 ± 0.00 | 70.30 ± 0.00 | 69.54 ± 0.00 |
+| R50 JS-AP3 | z | 128 | 1 | 69.02 ± 0.00 | 70.18 ± 0.00 | 69.74 ± 0.00 | 52.20 ± 0.00 | 55.10 ± 0.00 | 51.72 ± 0.00 | 70.08 ± 0.00 | 71.34 ± 0.00 | 69.54 ± 0.00 |
+| R50 SimCLR | layer3 | 1024 | 1 | 66.14 ± 0.00 | 65.72 ± 0.00 | 49.90 ± 0.00 | 61.10 ± 0.00 | 60.60 ± 0.00 | 36.60 ± 0.00 | 76.86 ± 0.00 | 76.56 ± 0.00 | 60.82 ± 0.00 |
+| R50 SimCLR | h | 2048 | 1 | 71.78 ± 0.00 | 65.48 ± 0.00 | 72.70 ± 0.00 | 58.54 ± 0.00 | 54.58 ± 0.00 | 59.44 ± 0.00 | 74.52 ± 0.00 | 71.84 ± 0.00 | 74.58 ± 0.00 |
+| R50 SimCLR | r | 128 | 1 | 54.06 ± 0.00 | 55.32 ± 0.00 | 71.36 ± 0.00 | 47.98 ± 0.00 | 52.26 ± 0.00 | 56.76 ± 0.00 | 66.12 ± 0.00 | 66.84 ± 0.00 | 72.40 ± 0.00 |
+| R50 SimCLR | z | 128 | 1 | 67.74 ± 0.00 | 68.24 ± 0.00 | 71.36 ± 0.00 | 55.94 ± 0.00 | 57.14 ± 0.00 | 56.76 ± 0.00 | 72.20 ± 0.00 | 72.08 ± 0.00 | 72.40 ± 0.00 |
 
 ## 2. Seed-paired contrasts, recipe_raw (A-P3 − JS-AP3 and A-P3 − SimCLR frozen labels; vs tuned JS descriptive)
 
@@ -72,6 +84,47 @@
 | A-P3 − JS (3,0.5) tuned | z | fine | 3 | -0.11 | [-1.31, +1.09] | close |
 | A-P3 − JS (3,0.5) tuned | z | conditional | 3 | -0.54 | [-2.18, +1.10] | inconclusive |
 
+## 3. ResNet-50 − ResNet-18 at seed 0 (descriptive)
+
+| method | site | task | Δ |
+|---|---|---|---|
+| A-P3 | layer3 | coarse | +1.20 |
+| A-P3 | layer3 | fine | +2.94 |
+| A-P3 | layer3 | conditional | +0.98 |
+| A-P3 | h | coarse | +2.80 |
+| A-P3 | h | fine | +4.46 |
+| A-P3 | h | conditional | +1.88 |
+| A-P3 | r | coarse | +1.74 |
+| A-P3 | r | fine | +0.76 |
+| A-P3 | r | conditional | +0.18 |
+| A-P3 | z | coarse | +2.58 |
+| A-P3 | z | fine | +1.08 |
+| A-P3 | z | conditional | +0.62 |
+| JS-AP3 | layer3 | coarse | +3.30 |
+| JS-AP3 | layer3 | fine | +4.16 |
+| JS-AP3 | layer3 | conditional | +1.30 |
+| JS-AP3 | h | coarse | +3.12 |
+| JS-AP3 | h | fine | +3.78 |
+| JS-AP3 | h | conditional | +0.56 |
+| JS-AP3 | r | coarse | +1.52 |
+| JS-AP3 | r | fine | +0.92 |
+| JS-AP3 | r | conditional | +0.32 |
+| JS-AP3 | z | coarse | +2.12 |
+| JS-AP3 | z | fine | +1.68 |
+| JS-AP3 | z | conditional | +0.78 |
+| SimCLR | layer3 | coarse | +2.94 |
+| SimCLR | layer3 | fine | +2.96 |
+| SimCLR | layer3 | conditional | -0.10 |
+| SimCLR | h | coarse | +0.86 |
+| SimCLR | h | fine | -0.08 |
+| SimCLR | h | conditional | -0.44 |
+| SimCLR | r | coarse | -13.92 |
+| SimCLR | r | fine | -6.56 |
+| SimCLR | r | conditional | -4.70 |
+| SimCLR | z | coarse | -1.80 |
+| SimCLR | z | fine | +0.90 |
+| SimCLR | z | conditional | -0.38 |
+
 ## QC
 
-max |h − P124-cached h| per run (expected ~0): P107_AP3_c100_views4_800ep_seed0: 2.45e-03, P107_AP3_c100_views4_800ep_seed1: 1.54e-02, P107_AP3_c100_views4_800ep_seed2: 1.63e-02, P111_G2_c100_views4_800ep_seed0: 1.35e-02, P111_G2_c100_views4_800ep_seed1: 1.77e-02, P111_G2_c100_views4_800ep_seed2: 1.39e-02, P120A1_AP3_c100_views4_800ep_seed3: nan, P120A1_AP3_c100_views4_800ep_seed4: nan, P120_JS_AP3_c100_views4_800ep_seed0: nan, P120_JS_AP3_c100_views4_800ep_seed1: nan, P120_JS_AP3_c100_views4_800ep_seed2: nan, P120_JS_AP3_c100_views4_800ep_seed3: nan, P120_JS_AP3_c100_views4_800ep_seed4: nan, P129_JS_c100_a3_k0.5_seed0: nan, P129_JS_c100_a3_k0.5_seed1: nan, P129_JS_c100_a3_k0.5_seed2: nan, P91_c100_simclr_views4_800ep_seed0: 1.24e-02, P91_c100_simclr_views4_800ep_seed1: 1.12e-02, P91_c100_simclr_views4_800ep_seed2: 9.64e-03, P91_c100_vcs_a5_views4_800ep_seed0: 1.88e-02, P91_c100_vcs_a5_views4_800ep_seed1: 1.98e-02, P91_c100_vcs_a5_views4_800ep_seed2: 1.99e-02
+max |h − P124-cached h| per run (expected ~0): P107_AP3_c100_views4_800ep_seed0: 2.45e-03, P107_AP3_c100_views4_800ep_seed1: 1.54e-02, P107_AP3_c100_views4_800ep_seed2: 1.63e-02, P111_G2_c100_views4_800ep_seed0: 1.35e-02, P111_G2_c100_views4_800ep_seed1: 1.77e-02, P111_G2_c100_views4_800ep_seed2: 1.39e-02, P120A1_AP3_c100_views4_800ep_seed3: nan, P120A1_AP3_c100_views4_800ep_seed4: nan, P120_JS_AP3_c100_views4_800ep_seed0: nan, P120_JS_AP3_c100_views4_800ep_seed1: nan, P120_JS_AP3_c100_views4_800ep_seed2: nan, P120_JS_AP3_c100_views4_800ep_seed3: nan, P120_JS_AP3_c100_views4_800ep_seed4: nan, P129_JS_c100_a3_k0.5_seed0: nan, P129_JS_c100_a3_k0.5_seed1: nan, P129_JS_c100_a3_k0.5_seed2: nan, P130_AP3_c100_r50_views4_800ep_seed0: nan, P130_JS_AP3_c100_r50_views4_800ep_seed0: nan, P130_simclr_c100_r50_views4_800ep_seed0: nan, P91_c100_simclr_views4_800ep_seed0: 1.24e-02, P91_c100_simclr_views4_800ep_seed1: 1.12e-02, P91_c100_simclr_views4_800ep_seed2: 9.64e-03, P91_c100_vcs_a5_views4_800ep_seed0: 1.88e-02, P91_c100_vcs_a5_views4_800ep_seed1: 1.98e-02, P91_c100_vcs_a5_views4_800ep_seed2: 1.99e-02
