@@ -84,3 +84,16 @@ en_core_web_sm, openai clip) and `.../envs/mdetr_py38` (MDETR pins); the main en
   checkpoint path and omits the `--naflex` flag its script asserts on; the paper defers the protocol to FG-CLIP v1; repo issue #22 reports a
   reproduction gap on DCI.  Cause not identified.  **Consequence:** VL1-12 uses these features labelled "FG-CLIP 2 Base, released checkpoint,
   official region API (COCO box-cls 64.8 under the official script settings; 74.9 reported)"; no claim about FG-CLIP 2's published accuracy.
+
+## Update 2026-10-09 (afternoon) — Table C protocol fixed before any Table C result (owner: VL baselines first)
+- **Metric:** one predicted box per expression from the whole image; hit = IoU ≥ 0.5 with the target box; query-level accuracy primary,
+  image-macro alongside; MDETR's own criterion (GIoU ≥ 0.5, stricter because GIoU ≤ IoU) reported for every row.
+- **Grounding DINO Swin-T OGC** (`IDEA-Research/grounding-dino-tiny` @ a2bb814; no COCO / RefCOCO in training): lower-cased expression + " .",
+  argmax over 900 queries of the max token sigmoid ([CLS] / [SEP] excluded).  UMD val = reproduction check against the third-party 60.4; DEV
+  (Table A's 1 356 eligible images / 6 442 expressions) = Table C row.
+- **MDETR R101 / EB3 RefCOCOg** (Zenodo 4721981, sha256 in `models/mdetr/PROVENANCE.json`; code @ ea09acc, run unmodified except for weight-free
+  backbone constructors and a local roberta-base): **UMD val only** — reproduction check against 81.64 / 83.35 and a supervised reference.
+  MDETR was fine-tuned on RefCOCOg train and pretrained on RefCOCO/+/g train expressions, and DEV images come from the UMD train split, so a
+  DEV number would be a training-set number and is not produced.  Captions from MDETR's own `final_refcocog_val.json` when available.
+- Script `scripts/vl1_20_grounding.py`, jobs `slurm/vl1_20_grounding.sbatch`; outputs `outputs/VL1_20/`, summaries `reports/VL1/VL1_20_*.json`.
+- Flickr30k Entities: annotations present, images still missing — blocked.
