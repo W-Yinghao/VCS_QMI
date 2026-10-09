@@ -73,3 +73,14 @@ Two tables are never merged: given-box Top-1 (Tables A / B) and from-image Acc@I
 Environments: `/projects/EEG-foundation-model/yinghao/envs/vl_baselines` (py3.12: transformers ≈ 4.57, tokenizers, sentencepiece, spaCy +
 en_core_web_sm, openai clip) and `.../envs/mdetr_py38` (MDETR pins); the main env stays unchanged.  All weights / data under
 `/projects/EEG-foundation-model/yinghao/` with provenance files.
+
+## Update 2026-10-09 — reproduction checks
+- **ReCLIP reproduced** (UMD val, GT boxes): 68.20 vs paper 68.08; IPS-only 65.26 vs 65.32 (`VL1_RECLIP_REPRODUCTION_20261009.md`).
+- **FG-CLIP 2 Base (released checkpoint `qihoo360/fg-clip2-base` @ 430fbc8) does not reach the paper's box-classification number**: COCO val2017
+  GT-box top-1 **64.77** on all 36 781 annotations with the official `coco_box_ddp.py` settings (ImageNet template ensemble, default 256-patch
+  NaFlex processor, RoIAlign on the dense-feature head, walk_type box) vs **74.9** in the paper's Table 2; 63.14 with the README retrieval
+  resolution rule and a single prompt.  Region path checked line by line against the repository's `get_image_box_roi_features` (same head, same
+  RoIAlign, same box projection) and processors (same normalisation, bilinear).  The repository's evaluation command points to an internal
+  checkpoint path and omits the `--naflex` flag its script asserts on; the paper defers the protocol to FG-CLIP v1; repo issue #22 reports a
+  reproduction gap on DCI.  Cause not identified.  **Consequence:** VL1-12 uses these features labelled "FG-CLIP 2 Base, released checkpoint,
+  official region API (COCO box-cls 64.8 under the official script settings; 74.9 reported)"; no claim about FG-CLIP 2's published accuracy.
