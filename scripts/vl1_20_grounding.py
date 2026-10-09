@@ -87,9 +87,11 @@ def gdino(a) -> int:
     sp = snap("IDEA-Research/grounding-dino-tiny"); proc = AutoProcessor.from_pretrained(sp); model = GroundingDinoForObjectDetection.from_pretrained(sp).cuda().eval()
     if a.dataset == "refcocog":
         items = items_refer(a.split); tag = f"gdino_tiny_{a.split}"
-    else:
-        assert a.split == "val", "RefCOCO / RefCOCO+ DEV needs the VL2 roles"
+    elif a.split == "val":
         items = mdetr_items(a.dataset, "val"); tag = f"gdino_tiny_{a.dataset.replace('+', 'plus')}_val"
+    else:   # VL2 DEV: Table A's eligible DEV images / expressions of that dataset (needs VL_DATASET exported to the job)
+        assert RG.DATASET == a.dataset, f"export VL_DATASET={a.dataset}"
+        items = items_refer("dev"); tag = f"gdino_tiny_{a.dataset.replace('+', 'plus')}_dev"
     OUT.mkdir(parents=True, exist_ok=True); rows, t0 = [], time.time()
     with open(OUT / f"{tag}.jsonl", "w") as fh:
         for k, (iid, path, text, tgt, ref_id, sid) in enumerate(items):
