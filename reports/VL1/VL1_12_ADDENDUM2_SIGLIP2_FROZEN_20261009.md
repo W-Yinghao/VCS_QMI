@@ -1,4 +1,4 @@
-# VL1-12 addendum 2 — Table A on SigLIP 2 Base crop features (estimator as a probe) — DRAFT 2026-10-09
+# VL1-12 addendum 2 — Table A on SigLIP 2 Base crop features (estimator as a probe) — FROZEN 2026-10-09
 
 Planned in `EXPERIMENT_ORDER_20261008.md` B3 (CLIP vs FG-CLIP 2 vs SigLIP 2).  Same protocol as `VL1_FROZEN_PROTOCOL.md` and the VL1-12 addendum
 (roles, region-uniform law, scorer F2r with the feature width 768, routes, lr grid, selection, readings); only the feature cache changes.
@@ -22,3 +22,11 @@ raw, VCS, JS, softmax, RFF at N = all × 3 seeds.
 4. Table B row: raw SigLIP 2 cosine on the referred candidates (ranking by sigmoid(s·cos + b) equals ranking by cosine).
 Caveat carried (W11): fitted J across feature sets compares estimation difficulty as well as relation strength; the RFF route already disagreed
 with the neural routes on the CLIP → FG-CLIP 2 direction.
+
+## Decisions at the freeze
+- Gate (job 1030280, check step): ImageNet-1k val zero-shot top-1 **75.63** on 10 000 images (10 per class) vs 78.2 reported (different class
+  names / prompt set) → within 3 points → PASS (`vl1_12_siglip2_check.json`).
+- The same job's cache step crashed on crops 1 pixel high: the HF image processor guessed the channel axis (it also misread 3-pixel-high crops
+  without crashing).  Fix: `input_data_format="channels_last"` on every processor call; no features from the crashed run were kept.  Cache
+  re-run in job 1030564 (check repeated).
+- Units: `slurm/vl1_12s_feed.txt` (VCS, JS, softmax, RFF at N all × 3 seeds; raw) → outputs/VL1_12_siglip2, submitted after the cache exists.
