@@ -40,6 +40,15 @@ from vcs_vl.pairlaw import pair_laws, padded_batch_loss, padded_j  # noqa: E402
 FEAT = Path("/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/features_clip_vitb16_openai/train_side_features.pt")
 BATCH, MAX_EPOCHS, MAX_UPDATES, EVAL_EVERY, PATIENCE, WD = 32, 50, 3000, 50, 10, 1e-4
 RFF_D, RFF_BW, RFF_LAM = 1024, (0.5, 1.0, 2.0), (1e-4, 1e-2, 1.0)
+DEV = torch.device(os.environ.get("VL_DEVICE", "cpu"))   # execution device of the neural routes (default CPU = the original runs); RFF / raw stay on CPU
+
+
+def to_dev(b, dev):
+    return b if dev is None or dev.type == "cpu" else {k: v.to(dev, non_blocking=True) for k, v in b.items()}
+
+
+def cpu_state(m):
+    return {k: v.detach().cpu().clone() for k, v in m.state_dict().items()}
 
 
 # ----------------------------------------------------------------------------------------------------------- data
@@ -145,11 +154,11 @@ def siglip_prior(b) -> torch.Tensor:
 
 # ----------------------------------------------------------------------------------------------------------- evaluation
 @torch.no_grad()
-def evaluate(score_fn, recs, route: str) -> dict:
+def evaluate(score_fn, recs, route: str, dev=None) -> dict:
     """score_fn(U, V) -> f.  Common J on referred rows (not for softmax / raw); Top-1 over referred rows (primary) and referred + distractors."""
     Js, q1, macro, q1_all, q1c, macroc = [], [], [], [], [], []
     for s in range(0, len(recs), 64):
-        chunk = recs[s:s + 64]; b = pad(chunk); f = score_fn(b["U"], b["V"])
+        chunk = recs[s:s + 64]; b = to_dev(pad(chunk), dev); f = score_fn(b["U"], b["V"])
         if route in ("vcs", "js", "rff"):
             Js.append(padded_j(f, b["P"], b["Q"]))
         elif route == "siglip":
@@ -159,7 +168,7 @@ def evaluate(score_fn, recs, route: str) -> dict:
         # VL1-11 prior-corrected ranking: 2 f + log p_G(r) (O1 §3.4); identical to f under the region-uniform law
         logp = torch.log(b["P"].sum(2).clamp_min(1e-12))[:, :, None]; fc = (2 * f + logp).masked_fill(~b["rmask"][:, :, None], -torch.inf)
         hitc = (fc.argmax(1) == b["tgt"]) & b["wmask"]; q1c.append(hitc.sum().item()); macroc += (hitc.sum(1).float() / b["wmask"].sum(1).float()).tolist()
-        ba = pad(chunk, with_distractors=True); fa = score_fn(ba["U"], ba["V"]).masked_fill(~ba["rmask"][:, :, None], -torch.inf)
+        ba = to_dev(pad(chunk, with_distractors=True), dev); fa = score_fn(ba["U"], ba["V"]).masked_fill(~ba["rmask"][:, :, None], -torch.inf)
         q1_all.append(((fa.argmax(1) == ba["tgt"]) & ba["wmask"]).sum().item())
     nq = sum(len(r["V"]) for r in recs)
     out = {"top1_query": sum(q1) / nq, "top1_image_macro": float(np.mean(macro)), "top1_all_objects": sum(q1_all) / nq, "n_images": len(recs), "n_queries": nq,
@@ -171,29 +180,29 @@ def evaluate(score_fn, recs, route: str) -> dict:
 
 # ----------------------------------------------------------------------------------------------------------- neural routes
 def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES, scorer="residual", hidden=256, depth=2, rank=64, wd=WD):
-    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1], hidden=hidden, kind=scorer, depth=depth, rank=rank)
+    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1], hidden=hidden, kind=scorer, depth=depth, rank=rank).to(DEV)
     opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd)
     g = np.random.default_rng(seed * 1000 + 17); upd, curve = 0, []
     best = {"est": (-math.inf, 0, None), "task": (-math.inf, 0, None)}; since = 0
     t0 = time.time()
 
     def ev():
-        m.eval(); c = evaluate(m, cal, route) if route != "softmax" else None; d = evaluate(m, dev, route); m.train(); return c, d
+        m.eval(); c = evaluate(m, cal, route, DEV) if route != "softmax" else None; d = evaluate(m, dev, route, DEV); m.train(); return c, d
     c, d = ev(); curve.append({"update": 0, "cal": c, "dev": d})
     if c is not None:
-        best["est"] = (c["J_common"], 0, copy.deepcopy(m.state_dict()))
-    best["task"] = (d["top1_image_macro"], 0, copy.deepcopy(m.state_dict()))
+        best["est"] = (c["J_common"], 0, cpu_state(m))
+    best["task"] = (d["top1_image_macro"], 0, cpu_state(m))
     for ep in range(MAX_EPOCHS):
         order = g.permutation(len(fit_recs))
         for s in range(0, len(order) - BATCH + 1, BATCH):
-            b = pad([fit_recs[i] for i in order[s:s + BATCH]]); loss = route_loss(route, m(b["U"], b["V"]), b)
+            b = to_dev(pad([fit_recs[i] for i in order[s:s + BATCH]]), DEV); loss = route_loss(route, m(b["U"], b["V"]), b)
             opt.zero_grad(set_to_none=True); loss.backward(); opt.step(); upd += 1
             if upd % EVAL_EVERY == 0:
                 c, d = ev(); curve.append({"update": upd, "loss": float(loss), "cal": c, "dev": d}); improved = False
                 if c is not None and c["J_common"] > best["est"][0]:
-                    best["est"] = (c["J_common"], upd, copy.deepcopy(m.state_dict())); improved = True
+                    best["est"] = (c["J_common"], upd, cpu_state(m)); improved = True
                 if d["top1_image_macro"] > best["task"][0]:
-                    best["task"] = (d["top1_image_macro"], upd, copy.deepcopy(m.state_dict())); improved = True
+                    best["task"] = (d["top1_image_macro"], upd, cpu_state(m)); improved = True
                 since = 0 if improved else since + 1
                 if since >= PATIENCE:
                     break
@@ -206,7 +215,7 @@ def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES, sco
         if best[key][2] is None:
             continue
         m.load_state_dict(best[key][2]); m.eval()
-        res[f"{key}_selected"] = {"update": best[key][1], "cal": evaluate(m, cal, route) if route != "softmax" else None, "dev": evaluate(m, dev, route),
+        res[f"{key}_selected"] = {"update": best[key][1], "cal": evaluate(m, cal, route, DEV) if route != "softmax" else None, "dev": evaluate(m, dev, route, DEV),
                                   "state": {k: v.cpu() for k, v in best[key][2].items()}}
     return res
 
