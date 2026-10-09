@@ -7,7 +7,7 @@ with the target box (MDETR's own refexp metric, GIoU >= 0.5, is reported alongsi
   mdetr : MDETR R101 / EB3 fine-tuned on RefCOCOg (Zenodo 4721981; paper UMD val 81.64 / 83.35).  Trained on RefCOCOg TRAIN (and pretrained on
           RefCOCO/+/g train expressions), so it is evaluated on UMD val only (reproduction / supervised reference); a DEV number would be a
           training-set number and is not produced.  Inputs as the official eval: resize shorter side 800 (max 1333), ImageNet normalisation,
-          caption from MDETR's own pre-processed annotation file when present (else the REFER raw sentence); score = 1 − p(no-object), top box.
+          caption from MDETR's own finetune_refcocog_val.json (REFER `sent` form) when present, else the REFER raw sentence (tag suffix _refercap); score = 1 − p(no-object), top box.
     python scripts/vl1_20_grounding.py gdino --split val|dev
     python scripts/vl1_20_grounding.py mdetr --model r101|eb3 --split val
 Writes outputs/VL1_20/<tag>.jsonl (per expression) and reports/VL1/VL1_20_<tag>.json (summary).
@@ -105,13 +105,14 @@ def gdino(a) -> int:
 
 
 def mdetr_items_val():
-    """MDETR's own val annotations (final_refcocog_val.json) if present: exact captions of the official evaluation."""
-    f = MDETR_ANN / "final_refcocog_val.json"
+    """MDETR's own val annotations (finetune_refcocog_val.json from mdetr_annotations.tar.gz): the exact captions of the official evaluation
+    (REFER's tokenised, lower-cased `sent` form, not `raw`) and one target box per expression."""
+    f = MDETR_ANN / "finetune_refcocog_val.json"
     if not f.exists():
         return None
     d = json.load(open(f)); anns = {x["image_id"]: x for x in d["annotations"]}; out = []
     for im in d["images"]:
-        x, y, w, h = anns[im["id"]]["bbox"]; iid = int(im.get("original_id", im["file_name"].split("_")[-1].split(".")[0]))
+        x, y, w, h = anns[im["id"]]["bbox"]; iid = int(im["original_id"])
         out.append((iid, str(RG.coco_path(iid)), im["caption"], [x, y, x + w, y + h], None, im["id"]))
     return out
 
@@ -138,13 +139,17 @@ def mdetr(a) -> int:
     RobertaModel.from_pretrained = classmethod(lambda cls, name, *x, **k: _rm.__func__(cls, rb if name == "roberta-base" else name, *x, **k))
     RobertaTokenizerFast.from_pretrained = classmethod(lambda cls, name, *x, **k: _rt.__func__(cls, rb if name == "roberta-base" else name, *x, **k))
     bb, wf = {"r101": ("resnet101", "refcocog_resnet101_checkpoint.pth"), "eb3": ("timm_tf_efficientnet_b3_ns", "refcocog_EB3_checkpoint.pth")}[a.model]
-    model = hubconf._make_detr(bb); ck = torch.load(MDETR_W / wf, map_location="cpu", weights_only=False); missing = model.load_state_dict(ck["model"], strict=True)
+    model = hubconf._make_detr(bb); ck = torch.load(MDETR_W / wf, map_location="cpu", weights_only=False)
+    sd = dict(ck["model"]); dropped = [k for k in sd if k.endswith("embeddings.position_ids")]   # arange buffer, non-persistent in current transformers
+    for k in dropped:
+        sd.pop(k)
+    model.load_state_dict(sd, strict=True)
     model = model.cuda().eval()
-    items = mdetr_items_val(); cap_src = "MDETR final_refcocog_val.json"
+    items = mdetr_items_val(); cap_src = "MDETR finetune_refcocog_val.json"
     if items is None:
         items, cap_src = items_refer("val"), "REFER raw sentence"
     tf = T.Compose([T.ToTensor(), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-    OUT.mkdir(parents=True, exist_ok=True); tag = f"mdetr_{a.model}_val"; rows, t0 = [], time.time()
+    OUT.mkdir(parents=True, exist_ok=True); tag = f"mdetr_{a.model}_val" + ("" if cap_src.startswith("MDETR") else "_refercap"); rows, t0 = [], time.time()
     with open(OUT / f"{tag}.jsonl", "w") as fh:
         for k, (iid, path, text, tgt, ref_id, sid) in enumerate(items):
             im = Image.open(path).convert("RGB"); W, H = im.size; s = 800 / min(W, H)
@@ -160,7 +165,7 @@ def mdetr(a) -> int:
             rows.append(r); fh.write(json.dumps(r) + "\n")
             if k % 1000 == 0:
                 print(f"  {k}/{len(items)} {time.time() - t0:.0f}s running Acc {100 * np.mean([x['hit_iou'] for x in rows]):.2f} (GIoU {100 * np.mean([x['hit_giou'] for x in rows]):.2f})", flush=True)
-    summarise(rows, tag, {"model": f"MDETR {a.model} RefCOCOg fine-tuned", "weights": wf, "caption_source": cap_src, "seconds": time.time() - t0,
+    summarise(rows, tag, {"model": f"MDETR {a.model} RefCOCOg fine-tuned", "weights": wf, "caption_source": cap_src, "dropped_keys": dropped, "seconds": time.time() - t0,
                           "reference": {"r101": "paper UMD val 81.64", "eb3": "paper UMD val 83.35"}[a.model], "contamination": "trained on RefCOCOg train; val only"})
     return 0
 
