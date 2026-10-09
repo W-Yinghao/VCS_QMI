@@ -39,3 +39,13 @@ Writing items carried: W1–W11 (estimator wording, log 1024, S_plugin on real d
 | C1 | ReCLIP on DEV **done** (`VL1/VL1_TABLEB_DEV_NOTE_20261009.md`: IPS-only 70.78, official 73.18 image-macro); FG-CLIP 2 raw 72.29 |
 | **new C1b VL1-13** | Table A on ReCLIP's own isolation features (cos = ReCLIP IPS score; F2r starts at ReCLIP's ranking) — DRAFT, feature + agreement-gate job 1030334 queued; fits after the gate and freeze |
 | optional (not submitted) | VCS / JS N all with a 10 000-update cap (the 3 000 cap binds); wider RFF grid (grid corner selected on both feature sets) |
+
+## Update 2026-10-09 (18:30 UTC) — owner: VL first, no new SSL after the current batch
+| unit | state |
+|---|---|
+| SSL closers | P130 add. 1 reported (R50 3 seeds: VCS − SimCLR +5.17 linear, kNN −1.59); P138 add. 2 reported (non-inferiority still not shown for 3 cells at n 5); P154 reported (ImageNet-100: SimCLR +3.1; triggers fired, not followed); P145 add. 3 (owner-approved) 5 runs finishing — the last SSL unit |
+| VL baselines | Table B complete on DEV (CLIP 65.99, FG-CLIP v1 70.57, ReCLIP IPS 70.78 / official 73.18, FG-CLIP 2 72.29, SigLIP 2 75.48); Table C: Grounding DINO Swin-T val 60.52 / DEV 56.04, MDETR R101 val 81.94 (EB3 invalid) |
+| VL Table A | CLIP, FG-CLIP 2, SigLIP 2, FG-CLIP v1, ReCLIP features — all reported |
+| lessons | `VL1/VL_LESSONS_20261009.md` |
+| VL1-14 | **done: no critic search needed** (best ΔJ +0.2 / +0.3 < 0.5); estimation and ranking separable |
+| open | Flickr30k (images missing); clean proposer for Table C proposer + critic (budget); final test pass (owner) |

@@ -54,9 +54,12 @@ MDETR EB3 not reproducible under timm 1.0 (NaN outputs).
 3. **Input representation dominates the critic:** changing the frozen features / region interface moves Top-1 by up to 9.5 points (66.0 → 75.5);
    training the critic moves it by at most 3.4.  Isolation and model choice should be fixed before critic work, and every critic comparison
    should be within one feature set.
-4. **So the answer to "does the VL critic need a search?" is likely yes for the critic and its optimisation (not the objective).**  This is decided
-   by VL1-14 (DRAFT): C1 optimisation only, C2 capacity, C3 bilinear, C4 affine lower bound, on CLIP and SigLIP 2, selected by CAL J only, with a
-   pre-stated ≥ 0.5 J rule.
+4. **Answer to "does the VL critic need a search?" — no (VL1-14, frozen rule).**  Four alternatives (optimisation past the lr edge with 10 000
+   updates, a 512 × 3 MLP, a low-rank bilinear critic, an affine lower bound) on CLIP and SigLIP 2: the best gains only +0.20 / +0.29 J (×100) over
+   the frozen F2r recipe, below the pre-set +0.50, so F2r and the VL tables stand.  The lr edge was real (interior optimum 5e-3, cap no longer
+   binding), but cheap.  Calibration of cosine alone gives ~45 % / 62 % of the fitted J.  Ranking is a different matter: the bilinear critic and the
+   larger MLP rank better (+0.7 to +1.75 Top-1) at equal or lower J.  Estimation and ranking are separable, and the estimator criterion does not
+   select the best ranker (`VL1_14_CRITIC_SCREEN_REPORT_20261009.md`).
 
 ## 4. Process lessons (cost us time; now checked by default)
 - **Reproduce every external number before using a model:** open_clip "ViT-B-16" silently runs GELU instead of QuickGELU; ReCLIP's inputs had to
@@ -72,4 +75,4 @@ MDETR EB3 not reproducible under timm 1.0 (NaN outputs).
 
 ## 5. Still open
 Flickr30k Entities (annotations here, images missing); Table C "proposer + critic" needs a clean proposer (COCO-trained detectors leak val / test
-images; rebuild ≈ 1 GPU-day, budget decision); VL1-14; final official-test pass (owner decision).
+images; rebuild ≈ 1 GPU-day, budget decision); final official-test pass (owner decision).
