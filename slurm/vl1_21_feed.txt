@@ -1,0 +1,3 @@
+# VL1-21 clean detector: smoke (1 GPU, computes the exclusions first) then the 4-GPU 12-epoch training after the smoke succeeds
+sbatch --parsable --job-name=vl1_21_smoke --gres=gpu:1 --cpus-per-task=10 --mem=48G --time=01:00:00 --export=ALL,NGPU=1 slurm/vl1_21_detector.sbatch --smoke | tee /home/infres/yinwang/CS_QMI/outputs/VL1_21/smoke_jobid
+sbatch --parsable --dependency=afterok:$(cat /home/infres/yinwang/CS_QMI/outputs/VL1_21/smoke_jobid) --kill-on-invalid-dep=yes --job-name=vl1_21_train slurm/vl1_21_detector.sbatch
