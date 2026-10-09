@@ -85,7 +85,12 @@ def summarise(rows, tag, extra):
 def gdino(a) -> int:
     from transformers import AutoProcessor, GroundingDinoForObjectDetection
     sp = snap("IDEA-Research/grounding-dino-tiny"); proc = AutoProcessor.from_pretrained(sp); model = GroundingDinoForObjectDetection.from_pretrained(sp).cuda().eval()
-    items = items_refer(a.split); OUT.mkdir(parents=True, exist_ok=True); tag = f"gdino_tiny_{a.split}"; rows, t0 = [], time.time()
+    if a.dataset == "refcocog":
+        items = items_refer(a.split); tag = f"gdino_tiny_{a.split}"
+    else:
+        assert a.split == "val", "RefCOCO / RefCOCO+ DEV needs the VL2 roles"
+        items = mdetr_items(a.dataset, "val"); tag = f"gdino_tiny_{a.dataset.replace('+', 'plus')}_val"
+    OUT.mkdir(parents=True, exist_ok=True); rows, t0 = [], time.time()
     with open(OUT / f"{tag}.jsonl", "w") as fh:
         for k, (iid, path, text, tgt, ref_id, sid) in enumerate(items):
             im = Image.open(path).convert("RGB"); W, H = im.size
@@ -100,14 +105,14 @@ def gdino(a) -> int:
             if k % 1000 == 0:
                 print(f"  {k}/{len(items)} {time.time() - t0:.0f}s running Acc {100 * np.mean([x['hit_iou'] for x in rows]):.2f}", flush=True)
     summarise(rows, tag, {"model": "IDEA-Research/grounding-dino-tiny", "snapshot": sp, "split": a.split, "seconds": time.time() - t0,
-                          "reference": "third-party RefCOCOg val 60.4 / test 59.7 (argmax over 900 queries)" if a.split == "val" else None})
+                          "dataset": a.dataset, "reference": REF[("gdino", a.dataset)] if a.split == "val" else None})
     return 0
 
 
-def mdetr_items_val():
-    """MDETR's own val annotations (finetune_refcocog_val.json from mdetr_annotations.tar.gz): the exact captions of the official evaluation
-    (REFER's tokenised, lower-cased `sent` form, not `raw`) and one target box per expression."""
-    f = MDETR_ANN / "finetune_refcocog_val.json"
+def mdetr_items(dataset: str = "refcocog", split: str = "val"):
+    """MDETR's pre-processed annotations (finetune_<dataset>_<split>.json from mdetr_annotations.tar.gz): one entry per expression with the
+    exact caption of the official evaluation (REFER's tokenised, lower-cased `sent` form), the COCO image id and one target box."""
+    f = MDETR_ANN / f"finetune_{dataset}_{split}.json"
     if not f.exists():
         return None
     d = json.load(open(f)); anns = {x["image_id"]: x for x in d["annotations"]}; out = []
@@ -115,6 +120,16 @@ def mdetr_items_val():
         x, y, w, h = anns[im["id"]]["bbox"]; iid = int(im["original_id"])
         out.append((iid, str(RG.coco_path(iid)), im["caption"], [x, y, x + w, y + h], None, im["id"]))
     return out
+
+
+def mdetr_items_val():
+    return mdetr_items("refcocog", "val")
+
+
+REF = {("mdetr", "r101", "refcocog"): "paper UMD val 81.64", ("mdetr", "eb3", "refcocog"): "paper UMD val 83.35",
+       ("mdetr", "r101", "refcoco"): "paper UNC val 86.75", ("mdetr", "r101", "refcoco+"): "paper UNC val 79.52",
+       ("gdino", "refcocog"): "third-party val 60.4 (paper 67.46 for a non-released model)",
+       ("gdino", "refcoco"): "paper zero-shot val 50.41 [U: released checkpoint not verified]", ("gdino", "refcoco+"): "paper zero-shot val 51.40 [U]"}
 
 
 @torch.no_grad()
@@ -138,18 +153,18 @@ def mdetr(a) -> int:
     _rm, _rt = RobertaModel.from_pretrained, RobertaTokenizerFast.from_pretrained
     RobertaModel.from_pretrained = classmethod(lambda cls, name, *x, **k: _rm.__func__(cls, rb if name == "roberta-base" else name, *x, **k))
     RobertaTokenizerFast.from_pretrained = classmethod(lambda cls, name, *x, **k: _rt.__func__(cls, rb if name == "roberta-base" else name, *x, **k))
-    bb, wf = {"r101": ("resnet101", "refcocog_resnet101_checkpoint.pth"), "eb3": ("timm_tf_efficientnet_b3_ns", "refcocog_EB3_checkpoint.pth")}[a.model]
+    bb = {"r101": "resnet101", "eb3": "timm_tf_efficientnet_b3_ns"}[a.model]; wf = f"{a.dataset}_{'resnet101' if a.model == 'r101' else 'EB3'}_checkpoint.pth"
     model = hubconf._make_detr(bb); ck = torch.load(MDETR_W / wf, map_location="cpu", weights_only=False)
     sd = dict(ck["model"]); dropped = [k for k in sd if k.endswith("embeddings.position_ids")]   # arange buffer, non-persistent in current transformers
     for k in dropped:
         sd.pop(k)
     model.load_state_dict(sd, strict=True)
     model = model.cuda().eval()
-    items = mdetr_items_val(); cap_src = "MDETR finetune_refcocog_val.json"
+    items = mdetr_items(a.dataset, "val"); cap_src = f"MDETR finetune_{a.dataset}_val.json"
     if items is None:
-        items, cap_src = items_refer("val"), "REFER raw sentence"
+        assert a.dataset == "refcocog"; items, cap_src = items_refer("val"), "REFER raw sentence"
     tf = T.Compose([T.ToTensor(), T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
-    OUT.mkdir(parents=True, exist_ok=True); tag = f"mdetr_{a.model}_val" + ("" if cap_src.startswith("MDETR") else "_refercap"); rows, t0 = [], time.time()
+    OUT.mkdir(parents=True, exist_ok=True); tag = f"mdetr_{a.model}" + ("" if a.dataset == "refcocog" else "_" + a.dataset.replace("+", "plus")) + "_val" + ("" if cap_src.startswith("MDETR") else "_refercap"); rows, t0 = [], time.time()
     with open(OUT / f"{tag}.jsonl", "w") as fh:
         for k, (iid, path, text, tgt, ref_id, sid) in enumerate(items):
             im = Image.open(path).convert("RGB"); W, H = im.size; s = 800 / min(W, H)
@@ -166,14 +181,15 @@ def mdetr(a) -> int:
             if k % 1000 == 0:
                 print(f"  {k}/{len(items)} {time.time() - t0:.0f}s running Acc {100 * np.mean([x['hit_iou'] for x in rows]):.2f} (GIoU {100 * np.mean([x['hit_giou'] for x in rows]):.2f})", flush=True)
     summarise(rows, tag, {"model": f"MDETR {a.model} RefCOCOg fine-tuned", "weights": wf, "caption_source": cap_src, "dropped_keys": dropped, "seconds": time.time() - t0,
-                          "reference": {"r101": "paper UMD val 81.64", "eb3": "paper UMD val 83.35"}[a.model], "contamination": "trained on RefCOCOg train; val only"})
+                          "dataset": a.dataset, "reference": REF.get(("mdetr", a.model, a.dataset)), "contamination": f"trained on {a.dataset} train; val only"})
     return 0
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
-    g = sub.add_parser("gdino"); g.add_argument("--split", choices=["val", "dev"], required=True)
+    g = sub.add_parser("gdino"); g.add_argument("--split", choices=["val", "dev"], required=True); g.add_argument("--dataset", choices=["refcocog", "refcoco", "refcoco+"], default="refcocog")
     m = sub.add_parser("mdetr"); m.add_argument("--model", choices=["r101", "eb3"], required=True); m.add_argument("--split", choices=["val"], default="val")
+    m.add_argument("--dataset", choices=["refcocog", "refcoco", "refcoco+"], default="refcocog")
     a = ap.parse_args(); return gdino(a) if a.cmd == "gdino" else mdetr(a)
 
 

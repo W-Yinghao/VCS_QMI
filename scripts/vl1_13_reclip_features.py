@@ -28,7 +28,7 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src")); sys.path.insert(0, str(RECLIP))
 from vcs_vl import refcocog as RG  # noqa: E402
 
-OUT_FEAT = Path("/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/features_reclip_ips")
+OUT_FEAT = RG.feature_dir("features_reclip_ips")   # dataset-aware (VL_DATASET)
 OUT_REP = REPO / "reports" / "VL1"
 MODELS = ("RN50x16", "ViT-B/32")
 

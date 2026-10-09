@@ -32,7 +32,7 @@ from vcs_vl import refcocog as RG  # noqa: E402
 
 HF = Path("/projects/EEG-foundation-model/yinghao/models/hf")
 SNAP = next((HF / "models--qihoo360--fg-clip2-base" / "snapshots").iterdir())
-OUT_FEAT = Path("/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/features_fgclip2_base")
+OUT_FEAT = RG.feature_dir("features_fgclip2_base")   # dataset-aware (VL_DATASET)
 OUT_REP = REPO / "reports" / "VL1"
 COCO_VAL = Path("/projects/common/coco/val2017"); COCO_VAL_ANN = Path("/projects/common/coco/annotations/instances_val2017.json")
 

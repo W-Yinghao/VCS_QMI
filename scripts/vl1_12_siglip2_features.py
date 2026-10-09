@@ -29,7 +29,7 @@ from vcs_vl import refcocog as RG  # noqa: E402
 
 HF = Path("/projects/EEG-foundation-model/yinghao/models/hf")
 SNAP = next((HF / "models--google--siglip2-base-patch16-224" / "snapshots").iterdir())
-OUT_FEAT = Path("/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/features_siglip2_base")
+OUT_FEAT = RG.feature_dir("features_siglip2_base")   # dataset-aware (VL_DATASET)
 OUT_REP = REPO / "reports" / "VL1"
 IN_ROOT = Path("/projects/common/imagenet/ILSVRC/Data/CLS-LOC"); IN_VAL = Path("/projects/EEG-foundation-model/yinghao/FMCA-AV/imagenet/manifests/imagenet1k_val.tsv")
 IN_NAMES = Path("/projects/EEG-foundation-model/yinghao/datasets/imagenet_classnames_openclip.json")

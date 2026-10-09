@@ -25,6 +25,28 @@ ARCHIVE = {"url": "https://web.archive.org/web/20220413012904/https://bvisionweb
            "route": "lichengunc/refer issues #14 / #22 / #26 (author's MAttNet commit c66ae95 points to these Internet Archive snapshots)"}
 SPLIT_SEED, CAL_FRAC, DEV_FRAC, FIT_NS = 20261008, 0.1, 0.1, (1000, 4000, 16000)
 
+# VL2: the same adapter for RefCOCO / RefCOCO+ (UNC splits train / val / testA / testB), selected by the environment variable VL_DATASET
+# (default refcocog, unchanged).  Expressions come from MDETR's pre-processed annotations (finetune_<dataset>_<split>.json: COCO image id,
+# COCO annotation id of the target, caption in REFER's tokenised lower-case `sent` form); all other COCO objects of the image (distractors,
+# widths) from COCO-2017 instances, which keep the 2014 image / annotation ids.
+DATASET = os.environ.get("VL_DATASET", "refcocog")
+DATA_BASE = Path("/projects/EEG-foundation-model/yinghao/datasets")
+MDETR_ANN = DATA_BASE / "mdetr_annotations"
+COCO_ANN = (Path("/projects/common/coco/annotations/instances_train2017.json"), Path("/projects/common/coco/annotations/instances_val2017.json"))
+
+
+def dataset_dir() -> Path:
+    return DATA_BASE / ("refcocog_umd" if DATASET == "refcocog" else f"{DATASET.replace('+', 'plus')}_unc")
+
+
+def feature_dir(name: str) -> Path:
+    """Dataset-specific feature-cache folder (refcocog: the original VL1 locations)."""
+    return dataset_dir() / name
+
+
+def dataset_tag() -> str:
+    return "" if DATASET == "refcocog" else "_" + DATASET.replace("+", "plus")
+
 
 @dataclass
 class Obj:
@@ -76,6 +98,8 @@ def coco_path(image_id: int) -> str | None:
 
 
 def load_scenes(root: Path = ROOT, resolve_paths: bool = True) -> tuple[list[Scene], dict]:
+    if DATASET != "refcocog":
+        return load_scenes_unc(DATASET, resolve_paths)
     refs = pickle.load(open(root / "refs(umd).p", "rb"))
     inst = json.load(open(root / "instances.json"))
     imgs = {im["id"]: im for im in inst["images"]}
@@ -133,3 +157,62 @@ def fit_prefixes(scenes: list[Scene], role: dict[int, str], seed: int = SPLIT_SE
 
 def digest(obj) -> str:
     return hashlib.sha256(json.dumps(obj, sort_keys=True, default=str).encode()).hexdigest()
+
+
+def _unc_inputs(dataset: str) -> dict:
+    """Compact cache of what load_scenes_unc needs (expressions per target annotation, split per image, COCO annotations / sizes of those
+    images), built once from the MDETR files and COCO-2017 instances."""
+    cache = dataset_dir() / "scene_inputs.pkl"
+    if cache.exists():
+        return pickle.load(open(cache, "rb"))
+    expr, split_of = {}, {}
+    for sp in ("train", "val", "testA", "testB"):
+        d = json.load(open(MDETR_ANN / f"finetune_{dataset}_{sp}.json")); tgt = {a["image_id"]: a for a in d["annotations"]}
+        for im in d["images"]:
+            a = tgt[im["id"]]; iid = int(im["original_id"])
+            expr.setdefault(int(a["original_id"]), []).append({"sent_id": int(im["id"]), "raw": im["caption"], "n_tokens": len(im["caption"].split())})
+            split_of.setdefault(iid, set()).add(sp)
+    imgs, anns = {}, {}
+    for f in COCO_ANN:
+        inst = json.load(open(f))
+        for im in inst["images"]:
+            if im["id"] in split_of:
+                imgs[im["id"]] = {"width": im["width"], "height": im["height"], "flickr_url": im.get("flickr_url")}
+        for a in inst["annotations"]:
+            if a["image_id"] in split_of:
+                anns.setdefault(a["image_id"], []).append({k: a[k] for k in ("id", "bbox", "category_id", "area", "iscrowd")})
+        cats = {c["id"]: c["name"] for c in inst["categories"]}
+    out = {"expr": expr, "split_of": split_of, "imgs": imgs, "anns": anns, "categories": cats}
+    cache.parent.mkdir(parents=True, exist_ok=True); pickle.dump(out, open(cache, "wb"))
+    return out
+
+
+def load_scenes_unc(dataset: str, resolve_paths: bool = True) -> tuple[list[Scene], dict]:
+    """RefCOCO / RefCOCO+ scenes with the RefCOCOg conventions (referred = objects with >= 1 expression, distractors = other non-crowd COCO
+    objects, degenerate boxes dropped); Scene.umd_split holds the UNC split name."""
+    d = _unc_inputs(dataset); expr, split_of, imgs, anns = d["expr"], d["split_of"], d["imgs"], d["anns"]
+    stats = {"n_refs": len(expr), "n_sentences": sum(len(v) for v in expr.values()), "images_with_mixed_split": 0, "degenerate_referred_boxes": 0,
+             "degenerate_distractor_boxes": 0, "crowd_distractors": 0, "missing_coco_image": 0, "categories": d["categories"]}
+    scenes = []
+    for iid in sorted(split_of):
+        sp = split_of[iid]
+        if len(sp) != 1:
+            stats["images_with_mixed_split"] += 1; continue
+        if iid not in imgs:
+            stats["missing_coco_image"] += 1; continue
+        W, H = imgs[iid]["width"], imgs[iid]["height"]; ref, dis = [], []
+        for a in anns.get(iid, []):
+            o = Obj(a["id"], tuple(a["bbox"]), a["category_id"], a["area"], a["iscrowd"], list(expr.get(a["id"], [])))
+            ok = clip_box(o.box_xywh, W, H) is not None
+            if o.expressions:
+                if ok:
+                    ref.append(o)
+                else:
+                    stats["degenerate_referred_boxes"] += 1
+            elif ok and not a["iscrowd"]:
+                dis.append(o)
+            else:
+                stats["crowd_distractors" if a["iscrowd"] else "degenerate_distractor_boxes"] += 1
+        ref.sort(key=lambda o: o.ann_id); dis.sort(key=lambda o: o.ann_id)
+        scenes.append(Scene(iid, next(iter(sp)), W, H, flickr_id_of(imgs[iid].get("flickr_url")), ref, dis, coco_path(iid) if resolve_paths else None))
+    return scenes, stats
