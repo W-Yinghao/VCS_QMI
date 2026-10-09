@@ -1,0 +1,4 @@
+# VL1-15 re-runs after the report-path fix (clipL: precision gate; siglip2L / fgclip1L checks)
+sbatch --parsable --export=ALL,VL_DATASET=refcocog,CLIP_ARCH=ViT-L-14-336-quickgelu,ENVPY=/home/infres/yinwang/CS_QMI/env/bin/python --job-name=vl1_15_clipL slurm/vl2_features.sbatch scripts/vl1_00_clip_baseline.py --roles FIT,CAL,DEV --workers 14
+sbatch --parsable --export=ALL,VL_DATASET=refcocog,SIGLIP2_REPO=google/siglip2-large-patch16-256,ENVPY=/projects/EEG-foundation-model/yinghao/envs/vl_baselines/bin/python --job-name=vl1_15_siglip2L_check slurm/vl2_features.sbatch scripts/vl1_12_siglip2_features.py check --per-class 10
+sbatch --parsable --export=ALL,VL_DATASET=refcocog,FGCLIP1_REPO=qihoo360/fg-clip-large,ENVPY=/projects/EEG-foundation-model/yinghao/envs/vl_baselines/bin/python --job-name=vl1_15_fgclip1L_check slurm/vl2_features.sbatch scripts/vl1_12_fgclip1_features.py check --n-images 5000

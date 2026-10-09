@@ -88,7 +88,7 @@ def check(a) -> int:
     top1 = float(((X @ T.T).argmax(1).numpy() == np.array(ys)).mean())
     res = {"protocol": f"ImageNet-1k val, {a.per_class} images per class (first by file name), prompt 'this is a photo of {{name}}.' lower-cased, open_clip class names, max_length 64, official image processor",
            "n_images": len(items), "top1": top1, "paper_reference_top1": 78.2, "seconds": time.time() - t0, "snapshot": str(SNAP), "processor": proc.to_dict()}
-    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_siglip2_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json", "w"), indent=1)
+    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / ("vl1_12_siglip2_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json"), "w"), indent=1)
     print(f"[check] ImageNet val zero-shot top-1 {100 * top1:.2f} on {len(items)} images (paper 78.2) {res['seconds']:.0f}s"); return 0
 
 

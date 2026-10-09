@@ -140,7 +140,7 @@ def main() -> int:
            "resources": {"image_encode_seconds": t_img, "crops_per_second": len(items) / t_img, "text_encode_seconds": t_txt, "cache_bytes": cache_bytes,
                          "peak_gpu_mem_gb": torch.cuda.max_memory_allocated(dev) / 1e9, "gpu": torch.cuda.get_device_name(dev), "total_seconds": time.time() - t_all},
            "results": res, "official_val_used": False, "official_test_used": False}
-    json.dump(out, open(OUT / "vl1_raw_clip_trainside" + RG.dataset_tag() + ("" if ATAG == "vitb16" else "_" + ATAG) + ".json", "w"), indent=1)
+    json.dump(out, open(OUT / ("vl1_raw_clip_trainside" + RG.dataset_tag() + ("" if ATAG == "vitb16" else "_" + ATAG) + ".json"), "w"), indent=1)
     for r in sorted(res):
         v = res[r]; print(f"[{r}] imgs {v['n_images']} q {v['n_queries']} top1 {v['top1_query_weighted']:.4f} (macro {v['top1_image_macro']:.4f}, all-obj {v['top1_all_objects_secondary']:.4f}) "
                           f"rand {v['random_expectation_primary']:.3f} cat-shortcut {v['category_text_shortcut_top1']:.3f} largest-box {v['largest_box_prior_top1']:.3f} samecat {v['same_category_scenes']}")

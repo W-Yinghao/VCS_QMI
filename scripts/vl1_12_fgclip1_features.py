@@ -77,7 +77,7 @@ def check(a) -> int:
         pred = (R @ T.T).argmax(1).tolist(); hit += sum(cat_ids[p] == b["category_id"] for p, b in zip(pred, xs)); n += len(xs)
     res = {"protocol": "COCO val2017 GT boxes (all annotations), ImageNet-template class embeddings, RoIAlign region path (v1.0 coco_box_cls roialign function), 224 squash",
            "n_images": len(ids), "n_boxes": n, "top1": hit / n, "reference_clip_b16": 44.2, "pass": hit / n > 0.442, "snapshot": str(SNAP), "seconds": time.time() - t0}
-    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_fgclip1_region_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json", "w"), indent=1)
+    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / ("vl1_12_fgclip1_region_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json"), "w"), indent=1)
     print(f"[check] COCO val2017 GT-box top-1 {100 * hit / n:.2f} on {n} boxes / {len(ids)} images (CLIP B/16 44.2) -> {'PASS' if res['pass'] else 'FAIL'}"); return 0
 
 

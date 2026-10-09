@@ -97,7 +97,7 @@ def check(a) -> int:
         pred = (R @ T.T).argmax(1).tolist(); hit += sum(cat_ids[p] == b["category_id"] for p, b in zip(pred, xs)); n += len(xs)
     res = {"protocol": "official coco_box_ddp.py setting: COCO val2017 GT boxes (all annotations), class embedding = mean over the ImageNet templates (lower-cased, walk_type box, max_length 64), image processor defaults (256 patches, NaFlex), RoIAlign region features via get_image_region_features",
            "n_images": len(ids), "n_boxes": n, "top1": hit / n, "paper_reference_top1_base": 74.9, "seconds": time.time() - t0, "snapshot": str(SNAP)}
-    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_fgclip2_region_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json", "w"), indent=1)
+    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / ("vl1_12_fgclip2_region_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json"), "w"), indent=1)
     print(f"[check] COCO val2017 GT-box top-1 {100 * hit / n:.2f} on {n} boxes / {len(ids)} images (paper Base 74.9) {res['seconds']:.0f}s"); return 0
 
 
