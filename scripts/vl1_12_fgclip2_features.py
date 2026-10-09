@@ -31,8 +31,10 @@ sys.path.insert(0, str(REPO / "src"))
 from vcs_vl import refcocog as RG  # noqa: E402
 
 HF = Path("/projects/EEG-foundation-model/yinghao/models/hf")
-SNAP = next((HF / "models--qihoo360--fg-clip2-base" / "snapshots").iterdir())
-OUT_FEAT = RG.feature_dir("features_fgclip2_base")   # dataset-aware (VL_DATASET)
+REPO_ID = os.environ.get("FGCLIP2_REPO", "qihoo360/fg-clip2-base")   # VL1-15 scale probe: qihoo360/fg-clip2-large
+SIZE_TAG = "base" if "base" in REPO_ID else "large" if "large" in REPO_ID else "so400m"
+SNAP = next((HF / f"models--{REPO_ID.replace('/', '--')}" / "snapshots").iterdir())
+OUT_FEAT = RG.feature_dir(f"features_fgclip2_{SIZE_TAG}")   # dataset-aware (VL_DATASET)
 OUT_REP = REPO / "reports" / "VL1"
 COCO_VAL = Path("/projects/common/coco/val2017"); COCO_VAL_ANN = Path("/projects/common/coco/annotations/instances_val2017.json")
 
@@ -95,7 +97,7 @@ def check(a) -> int:
         pred = (R @ T.T).argmax(1).tolist(); hit += sum(cat_ids[p] == b["category_id"] for p, b in zip(pred, xs)); n += len(xs)
     res = {"protocol": "official coco_box_ddp.py setting: COCO val2017 GT boxes (all annotations), class embedding = mean over the ImageNet templates (lower-cased, walk_type box, max_length 64), image processor defaults (256 patches, NaFlex), RoIAlign region features via get_image_region_features",
            "n_images": len(ids), "n_boxes": n, "top1": hit / n, "paper_reference_top1_base": 74.9, "seconds": time.time() - t0, "snapshot": str(SNAP)}
-    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_fgclip2_region_check.json", "w"), indent=1)
+    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_fgclip2_region_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json", "w"), indent=1)
     print(f"[check] COCO val2017 GT-box top-1 {100 * hit / n:.2f} on {n} boxes / {len(ids)} images (paper Base 74.9) {res['seconds']:.0f}s"); return 0
 
 
@@ -112,9 +114,9 @@ def cache(a) -> int:
         if k % 500 == 0:
             print(f"  {k}/{len(sc)} images {time.time() - t0:.0f}s", flush=True)
     img = torch.cat(feats_o); txt = text_feats(model, tok, texts); OUT_FEAT.mkdir(parents=True, exist_ok=True)
-    prov = json.load(open(HF / "PROVENANCE_fg-clip2-base.json"))
+    prov = json.load(open(HF / f"PROVENANCE_{REPO_ID.split('/')[1]}.json"))
     torch.save({"image_feat_fp16": img.half(), "text_feat_fp16": txt.half(), "obj_keys": keys_o, "text_keys": keys_t, "roles": ["CAL", "DEV", "FIT"],
-                "model": "FG-CLIP 2 Base (qihoo360/fg-clip2-base)", "provenance": prov, "preprocess": "official image processor, max_num_patches by README rule",
+                "model": f"FG-CLIP 2 ({REPO_ID})", "provenance": prov, "preprocess": "official image processor, max_num_patches by README rule",
                 "region": "official get_image_region_features (RoIAlign 1x1 on dense-feature head), boxes xyxy absolute", "text": "lower-cased, max_length 64, walk_type box"},
                OUT_FEAT / "train_side_features.pt")
     print(f"[cache] {len(keys_o)} regions, {len(keys_t)} expressions, {len(sc)} images, {time.time() - t0:.0f}s -> {OUT_FEAT}"); return 0

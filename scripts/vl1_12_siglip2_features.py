@@ -28,8 +28,10 @@ sys.path.insert(0, str(REPO / "src"))
 from vcs_vl import refcocog as RG  # noqa: E402
 
 HF = Path("/projects/EEG-foundation-model/yinghao/models/hf")
-SNAP = next((HF / "models--google--siglip2-base-patch16-224" / "snapshots").iterdir())
-OUT_FEAT = RG.feature_dir("features_siglip2_base")   # dataset-aware (VL_DATASET)
+REPO_ID = os.environ.get("SIGLIP2_REPO", "google/siglip2-base-patch16-224")   # VL1-15 scale probe: google/siglip2-large-patch16-256
+SIZE_TAG = "base" if "base" in REPO_ID else "large" if "large" in REPO_ID else "so400m"
+SNAP = next((HF / f"models--{REPO_ID.replace('/', '--')}" / "snapshots").iterdir())
+OUT_FEAT = RG.feature_dir(f"features_siglip2_{SIZE_TAG}")   # dataset-aware (VL_DATASET)
 OUT_REP = REPO / "reports" / "VL1"
 IN_ROOT = Path("/projects/common/imagenet/ILSVRC/Data/CLS-LOC"); IN_VAL = Path("/projects/EEG-foundation-model/yinghao/FMCA-AV/imagenet/manifests/imagenet1k_val.tsv")
 IN_NAMES = Path("/projects/EEG-foundation-model/yinghao/datasets/imagenet_classnames_openclip.json")
@@ -86,7 +88,7 @@ def check(a) -> int:
     top1 = float(((X @ T.T).argmax(1).numpy() == np.array(ys)).mean())
     res = {"protocol": f"ImageNet-1k val, {a.per_class} images per class (first by file name), prompt 'this is a photo of {{name}}.' lower-cased, open_clip class names, max_length 64, official image processor",
            "n_images": len(items), "top1": top1, "paper_reference_top1": 78.2, "seconds": time.time() - t0, "snapshot": str(SNAP), "processor": proc.to_dict()}
-    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_siglip2_check.json", "w"), indent=1)
+    OUT_REP.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT_REP / "vl1_12_siglip2_check" + ("" if SIZE_TAG == "base" else "_" + SIZE_TAG) + ".json", "w"), indent=1)
     print(f"[check] ImageNet val zero-shot top-1 {100 * top1:.2f} on {len(items)} images (paper 78.2) {res['seconds']:.0f}s"); return 0
 
 
@@ -98,10 +100,10 @@ def cache(a) -> int:
     texts = [(s, o, e) for s in sc for o in s.referred for e in o.expressions]
     t0 = time.time(); img = image_feats(model, proc, items); t_img = time.time() - t0
     t0 = time.time(); txt = text_feats(model, tok, [e["raw"] for _, _, e in texts]); t_txt = time.time() - t0
-    OUT_FEAT.mkdir(parents=True, exist_ok=True); prov = json.load(open(HF / "PROVENANCE_siglip2-base-patch16-224.json"))
+    OUT_FEAT.mkdir(parents=True, exist_ok=True); prov = json.load(open(HF / f"PROVENANCE_{REPO_ID.split('/')[1]}.json"))
     torch.save({"image_feat_fp16": img.half(), "text_feat_fp16": txt.half(), "obj_keys": [(s.image_id, o.ann_id) for s, o in objs],
                 "text_keys": [(s.image_id, o.ann_id, e["sent_id"]) for s, o, e in texts], "roles": ["CAL", "DEV", "FIT"],
-                "model": "SigLIP 2 Base (google/siglip2-base-patch16-224)", "provenance": prov, "preprocess": "official image processor (squash 224, mean/std 0.5)",
+                "model": f"SigLIP 2 ({REPO_ID})", "provenance": prov, "preprocess": "official image processor (squash 224, mean/std 0.5)",
                 "region": "tight clipped box crop (adaptation; no official region interface)", "text": "lower-cased, max_length 64"}, OUT_FEAT / "train_side_features.pt")
     print(f"[cache] {len(items)} crops ({t_img:.0f}s), {len(texts)} expressions ({t_txt:.0f}s), {len(sc)} images -> {OUT_FEAT}"); return 0
 
