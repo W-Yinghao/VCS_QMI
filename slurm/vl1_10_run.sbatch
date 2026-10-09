@@ -10,5 +10,5 @@
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 export OMP_NUM_THREADS=16 MKL_NUM_THREADS=16; rc=0
 while [ $# -gt 0 ]; do args=(); while [ $# -gt 0 ] && [ "$1" != "--then" ]; do args+=("$1"); shift; done; [ "$1" = "--then" ] && shift
-  "$PYTHON" scripts/vl1_10_fit.py "${args[@]}" --out $OUTPUT_ROOT/VL1_10 || rc=1; done
+  "$PYTHON" scripts/vl1_10_fit.py "${args[@]}" --out $OUTPUT_ROOT/${VL1_OUT:-VL1_10} || rc=1; done
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
