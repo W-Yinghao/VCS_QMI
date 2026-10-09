@@ -41,6 +41,19 @@ def main() -> int:
         files[k].write(json.dumps(rec) + "\n"); counts[k][0] += 1; counts[k][1] += len(rec["sentences"])
     for f in files.values():
         f.close()
+    # Table-B adaptation matching Table A's primary candidate set: eligible DEV images (>= 2 referred objects), candidates = the referred objects only
+    sc = {x.image_id: x for x in scenes}; nref = 0
+    with open(OUT / "refcocog_umd_dev_referred.jsonl", "w") as fh:
+        for r in refs:
+            s_ = sc.get(r["image_id"])
+            if s_ is None or role.get(r["image_id"]) != "DEV" or len(s_.referred) < 2:
+                continue
+            keep = {o.ann_id for o in s_.referred}
+            rec = {"file_name": r["file_name"], "image_id": r["image_id"], "ann_id": r["ann_id"], "ref_id": r["ref_id"], "category_id": r["category_id"], "split": r["split"],
+                   "anns": [a for a in sorted(anns[r["image_id"]], key=lambda a: a["id"]) if a["id"] in keep],
+                   "sentences": [{"raw": x["raw"], "sent": x["sent"], "sent_id": x["sent_id"]} for x in r["sentences"]]}
+            fh.write(json.dumps(rec) + "\n"); nref += len(rec["sentences"])
+    counts["dev_referred"] = [None, nref]
     made = 0
     for iid in {r["image_id"] for r in refs}:
         dst = LINKS / f"COCO_train2014_{iid:012d}.jpg"

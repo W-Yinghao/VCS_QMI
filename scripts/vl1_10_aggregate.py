@@ -4,9 +4,11 @@ estimator-selected checkpoint (selected on CAL by common J — unbiased for DEV)
 95 % t intervals: VCS − JS (Top-1 and CAL J), each learned route − raw CLIP (estimator-selected Top-1; task-selected for softmax with the bias noted).
 VL1-11: phrase-uniform law, prior-corrected − raw-f Top-1 per route.  Writes reports/VL1/VL1_10_results.json and prints the tables.
     python scripts/vl1_10_aggregate.py
+    python scripts/vl1_10_aggregate.py --dir outputs/VL1_12 --out reports/VL1/VL1_12_table.json --ns all --routes vcs js softmax rff   (VL1-12 cache)
 """
 from __future__ import annotations
 
+import argparse
 import json
 from pathlib import Path
 
@@ -39,6 +41,12 @@ def readouts(r, route):
 
 
 def main() -> int:
+    global D, OUT, ROUTES, NS
+    ap = argparse.ArgumentParser(); ap.add_argument("--dir", default=str(D)); ap.add_argument("--out", default=str(OUT))
+    ap.add_argument("--ns", nargs="+", default=list(NS)); ap.add_argument("--routes", nargs="+", default=list(ROUTES)); a = ap.parse_args()
+    root = Path(__file__).resolve().parents[1]
+    D = Path(a.dir) if Path(a.dir).is_absolute() else Path("/home/infres/yinwang/CS_QMI") / a.dir
+    OUT = Path(a.out) if Path(a.out).is_absolute() else root / a.out; ROUTES, NS = tuple(a.routes), tuple(a.ns)
     raw = json.load(open(D / "raw.json")) if (D / "raw.json").exists() else None
     res = {"raw": raw, "table": {}, "contrasts": {}, "vl1_11": {}, "missing": []}
     for route in ROUTES:
@@ -92,7 +100,7 @@ def main() -> int:
     json.dump(res, open(OUT, "w"), indent=1)
     f = lambda t: "—" if t is None else (f"{100 * t['mean']:.2f}" + (f"±{100 * t['sd']:.2f}" if t.get("sd") is not None else ""))
     if raw:
-        print(f"raw CLIP DEV top1 macro {100 * rawm:.2f} (all-obj {100 * raw['dev']['top1_all_objects']:.2f})")
+        print(f"raw ({D.name} features) DEV top1 macro {100 * rawm:.2f} (all-obj {100 * raw['dev']['top1_all_objects']:.2f})")
     print("route/N        est-sel DEV top1     task-sel DEV top1 (DEV-selected)   CAL J (x100)")
     for k, c in res["table"].items():
         if "sensitivity" in k:
