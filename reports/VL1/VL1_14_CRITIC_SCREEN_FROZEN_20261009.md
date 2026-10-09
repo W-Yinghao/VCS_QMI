@@ -1,7 +1,7 @@
-# VL1-14 — does the VL critic need an SSL-style search? (critic screen) — DRAFT 2026-10-09
+# VL1-14 — does the VL critic need an SSL-style search? (critic screen) — FROZEN 2026-10-09
 
 Owner 2026-10-09: "我现在不确定，在VL task中是不是我们的critic函数也需要像ssl上搜索，实验判定".  Order agreed: VL baselines → lessons summary
-→ this experiment.  Draft only; freeze after the lessons summary.
+→ this experiment.  Baselines reported and lessons summary written (`VL_LESSONS_20261009.md`) before this freeze.
 
 ## Why (evidence so far)
 - Critic form matters: package concat scorer vs residual F2r on CLIP, N all: Top-1 65.89 vs 68.80, J 5.54 vs 7.20 (VL1-10).
@@ -26,7 +26,7 @@ Init seeds 0–2.  Roles / law / evaluation as `VL1_FROZEN_PROTOCOL.md`.
 |---|---|---|---|---|
 | C0 | frozen F2r (residual MLP 3d→256→256→1) | 1e-4, 5e-4, 2e-3 | 3 000 | existing VL1-10 / VL1-12 add. 2 fits (no re-run) |
 | C1 | F2r | 2e-3, 5e-3, 1e-2 | 10 000 | optimisation only (lr past the edge + budget) |
-| C2 | residual MLP 3d→1024→1024→1024→1 | 2e-3, 5e-3, 1e-2 | 10 000 | capacity |
+| C2 | residual MLP 3d→512→512→512→1 | 2e-3, 5e-3, 1e-2 | 10 000 | capacity |
 | C3 | residual low-rank bilinear a·cos + b + ⟨uP, vQ⟩, rank 64 | 2e-3, 5e-3, 1e-2 | 10 000 | different function class |
 | C4 | affine a·cos + b | 2e-3, 5e-3, 1e-2 | 10 000 | calibration-only lower bound (ranking = raw) |
 Implementation: `scripts/vl1_10_fit.py` options `--scorer {residual, bilinear, affine} --hidden --depth --rank --max-updates --lrs --tag-suffix`
@@ -37,3 +37,12 @@ Implementation: `scripts/vl1_10_fit.py` options `--scorer {residual, bilinear, a
 2. Secondary: DEV image-macro Top-1 of each cell's CAL-selected checkpoint, paired vs C0.  Also whether J and Top-1 move together across cells.
 3. Optimisation diagnostics: selected lr and the update of the selected checkpoint per cell (does the cap still bind at 10 000?).
 Not claimed: anything about the task loss (softmax is not screened), or official val / test.
+
+## Decisions at the freeze
+- **C2 width 512 × 3 instead of 1 024 × 3** (decided before any result): on CPU the 1 024-wide critic costs ≈ 8× F2r per update (≈ 13 h per seed
+  at 10 000 updates × 3 lr); 512 × 3 is ≈ 2.8× F2r and still the larger-capacity cell.
+- VL1-13 (reported just before this freeze) found VCS − JS +1.02 on ReCLIP features with both routes at the lr-grid edge (30 / 30 estimator-
+  selected fits on all feature sets chose 2e-3).  This motivates C1 but does not change the design: features stay CLIP and SigLIP 2, and the
+  objective stays VCS (JS only on the adopted critic).
+- Jobs: `slurm/vl1_14_feed.txt` — 12 CPU jobs (C1 / C3 / C4 one job per feature set with seeds 0–2; C2 one job per seed), outputs
+  `outputs/VL1_14_{clip,siglip2}`, tags `vcs_Nall_s<seed>_C<k>`; aggregation `scripts/vl1_14_aggregate.py` (written before any result).
