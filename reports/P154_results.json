@@ -1,0 +1,91 @@
+{
+ "per_method": {
+  "vcs": {
+   "50": {
+    "linear": 68.29999685287476,
+    "knn": 57.14,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   },
+   "100": {
+    "linear": 72.47999906539917,
+    "knn": 63.18,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   },
+   "200": {
+    "linear": 73.57999682426453,
+    "knn": 64.92,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   }
+  },
+  "js": {
+   "50": {
+    "linear": 69.11999583244324,
+    "knn": 57.12,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   },
+   "100": {
+    "linear": 72.29999899864197,
+    "knn": 63.36,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   },
+   "200": {
+    "linear": 74.71999526023865,
+    "knn": 65.44,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   }
+  },
+  "simclr": {
+   "50": {
+    "linear": 72.33999967575073,
+    "knn": 64.44,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   },
+   "100": {
+    "linear": 75.27999877929688,
+    "knn": 68.48,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   },
+   "200": {
+    "linear": 76.6599953174591,
+    "knn": 70.24,
+    "n_fit": 121689,
+    "n_val": 5000,
+    "official_val_used": false
+   }
+  }
+ },
+ "contrasts": {
+  "vcs_minus_simclr": {
+   "linear": -3.07999849319458,
+   "knn": -5.319999999999993
+  },
+  "vcs_minus_js": {
+   "linear": -1.139998435974121,
+   "knn": -0.519999999999996
+  }
+ },
+ "trigger": {
+  "fires": true,
+  "contrasts": [
+   "vcs_minus_simclr",
+   "vcs_minus_js"
+  ],
+  "rule": "|\u0394 linear| >= 1.0 for either contrast -> seeds 1-2 for all three methods"
+ }
+}
