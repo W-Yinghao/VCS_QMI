@@ -48,7 +48,8 @@ class Crops(torch.utils.data.Dataset):
             im = im.convert("RGB")
             if box is not None:
                 im = im.crop(tuple(box))
-            return self.proc(images=im, return_tensors="pt")["pixel_values"][0]
+            # channels_last stated explicitly: the processor otherwise guesses the channel axis and misreads crops 1 or 3 pixels high (job 1030280 crash)
+            return self.proc(images=im, return_tensors="pt", input_data_format="channels_last")["pixel_values"][0]
 
 
 def load():

@@ -114,7 +114,7 @@ def agree(a) -> int:
         iid = int(re.search(r"COCO_train2014_(\d+)", r["file_name"]).group(1)); s = sc[iid]
         anns = sorted(o.ann_id for o in s.referred)                       # the ReCLIP input file lists the referred anns sorted by id
         tgt = anns[r["gold_index"][0]]
-        sid = [e["sent_id"] for o in s.referred if o.ann_id == tgt for e in o.expressions if e["raw"] == r["text"]]
+        sid = [e["sent_id"] for o in s.referred if o.ann_id == tgt for e in o.expressions if e["raw"].lower() == r["text"]]   # ReCLIP main.py writes text = raw.lower()
         if not sid:
             n_amb += 1; continue
         v = V[ti[(iid, tgt, sid[0])]]; scores = torch.stack([U[oi[(iid, x)]] @ v for x in anns]); p = int(scores.argmax())
