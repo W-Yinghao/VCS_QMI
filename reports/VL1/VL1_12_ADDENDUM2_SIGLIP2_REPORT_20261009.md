@@ -32,7 +32,7 @@ falls at 1 850–2 600 updates, so the 3 000-update cap does not bind here, unli
 5. Strata (secondary): VCS − raw is positive in every stratum (same-category +0.48, other-category +0.96, long +0.75, short +0.35); softmax −
    VCS +1.89 [+1.58, +2.21] (query-weighted).
 
-## 3. The probe statement across feature sets
+## 3. The probe statement across feature sets  (**superseded** by `VL1_12_ADDENDUM3_FGCLIP1_REPORT_20261009.md` §3: with five feature sets J follows the learned, not the zero-shot, accuracy)
 With all three feature sets in, the neural estimators' CAL J orders them **SigLIP 2 crops (11.6) > FG-CLIP 2 region API (8.8) > CLIP crops
 (7.2)**.  That is the same order as their zero-shot ranking (75.5 > 72.3 > 66.0) and their learned Top-1.  The kernel route agrees on SigLIP 2
 being highest and on FG-CLIP 2 < SigLIP 2, and disagrees only on CLIP vs FG-CLIP 2 (grid-limited, corner-selected on every feature set).  The paper
