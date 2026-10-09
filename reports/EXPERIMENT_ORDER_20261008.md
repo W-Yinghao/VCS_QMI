@@ -26,3 +26,16 @@ logistic is the same-posterior control everywhere (one row), never a tuning targ
 | C4 | **final pass**: freeze everything; official CIFAR test for the frozen SSL recipes; RefCOCOg UMD test for the frozen VL configurations | the paper's reported numbers | all above | 1 GPU-h | date = owner decision D3 |
 
 Writing items carried: W1–W11 (estimator wording, log 1024, S_plugin on real data, detection ≠ estimation, cross-site J).
+
+## Update 2026-10-09 (09:30 UTC)
+| # | state |
+|---|---|
+| A1 P130 add. 1 | JS s1 63.08, JS s2 64.04, SimCLR s1 59.76 done; SimCLR s2 at epoch ≈ 630 → 3-seed R50 report when it lands |
+| A2 P145 add. 2 | **done** (report `P145_ADDENDUM2_EPS020_REPORT_20261009.md`): CIFAR-10 no trigger; CIFAR-100 VCS − JS −1.12 **fires** (same low JS seed-0 parent as ε 0.10) → owner decision, nothing submitted |
+| A3 P138 add. 2 | JS C10 s3 / s4 done (88.80 / 88.66); 6 runs at epochs 140–730 |
+| A5 / A6 / B1 / B2 | **done**: VL1-10 / 11 report `VL1/VL1_10_11_REPORT_20261009.md` (VCS ≈ JS; learned > raw; softmax the better ranker at N ≥ 4k; VL1-11 holds) |
+| B3 | FG-CLIP 2 **done** (`VL1/VL1_12_FGCLIP2_REPORT_20261009.md`); SigLIP 2 Base addendum 2 DRAFT, check + cache job 1030280 queued |
+| B6 P154 | VCS running (Nice 2000); JS / SimCLR pending |
+| C1 | ReCLIP on DEV **done** (`VL1/VL1_TABLEB_DEV_NOTE_20261009.md`: IPS-only 70.78, official 73.18 image-macro); FG-CLIP 2 raw 72.29 |
+| **new C1b VL1-13** | Table A on ReCLIP's own isolation features (cos = ReCLIP IPS score; F2r starts at ReCLIP's ranking) — DRAFT, feature + agreement-gate job 1030334 queued; fits after the gate and freeze |
+| optional (not submitted) | VCS / JS N all with a 10 000-update cap (the 3 000 cap binds); wider RFF grid (grid corner selected on both feature sets) |
