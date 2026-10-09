@@ -86,21 +86,37 @@ class PairMLP(nn.Module):
     residual (primary, VL1-10 freeze): f = a * cos(u, v) + b + g([u, v, u*v]) with a = softplus(alpha) > 0, (a, b) initialised at the A-P3 scorer
       (2, -1) and g's last layer zero-initialised, so every route starts exactly at the raw-CLIP ranking and learns corrections (the package's
       identity-initialisation principle; a positive affine map of cos alone cannot change the ranking, the MLP can).
-    concat (package F2, sensitivity row): f = MLP(concat(u, v)), last layer small init, zero bias."""
+    concat (package F2, sensitivity row): f = MLP(concat(u, v)), last layer small init, zero bias.
+    VL1-14 critic-screen options (defaults = the frozen scorer, same parameter order and initial draws):
+      depth  = number of hidden layers of g (2 frozen), hidden = their width (256 frozen);
+      affine   : f = a * cos + b only (ranking-identical to raw cosine; a calibration-only critic, lower bound);
+      bilinear : f = a * cos + b + <u P, v Q> with rank r (P ~ N(0, 1/d), Q = 0 at init -> starts at the raw ranking)."""
 
-    def __init__(self, d: int = 512, hidden: int = 256, kind: str = "residual") -> None:
+    def __init__(self, d: int = 512, hidden: int = 256, kind: str = "residual", depth: int = 2, rank: int = 64) -> None:
         super().__init__()
         self.kind = kind
-        din = 3 * d if kind == "residual" else 2 * d
-        self.net = nn.Sequential(nn.Linear(din, hidden), nn.GELU(), nn.Linear(hidden, hidden), nn.GELU(), nn.Linear(hidden, 1))
+        if kind in ("residual", "concat"):
+            din = 3 * d if kind == "residual" else 2 * d
+            layers = [nn.Linear(din, hidden), nn.GELU()]
+            for _ in range(depth - 1):
+                layers += [nn.Linear(hidden, hidden), nn.GELU()]
+            self.net = nn.Sequential(*layers, nn.Linear(hidden, 1))
         if kind == "residual":
             nn.init.zeros_(self.net[-1].weight); nn.init.zeros_(self.net[-1].bias)
-            self.alpha = nn.Parameter(torch.tensor(math.log(math.expm1(2.0)))); self.b = nn.Parameter(torch.tensor(-1.0))
-        else:
+        elif kind == "concat":
             nn.init.xavier_uniform_(self.net[-1].weight, gain=0.1); nn.init.zeros_(self.net[-1].bias)
+        elif kind == "bilinear":
+            self.P = nn.Parameter(torch.randn(d, rank) / math.sqrt(d)); self.Q = nn.Parameter(torch.zeros(d, rank))
+        elif kind != "affine":
+            raise ValueError(kind)
+        if kind != "concat":
+            self.alpha = nn.Parameter(torch.tensor(math.log(math.expm1(2.0)))); self.b = nn.Parameter(torch.tensor(-1.0))
 
     def forward(self, U, V):                       # U [n, R, d], V [n, W, d] (L2-normalised) -> f [n, R, W]
         n, R, d = U.shape; W = V.shape[1]
+        if self.kind in ("affine", "bilinear"):
+            f = F.softplus(self.alpha) * torch.einsum("nrd,nwd->nrw", U, V) + self.b
+            return f if self.kind == "affine" else f + torch.einsum("nrk,nwk->nrw", U @ self.P, V @ self.Q)
         Ue, Ve = U[:, :, None, :].expand(n, R, W, d), V[:, None, :, :].expand(n, R, W, d)
         if self.kind == "residual":
             cos = torch.einsum("nrd,nwd->nrw", U, V)
@@ -154,8 +170,9 @@ def evaluate(score_fn, recs, route: str) -> dict:
 
 
 # ----------------------------------------------------------------------------------------------------------- neural routes
-def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES, scorer="residual"):
-    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1], kind=scorer); opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=WD)
+def fit_neural(route, fit_recs, cal, dev, lr, seed, max_updates=MAX_UPDATES, scorer="residual", hidden=256, depth=2, rank=64, wd=WD):
+    torch.manual_seed(seed); m = PairMLP(d=fit_recs[0]["U"].shape[1], hidden=hidden, kind=scorer, depth=depth, rank=rank)
+    opt = torch.optim.AdamW(m.parameters(), lr=lr, weight_decay=wd)
     g = np.random.default_rng(seed * 1000 + 17); upd, curve = 0, []
     best = {"est": (-math.inf, 0, None), "task": (-math.inf, 0, None)}; since = 0
     t0 = time.time()
@@ -238,7 +255,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--route", required=True, choices=["vcs", "js", "softmax", "siglip", "rff", "raw"]); ap.add_argument("--ns", default="1000,4000,all")
     ap.add_argument("--seeds", default="0,1,2"); ap.add_argument("--lrs", default="1e-4,5e-4,2e-3"); ap.add_argument("--out", required=True)
-    ap.add_argument("--scorer", default="residual", choices=["residual", "concat"]); ap.add_argument("--law", default="region_uniform", choices=["region_uniform", "phrase_uniform"]); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
+    ap.add_argument("--scorer", default="residual", choices=["residual", "concat", "affine", "bilinear"]); ap.add_argument("--law", default="region_uniform", choices=["region_uniform", "phrase_uniform"]); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--features", default=str(FEAT), help="feature cache (CLIP default; FG-CLIP 2 / SigLIP 2 caches for VL1-12)")
+    ap.add_argument("--hidden", type=int, default=256); ap.add_argument("--depth", type=int, default=2); ap.add_argument("--rank", type=int, default=64)
+    ap.add_argument("--max-updates", type=int, default=MAX_UPDATES); ap.add_argument("--wd", type=float, default=WD)
+    ap.add_argument("--tag-suffix", default="", help="VL1-14: appended to the output tag (critic-screen cell name)")
     a = ap.parse_args(); torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", "8")))
     data, pref = load_scene_tensors(a.smoke, Path(a.features), a.law); out_dir = Path(a.out); out_dir.mkdir(parents=True, exist_ok=True)
     cal, dev = data["CAL"], data["DEV"]
@@ -251,13 +271,14 @@ def main() -> int:
         if a.smoke:
             fit = fit[:96]
         for seed in [int(x) for x in a.seeds.split(",")]:
-            tag = f"{a.route}_N{n_tag}_s{seed}" + ("" if a.scorer == "residual" else "_concat") + ("" if a.law == "region_uniform" else "_phraseuniform")
+            tag = f"{a.route}_N{n_tag}_s{seed}" + ("_concat" if a.scorer == "concat" else "") + ("" if a.law == "region_uniform" else "_phraseuniform") + a.tag_suffix
             if (out_dir / f"{tag}.json").exists():
                 print("skip", tag); continue
             if a.route == "rff":
                 res = fit_rff(fit, cal, dev, seed)
             else:
-                runs = [fit_neural(a.route, fit, cal, dev, float(lr), seed, max_updates=60 if a.smoke else MAX_UPDATES, scorer=a.scorer) for lr in a.lrs.split(",")]
+                runs = [fit_neural(a.route, fit, cal, dev, float(lr), seed, max_updates=60 if a.smoke else a.max_updates, scorer=a.scorer, hidden=a.hidden, depth=a.depth,
+                                   rank=a.rank, wd=a.wd) for lr in a.lrs.split(",")]
                 pick = lambda key, crit: max((r for r in runs if f"{key}_selected" in r), key=crit, default=None)
                 est = pick("est", lambda r: r["est_selected"]["cal"]["J_common"]) if a.route != "softmax" else None
                 task = pick("task", lambda r: r["task_selected"]["dev"]["top1_image_macro"])
@@ -270,7 +291,8 @@ def main() -> int:
                        "estimator_selected": {"lr": est["lr"], **est["est_selected"]} if est else None,
                        "task_selected": {"lr": task["lr"], **task["task_selected"]}}
                 torch.save(states, out_dir / f"{tag}_states.pt")
-            res.update({"route": a.route, "n_fit_images": len(fit), "n_tag": n_tag, "law": a.law, "features": a.features, "scorer": a.scorer})
+            res.update({"route": a.route, "n_fit_images": len(fit), "n_tag": n_tag, "law": a.law, "features": a.features, "scorer": a.scorer,
+                        "critic": {"hidden": a.hidden, "depth": a.depth, "rank": a.rank, "max_updates": a.max_updates, "wd": a.wd, "lrs": a.lrs}})
             json.dump(res, open(out_dir / f"{tag}.json", "w"), indent=1)
             ts = res.get("task_selected", res).get("dev", res.get("dev")); es = res.get("estimator_selected") or {}
             print(f"[{tag}] N {len(fit)} task DEV top1 macro {ts['top1_image_macro']:.4f} (all-obj {ts['top1_all_objects']:.4f})"

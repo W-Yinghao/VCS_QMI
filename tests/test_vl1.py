@@ -204,3 +204,34 @@ class ResidualScorerTests(unittest.TestCase):
     def test_concat_shapes(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
         m = V.PairMLP(d=8, kind="concat"); self.assertEqual(tuple(m(torch.randn(2, 3, 8), torch.randn(2, 4, 8)).shape), (2, 3, 4))
+
+
+class CriticScreenScorerTests(unittest.TestCase):
+    """VL1-14 options: defaults reproduce the frozen scorer exactly; every new critic starts at the raw ranking (2 cos − 1)."""
+
+    def _uv(self):
+        g = torch.Generator().manual_seed(1)
+        return (torch.nn.functional.normalize(torch.randn(3, 4, 16, generator=g), dim=-1), torch.nn.functional.normalize(torch.randn(3, 5, 16, generator=g), dim=-1))
+
+    def test_default_reproduces_frozen_scorer_draws(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        torch.manual_seed(7); a = V.PairMLP(d=16)
+        torch.manual_seed(7); ref = torch.nn.Sequential(torch.nn.Linear(48, 256), torch.nn.GELU(), torch.nn.Linear(256, 256), torch.nn.GELU(), torch.nn.Linear(256, 1))
+        for (k, x), y in zip(a.net.state_dict().items(), list(ref.state_dict().values())[:-2]):
+            torch.testing.assert_close(x, y, msg=k)
+        # frozen class order: the module's own scalars first, then g (PyTorch lists own parameters before submodules')
+        self.assertEqual([k for k, _ in a.named_parameters()], ["alpha", "b"] + [f"net.{i}.{t}" for i in (0, 2, 4) for t in ("weight", "bias")])
+
+    def test_new_critics_start_at_raw_ranking(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        U, W = self._uv(); target = 2.0 * torch.einsum("nrd,nwd->nrw", U, W) - 1.0
+        for kw in ({"kind": "affine"}, {"kind": "bilinear", "rank": 8}, {"kind": "residual", "hidden": 64, "depth": 3}):
+            torch.testing.assert_close(V.PairMLP(d=16, **kw)(U, W), target, atol=1e-6, rtol=0, msg=str(kw))
+
+    def test_bilinear_and_depth_learn(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts")); import vl1_10_fit as V
+        U, W = self._uv()
+        for kw in ({"kind": "bilinear", "rank": 8}, {"kind": "residual", "hidden": 32, "depth": 3}):
+            m = V.PairMLP(d=16, **kw); opt = torch.optim.SGD(m.parameters(), lr=0.5); f0 = m(U, W).detach()
+            loss = -(m(U, W)[:, 0, 0]).mean(); opt.zero_grad(); loss.backward(); opt.step()
+            self.assertGreater(float((m(U, W).detach() - f0).abs().max()), 0.0, msg=str(kw))
