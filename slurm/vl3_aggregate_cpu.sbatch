@@ -11,4 +11,5 @@ source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh; rc=0
 echo "== VL3 (B/16 + Large)"; "$PYTHON" scripts/vl3_aggregate.py || rc=1
 echo "== VL3 add. 2 / 4 (20 vs 10 epochs; paired)"; "$PYTHON" scripts/vl3_add2_aggregate.py || rc=1
 echo "== VL3 add. 4 (20-epoch runs, all seeds)"; "$PYTHON" scripts/vl3_aggregate.py --suffix _e20 || rc=1
+echo "== VL3 add. 5 (strata)"; "$PYTHON" scripts/vl3_add5_aggregate.py || rc=1
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
