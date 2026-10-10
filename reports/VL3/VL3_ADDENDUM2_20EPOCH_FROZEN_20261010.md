@@ -1,4 +1,4 @@
-# VL3 addendum 2 — schedule sensitivity: 20 epochs for every objective (B/16, three datasets) — DRAFT 2026-10-10
+# VL3 addendum 2 — schedule sensitivity: 20 epochs for every objective (B/16, three datasets) — FROZEN 2026-10-10
 
 Why: in VL3 (B/16) the VCS / JS runs on CLIP often selected late epochs (6–10 of 10), so the 10-epoch schedule may cap the estimator objectives.
 Changing the schedule for ours only would be per-objective tuning against an untuned baseline.  So the same change is applied to all three
@@ -12,4 +12,9 @@ Seed 0 for 3 datasets × 2 B/16 backbones × 3 objectives = 18 full runs (`--epo
 2. Whether VCS − softmax or VCS − JS at seed 0 changes sign or by more than 0.5 point in any cell, versus VL3 seed 0.
 3. If the 20-epoch schedule raises every objective by a similar amount, the VL3 B/16 reading stands as stated.  If it raises one objective more,
    that is reported as schedule-dependence of the comparison, and any follow-up seeds need a new pre-registration.
-Implementation note: the trainer needs an output-tag suffix for this unit (to be added before the freeze, with a smoke).
+
+
+## Decisions at the freeze
+- Trainer option `--tag-suffix` (commit 1305b7c; default empty).  The smoke run (`--smoke --epochs 20 --tag-suffix _e20`) must write
+  `refcocog_clip_b16_vcs_s0_e20_smoke.json` before the 18 runs are fed (waiter `slurm/vl3_add2_waiter.sh`; no stale dependencies).
+- VL3 B/16 seed-0 results (10 epochs) are the comparison; the 18 runs are seed 0 only (descriptive).
