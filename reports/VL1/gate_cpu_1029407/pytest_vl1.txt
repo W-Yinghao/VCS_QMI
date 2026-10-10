@@ -1,0 +1,35 @@
+......................F...                                               [100%]
+=================================== FAILURES ===================================
+________________ BatchedLossTests.test_padded_equals_reference _________________
+
+self = <test_vl1.BatchedLossTests testMethod=test_padded_equals_reference>
+
+    def test_padded_equals_reference(self):
+        laws = self._scenes(); R = max(p.shape[0] for p, _ in laws); W = max(p.shape[1] for p, _ in laws)
+        g = torch.Generator().manual_seed(0)
+        fs = [torch.randn(*p.shape, generator=g, dtype=torch.float64) for p, _ in laws]
+        F_ = torch.zeros(len(laws), R, W, dtype=torch.float64); P_ = torch.zeros_like(F_); Q_ = torch.zeros_like(F_)
+        for i, (f, (p, q)) in enumerate(zip(fs, laws)):
+            F_[i, :f.shape[0], :f.shape[1]] = f; P_[i, :p.shape[0], :p.shape[1]] = torch.from_numpy(p); Q_[i, :q.shape[0], :q.shape[1]] = torch.from_numpy(q)
+        for obj in ("vcs", "balanced_logistic", "conditional_softmax"):
+            Fv = F_.clone().requires_grad_(True); fl = [f.clone().requires_grad_(True) for f in fs]
+            a = padded_batch_loss(Fv, P_, Q_, obj); b = batch_loss(fl, laws, obj)
+            self.assertAlmostEqual(float(a), float(b), 12)
+            ga = torch.autograd.grad(a, Fv)[0]; gb = torch.autograd.grad(b, fl)
+            for i, g_ in enumerate(gb):
+                torch.testing.assert_close(ga[i, :g_.shape[0], :g_.shape[1]], g_)
+>               self.assertEqual(float(ga[i].abs().sum() - ga[i, :g_.shape[0], :g_.shape[1]].abs().sum()), 0.0)   # no gradient into padding
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E               AssertionError: 5.551115123125783e-17 != 0.0
+
+tests/test_vl1.py:122: AssertionError
+=============================== warnings summary ===============================
+tests/test_vl1.py::BatchedLossTests::test_padded_equals_reference
+  /home/infres/yinwang/CS_QMI/ssl_pilot/tests/test_vl1.py:118: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+  Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)
+    self.assertAlmostEqual(float(a), float(b), 12)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_vl1.py::BatchedLossTests::test_padded_equals_reference - As...
+1 failed, 25 passed, 1 warning in 9.15s
