@@ -3,7 +3,8 @@ Per dataset x backbone cell: DEV image-macro / query Top-1 at the CAL-Top-1-sele
 contrasts VCS − JS and VCS − softmax (95 % t over seeds when 3 exist; seed 0 only otherwise, labelled); fine-tuned − zero-shot (step 0); the
 estimator view (DEV J_own at the CAL-J-selected epoch; DEV J_recal at the CAL-Top-1 epoch); the frozen-feature Table A value of the same objective
 (VL1 / VL2 critic on frozen features, CAL-selected) for the fine-tuned − frozen contrast.  Gate 2 (step-0 DEV Top-1 within 0.3 of the frozen raw
-value) is re-checked for every run and listed.  Writes reports/VL3/VL3_results.json.
+value) is re-checked for every run and listed.  VL3 add. 3: pooled VCS − JS / VCS − softmax over the cells complete at three seeds (cells as
+units, 95 % t; split B/16 vs Large) and the pooled J_recal ratios.  Writes reports/VL3/VL3_results.json.
     python scripts/vl3_aggregate.py
 """
 from __future__ import annotations
@@ -73,6 +74,20 @@ def main() -> int:
                     d = [per["vcs"][s]["dev_at_cal_top1"]["own"]["dev"]["top1_image_macro"] - per[other][s]["dev_at_cal_top1"]["own"]["dev"]["top1_image_macro"] for s in common]
                     con[f"vcs_minus_{other}"] = {**tint(d), "seeds": common}
             cell["contrasts"] = con; res["cells"][f"{ds}/{bb}"] = cell
+    full = {k: c for k, c in res["cells"].items() if all(o in c and len(c[o]["seeds"]) == 3 for o in OBJS)}   # VL3 add. 3: pooled over complete cells
+    pool = {"n_cells": len(full), "cells": sorted(full)}
+    if len(full) >= 2:
+        for other in ("js", "softmax"):
+            k = f"vcs_minus_{other}"; d = [c["contrasts"][k]["mean"] for c in full.values()]
+            pool[k] = {**tint(d), "cells_ci_above_0": sum(c["contrasts"][k]["ci95"][0] > 0 for c in full.values()),
+                       "cells_ci_below_0": sum(c["contrasts"][k]["ci95"][1] < 0 for c in full.values())}
+            for scale, bbs in (("B16", ("clip_b16", "siglip2_b16")), ("Large", ("clip_l14_336", "siglip2_l16"))):
+                ds_ = [c["contrasts"][k]["mean"] for kk, c in full.items() if kk.split("/")[1] in bbs]
+                if len(ds_) >= 2:
+                    pool[f"{k}_{scale}"] = tint(ds_)
+        pool["J_recal_ratio_vcs_over_softmax"] = tint([c["vcs"]["dev_J_recal_at_calTop1"]["mean"] / c["softmax"]["dev_J_recal_at_calTop1"]["mean"] for c in full.values()])
+        pool["J_recal_ratio_js_over_softmax"] = tint([c["js"]["dev_J_recal_at_calTop1"]["mean"] / c["softmax"]["dev_J_recal_at_calTop1"]["mean"] for c in full.values()])
+    res["pooled"] = pool
     json.dump(res, open(OUT, "w"), indent=1)
     p = lambda t: f"{100 * t['mean']:.2f}" + (f"±{100 * t['sd']:.2f}" if t.get("sd") is not None else "")
     q = lambda t: f"{100 * t['mean']:+.2f}" + (f" [{100 * t['ci95'][0]:+.2f},{100 * t['ci95'][1]:+.2f}]" if t.get("ci95") else " (1 seed)")
@@ -84,6 +99,10 @@ def main() -> int:
         print(line)
         if c["contrasts"]:
             print("    " + "  ".join(f"{kk} {q(v)}" for kk, v in c["contrasts"].items()))
+    if pool.get("n_cells", 0) >= 2:
+        print(f"pooled over {pool['n_cells']} complete cells: " + "  ".join(f"{k} {q(pool[k])} (CI>0 {pool[k]['cells_ci_above_0']}, CI<0 {pool[k]['cells_ci_below_0']})" for k in ("vcs_minus_js", "vcs_minus_softmax"))
+              + "  " + "  ".join(f"{k} {q(pool[k])}" for k in pool if k.endswith(("_B16", "_Large")))
+              + f"  J_recal VCS/softmax {pool['J_recal_ratio_vcs_over_softmax']['mean']:.2f}  JS/softmax {pool['J_recal_ratio_js_over_softmax']['mean']:.2f}")
     bad = [g for g in res["gate2"] if not g["pass"]]
     print(f"gate 2: {len(res['gate2']) - len(bad)} / {len(res['gate2'])} runs pass" + (f"; FAIL {bad}" if bad else ""))
     if res["missing"]:
