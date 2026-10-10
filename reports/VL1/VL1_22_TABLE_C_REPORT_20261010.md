@@ -41,7 +41,7 @@ as correct at IoU ≥ 0.5.  **Gate T1 (reloaded checkpoint reproduces its given-
    On given boxes it was +0.60 / −0.11 / −0.47.
 3. **Same posterior:** VCS ≈ JS (−0.39 [−0.89, +0.10]).  The detection gap is between the estimator objectives as a group and the task loss.
 4. **Against the clean external row:** the SigLIP 2 L/16 rankers beat Grounding DINO-T zero-shot on all three datasets (+4.5 to +7.2 for the best
-   objective per dataset).  CLIP B/16 rankers fall about 10 points below it.  Grounding DINO-T was trained for grounding on other data; ours are
+   objective per dataset).  CLIP B/16 rankers fall 6–12 points below it.  Grounding DINO-T was trained for grounding on other data; ours are
    two-stage (clean detector + fine-tuned crop ranker) and trained only on given referred boxes.
 5. **Why the drop is large (hypothesis, not tested):**
    - Training candidates were the image's referred objects only.  Proposals add unreferred objects, object parts and loose crops, which no
