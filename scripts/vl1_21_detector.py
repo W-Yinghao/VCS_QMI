@@ -84,7 +84,7 @@ def train(a) -> int:
     dist.init_process_group("nccl"); rank, world = dist.get_rank(), dist.get_world_size(); lr_rank = int(os.environ["LOCAL_RANK"])
     torch.cuda.set_device(lr_rank); dev = torch.device("cuda", lr_rank); torch.manual_seed(20261009 + rank)
     excluded = set(json.load(open(OUT / "exclusions.json"))["excluded_ids"]); ds = CocoTrain(excluded)
-    ck_dir = CK / "smoke" if a.smoke else CK; n_epochs = 1 if a.smoke else EPOCHS
+    ck_dir = (CK / ("smoke" if BATCH_PER_GPU == 4 else f"smoke_bpg{BATCH_PER_GPU}")) if a.smoke else CK; n_epochs = 1 if a.smoke else EPOCHS
     sampler = torch.utils.data.distributed.DistributedSampler(ds, shuffle=True, seed=20261009)
     dl = torch.utils.data.DataLoader(ds, batch_size=BATCH_PER_GPU, sampler=sampler, num_workers=a.workers, collate_fn=lambda b: tuple(zip(*b)), pin_memory=True, persistent_workers=True)
     model = build_model().to(dev); model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[lr_rank])
