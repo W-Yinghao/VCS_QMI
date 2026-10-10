@@ -53,9 +53,9 @@ def main() -> int:
                     c20, c10 = cell["vcs"]["e20"] - cell[other]["e20"], cell["vcs"]["e10"] - cell[other]["e10"]
                     cell[f"vcs_minus_{other}"] = {"e20": c20, "e10": c10, "flag": (c20 > 0) != (c10 > 0) or abs(c20 - c10) > 0.005}
             res["cells"][f"{ds}/{bb}"] = cell
-    paired = {"cells": {}}                                                        # VL3 add. 4
+    paired = {"cells": {}}                                                        # VL3 add. 4 (B/16) and add. 7 (Large)
     for ds in DATASETS:
-        for bb in BACKBONES:
+        for bb in BACKBONES + ("clip_l14_336", "siglip2_l16"):
             rr = {(o, s, suf): load_s(ds, bb, o, s, suf) for o in OBJS for s in (0, 1, 2) for suf in ("_e20", "")}
             seeds = [s for s in (0, 1, 2) if all(rr[(o, s, suf)] is not None for o in OBJS for suf in ("_e20", ""))]
             if not seeds:
@@ -72,6 +72,11 @@ def main() -> int:
             paired["cells"][f"{ds}/{bb}"] = c
     full = {k: c for k, c in paired["cells"].items() if len(c["seeds"]) == 3}
     paired["n_cells_three_seeds"] = len(full)
+    for scale, bbs in (("B16", ("clip_b16", "siglip2_b16")), ("Large", ("clip_l14_336", "siglip2_l16"))):
+        sub = [c for k, c in full.items() if k.split("/")[1] in bbs]
+        if len(sub) >= 2:
+            for key in ("vcs_minus_softmax_e20", "schedule_effect_on_vcs_minus_softmax"):
+                paired[f"pooled_{scale}_{key}"] = tint([c[key]["mean"] for c in sub])
     if len(full) >= 2:
         for key in ("vcs_minus_js_e20", "vcs_minus_softmax_e20", "vcs_minus_js_e10", "vcs_minus_softmax_e10", "schedule_effect_on_vcs_minus_js",
                     "schedule_effect_on_vcs_minus_softmax", "vcs_e20_minus_e10", "js_e20_minus_e10", "softmax_e20_minus_e10"):
