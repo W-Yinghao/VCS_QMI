@@ -38,7 +38,7 @@ on grounding accuracy".**  The point estimate is +0.01 point over 12 cells, with
 2. **Same posterior.**  VCS − JS is +0.07 [−0.01, +0.15] pooled, and every per-cell interval contains 0.  The B/16 subset shows a small, consistent
    VCS edge (+0.12 [+0.04, +0.19]); Large does not (+0.03).
 3. **Estimator view.**  Encoders fine-tuned with VCS or JS expose **33 % more critic-fittable dependence** (DEV J_recal) than encoders fine-tuned with
-   softmax, at equal ranking accuracy.  The ratio is 1.26–1.45 per cell and holds in all 12 cells.
+   softmax, at equal ranking accuracy.  The ratio is 1.24–1.43 per cell and holds in all 12 cells.
 4. **Fine-tuning value.**  Fine-tuned − frozen-feature critic (same objective): VCS +9.0 to +23.2, softmax +6.9 to +20.0.  The gains are largest on
    RefCOCO (dense same-category scenes).  Large − B/16 (VCS): +2.3 to +4.4 in every dataset × family.
 5. **Dataset pattern (descriptive, not pre-registered; hypothesis only).**
