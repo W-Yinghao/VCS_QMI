@@ -1,8 +1,9 @@
 """VL3 — FULL end-to-end fine-tuning of a vision-language model's region / expression encoders with VCS, matched JS (balanced logistic) or candidate
 softmax on the per-image pair law of Table A (region-uniform; candidates = the image's referred objects; eligible images = >= 2 referred objects).
 Owner 2026-10-10: full experiments, not probes; all datasets.  Dataset via VL_DATASET (refcocog / refcoco / refcoco+), roles FIT / CAL / DEV as VL1 / VL2.
-  backbones : clip_b16 (open_clip ViT-B-16-quickgelu, OpenAI; tight crop -> official preprocess; QuickGELU asserted)
-              siglip2_b16 (google/siglip2-base-patch16-224; tight crop -> its processor, channels_last; lower-cased text, max_length 64)
+  backbones : clip_b16 / clip_l14_336 (open_clip ViT-B-16 / ViT-L-14-336 quickgelu, OpenAI; tight crop -> official preprocess; QuickGELU asserted)
+              siglip2_b16 / siglip2_l16 (google/siglip2-{base-patch16-224, large-patch16-256}; tight crop -> its processor, channels_last; lower-cased
+              text, max_length 64); --grad-ckpt for the Large backbones (VL3 add. 1)
   critic    : f(u, v) = a * cos(u, v) + b, a = softplus(alpha), (a, b) initialised at (10, -2.5) for every objective (step-0 ranking = raw cosine)
   objective : vcs -> 1 - mean_G J_G with T = tanh f; js -> mean_P softplus(-2f) + mean_Q softplus(2f); softmax -> multi-positive CE over the image's
               candidates (src/vcs_vl/pairlaw.py: padded_batch_loss)
@@ -42,37 +43,46 @@ OBJ = {"vcs": "vcs", "js": "balanced_logistic", "softmax": "conditional_softmax"
 BATCH, WARMUP, CRITIC_LR, WD = 32, 200, 1e-3, 0.05
 
 
+CLIP_ARCHS = {"clip_b16": ("ViT-B-16-quickgelu", None), "clip_l14_336": ("ViT-L-14-336-quickgelu", None)}
+SIGLIP_REPOS = {"siglip2_b16": "google/siglip2-base-patch16-224", "siglip2_l16": "google/siglip2-large-patch16-256"}
+
+
 class Backbone(torch.nn.Module):
-    def __init__(self, name: str):
-        super().__init__(); self.name = name
-        if name == "clip_b16":
+    def __init__(self, name: str, grad_ckpt: bool = False):
+        super().__init__(); self.name = name; self.kind = "clip" if name in CLIP_ARCHS else "siglip"
+        if self.kind == "clip":
             import open_clip
-            self.m, _, self.pre = open_clip.create_model_and_transforms("ViT-B-16-quickgelu", pretrained="openai", cache_dir=CLIP_CACHE)
+            arch = CLIP_ARCHS[name][0]
+            self.m, _, self.pre = open_clip.create_model_and_transforms(arch, pretrained="openai", cache_dir=CLIP_CACHE)
             acts = {type(x).__name__ for x in self.m.modules() if "GELU" in type(x).__name__}
             assert acts == {"QuickGELU"}, acts
-            self._tok = open_clip.get_tokenizer("ViT-B-16-quickgelu")
-        elif name == "siglip2_b16":
+            self._tok = open_clip.get_tokenizer(arch)
+            if grad_ckpt:
+                self.m.set_grad_checkpointing(True)
+        elif name in SIGLIP_REPOS:
             from transformers import AutoImageProcessor, AutoModel, AutoTokenizer
-            snap = str(next((HF / "models--google--siglip2-base-patch16-224" / "snapshots").iterdir()))
+            snap = str(next((HF / f"models--{SIGLIP_REPOS[name].replace('/', '--')}" / "snapshots").iterdir()))
             self.m = AutoModel.from_pretrained(snap); self.proc = AutoImageProcessor.from_pretrained(snap); self._tok = AutoTokenizer.from_pretrained(snap)
+            if grad_ckpt:
+                self.m.gradient_checkpointing_enable()
         else:
             raise ValueError(name)
 
     def preprocess(self, im):
-        if self.name == "clip_b16":
+        if self.kind == "clip":
             return self.pre(im)
         return self.proc(images=im, return_tensors="pt", input_data_format="channels_last")["pixel_values"][0]
 
     def tokenize(self, texts):
-        if self.name == "clip_b16":
+        if self.kind == "clip":
             return self._tok(texts)
         return self._tok([t.lower() for t in texts], padding="max_length", max_length=64, truncation=True, return_tensors="pt")["input_ids"]
 
     def enc_img(self, x):
-        return self.m.encode_image(x) if self.name == "clip_b16" else self.m.get_image_features(pixel_values=x)
+        return self.m.encode_image(x) if self.kind == "clip" else self.m.get_image_features(pixel_values=x)
 
     def enc_txt(self, t):
-        return self.m.encode_text(t) if self.name == "clip_b16" else self.m.get_text_features(input_ids=t)
+        return self.m.encode_text(t) if self.kind == "clip" else self.m.get_text_features(input_ids=t)
 
 
 class Critic(torch.nn.Module):
@@ -164,15 +174,16 @@ def evaluate(bb, critic, dl_cal, dl_dev, dev):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=["clip_b16", "siglip2_b16"]); ap.add_argument("--objective", required=True, choices=list(OBJ))
+    ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS)); ap.add_argument("--objective", required=True, choices=list(OBJ))
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--lr", type=float, default=1e-5); ap.add_argument("--epochs", type=int, default=10)
-    ap.add_argument("--workers", type=int, default=8); ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
+    ap.add_argument("--workers", type=int, default=8); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--grad-ckpt", action="store_true", help="activation checkpointing (Large backbones; numerically the same objective)"); a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed); dev = torch.device("cuda")
     tag = f"{RG.DATASET.replace('+', 'plus')}_{a.backbone}_{a.objective}_s{a.seed}" + ("_smoke" if a.smoke else "")
     OUT.mkdir(parents=True, exist_ok=True)
     if (OUT / f"{tag}.json").exists() and not a.smoke:
         print("exists", tag); return 0
-    bb = Backbone(a.backbone).to(dev); critic = Critic().to(dev)
+    bb = Backbone(a.backbone, a.grad_ckpt).to(dev); critic = Critic().to(dev)
     scenes, _ = RG.load_scenes(); role = RG.dev_roles(scenes)
     fit, cal, dv = records(scenes, role, "FIT"), records(scenes, role, "CAL"), records(scenes, role, "DEV")
     if a.smoke:
