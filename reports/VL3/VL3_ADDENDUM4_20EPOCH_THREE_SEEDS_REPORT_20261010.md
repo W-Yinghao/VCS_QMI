@@ -1,6 +1,6 @@
 # VL3 addendum 4 — the 20-epoch schedule at three seeds (B/16, six cells) — report — 2026-10-10
 
-Protocol `VL3_ADDENDUM4_20EPOCH_THREE_SEEDS_FROZEN_20261010.md`; results-only commit (`reports/VL3/VL3_results_e20.json`, `reports/VL3/VL3_add2_results.json`,
+Protocol `VL3_ADDENDUM4_20EPOCH_THREE_SEEDS_FROZEN_20261010.md`; results-only commit `67b9688` (`reports/VL3/VL3_results_e20.json`, `reports/VL3/VL3_add2_results.json`,
 job 1033507).  Shared schedule 10 → 20 epochs for all three objectives; everything else as VL3.  **Gate 2: 54 / 54 runs at 20 epochs pass.**
 The 10-epoch numbers stay the primary VL3 result.  Add. 7 (Large at 20 epochs, running) extends the schedule reading to all 12 cells and
 supersedes reading 3 below when complete.
