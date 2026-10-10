@@ -18,11 +18,15 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vl1_10_aggregate import readouts, tint  # noqa: E402
 
 O = Path("/home/infres/yinwang/CS_QMI/outputs"); V = O / "VL3"; OUT = Path(__file__).resolve().parents[1] / "reports" / "VL3" / "VL3_results.json"
-DATASETS, BACKBONES, OBJS, SEEDS = ("refcocog", "refcoco", "refcocoplus"), ("clip_b16", "siglip2_b16"), ("vcs", "js", "softmax"), (0, 1, 2)
+DATASETS, BACKBONES, OBJS, SEEDS = ("refcocog", "refcoco", "refcocoplus"), ("clip_b16", "siglip2_b16", "clip_l14_336", "siglip2_l16"), ("vcs", "js", "softmax"), (0, 1, 2)
 RAW = {("refcocog", "clip_b16"): 0.6599, ("refcoco", "clip_b16"): 0.5814, ("refcocoplus", "clip_b16"): 0.6427,
-       ("refcocog", "siglip2_b16"): 0.7548, ("refcoco", "siglip2_b16"): 0.6639, ("refcocoplus", "siglip2_b16"): 0.7385}
+       ("refcocog", "siglip2_b16"): 0.7548, ("refcoco", "siglip2_b16"): 0.6639, ("refcocoplus", "siglip2_b16"): 0.7385,
+       ("refcocog", "clip_l14_336"): 0.6710, ("refcoco", "clip_l14_336"): 0.5912, ("refcocoplus", "clip_l14_336"): 0.6438,          # VL3 add. 1 (frozen Large raw)
+       ("refcocog", "siglip2_l16"): 0.7487, ("refcoco", "siglip2_l16"): 0.6590, ("refcocoplus", "siglip2_l16"): 0.7307}
 FROZEN_DIR = {("refcocog", "clip_b16"): "VL1_10", ("refcocog", "siglip2_b16"): "VL1_12_siglip2", ("refcoco", "clip_b16"): "VL2_refcoco_clip",
-              ("refcoco", "siglip2_b16"): "VL2_refcoco_siglip2", ("refcocoplus", "clip_b16"): "VL2_refcocoplus_clip", ("refcocoplus", "siglip2_b16"): "VL2_refcocoplus_siglip2"}
+              ("refcoco", "siglip2_b16"): "VL2_refcoco_siglip2", ("refcocoplus", "clip_b16"): "VL2_refcocoplus_clip", ("refcocoplus", "siglip2_b16"): "VL2_refcocoplus_siglip2",
+              ("refcocog", "clip_l14_336"): "VL1_15_clip_large", ("refcocog", "siglip2_l16"): "VL1_15_siglip2_large", ("refcoco", "clip_l14_336"): "VL2_refcoco_clipL",
+              ("refcoco", "siglip2_l16"): "VL2_refcoco_siglip2L", ("refcocoplus", "clip_l14_336"): "VL2_refcocoplus_clipL", ("refcocoplus", "siglip2_l16"): "VL2_refcocoplus_siglip2L"}
 
 
 def run(ds, bb, o, s):
