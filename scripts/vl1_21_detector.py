@@ -29,7 +29,9 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 OUT = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21"); CK = Path("/projects/EEG-foundation-model/yinghao/models/vl1_21_detector")
 COCO = Path("/projects/common/coco"); TRAIN_ANN = COCO / "annotations" / "instances_train2017.json"; VAL_ANN = COCO / "annotations" / "instances_val2017.json"
-EPOCHS, LR_STEPS, BATCH_PER_GPU, BASE_LR, WD, WARMUP = 12, (8, 11), 4, 0.02, 1e-4, 1000
+EPOCHS, LR_STEPS, BATCH_PER_GPU, BASE_LR, WD, WARMUP = 12, (8, 11), int(os.environ.get("VL_DET_BPG", 4)), 0.02, 1e-4, 1000
+# VL_DET_BPG: images per GPU (default 4 = the frozen 4 x 4).  1 GPU x 16 keeps total batch 16 and lr 0.02; the backbone uses FrozenBatchNorm2d,
+# so the per-GPU split does not change the computation (procedural note in reports/VL1/VL1_21_CLEAN_PROPOSER_FROZEN_20261009.md).
 DATASETS = ("refcocog", "refcoco", "refcoco+")
 
 

@@ -24,3 +24,10 @@ referring val / test images (its files are offline).  We do the same, and also e
 ## Use (next unit, to be pre-registered after the gate)
 Proposal features through the Table A feature extractors, scored by the frozen F2r critics (and raw cosine / softmax), top-1 box → Acc@IoU 0.5 on
 DEV; reported beside Grounding DINO (zero-shot) and MDETR (supervised, val).  Never merged with the given-box tables.
+
+## Procedural note (2026-10-10, before any training result)
+The 4-GPU training job (1032003) waited 9 h without starting.  It needs 4 GPUs of the 8-GPU per-user quota at once and 4 idle GPUs on one node.
+Every 4-GPU node also runs other users' jobs, and each GPU my quota frees is taken by a 1-GPU job.  The training therefore runs on **1 GPU × 16
+images** (`VL_DET_BPG=16 NGPU=1`).  Total batch (16), lr (0.02 = 0.02 × 16 / 16), warm-up iterations, schedule and augmentation are unchanged.
+The torchvision backbone uses FrozenBatchNorm2d, so the per-GPU split does not change the computation.  Partitions RTX6000PRO, H100 (memory for 16
+images).  A 1-GPU 30-iteration smoke with the same setting precedes it.  Longer wall time is handled by the per-epoch resume (chained links).
