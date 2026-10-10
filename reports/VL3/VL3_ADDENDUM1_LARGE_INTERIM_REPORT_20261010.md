@@ -30,4 +30,4 @@ Large − B/16 (RefCOCOg, three-seed means): CLIP VCS +2.68, JS +2.58, softmax +
 - **Estimator view:** VCS / JS fine-tuned encoders expose 34–39 % more critic-fittable dependence (J_recal) than softmax fine-tuned ones in both
   Large cells.  This matches the B/16 range (21–43 %).
 - **Fine-tuning value grows with scale for every objective, slightly more for the estimator objectives on SigLIP 2** (Large − B/16 +2.3 vs +1.7).
-- Gradient checkpointing does not move step 0 (gate 2 passes within 0.15 for every Large run).
+- Gradient checkpointing does not move step 0 (gate 2 passes within 0.20 for every Large run; largest gap RefCOCO × CLIP-L 58.92 vs 59.12).
