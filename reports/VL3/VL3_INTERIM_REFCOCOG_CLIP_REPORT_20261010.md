@@ -31,7 +31,7 @@ Paired by seed: **VCS − JS +0.05 [−0.99, +1.10]** (close); **VCS − softmax
   softmax (10.1), at a comparable or better Top-1.  Softmax's own critic is uncalibrated (J_own ≈ 0 or negative), as expected for a ranking loss.
 - All objectives peak at epochs 3–10.  The recipe was shared and not tuned per objective (no per-objective search, as for SimCLR in SSL).
 
-## Update — RefCOCOg × SigLIP 2 B/16 complete (3 seeds; results-only commit `0c1bd3f`)
+## Update — RefCOCOg × SigLIP 2 B/16 complete (3 seeds; results-only commit `548a230` — committed after this section was first pushed)
 | objective | fine-tuned DEV Top-1 | frozen-feature Table A | − frozen | DEV J_recal × 100 |
 |---|---|---|---|---|
 | VCS | 85.01 ± 0.23 | 76.00 | +9.0 | 18.20 |
