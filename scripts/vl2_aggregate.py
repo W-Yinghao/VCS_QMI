@@ -18,7 +18,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vl1_10_aggregate import readouts, tint  # noqa: E402
 
 O = Path("/home/infres/yinwang/CS_QMI/outputs"); OUT = Path(__file__).resolve().parents[1] / "reports" / "VL2" / "VL2_results.json"
-DATASETS, FEATS, SEEDS = ("refcoco", "refcocoplus"), ("clip", "siglip2", "fgclip2", "fgclip1", "reclip"), (0, 1, 2)
+DATASETS, FEATS, SEEDS = ("refcoco", "refcocoplus"), ("clip", "siglip2", "fgclip2", "fgclip1", "reclip", "clipL", "siglip2L", "siglip2S", "fgclip1L", "fgclip2S"), (0, 1, 2)
+LADDERS = {"clip": ("clip", "clipL"), "siglip2_L": ("siglip2", "siglip2L"), "siglip2_So400m": ("siglip2", "siglip2S"), "fgclip1": ("fgclip1", "fgclip1L"), "fgclip2_So400m": ("fgclip2", "fgclip2S")}   # VL2 add. 1
 
 
 def load(d, route, s):
@@ -60,6 +61,18 @@ def main() -> int:
             rho_raw = stats.spearmanr([x[1] for x in js], [x[3] for x in js]).statistic if all(x[3] is not None for x in js) else None
             res["probe"][ds] = {"n_feature_sets": len(js), "spearman_J_vs_learned_top1": float(rho), "spearman_J_vs_raw_top1": None if rho_raw is None else float(rho_raw),
                                 "order_by_J": [x[0] for x in sorted(js, key=lambda z: -z[1])], "order_by_learned_top1": [x[0] for x in sorted(js, key=lambda z: -z[2])]}
+    res["ladders"] = {}
+    for ds in DATASETS:
+        for fam, (lo, hi) in LADDERS.items():
+            out = {}
+            for route in ("vcs", "js", "softmax", "rff"):
+                a = [load(f"VL2_{ds}_{hi}", route, s) for s in SEEDS]; b = [load(f"VL2_{ds}_{lo}", route, s) for s in SEEDS]
+                if all(a) and all(b):
+                    k = "task_dev" if route == "softmax" else "est_dev"
+                    out[route] = {"top1": tint([x[k]["top1_image_macro"] - y[k]["top1_image_macro"] for x, y in zip(a, b)])}
+                    if "cal_J" in a[0]:
+                        out[route]["cal_J"] = tint([x["cal_J"] - y["cal_J"] for x, y in zip(a, b)])
+            res["ladders"][f"{ds}/{fam}"] = out
     for ft in FEATS:
         a, b = res["cells"].get(f"refcocoplus/{ft}", {}), res["cells"].get(f"refcoco/{ft}", {}); out = {}
         if "raw" in a and "raw" in b:
@@ -87,6 +100,9 @@ def main() -> int:
     for ft, v in res["plus_minus_refcoco"].items():
         if v:
             print(f"RefCOCO+ − RefCOCO {ft}: " + json.dumps({k: (round(100 * x, 2) if not isinstance(x, dict) else {kk: round(100 * xx, 2) for kk, xx in x.items()}) for k, x in v.items()}))
+    for k, v in res["ladders"].items():
+        if v:
+            print(f"ladder {k}: " + " | ".join(f"{r} top1 {q(x['top1'])}" + (f" J {q(x['cal_J'])}" if "cal_J" in x else "") for r, x in v.items()))
     if res["missing"]:
         print("missing:", res["missing"])
     return 0
