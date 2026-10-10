@@ -1,0 +1,44 @@
+# R4-T1 / T2 — fixed-critic paired-sampling validation.  DRAFT: not run; needs the owner's go-ahead.  CPU only, small.
+protocol_id: R4-T2
+source_commit: null            # filled at freeze
+status: draft
+research_question: >
+  With a fixed critic T and independent base observations W_i = (X_i, Y_i), when negative pairs share base observations, which interval
+  procedures cover J(T) at the nominal rate, and what do they cost?  Separately, how often does max(0, LCB) under-cover S using J(T) <= S?
+estimand:
+  primary: J(T) for a FIXED T (two-sided coverage)
+  secondary: one-sided lower bound for S via J(T) <= S (one-sided coverage); never called a two-sided interval for S
+  reference_measure: equal_mixture
+independent_unit: base observation W_i (not a pair)
+generators:
+  stage_1_exact: finite-state joint distributions (3 dependence levels: independent / weak / strong), exact enumeration of J, S and U-variance
+  stage_2_existing: P85 gaussian generator (d 20, I in {0, 2, 6}) — reuse the oracle S / eta already implemented; no new generator
+sample_sizes: [32, 128, 512]
+critics:                       # fixed before any EVAL draw; nothing is fitted in stage 1-2
+  - zero (T = 0; degenerate under independence)
+  - optimum (T = eta; degenerate under independence)
+  - prescribed error (T = clip(0.7 * eta + 0.1, -1, 1))
+evaluation_draws_per_cell: 500    # record the actual count; Monte Carlo SE of each coverage reported
+readouts:
+  - full_cross_naive_pair_iid_se: negative control (treats all n(n-1) negative pairs as independent)
+  - full_cross_u_statistic_delete_one: jackknife variance of the second-order U-statistic (non-degenerate cases only; degenerate cases flagged)
+  - disjoint_blocks: independent kernel evaluations on non-overlapping (W_i, W_j) blocks, t interval and bounded-difference radius
+  - bounded_difference_cross_pair: radius sqrt(32 log(2/delta)/n), conservative check only
+  - sparse_shifts: K of n-1 cyclic shifts (K in {1, 4, 16}); conditional pair variance (1 - K/(n-1)) s_v^2 / K, total variance, wall time
+  - image_local: (stage 2 analogue) per-unit exact J_G averaged over units, radius sqrt(8 log(2/delta)/N)
+metrics: [coverage_J_two_sided, coverage_S_one_sided_LCB, mean_width, monte_carlo_se, wall_seconds]
+statistics:
+  confidence_target: 0.95
+  nondegeneracy_required: true for the delete-one row; degenerate cells reported with the observed coverage and flagged
+  multiple_comparison_policy: descriptive; no cross-cell inference
+claims:
+  type: standard_instantiation_check     # Hoeffding decomposition / jackknife are standard; this checks the implementation, not novelty
+  falsifies_only: "a readout under-covers J(T) beyond Monte Carlo error at a stated n"
+follow_up_condition: >
+  Only if stage 1-2 match theory: at most one existing neural / kernel critic condition is re-read with the same readouts (re-fit only if no
+  checkpoint exists), all methods on the same common readout.
+permissions:
+  budget_confirmed: false
+  official_test_access: false
+  restart_closed_SSL: false
+  replace_manuscript: false
