@@ -25,7 +25,7 @@ interval excluding 0 is RefCOCOg → RefCOCO+ × SigLIP 2 B/16 (−0.42 [−0.56
 ## 2. Descriptive
 - **Transfer works for every objective.**  Transfer − zero-shot on the same kept images is +7.9 to +19.0 points (VCS), with similar values for JS
   and softmax.
-- **What does not transfer is dataset-specific, and it is the same for all objectives.**  In-domain − transfer on the same images is 12–16 points
+- **What does not transfer is dataset-specific, and it is the same for all objectives.**  In-domain − transfer on the same images is 11–16 points
   into RefCOCO, but only 0.5–3.3 points into RefCOCO+ and RefCOCOg.  RefCOCO is the dataset with heavy location wording ("left man").  A model
   trained on RefCOCO+ (where location words are forbidden) or on RefCOCOg (long descriptive expressions) does not learn it.  That matches the
   location-word interaction in add. 5.
