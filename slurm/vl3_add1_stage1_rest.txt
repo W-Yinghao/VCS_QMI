@@ -1,0 +1,6 @@
+# VL3 add. 1 remainder (cap); fed by slurm/vl3_add1_waiter.sh only after the smoke 1032663 succeeded
+sbatch --parsable --time=23:59:00 --export=ALL,VL_DATASET=refcoco+ --job-name=vl3_refcocoplus_clip_l14_336_js_s0 slurm/vl3_finetune.sbatch --backbone clip_l14_336 --objective js --seed 0 --grad-ckpt
+sbatch --parsable --time=23:59:00 --export=ALL,VL_DATASET=refcoco+ --job-name=vl3_refcocoplus_clip_l14_336_softmax_s0 slurm/vl3_finetune.sbatch --backbone clip_l14_336 --objective softmax --seed 0 --grad-ckpt
+sbatch --parsable --time=23:59:00 --export=ALL,VL_DATASET=refcoco+ --job-name=vl3_refcocoplus_siglip2_l16_vcs_s0 slurm/vl3_finetune.sbatch --backbone siglip2_l16 --objective vcs --seed 0 --grad-ckpt
+sbatch --parsable --time=23:59:00 --export=ALL,VL_DATASET=refcoco+ --job-name=vl3_refcocoplus_siglip2_l16_js_s0 slurm/vl3_finetune.sbatch --backbone siglip2_l16 --objective js --seed 0 --grad-ckpt
+sbatch --parsable --time=23:59:00 --export=ALL,VL_DATASET=refcoco+ --job-name=vl3_refcocoplus_siglip2_l16_softmax_s0 slurm/vl3_finetune.sbatch --backbone siglip2_l16 --objective softmax --seed 0 --grad-ckpt
