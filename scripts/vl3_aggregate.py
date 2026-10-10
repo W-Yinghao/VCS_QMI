@@ -5,10 +5,11 @@ estimator view (DEV J_own at the CAL-J-selected epoch; DEV J_recal at the CAL-To
 (VL1 / VL2 critic on frozen features, CAL-selected) for the fine-tuned − frozen contrast.  Gate 2 (step-0 DEV Top-1 within 0.3 of the frozen raw
 value) is re-checked for every run and listed.  VL3 add. 3: pooled VCS − JS / VCS − softmax over the cells complete at three seeds (cells as
 units, 95 % t; split B/16 vs Large) and the pooled J_recal ratios.  Writes reports/VL3/VL3_results.json.
-    python scripts/vl3_aggregate.py
+    python scripts/vl3_aggregate.py [--suffix _e20]   (VL3 add. 4: same readings over the 20-epoch runs; writes VL3_results_e20.json; B/16 only)
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -30,8 +31,11 @@ FROZEN_DIR = {("refcocog", "clip_b16"): "VL1_10", ("refcocog", "siglip2_b16"): "
               ("refcoco", "siglip2_l16"): "VL2_refcoco_siglip2L", ("refcocoplus", "clip_l14_336"): "VL2_refcocoplus_clipL", ("refcocoplus", "siglip2_l16"): "VL2_refcocoplus_siglip2L"}
 
 
+SUFFIX = ""
+
+
 def run(ds, bb, o, s):
-    f = V / f"{ds}_{bb}_{o}_s{s}.json"
+    f = V / f"{ds}_{bb}_{o}_s{s}{SUFFIX}.json"
     return json.load(open(f)) if f.exists() else None
 
 
@@ -46,9 +50,14 @@ def frozen(ds, bb, o):
 
 
 def main() -> int:
-    res = {"cells": {}, "gate2": [], "missing": []}
+    global SUFFIX, OUT
+    ap = argparse.ArgumentParser(); ap.add_argument("--suffix", default=""); a = ap.parse_args(); SUFFIX = a.suffix
+    bbs = BACKBONES if not SUFFIX else ("clip_b16", "siglip2_b16")
+    if SUFFIX:
+        OUT = OUT.with_name(f"VL3_results{SUFFIX}.json")
+    res = {"cells": {}, "gate2": [], "missing": [], "suffix": SUFFIX}
     for ds in DATASETS:
-        for bb in BACKBONES:
+        for bb in bbs:
             cell = {}; per = {}
             for o in OBJS:
                 rr = {s: run(ds, bb, o, s) for s in SEEDS}; rr = {s: r for s, r in rr.items() if r is not None}
