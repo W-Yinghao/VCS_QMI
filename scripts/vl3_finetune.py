@@ -177,9 +177,10 @@ def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS)); ap.add_argument("--objective", required=True, choices=list(OBJ))
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--lr", type=float, default=1e-5); ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--workers", type=int, default=8); ap.add_argument("--smoke", action="store_true")
-    ap.add_argument("--grad-ckpt", action="store_true", help="activation checkpointing (Large backbones; numerically the same objective)"); a = ap.parse_args()
+    ap.add_argument("--grad-ckpt", action="store_true", help="activation checkpointing (Large backbones; numerically the same objective)")
+    ap.add_argument("--tag-suffix", default="", help="appended to the output tag (e.g. _e20 for VL3 add. 2)"); a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed); dev = torch.device("cuda")
-    tag = f"{RG.DATASET.replace('+', 'plus')}_{a.backbone}_{a.objective}_s{a.seed}" + ("_smoke" if a.smoke else "")
+    tag = f"{RG.DATASET.replace('+', 'plus')}_{a.backbone}_{a.objective}_s{a.seed}" + a.tag_suffix + ("_smoke" if a.smoke else "")
     OUT.mkdir(parents=True, exist_ok=True)
     if (OUT / f"{tag}.json").exists() and not a.smoke:
         print("exists", tag); return 0
