@@ -30,3 +30,15 @@ Paired by seed: **VCS − JS +0.05 [−0.99, +1.10]** (close); **VCS − softmax
 - **Estimator view:** encoders fine-tuned with VCS / JS expose about 40 % more critic-fittable dependence on DEV (J_recal 14.5) than encoders fine-tuned with
   softmax (10.1), at a comparable or better Top-1.  Softmax's own critic is uncalibrated (J_own ≈ 0 or negative), as expected for a ranking loss.
 - All objectives peak at epochs 3–10.  The recipe was shared and not tuned per objective (no per-objective search, as for SimCLR in SSL).
+
+## Update — RefCOCOg × SigLIP 2 B/16 complete (3 seeds; results-only commit `0c1bd3f`)
+| objective | fine-tuned DEV Top-1 | frozen-feature Table A | − frozen | DEV J_recal × 100 |
+|---|---|---|---|---|
+| VCS | 85.01 ± 0.23 | 76.00 | +9.0 | 18.20 |
+| matched JS | 84.76 ± 0.12 | 76.43 | +8.3 | 18.16 |
+| candidate softmax | 85.07 ± 0.23 | 78.22 | +6.9 | 13.98 |
+Paired: **VCS − JS +0.26 [−0.35, +0.86]**; **VCS − softmax −0.05 [−1.22, +1.11]** (tied).
+Two complete cells so far: after full fine-tuning **VCS matches or exceeds the task loss on ranking** (CLIP +0.89 [+0.03, +1.75]; SigLIP 2 −0.05
+[−1.22, +1.11]), where on frozen features softmax led by ≈ 2 points.  **VCS / JS fine-tuned encoders expose 30–40 % more critic-fittable
+dependence** than softmax fine-tuned ones in both cells.  The fine-tuning gain over frozen features is largest for the estimator objectives (+8 to
++12) and smallest for softmax (+7 to +9).
