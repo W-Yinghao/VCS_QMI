@@ -2,7 +2,7 @@
 # scripts/r4_vl1_measure.py (reports/R4/R4_VL1_measurement.json) and the FIT proposal pass (reports/R4/VL1_21_proposals_extra.json).
 protocol_id: R4-VL1
 source_commit: null                      # filled at freeze
-status: draft_budget_decision_required
+status: draft_owner_approved_option_A_2026-10-11   # freeze after the smoke
 research_question: >
   Trained on the same query-independent detector proposals that are ranked at test time, do the three objectives recover the
   given-box ranking accuracy, and does the objective ordering of Table C (softmax ahead by 2 points) change?
@@ -42,8 +42,8 @@ objectives:
            with the same budget as the other two methods' gain starts
 optimization:
   recipe: VL3 shared recipe (AdamW 1e-5 / wd 0.05, 10 epochs, cosine, warm-up 200, effective 32 images per step); exact loss over ALL proposals
-  per_image_accumulation: null                      # decided by the measurement: joint batch if it fits, else exact per-image accumulation
-  grad_ckpt: null                                   # from the measurement
+  per_image_accumulation: exact chunked accumulation, <= 384 crops per chunk (--chunk-crops 384); measured: same speed as a joint pass, bounded memory
+  grad_ckpt: false                                  # measured: no memory or speed change for SigLIP 2 B/16; not needed
   search_budget_per_method: >
     option A (shared recipe, no search): 0;  option B (package §6 symmetric check): 2 learning rates x 2 gain starts on seed 0, CAL-selected,
     identical for the three methods; seeds 1-2 confirm the selected setting
@@ -61,15 +61,15 @@ units:
     - zero-shot SigLIP 2 B/16 on the proposals
     - detector-score top-K preselection, K chosen on CAL (query-independent), applied to every objective and to the VL3 checkpoints
 measured_cost:                                      # filled from R4_VL1_measurement.json / proposals_extra.json
-  fit_images: null
-  proposals_per_fit_image_mean: null
-  crops_per_step_at_32_images: null
-  peak_mem_GB_joint: null
-  peak_mem_GB_per_image_accumulation: null
-  sec_per_step: null
-  est_hours_per_run_10_epochs: null
-  est_gpu_hours_option_A: null
-  est_gpu_hours_option_B: null
+  fit_images_with_proposals: {refcocog: 17519, refcoco: 13596, refcoco+: 13594}   # role FIT, >= 1 referred object; trainer keeps >= 2 referred and >= 1 valid query
+  proposals_per_fit_image_mean: {refcocog: 45.3, refcoco: 51.5, refcoco+: 50.9}; FIT recall@100 98.0 / 98.9 / 98.9 % (DEV 97.2 / 98.6 / 98.7 %)
+  crops_per_step_at_32_images: about 1 450 (RefCOCOg) / 1 630 (RefCOCO+) on average
+  peak_mem_GB_joint: {8 images / 800 crops: 62.4, 16 images / 1600 crops: OOM on 98 GB}   # worst-case images (100 proposals each), RTX PRO 6000
+  peak_mem_GB_per_image_accumulation: 14.4 at 16 images (1 600 crops)
+  sec_per_step: about 0.83 ms per crop (forward + backward) -> about 1.3 s per average 32-image step, before data loading; the smoke gives the measured value
+  est_hours_per_run_10_epochs: 1.5 - 2 (including per-epoch CAL evaluation); replaced by the smoke's measured step time at the freeze
+  est_gpu_hours_option_A: 30 - 40
+  est_gpu_hours_option_B: 60 - 80
 statistics:
   primary_endpoint: DEV all-proposal image-macro Acc@IoU 0.5 (uncovered queries = errors); IoU 0.75 reported secondarily
   contrasts: VCS - softmax and VCS - JS paired by seed (95 % t over 3 seeds) per dataset; pooled over the 2 cells descriptively
