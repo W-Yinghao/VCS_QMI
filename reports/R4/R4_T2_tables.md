@@ -443,3 +443,12 @@ Implementation checks (gate for stage 3): PASS; failures: none.
 | 2 | xor_mixture | weak | zero | 512 | 1 | — | — | 1024 / 262144 | 0.1939 / 0.0088 |
 | 2 | xor_mixture | weak | zero | 512 | 4 | — | — | 2560 / 262144 | 0.1939 / 0.0088 |
 | 2 | xor_mixture | weak | zero | 512 | 16 | — | — | 8704 / 262144 | 0.1939 / 0.0088 |
+
+## Stage 3 — learned critics (gaussian d 20, I = 2 nats): per-seed J(T_s), training vs EVAL variance, coverage
+
+| kind | n | J(T_s) seeds 0–4 | Var_train | mean Var_EVAL | jk coverage of own J(T_s) (mean over seeds) | jk coverage of the pipeline mean | S one-sided (jk) |
+|---|---|---|---|---|---|---|---|
+| js | 128 | 0.4440, 0.4434, 0.4439, 0.4496, 0.4539 | 2.13e-05 | 1.59e-03 | 94.8 | 94.5 | 100.0 |
+| js | 512 | 0.4440, 0.4434, 0.4439, 0.4496, 0.4539 | 2.13e-05 | 4.03e-04 | 94.2 | 93.8 | 100.0 |
+| vcs | 128 | 0.4451, 0.4514, 0.4453, 0.4481, 0.4580 | 2.85e-05 | 1.40e-03 | 93.6 | 93.7 | 100.0 |
+| vcs | 512 | 0.4451, 0.4514, 0.4453, 0.4481, 0.4580 | 2.85e-05 | 3.25e-04 | 95.0 | 94.5 | 100.0 |
