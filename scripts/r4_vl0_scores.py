@@ -115,7 +115,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS))
     ap.add_argument("--objectives", nargs="+", default=["vcs", "js", "softmax"]); ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument("--role", default="DEV", choices=["DEV", "CAL"], help="CAL: for the R4-VL1 top-K arm (K chosen on CAL); G2 has no CAL reference")
-    ap.add_argument("--source", default="vl3", choices=["vl3", "r4vl1", "r4vl2", "zeroshot", "r5dist"],
+    ap.add_argument("--source", default="vl3", choices=["vl3", "r4vl1", "r4vl2", "zeroshot", "r5dist", "r5qnorm"],
                     help="r4vl1 / r4vl2 / r5dist: proposal-trained checkpoints (R4-VL1, R4-VL2 ν runs, r5 distribution softmax); zeroshot: the pretrained backbone")
     ap.add_argument("--workers", type=int, default=8); a = ap.parse_args()
     dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus"); score_path(ds, a.backbone, "vcs", 0, a.role, a.source).parent.mkdir(parents=True, exist_ok=True)
@@ -138,7 +138,7 @@ def main() -> int:
                 ck = {"epoch": 0}
             else:
                 ckp = {"vl3": CKPT / f"{tag}_calTop1.pt", "r4vl1": R4CK / f"{tag}_calAcc.pt", "r4vl2": R4CK.parent / "r4_vl2" / f"{tag}_calAcc.pt",
-                       "r5dist": R4CK.parent / "r5_dist" / f"{tag}_calAcc.pt"}[a.source]
+                       "r5dist": R4CK.parent / "r5_dist" / f"{tag}_calAcc.pt", "r5qnorm": R4CK.parent / "r5_qnorm" / f"{tag}_calAcc.pt"}[a.source]
                 ck = torch.load(ckp, map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
             sc = score_all(bb, meta, dev, a.workers); g1, g2 = gates(meta, sc)
             if a.source == "vl3":
@@ -148,7 +148,7 @@ def main() -> int:
                 z = json.load(open(R4OUT / f"{ds}_{a.backbone}_vcs_s0.json"))
                 ref1, ref2 = (z["dev_step0_zero_shot"]["given_box_top1_image_macro"], z["dev_step0_zero_shot"]["acc50"]["image_macro"]) if a.role == "DEV" else (None, None)
             else:                                                                   # the run's own readouts: DEV at the selected epoch, CAL from its history
-                rj = json.load(open({"r4vl1": R4OUT, "r4vl2": R4OUT.parent / "R4_VL2", "r5dist": R4OUT.parent / "R5_DIST"}[a.source] / f"{tag}.json"))
+                rj = json.load(open({"r4vl1": R4OUT, "r4vl2": R4OUT.parent / "R4_VL2", "r5dist": R4OUT.parent / "R5_DIST", "r5qnorm": R4OUT.parent / "R5_QNORM"}[a.source] / f"{tag}.json"))
                 if a.role == "DEV":
                     rr = rj["dev_at_selected"]
                 else:

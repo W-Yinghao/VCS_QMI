@@ -1,0 +1,32 @@
+# R5-QN — VCS and matched JS with a query-normalized critic, full two-tower fine-tuning (12 runs).  FROZEN before any result (tests + subset smoke only).
+protocol_id: R5-QN
+status: frozen
+base: r5 package (r5/package_r5_20261011) follow-up; parent recipe R4-VL1 option A (reports/R4/R4_VL_TRAINING_PROTOCOL_FROZEN_20261011.yaml)
+go_ahead: >
+  Owner 2026-10-11, after the R5-40 phase report, asked "没有要提交的GPU任务了吗" and explicitly chose "VCS + JS, 12 runs (Recommended)" for this unit;
+  the owner then gave a standing authorization for useful experiments on free GPUs ("以后这种情况，当你看到GPU有空位时，实验不需要我批准…").
+motivation: >
+  r5 (reports/R5/R5_PHASE_REPORT_CN_20261011.md): the VCS / JS deficit to softmax on detector proposals is not explained by the reference law (R5-10)
+  or by the uniform-over-valid-boxes target (R5-30: D ≈ E); it exists at k = 1 and grows with the number of competing candidates (R5-20C).
+  Hypothesis: the pairwise objectives lack within-query competition between candidates.  Direct test: keep each objective and its target, and
+  normalize the critic within each query, so that raising one candidate's score lowers the others'.
+critic: >
+  g(r, w) = f(r, w) − ½ log Σ_{r' real} ν(r') exp(2 f(r', w)), f = a cos + b, ν uniform over the image's real proposals (the R4-VL1 reference);
+  KLIEP-style constraint E_ν exp(2g) = 1 (Sugiyama et al. 2008).  The optimum exp(2g*) = p(r | w) / ν(r) satisfies the constraint, so S, η and
+  the estimand are unchanged; this is a constrained critic class containing the optimum, not a new estimand.  b cancels (constant per query).
+  Ranking: argmax_r g = argmax_r f = argmax_r cos (unchanged).
+objectives: {VQ: vcs_qnorm (VCS loss on T = tanh g), JQ: balanced_logistic_qnorm (balanced logistic on 2g)}
+code: src/vcs_vl/pairlaw.py (query_normalize, vcs_qnorm, balanced_logistic_qnorm), scripts/r4_vl1_finetune.py (--objective vcs_qnorm | js_qnorm; own dirs outputs/R5_QNORM, models/r5_qnorm; J_own on g)
+tests: tests/test_r5_qnorm.py 6/6 (constraint, offset invariance, closed form, direct loss, stationarity at the unchanged optimum, coupling, padding / empty query / extreme logits); with r5 / R4 law tests 27/27 (job 1034371)
+runs: VQ and JQ × RefCOCOg, RefCOCO+ × SigLIP 2 B/16 × seeds 0–2 = 12; original pretrained weights; recipe, data roles, proposals, selection (CAL all-proposal Acc@0.5, ties earliest), DEV step-0 gate and single DEV read identical to R4-VL1
+primary_contrasts: [VQ − E (set softmax, R4-VL1), VQ − VCS (R4-VL1)]       # paired by seed, 95 % t df 2, per dataset
+secondary_contrasts: [JQ − E, JQ − JS, VQ − JQ, VQ − D (distribution softmax, R5-30)]
+secondary_readouts: Acc@0.75, query-level Acc@0.5, given-box Top-1, J_recal (common affine refit), J_own on g, selected epoch; R5-20 diagnostics for the new checkpoints (nested candidate curves and multiplicity strata; score gradients through the normalizer)
+wording_fixed:
+  - "VQ − VCS above 0 -> within-query normalization improves VCS by x; contains 0 -> no detectable effect; below 0 -> it lowers VCS by x"
+  - "VQ − E contains 0 -> the interval contains 0 (no equivalence claim); below 0 -> softmax still leads by x; above 0 -> VQ leads by x"
+  - "a gap closed by normalization supports the within-query competition explanation; it is not a new estimator (KLIEP normalization of the critic)"
+statistics: two datasets read separately; pooled mean descriptive; no seed added after results; failures enter the tables
+budget: 12 runs × (74 min RTX 6000 Pro / H100 … 2.4–3.9 h L40S) ≈ 20–40 GPU-hours; normal QOS kept <= 27
+smoke: job 1034372 passed (RefCOCOg VQ seed 0, 64 / 48 / 48-image subsets; code path only, not a result); diagnostics extended to VQ / JQ with gradients through the normalizer, tests 11/11 (job 1034374)
+official_test_access: false

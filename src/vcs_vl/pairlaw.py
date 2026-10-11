@@ -133,6 +133,18 @@ def assert_image_disjoint(role_to_keys: dict[str, Sequence[str]]):
             owner[key] = role
 
 
+def query_normalize(f: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
+    """Query-normalized critic g for padded [n, R, W] laws: 2g = 2f − log Σ_r ν(r) exp(2f) over the real proposals of each query, so that
+    E_ν exp(2g) = 1 (the KLIEP-style normalization of a density-ratio model).  ν(r) = q(r, w) / π(w) on queries with a positive; uniform over real
+    proposals on the others (they carry no loss).  The optimum exp(2g*) = p(r | w) / ν(r) satisfies the constraint, so the target is unchanged; the
+    normalizer couples the candidates of a query.  A constant shift of f within a query (the critic offset b) leaves g unchanged."""
+    real = (q.sum(2, keepdim=True) > 0).expand_as(f)
+    pi = q.sum(1, keepdim=True); n_real = real.sum(1, keepdim=True).clamp_min(1).to(f.dtype)
+    lognu = torch.where(q > 0, torch.log(q.clamp_min(1e-30)) - torch.log(pi.clamp_min(1e-30)), -torch.log(n_real).expand_as(f))
+    z = (2 * f + lognu).masked_fill(~real, -torch.inf)
+    return (f - 0.5 * torch.logsumexp(z, dim=1, keepdim=True)).masked_fill(~real, 0.0)
+
+
 def padded_batch_loss(f: torch.Tensor, p: torch.Tensor, q: torch.Tensor, objective: str) -> torch.Tensor:
     """Vectorised `batch_loss` for a batch of scenes padded to [n, R, W]: p / q are each scene's laws with zeros in the padding (so padding
     contributes nothing), every scene's p and q sum to one, and scenes are averaged with equal weight (one total weight per image)."""
@@ -157,6 +169,14 @@ def padded_batch_loss(f: torch.Tensor, p: torch.Tensor, q: torch.Tensor, objecti
         lse_pos = torch.logsumexp(g.masked_fill(~(p > 0), -1e4), dim=1)                       # finite filler: no NaN gradient for queries without positives
         pi = p.sum(1)
         per = -(pi * (lse_pos - lse_all).masked_fill(pi <= 0, 0.0)).sum(1)
+    elif objective in ("vcs_qnorm", "balanced_logistic_qnorm"):
+        # r5 follow-up (owner-approved 12 runs): the unchanged VCS / balanced-logistic objective on the query-normalized critic g (query_normalize)
+        g = query_normalize(f, q)
+        if objective == "vcs_qnorm":
+            t = torch.tanh(g)
+            per = 0.5 * ((p * (1 - t).square()).sum((1, 2)) + (q * (1 + t).square()).sum((1, 2)))
+        else:
+            per = (p * F.softplus(-2 * g)).sum((1, 2)) + (q * F.softplus(2 * g)).sum((1, 2))
     elif objective == "distribution_softmax":
         # r5 R5-30: cross-entropy of the uniform-over-valid-boxes target p(r | w) against softmax_r(2f) over ALL real proposals (unlike
         # conditional_softmax, never-positive real proposals stay in the denominator).  Real proposals = q-support: every FIT image keeps >= 1

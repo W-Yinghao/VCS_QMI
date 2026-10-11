@@ -40,10 +40,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from vl1_22_tableC import TOPK, iou_xyxy  # noqa: E402
 from vl3_aggregate import RAW  # noqa: E402
 from vl3_finetune import BATCH, CLIP_ARCHS, CRITIC_LR, SIGLIP_REPOS, WARMUP, WD, RG, Backbone, Critic, scores  # noqa: E402
-from vcs_vl.pairlaw import padded_batch_loss, padded_j  # noqa: E402
+from vcs_vl.pairlaw import padded_batch_loss, padded_j, query_normalize  # noqa: E402
 
 OUT = Path("/home/infres/yinwang/CS_QMI/outputs/R4_VL1"); CKPT = Path("/projects/EEG-foundation-model/yinghao/models/r4_vl1")
-PROP = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21/proposals"); OBJ = {"vcs": "vcs", "js": "balanced_logistic", "softmax": "set_softmax", "distribution_softmax": "distribution_softmax"}   # last: r5 R5-30
+PROP = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21/proposals"); OBJ = {"vcs": "vcs", "js": "balanced_logistic", "softmax": "set_softmax", "distribution_softmax": "distribution_softmax",   # last: r5 R5-30
+       "vcs_qnorm": "vcs_qnorm", "js_qnorm": "balanced_logistic_qnorm"}                                                      # r5 follow-up: query-normalized critic
+QNORM = False                                                                              # set in main(): own J readout on the normalized critic
 KS, IOU_TRAIN = (4, 8, 16, 32), 0.5
 
 
@@ -189,7 +191,10 @@ def metrics(C, gb, d, a, b, ar=None, br=None):
            "topK_acc50": {str(K): acc(C, d, d["A5"], K, alpha=a)["image_macro"] for K in KS}, "n_images": int(C.shape[0]), "n_queries": int(d["wmask"].sum())}
     if "logn" in d:                                                                         # R4-VL2 secondary: the plain-cosine rank
         out["acc50_plain_cos"] = acc(C, d, d["A5"]); out["acc75_plain_cos"] = acc(C, d, d["A75"])
-    sel = d["has_valid"]; out["J_own"] = float(padded_j(a * C[sel] + b, d["P"][sel], d["Q"][sel]).mean())
+    sel = d["has_valid"]; f_own = a * C[sel] + b
+    if QNORM:                                                                               # the trained critic is the query-normalized g
+        f_own = query_normalize(f_own, d["Q"][sel])
+    out["J_own"] = float(padded_j(f_own, d["P"][sel], d["Q"][sel]).mean())
     if ar is not None:
         out["J_recal"] = float(padded_j(ar * C[sel] + br, d["P"][sel], d["Q"][sel]).mean())
     valid = d["A5"] > 0; inval = (~valid) & d["rmask"][:, :, None] & d["wmask"][:, None, :]
@@ -214,6 +219,10 @@ def main() -> int:
     global OUT, CKPT
     if a.nu == "score":                                                                     # R4-VL2 outputs kept apart from R4-VL1
         OUT, CKPT = OUT.parent / "R4_VL2", CKPT.parent / "r4_vl2"
+    global QNORM
+    QNORM = a.objective in ("vcs_qnorm", "js_qnorm")
+    if QNORM:                                                                               # r5 follow-up: own directories
+        OUT, CKPT = OUT.parent / ("R5_QNORM" if a.nu == "uniform" else "R5_QNORM_nu"), CKPT.parent / ("r5_qnorm" if a.nu == "uniform" else "r5_qnorm_nu")
     if a.objective == "distribution_softmax":                                               # r5 R5-30: own directories, never over the R4 softmax
         OUT, CKPT = OUT.parent / ("R5_DIST" if a.nu == "uniform" else "R5_DIST_nu"), CKPT.parent / ("r5_dist" if a.nu == "uniform" else "r5_dist_nu")
     loss_impl = "set_softmax_q" if (a.nu == "score" and a.objective == "softmax") else OBJ[a.objective]   # R4-VL2 add. 1: softmax with the ν prior

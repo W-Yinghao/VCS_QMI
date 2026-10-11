@@ -45,9 +45,11 @@ from r5_reference import nested_invalid_ids  # noqa: E402
 ROOT = Path("/home/infres/yinwang/CS_QMI/outputs"); OUT = Path(__file__).resolve().parents[1] / "reports" / "R5"; BB, SEEDS = "siglip2_b16", (0, 1, 2)
 MODELS = (("r4vl1", "vcs", "uniform", "vcs", "VCS"), ("r4vl1", "js", "uniform", "balanced_logistic", "JS"), ("r4vl1", "softmax", "uniform", "set_softmax", "set softmax"),
           ("r4vl2", "vcs", "score", "vcs", "VCS(nu)"), ("r4vl2", "js", "score", "balanced_logistic", "JS(nu)"),
-          ("r5dist", "distribution_softmax", "uniform", "distribution_softmax", "distribution softmax"))
+          ("r5dist", "distribution_softmax", "uniform", "distribution_softmax", "distribution softmax"),
+          ("r5qnorm", "vcs_qnorm", "uniform", "vcs_qnorm", "VCS(qnorm)"), ("r5qnorm", "js_qnorm", "uniform", "balanced_logistic_qnorm", "JS(qnorm)"))   # R5-QN
 CONTRASTS = (("r4vl2:vcs", "r4vl1:vcs"), ("r4vl2:js", "r4vl1:js"), ("r4vl1:vcs", "r4vl1:softmax"), ("r4vl2:vcs", "r4vl1:softmax"),
-             ("r5dist:distribution_softmax", "r4vl1:softmax"), ("r4vl1:vcs", "r5dist:distribution_softmax"), ("r4vl1:js", "r5dist:distribution_softmax"))
+             ("r5dist:distribution_softmax", "r4vl1:softmax"), ("r4vl1:vcs", "r5dist:distribution_softmax"), ("r4vl1:js", "r5dist:distribution_softmax"),
+             ("r5qnorm:vcs_qnorm", "r4vl1:softmax"), ("r5qnorm:vcs_qnorm", "r4vl1:vcs"), ("r5qnorm:js_qnorm", "r4vl1:js"), ("r5qnorm:js_qnorm", "r4vl1:softmax"))
 warnings.filterwarnings("ignore", message="Mean of empty slice"); warnings.filterwarnings("ignore", message="invalid value encountered")
 K_BINS, M_BINS, NESTED, REPEATS, TOPS, SAT = (("1", 1, 1), ("2-3", 2, 3), ("4+", 4, None)), (("1-15", 1, 15), ("16-31", 16, 31), ("32+", 32, None)), (1, 3, 7, 15, 31), 32, (1, 5), 0.95
 
@@ -57,7 +59,7 @@ def key(m):
 
 
 def run_json(ds, m, s):
-    sub = {"r4vl1": ("R4_VL1", ""), "r4vl2": ("R4_VL2", "_nuscore"), "r5dist": ("R5_DIST", "")}[m[0]]
+    sub = {"r4vl1": ("R4_VL1", ""), "r4vl2": ("R4_VL2", "_nuscore"), "r5dist": ("R5_DIST", ""), "r5qnorm": ("R5_QNORM", "")}[m[0]]
     return ROOT / sub[0] / f"{ds}_{BB}_{m[1]}{sub[1]}_s{s}.json"
 
 
@@ -96,6 +98,8 @@ def model_arrays(cp, det, law, loss, ab):
     """Per image [n_p, n_q]: f, T, deployment score, own candidate probability ρ (law), softmax(2f), log ν."""
     a, b = ab; f = a * cp + b; T = np.tanh(f); n_p = cp.shape[0]
     logn = np.log(det / det.sum()) if law == "score" else np.full(n_p, -math.log(n_p))
+    if loss.endswith("_qnorm") and n_p:                                                  # R5-QN: the trained critic is g = f − ½ log Σ ν exp(2f), per query
+        z = 2 * f + logn[:, None]; zm = z.max(0, keepdims=True); T = np.tanh(f - 0.5 * (zm + np.log(np.exp(z - zm).sum(0, keepdims=True))))
     deploy = f if law == "uniform" else 2 * f + logn[:, None]
     rho = softmax_cols(2 * f + (logn[:, None] if law == "score" else 0.0)); rho_s = softmax_cols(2 * f)
     return f, T, deploy, rho, rho_s, logn
@@ -111,6 +115,9 @@ def score_gradients(loss, p, q, T, rho_s, valid):
         h = (rho_s * valid).sum(); gp, gq = -2 * rho_s * valid / h, 2 * rho_s
     elif loss == "distribution_softmax":
         gp, gq = -2 * p, 2 * rho_s
+    elif loss in ("vcs_qnorm", "balanced_logistic_qnorm"):                                 # through the normalizer: ∂L/∂f = ∂L/∂g − ρ̃ Σ ∂L/∂g, ρ̃ = softmax(2f) (uniform ν)
+        gp_g, gq_g, _ = score_gradients(loss[:-6], p, q, T, rho_s, valid)                # T = tanh(g) from model_arrays
+        gp, gq = gp_g - rho_s * gp_g.sum(), gq_g - rho_s * gq_g.sum()
     else:
         raise ValueError(loss)
     return gp, gq, gp + gq

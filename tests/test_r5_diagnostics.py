@@ -35,6 +35,15 @@ class Gradients(unittest.TestCase):
                 gp, gq, g = D.score_gradients(loss, p, q, T, rho_s, valid)
                 self.assertTrue(np.allclose(g, ft.grad[0, :, 0].numpy(), atol=1e-12), loss); self.assertTrue(np.allclose(gp + gq, g))
 
+    def test_qnorm_against_autograd(self):                                                  # R5-QN: gradients through the query normalizer
+        for seed in range(6):
+            for loss in ("vcs_qnorm", "balanced_logistic_qnorm"):
+                f, valid, p, q = query(seed, score=False)
+                ft = torch.tensor(f)[None, :, None].requires_grad_(); padded_batch_loss(ft, torch.tensor(p)[None, :, None], torch.tensor(q)[None, :, None], loss).backward()
+                _, T, _, _, rho_s, _ = D.model_arrays(f[:, None], np.ones(len(f)), "uniform", loss, (1.0, 0.0))
+                gp, gq, g = D.score_gradients(loss, p, q, T[:, 0], rho_s[:, 0], valid)
+                self.assertTrue(np.allclose(g, ft.grad[0, :, 0].numpy(), atol=1e-12), loss); self.assertTrue(np.allclose(gp + gq, g))
+
     def test_invalid_p_component_is_zero(self):
         f, valid, p, q = query(1)
         for loss in ("vcs", "balanced_logistic"):
