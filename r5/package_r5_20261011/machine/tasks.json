@@ -1,0 +1,142 @@
+{
+  "package": "VCS_CVPR_V6_Server_r5_VL_Alignment_20261011",
+  "paper_version": "V6",
+  "base_commit": "2bd405af4279ddbe7a28e6062cf740be281e037a",
+  "tasks": [
+    {
+      "id": "R5-00",
+      "name": "Intake and reuse",
+      "depends_on": [],
+      "mode": "read_only",
+      "new_training_runs": 0,
+      "deliverables": [
+        "intake.md",
+        "run_inventory.json",
+        "reuse_map.json"
+      ],
+      "requires_new_budget": false
+    },
+    {
+      "id": "R5-10",
+      "name": "Finish R4-VL2 and symmetric fusion readouts",
+      "depends_on": [
+        "R5-00"
+      ],
+      "mode": "existing_models_evaluation",
+      "new_training_runs": 0,
+      "wait_for": "all registered R4-VL2 seeds or documented permanent failures",
+      "deliverables": [
+        "r4_vl2_complete_reading.md",
+        "fusion_F0_F1.json",
+        "selection_F2_availability.json"
+      ],
+      "requires_new_budget": false
+    },
+    {
+      "id": "R5-20A",
+      "name": "Hard-distractor reference mass and score gradients",
+      "depends_on": [
+        "R5-00"
+      ],
+      "mode": "existing_models_diagnostics",
+      "new_training_runs": 0,
+      "conditional_dependency": "score-reference rows require completed R4-VL2",
+      "deliverables": [
+        "gradient_diagnostics.jsonl",
+        "gradient_summary.md"
+      ],
+      "requires_new_budget": false
+    },
+    {
+      "id": "R5-20B",
+      "name": "Valid-box multiplicity and set/distribution requirements",
+      "depends_on": [
+        "R5-00"
+      ],
+      "mode": "existing_models_diagnostics",
+      "new_training_runs": 0,
+      "deliverables": [
+        "multiplicity_diagnostics.jsonl",
+        "support_counts.json"
+      ],
+      "requires_new_budget": false
+    },
+    {
+      "id": "R5-20C",
+      "name": "Fixed-query nested candidate curves",
+      "depends_on": [
+        "R5-00"
+      ],
+      "mode": "oracle_assisted_diagnostics",
+      "new_training_runs": 0,
+      "deliverables": [
+        "nested_query_manifest.json",
+        "nested_curves.json"
+      ],
+      "requires_new_budget": false
+    },
+    {
+      "id": "R5-30",
+      "name": "Distribution softmax full fine-tuning",
+      "depends_on": [
+        "R5-10",
+        "R5-20A",
+        "R5-20B",
+        "R5-20C"
+      ],
+      "mode": "new_full_tower_finetuning",
+      "new_training_runs": 6,
+      "requires_new_budget": true,
+      "authorization_policy": "Run only after CPU/smoke checks, protocol freeze and verified owner authorization covering this batch. Do not require a favorable diagnostic effect.",
+      "deliverables": [
+        "training_protocol_frozen.yaml",
+        "six_run_manifest.json",
+        "results_distribution_softmax.json",
+        "task_target_comparison.md"
+      ]
+    },
+    {
+      "id": "R5-40",
+      "name": "Synthesis and final-evaluation protocol",
+      "depends_on": [
+        "R5-10",
+        "R5-20A",
+        "R5-20B",
+        "R5-20C",
+        "R5-30"
+      ],
+      "mode": "report_only",
+      "new_training_runs": 0,
+      "deliverables": [
+        "phase_report_cn.md",
+        "updated_claim_ledger.json",
+        "final_evaluation_proposal.yaml"
+      ],
+      "requires_new_budget": false
+    },
+    {
+      "id": "R5-COND-SEM",
+      "name": "Frozen semantic reference law",
+      "depends_on": [
+        "R5-40"
+      ],
+      "mode": "design_only_not_authorized",
+      "new_training_runs": 0,
+      "requires_new_budget": true,
+      "deliverables": [
+        "semantic_reference_design_only.md"
+      ],
+      "automatic_launch": false
+    }
+  ],
+  "maximum_new_selected_full_runs": 6,
+  "existing_r4_vl2_runs_not_new": 12,
+  "not_in_budget": [
+    "new semantic reference training",
+    "new SSL",
+    "new frozen-feature learned probes",
+    "new backbone sweeps",
+    "official evaluation"
+  ],
+  "official_evaluation_authorized": false
+}

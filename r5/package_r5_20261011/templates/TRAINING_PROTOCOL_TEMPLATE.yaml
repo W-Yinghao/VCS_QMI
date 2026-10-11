@@ -1,0 +1,80 @@
+protocol_id: R5-30
+status: draft_not_run
+base_commit: 2bd405af4279ddbe7a28e6062cf740be281e037a
+code_commit: null
+parent_protocol: reports/R4/R4_VL_TRAINING_PROTOCOL_FROZEN_20261011.yaml
+research_question: >
+  Does the requirement to fit a uniform distribution over all valid proposals
+  account for some of the gap between pairwise estimators and set-event softmax?
+claim_type: exploratory_hypothesis
+loss_identity_type: standard_algebra_not_new_method
+objectives:
+  new: [distribution_softmax]
+  reused: [vcs_uniform, js_uniform, set_softmax]
+models:
+  name: siglip2_b16
+  initialize_from: original_pretrained
+  weight_hash: null
+  both_towers_trainable: true
+  frozen_feature_probe: false
+data:
+  datasets: [refcocog, refcocoplus]
+  independent_unit: image
+  roles_hash: null
+  proposals_hash: null
+  inherited_eligibility: R4-VL1
+  target: uniform_over_IoU_ge_0.5_proposals_per_covered_query
+  normalization: uniform_covered_queries_then_uniform_images
+  denominator: all_real_proposals_including_never_positive_regions
+  no_valid_query_training: exclude_and_count
+  uncovered_query_evaluation: count_as_error
+optimization:
+  epochs: 10
+  batch_images: 32
+  encoder_lr: 1.0e-5
+  weight_decay: 0.05
+  warmup_steps: 200
+  schedule: inherit_actual_R4_VL1
+  gain_init: 10.0
+  bias_init: -2.5
+  softmax_logits: 2f
+  critic_parameter_groups: inherit_actual_code_and_record
+  symmetric_new_search: none
+  chunking: exact_image_weighted_accumulation
+seeds: [0, 1, 2]
+selection:
+  role: CAL
+  metric: all_proposal_image_macro_Acc_IoU_0.5
+  ties: earliest_epoch
+  per_epoch_DEV_selection: false
+primary_contrast: distribution_softmax_minus_set_softmax
+secondary_contrasts: [vcs_minus_distribution_softmax, js_minus_distribution_softmax]
+secondary_metrics: [Acc_IoU_0.75, query_accuracy, given_box_accuracy, common_risk, multiplicity_strata]
+statistics:
+  seed_pairing: true
+  n_seed: 3
+  main_interval: paired_t_df2_per_dataset
+  image_bootstrap: conditional_on_trained_models
+  diagnostic_status: exploratory_DEV_reused
+  pooled_dataset_mean: descriptive_only
+permissions:
+  full_training_approval_reference: null
+  resource_budget_confirmed: false
+  official_evaluation_authorized: false
+  closed_SSL_restart: false
+checks:
+  CPU_test_result: null
+  single_positive_value_gradient: null
+  multiple_positive_identity: null
+  never_positive_candidate_mask: null
+  padding_and_empty_query: null
+  step0_reproduction: null
+  fp32_reload: null
+  full_tower_smoke: null
+measured_resources:
+  GPU_model: null
+  per_run_estimate: null
+  total_six_run_estimate: null
+  checkpoint_directory: null
+  available_storage: null
+freeze_date_utc: null
