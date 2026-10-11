@@ -365,6 +365,9 @@ HANDLERS = {"http": do_http, "hf": do_hf, "git": do_git, "lfs_media": do_lfs_med
 def run_item(item, manifest) -> None:
     rec = manifest["items"].setdefault(item["id"], {}); TOUCHED.add(item["id"])
     rec.update({k: item[k] for k in ("flag", "validation_required", "provenance") if k in item})
+    if "error" in rec:  # a retried failure is kept as history, never left as a stale error next to a later success
+        rec.setdefault("history", []).append({"status": "failed", "error": rec.pop("error"), "finished": rec.get("finished"),
+                                              "resolution": "retried; see the current status" if rec.get("status") != "done" else "retried and verified"})
     if rec.get("status") == "done":
         save(manifest); return  # keeps provenance / validation flags added after the item finished
     if free_gb() < FLOOR_GB + 10:
