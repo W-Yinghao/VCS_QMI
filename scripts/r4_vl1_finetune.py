@@ -21,9 +21,12 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 import time
 from pathlib import Path
+
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")   # before the first CUDA allocation: avoids the fragmentation seen on L40S
 
 import numpy as np
 import torch
@@ -191,6 +194,9 @@ def main() -> int:
     ap.add_argument("--chunk-crops", type=int, default=0, help="max crops per forward/backward chunk (0 = whole batch); exact accumulation either way")
     ap.add_argument("--grad-ckpt", action="store_true"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
     torch.manual_seed(a.seed); np.random.seed(a.seed); dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus")
+    gpu = torch.cuda.get_device_properties(0); gib = gpu.total_memory / 2**30
+    chunk = a.chunk_crops if (gib >= 60 or a.chunk_crops == 0) else min(a.chunk_crops, 160)      # exact accumulation: chunk size changes memory, not the loss
+    print(f"GPU {gpu.name} {gib:.1f} GiB -> chunk {chunk} crops (requested {a.chunk_crops})", flush=True)
     tag = f"{ds}_{a.backbone}_{a.objective}_s{a.seed}" + ("_smoke" if a.smoke else ""); OUT.mkdir(parents=True, exist_ok=True)
     if (OUT / f"{tag}.json").exists() and not a.smoke:
         print("exists", tag); return 0
@@ -226,7 +232,7 @@ def main() -> int:
             opt.zero_grad(set_to_none=True); n = len(ms); R, W = P.shape[1], P.shape[2]; P, Q = P.to(dev), Q.to(dev); idx = oi = ot = 0; tot = 0.0
             while idx < n:
                 j, c = idx, 0
-                while j < n and (j == idx or a.chunk_crops <= 0 or c + ms[j] <= a.chunk_crops):
+                while j < n and (j == idx or chunk <= 0 or c + ms[j] <= chunk):
                     c += ms[j]; j += 1
                 kk = sum(ks[idx:j])
                 with torch.autocast("cuda", dtype=torch.bfloat16):
@@ -247,7 +253,7 @@ def main() -> int:
     bb.load_state_dict(best[2]); critic.alpha.data.fill_(math.log(math.expm1(best[3][0]))); critic.b.data.fill_(best[3][1])
     e_dev, _ = evaluate(bb, critic, dv, dl_dev, d_dev, dev, best[4]); k_cal = max(KS, key=lambda K: hist[best[1]]["cal"]["topK_acc50"][str(K)])
     res = {"dataset": RG.DATASET, "backbone": a.backbone, "objective": a.objective, "loss_impl": OBJ[a.objective], "seed": a.seed, "lr": a.lr, "epochs": epochs, "batch_images": BATCH,
-           "chunk_crops": a.chunk_crops, "grad_ckpt": a.grad_ckpt, "iou_train": IOU_TRAIN, "counts": {"fit": c_fit, "cal": c_cal, "dev": c_dev}, "n_fit_images": len(fit),
+           "chunk_crops": a.chunk_crops, "chunk_crops_effective": chunk, "gpu": gpu.name, "grad_ckpt": a.grad_ckpt, "iou_train": IOU_TRAIN, "counts": {"fit": c_fit, "cal": c_cal, "dev": c_dev}, "n_fit_images": len(fit),
            "crops_per_epoch": int(sum(len(r["boxes"]) for r in fit)), "steps": step, "seconds": time.time() - t0, "gate_step0_given_box": {"value": e_dev0["given_box_top1_image_macro"], "frozen_raw": raw, "pass": gate},
            "dev_step0_zero_shot": e_dev0, "history": hist, "selected": {"cal_acc50_epoch": best[1], "critic_a_b": best[3], "recal_a_b": best[4], "topK_chosen_on_cal": k_cal},
            "dev_at_selected": e_dev, "dev_topK_at_cal_chosen_K": e_dev["topK_acc50"][str(k_cal)], "smoke": a.smoke}
