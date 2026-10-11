@@ -1,0 +1,16 @@
+# R6 REG-P1 full pilot (reports/R6/R6_REG_P1_PROTOCOL_FROZEN_20261011.yaml) — job list in dependency order; submitted by slurm/r6_reg_p1_submit.sh (CAP 27).
+# stage 0 (CPU): prepare, then perturb
+slurm/r6_reg_cpu.sbatch prepare
+slurm/r6_reg_cpu.sbatch perturb                                   # after prepare
+# stage 1 (GPU): critic training (3 objectives × 3 seeds) and CoMIR (3 seeds); after perturb
+slurm/r6_reg_gpu.sbatch train --objective {vcs,logistic,infonce} --seed {0,1,2}
+slurm/r6_reg_gpu.sbatch comir --seed {0,1,2}
+# stage 1' (GPU): deterministic references; after perturb
+slurm/r6_reg_gpu.sbatch register --method mi
+slurm/r6_reg_gpu.sbatch register --method nmi
+slurm/r6_reg_gpu.sbatch register --method kernel --seed 0
+# stage 2 (GPU): registration with CAL checkpoint selection + DEV evaluation; each after its own training job
+slurm/r6_reg_gpu.sbatch register --method {vcs,logistic,infonce} --seed {0,1,2}
+slurm/r6_reg_gpu.sbatch register --method comir --seed {0,1,2}
+# stage 3 (CPU): readings
+python scripts/r6_reg_aggregate.py   (via slurm/r4_vl1_aggregate_cpu.sbatch-style wrapper: slurm/r6_reg_aggregate_cpu.sbatch)
