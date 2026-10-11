@@ -29,6 +29,11 @@ V3 = Path("/home/infres/yinwang/CS_QMI/outputs/VL3"); PROP = Path("/home/infres/
 T22 = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_22"); OUT = Path("/home/infres/yinwang/CS_QMI/outputs/R4_VL0"); CHUNK = 256
 
 
+def score_path(ds: str, backbone: str, objective: str, seed: int) -> Path:
+    """One definition of the score-file layout, shared with the analyser."""
+    return OUT / "scores" / f"{ds}_{backbone}_{objective}_s{seed}.pt"
+
+
 def xyxy(b):
     return [b[0], b[1], b[0] + b[2], b[1] + b[3]]
 
@@ -114,16 +119,16 @@ def main() -> int:
     bb = Backbone(a.backbone).to(dev); res = {}
     for o in a.objectives:
         for s in a.seeds:
-            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = OUT / "scores" / f"{tag}.pt"
+            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = score_path(ds, a.backbone, o, s)
             if outp.exists():
-                print("exists", tag, flush=True); continue
+                res[tag] = torch.load(outp, weights_only=False)["gates"]; print("exists", tag, flush=True); continue
             ck = torch.load(CKPT / f"{tag}_calTop1.pt", map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
             sc = score_all(bb, meta, dev, a.workers); g1, g2 = gates(meta, sc)
             ref1 = json.load(open(V3 / f"{tag}.json"))["dev_at_cal_top1"]["own"]["dev"]["top1_image_macro"]
             ref2 = json.load(open(T22 / f"{tag}.json"))["detection_dev"]["acc_iou50_image_macro"]
             ok1, ok2 = abs(g1 - ref1) <= 0.003, abs(g2 - ref2) <= 0.003
             print(f"[{tag}] G1 given-box {g1:.4f} vs run {ref1:.4f} -> {'pass' if ok1 else 'FAIL'}; G2 all-proposal Acc@0.5 {g2:.4f} vs Table C {ref2:.4f} (diff {g2 - ref2:+.4f}) -> {'pass' if ok2 else 'FAIL'}", flush=True)
-            torch.save({"tag": tag, "epoch": ck["epoch"], "scores": sc, "gates": {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}}, outp)
+            torch.save({"tag": tag, "epoch": ck["epoch"], "image_ids": [m["image_id"] for m in meta], "scores": sc, "gates": {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}}, outp)
             res[tag] = {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}
     json.dump(res, open(OUT / f"gates_{ds}_{a.backbone}.json", "w"), indent=1)
     return 0

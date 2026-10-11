@@ -10,8 +10,9 @@ the plug-in S; neither is the common bounded J.  This version reads the common r
   common_J_boot_se  <- posterior.J_eval_boot_se    (the common-J bootstrap draws were not saved -> ordering probabilities are null + reason)
   native_*          <- native.value / own_truth / abs_error / boot_values, with the row's `estimand` and `evaluation_readout` (own panel only)
 
-Same selection as r3 (registered `selected` row per family; one selected row per family in every cell, checked).  Identity check per row:
-R_eval = 1 - J_eval on the same evaluation (violations listed).  Writes schema-versioned JSON, a per-row provenance table, an old-vs-new diff table
+Selection: the single registered `selected` row per family; families with zero or several flags are excluded and listed (no fallback).  Identity check
+per row: R_eval = 1 - J_eval on the same evaluation; a violating row's common readout is excluded (status identity_violation) and listed.  S_oracle per
+ladder cell is the seed mean of truth.S (per-seed values kept).  Writes schema-versioned JSON, a per-row provenance table, an old-vs-new diff table
 and a markdown summary to --out; raw JSONs and the r3 outputs are not touched.
     python scripts/p151_e0_aggregate_r4.py --out reports/R4/P151_r4
 """
@@ -29,10 +30,27 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from p151_e0_aggregate import LADDER, NATIVE, O, SAME, family, load_cells, selected_rows  # noqa: E402
+from p151_e0_aggregate import LADDER, NATIVE, O, SAME, family, load_cells  # noqa: E402
 
-SCHEMA = "p151_r4.1"
+SCHEMA = "p151_r4.2"
 NO_BOOT = "common-J bootstrap draws were not saved in the P85 records (only posterior.J_eval_boot_se); no ordering probability is formed from native draws"
+
+
+def selected_rows(d: dict) -> dict:
+    """Registered selection only: the single row flagged `selected` per family.  A family with zero or several flags is NOT selected (no order-based
+    or risk-based fallback); it is reported under metadata.selection_problems and left out of every panel."""
+    by = defaultdict(list)
+    for r in d["rows"]:
+        if r.get("selected"):
+            by[family(r["method"])].append(r)
+    return {fam: rows[0] for fam, rows in by.items() if len(rows) == 1}
+
+
+def selection_problems(d: dict) -> list:
+    by = defaultdict(list)
+    for r in d["rows"]:
+        by[family(r["method"])].append(r)
+    return [{"family": fam, "n_selected": sum(1 for r in rows if r.get("selected"))} for fam, rows in by.items() if sum(1 for r in rows if r.get("selected")) != 1 and fam in SAME + NATIVE]
 
 
 def common_fields(row: dict) -> dict:
@@ -45,11 +63,12 @@ def common_fields(row: dict) -> dict:
     if not math.isfinite(j):
         return {"common_J": None, "common_J_minus_S": None, "posterior_mse": p.get("posterior_mse"), "common_J_boot_se": None,
                 "status": "nonfinite_common_readout", "reason": "posterior.J_eval is not finite"}
-    out = {"common_J": j, "common_J_minus_S": p.get("J_eval_minus_S"), "posterior_mse": p.get("posterior_mse"), "common_J_boot_se": p.get("J_eval_boot_se"),
-           "status": "available", "reason": None}
-    r = p.get("R_eval")
-    out["identity_R_eq_1_minus_J"] = None if r is None else bool(math.isclose(float(r), 1 - j, rel_tol=1e-6, abs_tol=1e-8))
-    return out
+    r = p.get("R_eval"); ident = None if r is None else bool(math.isclose(float(r), 1 - j, rel_tol=1e-6, abs_tol=1e-8))
+    if ident is False:                                              # same-evaluation identity violated: the row's common readout is not used
+        return {"common_J": None, "common_J_minus_S": None, "posterior_mse": p.get("posterior_mse"), "common_J_boot_se": None,
+                "status": "identity_violation", "reason": f"R_eval {r} != 1 - J_eval {1 - j}; inspect schema / weights", "identity_R_eq_1_minus_J": False}
+    return {"common_J": j, "common_J_minus_S": p.get("J_eval_minus_S"), "posterior_mse": p.get("posterior_mse"), "common_J_boot_se": p.get("J_eval_boot_se"),
+            "status": "available", "reason": None, "identity_R_eq_1_minus_J": ident}
 
 
 def native_fields(row: dict) -> dict:
@@ -76,10 +95,8 @@ def main() -> int:
     lad = defaultdict(lambda: defaultdict(dict))
     for name, d in cells.items():
         c = d["cell"]
-        for fam in SAME + NATIVE:
-            sel = [r for r in d["rows"] if family(r["method"]) == fam and r.get("selected")]
-            if len(sel) > 1:
-                multi_sel.append({"cell": name, "family": fam, "methods": [r["method"] for r in sel]})
+        for prob in selection_problems(d):
+            multi_sel.append({"cell": name, **prob})
         if c["N"] != 4096 or c["B"] != 256 or c["updates"] != 2000 or c["I"] not in LADDER:
             continue
         if not ((c["setting"] in ("gaussian", "cubic") and c["d_signal"] == 20 and c["d_total"] == 20) or c["setting"] == "xor_mixture"):
@@ -100,8 +117,9 @@ def main() -> int:
         for I in LADDER:
             if I not in byI:
                 continue
-            seeds = byI[I]; truth = next(iter(seeds.values()))[0]
-            C_ = {"S_oracle": truth["S"], "S_se": truth.get("S_se"), "J_oracle": truth.get("J_oracle"), "families": {}}
+            seeds = byI[I]; truth = next(iter(seeds.values()))[0]; S_seeds = [t["S"] for t, _ in seeds.values()]
+            C_ = {"S_oracle": float(np.mean(S_seeds)), "S_oracle_seed_sd": float(np.std(S_seeds, ddof=1)) if len(S_seeds) > 1 else None, "S_oracle_per_seed": S_seeds,
+                  "S_se": truth.get("S_se"), "J_oracle": truth.get("J_oracle"), "families": {}}
             N_ = {"MI": truth.get("MI"), "JS2": truth.get("JS2"), "families": {}}
             St = {}
             for fam in SAME + NATIVE:
@@ -129,7 +147,7 @@ def main() -> int:
             I0, I1 = LADDER[k], LADDER[k + 1]
             if I0 not in byI or I1 not in byI:
                 continue
-            R_ = {"delta_S_oracle": float(next(iter(byI[I1].values()))[0]["S"] - next(iter(byI[I0].values()))[0]["S"]), "common": {}, "native": {}}
+            R_ = {"delta_S_oracle": float(np.mean([t["S"] for t, _ in byI[I1].values()]) - np.mean([t["S"] for t, _ in byI[I0].values()])), "common": {}, "native": {}}
             for fam in SAME + NATIVE:
                 dm_c, se_c, dm_n, probs_n = [], [], [], []
                 for s in sorted(set(byI[I0]) & set(byI[I1])):
@@ -190,7 +208,7 @@ def main() -> int:
                                      "changed": (ov is None) != (nv is None) or (ov is not None and nv is not None and abs(ov - nv) > 1e-9),
                                      "abs_change": None if ov is None or nv is None else abs(ov - nv)})
     meta = {"schema_version": SCHEMA, "inputs": {p: sha(p) for p in inputs}, "r3_outputs_compared": str(oldp) if oldp.exists() else None,
-            "selection": "registered `selected` row per family (r3 rule, imported); multi-selected families: " + (json.dumps(multi_sel[:5]) if multi_sel else "none in any cell"),
+            "selection": "registered `selected` row per family, exactly one required (no fallback)", "selection_problems": multi_sel,
             "identity_R_eq_1_minus_J_failures": identity_fail, "common_bootstrap_draws": NO_BOOT,
             "fields": {"common_J": "posterior.J_eval", "common_J_minus_S": "posterior.J_eval_minus_S", "posterior_mse": "posterior.posterior_mse",
                        "common_J_boot_se": "posterior.J_eval_boot_se", "native_value": "native.value (own estimand; own panel only)"}}
@@ -205,7 +223,7 @@ def main() -> int:
         by_field[x["r3_field"]][x["family"]].append(x["abs_change"] or 0.0)
     L = [f"# P151 r4 — corrected common-readout aggregation (schema {SCHEMA})", "",
          f"Cells loaded: {len(cells)}; ladder rows with provenance: {len(provenance)}; R = 1 − J identity failures: {len(identity_fail)}; multi-selected families: {len(multi_sel)}.", "",
-         "## Old (r3) vs new (r4) — same-target panel means that changed", "", "| r3 field → r4 field | family | cells changed | max |Δ| |", "|---|---|---|---|"]
+         "## Old (r3) vs new (r4) — same-target panel means that changed", "", "| r3 field → r4 field | family | cells changed | max abs change |", "|---|---|---|---|"]
     for of, fams in sorted(by_field.items()):
         for fam, v in sorted(fams.items()):
             L.append(f"| {of} → {dict(J_eval='common_J', J_minus_S='common_J_minus_S', posterior_mse='posterior_mse')[of]} | {fam} | {len(v)} | {max(v):.4f} |")
