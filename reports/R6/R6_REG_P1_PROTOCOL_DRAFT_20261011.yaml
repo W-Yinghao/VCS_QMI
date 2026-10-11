@@ -1,0 +1,38 @@
+# R6 REG-P1 — learned local-relation energy for cross-modal registration on BF/SHG, translation only.  DRAFT (implementation + smoke next);
+# frozen before any natural-data result.
+protocol_id: R6-REG-P1
+status: draft
+route: REG (reports/R6/R6_ROUTE_DECISION.md)
+go_ahead: owner standing authorization 2026-10-11 for useful experiments on free GPUs; one natural route (package docs/08 §1)
+question: >
+  Can a learned local cross-modal relation (critic trained on independent BF/SHG scenes, then frozen), used as the registration energy
+  F_T(φ) = J(T; P_φ, Q_φ), recover known translations more reliably than per-image MI / NMI, a same-target kernel critic and CoMIR
+  representations, all under one shared optimizer?
+data:
+  source: BF/SHG full-size TMA cores, Zenodo 4550300 (CC BY 4.0), train / validation1 / validation2 only, md5 verified; test (134) not downloaded
+  path: /projects/EEG-foundation-model/yinghao/data/bf_shg_4550300/{train,validation1,validation2} (_WB = bright-field, _MI = SHG)
+  roles: FIT = 32 train pairs, CAL = 8 train pairs (chosen by sorted sha256 of the core id before any result), DEV = validation1 + validation2 (32 pairs)
+  independent_unit: TMA core (image pair); every statistic aggregates per image first
+  preprocessing: BF RGB -> luminance; both modalities area-downsampled ×4 (2048 -> 512); per-image robust normalisation (median / IQR); identical for every method
+transform: translation only; |t| <= 51 px at 512 px (10 % of the side); 10 seeded perturbations per DEV / CAL image, stratified by magnitude (0–17 / 17–34 / 34–51 px); SHG is the moving image
+support: fixed central Ω = [64, 448)² at 512 px (inside the image for every allowed translation); bilinear resampling on both sides including the identity; align_corners = False
+laws: P_φ = (U(x), V(x + φ)), Q_φ = (U(x), V(x' + φ)) with x, x' independent uniform on Ω in the same scene (within-scene reference, not global QMI); 4 096 positions per energy evaluation with a fixed RNG per (image, perturbation), shared by all methods
+observer: two 4-layer CNN encoders (BF, SHG; 32 channels; receptive field 31 px; no coordinates, no image identity) -> 16-d dense descriptors; joint MLP critic (32 -> 64 -> 64 -> 1) f; T = tanh f
+fit_methods: {VCS: J on T = tanh f, logistic: balanced logistic on 2f (common readout T = tanh f), InfoNCE: own normalisation over within-scene negatives}; seeds 0–2 each
+training: FIT at φ = 0; 16 scenes × 128 positions per step; identical flips / 90° rotations for both modalities; AdamW 1e-3; 3 000 steps; checkpoint every 250; selection = CAL registration success (< 42 px), ties earliest
+reference_methods:
+  - MI and NMI on raw normalised intensities (64-bin joint histogram, Parzen-smoothed; P60 code), deterministic
+  - same-target closed-form kernel critic (RFF on raw 9 × 9 patches; bandwidth on CAL), deterministic
+  - CoMIR representations trained on FIT with the official code and default recipe (seeds 0–2) + MSE energy under the same optimizer; labelled "CoMIR features + our optimizer", not the native SIFT / α-AMD pipeline
+optimizer: identical for every energy — coarse grid over the allowed disk at 4 px, best 3 starts refined by 100 Adam steps on φ (lr 0.5 px), final = best energy
+metrics:
+  primary: per image, success rate at < 42 px and < 9 px of full-resolution error (CoMIR's 5 % / 1 % of 834 px); image-macro over DEV
+  secondary: median and 90th-percentile error; success by magnitude stratum; runtime per registration; training cost; F_T(φ) profiles for 5 DEV images; critic Ĵ at φ = 0 (J is not the success criterion)
+statistics: mean ± sd over seeds; contrasts paired by seed and image — VCS − MI, VCS − NMI, VCS − logistic, VCS − InfoNCE, VCS − kernel, VCS − CoMIR — with 95 % t over seeds and an image bootstrap shared across methods
+primary_contrasts: [VCS − MI (success < 42 px), VCS − CoMIR features (success < 42 px)]
+wording_fixed:
+  - "interval containing 0 -> no detectable difference; above / below 0 -> VCS registers x more / fewer DEV images"
+  - "VCS ≈ logistic ≈ InfoNCE -> a learned-critic class effect; no VCS-specific claim (package docs/04 §8)"
+  - "a stronger CoMIR is reported as is; the baseline is never weakened"
+budget: measured by the smoke before freezing (critic training, CoMIR training, registrations)
+official_test_access: false
