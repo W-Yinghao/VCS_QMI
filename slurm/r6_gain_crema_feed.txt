@@ -1,0 +1,8 @@
+# R6 GAIN-P1 CREMA-D — submit only after reports/R6/R6_GAIN_P1_CREMAD_PROTOCOL_*.yaml is frozen.  The decoded cache
+# (outputs/R6_GAIN/cremad/cache) is built by the CPU smoke job; the bundles only train / route / time.
+# Recommended: cv5 (5-fold actor cross-fitting), 10 seeds, one GPU job per family in parallel, then one CPU aggregate after both
+# (each bundle also aggregates at its end; the CPU job gives the complete table once both are done).
+b=$(sbatch --parsable --job-name=r6crema_p1_brier slurm/r6_gain_crema_bundle.sbatch cv5 10 brier)
+c=$(sbatch --parsable --job-name=r6crema_p1_ce slurm/r6_gain_crema_bundle.sbatch cv5 10 ce)
+sbatch --parsable --dependency=afterok:$b:$c --job-name=r6crema_p1_agg slurm/r6_gain_crema_cpu.sbatch aggregate --mode cv5
+# Alternative (single actor split, 5x cheaper, 9 DEV actors): sbatch --parsable slurm/r6_gain_crema_bundle.sbatch single 10 "brier ce"

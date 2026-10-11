@@ -1,0 +1,127 @@
+# R6 GAIN-P1 CREMA-D — on-demand video branch for emotion recognition (second natural dataset of GAIN-P1).  DRAFT by the implementing fork;
+# the main session freezes, commits and submits.  Mirrors the frozen AV-MNIST protocol (reports/R6/R6_GAIN_P1_PROTOCOL_FROZEN_20261012.yaml)
+# wherever it applies; CREMA-D-specific choices are marked "CREMA-D".  No result has been seen: the smokes below use tiny subsets.
+protocol_id: R6-GAIN-P1-CREMAD
+status: draft
+parent_protocol: reports/R6/R6_GAIN_P1_PROTOCOL_FROZEN_20261012.yaml
+package: r6/package_r6_20261011 docs/05_EVIDENCE_GAIN_CN.md (§3 "真正视觉场景：CREMA-D音视频（演员不重叠；官方原始视频）"), machine/gain_draft.json
+go_ahead: >
+  Owner 2026-10-11: "这个包和上个包的数据全都下载到/projects/EEG-foundation-model …" (directed downloads, CREMA-D included; ODbL 1.0 /
+  DbCL 1.0; the GitHub registration form is noted in reports/R6/R6_DATA_NOTES.md) and "总之不要让GPU空着，这几个包的任务全都需要完成".
+question: >
+  As for AV-MNIST — can a policy that sees only the cheap branch rank which clips are worth the extra branch better than cheap
+  uncertainty and random selection; is z = ||b − a||² a usable target or must h be regressed — plus, here, the cost question: with real
+  video decoding in the extra branch, what end-to-end wall-clock does each policy pay for its risk, relative to never / always?
+data:
+  source: >
+    CREMA-D (github.com/CheyneyComputerScience/CREMA-D), media verified by the data steward (sha256 + size against the LFS pointers,
+    2026-10-11 22:26:30Z) at /projects/EEG-foundation-model/yinghao/data/crema_d/media/{AudioWAV, VideoFlash}: 7442 clips, 91 actors,
+    12 sentences, 6 intended emotions (ANG, DIS, FEA, HAP, NEU, SAD); all six kept (NEU 1087 clips, the others 1271 each).
+  provenance: >
+    data/DATA_MANIFEST.json items.crema_d: status done, 14 884 / 14 884 files verified (sha256 + size against the LFS pointers), failed [],
+    3 048 921 077 bytes, repo commit 1658cd342dff90010aa843eaeebd53610a08b1dc, finished 2026-10-11T22:26:30Z; the repo working tree was
+    replaced by hard links to the same verified files at 23:04:04Z (AudioMP3 not fetched).  The code reads media/ only (same bytes).
+    Note for the data steward: the entry still carries a stale "error" field (4 failed files) that contradicts failed = [] and 14 884 verified.
+  label: intended emotion from the file name ActorID_Sentence_Emotion_Level (not the crowd-perceived label)
+  official_test: CREMA-D has no official split; every role comes from the 7442 clips
+  roles_recommended: >
+    cv5 — 5-fold actor cross-fitting: the 91 actors are permuted (seed 20261012) into folds of 18 / 18 / 18 / 18 / 19 actors; for fold k,
+    DEV = fold k and the other actors split 60 : 20 : 10 into FIT_TASK / FIT_POLICY / CAL (fold-specific permutation).  Every clip is DEV
+    exactly once, so DEV has all 91 actors as clusters; each (family, seed) is 5 systems.  Fold sizes (clips / actors; record with sha256 in
+    outputs/R6_GAIN/cremad/roles_cv5.json): DEV 1458–1558 / 18–19, FIT_TASK 3928–4017 / 48–49, FIT_POLICY 1300–1311 / 16, CAL 650–656 / 8.
+  roles_alternative: >
+    single — the 55 / 18 / 9 / 9-actor split of outputs/R6_GAIN/cremad/roles.json (4492 / 1475 / 738 / 737 clips): 5x cheaper, but DEV
+    holds only 9 actors, too few clusters for the actor bootstrap.
+  U: >
+    audio — WAV (16 kHz, int16) -> first 4 s, zero-padded -> log-mel 64 x 400 (400-point Hann window, 10 ms hop, HTK mel 0–8 kHz,
+    log(· + 1e-6)), normalised with FIT_TASK mean / sd; computed on the GPU inside the U branch
+  media_facts: >
+    probe 2026-10-12 (outputs/R6_GAIN/cremad/probe.json): audio 16 kHz int16 for all 7442 clips, 1.1 % longer than 4 s (cropped); video in
+    an FLV container, 480 x 360, 29.97 fps, yuv420p.  Codec census (outputs/R6_GAIN/cremad/codecs.json): 7411 VP6F and 31 H.264 clips;
+    H.264 occurs in every emotion (3–7 clips each) and for 19 actors who also have VP6F clips.  The codec of every DEV clip is stored with
+    the cost table and decode cost is reported by codec.
+  V: >
+    video — FLV (H.264 / VP6F) decoded in-process with PyAV 19.0.1 (one decoder thread; all frames decoded, as inter-coded frames require); 8 uniformly
+    spaced frames -> central square crop -> 112 x 112 (bilinear, antialiased) -> uint8.  The training cache (outputs/R6_GAIN/cremad/cache)
+    is produced by the same decoder and code as the deployed path.  New env /projects/EEG-foundation-model/yinghao/envs/r6_av (PyAV only;
+    reuses the main env's packages read-only); the ffmpeg 8.1 module is used for ffprobe and a decoder cross-check.
+  U_V_choice: >
+    CREMA-D: (i) cost asymmetry — video needs H.264 / VP6F decoding plus 8 per-frame CNN passes, audio is PCM plus one CNN pass; (ii) both carry
+    emotion evidence (crowd recognition in CREMA-D, Cao et al. 2014: audio-only ≈ 41 %, video-only ≈ 58 %, audio-visual ≈ 64 %), so the
+    extra branch can add task information; (iii) the reverse order would make the always-run branch the expensive one.
+system:
+  architecture: >
+    ResNet-18 audio encoder (conv1 with one input channel) -> linear head a(U) on 512-d features; ResNet-18 per-frame video encoder, mean
+    over the 8 frames -> fusion MLP(1024 -> 256 -> 6) on [audio, video] features -> b(U, V)
+  init: >
+    CREMA-D: both encoders from the same torchvision ImageNet ResNet-18 checkpoint (IMAGENET1K_V1, local file resnet18-f37072fd.pth; audio
+    conv1 = RGB-summed weights), fine-tuned end to end ("统一预训练初始化", package §8).  Alternative: from scratch (OGM-GE practice).
+  families: "brier = multi-class Brier on softmax probabilities; ce = cross-entropy; loss = L(a) + L(b), end to end, no frozen features"
+  shared_encoder_note: the audio encoder is shared by a and b (b costs only the V branch + fusion); a's features are also shaped by b's loss (disclosed)
+  training: FIT_TASK only; AdamW lr 3e-4, weight decay 1e-4, batch 32 clips, 30 epochs, no augmentation; epoch selected on CAL by Brier(a) + Brier(b)
+  seeds: 0–9 per family — affordable at the measured per-system time (see budget)
+policies:
+  inputs: audio features (512) + a's probabilities (6) = 518 — never V, b, y or a gain; trained on FIT_POLICY out-of-sample predictions
+  gain_z: MLP(518 -> 64 -> 64 -> 1) regressing z; MSE on standardised targets; Adam 1e-3; <= 300 epochs; early stopping on CAL (patience 30)
+  gain_h: same MLP regressing h (standard risk-improvement regression); negative h kept
+  baselines: never, always, random (exactly ⌈βn⌉, 20 repeats), entropy of a, 1 − max a
+  oracles: true h and true z per DEV clip (finite-model upper bounds; not deployable)
+  not_run: EDDI and AdaMML — recorded as not run, not replaced by weaker stand-ins
+routing:
+  budgets: β ∈ {0.10, 0.25, 0.50, 0.75}; endpoints never (0) and always (1)
+  primary: exact-rate routing — within each DEV fold, every policy acquires the top ⌈βn⌉ clips by its score (labels never used; ties by a seeded random order, seed 20261011 + system seed)
+  secondary: deployable thresholds = (1 − β) quantile of CAL scores, with realised DEV rates
+  role_use: CAL for epoch selection, policy early stopping and thresholds; DEV is read once, by the bundle
+metrics:
+  primary_risk: per family, mean DEV Brier over the four budgets under exact-rate routing (discrete area under the risk–budget curve)
+  primary_cost: >
+    CREMA-D, fixed before any result: end-to-end wall-clock in ms per clip at batch size 1 (online: a clip arrives, the U branch and the
+    policy run, the video is decoded and the V branch + fusion run only if acquired).  Per-clip table measured for every DEV clip with
+    seed 0 of each family (every fold), on the bundle's GPU node: one warm-up pass, then the median of 3 repeats per clip; CPU work single-
+    threaded (decoder thread 1, torch threads 1).  t_U = WAV read + log-mel + U branch + head a; t_pol = policy (MLP for gain_z / gain_h,
+    entropy for entropy / 1 − max p, 0 for random); t_V = FLV read + decode (H.264 or VP6F) + frame selection / crop / resize + V branch + fusion.
+    cost(policy, β) = mean over DEV clips of t_U + t_pol + 1[acquired] t_V (random: + (⌈βn⌉ / n) t_V); never = mean t_U; always = mean (t_U + t_V).
+  primary_cost_claim_form: >
+    "at budget β, policy P reaches DEV Brier R at C ms / clip (x % of always)", with never / always as endpoints.  Matched-budget contrasts
+    are also near-matched-cost; the per-policy cost difference at each budget (from clip-length differences) is reported with them.
+  secondary: >
+    per-budget Brier and accuracy; always − never; CAL-threshold curves; gain calibration deciles; corr(score, h); regret to oracle_h; share
+    of DEV clips with h > 0; identity check; cold first-pass times; component breakdown; GPU / host memory.  Batch > 1 throughput is not
+    measured in this round (stated, not substituted).
+statistics:
+  contrasts: per family, on the budget mean (primary) and per budget (secondary) — gain_h − entropy, gain_h − random, gain_z − gain_h, gain_z − entropy, gain_h − oracle_h, entropy − random; plus always − never
+  primary_interval: two-way bootstrap resampling seeds and DEV actors jointly; B = 2000; 95 % percentile
+  secondary_intervals: seed-paired t (df = seeds − 1); actor-cluster bootstrap conditional on the trained systems
+wording_fixed:
+  - "always ≈ never (interval contains 0) -> no acquisition reading on CREMA-D"
+  - "gain_h beats entropy and random -> the realised-improvement regression ranks better; this is standard risk regression, not a CS-specific method"
+  - "gain_z worse than gain_h -> the squared disagreement is not a safe acquisition target for these finite models"
+  - "entropy ≈ gain_h -> no advantage over cheap uncertainty"
+  - "an interval containing 0 only contains 0"
+  - "cost savings are measured wall-clock at batch size 1 on the stated CPU / GPU; FLOPs or call counts are never substituted for wall-clock"
+budget: >
+    Measured on RTX PRO 6000 (GPU smoke 1034804, node61, AMD EPYC 9275F): 25 ms per training step of 32 clips at steady state, so a full
+    epoch (≈ 125–141 steps + CAL) takes ≈ 4 s and 30 epochs ≈ 2 min; with loading, prediction and the two policies ≈ 3 min per system.
+    GPU memory 4.1 GB allocated (4.2 GB reserved); host RSS 5.2 GB.  The per-clip cost table (seed 0 of each family) adds 4 passes x ≈ 37 ms
+    per DEV clip: ≈ 2 min (single) or ≈ 18 min (cv5, all 7442 clips) per family.
+    cv5, 10 seeds, 2 families = 100 systems ≈ 5 h + 37 min of timing on RTX PRO 6000 — two per-family jobs in parallel ≈ 2.8 h each
+    (L40S ≈ 1.9x slower for training: ≈ 5.3 h each; 12 h limit).  single, 10 seeds, 2 families = 20 systems ≈ 1.1 h in one job.
+execution:
+  code: scripts/r6_gain_crema.py (imports scripts/r6_gain_pilot.py, frozen; never modifies it); tests/test_r6_gain_crema.py
+  prep: >
+    outputs/R6_GAIN/cremad/cache (wave_i16.npy 952 MB, frames_u8.npy 2.24 GB, labels.npy, meta.json) built once by CPU job 1034776 with
+    PyAV, 16 workers, 262 s; all 7442 clips 480 x 360; 1.1 % of the audio cropped at 4 s
+  smokes: >
+    CPU 1034776 (probe, prep, tests 10/11 — the PyAV-vs-ffmpeg-CLI check failed on frame count, 67 vs 68, because the CLI's rawvideo
+    output defaults to constant-frame-rate duplication; fixed with -fps_mode passthrough and re-tested in the check job; the cache and
+    cost paths use PyAV only), CPU smoke run brier s0 (128 / 64 / 64 / 64 clips, 1 epoch, per-clip costs on the CPU node, single thread:
+    t_U 31.7 ms, t_V 160.5 ms of which decode 59.5 ms, crop / resize 11.7 ms; host RSS 6.2 GB); GPU smoke 1034804 (ce s0, 1024 / 256 / 256 / 256
+    clips, 2 epochs, per-clip costs on node61: t_U 1.65 ms, t_V 34.7 ms = decode 28.5 + crop / resize 4.75 + V branch and fusion 1.49;
+    never 1.65 ms, always 36.4 ms per clip; cold first pass t_U 32.6 / t_V 53.9 ms; exit 0); check job 1034811 (tests 11/11 — PyAV and the
+    ffmpeg CLI with -fps_mode passthrough decode identical frames; roles_cv5.json; codec census; exit 0).  Smoke risk numbers are not results.
+  bundle: slurm/r6_gain_crema_bundle.sbatch MODE N_SEEDS FAMILIES — one GPU job per call (RTX6000PRO,H100,L40S; --exclude=node51,node52,node60; 12 h)
+  submit: "slurm/r6_gain_crema_feed.txt — cv5 = one bundle per family in parallel, then slurm/r6_gain_crema_cpu.sbatch aggregate --mode cv5 afterok both"
+official_test_access: not applicable (no official split)
+changelog:
+  - "2026-10-12 v1 (fork): first draft"
+  - "2026-10-12 v2 (fork): measured facts added — provenance (manifest items.crema_d), codec census (7411 VP6F / 31 H.264), cv5 fold sizes, GPU smoke timing and per-clip costs, budget; seeds fixed at 0–9 per family; decoder cross-check fixed (-fps_mode passthrough)"
