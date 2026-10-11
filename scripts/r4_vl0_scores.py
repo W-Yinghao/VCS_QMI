@@ -26,12 +26,15 @@ from vl1_22_tableC import TOPK, iou_xyxy  # noqa: E402
 from vl3_finetune import CKPT, CLIP_ARCHS, SIGLIP_REPOS, RG, Backbone  # noqa: E402
 
 V3 = Path("/home/infres/yinwang/CS_QMI/outputs/VL3"); PROP = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21/proposals")
+R4OUT = Path("/home/infres/yinwang/CS_QMI/outputs/R4_VL1"); R4CK = Path("/projects/EEG-foundation-model/yinghao/models/r4_vl1")
 T22 = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_22"); OUT = Path("/home/infres/yinwang/CS_QMI/outputs/R4_VL0"); CHUNK = 256
 
 
-def score_path(ds: str, backbone: str, objective: str, seed: int, role: str = "DEV") -> Path:
-    """One definition of the score-file layout, shared with the analyser (DEV in scores/, other roles in scores_<role>/)."""
-    return OUT / ("scores" if role == "DEV" else f"scores_{role}") / f"{ds}_{backbone}_{objective}_s{seed}.pt"
+def score_path(ds: str, backbone: str, objective: str, seed: int, role: str = "DEV", source: str = "vl3") -> Path:
+    """One definition of the score-file layout, shared with the analysers: VL3 checkpoints in scores/ (DEV) and scores_<role>/; R4-VL1 checkpoints in
+    scores_r4vl1/ (DEV) and scores_r4vl1_<role>/."""
+    sub = ("scores" if role == "DEV" else f"scores_{role}") if source == "vl3" else ("scores_r4vl1" if role == "DEV" else f"scores_r4vl1_{role}")
+    return OUT / sub / f"{ds}_{backbone}_{objective}_s{seed}.pt"
 
 
 def meta_path(ds: str, role: str = "DEV") -> Path:
@@ -112,8 +115,9 @@ def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS))
     ap.add_argument("--objectives", nargs="+", default=["vcs", "js", "softmax"]); ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument("--role", default="DEV", choices=["DEV", "CAL"], help="CAL: for the R4-VL1 top-K arm (K chosen on CAL); G2 has no CAL reference")
+    ap.add_argument("--source", default="vl3", choices=["vl3", "r4vl1"], help="r4vl1: the proposal-trained R4-VL1 checkpoints (secondary readouts of the R4-VL1 protocol)")
     ap.add_argument("--workers", type=int, default=8); a = ap.parse_args()
-    dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus"); score_path(ds, a.backbone, "vcs", 0, a.role).parent.mkdir(parents=True, exist_ok=True)
+    dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus"); score_path(ds, a.backbone, "vcs", 0, a.role, a.source).parent.mkdir(parents=True, exist_ok=True)
     scenes, _ = RG.load_scenes(); role = RG.dev_roles(scenes)
     mp = meta_path(ds, a.role)
     if mp.exists():
@@ -124,19 +128,23 @@ def main() -> int:
     bb = Backbone(a.backbone).to(dev); res = {}
     for o in a.objectives:
         for s in a.seeds:
-            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = score_path(ds, a.backbone, o, s, a.role)
+            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = score_path(ds, a.backbone, o, s, a.role, a.source)
             if outp.exists():
                 res[tag] = torch.load(outp, weights_only=False)["gates"]; print("exists", tag, flush=True); continue
-            ck = torch.load(CKPT / f"{tag}_calTop1.pt", map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
+            ckp = CKPT / f"{tag}_calTop1.pt" if a.source == "vl3" else R4CK / f"{tag}_calAcc.pt"
+            ck = torch.load(ckp, map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
             sc = score_all(bb, meta, dev, a.workers); g1, g2 = gates(meta, sc)
-            ref1 = json.load(open(V3 / f"{tag}.json"))["dev_at_cal_top1"]["own"]["dev" if a.role == "DEV" else "cal"]["top1_image_macro"]
-            ref2 = json.load(open(T22 / f"{tag}.json"))["detection_dev"]["acc_iou50_image_macro"] if a.role == "DEV" else None      # Table C has no CAL readout
+            if a.source == "vl3":
+                ref1 = json.load(open(V3 / f"{tag}.json"))["dev_at_cal_top1"]["own"]["dev" if a.role == "DEV" else "cal"]["top1_image_macro"]
+                ref2 = json.load(open(T22 / f"{tag}.json"))["detection_dev"]["acc_iou50_image_macro"] if a.role == "DEV" else None      # Table C has no CAL readout
+            else:                                                                   # R4-VL1: the run's own DEV readouts at the selected epoch (DEV only)
+                rr = json.load(open(R4OUT / f"{tag}.json"))["dev_at_selected"]; ref1 = rr["given_box_top1_image_macro"]; ref2 = rr["acc50"]["image_macro"]
             ok1 = abs(g1 - ref1) <= 0.003; ok2 = True if ref2 is None else abs(g2 - ref2) <= 0.003
             print(f"[{tag}] {a.role} G1 given-box {g1:.4f} vs run {ref1:.4f} -> {'pass' if ok1 else 'FAIL'}; G2 all-proposal Acc@0.5 {g2:.4f}"
                   + (f" vs Table C {ref2:.4f} (diff {g2 - ref2:+.4f}) -> {'pass' if ok2 else 'FAIL'}" if ref2 is not None else " (no reference on CAL) -> pass"), flush=True)
             torch.save({"tag": tag, "role": a.role, "epoch": ck["epoch"], "image_ids": [m["image_id"] for m in meta], "scores": sc, "gates": {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}}, outp)
             res[tag] = {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}
-    json.dump(res, open(OUT / f"gates_{ds}_{a.backbone}{'' if a.role == 'DEV' else '_' + a.role}.json", "w"), indent=1)
+    json.dump(res, open(OUT / f"gates_{ds}_{a.backbone}{'' if a.role == 'DEV' else '_' + a.role}{'' if a.source == 'vl3' else '_' + a.source}.json", "w"), indent=1)
     return 0
 
 

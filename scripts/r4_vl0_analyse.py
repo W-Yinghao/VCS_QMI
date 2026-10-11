@@ -132,8 +132,10 @@ def quantities(per):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--datasets", nargs="+", default=["refcocog", "refcocoplus"]); ap.add_argument("--backbone", default="siglip2_b16"); a = ap.parse_args()
-    rp = OUT / "R4_VL0_results.json"; res = json.load(open(rp)) if rp.exists() else {"datasets": {}}
+    ap = argparse.ArgumentParser(); ap.add_argument("--datasets", nargs="+", default=["refcocog", "refcocoplus"]); ap.add_argument("--backbone", default="siglip2_b16")
+    ap.add_argument("--source", default="vl3", choices=["vl3", "r4vl1"], help="r4vl1: the same diagnostics for the proposal-trained R4-VL1 checkpoints"); a = ap.parse_args()
+    stem = "R4_VL0" if a.source == "vl3" else "R4_VL1_diagnostics"
+    rp = OUT / f"{stem}_results.json"; res = json.load(open(rp)) if rp.exists() else {"datasets": {}}
     res.update({"protocol": "reports/R4/R4_VL0_PROTOCOL_20261011.md", "backbone": a.backbone})
     for ds in a.datasets:
         meta = torch.load(SCORES_ROOT / f"meta_{ds}.pt", weights_only=False); G = geometry(meta)
@@ -141,7 +143,7 @@ def main() -> int:
         per = {}
         for o in OBJS:
             for s in SEEDS:
-                f = score_path(ds, a.backbone, o, s)
+                f = score_path(ds, a.backbone, o, s, "DEV", a.source)
                 if not f.exists():
                     R["missing"].append(f.name); print("MISSING", f.name, flush=True); continue
                 x = torch.load(f, weights_only=False); R["gates"][x["tag"]] = x["gates"]
@@ -167,7 +169,7 @@ def main() -> int:
             v.pop("_keys", None)
         res["datasets"][ds] = R
     OUT.mkdir(parents=True, exist_ok=True); json.dump(res, open(rp, "w"), indent=1)
-    L = ["# R4-VL0 — candidate diagnostics (exploratory; items 3–4 oracle-assisted)", "",
+    L = [f"# {stem} — candidate diagnostics, {a.source} checkpoints (exploratory; items 3–4 oracle-assisted)", "",
          "`oracle_nd_<n>_acc` is the frozen reading (queries with fewer than n distractors are scored against all they have); `_frac_full` = fraction of covered queries with >= n "
          "distractors; `_acc_strict` = restricted to those queries.  Contrasts: VCS − other, per-seed differences of per-image means, image bootstrap 95 %.", ""]
     for ds, R in res["datasets"].items():
@@ -185,7 +187,7 @@ def main() -> int:
         for k, v in R["contrasts"].items():
             L.append(f"| {k} | {100 * v['mean']:+.2f} | [{100 * v['image_boot_95'][0]:+.2f}, {100 * v['image_boot_95'][1]:+.2f}] | " + ", ".join(f"{100 * x:+.2f}" for x in v["per_seed"]) + " |")
         L.append("")
-    (OUT / "R4_VL0_tables.md").write_text("\n".join(L)); print("\n".join(L[:12]))
+    (OUT / f"{stem}_tables.md").write_text("\n".join(L)); print("\n".join(L[:12]))
     return 0
 
 
