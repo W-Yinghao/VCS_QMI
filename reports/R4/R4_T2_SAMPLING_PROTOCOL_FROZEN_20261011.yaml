@@ -1,0 +1,73 @@
+# R4-T2 — fixed-critic paired-sampling validation.  FROZEN before any R4-T2 result (smoke only).  CPU only.
+protocol_id: R4-T2
+status: frozen
+supersedes_draft: reports/R4/R4_SAMPLING_PROTOCOL_DRAFT_20261011.yaml
+companion: reports/R4/R4_T1_STATISTICAL_OBJECT_20261011.md (R4-T1 deliverable: object, hypotheses H1–H8, assumption–derivation–implementation–literature)
+go_ahead: owner 2026-10-11 "都开始做，做完整" (start R4-02, R4-T1/T2 and R4-E1 and do them completely), after the status report listing R4-T1/T2 as drafted only
+research_question: >
+  With a fixed critic and independent base observations (or images), when negative pairs share base observations, which interval procedures
+  cover J(T) at the nominal rate and at what cost; separately, how often does a lower bound for J(T) under-cover S (J ≤ S)?
+estimands:
+  cross_pair: J(T) = E_P a₊(T) + E_Q a₋(T), Q = P_X ⊗ P_Y (two-sided); S = E_M η² (one-sided, via J ≤ S)
+  image_local: μ_G(T) = E_G J_G(T) (two-sided); E_G S_G = E[(r − 1)/(r + 1)] (one-sided)
+independent_unit: base observation W_i = (X_i, Y_i) (cross-pair) or image G (image-local); never a pair
+stages:
+  1a_finite_cross: >
+    4 × 5 grid; P1 ~ Dirichlet(0.3) on the 20 cells (numpy seed [20261011, 1]); P_ρ = (1 − ρ) P_X ⊗ P_Y + ρ P1 (marginals fixed); levels
+    independent ρ = 0, weak S = 0.05, strong S = 0.40 (ρ by bisection on [0, 0.95]; if S(0.95) < 0.40, ρ = 0.95 and the S reached is recorded).
+    Exact J(T), S, ζ₁, E h₂², Var Ĵ by enumeration.
+  1b_finite_image_local: same P_ρ levels; image = r ~ U{2, ..., 6} iid pairs; P_G uniform on the r matched index pairs, Q_G uniform on all r × r index pairs.
+  2_existing_generators: >
+    src/vcs_estim/data.py setting_from_mi: gaussian (d 20) and xor_mixture (10 pairs) at I ∈ {0, 0.1, 2} nats; critics evaluated with the
+    analytic PMI (η = tanh(pmi / 2)); truths J(T) and S by Monte Carlo on 2 × 10⁶ TRUTH pairs per side (own seeds; MC SE recorded).
+  3_learned_critic_conditional: >
+    Runs only if the implementation checks below pass.  P85 JointMLP critics trained with src/vcs_estim/benchmark.py train_neural (variant
+    product, lr 5e-4 fixed, N_FIT 4096, B 256, 2000 updates, selection on SELECT as in P85) on gaussian d 20, I = 2 nats; kinds VCS (T = tanh f)
+    and JS (T = tanh(f / 2)), training seeds 0–4 (each with its own FIT data).  Per trained critic: J(T_s) by Monte Carlo on 4 × 10⁵ pairs per
+    side; 500 EVAL draws at n ∈ {128, 512} with the cross-pair readouts; training-variance decomposition (Var_s J(T_s) vs mean EVAL variance)
+    and coverage of the pipeline mean E_s J(T_s) by single-critic intervals.  The same common readout for both kinds (not VCS-only).
+critics:   # fixed before any EVAL draw; nothing is fitted in stages 1–2
+  - zero (T = 0)
+  - optimum (T = η)
+  - prescribed_error (T = clip(0.7 η + 0.1, −1, 1))
+  - fixed_random (stage 1 only, labelled addition: T = tanh(z), z ~ N(0, 0.5²) per grid cell, seed [20261011, 2]; non-degenerate under independence)
+sample_sizes: n ∈ {32, 128, 512} base observations (cross-pair) or images (image-local)
+draws: 500 EVAL draws per cell (actual count recorded); seeds SeedSequence([20261011, stage, cell index, draw])
+readouts:
+  cross_pair:
+    - pair_iid_naive (negative control): SE² = var(a₊)/n + var(b)/(n(n − 1))
+    - u_jackknife: delete-one jackknife of the U-statistic; normal interval
+    - blocks: m = n/2 disjoint pairs, mean of k_T; t interval and Hoeffding radius √(8 log(2/δ)/m)
+    - bounded_difference: Ĵ ± √(32 log(2/δ)/n)
+    - sparse_shifts: K ∈ {1, 4, 16} uniform cyclic shifts without replacement; conditional variance formula vs 2000 resamples (first 20 draws per
+      cell); total variance; incomplete-design delete-one jackknife interval (exploratory); critic evaluations (n + K n vs n²) and wall time
+  image_local:
+    - image_cluster_t (t over the N image values J_G)
+    - pooled_pair_iid (negative control)
+    - image_hoeffding: √(8 log(2/δ)/N)
+    - cluster_bootstrap: 1000 resamples of images, percentile
+  delta: 0.05 (two-sided 95 %; one-sided LCB at 95 %)
+metrics: [coverage_J_two_sided, coverage_J_one_sided, coverage_S_one_sided, mean_width, mean_bias, MC_variance_vs_exact, wall_seconds, critic_evaluations]
+statistics:
+  coverage_MC_interval: Wilson 95 % over the draws
+  under_coverage_wording: "a readout under-covers at n when its Wilson interval lies below 0.95"
+  cross_cell_inference: none (descriptive)
+implementation_checks:   # gate for stage 3; failures are fixed, not explained away
+  - exact variance (1a, non-degenerate): MC variance / exact Var Ĵ within its 99.9 % percentile bootstrap interval over draws
+  - unbiasedness (1a, 1b, 2): |mean Ĵ − target| ≤ 3.3 combined SE (MC of the draws, plus the TRUTH MC SE in stage 2)
+  - conditional variance (sparse): mean resampled / formula ratio within [0.95, 1.05]
+  - bounded radii: coverage ≥ 0.95 − 3.3 MC SE in every cell
+claims:
+  type: standard_instantiation_check
+  wording_fixed:
+    - "an interval for J(T) is not a two-sided interval for S"
+    - "bounded radii are valid but wide; width is reported and never used as evidence of efficiency"
+    - "fixed-critic intervals do not cover training variability (stage 3)"
+    - "degenerate cells (constant critic) are reported and flagged, not used for normal-approximation claims"
+permissions:
+  budget: CPU partition only
+  official_test_access: false
+  restart_closed_SSL: false
+  replace_manuscript: false
+code: scripts/r4_t2_sampling.py, scripts/r4_t2_aggregate.py, tests/test_r4_t2_sampling.py, slurm/r4_t2_cpu.sbatch, slurm/r4_t2_aggregate_cpu.sbatch
+smoke: unit tests 11/11 (job 1033997); stage smokes 1033998-1034001 (5 draws, n = 32; code path only); aggregator smoke 1034003 (its variance-check failures reflect 5 draws, not a result)
