@@ -1,0 +1,150 @@
+{
+ "package": "r5",
+ "date": "2026-10-11",
+ "columns": [
+  "claim_id",
+  "claim_text",
+  "source_kind",
+  "status",
+  "assumptions",
+  "experiment",
+  "allowed_conclusion",
+  "not_implied",
+  "owner_decision"
+ ],
+ "claims": [
+  {
+   "claim_id": "R4VL2-score-reference-gain",
+   "claim_text": "Training VCS / JS with ν ∝ detector score (rank log ν + 2f) raises all-proposal Acc@0.5 by +2.1 to +2.7 over uniform-ν training",
+   "source_kind": "E-reg",
+   "status": "supported",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates",
+   "experiment": "R4-VL2 C2 (89ceb47 / 2b967a2)",
+   "allowed_conclusion": "the score-reference model with its corrected rank is about 2 points more accurate than the uniform model with plain cosine",
+   "not_implied": "that the estimator law (rather than detector information) causes the gain",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R4VL2-fusion-explains",
+   "claim_text": "Giving the uniform models the same detector information at test time (λ chosen on CAL) matches the score-reference gain",
+   "source_kind": "E-reg + E-exp",
+   "status": "supported with scope",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates",
+   "experiment": "R4-VL2 C3b (fixed λ) and R5-10 F1 C2 +0.20 / +0.69, intervals contain 0 (f243936)",
+   "allowed_conclusion": "no detectable training effect beyond test-time fusion and CAL calibration, in total with model selection",
+   "not_implied": "absence of any training effect (F2 not identifiable; containment is not equivalence)",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R4VL2-C1-containment",
+   "claim_text": "VCS(ν) − set softmax contains 0 on both datasets (frozen wording 'closes the gap')",
+   "source_kind": "E-reg",
+   "status": "corrected (r5 erratum)",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates",
+   "experiment": "R4-VL2 C1",
+   "allowed_conclusion": "the interval contains 0",
+   "not_implied": "equality with softmax; with equal test-time information softmax still leads on RefCOCO+ (C3a −1.36; F1 −1.07)",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R5-D-vs-E",
+   "claim_text": "Distribution softmax (uniform target over valid boxes, all real proposals in the denominator) vs set softmax",
+   "source_kind": "E-reg",
+   "status": "interval contains 0",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates",
+   "experiment": "R5-30 D − E +0.27 [−0.35, +0.88] / −0.22 [−1.46, +1.02] (fbec8a1)",
+   "allowed_conclusion": "no detectable effect of the uniform-over-valid-boxes requirement on softmax accuracy",
+   "not_implied": "equivalence (no margin pre-specified)",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R5-pairwise-deficit",
+   "claim_text": "VCS / matched JS trail distribution softmax by 2.1–3.2 points",
+   "source_kind": "E-reg",
+   "status": "supported",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates",
+   "experiment": "R5-30 VCS − D −2.11 / −3.00, JS − D −2.49 / −3.17",
+   "allowed_conclusion": "the pairwise objectives' gap is not explained by the multiple-valid-box target",
+   "not_implied": "a mechanism at encoder level",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R5-deficit-at-k1",
+   "claim_text": "The VCS − softmax deficit exists on queries with exactly one valid box",
+   "source_kind": "E-exp",
+   "status": "supported with scope",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates; strata overlap in images; image bootstrap",
+   "experiment": "R5-20B: −2.20 [−3.43, −1.00] / −3.30 [−4.35, −2.32] at k = 1 (2ae583c)",
+   "allowed_conclusion": "multiplicity is not the main cause; it adds on RefCOCO+ at k >= 4",
+   "not_implied": "causal attribution",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R5-deficit-grows-with-candidates",
+   "claim_text": "With the same query and target box, the deficit grows with the number of nested distractors",
+   "source_kind": "E-exp (oracle-assisted)",
+   "status": "supported with scope",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates; fixed query pool with >= 31 invalid candidates",
+   "experiment": "R5-20C: VCS − E −0.28 → −1.01 → −2.62 → −3.50 (1 / 7 / 31 / all; RefCOCOg), similar on RefCOCO+",
+   "allowed_conclusion": "the deficit is a many-candidate competition effect",
+   "not_implied": "the same curve on the full task population",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R5-gradient-share",
+   "claim_text": "The model's own top wrong box takes 45–50 % of the wrong-box score gradient under VCS / JS and 52–67 % under the softmaxes",
+   "source_kind": "E-exp",
+   "status": "descriptive",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates; score-level derivatives of fixed CAL-selected models",
+   "experiment": "R5-20A",
+   "allowed_conclusion": "softmax objectives focus more of the score gradient on the top competitor",
+   "not_implied": "encoder gradients or training-history mechanisms",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R5-reference-mass-not-gradient",
+   "claim_text": "The detector-score reference doubles the reference mass on the self-top wrong box but barely changes its gradient share",
+   "source_kind": "E-exp",
+   "status": "descriptive",
+   "assumptions": "DEV reused (exploratory); SigLIP 2 B/16; RefCOCOg / RefCOCO+; 3 seeds; detector-proposal candidates",
+   "experiment": "R5-20A: q 0.057 → 0.117, |g| share 0.48 → 0.52 (RefCOCOg)",
+   "allowed_conclusion": "re-weighting Q does not translate into gradient focus on the most dangerous candidate",
+   "not_implied": "that no ν could do so",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "VL3-add7-schedule",
+   "claim_text": "A longer shared schedule (20 vs 10 epochs) favours the estimator objectives (given boxes)",
+   "source_kind": "E-reg",
+   "status": "supported (pre-fixed wording)",
+   "assumptions": "VL3 given-box setting; 12 cells; 3 seeds; DEV reused",
+   "experiment": "add. 7: schedule effect +0.35 [+0.12, +0.57] (68681e4)",
+   "allowed_conclusion": "pre-fixed: 'a longer shared schedule favours the estimator objectives by 0.35'; the 10-epoch tie stays primary",
+   "not_implied": "anything about detector proposals",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R4E1-path-effect",
+   "claim_text": "The VCS − JS posterior gap (gaussian d 20, I 6) forms on the optimisation path from initialisation",
+   "source_kind": "E-reg",
+   "status": "supported with scope",
+   "assumptions": "one oracle condition; 3 seeds; N 4096 and 16384",
+   "experiment": "R4-E1 (ba1e609, 2bd405a)",
+   "allowed_conclusion": "from the same JS start J is not better than JS; J overfits faster at N 4096 and ends slightly worse at N 16384",
+   "not_implied": "a general solver result; a new algorithm",
+   "owner_decision": ""
+  },
+  {
+   "claim_id": "R4T2-intervals",
+   "claim_text": "Cross-pair estimates of J(T) need the U-statistic jackknife (or image resampling); pair-iid SEs are invalid both ways",
+   "source_kind": "standard instantiation",
+   "status": "verified",
+   "assumptions": "fixed critic; iid base observations / images",
+   "experiment": "R4-T2 (551ad04, 47c872c)",
+   "allowed_conclusion": "use the jackknife / image-level intervals",
+   "not_implied": "a new interval method",
+   "owner_decision": ""
+  }
+ ],
+ "earlier_ledger": "reports/R4/R4_02_claim_ledger.csv (37 rows, unchanged)"
+}

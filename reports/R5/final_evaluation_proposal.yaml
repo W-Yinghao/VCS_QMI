@@ -1,0 +1,49 @@
+# R5-40 — final independent evaluation: PROPOSAL ONLY (updated at R5-40 with the R5-30 decision) (package r5 docs/05 §6; templates/FINAL_EVALUATION_PROPOSAL.yaml).  Not authorized; nothing read.
+status: proposal_only_not_authorized
+paper_version: V6
+algorithms_frozen: false                      # becomes true only when the owner approves this file (after R5-30 is reported)
+independent_evaluation_authorized: false
+approved_by_reference: null
+final_code_commit: null                       # the commit that runs the one fixed evaluation script
+model_hashes: []                              # sha256 of every evaluated checkpoint, listed before reading
+methods_to_freeze:                            # all selected on CAL only, by rules already used in R4 / r5; no DEV-selected cell
+  - id: vcs_uniform           # R4-VL1, plain cosine; checkpoint = CAL all-proposal selection; seeds 0-2
+  - id: js_uniform            # R4-VL1 matched control
+  - id: set_softmax           # R4-VL1 strong task control
+  - id: vcs_nu                # R4-VL2, native rank log ν + 2 a cos (λ = 1 frozen; the F1 CAL λ is a secondary row)
+  - id: js_nu                 # R4-VL2 matched control
+  - id: fused_rows            # every uniform model + λ log s with λ chosen on CAL (F1 rule) — equal detector information for all
+  - id: distribution_softmax  # R5-30 target control; kept (decided at R5-40, before any reading): it carries the 'target, not competition' attribution
+datasets_and_splits:
+  - {dataset: refcocog, split: test (umd), status_now: never read (TEST_CLOSED)}
+  - {dataset: refcoco+, split: testA / testB, status_now: never read (TEST_CLOSED)}
+  - note: official val splits were read for external-baseline reproductions and detector recall only (R4-02 §6.1); none of our rankers or critics
+          was scored on val; val is therefore not "never seen" for the project and is not used as the confirmation set
+metrics:
+  standard_query_level: true                  # the published RefCOCO metric (Acc@0.5 over expressions)
+  development_image_macro_separate: true      # our DEV metric, reported in its own table, never mixed with query-level
+candidate_eligibility:
+  official_all_task: every test expression, every image; no proposal / no valid proposal = error
+  development_ge_2_referred_objects_subset_separate: true
+  uncovered_queries_are_errors: true
+candidate_generator_checkpoint: VL1-21 clean detector (COCO train2017 minus every CAL / DEV / val / test image of the three datasets; 14 781 excluded); hash listed before reading
+training_exposure_ledger: reports/R4/R4_02_EVIDENCE_LEDGER_20261011.md §6 (updated with R4-VL2 / R5 reads before reading)
+licenses_checked: false                       # to do before reading (datasets, detector weights, encoders)
+pretraining_overlap_disclosed: true           # public encoders may have seen COCO images; RefCOCO / + / g share COCO images — not independent domains
+all_controls_declared_before_reading: false   # true once this list is frozen
+selection_rule_frozen_from_CAL: true          # every checkpoint / λ / K above was chosen on CAL
+external_systems: stratified by input and supervision — given boxes; detector-proposal two-stage; end-to-end grounders — never a pure loss comparison
+primary_contrasts:
+  - vcs_nu (native) − set_softmax, per dataset / split, paired by seed
+  - vcs_uniform + λ_CAL log s − set_softmax + λ_CAL log s (equal test-time information), per dataset / split
+secondary_contrasts: [vcs_nu − js_nu, vcs_uniform − set_softmax, distribution_softmax − set_softmax]
+multiple_comparison_policy: Holm over the primary contrasts across datasets / splits; secondary descriptive
+practical_noninferiority_margin: OWNER DECISION (options below); fixed before reading, never from DEV
+margin_options:
+  - {margin: 0.5, rationale: about one seed-to-seed sd of the R4 runs; strict, may be underpowered with 3 seeds}
+  - {margin: 1.0, rationale: smaller than the differences usually reported between grounding methods on these benchmarks; a "same accuracy class" use}
+  - {margin: 2.0, rationale: a coarse "usable alternative" claim only}
+margin_justification_not_from_DEV_success: required — the chosen value must be justified by use and acceptable cost, recorded with the approval
+no_post_test_tuning: true
+implementation_error_correction_policy: record_all_attempts_and_publish_reason (only implementation errors may be fixed after the first read; never tuning)
+one_shot: one fixed script produces every pre-declared row in a single run
