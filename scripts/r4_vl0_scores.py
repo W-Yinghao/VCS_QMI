@@ -29,20 +29,24 @@ V3 = Path("/home/infres/yinwang/CS_QMI/outputs/VL3"); PROP = Path("/home/infres/
 T22 = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_22"); OUT = Path("/home/infres/yinwang/CS_QMI/outputs/R4_VL0"); CHUNK = 256
 
 
-def score_path(ds: str, backbone: str, objective: str, seed: int) -> Path:
-    """One definition of the score-file layout, shared with the analyser."""
-    return OUT / "scores" / f"{ds}_{backbone}_{objective}_s{seed}.pt"
+def score_path(ds: str, backbone: str, objective: str, seed: int, role: str = "DEV") -> Path:
+    """One definition of the score-file layout, shared with the analyser (DEV in scores/, other roles in scores_<role>/)."""
+    return OUT / ("scores" if role == "DEV" else f"scores_{role}") / f"{ds}_{backbone}_{objective}_s{seed}.pt"
+
+
+def meta_path(ds: str, role: str = "DEV") -> Path:
+    return OUT / (f"meta_{ds}.pt" if role == "DEV" else f"meta_{ds}_{role}.pt")
 
 
 def xyxy(b):
     return [b[0], b[1], b[0] + b[2], b[1] + b[3]]
 
 
-def build_meta(scenes, role, props):
+def build_meta(scenes, role, props, want="DEV"):
     """Same eligibility as VL3 / VL1-22 (DEV images with >= 2 referred objects and a path); proposals as VL1-22 (top-100, clipped, < 1 px dropped)."""
     meta = []
     for s in scenes:
-        if role[s.image_id] != "DEV" or len(s.referred) < 2 or not s.path:
+        if role[s.image_id] != want or len(s.referred) < 2 or not s.path:
             continue
         P = props[s.image_id][:TOPK].numpy(); boxes, det_score, det_label = [], [], []
         for x1, y1, x2, y2, sc, lb in P.tolist():
@@ -107,30 +111,32 @@ def gates(meta, sc):
 def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS))
     ap.add_argument("--objectives", nargs="+", default=["vcs", "js", "softmax"]); ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
+    ap.add_argument("--role", default="DEV", choices=["DEV", "CAL"], help="CAL: for the R4-VL1 top-K arm (K chosen on CAL); G2 has no CAL reference")
     ap.add_argument("--workers", type=int, default=8); a = ap.parse_args()
-    dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus"); (OUT / "scores").mkdir(parents=True, exist_ok=True)
+    dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus"); score_path(ds, a.backbone, "vcs", 0, a.role).parent.mkdir(parents=True, exist_ok=True)
     scenes, _ = RG.load_scenes(); role = RG.dev_roles(scenes)
-    mp = OUT / f"meta_{ds}.pt"
+    mp = meta_path(ds, a.role)
     if mp.exists():
         meta = torch.load(mp, weights_only=False)
     else:
-        meta = build_meta(scenes, role, torch.load(PROP / f"{ds}_DEV.pt", map_location="cpu", weights_only=False)); torch.save(meta, mp)
-    print(f"{ds}: {len(meta)} DEV images, {sum(len(m['texts']) for m in meta)} expressions, {np.mean([len(m['prop_boxes']) for m in meta]):.1f} proposals / image", flush=True)
+        meta = build_meta(scenes, role, torch.load(PROP / f"{ds}_{a.role}.pt", map_location="cpu", weights_only=False), want=a.role); torch.save(meta, mp)
+    print(f"{ds} {a.role}: {len(meta)} images, {sum(len(m['texts']) for m in meta)} expressions, {np.mean([len(m['prop_boxes']) for m in meta]):.1f} proposals / image", flush=True)
     bb = Backbone(a.backbone).to(dev); res = {}
     for o in a.objectives:
         for s in a.seeds:
-            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = score_path(ds, a.backbone, o, s)
+            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = score_path(ds, a.backbone, o, s, a.role)
             if outp.exists():
                 res[tag] = torch.load(outp, weights_only=False)["gates"]; print("exists", tag, flush=True); continue
             ck = torch.load(CKPT / f"{tag}_calTop1.pt", map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
             sc = score_all(bb, meta, dev, a.workers); g1, g2 = gates(meta, sc)
-            ref1 = json.load(open(V3 / f"{tag}.json"))["dev_at_cal_top1"]["own"]["dev"]["top1_image_macro"]
-            ref2 = json.load(open(T22 / f"{tag}.json"))["detection_dev"]["acc_iou50_image_macro"]
-            ok1, ok2 = abs(g1 - ref1) <= 0.003, abs(g2 - ref2) <= 0.003
-            print(f"[{tag}] G1 given-box {g1:.4f} vs run {ref1:.4f} -> {'pass' if ok1 else 'FAIL'}; G2 all-proposal Acc@0.5 {g2:.4f} vs Table C {ref2:.4f} (diff {g2 - ref2:+.4f}) -> {'pass' if ok2 else 'FAIL'}", flush=True)
-            torch.save({"tag": tag, "epoch": ck["epoch"], "image_ids": [m["image_id"] for m in meta], "scores": sc, "gates": {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}}, outp)
+            ref1 = json.load(open(V3 / f"{tag}.json"))["dev_at_cal_top1"]["own"]["dev" if a.role == "DEV" else "cal"]["top1_image_macro"]
+            ref2 = json.load(open(T22 / f"{tag}.json"))["detection_dev"]["acc_iou50_image_macro"] if a.role == "DEV" else None      # Table C has no CAL readout
+            ok1 = abs(g1 - ref1) <= 0.003; ok2 = True if ref2 is None else abs(g2 - ref2) <= 0.003
+            print(f"[{tag}] {a.role} G1 given-box {g1:.4f} vs run {ref1:.4f} -> {'pass' if ok1 else 'FAIL'}; G2 all-proposal Acc@0.5 {g2:.4f}"
+                  + (f" vs Table C {ref2:.4f} (diff {g2 - ref2:+.4f}) -> {'pass' if ok2 else 'FAIL'}" if ref2 is not None else " (no reference on CAL) -> pass"), flush=True)
+            torch.save({"tag": tag, "role": a.role, "epoch": ck["epoch"], "image_ids": [m["image_id"] for m in meta], "scores": sc, "gates": {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}}, outp)
             res[tag] = {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}
-    json.dump(res, open(OUT / f"gates_{ds}_{a.backbone}.json", "w"), indent=1)
+    json.dump(res, open(OUT / f"gates_{ds}_{a.backbone}{'' if a.role == 'DEV' else '_' + a.role}.json", "w"), indent=1)
     return 0
 
 
