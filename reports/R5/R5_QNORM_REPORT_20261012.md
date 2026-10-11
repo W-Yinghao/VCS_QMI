@@ -99,3 +99,45 @@ The R4-VL1 gap splits exactly:
   when jobs 1034389 / 1034390 finish.
 - **Owner's choice for the paper:** whether the normalized critic belongs in the method (a KLIEP-normalized VCS critic that keeps the estimand and
   recovers 61–69 % of the ranking gap) or only in the analysis (the decomposition in §3).
+
+## Addendum — R5-20 diagnostics of the VQ / JQ checkpoints (results-only commit after job 1034390; DEV scoring gates 1034388 / 1034389 pass)
+Same definitions as R5-20.  Score-level derivatives are taken at each model's CAL-selected state on DEV (through the normalizer for VQ / JQ);
+they are fixed-model derivatives, not training history.  Nested curves: same query, same target box, nested distractor sets in SHA-256
+order, oracle-assisted, image bootstrap.
+
+**Gradient allocation** (share of the invalid-candidate |gradient| on the model's own strongest wrong box; seed mean):
+| model | RefCOCOg | RefCOCO+ |
+|---|---|---|
+| VCS | 0.481 | 0.458 |
+| **VCS(qnorm)** | **0.546** | **0.495** |
+| JS → JS(qnorm) | 0.502 → 0.541 | 0.453 → 0.497 |
+| distribution softmax D | 0.523 | 0.583 |
+| set softmax E | 0.604 | 0.668 |
+| saturated wrong boxes (T ≥ 0.95), VCS / VQ | 0.1 % / 0.1 % | 0.1 % / 0.1 % |
+
+**Nested distractors** (accuracy difference ×100 against k nested distractors, 95 % image bootstrap; RefCOCOg 772 / RefCOCO+ 1 088 images):
+| contrast | k = 1 | 7 | 31 | all |
+|---|---|---|---|---|
+| RefCOCOg VCS − E | −0.28 [−0.42, −0.14] | −1.01 [−1.41, −0.66] | −2.62 [−3.52, −1.79] | −3.50 [−4.63, −2.38] |
+| RefCOCOg **VQ − E** | −0.28 [−0.45, −0.13] | −0.78 [−1.18, −0.43] | −1.09 [−1.88, −0.31] | −1.11 [−2.07, −0.13] |
+| RefCOCOg VQ − VCS | −0.00 [−0.17, +0.15] | +0.23 [−0.21, +0.62] | +1.54 [+0.65, +2.44] | +2.39 [+1.24, +3.56] |
+| RefCOCO+ VCS − E | −0.19 [−0.34, −0.04] | −0.75 [−1.13, −0.39] | −2.33 [−2.98, −1.69] | −3.59 [−4.41, −2.74] |
+| RefCOCO+ **VQ − E** | +0.06 [−0.07, +0.18] | −0.03 [−0.40, +0.34] | −0.52 [−1.12, +0.07] | −0.81 [−1.62, −0.05] |
+| RefCOCO+ VQ − VCS | +0.25 [+0.12, +0.38] | +0.72 [+0.38, +1.07] | +1.81 [+1.24, +2.42] | +2.78 [+1.99, +3.64] |
+
+**Readings (descriptive):**
+1. **Normalization removes most of the growth of the deficit with the number of competitors.**
+   - Against all proposals: VCS − E −3.50 / −3.59 versus VQ − E −1.11 / −0.81.
+   - VQ − VCS rises from 0.00 / +0.25 at k = 1 to +2.39 / +2.78 against all proposals: the gain is a many-candidate effect, as the
+     within-query-competition explanation predicts.
+2. **What remains.**
+   - RefCOCOg: the small k = 1 deficit is unchanged (−0.28, as for VCS), and −1.11 remains against all proposals.
+   - RefCOCO+: VQ − E intervals contain 0 up to 31 distractors; −0.81 remains against all proposals.
+3. **Gradient allocation moves toward the softmaxes.**  The strongest wrong box receives 0.55 / 0.50 of the invalid gradient under VQ, against
+   0.48 / 0.46 under VCS, 0.52 / 0.58 under D and 0.60 / 0.67 under E.
+4. **Correction to §5.**
+   - Saturated wrong candidates are negligible for every estimator model (0.1 %), so the (1 − T²) saturation hypothesis does not account for
+     the remaining gap.
+   - What the remaining criterion gap goes with is a smaller gradient share on the strongest wrong candidate.  Within the same normalized model
+     class, the VCS criterion spreads the push over more candidates than log-likelihood does (RefCOCO+: 0.50 vs D 0.58).
+   - This is an association in fixed-model derivatives, not a demonstrated cause.
