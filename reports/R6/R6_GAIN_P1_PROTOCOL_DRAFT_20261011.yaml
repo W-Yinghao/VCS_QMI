@@ -1,0 +1,99 @@
+# R6 GAIN-P1 — task-relevant evidence gain and on-demand modality computation, AV-MNIST.  DRAFT, ready to freeze: the main-session
+# decisions of 2026-10-12 are applied (changelog at the end).  The implementing fork neither freezes nor submits.
+protocol_id: R6-GAIN-P1
+status: draft (decisions applied; to be frozen by the main session)
+package: r6/package_r6_20261011 docs/05_EVIDENCE_GAIN_CN.md, machine/gain_draft.json; controlled results reports/R6/R6_CONTROLLED_VALIDATION.md
+go_ahead: >
+  Owner 2026-10-11: "这个包和上个包的数据全都下载到/projects/EEG-foundation-model …" (directed downloads, including AV-MNIST, whose ESC-50
+  noise is CC BY-NC 3.0: research and non-commercial use only) and "总之不要让GPU空着，这几个包的任务全都需要完成" (all package tasks, GPUs busy).
+  GAIN-P1 is the package's second natural route (after REG-P1).
+question: >
+  Using only what is visible before the extra branch runs (image features and the cheap prediction), can a policy rank which samples are
+  worth computing the audio branch for better than cheap uncertainty and random selection?  Is the squared disagreement z = ||b − a||²
+  a usable ranking target, or must the realised improvement h = ||e_y − a||² − ||e_y − b||² be regressed directly (h − z = 2 (b − a)·(e_y − b))?
+  AV-MNIST tests routing quality only; it supports no cost claims.
+data:
+  source: AV-MNIST (MultiBench release, Google Drive avmnist.tar.gz, 1 600 114 664 B, sha256 6aefced744dfb926…)
+  read: >
+    official train release only — image/train_data.npy (60000 × 784 float64; sha256 465ae22ac1f4b933…), audio/train_data.npy
+    (60000 × 112 × 112 uint8; d24f7a741ff695e4…), train_labels.npy (5dd4d822cab3e200…).  The official test arrays (10 000) are never
+    extracted or read.
+  audio_structure: >
+    Audit 2026-10-11 (job 1034740, outputs/R6_GAIN/superseded_image_roles/audio_duplicate_audit_under_image_roles.json): the 60 000 train
+    spectrograms are 1 601 byte-exact unique arrays, each reused 37 times (median; max 43); 99.998 % of samples have an exact duplicate.
+    A spectrogram is paired with images of a median of 8 different digits; the mean label purity of a clip's samples is 0.44, so the
+    audio–image pairing of the release is noisy by construction (audio-only Bayes accuracy ≈ 0.44, in line with MultiBench's ~42 %).
+    Images: 60 000 unique.  Not groupable and disclosed: the 6 FSDD speakers overlap across all roles; MNIST writer IDs are unavailable.
+  roles: >
+    Grouped by audio clip (sha1 of the uint8 spectrogram; 1 601 groups): FIT_TASK / FIT_POLICY / CAL / DEV = 60 / 20 / 10 / 10 % of the
+    clips (seeded permutation, seed 20261011); no clip spans two roles; per-sample groups, sizes and sha256 per role in
+    outputs/R6_GAIN/avmnist/roles.json.  The superseded image-grouped split (every DEV spectrogram ~22 times in FIT_TASK) is kept for the
+    record in outputs/R6_GAIN/superseded_image_roles/.
+  cross_role_audit: >
+    For every DEV / CAL / FIT_POLICY spectrogram, the nearest FIT_TASK spectrogram excluding its own clip group (exact matches), by cosine
+    on per-pixel standardised 56 × 56 pooled spectrograms; max-cos percentiles, counts above 0.99 and label agreement are reported
+    (outputs/R6_GAIN/avmnist/audio_duplicate_audit.json; re-smoke job).
+  U_V: U = image (cheap), V = audio spectrogram (extra branch; already a spectrogram, so "decoding" = load + normalise, timed)
+system:
+  architecture: >
+    image CNN (conv 32, conv 64, FC 128) shared by a cheap linear head a(U) and a full head b(U, V) = MLP(256 → 128 → 10) on [image
+    features, audio CNN features (4 strided convs, global average pooling, 128)]; identical for both families
+  families: "brier = multi-class Brier on softmax probabilities; ce = cross-entropy; loss = L(a) + L(b), end to end, no frozen features"
+  square_family_note: >
+    Multi-class Brier on softmax is a proper score whose population minimiser is the class-probability vector — the same as unconstrained
+    least squares on e_y — so the estimand is unchanged; the outputs stay on the simplex.
+  shared_encoder_note: >
+    The U encoder is shared by a and b and trained on L(a) + L(b), which is what makes b cost only the V branch + fusion.  Disclosed
+    effect: a's features are also shaped by b's loss, so a is not an independently trained cheap model.
+  training: FIT_TASK only; AdamW lr 1e-3, weight decay 1e-4, batch 256, 30 epochs; epoch selected on CAL by Brier(a) + Brier(b)
+  seeds: 0–9 per family (20 systems); no seed screening
+policies:
+  inputs: cheap features (128) + a's probabilities (10) only — never V, b, y or a gain; trained on FIT_POLICY out-of-sample predictions
+  gain_z: MLP(138 → 64 → 64 → 1) regressing z (GAIN-square); MSE on standardised targets; Adam 1e-3; ≤ 300 epochs, early stopping on CAL (patience 30)
+  gain_h: same MLP regressing h (GAIN-utility; standard risk-improvement regression — the strongest task-aligned control); negative h kept
+  baselines: never, always, random (exactly ⌈βn⌉, 20 repeats), entropy of a, 1 − max a
+  oracles: true h and true z per DEV sample (finite-model upper bounds; not deployable)
+  not_run: EDDI (TF1, tabular) and AdaMML (archived, video) — recorded as not run, not replaced by weaker stand-ins
+routing:
+  budgets: β ∈ {0.10, 0.25, 0.50, 0.75}; endpoints never (0) and always (1)
+  primary: >
+    Exact-rate routing on DEV: every policy acquires the top ⌈βn⌉ DEV samples by its score (labels never used; ties broken by a seeded
+    random order, seed 20261011 + system seed), so all policies acquire the same number and contrasts measure ranking quality.
+  secondary: deployable thresholds = (1 − β) quantile of CAL scores, reported with the realised DEV rates
+  role_use: CAL for epoch selection, policy early stopping and thresholds; DEV is read once, by the bundle job
+metrics:
+  primary: per family, mean DEV Brier over the four budgets under exact-rate routing (discrete area under the risk–budget curve)
+  secondary: >
+    per-budget Brier and accuracy; always − never; CAL-threshold curves (realised rate, Brier, accuracy, measured cost); gain calibration
+    (DEV deciles of the predicted gain: mean h, z, h − z); corr(score, h); regret to oracle_h; share of DEV samples with h > 0; the identity
+    h − z = 2 (b − a)·(e − b)
+  costs: >
+    Recorded per component at batch 256 and 1 (U load, cheap branch, policy MLP, entropy, V load / normalise, V branch, fusion, sparse
+    routing at each rate) plus peak memory.  AV-MNIST supports NO cost claims: every component is microseconds and, at batch 1, the policy
+    MLP costs about as much as the V branch (smoke: 0.17 vs 0.11 ms).  Cost claims belong to CREMA-D.
+statistics:
+  contrasts: >
+    per family, on the budget mean (primary) and per budget (secondary): gain_h − entropy, gain_h − random, gain_z − gain_h,
+    gain_z − entropy, gain_h − oracle_h, entropy − random; plus always − never
+  primary_interval: two-way bootstrap resampling seeds (10) and DEV audio-clip clusters jointly; B = 2000; 95 % percentile
+  secondary_intervals: seed-paired t (df 9); clip-cluster bootstrap conditional on the trained systems (seed-averaged per-sample contrast)
+wording_fixed:
+  - "always ≈ never (interval contains 0) -> no acquisition reading on AV-MNIST"
+  - "gain_h beats entropy and random -> the realised-improvement regression ranks better; this is standard risk regression, not a CS-specific method"
+  - "gain_z worse than gain_h -> the squared disagreement is not a safe acquisition target for these finite models"
+  - "entropy ≈ gain_h -> no advantage over cheap uncertainty"
+  - "an interval containing 0 only contains 0"
+  - "AV-MNIST audio gains are evidence about a noisy-by-construction pairing (clip purity 0.44, 6 shared speakers), not spoken-digit recognition in general"
+execution:
+  bundle: slurm/r6_gain_p1_bundle.sbatch — one GPU job (RTX6000PRO,H100,L40S; --exclude=node51,node52,node60), 20 systems + aggregate, ~30–40 GPU-min, 3 h limit, reruns skip finished systems
+  submit: sbatch --parsable slurm/r6_gain_p1_bundle.sbatch avmnist
+  outputs: outputs/R6_GAIN/avmnist/{brier,ce}_s{0..9}/ (result.json, per_sample.npz, system.pt, log.txt), aggregate.{json,md}
+  tests_and_smokes: >
+    tests/test_r6_gain_pilot.py; smokes 1034621 (CPU), 1034622 (GPU), 1034733 (CPU), audit 1034740 under the superseded image roles;
+    re-smoke with clip roles: see the fork report
+official_test_access: false
+second_dataset: CREMA-D (actor-disjoint roles built; U = audio log-mel, V = video frames incl. FLV decoding via `module load ffmpeg/8.1`) — its own protocol and freeze
+changelog:
+  - "2026-10-11 v1 (fork): image-grouped roles, 3 seeds, CAL-threshold routing, seed-paired t + per-seed bootstraps, 6 + 1 jobs"
+  - "2026-10-12 v2 (fork): exact-duplicate audit -> roles by audio clip, per-sample groups stored, cluster bootstraps; entropy cost and peak memory recorded; one bundled GPU job; CREMA-D decoding via module ffmpeg/8.1"
+  - "2026-10-12 v3 (main-session decisions 1-9): clip roles + cross-role audit excluding exact matches, speaker overlap and purity disclosed; AV-MNIST routing quality only; Brier on softmax kept (estimand note); shared encoder kept (disclosed); CAL roles kept, DEV read once; primary = exact-rate top-⌈βn⌉ routing, CAL thresholds secondary; hyperparameters as drafted; 10 seeds per family, budget-mean primary, two-way seeds × clusters bootstrap primary, seed t (df 9) and clusters-given-systems secondary, always − never added; EDDI / AdaMML not run"

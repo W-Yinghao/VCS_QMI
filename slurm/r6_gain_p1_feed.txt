@@ -1,0 +1,4 @@
+# R6 GAIN-P1 full pilot on AV-MNIST — submit only after the protocol (reports/R6/R6_GAIN_P1_PROTOCOL_*.yaml) is frozen.
+# One GPU job: 2 families (brier, ce) x 10 seeds (0-9) = 20 systems sequentially, then the aggregate (outputs/R6_GAIN/avmnist/aggregate.{json,md}).
+# Smoke-based estimate: ~1-2 min per system on RTX PRO 6000 (incl. ~25 s data load) -> ~30-40 GPU-min in total; 3 h limit; reruns skip finished systems.
+sbatch --parsable slurm/r6_gain_p1_bundle.sbatch avmnist
