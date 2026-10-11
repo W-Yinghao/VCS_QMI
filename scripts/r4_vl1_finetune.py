@@ -43,7 +43,7 @@ from vl3_finetune import BATCH, CLIP_ARCHS, CRITIC_LR, SIGLIP_REPOS, WARMUP, WD,
 from vcs_vl.pairlaw import padded_batch_loss, padded_j  # noqa: E402
 
 OUT = Path("/home/infres/yinwang/CS_QMI/outputs/R4_VL1"); CKPT = Path("/projects/EEG-foundation-model/yinghao/models/r4_vl1")
-PROP = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21/proposals"); OBJ = {"vcs": "vcs", "js": "balanced_logistic", "softmax": "set_softmax"}
+PROP = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21/proposals"); OBJ = {"vcs": "vcs", "js": "balanced_logistic", "softmax": "set_softmax", "distribution_softmax": "distribution_softmax"}   # last: r5 R5-30
 KS, IOU_TRAIN = (4, 8, 16, 32), 0.5
 
 
@@ -214,6 +214,9 @@ def main() -> int:
     global OUT, CKPT
     if a.nu == "score":                                                                     # R4-VL2 outputs kept apart from R4-VL1
         OUT, CKPT = OUT.parent / "R4_VL2", CKPT.parent / "r4_vl2"
+    if a.objective == "distribution_softmax":                                               # r5 R5-30: own directories, never over the R4 softmax
+        OUT, CKPT = OUT.parent / ("R5_DIST" if a.nu == "uniform" else "R5_DIST_nu"), CKPT.parent / ("r5_dist" if a.nu == "uniform" else "r5_dist_nu")
+    loss_impl = "set_softmax_q" if (a.nu == "score" and a.objective == "softmax") else OBJ[a.objective]   # R4-VL2 add. 1: softmax with the ν prior
     torch.manual_seed(a.seed); np.random.seed(a.seed); dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus")
     gpu = torch.cuda.get_device_properties(0); gib = gpu.total_memory / 2**30
     chunk = a.chunk_crops if (gib >= 60 or a.chunk_crops == 0) else min(a.chunk_crops, 160)      # exact accumulation: chunk size changes memory, not the loss
@@ -259,7 +262,7 @@ def main() -> int:
                 with torch.autocast("cuda", dtype=torch.bfloat16):
                     U = bb.enc_img(crops[oi:oi + c].to(dev, non_blocking=True)); V = bb.enc_txt(toks[ot:ot + kk].to(dev, non_blocking=True))
                 U = F.normalize(U.float(), dim=-1); V = F.normalize(V.float(), dim=-1)
-                f = critic(scores(U, V, ms[idx:j], ks[idx:j], R, W)); loss = padded_batch_loss(f, P[idx:j], Q[idx:j], OBJ[a.objective]) * ((j - idx) / n)
+                f = critic(scores(U, V, ms[idx:j], ks[idx:j], R, W)); loss = padded_batch_loss(f, P[idx:j], Q[idx:j], loss_impl) * ((j - idx) / n)
                 if not torch.isfinite(loss):
                     raise RuntimeError(f"non-finite loss at epoch {ep} iter {i}")
                 loss.backward(); tot += float(loss); oi += c; ot += kk; idx = j
@@ -273,7 +276,7 @@ def main() -> int:
             best = (e_cal["acc50"]["image_macro"], ep, snap(), ab(), arbr)
     bb.load_state_dict(best[2]); critic.alpha.data.fill_(math.log(math.expm1(best[3][0]))); critic.b.data.fill_(best[3][1])
     e_dev, _ = evaluate(bb, critic, dv, dl_dev, d_dev, dev, best[4]); k_cal = max(KS, key=lambda K: hist[best[1]]["cal"]["topK_acc50"][str(K)])
-    res = {"dataset": RG.DATASET, "backbone": a.backbone, "objective": a.objective, "loss_impl": OBJ[a.objective], "nu": a.nu,
+    res = {"dataset": RG.DATASET, "backbone": a.backbone, "objective": a.objective, "loss_impl": loss_impl, "nu": a.nu,
            "rank": "cos" if a.nu == "uniform" else "log nu + 2 alpha cos", "seed": a.seed, "lr": a.lr, "epochs": epochs, "batch_images": BATCH,
            "chunk_crops": a.chunk_crops, "chunk_crops_effective": chunk, "gpu": gpu.name, "grad_ckpt": a.grad_ckpt, "iou_train": IOU_TRAIN, "counts": {"fit": c_fit, "cal": c_cal, "dev": c_dev}, "n_fit_images": len(fit),
            "crops_per_epoch": int(sum(len(r["boxes"]) for r in fit)), "steps": step, "seconds": time.time() - t0, "gate_step0_given_box": {"value": e_dev0["given_box_top1_image_macro"], "frozen_raw": raw, "pass": gate},

@@ -157,6 +157,24 @@ def padded_batch_loss(f: torch.Tensor, p: torch.Tensor, q: torch.Tensor, objecti
         lse_pos = torch.logsumexp(g.masked_fill(~(p > 0), -1e4), dim=1)                       # finite filler: no NaN gradient for queries without positives
         pi = p.sum(1)
         per = -(pi * (lse_pos - lse_all).masked_fill(pi <= 0, 0.0)).sum(1)
+    elif objective == "distribution_softmax":
+        # r5 R5-30: cross-entropy of the uniform-over-valid-boxes target p(r | w) against softmax_r(2f) over ALL real proposals (unlike
+        # conditional_softmax, never-positive real proposals stay in the denominator).  Real proposals = q-support: every FIT image keeps >= 1
+        # query with π > 0 and q > 0 on all its real proposals, so this equals the explicit real-candidate mask of the r5 reference.
+        real = (q.sum(2, keepdim=True) > 0).expand_as(f)
+        logp = torch.log_softmax((2 * f).masked_fill(~real, -torch.inf), dim=1)
+        per = -(p * logp.masked_fill(~real, 0.0)).sum((1, 2))
+    elif objective == "set_softmax_q":
+        # R4-VL2 add. 1 (draft): the set-event CE with the reference law as a prior on the logits, 2f + log q(r, w).  Within a query column
+        # log q = log π(w) + log ν(r) and the constant cancels in lse_pos − lse_all, so this is the softmax over log ν(r) + 2f; with a uniform ν it
+        # equals 'set_softmax'.  At the optimum exp(2f) ∝ p(r | w) / ν(r), the VCS(ν) / JS(ν) critic.
+        real = (q.sum(2, keepdim=True) > 0).expand_as(f)
+        prior = torch.where(q > 0, torch.log(q.clamp_min(1e-30)), torch.zeros_like(q))     # q = 0 only in query columns without a positive (masked by π)
+        g = (2 * f + prior).masked_fill(~real, -torch.inf)
+        lse_all = torch.logsumexp(g, dim=1)                                                   # finite: every query column has >= 1 real region
+        lse_pos = torch.logsumexp(g.masked_fill(~(p > 0), -1e4), dim=1)
+        pi = p.sum(1)
+        per = -(pi * (lse_pos - lse_all).masked_fill(pi <= 0, 0.0)).sum(1)
     else:
         raise ValueError(f"Unsupported objective: {objective}")
     return per.mean()

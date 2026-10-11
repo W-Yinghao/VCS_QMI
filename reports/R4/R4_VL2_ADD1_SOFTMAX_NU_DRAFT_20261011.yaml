@@ -1,0 +1,26 @@
+# R4-VL2 addendum 1 — the set-event softmax trained with the same detector-score prior.  DRAFT for the owner's decision: NOT run.
+protocol_id: R4-VL2-add1
+status: draft_owner_decision_required
+parent: reports/R4/R4_VL2_NU_PROTOCOL_FROZEN_20261011.yaml (53631f2)
+why: >
+  In R4-VL2 only VCS and JS receive the detector score during training (reference ν ∝ s_r); softmax receives it only at test time (the
+  no-training fused control).  The matched control trains the set-event softmax on the logits log ν(r) + 2f, so that all three objectives
+  estimate the same quantity exp(2f) ∝ p(r | w) / ν(r) and are ranked by the same corrected rank log ν(r) + 2 α cos.
+objective: >
+  set_softmax_q (src/vcs_vl/pairlaw.py): −Σ_w π(w) [lse_{r ∈ A_w}(2f + log q) − lse_{r real}(2f + log q)], log q = log π(w) + log ν(r) (the π term
+  cancels within a query); with a uniform ν it equals R4-VL1's set_softmax (unit test); stationary at exp(2f) = p(r | w) / ν(r) (unit test).
+runs: softmax(ν) on RefCOCOg and RefCOCO+ × SigLIP 2 B/16 × seeds 0–2 = 6 runs, scripts/r4_vl1_finetune.py --objective softmax --nu score; everything else as R4-VL2
+cost: ~1.2 h per run on RTX 6000 Pro / H100, ~2.5–4 h on L40S (≈ 10–15 GPU-hours)
+readings:
+  primary: DEV all-proposal Acc@0.5 of softmax(ν), corrected rank
+  contrasts (paired by seed, 95 % t):
+    - A1: VCS(ν) − softmax(ν) — the matched comparison (every objective trained and ranked with the same prior)
+    - A2: softmax(ν) − softmax (R4-VL1) — the prior's effect on softmax training
+    - A3: softmax(ν) − softmax + log s (no training) — training with the prior vs test-time fusion only
+  wording_fixed:
+    - "A1 interval contains 0 -> with the same prior in training and ranking, VCS and softmax tie on proposals"
+    - "A1 below 0 -> softmax leads by x even with the matched prior; above 0 -> VCS leads by x"
+  R4-VL2's own frozen readings (C1–C4) are unchanged and reported first
+permissions:
+  budget_confirmed: false
+  official_test_access: false

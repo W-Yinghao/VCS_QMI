@@ -70,3 +70,34 @@ class CorrectedRank(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SoftmaxPrior(unittest.TestCase):
+    """R4-VL2 add. 1 (draft): 'set_softmax_q' = set-event CE over log ν(r) + 2f; uniform ν reduces to 'set_softmax'."""
+    A = np.array([[1, 0, 0], [1, 1, 0], [0, 0, 0], [0, 1, 0], [0, 0, 0]], dtype=np.float32)   # query 2 has no valid proposal
+
+    def setUp(self):
+        g = torch.Generator().manual_seed(1); self.f = torch.randn(1, 5, 3, generator=g, dtype=torch.float64)
+
+    def laws(self, nu):
+        p, q, _, _ = laws_from_A(self.A, nu); return torch.from_numpy(p)[None].double(), torch.from_numpy(q)[None].double()
+
+    def test_uniform_equals_set_softmax(self):
+        p, q = self.laws(None)
+        self.assertAlmostEqual(float(padded_batch_loss(self.f, p, q, "set_softmax_q")), float(padded_batch_loss(self.f, p, q, "set_softmax")), places=6)
+
+    def test_direct_formula_and_finite_gradient(self):
+        nu = np.array([0.9, 0.5, 0.05, 0.3, 0.2]); p, q = self.laws(nu); f = self.f.clone().requires_grad_()
+        loss = padded_batch_loss(f, p, q, "set_softmax_q"); loss.backward(); self.assertTrue(torch.isfinite(f.grad).all())
+        g = 2 * self.f[0] + torch.log(torch.tensor(nu))[:, None]; pi = [0.5, 0.5, 0.0]; direct = 0.0
+        for w in range(3):
+            pos = np.where(self.A[:, w] > 0)[0]
+            if len(pos):
+                direct -= pi[w] * float(torch.logsumexp(g[pos, w], 0) - torch.logsumexp(g[:, w], 0))
+        self.assertAlmostEqual(float(loss), direct, places=6)                                 # laws are float32 (laws_from_A): ~1e-8 rounding
+
+    def test_optimum_is_the_ratio(self):
+        nu = np.array([0.9, 0.5, 0.05, 0.3, 0.2]); p, q = self.laws(nu); pc = p[0] / p[0].sum(0, keepdim=True).clamp_min(1e-30)
+        fstar = (0.5 * (torch.log(pc.clamp_min(1e-12)) - torch.log(torch.tensor(nu))[:, None]))[None].requires_grad_()   # exp(2f) = p(r|w)/ν(r)
+        padded_batch_loss(fstar, p, q, "set_softmax_q").backward()
+        self.assertLess(float(fstar.grad[0][:, :2].abs().max()), 1e-6)

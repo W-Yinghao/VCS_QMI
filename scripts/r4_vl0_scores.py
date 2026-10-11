@@ -33,7 +33,7 @@ T22 = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_22"); OUT = Path("/home/infr
 def score_path(ds: str, backbone: str, objective: str, seed: int, role: str = "DEV", source: str = "vl3") -> Path:
     """One definition of the score-file layout, shared with the analysers: VL3 checkpoints in scores/ (DEV) and scores_<role>/; R4-VL1 checkpoints in
     scores_r4vl1/ (DEV) and scores_r4vl1_<role>/."""
-    sub = ("scores" if role == "DEV" else f"scores_{role}") if source == "vl3" else ("scores_r4vl1" if role == "DEV" else f"scores_r4vl1_{role}")
+    sub = ("scores" if role == "DEV" else f"scores_{role}") if source == "vl3" else f"scores_{source}" + ("" if role == "DEV" else f"_{role}")
     return OUT / sub / f"{ds}_{backbone}_{objective}_s{seed}.pt"
 
 
@@ -115,7 +115,8 @@ def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS))
     ap.add_argument("--objectives", nargs="+", default=["vcs", "js", "softmax"]); ap.add_argument("--seeds", nargs="+", type=int, default=[0, 1, 2])
     ap.add_argument("--role", default="DEV", choices=["DEV", "CAL"], help="CAL: for the R4-VL1 top-K arm (K chosen on CAL); G2 has no CAL reference")
-    ap.add_argument("--source", default="vl3", choices=["vl3", "r4vl1"], help="r4vl1: the proposal-trained R4-VL1 checkpoints (secondary readouts of the R4-VL1 protocol)")
+    ap.add_argument("--source", default="vl3", choices=["vl3", "r4vl1", "r4vl2", "zeroshot", "r5dist"],
+                    help="r4vl1 / r4vl2 / r5dist: proposal-trained checkpoints (R4-VL1, R4-VL2 ν runs, r5 distribution softmax); zeroshot: the pretrained backbone")
     ap.add_argument("--workers", type=int, default=8); a = ap.parse_args()
     dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus"); score_path(ds, a.backbone, "vcs", 0, a.role, a.source).parent.mkdir(parents=True, exist_ok=True)
     scenes, _ = RG.load_scenes(); role = RG.dev_roles(scenes)
@@ -126,22 +127,36 @@ def main() -> int:
         meta = build_meta(scenes, role, torch.load(PROP / f"{ds}_{a.role}.pt", map_location="cpu", weights_only=False), want=a.role); torch.save(meta, mp)
     print(f"{ds} {a.role}: {len(meta)} images, {sum(len(m['texts']) for m in meta)} expressions, {np.mean([len(m['prop_boxes']) for m in meta]):.1f} proposals / image", flush=True)
     bb = Backbone(a.backbone).to(dev); res = {}
+    if a.source == "zeroshot":                                                     # one model: the pretrained weights, no checkpoint
+        a.objectives, a.seeds = ["zeroshot"], [0]
     for o in a.objectives:
         for s in a.seeds:
-            tag = f"{ds}_{a.backbone}_{o}_s{s}"; outp = score_path(ds, a.backbone, o, s, a.role, a.source)
+            tag = f"{ds}_{a.backbone}_{o}" + ("_nuscore" if a.source == "r4vl2" else "") + f"_s{s}"; outp = score_path(ds, a.backbone, o, s, a.role, a.source)
             if outp.exists():
                 res[tag] = torch.load(outp, weights_only=False)["gates"]; print("exists", tag, flush=True); continue
-            ckp = CKPT / f"{tag}_calTop1.pt" if a.source == "vl3" else R4CK / f"{tag}_calAcc.pt"
-            ck = torch.load(ckp, map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
+            if a.source == "zeroshot":
+                ck = {"epoch": 0}
+            else:
+                ckp = {"vl3": CKPT / f"{tag}_calTop1.pt", "r4vl1": R4CK / f"{tag}_calAcc.pt", "r4vl2": R4CK.parent / "r4_vl2" / f"{tag}_calAcc.pt",
+                       "r5dist": R4CK.parent / "r5_dist" / f"{tag}_calAcc.pt"}[a.source]
+                ck = torch.load(ckp, map_location="cpu", weights_only=False); bb.load_state_dict({k: v.float() for k, v in ck["backbone"].items()})
             sc = score_all(bb, meta, dev, a.workers); g1, g2 = gates(meta, sc)
             if a.source == "vl3":
                 ref1 = json.load(open(V3 / f"{tag}.json"))["dev_at_cal_top1"]["own"]["dev" if a.role == "DEV" else "cal"]["top1_image_macro"]
                 ref2 = json.load(open(T22 / f"{tag}.json"))["detection_dev"]["acc_iou50_image_macro"] if a.role == "DEV" else None      # Table C has no CAL readout
-            else:                                                                   # R4-VL1: the run's own DEV readouts at the selected epoch (DEV only)
-                rr = json.load(open(R4OUT / f"{tag}.json"))["dev_at_selected"]; ref1 = rr["given_box_top1_image_macro"]; ref2 = rr["acc50"]["image_macro"]
-            ok1 = abs(g1 - ref1) <= 0.003; ok2 = True if ref2 is None else abs(g2 - ref2) <= 0.003
-            print(f"[{tag}] {a.role} G1 given-box {g1:.4f} vs run {ref1:.4f} -> {'pass' if ok1 else 'FAIL'}; G2 all-proposal Acc@0.5 {g2:.4f}"
-                  + (f" vs Table C {ref2:.4f} (diff {g2 - ref2:+.4f}) -> {'pass' if ok2 else 'FAIL'}" if ref2 is not None else " (no reference on CAL) -> pass"), flush=True)
+            elif a.source == "zeroshot":                                            # step-0 readouts recorded by the R4-VL1 seed-0 VCS run
+                z = json.load(open(R4OUT / f"{ds}_{a.backbone}_vcs_s0.json"))
+                ref1, ref2 = (z["dev_step0_zero_shot"]["given_box_top1_image_macro"], z["dev_step0_zero_shot"]["acc50"]["image_macro"]) if a.role == "DEV" else (None, None)
+            else:                                                                   # the run's own readouts: DEV at the selected epoch, CAL from its history
+                rj = json.load(open({"r4vl1": R4OUT, "r4vl2": R4OUT.parent / "R4_VL2", "r5dist": R4OUT.parent / "R5_DIST"}[a.source] / f"{tag}.json"))
+                if a.role == "DEV":
+                    rr = rj["dev_at_selected"]
+                else:
+                    rr = next(h for h in rj["history"] if h["epoch"] == rj["selected"]["cal_acc50_epoch"])["cal"]
+                ref1 = rr["given_box_top1_image_macro"]; ref2 = (rr["acc50_plain_cos"] if "acc50_plain_cos" in rr else rr["acc50"])["image_macro"]   # the scorer ranks by cosine
+            ok1 = True if ref1 is None else abs(g1 - ref1) <= 0.003; ok2 = True if ref2 is None else abs(g2 - ref2) <= 0.003
+            print(f"[{tag}] {a.role} G1 given-box {g1:.4f} vs run {ref1 if ref1 is None else round(ref1, 4)} -> {'pass' if ok1 else 'FAIL'}; G2 all-proposal Acc@0.5 {g2:.4f}"
+                  + (f" vs {'Table C' if a.source == 'vl3' else 'the run'} {ref2:.4f} (diff {g2 - ref2:+.4f}) -> {'pass' if ok2 else 'FAIL'}" if ref2 is not None else " (no reference on CAL) -> pass"), flush=True)
             torch.save({"tag": tag, "role": a.role, "epoch": ck["epoch"], "image_ids": [m["image_id"] for m in meta], "scores": sc, "gates": {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}}, outp)
             res[tag] = {"G1": [g1, ref1, ok1], "G2": [g2, ref2, ok2]}
     json.dump(res, open(OUT / f"gates_{ds}_{a.backbone}{'' if a.role == 'DEV' else '_' + a.role}{'' if a.source == 'vl3' else '_' + a.source}.json", "w"), indent=1)
