@@ -1,0 +1,33 @@
+# R5-QX1 — query-normalized critic (VQ, JQ) and distribution softmax (D) on RefCOCO, the third dataset.  FROZEN before any of its runs
+# (all components smoked earlier; every run's step-0 gate aborts before training on a data / preprocessing mismatch).
+protocol_id: R5-QX1
+status: frozen
+go_ahead: >
+  Owner standing authorization 2026-10-11 ("以后这种情况，当你看到GPU有空位时，实验不需要我批准，你来分析实验的必要性，你觉得有用的就自主提交") and
+  "总之不要让GPU空着，这几个包的任务全都需要完成".  Queued behind the current short r6 / r7 jobs so that the GPUs stay busy when those drain.
+necessity: >
+  R5-QN (reports/R5/R5_QNORM_REPORT_20261012.md) split the R4-VL1 VCS − E gap on RefCOCOg / RefCOCO+ exactly into critic class (61–69 %),
+  criterion (VQ − D −0.99 / −0.78) and positive target (D − E ≈ 0).  R5-X1 replicates R4-VL1 on RefCOCO.  Disclosure: R5-X1 seeds 0 (VCS, JS,
+  softmax) and 1 (VCS) have been read, and the provisional RefCOCO VCS − softmax gap (about 9 points) is the largest seen.  Running VQ / JQ / D
+  on RefCOCO tests the within-query-competition explanation where the effect is largest and completes the decomposition on a third dataset.
+  Nothing in the design depends on R5-X1 values: arms, recipe, contrasts and wording are copied from R5-QN / R5-30.
+runs: >
+  RefCOCO × SigLIP 2 B/16 × {vcs_qnorm (VQ), js_qnorm (JQ), distribution_softmax (D)} × seeds 0–2 = 9 full fine-tuning runs, uniform ν;
+  recipe, roles, proposals (VL1-21), selection (CAL all-proposal Acc@0.5, ties earliest), step-0 gate (0.6639 ± 0.003, frozen RAW) and the
+  single DEV read identical to R5-X1 / R5-QN / R5-30 (scripts/r4_vl1_finetune.py; outputs/R5_QNORM, outputs/R5_DIST; models/r5_qnorm, models/r5_dist)
+controls: R5-X1 VCS / JS / E (set-event softmax) on RefCOCO, same seeds; no control is re-run
+primary_contrasts: [VQ − VCS, VQ − E]          # RefCOCO only, paired by seed, 95 % t, df 2
+secondary_contrasts: [JQ − JS, JQ − E, VQ − JQ, VQ − D, D − E]
+decomposition: VCS − E = (VCS − VQ) + (VQ − D) + (D − E), each piece with its paired interval (as R5-QN report §3); arithmetic, not mediation
+wording_fixed:
+  - "VQ − VCS above 0 -> within-query normalization improves VCS by x; contains 0 -> no detectable effect; below 0 -> it lowers VCS by x"
+  - "VQ − E contains 0 -> the interval contains 0 (no equivalence claim); below 0 -> softmax still leads by x; above 0 -> VQ leads by x"
+  - "D − E contains 0 -> the interval contains 0; below / above 0 -> D trails / leads by x"
+  - "a gap closed by normalization supports the within-query competition explanation; it is not a new estimator (KLIEP normalization of the critic)"
+  - "three-dataset pooled values are descriptive only"
+aggregation: scripts/r5_qnorm_aggregate.py with RefCOCO added (controls from outputs/R4_VL1/refcoco_*), run once all 9 runs and the R5-X1 controls have finished
+budget: 9 runs × 1.2–1.7 h (RTX 6000 Pro / H100) to 2.5–3.3 h (L40S) ≈ 11–30 GPU-hours; fed by slurm/feed_normal.sh with CAP = 27, seed-major
+smoke: >
+  vcs_qnorm / js_qnorm: R5-QN smoke 1034372; distribution_softmax: R5-30 smoke 1034130; RefCOCO data path and gate: R5-X1 smoke 1034404.
+  Each run's step-0 gate aborts before training if the data or preprocessing differ.
+official_test_access: false
