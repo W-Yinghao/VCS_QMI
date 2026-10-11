@@ -179,7 +179,7 @@ def metrics(C, gb, d, a, b, ar=None, br=None):
 
 
 def evaluate(bb, critic, recs, dl, d, dev, ar_br=None):
-    C, gb = collect(bb, recs, dl, dev); a, b = float(F.softplus(critic.alpha)), float(critic.b)
+    C, gb = collect(bb, recs, dl, dev); a, b = float(F.softplus(critic.alpha.detach())), float(critic.b.detach())
     if ar_br is None:
         ar_br = recal(C, d)
     return metrics(C, gb, d, a, b, *ar_br), ar_br
@@ -209,10 +209,15 @@ def main() -> int:
     base = [gp["lr"] for gp in opt.param_groups]; epochs = 1 if a.smoke else a.epochs; total = epochs * len(dl_fit); step = 0
     sched = lambda s: (s + 1) / WARMUP if s < WARMUP else 0.5 * (1 + math.cos(math.pi * (s - WARMUP) / max(1, total - WARMUP)))
     t0 = time.time(); e_cal0, arbr = evaluate(bb, critic, cal, dl_cal, d_cal, dev); e_dev0, _ = evaluate(bb, critic, dv, dl_dev, d_dev, dev, arbr)
-    raw = RAW.get((ds, a.backbone)); gate = None if raw is None else abs(e_dev0["given_box_top1_image_macro"] - raw) <= 0.003
-    print(f"[{tag}] step 0: DEV given-box {e_dev0['given_box_top1_image_macro']:.4f} vs frozen raw {raw} -> gate {'pass' if gate else 'FAIL' if gate is not None else 'n/a'}; "
+    raw = RAW.get((ds, a.backbone)); gate = None if (raw is None or a.smoke) else abs(e_dev0["given_box_top1_image_macro"] - raw) <= 0.003   # smoke: subsets, no gate
+    print(f"[{tag}] step 0: DEV given-box {e_dev0['given_box_top1_image_macro']:.4f} vs frozen raw {raw} -> gate {'pass' if gate else 'FAIL' if gate is not None else 'n/a (smoke subset)'}; "
           f"DEV acc50 {e_dev0['acc50']['image_macro']:.4f} CAL acc50 {e_cal0['acc50']['image_macro']:.4f} ({time.time() - t0:.0f}s)", flush=True)
-    hist = [{"epoch": 0, "step": 0, "cal": e_cal0}]; best = (e_cal0["acc50"]["image_macro"], 0, {k: v.detach().to("cpu", torch.float16).clone() for k, v in bb.state_dict().items()}, (float(F.softplus(critic.alpha)), float(critic.b)), arbr)
+    if gate is False:                                                                    # wrong data / preprocessing: stop before spending the GPU on training
+        json.dump({"tag": tag, "status": "gate_step0_failed", "value": e_dev0["given_box_top1_image_macro"], "frozen_raw": raw}, open(OUT / f"{tag}.gate_failed.json", "w"), indent=1)
+        print(f"[{tag}] ABORT: step-0 gate failed", flush=True); return 3
+    snap = lambda: {k: v.detach().to("cpu", torch.float32).clone() for k, v in bb.state_dict().items()}           # exact fp32 copy (DEV is read from it)
+    ab = lambda: (float(F.softplus(critic.alpha.detach())), float(critic.b.detach()))
+    hist = [{"epoch": 0, "step": 0, "cal": e_cal0}]; best = (e_cal0["acc50"]["image_macro"], 0, snap(), ab(), arbr)
     for ep in range(1, epochs + 1):
         run = []; t_ep = time.time()
         for i, (crops, toks, ms, ks, P, Q) in enumerate(dl_fit):
@@ -236,10 +241,10 @@ def main() -> int:
                 break
         e_cal, arbr = evaluate(bb, critic, cal, dl_cal, d_cal, dev); hist.append({"epoch": ep, "step": step, "train_loss": float(np.mean(run)), "epoch_seconds": time.time() - t_ep, "cal": e_cal})
         print(f"[{tag}] epoch {ep}: loss {np.mean(run):.4f} CAL acc50 {e_cal['acc50']['image_macro']:.4f} acc75 {e_cal['acc75']['image_macro']:.4f} given-box {e_cal['given_box_top1_image_macro']:.4f} "
-              f"J_own {e_cal['J_own']:.4f} J_recal {e_cal['J_recal']:.4f} a {float(F.softplus(critic.alpha)):.2f} ({time.time() - t_ep:.0f}s epoch, {time.time() - t0:.0f}s total)", flush=True)
+              f"J_own {e_cal['J_own']:.4f} J_recal {e_cal['J_recal']:.4f} a {ab()[0]:.2f} ({time.time() - t_ep:.0f}s epoch, {time.time() - t0:.0f}s total)", flush=True)
         if e_cal["acc50"]["image_macro"] > best[0]:
-            best = (e_cal["acc50"]["image_macro"], ep, {k: v.detach().to("cpu", torch.float16).clone() for k, v in bb.state_dict().items()}, (float(F.softplus(critic.alpha)), float(critic.b)), arbr)
-    bb.load_state_dict({k: v.float() for k, v in best[2].items()}); critic.alpha.data.fill_(math.log(math.expm1(best[3][0]))); critic.b.data.fill_(best[3][1])
+            best = (e_cal["acc50"]["image_macro"], ep, snap(), ab(), arbr)
+    bb.load_state_dict(best[2]); critic.alpha.data.fill_(math.log(math.expm1(best[3][0]))); critic.b.data.fill_(best[3][1])
     e_dev, _ = evaluate(bb, critic, dv, dl_dev, d_dev, dev, best[4]); k_cal = max(KS, key=lambda K: hist[best[1]]["cal"]["topK_acc50"][str(K)])
     res = {"dataset": RG.DATASET, "backbone": a.backbone, "objective": a.objective, "loss_impl": OBJ[a.objective], "seed": a.seed, "lr": a.lr, "epochs": epochs, "batch_images": BATCH,
            "chunk_crops": a.chunk_crops, "grad_ckpt": a.grad_ckpt, "iou_train": IOU_TRAIN, "counts": {"fit": c_fit, "cal": c_cal, "dev": c_dev}, "n_fit_images": len(fit),
@@ -248,7 +253,7 @@ def main() -> int:
            "dev_at_selected": e_dev, "dev_topK_at_cal_chosen_K": e_dev["topK_acc50"][str(k_cal)], "smoke": a.smoke}
     json.dump(res, open(OUT / f"{tag}.json", "w"), indent=1)
     if not a.smoke:
-        CKPT.mkdir(parents=True, exist_ok=True); torch.save({"backbone": best[2], "epoch": best[1], "critic_a_b": best[3]}, CKPT / f"{tag}_calAcc.pt")
+        CKPT.mkdir(parents=True, exist_ok=True); torch.save({"backbone": {k: v.to(torch.float16) for k, v in best[2].items()}, "epoch": best[1], "critic_a_b": best[3]}, CKPT / f"{tag}_calAcc.pt")
     print(f"[{tag}] selected (CAL acc50) epoch {best[1]}: DEV acc50 macro {e_dev['acc50']['image_macro']:.4f} (query {e_dev['acc50']['query']:.4f}; acc75 {e_dev['acc75']['image_macro']:.4f}; "
           f"given-box {e_dev['given_box_top1_image_macro']:.4f}; top-{k_cal} {res['dev_topK_at_cal_chosen_K']:.4f}; J_recal {e_dev['J_recal']:.4f}); {time.time() - t0:.0f}s", flush=True)
     return 0
