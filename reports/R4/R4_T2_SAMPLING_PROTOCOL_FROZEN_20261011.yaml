@@ -71,3 +71,9 @@ permissions:
   replace_manuscript: false
 code: scripts/r4_t2_sampling.py, scripts/r4_t2_aggregate.py, tests/test_r4_t2_sampling.py, slurm/r4_t2_cpu.sbatch, slurm/r4_t2_aggregate_cpu.sbatch
 smoke: unit tests 11/11 (job 1033997); stage smokes 1033998-1034001 (5 draws, n = 32; code path only); aggregator smoke 1034003 (its variance-check failures reflect 5 draws, not a result)
+execution_notes:
+  - >
+    2026-10-11, first full aggregation (job 1034010): the gate flagged 4 constant-kernel cells (independent level, prescribed_error critic T ≡ 0.1,
+    Ĵ ≡ −0.01) with |bias| 1.7e-18 – 1.2e-17 against a draw SE of 7e-20 – 1e-19, i.e. floating-point rounding.  The check meant "exact up to
+    1e-9 when the SE is zero"; it now passes |bias| < 1e-9 whatever the rounding-level SE (scripts/r4_t2_aggregate.py bias_check).  No other
+    check or threshold changed; the coverage numbers are unaffected.

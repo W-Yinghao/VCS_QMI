@@ -64,7 +64,7 @@ def coverage(ints, target, s_target):
 
 def bias_check(r, target, target_se):
     J = arr(r, "J"); se = math.hypot(J.std(ddof=1) / math.sqrt(len(J)), target_se); b = float(J.mean() - target)
-    return {"bias": b, "se": se, "pass": abs(b) <= 3.3 * se if se > 0 else abs(b) < TOL}
+    return {"bias": b, "se": se, "pass": abs(b) <= 3.3 * se or abs(b) < TOL}            # constant kernels: bias and SE are both rounding noise
 
 
 def variance_check(r, gen):
