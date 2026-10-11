@@ -174,10 +174,41 @@ def evaluate(a) -> int:
     rep = REPO / "reports" / "VL1"; json.dump(res, open(rep / "VL1_21_detector_eval.json", "w"), indent=1); print(json.dumps(res, indent=1)); return 0
 
 
+def propose(a) -> int:
+    """R4-VL1 prerequisite: proposals of the trained detector for further roles (FIT by default), same detection settings as `eval`.
+    Note: the detector was trained on COCO train2017 minus the excluded roles, so FIT images WERE in its training set; FIT proposals are
+    therefore from a detector that saw those images (recorded with the file; the exposure is documented in the R4-VL1 protocol)."""
+    dev = torch.device("cuda"); model = build_model(); model.load_state_dict(torch.load(CK / "final.pt", map_location="cpu", weights_only=False)["model"])
+    model = model.to(dev).eval(); prop_dir = OUT / "proposals"; prop_dir.mkdir(parents=True, exist_ok=True); res = {}
+    for d in a.datasets:
+        RG, scenes, role = roles_of(d)
+        for r in a.roles:
+            out = prop_dir / f"{d.replace('+', 'plus')}_{r}.pt"
+            if out.exists():
+                print("exists", out.name, flush=True); continue
+            sc = [s for s in scenes if role[s.image_id] == r and len(s.referred) >= 1]
+            dd = detect(model, [RG.coco_path(s.image_id) for s in sc], dev)
+            torch.save({s.image_id: x for s, x in zip(sc, dd)}, out)
+            hits = {k: [] for k in (10, 20, 50, 100)}
+            for s, x in zip(sc, dd):
+                bx = x[:, :4].numpy()
+                for o in s.referred:
+                    t = [o.box_xywh[0], o.box_xywh[1], o.box_xywh[0] + o.box_xywh[2], o.box_xywh[1] + o.box_xywh[3]]
+                    iou = iou_one(t, bx) if len(bx) else np.zeros(0)
+                    for k in hits:
+                        hits[k].append(float(len(iou[:k]) > 0 and iou[:k].max() >= 0.5))
+            res[f"{d}/{r}"] = {"n_images": len(sc), "n_targets": len(hits[100]), **{f"recall@{k}_iou50": float(np.mean(v)) for k, v in hits.items()},
+                               "mean_detections": float(np.mean([len(x) for x in dd])), "detector_saw_these_images": r == "FIT"}
+            print(d, r, res[f"{d}/{r}"], flush=True)
+    rep = REPO / "reports" / "R4"; rep.mkdir(parents=True, exist_ok=True); p = rep / "VL1_21_proposals_extra.json"
+    old = json.load(open(p)) if p.exists() else {}; old.update(res); json.dump(old, open(p, "w"), indent=1); return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("exclusions"); t = sub.add_parser("train"); t.add_argument("--workers", type=int, default=8); t.add_argument("--smoke", action="store_true"); sub.add_parser("eval")
-    a = ap.parse_args(); return {"exclusions": exclusions, "train": train, "eval": evaluate}[a.cmd](a)
+    p = sub.add_parser("propose"); p.add_argument("--roles", nargs="+", default=["FIT"]); p.add_argument("--datasets", nargs="+", default=list(DATASETS))
+    a = ap.parse_args(); return {"exclusions": exclusions, "train": train, "eval": evaluate, "propose": propose}[a.cmd](a)
 
 
 if __name__ == "__main__":

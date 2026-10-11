@@ -1,0 +1,93 @@
+# R4-VL1 — proposal-aware full fine-tuning.  DRAFT for the owner's budget decision: NOT submitted.  Measured-cost fields are filled by
+# scripts/r4_vl1_measure.py (reports/R4/R4_VL1_measurement.json) and the FIT proposal pass (reports/R4/VL1_21_proposals_extra.json).
+protocol_id: R4-VL1
+source_commit: null                      # filled at freeze
+status: draft_budget_decision_required
+research_question: >
+  Trained on the same query-independent detector proposals that are ranked at test time, do the three objectives recover the
+  given-box ranking accuracy, and does the objective ordering of Table C (softmax ahead by 2 points) change?
+motivation: >
+  R4-VL0: box quality and distractor type at matched count are not the bottleneck (VCS >= softmax there); the number of candidates is,
+  with part / duplicate boxes winning the extreme-value contest.  Training never showed such candidates.
+estimand:
+  name: proposal-reference CS discrepancy (same S / J, reference law Q_nu); NOT the original conditional QMI
+  P_definition: p_G(r,w) = pi_G(w) * A_G(r,w) / sum_s A_G(s,w); A_G = 1[IoU(r, box(w)) >= 0.5]; pi_G uniform over FIT queries with >= 1 valid proposal
+  Q_definition: q_G(r,w) = pi_G(w) * nu_G(r); nu_G uniform over the image's proposals (full support; may contain valid boxes and never-referred regions)
+  reference_measure: equal_mixture
+  target_fixed_across_methods: true (same p/q, same candidates, same crops, same text tokenisation for VCS, JS and softmax)
+independent_unit: image
+data:
+  datasets: [refcocog, refcoco+]
+  candidates: VL1-21 clean detector proposals (score >= 0.05, top-100, per-class NMS, clipped, < 1 px dropped), fixed before training
+  training_side_proposals: outputs/VL1_21/proposals/<ds>_FIT.pt   # NEW pass; the detector was trained on COCO train2017 incl. the FIT images ->
+  exposure_note: >                                                # FIT proposals come from a detector that saw those images (standard two-stage
+    Recorded as a limitation; DEV / CAL / val images were excluded from detector training.  A held-out-proposer control (2-fold detector)
+    is a possible later unit, not part of this one.                # practice, MAttNet-style), so they are cleaner than DEV proposals.
+  queries_without_valid_proposal: excluded from the matching gradient for ALL methods (count recorded); still counted as errors in CAL / DEV metrics
+roles:
+  FIT: train (images with >= 2 referred objects, as VL3)
+  CAL: checkpoint selection by all-proposal image-macro Acc@IoU 0.5 (the task metric), identical rule for every method
+  DEV: final readout (exploratory status unchanged: DEV has been read many times)
+  FINAL_EVAL: official val / test stay closed
+  exposure_ledger: reports/R4/R4_INTAKE_20261011.md §3
+models:
+  pretrained_checkpoint: google/siglip2-base-patch16-224 (original weights; NOT the VL3 fine-tuned encoders)
+  encoder_frozen: false (both towers fully updated)
+  critic_function_class: a * cos + b, init (10, -2.5), as VL3; logit scale per objective recorded (JS uses 2f, softmax its own u)
+  fine_tune_all_towers: true
+objectives:
+  vcs: original J on the per-image p / q (padded_batch_loss "vcs")
+  js: balanced logistic on the same p / q (softplus(-2f) on P, softplus(2f) on Q); common J read after T = tanh f
+  softmax: set-event candidate likelihood -log sum_{r in A_w} softmax(u)_r over the image's proposals (multi-positive); temperature selected on CAL
+           with the same budget as the other two methods' gain starts
+optimization:
+  recipe: VL3 shared recipe (AdamW 1e-5 / wd 0.05, 10 epochs, cosine, warm-up 200, effective 32 images per step); exact loss over ALL proposals
+  per_image_accumulation: null                      # decided by the measurement: joint batch if it fits, else exact per-image accumulation
+  grad_ckpt: null                                   # from the measurement
+  search_budget_per_method: >
+    option A (shared recipe, no search): 0;  option B (package §6 symmetric check): 2 learning rates x 2 gain starts on seed 0, CAL-selected,
+    identical for the three methods; seeds 1-2 confirm the selected setting
+  selected_checkpoint_rule: CAL all-proposal Acc@0.5 image-macro, epoch granularity
+  optimizer_state_policy: fresh optimizer per run
+seeds:
+  selection: [0]
+  confirmation: [1, 2]
+  rule: all three seeds run for every cell regardless of seed-0 outcome
+units:
+  option_A: 2 datasets x 1 backbone x 3 objectives x 3 seeds = 18 full fine-tuning runs
+  option_B: option A + 2 x 3 x 3 extra seed-0 search runs = 36 runs
+  no_training_arms (evaluated alongside, no cost beyond scoring):
+    - original VL3 given-box-trained checkpoints on the proposals (= Table C; reuse)
+    - zero-shot SigLIP 2 B/16 on the proposals
+    - detector-score top-K preselection, K chosen on CAL (query-independent), applied to every objective and to the VL3 checkpoints
+measured_cost:                                      # filled from R4_VL1_measurement.json / proposals_extra.json
+  fit_images: null
+  proposals_per_fit_image_mean: null
+  crops_per_step_at_32_images: null
+  peak_mem_GB_joint: null
+  peak_mem_GB_per_image_accumulation: null
+  sec_per_step: null
+  est_hours_per_run_10_epochs: null
+  est_gpu_hours_option_A: null
+  est_gpu_hours_option_B: null
+statistics:
+  primary_endpoint: DEV all-proposal image-macro Acc@IoU 0.5 (uncovered queries = errors); IoU 0.75 reported secondarily
+  contrasts: VCS - softmax and VCS - JS paired by seed (95 % t over 3 seeds) per dataset; pooled over the 2 cells descriptively
+  adaptation_gain: each objective's proposal-trained minus given-box-trained (Table C) accuracy, paired by seed
+  secondary: given-box Top-1 of the new encoders; common risk / J_recal on CAL (same p/q); margins; error-type shares (as R4-VL0)
+  resampling_unit: image
+  multiple_comparison_policy: descriptive
+claims:
+  type: exploratory_hypothesis
+  predicted_direction: all three objectives gain on proposals; ordering not predicted
+  wording_fixed:
+    - "VCS - softmax interval contains 0 -> with proposal-aware training the objectives tie on proposals"
+    - "below 0 -> softmax leads by x on proposals even when trained on them"
+    - "above 0 -> VCS leads by x"
+    - "a common gain is a candidate-support adaptation result, not a VCS-only advantage"
+  not_implied: "a theoretical CS advantage; any statement about the original conditional QMI"
+permissions:
+  budget_confirmed: false
+  official_test_access: false
+  restart_closed_SSL: false
+  replace_manuscript: false
