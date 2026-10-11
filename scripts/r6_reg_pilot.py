@@ -327,7 +327,8 @@ def cmd_comir(a):
     mA, mB, args = comir_models(torch, a.seed, dev); oA = torch.optim.SGD(mA.parameters(), lr=1e-2, weight_decay=1e-5, momentum=0.9); oB = torch.optim.SGD(mB.parameters(), lr=1e-2, weight_decay=1e-5, momentum=0.9)
     epochs, spe, bs = (2, 4, 8) if a.smoke else (23, 32, 32); tau = 0.5
     if a.comir_epochs:                                                           # pipeline checks only; the pilot uses the recipe (23 × 32 × 32)
-        epochs, spe, bs = a.comir_epochs, 32, 32; out = a.root / "runs" / f"comir_s{a.seed}"; (out / "latents").mkdir(parents=True, exist_ok=True); t0 = time.time(); log = []
+        epochs, spe, bs = a.comir_epochs, 32, 32
+    out = a.root / "runs" / f"comir_s{a.seed}"; (out / "latents").mkdir(parents=True, exist_ok=True); t0 = time.time(); log = []   # every path (was only under --comir-epochs)
     for ep in range(1, epochs + 1):
         mA.train(); mB.train()
         for _ in range(spe):
