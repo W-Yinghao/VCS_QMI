@@ -1,0 +1,9 @@
+# R4-E1 solver check (reports/R4/R4_E1_SOLVER_PROTOCOL_FROZEN_20261011.yaml): one CPU job per seed (seeds fixed: 0, 1, 2).  Launch only after the
+# protocol is committed; run from ssl_pilot/.  Then: sbatch --dependency=afterok:<the three ids> slurm/r4_e1_aggregate_cpu.sbatch
+sbatch --parsable --job-name=r4_e1_s0 slurm/r4_e1_solver.sbatch --seed 0
+sbatch --parsable --job-name=r4_e1_s1 slurm/r4_e1_solver.sbatch --seed 1
+sbatch --parsable --job-name=r4_e1_s2 slurm/r4_e1_solver.sbatch --seed 2
+# Separate N extension (protocol N_variation): only after the primary is reported; everything else identical.  Aggregate with --N 16384.
+# sbatch --parsable --job-name=r4_e1_N16384_s0 slurm/r4_e1_solver.sbatch --seed 0 --N 16384
+# sbatch --parsable --job-name=r4_e1_N16384_s1 slurm/r4_e1_solver.sbatch --seed 1 --N 16384
+# sbatch --parsable --job-name=r4_e1_N16384_s2 slurm/r4_e1_solver.sbatch --seed 2 --N 16384

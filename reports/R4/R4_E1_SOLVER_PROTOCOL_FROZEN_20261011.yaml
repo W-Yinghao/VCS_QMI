@@ -1,0 +1,95 @@
+# R4-E1 — solver check (求解方式检查): from the same JS start, does continuing with the fit criterion J instead of JS change the common risk?
+# FROZEN before any R4-E1 result (code checks only: unit tests, a smoke on smoke-size roles, a throughput timing).  Reviewed;
+# committed before the launch.
+protocol_id: R4-E1
+status: frozen (reviewed 2026-10-11 before any R4-E1 result: branch state sharing, Adam reset, J-on-tanh(u/2) loss, P152 abort gates and selection rule checked against the code)
+source_commit: 77b6a40 (+ the new files listed under code; existing scripts unchanged)
+package: r4/package_r4_20261010 docs/02 §R4-E1, docs/05 §3 (solver diagnosis), docs/03 (common readout)
+go_ahead: owner 2026-10-11 "都开始做，做完整" (start every remaining r4 task, completely)
+research_question: >
+  On one existing oracle condition where matched JS beats direct VCS on the common readout (P151 / P152 at the selected state: posterior MSE
+  VCS 0.050 vs JS 0.041, common J 0.863 vs 0.872), is the gap a path / optimisation effect (a JS start followed by the fit criterion J does at least
+  as well as continuing with JS), a finite-sample fit-criterion effect (J from the same start ends worse on EVAL), or a selection effect?
+existing_material:
+  checkpoints: outputs/P152_e1/weights_I6_s{0,1,2}_{vcs,js}.pt (states u250 / u1000 / u2000 / SELECT-best; weights only, no optimiser or batch-stream state)
+  readouts: outputs/P152_e1/I6_s{0,1,2}.json (posterior readouts at those four states only)
+  recovery_decision: >
+    Recoverable as weights, but without Adam / generator state and with readouts at four states only.  The direct trajectories are therefore
+    re-fitted deterministically with P152's recorded loop (same seeds, draws and loss calls; 16 CPU threads as P152) and gated against P152; the
+    branches start from the re-fitted LL(lr 1e-4) state at update 1000, so every branch shares its exact weights and generator state.  This is the
+    minimal new training: the budget curves need readouts every 100 updates.
+condition:
+  setting: Gaussian, d_signal = d_total = 20, I = 6 nats, S = 0.913 (the middle level of the registered P85 / P152 ladder I in {2, 6, 10})
+  why_this_condition: >
+    Exact oracle (eta = tanh(pmi / 2)); existing checkpoints; VCS and JS differ on the common readout in the same direction on every seed (posterior
+    MSE at the selected state 0.050 / 0.050 / 0.051 vs 0.042 / 0.039 / 0.042).  Unlike I = 2 (every method overfits within 100–200 updates, P152 §3)
+    and I = 10 (one VCS seed selected lr 2e-3), at I = 6 both objectives selected lr 1e-4 on every seed and peak near update 1000 (selected updates
+    800–1100), so a branch at U / 2 = 1000 sits at the turning point and the second half is the region where the fit criteria can differ.
+  roles: P85 build_roles; FIT 4096, SELECT (= CAL) 1024, EVAL 32768 P + 32768 Q pairs, TRUTH 200000 — the same FIT / CAL / EVAL for every arm
+  negatives: in-batch (B = 256 anchors per update, 256 x 255 negatives), as P152
+  function_class: JointMLP concat -> 256 ReLU -> 256 ReLU -> 1, identical for every arm; T = tanh f (VCS-born) or T = tanh(u / 2) (JS-born, the matched posterior of the Deep-InfoMax logit)
+  initialisation: torch seed s * 7919 + 17 — the identical initial critic for every arm of a seed
+  batch_stream: generator s * 1000 + 7 — identical minibatches for every arm; branches continue from the branch point's generator state
+  total_budget: U = 2000 Adam updates per trajectory (branches 1000 JS + 1000 second half); the same B, data and readout schedule
+arms:
+  VV: direct VCS (loss −J on T = tanh f), 2000 updates
+  LL: direct JS (Deep-InfoMax form on the logit u), 2000 updates, continuous Adam
+  LV: from LL(lr 1e-4) at update 1000, fit criterion J on T = tanh(u / 2) for 1000 updates
+  LLc: from the same state, JS for 1000 updates — the control with the identical reset
+optimizer_state_policy: >
+  One convention for both branches, fixed in advance: fresh Adam (moments and step count reset) at the branch point.  Reason: changing the fit
+  criterion changes the gradient scale, so kept Adam moments would mix two objectives' statistics; the identically reset LLc isolates the criterion
+  from the reset, and LL (continuous) vs LLc measures the reset itself.  LL and LLc are therefore different trajectories and both are computed.
+learning_rates:
+  grid: P85's {1e-4, 5e-4, 2e-3} for every arm (the same three candidates for all four arms; every trajectory and its cost is recorded)
+  primary: 1e-4 for every arm — P85's selection for both VCS and JS at this cell on every seed; no new tuning
+  secondary: each arm at its CAL-selected lr (the highest SELECT common J at its CAL-selected state; the branches choose among their three second-half lrs from the same start)
+readouts_every_100_updates: >
+  SELECT common J (in-batch 1024-anchor blocks; equals P85's native VCS SELECT value when T = tanh f) = the CAL rule; SELECT native value (P85's
+  rule, reproduction only); EVAL common J and posterior MSE (product Q pairs, oracle eta); FIT common J (first 1024 FIT anchors, in-block negatives)
+  and the arm's own training loss (mean of the last 100 updates); saturation |T| > 0.95 on EVAL P / Q; the critic-gradient norm of every update
+selection_rule: >
+  CAL-selected state = argmax of the SELECT common J over the trajectory's whole 0–2000 path (every 100 updates, earliest on ties), the same rule
+  for every arm (P85's native SELECT rule is recorded but not used)
+key_states: u1000 (the shared start of LV / LLc), u1500, u2000 and the CAL-selected state — BM.posterior_readouts (BOOT 200) and per-pair T arrays saved
+primary_endpoints: >
+  EVAL posterior MSE and EVAL common J (J_eval = S − posterior MSE in population; both reported) at the CAL-selected state, and the curves every
+  100 updates over the same budget (no presumption that longer is better; the P152 runs overfit after ~1000 updates at this cell)
+interpretation_only: training risk (FIT common J, own loss), saturation, gradient norms — never a success criterion
+contrasts:   # paired by seed (95 % t over 3 seeds) and, per seed, a paired EVAL-pair bootstrap (1000 reps; conditional on the fit, not a training repeat)
+  P1: LV − LLc (primary; the fit criterion alone — same start, reset and batches)
+  P2: LV − VV (primary; JS start + J vs direct VCS at the same total budget)
+  S1: LL − LLc (the reset alone)
+  S2: VV − LL (the direct gap; reproduces P151 / P152)
+seeds:
+  values: [0, 1, 2]
+  rule: fixed in advance (the P85 / P152 seeds); no seed is added after results; failures enter the tables
+gates: "abort before the branches: roles hash = P152's; VV / LL (lr 1e-4) posterior MSE at u1000 and u2000 within 0.002 of P152's records (weight differences recorded)"
+N_variation: >
+  Listed separately and never changed together with the update count: after the primary is complete and reported, ONE further level N = 16384
+  (everything else identical, including U = 2000, B = 256 and the lr grid) may run as a separate extension (feed lines prepared, commented out);
+  its gates are internal only (no P152 reference).  No presumption that the gap shrinks or reverses.
+claims:
+  type: exploratory_hypothesis (one condition; a solver diagnosis, not a theorem consequence)
+  wording_fixed:
+    - "P1 (posterior MSE) interval below 0 -> continuing with J lowers the posterior MSE by x relative to continuing with JS from the same start (this condition only); contains 0 -> no detectable difference between continuing with J and with JS; above 0 -> continuing with JS is better by x"
+    - "P2 below 0 -> the JS start followed by J beats direct VCS by x at the same budget; contains 0 -> no detectable difference from direct VCS; above 0 -> direct VCS is better by x"
+    - "LV − LLc raises the FIT common J (training risk) at the CAL-selected state while P1 there does not lower the EVAL posterior MSE -> the switch improves the training risk only; no claim of solving the estimation problem"
+    - "the JS -> J warm start is a solver path, not a new estimator or algorithm, and is not given a name"
+    - "three seeds: the t intervals describe this condition only; the EVAL-pair bootstrap is conditional on each fit"
+  not_claimed: other settings / d / N / B / budgets; product or cyclic negatives; contamination robustness; any optimiser recommendation
+compute: >
+  3 CPU jobs (one per seed; 16 threads, 48 GB): 18 000 updates per seed (VV and LL 3 lrs x 2000; LV and LLc 3 lrs x 1000) and ~186 readouts.
+  Measured on the real seed-0 roles (check job 1034002, nodecpu05, 16 threads): 62–64 ms per J update, 84 ms per JS update, about 1 s per
+  readout -> about 22 min of updates + 5 min of readouts, i.e. 27–30 min per seed; the three seeds in parallel take about 30 min wall (limit 3 h).
+pre_launch_checks: >
+  Unit tests 10 / 10 (job 1034007: CAL readout = P85's native VCS value; JS native; J-on-JS-coordinate loss; point readouts = BM.posterior_readouts;
+  population identity J = S − E_M (T − eta)^2; stationarity of both criteria at u* = log p/q; selection rule; identical branch starts and batch
+  streams; the recorded loop = P85's update rule).  Runner smoke on smoke-size roles, seeds 0 and 1 (job 1034002; 12 trajectories each, P1 = S1 = 0
+  exactly at the shared start); aggregator smoke (job 1034008, written to outputs/R4_E1_smoke only).  No full-size trajectory has been run.
+code: scripts/r4_e1_solver.py, scripts/r4_e1_aggregate.py, tests/test_r4_e1_solver.py, slurm/r4_e1_solver.sbatch, slurm/r4_e1_check_cpu.sbatch, slurm/r4_e1_aggregate_cpu.sbatch, slurm/r4_e1_feed.txt
+outputs: outputs/R4_E1/I6_N4096_s<seed>.{json,npz} and weights_I6_N4096_s<seed>.pt; reports/R4/R4_E1_results.json and R4_E1_tables.md
+permissions:
+  official_test_access: false
+  restart_closed_SSL: false
+  replace_manuscript: false
