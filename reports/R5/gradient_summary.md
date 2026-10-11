@@ -12,6 +12,8 @@ Score-level derivatives of each model's own training loss at its CAL-selected st
 | VCS(nu) | 0.066 | 0.213 | 0.117 | 0.523 | 0.593 | 0.000 | 0.168 |
 | JS(nu) | 0.066 | 0.197 | 0.119 | 0.494 | 0.570 | 0.000 | 0.175 |
 | distribution softmax | 0.057 | 0.251 | 0.057 | 0.523 | 0.641 | 0.002 | 0.169 |
+| VCS(qnorm) | 0.057 | 0.234 | 0.057 | 0.546 | 0.619 | 0.001 | 0.137 |
+| JS(qnorm) | 0.057 | 0.229 | 0.057 | 0.541 | 0.609 | 0.001 | 0.131 |
 
 ## refcocoplus
 
@@ -23,4 +25,6 @@ Score-level derivatives of each model's own training loss at its CAL-selected st
 | VCS(nu) | 0.045 | 0.135 | 0.094 | 0.484 | 0.445 | 0.000 | 0.166 |
 | JS(nu) | 0.045 | 0.131 | 0.095 | 0.457 | 0.434 | 0.000 | 0.175 |
 | distribution softmax | 0.042 | 0.178 | 0.042 | 0.583 | 0.511 | 0.003 | 0.103 |
+| VCS(qnorm) | 0.042 | 0.167 | 0.042 | 0.495 | 0.493 | 0.001 | 0.134 |
+| JS(qnorm) | 0.042 | 0.163 | 0.042 | 0.497 | 0.486 | 0.001 | 0.126 |
 
