@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D5_data_curation · 服务器方案</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D5_data_curation · 服务器方案</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d5-服务器实验方案图文数据选择与再描述"
+id="toc-d5-服务器实验方案图文数据选择与再描述">D5
+服务器实验方案｜图文数据选择与再描述</a>
+<ul>
+<li><a href="#a.-两个可分开的任务" id="toc-a.-两个可分开的任务">A.
+两个可分开的任务</a></li>
+<li><a href="#b.-统计对象与原型算法" id="toc-b.-统计对象与原型算法">B.
+统计对象与原型算法</a></li>
+<li><a href="#c.-数据与训练" id="toc-c.-数据与训练">C.
+数据与训练</a></li>
+<li><a href="#d.-主baseline和运行单位"
+id="toc-d.-主baseline和运行单位">D. 主baseline和运行单位</a></li>
+<li><a href="#e.-指标与预期" id="toc-e.-指标与预期">E.
+指标与预期</a></li>
+<li><a href="#f.-失败处理" id="toc-f.-失败处理">F. 失败处理</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d5-服务器实验方案图文数据选择与再描述">D5
+服务器实验方案｜图文数据选择与再描述</h1>
+<p><strong>性质：候选方案，尚无本方案自然数据结果。</strong>
+先读本目录综述和共同理论/评价规范。数据条目：DS26, DS27, DS28, DS12,
+DS21；全部定义见 <code>../../datasets/DATASET_ATLAS_CN.md</code>。</p>
+<h2 id="a.-两个可分开的任务">A. 两个可分开的任务</h2>
+<p><strong>Selection主任务：</strong>从固定pool选K个图文样本，按同一个标准CLIP/SigLIP训练recipe训练学生，比较下游效果。学生本身用标准任务损失，以免VCS筛选与VCS训练两个因素混在一起。</p>
+<p><strong>Recaption条件扩展：</strong>对同一组选中图片，在原始caption、已有recap、按规则选择/混合caption之间比较。先固定图像，再比较文字，不能同时改样本数量/长度/教师。</p>
+<h2 id="b.-统计对象与原型算法">B. 统计对象与原型算法</h2>
+<p>目标reference
+A是从FIT允许的目标关系样本中得到，不能由官方测试标签构造。来源pool
+B和选中子集B_w在共同joint representation z=(image,text,relation
+features)上比较S(P_A,P_Bw)。主critic使用VCS，matchedLogistic读同J，核相对回归/groupedMMD为对照。</p>
+<p>可行的第一实现有两种但首轮只选一种： 1. <strong>ratio
+reweighting</strong>：拟合target-vs-source后验，转换ratio，按CAL决定clip并归一化采样；记录ESS/maxweight与source
+coverage。 2.
+<strong>固定字典子集选择</strong>：在预定语义/质量簇上求权重，反复用独立样本估计分布差异；终点仍是学生质量。</p>
+<p>二者都是已有分布匹配/重加权思路的CS实例，不自动是新算法。若要形成贡献，需要有限target样本下更可靠的覆盖/成本表现。高T筛选“最好配对”另作质量baseline，不与target-vs-source
+ratio混同。</p>
+<h2 id="c.-数据与训练">C. 数据与训练</h2>
+<p>固定共同可访问pool及安全/许可过滤，记录URL失败、重复图、哈希和下载时间。所有策略面对相同pool。保留比例首轮固定一个实用K；第二比例仅在主机制成立后追加。DataComp正式行采用官方small
+architecture/exposure，内部scale另名。</p>
+<p>同样的unique images、examples
+seen、augmentation、batch和优化steps；若算法重复采样更多，要记录实际重复分布和有效数据量。目标reference不得用下游test
+label挑选。目标组外性能也要看，避免过拟合reference。</p>
+<h2 id="d.-主baseline和运行单位">D. 主baseline和运行单位</h2>
+<p>原池random、CLIP相似度过滤、Sieve、可运行的DFN/SDM、核目标匹配、Logistic
+ratio、VCS
+selection。先用公开/缓存分数尽量复用生成成本，但所有额外教师标注单列。</p>
+<p>资源充足前的最小正式阶段为5策略：random、CLIP、一个已验证强过滤器、matchedLogistic、VCS，各3个学生seed=15次完整学生训练。核和SDM可先在同一子集selection层完成；投稿主张优于这些方法时必须加入其学生训练，而不是只有过滤分数。</p>
+<p>Recaption采用2×2固定设计：图像选择baseline/VCS ×
+caption原始/相同recap教师，学生recipe相同；属于追加资源项目，不能在第一轮15次之外自动启动。</p>
+<h2 id="e.-指标与预期">E. 指标与预期</h2>
+<p>主终点DataComp官方38任务summary；另列ImageNet、retrieval、target-type任务和非目标域。筛选阶段报告分布读数/coverage/ESS，不作为学生质量的替代。总成本包括feature
+extraction、teacher caption、filter
+fit、selection及student训练，分别报告一次成本和摊销假设。</p>
+<p>H5：相同保留数和训练exposure，VCS选择可能在目标relation稀缺时更有效覆盖，并保持总体迁移。不是理论保证，也不预设抗噪/尾部优势。识别原因需要匹配Logistic、核和强过滤器。</p>
+<h2 id="f.-失败处理">F. 失败处理</h2>
+<p>若权重饱和/ESS塌陷，先查support与clip，而不是把clip后的分数称无偏。若只改善target小集合、整体下降，报告取舍并考虑混合uniform
+quota；quota为新策略，要给对照相同机会。若teacher成本高于学生节省，改用已有recap或冻结策略，不宣称高效。若没有足够数据/训练预算，D5保持综述与方案状态，不拿10k图片toy替代完整DataComp证据。</p>
+</body>
+</html>

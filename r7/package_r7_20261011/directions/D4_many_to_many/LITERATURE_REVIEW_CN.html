@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D4_many_to_many · 文献综述</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D4_many_to_many · 文献综述</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d4-文献综述多对多不完整标注与概率图文关系"
+id="toc-d4-文献综述多对多不完整标注与概率图文关系">D4
+文献综述｜多对多、不完整标注与概率图文关系</a>
+<ul>
+<li><a href="#任务本身是多义关系而不只是错误配对"
+id="toc-任务本身是多义关系而不只是错误配对">1.
+任务本身是多义关系，而不只是错误配对</a></li>
+<li><a href="#相关工作" id="toc-相关工作">2. 相关工作</a></li>
+<li><a href="#三个最重要的比较" id="toc-三个最重要的比较">3.
+三个最重要的比较</a></li>
+<li><a href="#两条不同应用选择" id="toc-两条不同应用选择">4.
+两条不同应用选择</a></li>
+<li><a href="#可能优势和最大风险" id="toc-可能优势和最大风险">5.
+可能优势和最大风险</a></li>
+<li><a href="#本方向主来源" id="toc-本方向主来源">本方向主来源</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d4-文献综述多对多不完整标注与概率图文关系">D4
+文献综述｜多对多、不完整标注与概率图文关系</h1>
+<p>检索截止2026-10-11。事实来源按[Pxx]编号可在文末直接打开；“本方案”均为新设计，不是原论文结果。核验深度见总注册表。</p>
+<h2 id="任务本身是多义关系而不只是错误配对">1.
+任务本身是多义关系，而不只是错误配对</h2>
+<p>同一图可由不同文字正确描述，同一短句也可适用于多图。原始COCO给每图几条caption，不代表其他图文组合都错。CxC[M05]与ECCV
+Caption[M06]正是为检索漏标补充语义判断。它们表明传统Recall@1可能奖励寻找唯一标注出处，而不完整反映语义关系。</p>
+<p>概率嵌入PCME[M01]、PCME++[M02]已经显式处理多义、不确定性及假负例；ProLIP[M03]把这条线扩到大规模预训练。因此，VCS的有界critic本身不构成“新概率模型”。需要把可训练分布表达、缺失标签假设和实际多正例决策一起定义。</p>
+<h2 id="相关工作">2. 相关工作</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>工作与状态</th>
+<th>原文方法</th>
+<th>原文数据/评价</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>[F05] <strong>Learning Transferable Visual Models From Natural
+Language Supervision</strong> — ICML 2021</td>
+<td>图文对比双编码器与零样本迁移。</td>
+<td>大规模图文预训练; 多个分类和检索集；零样本准确率;
+双向Recall@K。</td>
+</tr>
+<tr class="even">
+<td>[F06] <strong>Sigmoid Loss for Language Image Pre-Training</strong>
+— ICCV 2023</td>
+<td>逐对sigmoid替代批softmax；关注正负比例与配对预算。</td>
+<td>图文预训练; 零样本分类与检索；准确率; 检索; batch/配对效率。</td>
+</tr>
+<tr class="odd">
+<td>[F07] <strong>SigLIP 2: Multilingual Vision-Language Encoders with
+Improved Semantic Understanding, Localization, and Dense
+Features</strong> — 2025 technical report</td>
+<td>多目标和数据策略增强图文表示；作为现代预训练参考。</td>
+<td>多语言图文; 定位及稠密特征任务；分类/检索/定位。</td>
+</tr>
+<tr class="even">
+<td>[M01] <strong>Probabilistic Embeddings for Cross-Modal
+Retrieval</strong> — CVPR 2021</td>
+<td>高斯概率嵌入与不确定性，多对多检索。</td>
+<td>COCO Caption; CUB Captions；Recall@K; PMRP/类相关检索。</td>
+</tr>
+<tr class="odd">
+<td>[M02] <strong>Improved Probabilistic Image-Text Representations
+(PCME++)</strong> — ICLR 2024</td>
+<td>闭式概率距离与伪正例、混合训练缓解假负例。</td>
+<td>COCO Caption; CxC; ECCV Caption；多正例检索; 噪声/不确定性。</td>
+</tr>
+<tr class="even">
+<td>[M03] <strong>ProLIP: Probabilistic Language-Image
+Pre-Training</strong> — ICLR 2025</td>
+<td>大规模概率预训练与语义包含/不确定性。</td>
+<td>DataComp; 零样本分类; 检索;
+不确定性任务；检索/分类/包含和不确定性。</td>
+</tr>
+<tr class="odd">
+<td>[M04] <strong>LongProLIP: A Probabilistic Vision-Language Model with
+Long Context Text</strong> — ICLR 2025 uncertainty workshop tiny paper /
+arXiv, not main</td>
+<td>概率模型拓展长文本。</td>
+<td>Urban1k; DataComp任务等；长描述检索; 分类保持。</td>
+</tr>
+<tr class="even">
+<td>[M05] <strong>Crisscrossed Captions: Extended Intramodal and
+Intermodal Semantic Similarity Judgments for MS-COCO</strong> — EACL
+2021</td>
+<td>补充图图/文文/图文的人类语义相似度。</td>
+<td>CxC on COCO；语义相关性; retrieval。</td>
+</tr>
+<tr class="odd">
+<td>[M06] <strong>ECCV Caption: Correcting False Negatives by Collecting
+Machine-and-Human-verified Image-Caption Associations for
+MS-COCO</strong> — ECCV 2022</td>
+<td>修复COCO检索漏标正例，引入mAP@R。</td>
+<td>ECCV Caption / COCO Karpathy test subset；mAP@R; R-Precision;
+Recall@K。</td>
+</tr>
+<tr class="even">
+<td>[M07] <strong>FLAIR: VLM with Fine-Grained Language-Informed Image
+Representations</strong> — CVPR 2025</td>
+<td>细描述与文本条件视觉池化支持局部关系。</td>
+<td>细粒度/长描述检索与区域任务；检索/局部对应。</td>
+</tr>
+<tr class="odd">
+<td>[M08] <strong>SUGARCREPE++ Dataset: Vision-Language Model
+Sensitivity to Semantic and Lexical Alterations</strong> — 2024 arXiv /
+verify venue before manuscript</td>
+<td>同义正描述与困难负描述，分离句式和语义。</td>
+<td>SugarCrepe++；官方双正例组合指标。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三个最重要的比较">3. 三个最重要的比较</h2>
+<p>PCME++是自然训练对照，因为它不仅替换距离，还使用伪正例/混合策略。若VCS有额外伪标签、PCME++没有，应分开同标签预算与完整官方recipe两张表。</p>
+<p>ProLIP提供强预训练不确定性参考，其额外训练数据、包含目标和概率表示不能免费算成“BCE对照”。LongProLIP是workshop
+tiny
+paper，作用是提醒长文本context本身会改变检索与零样本取舍，不能让VCS输入256tokens、基线截断64后归因于散度。</p>
+<p>ECCV
+Caption是主要外部评价，不是训练负例矿。其查询子集和人工judge范围有限；官方mAP@R结果不等于全集所有pair的概率准确率。CxC的0–5语义相似度也不能除以5后就当groundtruth
+Bernoulli后验。[M05,M06]</p>
+<h2 id="两条不同应用选择">4. 两条不同应用选择</h2>
+<p><strong>A. 有标注或类相关的多对多关系。</strong> 在CUB
+class-relevant协议中可以明确多个相关目标，作为受控任务，但需称“同类检索”，不称每条caption真实支持每张图。自然数据若有充分judged
+positives/negatives，再评价语义概率。</p>
+<p><strong>B. 不完整自然图文训练。</strong>
+未观察到的关系不是负类。可以维持joint-vs-product机制、明确它估计的是采样关系；也可以假设正未标记模型并估计标注倾向，但需要额外的可识别条件和PU先例，不能直接以“软标签”修好。第一轮不强制增加新的PU理论。</p>
+<h2 id="可能优势和最大风险">5. 可能优势和最大风险</h2>
+<p>期待在同信息量下保留更多正确匹配、对歧义查询更合理地表达不确定性，而不仅R@1高一点。真正需要同时比较mAP@R、R-Precision、官方R@K、已judge子集风险、检索集合大小与准确率。</p>
+<p>若只有一个标量T，uncertainty应称“匹配证据不确定”，不能称数据模态的概率分布。若使用K个原型或Gaussian
+embeddings，需要同样给Logistic/contrastive基线，以免把架构收益归给VCS。CUB
+positive定义、COCO漏标、CxC语义连续标签三个问题也不能混成一个目标。</p>
+<p>这条最容易接续现有双塔，但也最容易退回“新配方vs旧检索”。所以本包把它列为自然多正例标签足够时的备选，而不是默认重新训练CLIP。</p>
+<h2 id="本方向主来源">本方向主来源</h2>
+<ul>
+<li>[F05] <a
+href="https://proceedings.mlr.press/v139/radford21a.html">Learning
+Transferable Visual Models From Natural Language
+Supervision</a>。代码/项目：https://github.com/openai/CLIP</li>
+<li>[F06] <a
+href="https://openaccess.thecvf.com/content/ICCV2023/html/Zhai_Sigmoid_Loss_for_Language_Image_Pre-Training_ICCV_2023_paper.html">Sigmoid
+Loss for Language Image
+Pre-Training</a>。代码/项目：https://github.com/google-research/big_vision</li>
+<li>[F07] <a href="https://arxiv.org/abs/2502.14786">SigLIP 2:
+Multilingual Vision-Language Encoders with Improved Semantic
+Understanding, Localization, and Dense
+Features</a>。代码/项目：https://huggingface.co/google</li>
+<li>[M01] <a href="https://arxiv.org/abs/2101.05068">Probabilistic
+Embeddings for Cross-Modal
+Retrieval</a>。代码/项目：https://github.com/naver-ai/pcme</li>
+<li>[M02] <a
+href="https://proceedings.iclr.cc/paper_files/paper/2024/hash/ad9d6ab10446114cf5482d5e1f971a84-Abstract-Conference.html">Improved
+Probabilistic Image-Text Representations
+(PCME++)</a>。代码/项目：https://github.com/naver-ai/pcmepp</li>
+<li>[M03] <a href="https://arxiv.org/abs/2410.18857">ProLIP:
+Probabilistic Language-Image
+Pre-Training</a>。代码/项目：https://github.com/naver-ai/prolip</li>
+<li>[M04] <a href="https://arxiv.org/abs/2503.08048">LongProLIP: A
+Probabilistic Vision-Language Model with Long Context
+Text</a>。本轮未确认可直接运行的官方实现。</li>
+<li>[M05] <a
+href="https://aclanthology.org/2021.eacl-main.249/">Crisscrossed
+Captions: Extended Intramodal and Intermodal Semantic Similarity
+Judgments for
+MS-COCO</a>。代码/项目：https://github.com/google-research-datasets/Crisscrossed-Captions</li>
+<li>[M06] <a href="https://arxiv.org/abs/2204.03359">ECCV Caption:
+Correcting False Negatives by Collecting Machine-and-Human-verified
+Image-Caption Associations for
+MS-COCO</a>。代码/项目：https://github.com/naver-ai/eccv-caption</li>
+<li>[M07] <a href="https://arxiv.org/abs/2412.03561">FLAIR: VLM with
+Fine-Grained Language-Informed Image
+Representations</a>。代码/项目：https://github.com/ExplainableML/flair</li>
+<li>[M08] <a href="https://arxiv.org/abs/2406.11171">SUGARCREPE++
+Dataset: Vision-Language Model Sensitivity to Semantic and Lexical
+Alterations</a>。本轮未确认可直接运行的官方实现。</li>
+</ul>
+</body>
+</html>

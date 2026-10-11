@@ -1,0 +1,539 @@
+# 文献与来源注册表
+
+检索截止：2026-10-11。本表是按六个研究问题选择的原始文献，不是所有VL论文的系统综述。`verification_depth`描述本轮实际读到的层次；所有“复现”均指计划，未在本地运行第三方神经模型。论文数据/方法记录与后面的自拟实验分开。
+
+## F01 — Self-supervised Representation Learning with Relative Predictive Coding
+- 发表状态：ICLR 2021
+- 主来源：https://arxiv.org/abs/2103.11275
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：相对密度比二次目标；平衡参数与当前J相同。
+- 原文的数据／评估：CIFAR; STL-10; ImageNet; LibriSpeech；表示学习与依赖估计。
+- 核验层次：primary_full_text。不是另一个不同的平衡VCS基线。
+
+## F02 — Relative Density-Ratio Estimation for Robust Distribution Comparison
+- 发表状态：NeurIPS 2011 / arXiv revision
+- 主来源：https://arxiv.org/abs/1106.4729
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：混合分母的相对密度比与最小二乘估计。
+- 原文的数据／评估：受控分布及分布比较应用；相对Pearson误差/应用性能。
+- 核验层次：primary_full_text。
+
+## F03 — Composite Binary Losses
+- 发表状态：JMLR 2010
+- 主来源：https://www.jmlr.org/papers/v11/reid10a.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：正规复合损失与概率估计；有限类下不存在无条件统一优劣。
+- 原文的数据／评估：理论；条件风险与后验拟合。
+- 核验层次：primary_full_text。
+
+## F04 — f-GAN: Training Generative Neural Samplers using Variational Divergence Minimization
+- 发表状态：NeurIPS 2016
+- 主来源：https://arxiv.org/abs/1606.00709
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：一般f散度的变分估计与生成学习。
+- 原文的数据／评估：生成建模；散度与生成样本评价。
+- 核验层次：primary_abstract。本轮用于一般先行工作，不移植其数值。
+
+## F05 — Learning Transferable Visual Models From Natural Language Supervision
+- 发表状态：ICML 2021
+- 主来源：https://proceedings.mlr.press/v139/radford21a.html
+- 官方代码／项目入口：https://github.com/openai/CLIP
+- 原文方法：图文对比双编码器与零样本迁移。
+- 原文的数据／评估：大规模图文预训练; 多个分类和检索集；零样本准确率; 双向Recall@K。
+- 核验层次：primary_paper_or_proceedings。
+
+## F06 — Sigmoid Loss for Language Image Pre-Training
+- 发表状态：ICCV 2023
+- 主来源：https://openaccess.thecvf.com/content/ICCV2023/html/Zhai_Sigmoid_Loss_for_Language_Image_Pre-Training_ICCV_2023_paper.html
+- 官方代码／项目入口：https://github.com/google-research/big_vision
+- 原文方法：逐对sigmoid替代批softmax；关注正负比例与配对预算。
+- 原文的数据／评估：图文预训练; 零样本分类与检索；准确率; 检索; batch/配对效率。
+- 核验层次：primary_paper_or_proceedings。
+
+## F07 — SigLIP 2: Multilingual Vision-Language Encoders with Improved Semantic Understanding, Localization, and Dense Features
+- 发表状态：2025 technical report
+- 主来源：https://arxiv.org/abs/2502.14786
+- 官方代码／项目入口：https://huggingface.co/google
+- 原文方法：多目标和数据策略增强图文表示；作为现代预训练参考。
+- 原文的数据／评估：多语言图文; 定位及稠密特征任务；分类/检索/定位。
+- 核验层次：primary_abstract。不能把整个预训练模型优势解释成单一sigmoid损失优势。
+
+## F08 — Qwen2.5-VL Technical Report
+- 发表状态：2025 technical report / official model card
+- 主来源：https://arxiv.org/abs/2502.13923
+- 官方代码／项目入口：https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct
+- 原文方法：动态视觉分辨率的开放VLM；作为D1/D2宿主。
+- 原文的数据／评估：文档/图表/OCR/通用视觉；各官方任务指标。
+- 核验层次：official_model_card。固定7B checkpoint版本、max/min pixels、token数与dtype；不是调用在线服务。
+
+## T01 — An Image is Worth 1/2 Tokens After Layer 2: Plug-and-play Inference Acceleration for Large Vision-Language Models
+- 发表状态：ECCV 2024
+- 主来源：https://arxiv.org/abs/2403.06764
+- 官方代码／项目入口：https://github.com/pkunlp-icler/FastV
+- 原文方法：FastV利用早期层后注意力裁减视觉token。
+- 原文的数据／评估：LLaVA系; Qwen-VL; 视频任务；原任务表现; FLOPs; 推理延迟。
+- 核验层次：primary_full_text。
+
+## T02 — SparseVLM: Visual Token Sparsification for Efficient Vision-Language Model Inference
+- 发表状态：ICML 2025
+- 主来源：https://proceedings.mlr.press/v267/zhang25s.html
+- 官方代码／项目入口：https://github.com/Gumpest/SparseVLMs
+- 原文方法：文本raters、逐层稀疏与token回收；免训练。
+- 原文的数据／评估：GQA; MMBench; MME; POPE; ScienceQA; SEED; TextVQA; MMVet；官方任务分数; 保持率; FLOPs; CUDA时间。
+- 核验层次：primary_full_text。保持原表现97%不等于准确率97%。
+
+## T03 — Feather the Throttle: Revisiting Visual Token Pruning for Vision-Language Model Acceleration
+- 发表状态：ICCV 2025
+- 主来源：https://arxiv.org/abs/2412.13180
+- 官方代码／项目入口：https://web.stanford.edu/~markendo/projects/feather
+- 原文方法：分析视觉中心任务失效；RoPE-free注意力与两阶段裁减。
+- 原文的数据／评估：通用QA; TextVQA; 视觉定位等；任务质量与加速。
+- 核验层次：primary_full_text。均值QA不足以说明视觉证据保持。
+
+## T04 — Conical Visual Concentration for Efficient Large Vision-Language Models (PyramidDrop)
+- 发表状态：CVPR 2025
+- 主来源：https://arxiv.org/abs/2410.17247
+- 官方代码／项目入口：https://github.com/Cooperx521/PyramidDrop
+- 原文方法：分阶段减少视觉token，训练/推理设定分别处理。
+- 原文的数据／评估：多项图像问答任务；任务准确率; 训练/推理成本。
+- 核验层次：primary_abstract。arXiv原标题PyramidDrop与最终题名区分。
+
+## T05 — IF-Prune: Information-Flow Guided Token Pruning for Efficient Vision-Language Models
+- 发表状态：CVPR 2026
+- 主来源：https://openaccess.thecvf.com/content/CVPR2026/html/Sun_IF-Prune_Information-Flow_Guided_Token_Pruning_for_Efficient_Vision-Language_Models_CVPR_2026_paper.html
+- 官方代码／项目入口：https://github.com/snap-research/EVLM-IF-Prune
+- 原文方法：小VLM的变分信息瓶颈提供问题条件下的视觉裁减信号。
+- 原文的数据／评估：8项评测；官方README明确含ChartQA，Qwen2-VL/InternVL系；任务表现保持率; token/计算成本。
+- 核验层次：primary_abstract_and_official_repo。CVF全文本轮访问受限，八集完整名称不能据其他论文补齐；官方README BibTeX仍有占位符，不采用。
+
+## T06 — DiffPrune: Differentiable Information Throttling for Token Pruning in Vision-Language Models
+- 发表状态：arXiv preprint, August 2026
+- 主来源：https://arxiv.org/abs/2608.01985
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：可微信息节流训练token评分器；以任务损失学习裁减。
+- 原文的数据／评估：LLaVA1.5-7B; LLaVA-NEXT7B; Qwen2.5-VL7B; GQA/TextVQA等10任务；固定预算任务质量; 实际效率。
+- 核验层次：primary_full_text。所读版本未核实可用官方代码，不能列为已可直接复跑。
+
+## T07 — ET-Prune: Evidence-Aware Dynamic Budgeting for Visual Token Pruning in Text-Rich MLLMs
+- 发表状态：arXiv preprint, August 2026
+- 主来源：https://arxiv.org/abs/2608.01979
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：问题条件证据评分、文本空间保护与动态预算下限。
+- 原文的数据／评估：Qwen3-VL8B; InternVL3.5-8B; OCRBench-v2; MMBench1.1；OCR/QA; token数与时延。
+- 核验层次：primary_full_text。属于直接概念邻居；不宣称首次evidence-aware动态预算。
+
+## H01 — Mitigating Object Hallucinations in Large Vision-Language Models through Visual Contrastive Decoding
+- 发表状态：CVPR 2024
+- 主来源：https://openaccess.thecvf.com/content/CVPR2024/html/Leng_Mitigating_Object_Hallucinations_in_Large_Vision-Language_Models_through_Visual_Contrastive_CVPR_2024_paper.html
+- 官方代码／项目入口：https://github.com/DAMO-NLP-SG/VCD
+- 原文方法：原图和扰动图条件的输出对比，免训练减轻幻觉。
+- 原文的数据／评估：POPE等对象幻觉与通用理解；幻觉指标; QA质量; 额外forward成本。
+- 核验层次：primary_paper_or_proceedings。
+
+## H02 — Detecting and Preventing Hallucinations in Large Vision Language Models
+- 发表状态：AAAI 2024
+- 主来源：https://ojs.aaai.org/index.php/AAAI/article/view/29771
+- 官方代码／项目入口：https://github.com/hendryx-scale/mhal-detect
+- 原文方法：M-HalDetect细粒度标注；奖励/偏好优化与best-of-N。
+- 原文的数据／评估：M-HalDetect; 多源模型回答；声明/片段正确性; 人评; 生成质量。
+- 核验层次：primary_full_text。
+
+## H03 — Woodpecker: Hallucination Correction for Multimodal Large Language Models
+- 发表状态：2023 arXiv; venue not re-verified here
+- 主来源：https://arxiv.org/abs/2310.16045
+- 官方代码／项目入口：https://github.com/BradyFU/Woodpecker
+- 原文方法：结构化核查与多步骤生成纠错。
+- 原文的数据／评估：图文问答/幻觉评测；纠错效果; 信息保持; 推理成本。
+- 核验层次：primary_abstract。不要仅凭仓库标记推定发表场馆。
+
+## H04 — Scaling Test-Time Robustness of Vision-Language Models via Self-Critical Inference Framework
+- 发表状态：CVPR 2026
+- 主来源：https://openaccess.thecvf.com/content/CVPR2026/html/Tang_Scaling_Test-Time_Robustness_of_Vision-Language_Models_via_Self-Critical_Inference_Framework_CVPR_2026_paper.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：SCI多轮视觉/文本反事实；DRBench动态压力测试。
+- 原文的数据／评估：DRBench及VLM鲁棒性任务；正确性与测试时计算。
+- 核验层次：primary_abstract。全文/代码未完整读到；动态模型专属题池不能无说明横向汇总。
+
+## H05 — Evaluating Object Hallucination in Large Vision-Language Models
+- 发表状态：EMNLP 2023
+- 主来源：https://aclanthology.org/2023.emnlp-main.20/
+- 官方代码／项目入口：https://github.com/AoiDragon/POPE
+- 原文方法：POPE对象存在性问答，random/popular/adversarial负例。
+- 原文的数据／评估：COCO来源图像等发布子集；Accuracy; Precision; Recall; F1; Yes ratio。
+- 核验层次：primary_paper_or_proceedings。
+
+## H06 — HallusionBench: An Advanced Diagnostic Suite for Entangled Language Hallucination and Visual Illusion in Large Vision-Language Models
+- 发表状态：CVPR 2024
+- 主来源：https://arxiv.org/abs/2310.14566
+- 官方代码／项目入口：https://github.com/tianyi-lab/HallusionBench
+- 原文方法：成对控制图像/问题诊断语言幻觉与视觉错觉。
+- 原文的数据／评估：HallusionBench；aAcc; fAcc; qAcc; 分组诊断。
+- 核验层次：primary_full_text。图像编辑家族是独立分组单位；原始full版和image-only子集不能混。
+
+## H07 — AMBER: An LLM-free Multi-dimensional Benchmark for MLLMs Hallucination Evaluation
+- 发表状态：2023 arXiv; venue not asserted
+- 主来源：https://arxiv.org/abs/2311.07397
+- 官方代码／项目入口：https://github.com/junyangwang0410/AMBER
+- 原文方法：生成和判别两种幻觉评价，不依赖生成式LLM裁判。
+- 原文的数据／评估：AMBER；CHAIR; Cover; Hal; Cog; Acc/P/R/F1。
+- 核验层次：primary_full_text。判别P/R/F1以幻觉问题(真值no)为正类，区别POPE约定。
+
+## H08 — Object Hallucination in Image Captioning
+- 发表状态：EMNLP 2018
+- 主来源：https://aclanthology.org/D18-1437/
+- 官方代码／项目入口：https://github.com/LisaAnne/Hallucination
+- 原文方法：CHAIR用对象提及检测图像描述幻觉。
+- 原文的数据／评估：COCO captions；CHAIR_i; CHAIR_s; caption质量。
+- 核验层次：primary_abstract。CHAIR只覆盖对象，不是完整事实性。
+
+## H09 — TIFA: Accurate and Interpretable Text-to-Image Faithfulness Evaluation with Question Answering
+- 发表状态：ICCV 2023
+- 主来源：https://openaccess.thecvf.com/content/ICCV2023/html/Hu_TIFA_Accurate_and_Interpretable_Text-to-Image_Faithfulness_Evaluation_with_Question_Answering_ICCV_2023_paper.html
+- 官方代码／项目入口：https://github.com/Yushi-Hu/tifa
+- 原文方法：把提示词拆成问答，检查生成图是否满足要求。
+- 原文的数据／评估：TIFA评测集; 多个T2I模型；VQA问答一致性; 人类相关性。
+- 核验层次：primary_paper_or_proceedings。
+
+## H10 — Evaluating Text-to-Visual Generation with Image-to-Text Generation (VQAScore)
+- 发表状态：ECCV 2024
+- 主来源：https://arxiv.org/abs/2404.01291
+- 官方代码／项目入口：https://github.com/linzhiqiu/t2v_metrics
+- 原文方法：VQA模型对“是否显示该文字”的Yes概率作为配对评价。
+- 原文的数据／评估：多个图文/生成对齐benchmarks；人类偏好相关性/成对排序。
+- 核验层次：primary_full_text。
+
+## H11 — Visual Entailment: A Novel Task for Fine-Grained Image Understanding
+- 发表状态：2019 arXiv / SNLI-VE dataset
+- 主来源：https://arxiv.org/abs/1901.06706
+- 官方代码／项目入口：https://github.com/necla-ml/SNLI-VE
+- 原文方法：图像前提与文本声明的entailment/neutral/contradiction。
+- 原文的数据／评估：SNLI-VE (Flickr30k + SNLI)；3类accuracy; 本方案另加macro-F1/校准。
+- 核验层次：primary_abstract。neutral不能当成明确contradiction；检查文本偏差。
+
+## G01 — Rethinking FID: Towards a Better Evaluation Metric for Image Generation (CMMD)
+- 发表状态：CVPR 2024
+- 主来源：https://arxiv.org/abs/2401.09603
+- 官方代码／项目入口：https://github.com/google-research/google-research/tree/master/cmmd
+- 原文方法：CLIP空间核MMD，不再使用FID的高斯假设。
+- 原文的数据／评估：多个图像生成模型/受控扰动；分布距离; 人评相关性; 样本效率。
+- 核验层次：primary_full_text。CMMD中的C是CLIP；不等于conditional MMD。
+
+## G02 — Conditional Frechet Inception Distance
+- 发表状态：2021/2022 arXiv revision
+- 主来源：https://arxiv.org/abs/2103.11521
+- 官方代码／项目入口：https://github.com/Michael-Soloveitchik/CFID
+- 原文方法：条件Wasserstein/FID的闭式高斯形式。
+- 原文的数据／评估：条件生成；CFID与FID/MSE对比。
+- 核验层次：primary_abstract。
+
+## G03 — Evaluating Text-to-Image and Text-to-Video Synthesis with a Conditional Fréchet Distance (cFreD)
+- 发表状态：WACV 2026, author publication page verified
+- 主来源：https://arxiv.org/abs/2503.21721
+- 官方代码／项目入口：https://vislang.ai/publications/koo2026evaluating
+- 原文方法：联合视觉质量与条件文本的一致性，条件Fréchet距离。
+- 原文的数据／评估：HPDv2; GenAI-Bench; PartiPrompts; COCO；人类相关性与模型排序。
+- 核验层次：primary_full_text。比无条件FID/CMMD更直接的概念对照；版本标题有增添video。
+
+## G04 — GenEval: An Object-Focused Framework for Evaluating Text-to-Image Alignment
+- 发表状态：NeurIPS 2023 Datasets and Benchmarks
+- 主来源：https://arxiv.org/abs/2310.11513
+- 官方代码／项目入口：https://github.com/djghosh13/geneval
+- 原文方法：基于对象检测的可组合T2I要求检查。
+- 原文的数据／评估：GenEval prompts；单物体/多物体/数量/颜色/位置/颜色绑定及平均。
+- 核验层次：primary_abstract_and_official_repo。检测器错误另审计；并非目标生成分布真值。
+
+## G05 — T2I-CompBench: A Comprehensive Benchmark for Open-world Compositional Text-to-image Generation
+- 发表状态：NeurIPS 2023
+- 主来源：https://arxiv.org/abs/2307.06350v2
+- 官方代码／项目入口：https://github.com/Karine-Huang/T2I-CompBench
+- 原文方法：属性绑定、对象关系及复杂组合的分项评价。
+- 原文的数据／评估：6000 prompts / 6 categories (original)；绑定/关系各官方评价器。
+- 核验层次：primary_abstract。只用original版本时不能引用++的8000/8。
+
+## G06 — T2I-CompBench++: An Enhanced and Comprehensive Benchmark for Compositional Text-to-Image Generation
+- 发表状态：TPAMI 2025
+- 主来源：https://doi.org/10.1109/TPAMI.2025.3531907
+- 官方代码／项目入口：https://github.com/Karine-Huang/T2I-CompBench
+- 原文方法：扩展组合类别和更细粒度诊断。
+- 原文的数据／评估：8000 prompts / 8 categories (++ release)；版本对应的官方子类分数。
+- 核验层次：primary_abstract。固定version/commit；与原版不得混排。
+
+## G07 — ConceptMix: A Compositional Image Generation Benchmark with Controllable Difficulty
+- 发表状态：NeurIPS 2024 Datasets and Benchmarks
+- 主来源：https://arxiv.org/abs/2408.14339
+- 官方代码／项目入口：https://princetonvisualai.github.io/conceptmix/
+- 原文方法：按概念数量控制生成要求难度，自动问答并有人类验证。
+- 原文的数据／评估：ConceptMix；各难度满足概念比例与全部满足率。
+- 核验层次：primary_abstract。涉及LLM题目/裁判版本与付费调用；缓存优先。
+
+## G08 — GenAI-Bench: Evaluating and Improving Compositional Text-to-Visual Generation
+- 发表状态：2024 arXiv / CVPR 2024 SynData workshop, not claimed main track
+- 主来源：https://arxiv.org/abs/2406.13743
+- 官方代码／项目入口：https://huggingface.co/datasets/BaiqiL/GenAI-Bench
+- 原文方法：复杂提示、图/视频生成的人类对齐评分；GenAI-Rank候选比较。
+- 原文的数据／评估：GenAI-Bench / GenAI-Rank；人类相关性; 成对偏好; best-of-N。
+- 核验层次：primary_full_text。以BaiqiL/GenAI-Bench为身份；不与GenAI Arena同名数据合并，固定release。
+
+## G09 — Demystifying MMD GANs
+- 发表状态：ICLR 2018
+- 主来源：https://arxiv.org/abs/1801.01401
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：KID的无偏MMD评价背景。
+- 原文的数据／评估：生成图像；KID; MMD。
+- 核验层次：primary_abstract。作为公式先行工作，数值由共享评价实现复跑。
+
+## G10 — Reliable Fidelity and Diversity Metrics for Generative Models
+- 发表状态：ICML 2020
+- 主来源：https://proceedings.mlr.press/v119/naeem20a.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：Density/Coverage把保真和覆盖分开。
+- 原文的数据／评估：生成模型；Density; Coverage; precision/recall相关比较。
+- 核验层次：primary_abstract。和条件忠实性分开，不用单个S宣称区分所有质量因素。
+
+## M01 — Probabilistic Embeddings for Cross-Modal Retrieval
+- 发表状态：CVPR 2021
+- 主来源：https://arxiv.org/abs/2101.05068
+- 官方代码／项目入口：https://github.com/naver-ai/pcme
+- 原文方法：高斯概率嵌入与不确定性，多对多检索。
+- 原文的数据／评估：COCO Caption; CUB Captions；Recall@K; PMRP/类相关检索。
+- 核验层次：primary_abstract_and_official_repo。CUB同类相关性不等于每条caption对每张图都真实。
+
+## M02 — Improved Probabilistic Image-Text Representations (PCME++)
+- 发表状态：ICLR 2024
+- 主来源：https://proceedings.iclr.cc/paper_files/paper/2024/hash/ad9d6ab10446114cf5482d5e1f971a84-Abstract-Conference.html
+- 官方代码／项目入口：https://github.com/naver-ai/pcmepp
+- 原文方法：闭式概率距离与伪正例、混合训练缓解假负例。
+- 原文的数据／评估：COCO Caption; CxC; ECCV Caption；多正例检索; 噪声/不确定性。
+- 核验层次：primary_abstract_and_official_repo。
+
+## M03 — ProLIP: Probabilistic Language-Image Pre-Training
+- 发表状态：ICLR 2025
+- 主来源：https://arxiv.org/abs/2410.18857
+- 官方代码／项目入口：https://github.com/naver-ai/prolip
+- 原文方法：大规模概率预训练与语义包含/不确定性。
+- 原文的数据／评估：DataComp; 零样本分类; 检索; 不确定性任务；检索/分类/包含和不确定性。
+- 核验层次：primary_full_text。预训练数据规模不同需系统参考表与同条件损失表分开。
+
+## M04 — LongProLIP: A Probabilistic Vision-Language Model with Long Context Text
+- 发表状态：ICLR 2025 uncertainty workshop tiny paper / arXiv, not main
+- 主来源：https://arxiv.org/abs/2503.08048
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：概率模型拓展长文本。
+- 原文的数据／评估：Urban1k; DataComp任务等；长描述检索; 分类保持。
+- 核验层次：primary_abstract。标题/版本以注册URL为准；不列未核实场馆。
+
+## M05 — Crisscrossed Captions: Extended Intramodal and Intermodal Semantic Similarity Judgments for MS-COCO
+- 发表状态：EACL 2021
+- 主来源：https://aclanthology.org/2021.eacl-main.249/
+- 官方代码／项目入口：https://github.com/google-research-datasets/Crisscrossed-Captions
+- 原文方法：补充图图/文文/图文的人类语义相似度。
+- 原文的数据／评估：CxC on COCO；语义相关性; retrieval。
+- 核验层次：primary_abstract_and_official_repo。0–5语义分不直接当后验概率；267095是标注对，不是独立图像。
+
+## M06 — ECCV Caption: Correcting False Negatives by Collecting Machine-and-Human-verified Image-Caption Associations for MS-COCO
+- 发表状态：ECCV 2022
+- 主来源：https://arxiv.org/abs/2204.03359
+- 官方代码／项目入口：https://github.com/naver-ai/eccv-caption
+- 原文方法：修复COCO检索漏标正例，引入mAP@R。
+- 原文的数据／评估：ECCV Caption / COCO Karpathy test subset；mAP@R; R-Precision; Recall@K。
+- 核验层次：official_repo_full。只标注部分查询；公布的judge universe与未判定对严格区分。
+
+## M07 — FLAIR: VLM with Fine-Grained Language-Informed Image Representations
+- 发表状态：CVPR 2025
+- 主来源：https://arxiv.org/abs/2412.03561
+- 官方代码／项目入口：https://github.com/ExplainableML/flair
+- 原文方法：细描述与文本条件视觉池化支持局部关系。
+- 原文的数据／评估：细粒度/长描述检索与区域任务；检索/局部对应。
+- 核验层次：primary_abstract_and_official_repo。代码原生文本条件池化不能被换成弱全局cosine。
+
+## M08 — SUGARCREPE++ Dataset: Vision-Language Model Sensitivity to Semantic and Lexical Alterations
+- 发表状态：2024 arXiv / verify venue before manuscript
+- 主来源：https://arxiv.org/abs/2406.11171
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：同义正描述与困难负描述，分离句式和语义。
+- 原文的数据／评估：SugarCrepe++；官方双正例组合指标。
+- 核验层次：primary_abstract。身份URL需服务器按原作者页面复核后下载，非核心训练数据。
+
+## D01 — DataComp: In Search of the Next Generation of Multimodal Datasets
+- 发表状态：NeurIPS 2023 Datasets and Benchmarks
+- 主来源：https://arxiv.org/abs/2304.14108
+- 官方代码／项目入口：https://www.datacomp.ai/dcclip/
+- 原文方法：固定池、模型及计算的图文数据策展基准。
+- 原文的数据／评估：DataComp four scales; 38 downstream tasks；38任务平均及ImageNet/检索。
+- 核验层次：official_site_and_repo。tiny内部样本不能称官方DataComp-small。
+
+## D02 — Data Filtering Networks
+- 发表状态：ICLR 2024
+- 主来源：https://proceedings.iclr.cc/paper_files/paper/2024/hash/9bf0810a4a1597a36d27ceea58667d92-Abstract-Conference.html
+- 官方代码／项目入口：https://github.com/apple/ml-dfn
+- 原文方法：筛选网络的效用不等于其自身下游准确率。
+- 原文的数据／评估：DFN pools; 多项零样本评价；由筛选集训练的模型质量。
+- 核验层次：primary_abstract。ICLR2024，不是把2023 arXiv当NeurIPS2023。
+
+## D03 — Sieve: Multimodal Dataset Pruning Using Image Captioning Models
+- 发表状态：CVPR 2024
+- 主来源：https://openaccess.thecvf.com/content/CVPR2024/html/Mahmoud_Sieve_Multimodal_Dataset_Pruning_using_Image_Captioning_Models_CVPR_2024_paper.html
+- 官方代码／项目入口：https://github.com/facebookresearch/SIEVE
+- 原文方法：生成描述与原文字的语义一致性筛选，结合CLIP。
+- 原文的数据／评估：DataComp medium/large; 38 tasks；下游质量; 筛选与caption成本。
+- 核验层次：primary_abstract_and_official_repo。
+
+## D04 — What If We Recaption Billions of Web Images with LLaMA-3?
+- 发表状态：ICML 2025
+- 主来源：https://proceedings.mlr.press/v267/li25ch.html
+- 官方代码／项目入口：https://github.com/UCSC-VLAA/Recap-DataComp-1B
+- 原文方法：大规模再描述，原文与新caption混合用于CLIP及生成训练。
+- 原文的数据／评估：Recap-DataComp-1B; 多项图文检索和生成；检索; 生成忠实性。
+- 核验层次：primary_paper_or_proceedings。同一图片的新旧caption不能跨划分。
+
+## D05 — Matched Data, Better Models: Target Aligned Data Filtering with Sparse Autoencoders
+- 发表状态：ICLR 2026
+- 主来源：https://proceedings.iclr.cc/paper_files/paper/2026/hash/8291acb610ddc260d554da5a3d273ae9-Abstract-Conference.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：稀疏自编码器的目标分布匹配用于图文过滤(SDM)。
+- 原文的数据／评估：DataComp medium; 38 tasks；目标与整体迁移性能。
+- 核验层次：primary_abstract。目标分布匹配已被研究；不是VCS首次。
+
+## D06 — Multimodal Distribution Matching for Vision-Language Dataset Distillation
+- 发表状态：arXiv preprint, May 2026
+- 主来源：https://arxiv.org/abs/2605.23482
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：多模态分布匹配用于合成数据蒸馏。
+- 原文的数据／评估：图文数据蒸馏；由合成数据训练的下游效果。
+- 核验层次：primary_abstract。数据蒸馏不等于本方案从固定池过滤；相关而非首批必跑。
+
+## D07 — BLIP: Bootstrapping Language-Image Pre-training for Unified Vision-Language Understanding and Generation
+- 发表状态：ICML 2022
+- 主来源：https://proceedings.mlr.press/v162/li22n.html
+- 官方代码／项目入口：https://github.com/salesforce/BLIP
+- 原文方法：captioner/filter组合清理和补充图文预训练。
+- 原文的数据／评估：图文预训练/检索/生成任务；检索与生成质量。
+- 核验层次：primary_abstract。再描述/过滤先行工作。
+
+## V01 — End-to-End Learning of Visual Representations from Uncurated Instructional Videos (MIL-NCE)
+- 发表状态：CVPR 2020
+- 主来源：https://arxiv.org/abs/1912.06430
+- 官方代码／项目入口：https://www.di.ens.fr/willow/research/mil-nce/
+- 原文方法：多实例NCE处理叙述视频固有时间错配。
+- 原文的数据／评估：HowTo100M train; YouCook2/MSR-VTT/CrossTask/COIN等；检索; 动作分类/定位/分割。
+- 核验层次：primary_abstract_and_author_site。
+
+## V02 — QVHighlights: Detecting Moments and Highlights in Videos via Natural Language Queries
+- 发表状态：NeurIPS 2021
+- 主来源：https://arxiv.org/abs/2107.09609
+- 官方代码／项目入口：https://github.com/jayleicn/moment_detr
+- 原文方法：查询条件多时间段定位与显著性，Moment-DETR端到端头。
+- 原文的数据／评估：QVHighlights；MR mAP; R@1; HD mAP/Hit@1。
+- 核验层次：official_repo_full。2026-10-11官方README称Codalab关闭并发布test真值；仍保持一次性评价边界。
+
+## V03 — Query-Dependent Video Representation for Moment Retrieval and Highlight Detection (QD-DETR)
+- 发表状态：CVPR 2023
+- 主来源：https://openaccess.thecvf.com/content/CVPR2023/html/Moon_Query-Dependent_Video_Representation_for_Moment_Retrieval_and_Highlight_Detection_CVPR_2023_paper.html
+- 官方代码／项目入口：https://github.com/wjun0830/QD-DETR
+- 原文方法：查询依赖表示与负查询训练。
+- 原文的数据／评估：QVHighlights; TVSum; Charades-STA；moment retrieval/highlight官方指标。
+- 核验层次：primary_paper_or_proceedings。
+
+## V04 — Knowing Where to Focus: Event-aware Transformer for Video Grounding (EaTR)
+- 发表状态：ICCV 2023
+- 主来源：https://openaccess.thecvf.com/content/ICCV2023/html/Jang_Knowing_Where_to_Focus_Event-aware_Transformer_for_Video_Grounding_ICCV_2023_paper.html
+- 官方代码／项目入口：https://github.com/jinhyunj/EaTR
+- 原文方法：事件结构引导视频定位。
+- 原文的数据／评估：视频语言时间定位集；R@1 tIoU; mAP等官方任务指标。
+- 核验层次：primary_paper_or_proceedings。
+
+## V05 — Correlation-Guided Query-Dependency Calibration for Video Temporal Grounding (CG-DETR)
+- 发表状态：2023/2024 arXiv revision; venue not re-verified
+- 主来源：https://arxiv.org/abs/2311.08835
+- 官方代码／项目入口：https://github.com/wjun0830/CGDETR
+- 原文方法：dummy tokens与跨模态相关性调节查询参与程度。
+- 原文的数据／评估：QVHighlights; temporal grounding benchmarks；MR/HD指标。
+- 核验层次：primary_abstract。不要将confidence calibration与它的query-dependency calibration混同。
+
+## V06 — Background-Aware Moment Detection for Video Moment Retrieval (BM-DETR)
+- 发表状态：WACV 2025
+- 主来源：https://openaccess.thecvf.com/content/WACV2025/html/Jung_Background-Aware_Moment_Detection_for_Video_Moment_Retrieval_WACV_2025_paper.html
+- 官方代码／项目入口：https://github.com/minjoong507/BM-DETR
+- 原文方法：显式处理相关片段与背景。
+- 原文的数据／评估：QVHighlights等时间定位集；moment retrieval指标。
+- 核验层次：primary_paper_or_proceedings。
+
+## V07 — Sim-DETR: Unlock DETR for Temporal Sentence Grounding
+- 发表状态：ICCV 2025
+- 主来源：https://openaccess.thecvf.com/content/ICCV2025/html/Tang_Sim-DETR_Unlock_DETR_for_Temporal_Sentence_Grounding_ICCV_2025_paper.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：处理查询竞争与全局/局部定位。
+- 原文的数据／评估：temporal sentence grounding benchmarks；官方定位指标。
+- 核验层次：primary_abstract。完整数据/权重兼容性先由服务器核实。
+
+## V08 — Saliency-Guided DETR for Moment Retrieval and Highlight Detection (SG-DETR)
+- 发表状态：WACV 2026
+- 主来源：https://openaccess.thecvf.com/content/WACV2026/html/Gordeev_Saliency-Guided_DETR_for_Moment_Retrieval_and_Highlight_Detection_WACV_2026_paper.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：显著性引导MR/HD，使用更强视频预训练信息。
+- 原文的数据／评估：QVHighlights及时间定位；MR/HD。
+- 核验层次：primary_abstract。额外InterVid等预训练/特征单列，不能当纯损失比较。
+
+## V09 — Hierarchical Video-Moment Retrieval and Step-Captioning (HiREST)
+- 发表状态：CVPR 2023
+- 主来源：https://openaccess.thecvf.com/content/CVPR2023/html/Zala_Hierarchical_Video-Moment_Retrieval_and_Step-Captioning_CVPR_2023_paper.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：长视频中的层级片段和步骤描述。
+- 原文的数据／评估：HiREST；视频/片段retrieval; step captioning。
+- 核验层次：primary_abstract。captioning与定位不可混成单一分数。
+
+## V10 — MomentSeeker: A Benchmark for Long-Video Moment Retrieval
+- 发表状态：NeurIPS 2025 Datasets and Benchmarks
+- 主来源：https://proceedings.neurips.cc/paper_files/paper/2025/hash/281e0b9142763f2b6c944fedb8550ba9-Abstract-Datasets_and_Benchmarks_Track.html
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：更长视频和多种查询形态。
+- 原文的数据／评估：MomentSeeker；长视频定位/检索。
+- 核验层次：primary_abstract。先核数据可得性与实际特征成本；不列入首批全面训练。
+
+## V11 — NaQ: Leveraging Narrations as Queries to Supervise Episodic Memory
+- 发表状态：CVPR 2023
+- 主来源：https://arxiv.org/abs/2301.00746
+- 官方代码／项目入口：https://vision.cs.utexas.edu/projects/naq/
+- 原文方法：将叙述转为Ego4D NLQ训练监督。
+- 原文的数据／评估：Ego4D NLQ；R@1/5 at tIoU 0.3/0.5。
+- 核验层次：primary_abstract。扩展训练监督量必须同信息预算控制。
+
+## B01 — GQA: A New Dataset for Real-World Visual Reasoning and Compositional Question Answering
+- 发表状态：CVPR 2019
+- 主来源：https://cs.stanford.edu/people/dorarad/gqa/index.html
+- 官方代码／项目入口：https://cs.stanford.edu/people/dorarad/gqa/evaluate.html
+- 原文方法：场景图与可组合问题。
+- 原文的数据／评估：GQA；accuracy; consistency; validity; plausibility; grounding。
+- 核验层次：official_site_full。VG特征与原val重叠警告遵照官方说明。
+
+## B02 — Towards VQA Models That Can Read
+- 发表状态：CVPR 2019
+- 主来源：https://textvqa.org/
+- 官方代码／项目入口：https://github.com/facebookresearch/mmf
+- 原文方法：自然图像OCR问答；多个人类答案。
+- 原文的数据／评估：TextVQA；官方VQA软准确率。
+- 核验层次：official_site。具体归一化用官方/M4C evaluator，不手写简化count/3。
+
+## B03 — DocVQA: A Dataset for VQA on Document Images
+- 发表状态：WACV 2021 / SP-DocVQA challenge 2020
+- 主来源：https://www.docvqa.org/datasets/docvqa
+- 官方代码／项目入口：本轮未核实可运行官方代码；不要猜仓库地址。
+- 原文方法：文档图像上的问答。
+- 原文的数据／评估：SP-DocVQA；ANLS; 原任务协议。
+- 核验层次：official_site_full。不等同新DocVQA2026；获取受官方注册流程约束。
+
+## B04 — ChartQA: A Benchmark for Question Answering about Charts with Visual and Logical Reasoning
+- 发表状态：Findings of ACL 2022
+- 主来源：https://aclanthology.org/2022.findings-acl.177/
+- 官方代码／项目入口：https://github.com/vis-nlp/ChartQA
+- 原文方法：human和augmented图表问题。
+- 原文的数据／评估：ChartQA; FigureQA; PlotQA; DVQA；数值5%容差、非数值精确匹配。
+- 核验层次：primary_full_text。
+
+## B05 — CLEVR: A Diagnostic Dataset for Compositional Language and Elementary Visual Reasoning
+- 发表状态：CVPR 2017
+- 主来源：https://cs.stanford.edu/people/jcjohns/clevr/
+- 官方代码／项目入口：https://github.com/facebookresearch/clevr-dataset-gen
+- 原文方法：结构化场景与问题程序，适合规定有限信道。
+- 原文的数据／评估：CLEVR；exact answer accuracy; 本方案有限分布真值。
+- 核验层次：official_project。标签信道真值不自动是任意冻结视觉特征的密度比真值。

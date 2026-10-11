@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D2_factual_support · 服务器方案</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D2_factual_support · 服务器方案</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d2-服务器实验方案视觉事实支持与生成忠实性"
+id="toc-d2-服务器实验方案视觉事实支持与生成忠实性">D2
+服务器实验方案｜视觉事实支持与生成忠实性</a>
+<ul>
+<li><a href="#a.-主任务支持核验完整回答改进"
+id="toc-a.-主任务支持核验完整回答改进">A.
+主任务：支持核验→完整回答改进</a></li>
+<li><a href="#b.-分布与模型" id="toc-b.-分布与模型">B.
+分布与模型</a></li>
+<li><a href="#c.-数据与构造" id="toc-c.-数据与构造">C.
+数据与构造</a></li>
+<li><a href="#d.-具体实验" id="toc-d.-具体实验">D. 具体实验</a></li>
+<li><a href="#e.-评价" id="toc-e.-评价">E. 评价</a></li>
+<li><a href="#f.-期待与退出条件" id="toc-f.-期待与退出条件">F.
+期待与退出条件</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d2-服务器实验方案视觉事实支持与生成忠实性">D2
+服务器实验方案｜视觉事实支持与生成忠实性</h1>
+<p><strong>性质：候选方案，尚无本方案自然数据结果。</strong>
+先读本目录综述和共同理论/评价规范。数据条目：DS07, DS08, DS09, DS10,
+DS11, DS12, DS18；全部定义见
+<code>../../datasets/DATASET_ATLAS_CN.md</code>。</p>
+<h2 id="a.-主任务支持核验完整回答改进">A.
+主任务：支持核验→完整回答改进</h2>
+<p>第一轮以图像I、问题q、声明a为输入，预测supported/contradicted；unknown单独保留。输出不仅是一个分数，还要在固定候选生成或答案修正流程中改变最终回答。先做caption/VQA，不同时做T2I扩散微调。</p>
+<h2 id="b.-分布与模型">B. 分布与模型</h2>
+<p>在明确的人类标注二元子任务上令P=P(I,q,a|supported)，Q=P(I,q,a|contradicted)，类先验训练平衡。对应T=tanh
+f；Logistic用sigmoid(2f)，两者在同模型上训练。部署支持概率按CAL先验/校准报告；neutral不能强行作为Q。</p>
+<p>建立文本分支a_text(q,a)与视觉分支b_vis(I,q,a)。比较同一任务实验的最优平方增量，但实际使用时只将有限(b−a)²称作分歧代理；独立标签下同时计算真实风险改善。图像遮挡/替换仅作压力测试，不能未经语义复核认定它使支持标签翻转。</p>
+<p>critic建议复用统一cross-modal宿主的joint
+representations，加同大小预测头或LoRA；二元子任务不使用任意自由生成概率当校准分。所有训练臂同参数预算、输入分辨率和训练标签。选定模型必须能输出完整VQA/caption；纯分类probe结果只算组件检查。</p>
+<h2 id="c.-数据与构造">C. 数据与构造</h2>
+<p>M-HalDetect按image和回答生成模型双重记录；第一轮使用官方train并从中划CAL，留出原图家族。可另设“某一回答生成器从未用于训练”的迁移评价。原标签若是span而非原子声明，按官方annotation单位训练，不随意自动拆分改变真值。</p>
+<p>自建原子声明或图像互换需要人工复核的最小子集和一致性记录；在没有授权标注资源时不把它写为已完成数据。SNLI-VE可以补三类训练，迁移到二元supported/contradicted时明示过滤，neutral单独评价。POPE/AMBER/HallusionBench与旧RefCOCO的COCO交集先记录，必要时按未见图片子集及官方全表双报。</p>
+<h2 id="d.-具体实验">D. 具体实验</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>单元</th>
+<th>方法/操作</th>
+<th>产物</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>D2-00</td>
+<td>标签schema审查、官方metrics
+fixture；统计label/source/length/image分布</td>
+<td>明确known false、unknown和文本捷径</td>
+</tr>
+<tr class="even">
+<td>D2-10</td>
+<td>同架构VCS、Logistic、纯文本对照各3seeds；支持识别与校准</td>
+<td>Brier/NLL、ROC/PR、跨generator与数据集结果</td>
+</tr>
+<tr class="odd">
+<td>D2-20</td>
+<td>固定同一caption/VQA生成器和候选缓存，每问题N={1,4}；VCS/JS/自置信/VQAScore重排</td>
+<td>同候选/同生成成本下最终答案和coverage</td>
+</tr>
+<tr class="even">
+<td>D2-30</td>
+<td>胜出机制的VCS与matchedJS/直接错误预测进入同一LoRA或偏好训练recipe</td>
+<td>3方法×3seeds完整回答模型，不仅奖励头分数</td>
+</tr>
+<tr class="odd">
+<td>D2-40</td>
+<td>独立AMBER、POPE、HallusionBench与人工小审计；需要时另一个生成器</td>
+<td>外部评价与失败类型，不由训练critic主评</td>
+</tr>
+</tbody>
+</table>
+<p>D2-20的best-of-N是独立用途，但正文宣称训练改善时必须完成D2-30。完整生成器样本缓存冻结后不同ranker共用，不能VCS采四次JS采一次。标准SFT/原生成器是不可省基线；VCD按其原图/扰动图额外forward计成本，Woodpecker/SCI能复现则做相同test-time
+budget参考。</p>
+<h2 id="e.-评价">E. 评价</h2>
+<p>组件主指标binary
+Brier/NLL与类别/来源分层；AUPRC随先验变化显式记录。最终主指标在固定回答覆盖/长度下的错误率与官方任务质量。AMBER的CHAIR必须与Cover一起看；POPE三个负例策略分别报；HallusionBench三个accuracy不合并掩盖pair失败。无法解析回答、拒答和未知输出都按冻结规则保留。</p>
+<p>生成改进需至少一条不依赖被训练critic的证据：原始人类groundtruth、盲审或固定独立评价器。报告new-error/corrected-error/unchanged-correct以及内容遗漏，避免reward
+hacking。</p>
+<h2 id="f.-期待与退出条件">F. 期待与退出条件</h2>
+<p>H2a：视觉分支比纯文本更能泛化到未见回答风格；H2b：相同标注与模型下二次证据读数能支持更好的risk–coverage或纠错；H2c：这转化为完整回答改善。没有预测固定领先点数。</p>
+<p>若纯文本和视觉相同，数据未迫使模型看图，先修任务/负例，不增加网络。若组件Brier好而生成不好，检查reward–decision接口，不以组件分数代替任务。若总拒答导致分数提升，按coverage匹配重判。若matchedJS同样好，作用可能是共同后验估计而非平方拟合；方法贡献要落在任务结构/估计使用，而不是撤掉JS。</p>
+<p>T2I分支只有在支持预测跨域可靠后再启用：固定GenAI-Rank候选，先评价排序与事实覆盖；扩散LoRA需新协议、独立外部reward和安全/版权审查，不在本包自动启动。</p>
+</body>
+</html>

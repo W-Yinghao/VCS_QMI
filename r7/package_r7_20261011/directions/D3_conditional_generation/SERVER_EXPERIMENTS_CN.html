@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D3_conditional_generation · 服务器方案</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D3_conditional_generation · 服务器方案</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d3-服务器实验方案条件生成分布比较"
+id="toc-d3-服务器实验方案条件生成分布比较">D3
+服务器实验方案｜条件生成分布比较</a>
+<ul>
+<li><a href="#a.-统计对象" id="toc-a.-统计对象">A. 统计对象</a></li>
+<li><a href="#b.-可控实验设计" id="toc-b.-可控实验设计">B.
+可控实验设计</a></li>
+<li><a href="#c.-自然数据评价" id="toc-c.-自然数据评价">C.
+自然数据评价</a></li>
+<li><a href="#d.-主表与指标" id="toc-d.-主表与指标">D.
+主表与指标</a></li>
+<li><a href="#e.-完整应用与候选新增点"
+id="toc-e.-完整应用与候选新增点">E. 完整应用与候选新增点</a></li>
+<li><a href="#f.-失败后的处理" id="toc-f.-失败后的处理">F.
+失败后的处理</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d3-服务器实验方案条件生成分布比较">D3
+服务器实验方案｜条件生成分布比较</h1>
+<p><strong>性质：候选方案，尚无本方案自然数据结果。</strong>
+先读本目录综述和共同理论/评价规范。数据条目：DS13, DS12, DS14, DS15,
+DS16, DS17, DS18, DS19, DS20；全部定义见
+<code>../../datasets/DATASET_ATLAS_CN.md</code>。</p>
+<h2 id="a.-统计对象">A. 统计对象</h2>
+<p>固定条件权重π(c)，P(c,z)=π(c)P_ref(z|c)，Q_m(c,z)=π(c)P_model_m(z|c)。主读数S；CS变换按全局S单独提供，不能对每条件CS求均值后冒充同一值。共同观测编码器固定，不为VCS偷偷提供更强文本条件特征。</p>
+<p>首次原型先在低维latent条件和已知观测映射上做精确truth，再渲染为CLEVR型场景。若渲染/特征变换不单射，先计算pushforward分布或放弃oracle标签；不要把scene
+label的S直接当CLIP特征真值。自然数据只报held-out common
+J与不确定性，不报未知S的MSE。</p>
+<h2 id="b.-可控实验设计">B. 可控实验设计</h2>
+<p>条件c取对象/属性/关系组合，图像中的未指定位置、材质、背景视为合理变化。固定生成P_ref和四类Q：条件误配（保持总图像边缘不变）、类内模式缺失、视觉噪声/质量下降、混合污染。各类型强度3档，加clean
+reference，共13个规定分布。采用相同条件频率，生成/采样seed在角色间独立。</p>
+<p>每条件FIT样本数{8,32,128}；条件组数先固定16，再以更多组测试可迁移性；3次独立抽样。主要6读数：VCS、matchedLogistic→J、same-target核relative
+fit、grouped RBF
+MMD、CFID/cFreD适用实现、无条件CMMD负控制。只有VCS、Logistic→J与同目标核回归进入posterior/S误差表；MMD、CFID/cFreD、CMMD只比较各自的分辨、稳定性与外部用途，绝不拿它们的原始值减去S。正确信息保持的null和恒定估计器同时列出，不能靠恒零的“低方差”获胜。</p>
+<p>在多个Q_m比较时，每个critic都用相同FIT/SELECT/EVAL预算；不能用同一evaluation
+pool选网络/带宽。可增加共享条件critic，但“跨条件泛化”必须在未用于训练的condition/template上另测。</p>
+<h2 id="c.-自然数据评价">C. 自然数据评价</h2>
+<p>第一部分选择已存在多真实实例的语义条件组，明确reference究竟是这批受限组，不是所有自然图像。COCO对象/属性group需要剔除歧义、共现偏差并记录；分组条件本身不赋予真实密度。不同生成器用固定版本/seed/prompt，先用已有可再分发样本，生成新图前估算预算与许可。</p>
+<p>第二部分用GenAI-Bench/Rank固定release的人类判断，按prompt-group和generator-family做留出。评价模型级和prompt组级相关性；同一prompt中样本不足以拟合条件分布时聚合到预定组，不为得到显著性事后重分组。第三部分用GenEval/CompBench版本和ConceptMix检验语义缺陷排序，不把这些分数当S数值真值。</p>
+<h2 id="d.-主表与指标">D. 主表与指标</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>表</th>
+<th>必报</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>受控同目标估计</td>
+<td>posterior MSE、S
+bias/RMSE、评价方差、null错误与样本量；fit/eval成本</td>
+</tr>
+<tr class="even">
+<td>缺陷分辨</td>
+<td>各类型强度的排序/分辨概率；marginal不变但条件破坏的专门对照</td>
+</tr>
+<tr class="odd">
+<td>多样性与忠实性</td>
+<td>GenEval/CompBench分项、Density/Coverage、固定人评相关性；不能只报整体好坏</td>
+</tr>
+<tr class="even">
+<td>自然分布评价</td>
+<td>样本数曲线、跨generator/template一致性、独立bootstrap；不写oracle
+MSE</td>
+</tr>
+</tbody>
+</table>
+<p>输入尺度/特征/样本数必须匹配；核方法的带宽/维数在相同SELECT预算内选。无偏MMD负值照实保留，confidence不是自制分数。采用prompt群组重采样；生成次数是独立图像而不是一个样本的多裁剪。</p>
+<h2 id="e.-完整应用与候选新增点">E. 完整应用与候选新增点</h2>
+<p>完整pipeline应能接收固定reference和新generator样本，输出标量、每条件诊断、有效样本量、fit/eval分离日志与不确定性。预注册一个外部用途：在受控质量/覆盖变化的生成器集合中正确识别退化，或根据独立评价选择生成配置；选择后再用新prompt评价，不能用同一人评挑模型再报相关性。</p>
+<p>可选后续是条件生成适配，但minimizing a lower bound
+J会受critic不足影响；必须交替重拟合和独立外部评价，且不声称小J认证分布匹配。</p>
+<h2 id="f.-失败后的处理">F. 失败后的处理</h2>
+<p>若CFID/groupedMMD已经稳定解决，研究应收束到VCS在哪些非高斯或高维条件有可复现增量，而不是撤强对照。若critic靠来源风格胜出，增加同风格/同生成器条件置乱对照，并固定与文本相关的观测，而非继续扩大网络。若自然reference不足，限定为有限参考评价或暂停自然主张；不能依靠“总会有真分布”继续跑。</p>
+<p>首轮不是生成十万张图：先做13×3样本档的受控估计和一个固定人评release的资源核验。自然生成量由第一个完整timing决定，所有新生成/付费人评需按实际授权。</p>
+</body>
+</html>

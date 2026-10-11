@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D4_many_to_many · 服务器方案</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D4_many_to_many · 服务器方案</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d4-服务器实验方案多对多不完整标注与概率图文关系"
+id="toc-d4-服务器实验方案多对多不完整标注与概率图文关系">D4
+服务器实验方案｜多对多、不完整标注与概率图文关系</a>
+<ul>
+<li><a href="#a.-首先选关系不先选损失"
+id="toc-a.-首先选关系不先选损失">A. 首先选关系，不先选损失</a></li>
+<li><a href="#b.-模型和损失设计" id="toc-b.-模型和损失设计">B.
+模型和损失设计</a></li>
+<li><a href="#c.-最小完整训练" id="toc-c.-最小完整训练">C.
+最小完整训练</a></li>
+<li><a href="#d.-评价" id="toc-d.-评价">D. 评价</a></li>
+<li><a href="#e.-我们希望什么什么不算成功"
+id="toc-e.-我们希望什么什么不算成功">E.
+我们希望什么、什么不算成功</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d4-服务器实验方案多对多不完整标注与概率图文关系">D4
+服务器实验方案｜多对多、不完整标注与概率图文关系</h1>
+<p><strong>性质：候选方案，尚无本方案自然数据结果。</strong>
+先读本目录综述和共同理论/评价规范。数据条目：DS12, DS21, DS22, DS23,
+DS24, DS25；全部定义见
+<code>../../datasets/DATASET_ATLAS_CN.md</code>。</p>
+<h2 id="a.-首先选关系不先选损失">A. 首先选关系，不先选损失</h2>
+<p>主候选是“多个合法语义对应下的检索与集合预测”。不再只在同一图的2–4个框中选择。以原图像为split单位；基础双塔先固定CLIP
+B/16或当前已存SigLIP2 B/16的一个，不能每格挑最有利checkpoint。</p>
+<p>首轮分两张表：受控CUB类相关多正例；自然COCO/Flickr训练→ECCV
+Caption/CxC评价。CUB的真关系是class
+relevance；自然评价的真关系仅限官方judged
+universe。若自然训练没有已判断负例，必须列出这一缺口，不能使用eval标注来补。</p>
+<h2 id="b.-模型和损失设计">B. 模型和损失设计</h2>
+<p>使用共同多原型或Gaussian
+embedding宿主时，固定它的容量、采样次数和所有辅助正则。VCS定义为已标注/按协议构造的P/Q上的原J；Logistic在同P/Q同函数类拟合。InfoNCE或multi-positive
+softmax按同一合法正例集合训练。若选择机制Q=乘积，其T读取机制后验；需要语义支持概率时另做带人工标签的CAL映射。</p>
+<p>未知pair不要赋硬负标签。第一轮可比较原始训练标注、受控删除一部分已知关系的标注变稀，及保留的已judge子集；所有方法看到相同删除mask。对COCO未知关系仅做敏感性分析，不声称有真实删标oracle。语义伪正例教师及阈值对所有方法共享；无教师和有教师分开。</p>
+<h2 id="c.-最小完整训练">C. 最小完整训练</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>单元</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>D4-00</td>
+<td>重现原双塔、PCME++的检索评估输入和ECCV evaluator
+fixture；清理COCO/Flickr/CUB角色</td>
+</tr>
+<tr class="even">
+<td>D4-10</td>
+<td>同宿主VCS、Logistic、multi-positive
+softmax、PCME++共4方法×3seeds，完整双塔适配</td>
+</tr>
+<tr class="odd">
+<td>D4-20</td>
+<td>固定删标比例{0,.3,.6}在已知关系数据上检验；先共享训练budget，不额外每档多调参</td>
+</tr>
+<tr class="even">
+<td>D4-30</td>
+<td>未用于选择的ECCV
+Caption/CxC/跨Flickr与SUGARCREPE++语义读数；ProLIP作为完整系统参考</td>
+</tr>
+</tbody>
+</table>
+<p>D4-10是12个训练单元提案；D4-20为条件扩展，不自动把12变36。训练都从相同原始权重开始；不能一边给VCS已有task-finetuned权重一边让基线从pretrain开始。</p>
+<h2 id="d.-评价">D. 评价</h2>
+<p>主表两方向mAP@R与R-Precision，COCO5k/Flickr
+R@1/5/10同时保留。COCO1k五折另列，不与5k比较。CUB按PCME的class-heldout与类相关定义，不能和caption
+semantic
+truth混排。CxC相关性在公布judgements上算；支持概率/校准只在真正人工二值judge子集算。</p>
+<p>新增集合预测用CAL选择阈值或coverage预算，比较相同平均返回条目数下的precision/recall。所有方法都可temperature/Platt校准；T有界不等于天然概率更好。按原图群组bootstrap，重复caption不计独立图像。</p>
+<h2 id="e.-我们希望什么什么不算成功">E. 我们希望什么、什么不算成功</h2>
+<p>希望缺失关系下的多正例召回、概率风险或集合覆盖更好，且标准检索没有不合理损失。仅在原始单正例R@1上平局，不是新增能力；仅uncertainty与caption长短相关也不是正确的多义表达。</p>
+<p>若所有收益来自prototype数、伪标签或更长context，则报告共有结构而非平方损失优势。若不完整标注导致无法评价语义真值，保留标准检索与annotation-sensitivity，暂停“准确估计真实匹配概率”的主张。需要新标注时明确人工成本/许可，不偷偷使用评价集训练。</p>
+<p>下一步可转到D2的有真实支持标签核验，或D5的数据覆盖用途；不继续加内部余弦head直到某一列赢。</p>
+</body>
+</html>

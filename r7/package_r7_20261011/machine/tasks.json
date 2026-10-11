@@ -1,0 +1,108 @@
+{
+  "packet": "r7",
+  "repo_snapshot": "87a847e7a9138e5b52ff19546b62e188d07e315d",
+  "tasks": [
+    {
+      "id": "R7-00",
+      "title": "接入与范围/权限核对",
+      "depends": [],
+      "scope": "read-only",
+      "deliverables": [
+        "intake.md",
+        "head_delta.json",
+        "active_jobs.csv"
+      ]
+    },
+    {
+      "id": "R7-10",
+      "title": "六方向最近文献与数据复核",
+      "depends": [
+        "R7-00"
+      ],
+      "scope": "research_and_metadata",
+      "deliverables": [
+        "paper_updates.csv",
+        "dataset_availability.csv",
+        "baseline_matrix_completed.csv"
+      ]
+    },
+    {
+      "id": "R7-11",
+      "title": "运行CPU定义/指标参考测试",
+      "depends": [
+        "R7-00"
+      ],
+      "scope": "local_cpu",
+      "deliverables": [
+        "reference_tests.txt"
+      ]
+    },
+    {
+      "id": "R7-20",
+      "title": "D1/D2接入+外部完整baseline核验；D3有限对象检查",
+      "depends": [
+        "R7-10",
+        "R7-11"
+      ],
+      "scope": "bounded_feasibility_not_full_grid",
+      "deliverables": [
+        "feasibility_D1.md",
+        "feasibility_D2.md",
+        "finite_D3.json",
+        "timing.csv"
+      ]
+    },
+    {
+      "id": "R7-30",
+      "title": "选择一条主线，冻结数据/方法/预算/统计",
+      "depends": [
+        "R7-20"
+      ],
+      "scope": "research_decision",
+      "deliverables": [
+        "route_decision.md",
+        "frozen_protocol.yaml"
+      ]
+    },
+    {
+      "id": "R7-40",
+      "title": "完成选定路线的全部训练/评价单元",
+      "depends": [
+        "R7-30"
+      ],
+      "scope": "selected_route_only_actual_authorization",
+      "deliverables": [
+        "run_manifest.csv",
+        "predictions",
+        "primary_tables.csv",
+        "failure_log.csv"
+      ]
+    },
+    {
+      "id": "R7-50",
+      "title": "外部验证与方法归因",
+      "depends": [
+        "R7-40"
+      ],
+      "scope": "frozen_evaluation",
+      "deliverables": [
+        "external_results.csv",
+        "claim_ledger.csv"
+      ]
+    },
+    {
+      "id": "R7-60",
+      "title": "更新稿件建议，不直接覆盖V6",
+      "depends": [
+        "R7-50"
+      ],
+      "scope": "report",
+      "deliverables": [
+        "summary_to_collaborator.md",
+        "manuscript_delta_proposal.md"
+      ]
+    }
+  ],
+  "auto_launch_all_directions": false,
+  "server_jobs_launched_here": false
+}

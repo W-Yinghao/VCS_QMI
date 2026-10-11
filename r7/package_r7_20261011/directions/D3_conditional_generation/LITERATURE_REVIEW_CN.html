@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D3_conditional_generation · 文献综述</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D3_conditional_generation · 文献综述</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d3-文献综述条件生成分布比较"
+id="toc-d3-文献综述条件生成分布比较">D3 文献综述｜条件生成分布比较</a>
+<ul>
+<li><a href="#这不是另一个clipscore" id="toc-这不是另一个clipscore">1.
+这不是另一个CLIPScore</a></li>
+<li><a href="#核心工作" id="toc-核心工作">2. 核心工作</a></li>
+<li><a href="#三类基线各自负责什么" id="toc-三类基线各自负责什么">3.
+三类基线各自负责什么？</a></li>
+<li><a href="#最重要的数据难题参考分布究竟是什么"
+id="toc-最重要的数据难题参考分布究竟是什么">4.
+最重要的数据难题：参考分布究竟是什么？</a></li>
+<li><a href="#可以争取什么优势" id="toc-可以争取什么优势">5.
+可以争取什么优势？</a></li>
+<li><a href="#风险" id="toc-风险">6. 风险</a></li>
+<li><a href="#本方向主来源" id="toc-本方向主来源">本方向主来源</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d3-文献综述条件生成分布比较">D3 文献综述｜条件生成分布比较</h1>
+<p>检索截止2026-10-11。事实来源按[Pxx]编号可在文末直接打开；“本方案”均为新设计，不是原论文结果。核验深度见总注册表。</p>
+<h2 id="这不是另一个clipscore">1. 这不是另一个CLIPScore</h2>
+<p>单张生成图与prompt是否相符、整组图是否逼真、合理结果是否覆盖充分，是三个不同问题。FID/CMMD主要比较边缘图像分布；TIFA/VQAScore/GenEval主要看prompt是否被满足；条件分布评价则希望区分“图像都很好但条件配错”与“条件正确但模式缺失”。</p>
+<p>本轮特别核对到CFID[G02]和cFreD[G03]，后者已是WACV2026工作。<strong>条件生成分布比较不是未被占据的空白。</strong>
+因而我们的潜在增量只能是有限每条件样本、高维/多模态非高斯关系或更可靠的分辨能力，不能简单声称首次把文本加到分布指标。</p>
+<h2 id="核心工作">2. 核心工作</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>工作与状态</th>
+<th>原文方法</th>
+<th>原文数据/评价</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>[G01] <strong>Rethinking FID: Towards a Better Evaluation Metric for
+Image Generation (CMMD)</strong> — CVPR 2024</td>
+<td>CLIP空间核MMD，不再使用FID的高斯假设。</td>
+<td>多个图像生成模型/受控扰动；分布距离; 人评相关性; 样本效率。</td>
+</tr>
+<tr class="even">
+<td>[G02] <strong>Conditional Frechet Inception Distance</strong> —
+2021/2022 arXiv revision</td>
+<td>条件Wasserstein/FID的闭式高斯形式。</td>
+<td>条件生成；CFID与FID/MSE对比。</td>
+</tr>
+<tr class="odd">
+<td>[G03] <strong>Evaluating Text-to-Image and Text-to-Video Synthesis
+with a Conditional Fréchet Distance (cFreD)</strong> — WACV 2026, author
+publication page verified</td>
+<td>联合视觉质量与条件文本的一致性，条件Fréchet距离。</td>
+<td>HPDv2; GenAI-Bench; PartiPrompts; COCO；人类相关性与模型排序。</td>
+</tr>
+<tr class="even">
+<td>[G04] <strong>GenEval: An Object-Focused Framework for Evaluating
+Text-to-Image Alignment</strong> — NeurIPS 2023 Datasets and
+Benchmarks</td>
+<td>基于对象检测的可组合T2I要求检查。</td>
+<td>GenEval prompts；单物体/多物体/数量/颜色/位置/颜色绑定及平均。</td>
+</tr>
+<tr class="odd">
+<td>[G05] <strong>T2I-CompBench: A Comprehensive Benchmark for
+Open-world Compositional Text-to-image Generation</strong> — NeurIPS
+2023</td>
+<td>属性绑定、对象关系及复杂组合的分项评价。</td>
+<td>6000 prompts / 6 categories (original)；绑定/关系各官方评价器。</td>
+</tr>
+<tr class="even">
+<td>[G06] <strong>T2I-CompBench++: An Enhanced and Comprehensive
+Benchmark for Compositional Text-to-Image Generation</strong> — TPAMI
+2025</td>
+<td>扩展组合类别和更细粒度诊断。</td>
+<td>8000 prompts / 8 categories (++
+release)；版本对应的官方子类分数。</td>
+</tr>
+<tr class="odd">
+<td>[G07] <strong>ConceptMix: A Compositional Image Generation Benchmark
+with Controllable Difficulty</strong> — NeurIPS 2024 Datasets and
+Benchmarks</td>
+<td>按概念数量控制生成要求难度，自动问答并有人类验证。</td>
+<td>ConceptMix；各难度满足概念比例与全部满足率。</td>
+</tr>
+<tr class="even">
+<td>[G08] <strong>GenAI-Bench: Evaluating and Improving Compositional
+Text-to-Visual Generation</strong> — 2024 arXiv / CVPR 2024 SynData
+workshop, not claimed main track</td>
+<td>复杂提示、图/视频生成的人类对齐评分；GenAI-Rank候选比较。</td>
+<td>GenAI-Bench / GenAI-Rank；人类相关性; 成对偏好; best-of-N。</td>
+</tr>
+<tr class="odd">
+<td>[G09] <strong>Demystifying MMD GANs</strong> — ICLR 2018</td>
+<td>KID的无偏MMD评价背景。</td>
+<td>生成图像；KID; MMD。</td>
+</tr>
+<tr class="even">
+<td>[G10] <strong>Reliable Fidelity and Diversity Metrics for Generative
+Models</strong> — ICML 2020</td>
+<td>Density/Coverage把保真和覆盖分开。</td>
+<td>生成模型；Density; Coverage; precision/recall相关比较。</td>
+</tr>
+<tr class="odd">
+<td>[H10] <strong>Evaluating Text-to-Visual Generation with
+Image-to-Text Generation (VQAScore)</strong> — ECCV 2024</td>
+<td>VQA模型对“是否显示该文字”的Yes概率作为配对评价。</td>
+<td>多个图文/生成对齐benchmarks；人类偏好相关性/成对排序。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="三类基线各自负责什么">3. 三类基线各自负责什么？</h2>
+<p>CMMD[G01]使用CLIP表示的核MMD；它的“C”不是conditional。我们应给它同样的特征和每条件样本，同时增加强的条件/分组MMD控制，不能只跟无条件FID比来制造容易的条件错配优势。CFID/cFreD是直接比较对象；KID和Density/Coverage[G09/G10]分别提供采样与模式覆盖参照。</p>
+<p>GenEval、T2I-CompBench与ConceptMix[G04–G07]不是“真实生成分布”，而是提示语义要求的评价器。它们提供外部任务检查，不提供自然S真值。GenAI-Bench[G08]和HPDv2的人评可以评价指标是否有用，但人类审美、语义忠实与多样性需要分项，不指望一个标量解释全部。</p>
+<h2 id="最重要的数据难题参考分布究竟是什么">4.
+最重要的数据难题：参考分布究竟是什么？</h2>
+<p>给每个自然prompt一张真实图，并不能定义该prompt下所有合理图像的总体。我们建议先用可控制的场景/渲染条件建立分布对象，再在有多实例的语义条件组上验证；自然细描述只有单例时，改称有限参考条件兼容性，不宣称准确估计未知总体。</p>
+<p>同一prompt中的真实/生成图片如果有renderer、水印或来源风格差别，critic可能仅识别来源。跨生成器、风格控制和同边缘条件置乱可以检查这个问题。固定共同视觉特征的指标检验的是该特征观测中的分布，不等于原像素总体。</p>
+<h2 id="可以争取什么优势">5. 可以争取什么优势？</h2>
+<p>希望VCS的学习型critic在有限样本下比固定核特征更善于捕获非线性条件差异，并通过共同读数说明误差；目标是识别受控条件破坏和模式缺失、可靠排序生成分布，而不是高J就好。拟合方式匹配Logistic后读取同J，若同样好则承认学习型函数类收益。</p>
+<p>相比D1/D2，这条对estimator依赖最直接，完整“应用”可以是一套从样本到可靠评价的系统，不强制训练大扩散模型。但至少要有已知真值/可验证方向的受控结果与真实外部用途，不能只用一个对真实图像无oracle的J表自证。</p>
+<h2 id="风险">6. 风险</h2>
+<p>小样本条件critic可能记住prompt或样本身份；最大化估计的有限经验差异产生偏高读数；强依赖又可能饱和。只要求conditional
+semantic
+discrepancy可检测，而没有比CFID/条件MMD更好的精度、成本或适用条件，则不够形成新评估方法。生成模型微调属于第二阶段，别让“又训练一个generator”掩盖指标可靠性问题。</p>
+<h2 id="本方向主来源">本方向主来源</h2>
+<ul>
+<li>[G01] <a href="https://arxiv.org/abs/2401.09603">Rethinking FID:
+Towards a Better Evaluation Metric for Image Generation
+(CMMD)</a>。代码/项目：https://github.com/google-research/google-research/tree/master/cmmd</li>
+<li>[G02] <a href="https://arxiv.org/abs/2103.11521">Conditional Frechet
+Inception
+Distance</a>。代码/项目：https://github.com/Michael-Soloveitchik/CFID</li>
+<li>[G03] <a href="https://arxiv.org/abs/2503.21721">Evaluating
+Text-to-Image and Text-to-Video Synthesis with a Conditional Fréchet
+Distance
+(cFreD)</a>。代码/项目：https://vislang.ai/publications/koo2026evaluating</li>
+<li>[G04] <a href="https://arxiv.org/abs/2310.11513">GenEval: An
+Object-Focused Framework for Evaluating Text-to-Image
+Alignment</a>。代码/项目：https://github.com/djghosh13/geneval</li>
+<li>[G05] <a href="https://arxiv.org/abs/2307.06350v2">T2I-CompBench: A
+Comprehensive Benchmark for Open-world Compositional Text-to-image
+Generation</a>。代码/项目：https://github.com/Karine-Huang/T2I-CompBench</li>
+<li>[G06] <a
+href="https://doi.org/10.1109/TPAMI.2025.3531907">T2I-CompBench++: An
+Enhanced and Comprehensive Benchmark for Compositional Text-to-Image
+Generation</a>。代码/项目：https://github.com/Karine-Huang/T2I-CompBench</li>
+<li>[G07] <a href="https://arxiv.org/abs/2408.14339">ConceptMix: A
+Compositional Image Generation Benchmark with Controllable
+Difficulty</a>。代码/项目：https://princetonvisualai.github.io/conceptmix/</li>
+<li>[G08] <a href="https://arxiv.org/abs/2406.13743">GenAI-Bench:
+Evaluating and Improving Compositional Text-to-Visual
+Generation</a>。代码/项目：https://huggingface.co/datasets/BaiqiL/GenAI-Bench</li>
+<li>[G09] <a href="https://arxiv.org/abs/1801.01401">Demystifying MMD
+GANs</a>。本轮未确认可直接运行的官方实现。</li>
+<li>[G10] <a
+href="https://proceedings.mlr.press/v119/naeem20a.html">Reliable
+Fidelity and Diversity Metrics for Generative
+Models</a>。本轮未确认可直接运行的官方实现。</li>
+<li>[H10] <a href="https://arxiv.org/abs/2404.01291">Evaluating
+Text-to-Visual Generation with Image-to-Text Generation
+(VQAScore)</a>。代码/项目：https://github.com/linzhiqiu/t2v_metrics</li>
+</ul>
+</body>
+</html>

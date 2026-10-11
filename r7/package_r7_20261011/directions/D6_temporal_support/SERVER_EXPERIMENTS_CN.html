@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D6_temporal_support · 服务器方案</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D6_temporal_support · 服务器方案</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d6-服务器实验方案叙述视频的时间支持与定位"
+id="toc-d6-服务器实验方案叙述视频的时间支持与定位">D6
+服务器实验方案｜叙述视频的时间支持与定位</a>
+<ul>
+<li><a href="#a.-完整任务与宿主" id="toc-a.-完整任务与宿主">A.
+完整任务与宿主</a></li>
+<li><a href="#b.-两种监督情形分开" id="toc-b.-两种监督情形分开">B.
+两种监督情形分开</a></li>
+<li><a href="#c.-首轮实验清单" id="toc-c.-首轮实验清单">C.
+首轮实验清单</a></li>
+<li><a href="#d.-benchmark与metrics" id="toc-d.-benchmark与metrics">D.
+Benchmark与metrics</a></li>
+<li><a href="#e.-预期与转向" id="toc-e.-预期与转向">E.
+预期与转向</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d6-服务器实验方案叙述视频的时间支持与定位">D6
+服务器实验方案｜叙述视频的时间支持与定位</h1>
+<p><strong>性质：候选方案，尚无本方案自然数据结果。</strong>
+先读本目录综述和共同理论/评价规范。数据条目：DS29, DS30, DS31, DS32,
+DS33, DS34, DS35；全部定义见
+<code>../../datasets/DATASET_ATLAS_CN.md</code>。</p>
+<h2 id="a.-完整任务与宿主">A. 完整任务与宿主</h2>
+<p>采用Moment-DETR或已能严格复现的QD-DETR作为同架构host，输入官方同版SlowFast/CLIP等features与text
+tokens，输出若干[start,end,score]及clip
+saliency。第一轮训练完整融合/定位模型，不只是冻结features上的一个小判别probe。若研究终点是计算节省，最后另做raw-video
+end-to-end计时与适配，不能拿缓存特征耗时替代。</p>
+<h2 id="b.-两种监督情形分开">B. 两种监督情形分开</h2>
+<p><strong>强监督主线：</strong>QVHighlights
+query的发布相关区间定义support，在其标注协议下建立P(+支持clip|query/video)与Q(已定义背景clip|query/video)。发布标签只代表这个annotation
+task，不保证所有背景在真实世界绝无关联；边界邻域可标uncertain并在所有方法中统一处理。</p>
+<p><strong>弱监督扩展：</strong>HowTo100M或ASR只能提供正袋，不能将每个时间点当确定标签。必须使用MIL-NCE类袋目标或明示潜在变量模型；不在第一轮强监督recipe里混入弱袋再叫同P/Q。</p>
+<p>VCS/Logistic support
+head同函数类，T在平衡实验上拟合，部署时映射到实际片段support先验再校准。主任务span
+L1/GIoU/Hungarian或host原损失保留；只有support学习组件替换。新增loss权重在相同CAL预算内选择，不让ours特调而host只用旧默认。</p>
+<h2 id="c.-首轮实验清单">C. 首轮实验清单</h2>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>单元</th>
+<th>要做什么</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>D6-00</td>
+<td>官方Moment-DETR/QD-DETR training和evaluation fixture；视频切片parent
+ID、帧率/特征步长/秒单位检查</td>
+</tr>
+<tr class="even">
+<td>D6-10</td>
+<td>同一host标准support
+loss、matchedLogistic、VCS、VCS+预定义时间结构控制，共4方法×3seeds完整训练</td>
+</tr>
+<tr class="odd">
+<td>D6-20</td>
+<td>公共CAL概率校准/时间支持评价，外加MR/HD；时间结构也给Logistic同机会以判断归因</td>
+</tr>
+<tr class="even">
+<td>D6-30</td>
+<td>Charades-STA第二数据集，同主要目标3seeds；不自动复制所有ablation</td>
+</tr>
+<tr class="odd">
+<td>D6-40</td>
+<td>明确弱监督时间噪声下的MIL-NCE对照，或长视频域验证二选一</td>
+</tr>
+</tbody>
+</table>
+<p>D6-10第四臂只有预算允许且host存在时间结构时运行；若新增结构，必须同时跑JS+同结构，不保持不公平的四臂计数。基础3×3=9为最小，结构成对新增6。自然benchmark结果必须完整长度/多区间，不能只评oracle候选片段。</p>
+<h2 id="d.-benchmark与metrics">D. Benchmark与metrics</h2>
+<p>QVHighlights：MR mAP@[.5:.05:.95]及R@1@.5/.7；HD
+mAP/Hit@1按官方saliency阈值；短/中/长事件分层。输入输出使用官方JSONL(qid,vid,pred_relevant_windows,pred_saliency_scores)，先跑sample
+fixture数值校验。test已公开但保持封存。</p>
+<p>Charades-STA：R@1/5 at
+.3/.5/.7和mIoU，报告原feature类与是否额外预训练。Ego4D仅扩展时使用NLQ
+R@1/5@.3/.5，不混MQ。自定义support指标包括Brier、frame/clip
+PR、区间覆盖/长度和calibrated set
+coverage，均单列custom，不能替代官方MR/HD。</p>
+<p>干预分析：固定视频和query，在FIT-only构造时间偏移或背景扩展，DEV用于预定stress。视频反转未必语义不变；无依据不能把它当正对增强。参考负片段的时间距离分布、持续长度和sampler在三方法间相同。</p>
+<h2 id="e.-预期与转向">E. 预期与转向</h2>
+<p>希望共享平方读数帮助更准确地表达多段支持并改善完整定位/片段选择；无需所有R@1都第一，但必须有实际的risk–localization或cost–quality收益。若改善仅在自制抖动数据，不能宣称自然噪声鲁棒。</p>
+<p>若所有收益来自额外时间平滑/更强feature，重新归因；若VCS
+support校准改善但MR不变，检验它是否服务多区间/选择性定位，不凭内部J自动命名新能力。若问题仍只是softmax竞争，停止在同一视频上继续换参考常数，考虑D2支持核验的完整用途。</p>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>D1_token_evidence · 服务器方案</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <style>
+  :root{--ink:#162f46;--accent:#126776;--muted:#5b6873;--line:#d3dee5;--paper:#ffffff;--bg:#f3f6f8;}
+  html{scroll-behavior:smooth;}body{font-family:system-ui,"Noto Sans CJK SC","Microsoft YaHei",sans-serif;margin:0;background:var(--bg);color:#172938;line-height:1.85;}
+  body>header,body>nav,body>h1,body>h2,body>h3,body>h4,body>p,body>ul,body>ol,body>blockquote,body>pre,body>table,body>div,body>hr{max-width:1150px;margin-left:auto;margin-right:auto;}
+  body{padding:30px 34px 60px;}#title-block-header{padding:28px 34px;background:var(--ink);color:white;border-radius:9px;margin-bottom:26px;}h1,h2,h3{line-height:1.45;color:var(--ink);}#title-block-header h1{color:white;}h1{border-top:3px solid var(--accent);padding-top:30px;margin-top:52px;}h2{margin-top:30px;}a{color:var(--accent);text-decoration:none;}a:hover{text-decoration:underline;}#TOC{background:white;border:1px solid var(--line);padding:18px 26px;border-radius:6px;}table{display:block;overflow-x:auto;border-collapse:collapse;background:white;margin-top:20px;margin-bottom:25px;font-size:.94rem;}thead{background:#eaf0f4;}th,td{border:1px solid var(--line);padding:9px 12px;vertical-align:top;}th{text-align:left;}code{background:#e8edf2;padding:.12em .32em;border-radius:3px;font-size:.9em;}pre{overflow-x:auto;background:#e8edf2;padding:20px;}pre code{padding:0;}blockquote{border-left:4px solid var(--accent);padding-left:22px;color:var(--muted);}math{font-size:1.03em;}hr{border:0;border-top:1px solid var(--line);margin-top:30px;margin-bottom:30px;}.subtitle{font-size:1.1rem;}@media print{body{background:white;font-size:10pt;padding:0;}a{color:inherit;}h1{page-break-before:always;}table{display:table;width:100%;font-size:8.5pt;}pre{white-space:pre-wrap;}}
+  </style>
+</head>
+<body>
+<header id="title-block-header">
+<h1 class="title">D1_token_evidence · 服务器方案</h1>
+</header>
+<nav id="TOC" role="doc-toc">
+<ul>
+<li><a href="#d1-服务器实验方案问题条件下的视觉证据压缩"
+id="toc-d1-服务器实验方案问题条件下的视觉证据压缩">D1
+服务器实验方案｜问题条件下的视觉证据压缩</a>
+<ul>
+<li><a href="#a.-要完成的系统" id="toc-a.-要完成的系统">A.
+要完成的系统</a></li>
+<li><a href="#b.-理论和可实施近似" id="toc-b.-理论和可实施近似">B.
+理论和可实施近似</a></li>
+<li><a href="#c.-数据与角色" id="toc-c.-数据与角色">C.
+数据与角色</a></li>
+<li><a href="#d.-实验顺序与运行单位" id="toc-d.-实验顺序与运行单位">D.
+实验顺序与运行单位</a></li>
+<li><a href="#e.-指标与消融" id="toc-e.-指标与消融">E.
+指标与消融</a></li>
+<li><a href="#f.-何时转向" id="toc-f.-何时转向">F. 何时转向</a></li>
+</ul></li>
+</ul>
+</nav>
+<h1 id="d1-服务器实验方案问题条件下的视觉证据压缩">D1
+服务器实验方案｜问题条件下的视觉证据压缩</h1>
+<p><strong>性质：候选方案，尚无本方案自然数据结果。</strong>
+先读本目录综述和共同理论/评价规范。数据条目：DS01, DS02, DS03, DS04,
+DS05, DS06；全部定义见
+<code>../../datasets/DATASET_ATLAS_CN.md</code>。</p>
+<h2 id="a.-要完成的系统">A. 要完成的系统</h2>
+<p>输入图像I和问题q，产生保留的token集合K与budget，再由一个固定家族VLM生成答案。选择器不能访问真答案，不能先运行完整大VLM获得答案后才决定K。报告完整vision
+encoder、selector、prefill和decode总成本。</p>
+<p><strong>首轮宿主建议：</strong>Qwen2.5-VL-7B-Instruct固定revision、分辨率上下限与图片处理器；完整回答模型不是本地本轮已安装组件。可行性阶段验证一次完整推理后再计时，不能从r4双塔耗时推算。</p>
+<h2 id="b.-理论和可实施近似">B. 理论和可实施近似</h2>
+<p>先在GQA的可验证二元问题定义C∈{−1,+1}，平衡任务类先验。完整观测B=(q,V)，压缩观测A=(q,V_K,K)。对每种固定mask机制拟合完整/压缩critic；使用原J等价的平方风险，对照相同函数类的Logistic。保存正负权重与每种mask的抽样概率。</p>
+<p>有限模型给出b(B)、a(A)。每个验证样本同时保存d=(b−a)²和真实损失差h=(C−a)²−(C−b)²，另保存残差h−d。d不是可靠性的保证；h可负。教师Brier差很大时不得强行截断成正“信息损失”。</p>
+<p>选择器z(q,V_cheap,K_budget)预测压缩损失；主选择规则是CAL上固定风险容许水平下的最小budget，或固定budget下选择K。预算动作先固定为保留{25%,50%,75%,100%}，另以12.5%作可选stress，不根据DEV赢家改变网格。mask学习可以用连续gate训练、hard
+topK部署，但记录soft/hard落差。</p>
+<p>训练critic、生成策略监督与评价用grouped
+out-of-fold方式隔离。共有完整/压缩critic可共享主体，但mask只作为观测，不给它目标答案。第一阶段二元核对不冒充全任务结论；自由回答阶段采用标准answer
+NLL/LoRA训练，CS风险分支只是明确的辅助/选择信号，多类Brier扩展单列。</p>
+<h2 id="c.-数据与角色">C. 数据与角色</h2>
+<p>从官方GQA train按原image/scene
+graph划出FIT/CAL；形成二元风险校准样本及完整问答样本。示范性规模为10k个训练图片组（不是10k
+pairs），CAL与DEV图片不重叠；若资源只支持更小规模，应在首次比较前冻结且所有方法相同。每个训练问题固定3种mask试验，完整基线输出缓存一次；不做无限mask搜索。</p>
+<p>TextVQA/ChartQA的官方train仅在适配分支获得明确同信息预算后加入；对应val/eval不进入选择器训练。SP-DocVQA作为跨文档验证或第二训练域，按文档分组。M-HalDetect/POPE等与COCO重叠要先审计。</p>
+<h2 id="d.-实验顺序与运行单位">D. 实验顺序与运行单位</h2>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>阶段</th>
+<th>操作</th>
+<th>必要输出</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>D1-00</td>
+<td>完整宿主与一个官方剪枝baseline复现；32个样本fixture只用于接口</td>
+<td>raw predictions/evaluator hash; token counts; 真实延迟</td>
+</tr>
+<tr class="even">
+<td>D1-10</td>
+<td>二元风险对象、嵌套mask、有限teacher残差验证</td>
+<td>h/d/残差和预算分层，独立CAL，不选“最好看”的指标</td>
+</tr>
+<tr class="odd">
+<td>D1-20</td>
+<td>完整训练3种同架构选择器：VCS风险、Logistic后验→同平方读数、直接实际风险回归</td>
+<td>每种3seeds，共9个训练单元；输出完整回答，不是只输出probe</td>
+</tr>
+<tr class="even">
+<td>D1-30</td>
+<td>所有方法在固定4budget曲线上评估</td>
+<td>GQA/TextVQA/ChartQA质量与成本，IF-Prune等完整baseline</td>
+</tr>
+<tr class="odd">
+<td>D1-40</td>
+<td>冻结后跨宿主/文档确认</td>
+<td>只扩展最终方案及主要强对照，不自动重跑所有组合</td>
+</tr>
+</tbody>
+</table>
+<p>相同mask试验、teacher调用数、训练steps与优化选择机会。随机/均匀/FastV类无需训练，仍有完整推理成本行。9个训练单元是proposal，先实测资源并与授权核对，不在本包执行。</p>
+<h2 id="e.-指标与消融">E. 指标与消融</h2>
+<p>主终点：固定平均真实时延下的官方任务质量，及固定质量容许差距下的时延。次终点：TTFT、每token解码、峰值显存、视觉token数、预算分布；绝对准确率和相对保持率一起报。</p>
+<p>消融只选3类：移除问题条件；用平方分歧d替代真实风险h的校正；固定预算替代动态预算。每项固定同训练信息和候选mask，不把额外teacher
+supervision混进方法差异。完整模型本身错误时，分别报告压缩保留错误与纠正错误的比例。</p>
+<h2 id="f.-何时转向">F. 何时转向</h2>
+<p>若有限h−d大且不可预测，先用实际风险策略作为实用参考，不能靠“平方gap”声称已准确估计信息。若同架构直接风险回归占优，研究贡献需转为对后验增量局限的分析，或者停止这一应用扩展。若预算网格完全没有质量保持空间，检查模型的token接口/位置信息和baseline，不只继续调critic。</p>
+<p>判定标准是完整quality–cost曲线和独立验证，不是指定必须领先若干点。最接近工作T05/T06/T07未充分复现/定位前，不写“新的信息论剪枝范式”。</p>
+</body>
+</html>
