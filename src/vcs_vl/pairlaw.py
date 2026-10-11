@@ -149,7 +149,8 @@ def padded_batch_loss(f: torch.Tensor, p: torch.Tensor, q: torch.Tensor, objecti
         per = -(p * lsm.masked_fill(~valid, 0.0)).sum((1, 2))
     elif objective == "set_softmax":
         # R4-VL1 multi-positive set-event CE: -sum_w pi(w) [logsumexp_{r in A_w} 2f - logsumexp_{r real} 2f], pi(w) = sum_r p(r, w), A_w = {r: p(r, w) > 0}.
-        # Equals conditional_softmax when every query has a single positive (VL3).  Real regions: q(r, .) > 0 (q has full support over real regions).
+        # Equals conditional_softmax when every query has one positive AND every real region is some query's positive (VL3 given boxes); with
+        # proposals, never-positive regions have p-row 0 and conditional_softmax would drop them from the denominator.  Real regions here: q(r, .) > 0.
         real = (q.sum(2, keepdim=True) > 0).expand_as(f)
         g = (2 * f).masked_fill(~real, -torch.inf)
         lse_all = torch.logsumexp(g, dim=1)                                                   # [n, W]; every real query column has >= 1 real region

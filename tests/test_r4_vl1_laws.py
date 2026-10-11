@@ -45,9 +45,19 @@ class SetSoftmax(unittest.TestCase):
         self.assertTrue(torch.allclose(grads[0, :, 2], torch.zeros(5, dtype=torch.float64)))  # the excluded query gets no gradient
 
     def test_single_positive_equals_conditional_softmax(self):
+        """VL3 case: one positive per query and every real region is some query's positive -> identical to the historical conditional softmax."""
+        A = np.array([[1, 0], [0, 1]], dtype=np.float32); p, q, _, _ = laws_from_A(A)
+        f = torch.randn(1, 2, 2, dtype=torch.float64); p, q = torch.from_numpy(p)[None].double(), torch.from_numpy(q)[None].double()
+        self.assertAlmostEqual(float(padded_batch_loss(f, p, q, "set_softmax")), float(padded_batch_loss(f, p, q, "conditional_softmax")), places=10)
+
+    def test_never_positive_region_stays_in_denominator(self):
+        """Proposal case: a region that is no query's positive has p-row 0; conditional_softmax (VL3) would treat it as padding and drop it from
+        the denominator, set_softmax keeps it (real regions are read from q).  Documented difference, hence the new objective name."""
         A = np.array([[1, 0], [0, 0], [0, 1]], dtype=np.float32); p, q, _, _ = laws_from_A(A)
         f = torch.randn(1, 3, 2, dtype=torch.float64); p, q = torch.from_numpy(p)[None].double(), torch.from_numpy(q)[None].double()
-        self.assertAlmostEqual(float(padded_batch_loss(f, p, q, "set_softmax")), float(padded_batch_loss(f, p, q, "conditional_softmax")), places=10)
+        g = 2 * f[0]; direct = -0.5 * (g[0, 0] - torch.logsumexp(g[:, 0], 0)) - 0.5 * (g[2, 1] - torch.logsumexp(g[:, 1], 0))
+        self.assertAlmostEqual(float(padded_batch_loss(f, p, q, "set_softmax")), float(direct), places=10)
+        self.assertNotAlmostEqual(float(padded_batch_loss(f, p, q, "conditional_softmax")), float(direct), places=3)
 
     def test_padding_and_vcs_js_ignore_invalid(self):
         f = torch.zeros(2, 5, 3, dtype=torch.float64); P = torch.zeros(2, 5, 3, dtype=torch.float64); Q = torch.zeros_like(P)
