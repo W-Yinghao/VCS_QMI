@@ -1,0 +1,36 @@
+# R4-VL2 — detector-score reference law ν for the estimator objectives.  DRAFT for the owner's decision: NOT run, no code changed yet.
+protocol_id: R4-VL2
+status: draft_owner_decision_required
+research_question: >
+  R4-VL1 (uniform ν over proposals): softmax leads VCS by 1.85 / 3.22 points after proposal-aware training.  With a uniform reference most of the
+  Q-mass sits on easy proposals.  Does a query-independent, deployable reference ν_G(r) ∝ detector score change what VCS / JS learn and close the
+  gap, when the deployment ranking uses the corresponding corrected score log ν_G(r) + 2 f(r, w) (package docs/04 §4.2)?
+estimand:
+  name: proposal-reference CS discrepancy with ν_G ∝ s_r (detector confidence); a different reference law from R4-VL1, not the original QMI
+  P_definition: unchanged from R4-VL1 (A = IoU >= 0.5; pi uniform over queries with >= 1 valid proposal)
+  Q_definition: q_G(r, w) = pi_G(w) * nu_G(r),  nu_G(r) = s_r / sum_t s_t   (s_r = the frozen detector score; full support since s_r >= 0.05)
+  deployment_rank: log nu_G(r) + 2 f(r, w)    # optimal critic: exp(2 f*) = p_G(r | w) / nu_G(r)
+  query_independence: nu uses only the proposal set and detector scores (deployable at test); never the query or its target
+arms:   # 2 datasets (RefCOCOg, RefCOCO+) x SigLIP 2 B/16 x 3 seeds, same recipe as R4-VL1
+  vcs_nu_score: new (3 x 2 = 6 runs)
+  js_nu_score: new (6 runs)
+  controls_reused: R4-VL1 VCS / JS / softmax with uniform nu (18 runs, no new compute)
+  softmax_score_fused (no training): R4-VL1 softmax checkpoints ranked by u + log s_r (score fusion applied to the task loss too, so any gain is not
+    credited to the estimator law alone)
+units: 12 new full fine-tuning runs (~1.3 h each on RTX / H100, ~3 h on L40S) -> ~20 GPU-hours
+statistics:
+  primary_endpoint: DEV all-proposal image-macro Acc@0.5 with the corrected rank (log nu + 2 f)
+  contrasts:
+    - VCS(nu score) − VCS(uniform), paired by seed: does the reference law matter for VCS?
+    - VCS(nu score) − softmax (and − softmax score-fused), paired by seed
+    - VCS(nu score) − JS(nu score): same-posterior check
+  secondary: plain-cosine ranking of the nu-trained models (without log nu); Acc@0.75; J_recal on the nu laws; margins; error types (R4-VL0 strata)
+claims:
+  type: exploratory_hypothesis
+  wording_fixed:
+    - "VCS(nu) − softmax interval contains 0 -> a detector-score reference closes the gap"
+    - "below 0 -> softmax still leads by x"
+    - "VCS(nu) − VCS(uniform) above 0 while softmax score-fused gains as much -> the gain is score fusion, not the estimator law"
+permissions:
+  budget_confirmed: false
+  official_test_access: false
