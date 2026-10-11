@@ -1,0 +1,21 @@
+# R5-X1 — R4-VL1 (proposal-aware full fine-tuning) replicated on RefCOCO, the third standard dataset.  FROZEN before any result (smoke only).
+protocol_id: R5-X1
+status: frozen
+go_ahead: >
+  Owner standing authorization 2026-10-11: "以后这种情况，当你看到GPU有空位时，实验不需要我批准，你来分析实验的必要性，你觉得有用的就自主提交".
+necessity: >
+  Every detector-proposal conclusion so far (R4-VL1 adaptation gain and VCS − softmax gap; R4-VL2; R5-10 / 20 / 30) rests on two datasets
+  (RefCOCOg, RefCOCO+).  RefCOCO is the third standard benchmark of the family; its proposals (VL1-21, FIT / CAL / DEV) and Table C rows
+  (VL1-22) already exist.  This replication tells whether the main proposal-setting findings hold on all three datasets.  It does not change
+  any frozen reading of R4-VL1.
+parent_protocol: reports/R4/R4_VL_TRAINING_PROTOCOL_FROZEN_20261011.yaml (option A) — recipe, laws, selection, gates and readings identical
+runs: RefCOCO × SigLIP 2 B/16 × {vcs, js, softmax} × seeds 0–2 = 9 full fine-tuning runs (scripts/r4_vl1_finetune.py, uniform ν; outputs/R4_VL1/refcoco_*, models/r4_vl1/refcoco_*)
+gate: step-0 given-box DEV Top-1 within 0.3 of the frozen raw value (RefCOCO SigLIP 2 B/16: 0.6639, scripts/vl3_aggregate.py RAW)
+readings: >
+  As R4-VL1 (scripts/r4_vl1_aggregate.py --datasets refcoco --suffix _refcoco -> reports/R4/R4_VL1_results_refcoco.json / R4_VL1_tables_refcoco.md):
+  DEV all-proposal Acc@0.5 per objective; VCS − softmax and VCS − JS paired by seed (95 % t, df 2); adaptation gain vs Table C (VL1-22, same
+  proposals); zero-shot; top-K with K chosen on CAL; secondary metrics.  RefCOCO is read on its own; any three-dataset pooling is descriptive.
+wording_fixed: as R4-VL1 — interval containing 0 -> "the objectives tie on proposals" (containment, not equivalence: r5 erratum); below 0 -> "softmax leads by x"; above 0 -> "VCS leads by x"
+budget: 9 runs × 74 min – 3.9 h ≈ 11–35 GPU-hours; fed by slurm/feed_normal.sh with CAP = 27
+smoke: job 1034404 (RefCOCO VCS seed 0 on subsets; data path and gate code only)
+official_test_access: false

@@ -14,6 +14,7 @@ result, not a VCS-only advantage.  Writes reports/R4/R4_VL1_results.json and R4_
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -54,8 +55,11 @@ def vl3_topk(ds, o, s):
 
 
 def main() -> int:
-    res = {"protocol": "reports/R4/R4_VL_TRAINING_PROTOCOL_FROZEN_20261011.yaml", "cells": {}, "gates": [], "missing": [], "pooled": {}}
-    for ds in DS:
+    ap = argparse.ArgumentParser(); ap.add_argument("--datasets", nargs="+", default=list(DS)); ap.add_argument("--suffix", default="", help="R5-X1: '_refcoco' (separate files)")
+    a = ap.parse_args()
+    res = {"protocol": "reports/R4/R4_VL_TRAINING_PROTOCOL_FROZEN_20261011.yaml" if not a.suffix else "reports/R5/R5_X1_REFCOCO_PROTOCOL_FROZEN_20261011.yaml",
+           "cells": {}, "gates": [], "missing": [], "pooled": {}}
+    for ds in a.datasets:
         runs, base = {}, {}
         for o in OBJS:
             for s in SEEDS:
@@ -92,10 +96,10 @@ def main() -> int:
                 cell[f"vcs_minus_{other}"] = {**tint(d), "seeds": ss}
         res["cells"][ds] = cell
     for key in ("vcs_minus_softmax", "vcs_minus_js"):
-        v = [res["cells"][ds][key]["mean"] for ds in DS if key in res["cells"].get(ds, {}) and len(res["cells"][ds][key]["seeds"]) == 3]
-        if v:
-            res["pooled"][key] = {"mean_over_datasets": float(np.mean(v)), "n_datasets": len(v), "note": "descriptive (2 cells)"}
-    OUT.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT / "R4_VL1_results.json", "w"), indent=1)
+        v = [res["cells"][ds][key]["mean"] for ds in a.datasets if key in res["cells"].get(ds, {}) and len(res["cells"][ds][key]["seeds"]) == 3]
+        if len(v) > 1:                                                                      # pooling needs >= 2 datasets
+            res["pooled"][key] = {"mean_over_datasets": float(np.mean(v)), "n_datasets": len(v), "note": f"descriptive ({len(v)} cells)"}
+    OUT.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT / f"R4_VL1_results{a.suffix}.json", "w"), indent=1)
     p = lambda t: "—" if t is None else f"{100 * t['mean']:.2f}" + (f" ± {100 * t['sd']:.2f}" if t.get("sd") is not None else "")
     q = lambda t: f"{100 * t['mean']:+.2f}" + (f" [{100 * t['ci95'][0]:+.2f}, {100 * t['ci95'][1]:+.2f}]" if t.get("ci95") else " (1 seed)")
     L = ["# R4-VL1 — proposal-aware full fine-tuning (option A): results", "",
@@ -112,8 +116,8 @@ def main() -> int:
         L.append("| selected epoch | " + " | ".join(str(cell[o]["selected_epoch"]) if o in cell else "—" for o in OBJS) + " |")
         L += ["", " ".join(f"**{k}** {q(cell[k])}" for k in ("vcs_minus_softmax", "vcs_minus_js") if k in cell), ""]
     if res["pooled"]:
-        L += ["Pooled over the two datasets (descriptive): " + "; ".join(f"{k} {100 * v['mean_over_datasets']:+.2f}" for k, v in res["pooled"].items()), ""]
-    (OUT / "R4_VL1_tables.md").write_text("\n".join(L)); print("\n".join(L))
+        L += [f"Pooled over the {len(a.datasets)} datasets (descriptive): " + "; ".join(f"{k} {100 * v['mean_over_datasets']:+.2f}" for k, v in res["pooled"].items()), ""]
+    (OUT / f"R4_VL1_tables{a.suffix}.md").write_text("\n".join(L)); print("\n".join(L))
     return 0
 
 
