@@ -1,0 +1,49 @@
+# R4-VL2 — detector-score reference law ν for the estimator objectives.  FROZEN before any R4-VL2 result (a code smoke only).
+protocol_id: R4-VL2
+status: frozen
+supersedes_draft: reports/R4/R4_VL2_NU_PROTOCOL_DRAFT_20261011.yaml (915be34)
+go_ahead: >
+  Owner, 2026-10-11, after the R4-VL1 report and the draft: asked "没有要提交的GPU任务了吗" (are there no GPU jobs to submit?), then explicitly chose
+  "Launch R4-VL2 (Recommended)": freeze the protocol, commit and push, run the CPU unit tests, then submit the 12 runs once the smoke and tests pass.
+research_question: >
+  R4-VL1 (uniform ν over proposals): softmax leads VCS by 1.85 / 3.22 points after proposal-aware training, and the deficit grows with the candidate
+  count.  With a uniform reference, most Q-mass sits on low-confidence boxes.  Does the query-independent, deployable reference ν(r) ∝ detector
+  score s_r change what VCS / JS learn and close the gap, when proposals are ranked by the corresponding posterior log ν(r) + 2 f(r, w)?
+estimand:
+  name: proposal-reference CS discrepancy with ν ∝ s_r; a different reference law from R4-VL1, not the original QMI
+  P_definition: unchanged from R4-VL1 (A = IoU >= 0.5; π uniform over queries with >= 1 valid proposal; p(r | w) uniform over valid proposals)
+  Q_definition: q(r, w) = π(w) ν(r), ν(r) = s_r / Σ_t s_t (frozen VL1-21 detector scores, all >= 0.05, so full support; the trainer checks s_r > 0)
+  optimum: both VCS (t = tanh f, t* = (p − q) / (p + q)) and balanced JS give exp(2 f*) = p / q = p(r | w) / ν(r) (tests/test_r4_vl2_nu.py)
+  deployment_rank: log ν(r) + 2 α cos(r, w) (the critic offset b is constant per query); query-independent, uses only the image's proposals and scores
+training: >
+  Identical to R4-VL1 (scripts/r4_vl1_finetune.py --nu score): SigLIP 2 B/16, both towers, AdamW 1e-5 / wd 0.05, 10 epochs, cosine with 200
+  warm-up steps, 32 images per step, critic a·cos + b init (10, −2.5), exact chunked accumulation (384 crops; 160 below 60 GiB), the same FIT / CAL /
+  DEV proposals and eligibility rules.  ν exponent fixed at 1 (no temperature grid).
+selection: CAL all-proposal image-macro Acc@0.5 with the corrected rank (the critic slope α of that epoch); top-K arm K in {4, 8, 16, 32} chosen on CAL with the same rank
+arms:
+  new: VCS(ν) and JS(ν); RefCOCOg and RefCOCO+ x seeds 0–2 = 12 runs
+  reused: R4-VL1 VCS / JS / softmax with uniform ν (18 runs; the set-event softmax loss does not depend on ν, so there is no softmax(ν) arm)
+  no_training_controls: >
+    the R4-VL1 checkpoints ranked by log s_r + 2 α cos with each checkpoint's own CAL-selected α (score fusion at test time only), from the DEV
+    score files of r4_vl0_scores.py --source r4vl1; no fusion weight is tuned
+gates: step-0 given-box DEV Top-1 within 0.3 of the frozen raw value (unchanged by ν); a failing run aborts before training
+primary_endpoint: DEV all-proposal image-macro Acc@IoU 0.5 of VCS(ν), corrected rank (uncovered queries count as errors)
+contrasts:   # paired by seed, 95 % t over 3 seeds; pooled over the two datasets descriptively
+  C1: VCS(ν) − softmax (R4-VL1)
+  C2: VCS(ν) − VCS(uniform) (R4-VL1)
+  C3a: VCS(ν) − softmax + log s (equal test-time information)
+  C3b: VCS(ν) − VCS(uniform) + log s (training law beyond test-time fusion)
+  C4: VCS(ν) − JS(ν) (same-posterior check)
+  fusion_alone: softmax + log s − softmax; VCS(uniform) + log s − VCS(uniform); JS likewise
+secondary: plain-cosine rank of the ν-trained models; Acc@0.75; J_recal on the ν laws; margins; given-box Top-1; selected epoch; top-K
+claims:
+  type: exploratory_hypothesis
+  wording_fixed:
+    - "C1 interval contains 0 -> a detector-score reference closes the gap"
+    - "C1 below 0 -> softmax still leads by x; above 0 -> VCS(ν) leads by x (C3a worded the same way, as the comparison with equal test-time information)"
+    - "C2 above 0 while C3b contains 0 or lies below 0 -> the gain is test-time score fusion, not the estimator law"
+    - "C3b above 0 -> training with the score reference adds beyond test-time fusion"
+budget: 12 full runs (~1.3 h each on RTX 6000 Pro / H100, ~2.5–4 h on L40S), normal QOS kept <= 27 jobs
+smoke: job 1033965 (RefCOCOg VCS(ν) seed 0 on 64 / 48 / 48-image subsets, 21 steps); code path only, not a result
+official_test_access: false
+code: scripts/r4_vl1_finetune.py (--nu score), scripts/r4_vl2_aggregate.py, tests/test_r4_vl2_nu.py

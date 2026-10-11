@@ -14,7 +14,10 @@ step 0 (zero-shot arm + gate: given-box Top-1 within 0.3 of the frozen raw value
 query-level accuracy, coverage, given-box Top-1, detector-score top-K accuracies (K ∈ {4, 8, 16, 32}; K chosen on CAL), common J on the proposal
 laws (J_own; J_recal = affine refit on CAL), margins.  Writes outputs/R4_VL1/<ds>_<backbone>_<objective>_s<seed>[_smoke].json and the CAL-selected
 weights to /projects/.../models/r4_vl1/.
-    VL_DATASET=refcocog python scripts/r4_vl1_finetune.py --backbone siglip2_b16 --objective vcs --seed 0 [--chunk-crops 1024] [--grad-ckpt] [--smoke]
+R4-VL2 (--nu score; reports/R4/R4_VL2_NU_PROTOCOL_FROZEN_20261011.yaml): the same, with the query-independent reference ν(r) ∝ detector score s_r
+(q = π(w) ν(r)); every accuracy (selection, DEV, top-K) ranks by the posterior-corrected log ν(r) + 2 α cos (= log p(r | w) + const at the critic
+optimum), plain-cosine accuracies kept as secondary; outputs/R4_VL2/<ds>_<backbone>_<objective>_nuscore_s<seed>.json, models/r4_vl2/.
+    VL_DATASET=refcocog python scripts/r4_vl1_finetune.py --backbone siglip2_b16 --objective vcs --seed 0 [--nu score] [--chunk-crops 1024] [--grad-ckpt] [--smoke]
 """
 from __future__ import annotations
 
@@ -44,11 +47,13 @@ PROP = Path("/home/infres/yinwang/CS_QMI/outputs/VL1_21/proposals"); OBJ = {"vcs
 KS, IOU_TRAIN = (4, 8, 16, 32), 0.5
 
 
-def laws_from_A(A: np.ndarray):
-    """p = π(w) A / ΣA, q = π(w) ν(r) (ν uniform over proposals); π uniform over queries with a positive; returns (p, q, n_valid, n_invalid)."""
+def laws_from_A(A: np.ndarray, nu: np.ndarray | None = None):
+    """p = π(w) A / ΣA, q = π(w) ν(r) (ν uniform over proposals, or proportional to the given weights: R4-VL2 detector scores); π uniform over
+    queries with a positive; returns (p, q, n_valid, n_invalid)."""
     A = np.asarray(A, dtype=np.float32); n_p, n_q = A.shape; col = A.sum(0); ok = col > 0; n_valid = int(ok.sum())
     pi = ok.astype(np.float32) / max(1, n_valid)
-    p = A / np.maximum(col, 1)[None, :] * pi[None, :]; q = np.full((n_p, n_q), 1.0 / max(1, n_p), np.float32) * pi[None, :]
+    nu = np.full(n_p, 1.0 / max(1, n_p), np.float32) if nu is None else (np.asarray(nu, np.float64) / np.sum(nu)).astype(np.float32)
+    p = A / np.maximum(col, 1)[None, :] * pi[None, :]; q = nu[:, None] * pi[None, :]
     return p.astype(np.float32), q.astype(np.float32), n_valid, int(n_q - n_valid)
 
 
@@ -56,8 +61,9 @@ def xyxy(b):
     return [b[0], b[1], b[0] + b[2], b[1] + b[3]]
 
 
-def build(scenes, role, props, want, for_training):
-    """Eligible images of a role (≥ 2 referred objects, path, ≥ 1 proposal); FIT keeps valid queries only and drops images without any."""
+def build(scenes, role, props, want, for_training, nu_mode="uniform"):
+    """Eligible images of a role (≥ 2 referred objects, path, ≥ 1 proposal); FIT keeps valid queries only and drops images without any.
+    nu_mode "score": ν ∝ detector score (all scores ≥ 0.05, so ν has full support) and the record carries log ν for the corrected rank."""
     recs, counts = [], {"images_role": 0, "images_no_proposal_file": 0, "images_no_proposals": 0, "images_no_valid_query": 0, "queries": 0, "queries_valid": 0}
     for s in scenes:
         if role[s.image_id] != want or len(s.referred) < 2 or not s.path:
@@ -65,11 +71,11 @@ def build(scenes, role, props, want, for_training):
         counts["images_role"] += 1
         if s.image_id not in props:
             counts["images_no_proposal_file"] += 1; continue
-        P = props[s.image_id][:TOPK].numpy(); boxes = []
+        P = props[s.image_id][:TOPK].numpy(); boxes, det = [], []
         for x1, y1, x2, y2, sc, lb in P.tolist():
             b = RG.clip_box((x1, y1, x2 - x1, y2 - y1), s.width, s.height)
             if b is not None:
-                boxes.append(b)
+                boxes.append(b); det.append(sc)
         if not boxes:
             counts["images_no_proposals"] += 1; continue
         B = np.array(boxes, dtype=np.float64); texts, tgt = [], []
@@ -84,10 +90,13 @@ def build(scenes, role, props, want, for_training):
             if not keep.any():
                 counts["images_no_valid_query"] += 1; continue
             texts = [t for t, k in zip(texts, keep) if k]; A = A[:, keep]; tgt = [t for t, k in zip(tgt, keep) if k]
-        p, q, nv, _ = laws_from_A(A); counts["queries_valid"] += nv
+        nu = None if nu_mode == "uniform" else np.array(det, np.float64)
+        if nu is not None and not (nu > 0).all():
+            raise ValueError(f"non-positive detector score in image {s.image_id}: ν needs full support")
+        p, q, nv, _ = laws_from_A(A, nu); counts["queries_valid"] += nv
         recs.append({"image_id": s.image_id, "path": s.path, "boxes": boxes, "ref_boxes_clip": [RG.clip_box(o.box_xywh, s.width, s.height) for o in s.referred],
                      "texts": texts, "target": np.array(tgt, dtype=np.int64), "A": A, "A75": (iou >= 0.75).astype(np.float32) if not for_training else None,
-                     "p": p, "q": q, "n_valid": nv})
+                     "p": p, "q": q, "n_valid": nv, **({} if nu is None else {"logn": np.log(nu / nu.sum()).astype(np.float32)})})
     return recs, counts
 
 
@@ -135,6 +144,10 @@ def pad_laws(recs):
         m, k = len(r["boxes"]), len(r["texts"]); d["P"][i, :m, :k] = torch.from_numpy(r["p"]); d["Q"][i, :m, :k] = torch.from_numpy(r["q"])
         d["A5"][i, :m, :k] = torch.from_numpy(r["A"]); d["A75"][i, :m, :k] = torch.from_numpy(r["A75"]); d["wmask"][i, :k] = True; d["rmask"][i, :m] = True
     d["has_valid"] = d["P"].sum((1, 2)) > 0
+    if all("logn" in r for r in recs):                                                     # R4-VL2: log ν per proposal for the corrected rank
+        d["logn"] = torch.zeros(n, R)
+        for i, r in enumerate(recs):
+            d["logn"][i, :len(r["boxes"])] = torch.from_numpy(r["logn"])
     return d
 
 
@@ -150,12 +163,14 @@ def collect(bb, recs, dl, dev):
     bb.train(); return C, gb
 
 
-def acc(C, d, A, K=None):
-    """Image-macro and query accuracy of the top-1 proposal (restricted to the first K proposals in detector-score order when K is given)."""
+def acc(C, d, A, K=None, alpha=None):
+    """Image-macro and query accuracy of the top-1 proposal (restricted to the first K proposals in detector-score order when K is given).  With a
+    non-uniform ν (d["logn"]) and the critic slope alpha, proposals are ranked by log ν(r) + 2 alpha cos (the critic offset is constant per query)."""
     rmask = d["rmask"].clone()
     if K is not None:
         rmask[:, K:] = False
-    pred = C.masked_fill(~rmask[:, :, None], -torch.inf).argmax(1)                              # [n, W]
+    S = C if (alpha is None or "logn" not in d) else 2 * alpha * C + d["logn"][:, :, None]
+    pred = S.masked_fill(~rmask[:, :, None], -torch.inf).argmax(1)                              # [n, W]
     hit = A.gather(1, pred[:, None, :]).squeeze(1) * d["wmask"]
     return {"image_macro": float((hit.sum(1) / d["wmask"].sum(1)).mean()), "query": float(hit.sum() / d["wmask"].sum())}
 
@@ -169,9 +184,11 @@ def recal(C, d):
 
 
 def metrics(C, gb, d, a, b, ar=None, br=None):
-    out = {"acc50": acc(C, d, d["A5"]), "acc75": acc(C, d, d["A75"]), "given_box_top1_image_macro": float(gb.mean()),
+    out = {"acc50": acc(C, d, d["A5"], alpha=a), "acc75": acc(C, d, d["A75"], alpha=a), "given_box_top1_image_macro": float(gb.mean()),
            "coverage_image_macro": float(((d["A5"].sum(1) > 0).float() * d["wmask"]).sum(1).div(d["wmask"].sum(1)).mean()),
-           "topK_acc50": {str(K): acc(C, d, d["A5"], K)["image_macro"] for K in KS}, "n_images": int(C.shape[0]), "n_queries": int(d["wmask"].sum())}
+           "topK_acc50": {str(K): acc(C, d, d["A5"], K, alpha=a)["image_macro"] for K in KS}, "n_images": int(C.shape[0]), "n_queries": int(d["wmask"].sum())}
+    if "logn" in d:                                                                         # R4-VL2 secondary: the plain-cosine rank
+        out["acc50_plain_cos"] = acc(C, d, d["A5"]); out["acc75_plain_cos"] = acc(C, d, d["A75"])
     sel = d["has_valid"]; out["J_own"] = float(padded_j(a * C[sel] + b, d["P"][sel], d["Q"][sel]).mean())
     if ar is not None:
         out["J_recal"] = float(padded_j(ar * C[sel] + br, d["P"][sel], d["Q"][sel]).mean())
@@ -192,17 +209,21 @@ def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--backbone", required=True, choices=list(CLIP_ARCHS) + list(SIGLIP_REPOS)); ap.add_argument("--objective", required=True, choices=list(OBJ))
     ap.add_argument("--seed", type=int, default=0); ap.add_argument("--lr", type=float, default=1e-5); ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--chunk-crops", type=int, default=0, help="max crops per forward/backward chunk (0 = whole batch); exact accumulation either way")
+    ap.add_argument("--nu", default="uniform", choices=["uniform", "score"], help="score: R4-VL2 reference ν ∝ detector score, corrected rank log ν + 2 α cos")
     ap.add_argument("--grad-ckpt", action="store_true"); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
+    global OUT, CKPT
+    if a.nu == "score":                                                                     # R4-VL2 outputs kept apart from R4-VL1
+        OUT, CKPT = OUT.parent / "R4_VL2", CKPT.parent / "r4_vl2"
     torch.manual_seed(a.seed); np.random.seed(a.seed); dev = torch.device("cuda"); ds = RG.DATASET.replace("+", "plus")
     gpu = torch.cuda.get_device_properties(0); gib = gpu.total_memory / 2**30
     chunk = a.chunk_crops if (gib >= 60 or a.chunk_crops == 0) else min(a.chunk_crops, 160)      # exact accumulation: chunk size changes memory, not the loss
     print(f"GPU {gpu.name} {gib:.1f} GiB -> chunk {chunk} crops (requested {a.chunk_crops})", flush=True)
-    tag = f"{ds}_{a.backbone}_{a.objective}_s{a.seed}" + ("_smoke" if a.smoke else ""); OUT.mkdir(parents=True, exist_ok=True)
+    tag = f"{ds}_{a.backbone}_{a.objective}" + ("" if a.nu == "uniform" else f"_nu{a.nu}") + f"_s{a.seed}" + ("_smoke" if a.smoke else ""); OUT.mkdir(parents=True, exist_ok=True)
     if (OUT / f"{tag}.json").exists() and not a.smoke:
         print("exists", tag); return 0
     bb = Backbone(a.backbone, a.grad_ckpt).to(dev); critic = Critic().to(dev)
     scenes, _ = RG.load_scenes(); role = RG.dev_roles(scenes); props = {r: torch.load(PROP / f"{ds}_{r}.pt", map_location="cpu", weights_only=False) for r in ("FIT", "CAL", "DEV")}
-    fit, c_fit = build(scenes, role, props["FIT"], "FIT", True); cal, c_cal = build(scenes, role, props["CAL"], "CAL", False); dv, c_dev = build(scenes, role, props["DEV"], "DEV", False)
+    fit, c_fit = build(scenes, role, props["FIT"], "FIT", True, a.nu); cal, c_cal = build(scenes, role, props["CAL"], "CAL", False, a.nu); dv, c_dev = build(scenes, role, props["DEV"], "DEV", False, a.nu)
     if a.smoke:
         fit, cal, dv = fit[:64], cal[:48], dv[:48]
     print(f"[{tag}] FIT {len(fit)} images ({c_fit}); CAL {len(cal)}; DEV {len(dv)}; crops/epoch {sum(len(r['boxes']) for r in fit)}", flush=True)
@@ -252,7 +273,8 @@ def main() -> int:
             best = (e_cal["acc50"]["image_macro"], ep, snap(), ab(), arbr)
     bb.load_state_dict(best[2]); critic.alpha.data.fill_(math.log(math.expm1(best[3][0]))); critic.b.data.fill_(best[3][1])
     e_dev, _ = evaluate(bb, critic, dv, dl_dev, d_dev, dev, best[4]); k_cal = max(KS, key=lambda K: hist[best[1]]["cal"]["topK_acc50"][str(K)])
-    res = {"dataset": RG.DATASET, "backbone": a.backbone, "objective": a.objective, "loss_impl": OBJ[a.objective], "seed": a.seed, "lr": a.lr, "epochs": epochs, "batch_images": BATCH,
+    res = {"dataset": RG.DATASET, "backbone": a.backbone, "objective": a.objective, "loss_impl": OBJ[a.objective], "nu": a.nu,
+           "rank": "cos" if a.nu == "uniform" else "log nu + 2 alpha cos", "seed": a.seed, "lr": a.lr, "epochs": epochs, "batch_images": BATCH,
            "chunk_crops": a.chunk_crops, "chunk_crops_effective": chunk, "gpu": gpu.name, "grad_ckpt": a.grad_ckpt, "iou_train": IOU_TRAIN, "counts": {"fit": c_fit, "cal": c_cal, "dev": c_dev}, "n_fit_images": len(fit),
            "crops_per_epoch": int(sum(len(r["boxes"]) for r in fit)), "steps": step, "seconds": time.time() - t0, "gate_step0_given_box": {"value": e_dev0["given_box_top1_image_macro"], "frozen_raw": raw, "pass": gate},
            "dev_step0_zero_shot": e_dev0, "history": hist, "selected": {"cal_acc50_epoch": best[1], "critic_a_b": best[3], "recal_a_b": best[4], "topK_chosen_on_cal": k_cal},
@@ -261,7 +283,8 @@ def main() -> int:
     if not a.smoke:
         CKPT.mkdir(parents=True, exist_ok=True); torch.save({"backbone": {k: v.to(torch.float16) for k, v in best[2].items()}, "epoch": best[1], "critic_a_b": best[3]}, CKPT / f"{tag}_calAcc.pt")
     print(f"[{tag}] selected (CAL acc50) epoch {best[1]}: DEV acc50 macro {e_dev['acc50']['image_macro']:.4f} (query {e_dev['acc50']['query']:.4f}; acc75 {e_dev['acc75']['image_macro']:.4f}; "
-          f"given-box {e_dev['given_box_top1_image_macro']:.4f}; top-{k_cal} {res['dev_topK_at_cal_chosen_K']:.4f}; J_recal {e_dev['J_recal']:.4f}); {time.time() - t0:.0f}s", flush=True)
+          f"given-box {e_dev['given_box_top1_image_macro']:.4f}; top-{k_cal} {res['dev_topK_at_cal_chosen_K']:.4f}; J_recal {e_dev['J_recal']:.4f}"
+          + (f"; plain-cos acc50 {e_dev['acc50_plain_cos']['image_macro']:.4f}" if "acc50_plain_cos" in e_dev else "") + f"); {time.time() - t0:.0f}s", flush=True)
     return 0
 
 
