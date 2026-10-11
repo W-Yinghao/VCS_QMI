@@ -1,0 +1,86 @@
+# R5-30 — distribution softmax, full two-tower fine-tuning (6 runs).  FROZEN before any R5-30 result (code, tests and a subset smoke only).
+protocol_id: R5-30
+status: frozen
+base_commit: 2bd405af4279ddbe7a28e6062cf740be281e037a
+code_commit: 2231130            # distribution_softmax loss, trainer objective, tests
+parent_protocol: reports/R4/R4_VL_TRAINING_PROTOCOL_FROZEN_20261011.yaml   # R4-VL1 option A
+package: r5/package_r5_20261011 (docs/03 §2.3, §8; docs/05 §2–3; machine/proposed_training_runs.json)
+research_question: >
+  Does the requirement to fit a uniform distribution over all valid proposals account for some of the gap between the pairwise estimators
+  (VCS / matched JS) and set-event softmax on detector proposals?
+claim_type: exploratory_hypothesis
+loss_identity_type: standard_algebra_not_new_method       # L_D − L_E = log k + KL(U_A ‖ ρ_A) (D2); identical for k = 1
+objectives:
+  new: [distribution_softmax]                              # −Σ p log softmax_r(2f), all real proposals in the denominator
+  reused: [vcs_uniform, js_uniform, set_softmax]           # R4-VL1, 18 runs, unchanged
+models:
+  name: siglip2_b16
+  initialize_from: original_pretrained                     # not from any R4 checkpoint
+  weight_hash: see reports/R5/r5_hashes.json (siglip2_b16_weights)
+  both_towers_trainable: true
+  frozen_feature_probe: false
+data:
+  datasets: [refcocog, refcocoplus]
+  independent_unit: image
+  roles_hash: see reports/R5/r5_hashes.json (datasets.*.roles_sha256)
+  proposals_hash: see reports/R5/r5_hashes.json (datasets.*.proposals_sha256)
+  inherited_eligibility: R4-VL1 (>= 2 referred objects, path, >= 1 proposal; FIT keeps valid queries, drops images without any, counted)
+  target: uniform_over_IoU_ge_0.5_proposals_per_covered_query
+  normalization: uniform_covered_queries_then_uniform_images
+  denominator: all_real_proposals_including_never_positive_regions
+  no_valid_query_training: exclude_and_count
+  uncovered_query_evaluation: count_as_error
+optimization:                    # read from scripts/r4_vl1_finetune.py, not from comments
+  epochs: 10
+  batch_images: 32
+  encoder_lr: 1.0e-5
+  weight_decay: 0.05
+  warmup_steps: 200
+  schedule: inherit_actual_R4_VL1 (linear warm-up, cosine)
+  gain_init: 10.0
+  bias_init: -2.5
+  softmax_logits: 2f
+  critic_parameter_groups: inherit_actual_code (critic a, b in their own AdamW group at CRITIC_LR, no weight decay)
+  symmetric_new_search: none
+  chunking: exact_image_weighted_accumulation (384 crops; 160 below 60 GiB; expandable segments)
+  run_command: VL_DATASET=<d> scripts/r4_vl1_finetune.py --backbone siglip2_b16 --objective distribution_softmax --seed <s> --chunk-crops 384
+seeds: [0, 1, 2]                 # all three run; no screening on seed 0
+selection:
+  role: CAL
+  metric: all_proposal_image_macro_Acc_IoU_0.5
+  ties: earliest_epoch
+  per_epoch_DEV_selection: false
+  DEV: step 0 (gate, given-box within 0.3 of the frozen raw value) and once at the selected epoch from the exact fp32 copy
+primary_contrast: distribution_softmax_minus_set_softmax (paired by seed, t df 2, per dataset)
+secondary_contrasts: [vcs_minus_distribution_softmax, js_minus_distribution_softmax]
+secondary_metrics: [Acc_IoU_0.75, query_accuracy, given_box_accuracy, common_risk, multiplicity_strata (R5-20B), legal-set probability and KL]
+statistics:
+  seed_pairing: true
+  n_seed: 3
+  main_interval: paired_t_df2_per_dataset
+  multiplicity: two datasets reported separately; no pooling into a claim; no selection of the favourable dataset
+  image_bootstrap: conditional_on_trained_models (shared image indices)
+  diagnostic_status: exploratory_DEV_reused
+  pooled_dataset_mean: descriptive_only
+  wording: "an interval containing 0 is reported as containing 0 (no equivalence claim without a margin fixed in advance)"
+permissions:
+  full_training_approval_reference: owner 2026-10-11, after the r5 instruction "查看这个包，开始执行V5": explicitly chose "Launch now (Recommended)" for this 6-run batch (budget 8–20 GPU-hours), running alongside the R5-10 / R5-20 diagnostics, which only read existing checkpoints and do not change this design
+  resource_budget_confirmed: true
+  official_evaluation_authorized: false
+  closed_SSL_restart: false
+checks:
+  CPU_test_result: 21/21 (job 1034118; tests/test_r5_distribution_softmax.py 9/9 incl. reference value/gradient to 1e-12)
+  single_positive_value_gradient: pass
+  multiple_positive_identity: pass (D2)
+  never_positive_candidate_mask: pass (conditional_softmax shown to drop them)
+  padding_and_empty_query: pass
+  step0_reproduction: per run (gate, as R4-VL1)
+  fp32_reload: inherited (exact fp32 snapshot for DEV; fp16 checkpoint; scorer re-check)
+  full_tower_smoke: job 1034130 passed (RefCOCOg seed 0, 64 / 48 / 48-image subsets, L40S, chunk 160; end-to-end code path; 44.1 % on the subset is not a result)
+measured_resources:
+  GPU_model: RTX 6000 Pro Blackwell / H100 / L40S (partition list; excluding node51, node52, node60)
+  per_run_estimate: 74 min (RTX 6000 Pro / H100) to 2.4–3.9 h (L40S), from the 18 R4-VL1 runs of the same recipe; smoke timing below
+  total_six_run_estimate: 8–20 GPU-hours; about 2–4 h wall on the current quota
+  checkpoint_directory: /projects/EEG-foundation-model/yinghao/models/r5_dist (fp16, ~0.7 GB per run)
+  available_storage: 1.9 TB free
+freeze_date_utc: 2026-10-11 (before submission)
