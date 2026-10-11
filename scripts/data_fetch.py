@@ -84,9 +84,11 @@ ITEMS = [
                http("http://images.cocodataset.org/annotations/annotations_trainval2014.zip", "annotations_trainval2014.zip"),
                http("http://images.cocodataset.org/annotations/annotations_trainval2017.zip", "annotations_trainval2017.zip"),
                http("https://cs.stanford.edu/people/karpathy/deepimagesent/caption_datasets.zip", "caption_datasets.zip")],
-     "note": "test2014 / test2017 not downloaded (no r7 protocol uses them)"},
+     "note": "test2014 / test2017 not downloaded (no r7 protocol uses them); the Karpathy 5k test split sits inside dataset_coco.json and val2014 and cannot be "
+             "separated without parsing: " + EVAL_ONLY},
     {"id": "flickr30k", "group": "tierA", "kind": "hf", "repo": "nlphuji/flickr30k", "type": "dataset", "dest": DATA / "flickr30k",
-     "licence": "Flickr30k: official distribution by request form (research use); HF mirror used under the owner's download authorization", "auth": OWNER_AUTH},
+     "licence": "Flickr30k: official distribution by request form (research use); HF mirror used under the owner's download authorization", "auth": OWNER_AUTH,
+     "note": "the Karpathy 1k test split sits inside flickr_annotations_30k.csv and the image zip and cannot be separated without parsing: " + EVAL_ONLY},
     {"id": "cub_200_2011", "group": "tierA", "kind": "http", "dest": DATA / "cub_200_2011", "extract": True, "licence": "CUB-200-2011 (Caltech; research use)",
      "files": [http("https://data.caltech.edu/records/65de6-vp158/files/CUB_200_2011.tgz?download=1", "CUB_200_2011.tgz"),
                http(gdrive("0B0ywwgffWnLLZW9uVHNjb2JmNlE"), "cvpr2016_cub.tar.gz")], "note": "Reed et al. CVPR 2016 captions for PCME's protocol"},
@@ -109,8 +111,11 @@ ITEMS = [
     {"id": "mmbench", "group": "tierA", "kind": "hf", "repo": "lmms-lab/MMBench", "type": "dataset", "dest": DATA / "mmbench", "licence": "MMBench (OpenCompass; research use)",
      "close_after_extract": ["*test*"]},
     {"id": "pope", "group": "tierA", "kind": "git", "repo": "https://github.com/AoiDragon/POPE.git", "dest": DATA / "pope", "licence": "MIT", "note": EVAL_ONLY},
-    {"id": "hallusionbench", "group": "tierA", "kind": "git+http", "repo": "https://github.com/tianyi-lab/HallusionBench.git", "dest": DATA / "hallusionbench", "extract": True,
-     "files": [http(gdrive("1eeO1i0G9BSZTE1yd5XeFwmrbe1hwyf_0"), "hallusion_bench.zip")], "licence": "BSD-3-Clause (repo)", "note": EVAL_ONLY},
+    {"id": "hallusionbench", "group": "tierA", "kind": "git", "repo": "https://github.com/tianyi-lab/HallusionBench.git", "dest": DATA / "hallusionbench",
+     "licence": "BSD-3-Clause (repo)", "note": EVAL_ONLY + "; the README's Drive zip (1eeO1i0G9BSZTE1yd5XeFwmrbe1hwyf_0) returns 404 on 2026-10-11, images come from hallusionbench_images"},
+    {"id": "hallusionbench_images", "group": "tierA", "kind": "hf", "repo": "rayguan/HallusionBench", "type": "dataset", "dest": DATA / "hallusionbench" / "hf",
+     "licence": "BSD-3-Clause (repo)", "note": EVAL_ONLY + "; HF upload (2023-12-10) by the account 'rayguan' (first author Tianrui Guan as far as can be told; not linked "
+     "from the README), same layout as hallusion_bench.zip"},
     {"id": "amber", "group": "tierA", "kind": "git+http", "repo": "https://github.com/junyangwang0410/AMBER.git", "dest": DATA / "amber", "extract": True,
      "files": [http(gdrive("1MaCHgtupcZUjf007anNl4_MV0o4DjXvl"), "AMBER_images.zip")], "licence": "Apache-2.0 (repo)", "note": EVAL_ONLY},
     {"id": "snli_ve", "group": "tierA", "kind": "git+http", "repo": "https://github.com/necla-ml/SNLI-VE.git", "dest": DATA / "snli_ve", "extract": True,
@@ -145,9 +150,13 @@ ITEMS = [
     {"id": "prolip_b16", "group": "tierA", "kind": "hf", "repo": "SanghyukChun/ProLIP-ViT-B-16-DC-1B-12_8B", "type": "model", "dest": MODELS / "ProLIP-ViT-B-16-DC-1B-12_8B", "licence": "MIT"},
     {"id": "hpsv2_ckpt", "group": "tierA", "kind": "hf", "repo": "xswu/HPSv2", "type": "space", "dest": MODELS / "hpsv2", "allow": ["HPS_v2_compressed.pt"], "licence": "Apache-2.0 (HPSv2 repo)"},
     # ---- r7 Tier B: D6 official features + annotations (after Tier A) ---------------------------------------------
-    {"id": "qvhighlights", "group": "tierB", "kind": "git+http", "repo": "https://github.com/jayleicn/moment_detr.git", "dest": DATA / "qvhighlights", "extract": True,
-     "files": [http(gdrive("1Hiln02F1NEpoW8-iPZurRyi-47-W2_B9"), "moment_detr_features.tar.gz")], "licence": "annotations CC BY-NC-SA 4.0; code MIT", "auth": NC_AUTH,
-     "note": "official SlowFast + CLIP features (Moment-DETR); raw videos are Tier C"},
+    {"id": "qvhighlights", "group": "tierB", "kind": "git", "repo": "https://github.com/jayleicn/moment_detr.git", "dest": DATA / "qvhighlights",
+     "licence": "annotations CC BY-NC-SA 4.0; code MIT", "auth": NC_AUTH, "note": "official annotations (data/highlight_*_release.jsonl; test labels withheld upstream); raw videos are Tier C"},
+    {"id": "qvhighlights_features", "group": "tierB", "kind": "hf", "repo": "dpaul06/QVHighlights_preprocessed", "type": "dataset", "dest": DATA / "qvhighlights" / "features_hf_mirror",
+     "allow": ["moment_detr_features.tar.gz", "README.md"], "extract": True, "auth": NC_AUTH,
+     "licence": "features derived from QVHighlights (annotations CC BY-NC-SA 4.0); mirror tagged MIT",
+     "note": "UNOFFICIAL mirror of the official Moment-DETR SlowFast + CLIP feature tarball: the official Drive link (1Hiln02F1NEpoW8-iPZurRyi-47-W2_B9) returns 404 on 2026-10-11 "
+             "and no official checksum exists, so identity with the official file is unverifiable; sha256 checked against the mirror's LFS hash; load the .npz with allow_pickle=False"},
 ]
 
 TIER_C = [  # listed for the owner, never started here
@@ -244,6 +253,8 @@ def do_hf(item, rec) -> None:
     rec.update({"revision": info.sha, "files": files, "bytes": sum(f["bytes"] for f in files)})
     if any(f["sha256_ok"] is False for f in files):
         raise RuntimeError("HF sha256 mismatch")
+    if item.get("extract") and not item.get("closed"):
+        rec["extracted_entries"] = {f["name"]: safe_extract(dest / f["name"], dest) for f in files if f["name"].endswith((".zip", ".tgz", ".tar.gz", ".tar"))}
     if item.get("close_after_extract"):
         rec["moved_to_closed"] = close_matching(dest, item["close_after_extract"])
 
