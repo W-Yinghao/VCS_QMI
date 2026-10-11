@@ -114,8 +114,8 @@ ITEMS = [
     {"id": "hallusionbench", "group": "tierA", "kind": "git", "repo": "https://github.com/tianyi-lab/HallusionBench.git", "dest": DATA / "hallusionbench",
      "licence": "BSD-3-Clause (repo)", "note": EVAL_ONLY + "; the README's Drive zip (1eeO1i0G9BSZTE1yd5XeFwmrbe1hwyf_0) returns 404 on 2026-10-11, images come from hallusionbench_images"},
     {"id": "hallusionbench_images", "group": "tierA", "kind": "hf", "repo": "rayguan/HallusionBench", "type": "dataset", "dest": DATA / "hallusionbench" / "hf",
-     "licence": "BSD-3-Clause (repo)", "note": EVAL_ONLY + "; HF upload (2023-12-10) by the account 'rayguan' (first author Tianrui Guan as far as can be told; not linked "
-     "from the README), same layout as hallusion_bench.zip"},
+     "licence": "BSD-3-Clause (repo)", "provenance": "first author's upload (Tianrui Guan, HF account 'rayguan', 2023-12-10); the README's Drive zip returns 404 "
+     "(2026-10-11); source accepted by the coordinator 2026-10-12", "note": EVAL_ONLY + "; same layout as hallusion_bench.zip"},
     {"id": "amber", "group": "tierA", "kind": "git+http", "repo": "https://github.com/junyangwang0410/AMBER.git", "dest": DATA / "amber", "extract": True,
      "files": [http(gdrive("1MaCHgtupcZUjf007anNl4_MV0o4DjXvl"), "AMBER_images.zip")], "licence": "Apache-2.0 (repo)", "note": EVAL_ONLY},
     {"id": "snli_ve", "group": "tierA", "kind": "git+http", "repo": "https://github.com/necla-ml/SNLI-VE.git", "dest": DATA / "snli_ve", "extract": True,
@@ -155,7 +155,11 @@ ITEMS = [
     {"id": "qvhighlights_features", "group": "tierB", "kind": "hf", "repo": "dpaul06/QVHighlights_preprocessed", "type": "dataset", "dest": DATA / "qvhighlights" / "features_hf_mirror",
      "allow": ["moment_detr_features.tar.gz", "README.md"], "extract": True, "auth": NC_AUTH,
      "licence": "features derived from QVHighlights (annotations CC BY-NC-SA 4.0); mirror tagged MIT",
-     "note": "UNOFFICIAL mirror of the official Moment-DETR SlowFast + CLIP feature tarball: the official Drive link (1Hiln02F1NEpoW8-iPZurRyi-47-W2_B9) returns 404 on 2026-10-11 "
+     "flag": "unofficial mirror, no official checksum",
+     "validation_required": "before any D6 use, reproduce Moment-DETR's published QVHighlights val numbers with these features (same code and config); if they do not match "
+                            "within the paper's rounding, the features are not used for any claim.",
+     "provenance": "HF mirror dpaul06/QVHighlights_preprocessed, approved by the coordinator 2026-10-12",
+     "note": "mirror of the official Moment-DETR SlowFast + CLIP feature tarball: the official Drive link (1Hiln02F1NEpoW8-iPZurRyi-47-W2_B9) returns 404 on 2026-10-11 "
              "and no official checksum exists, so identity with the official file is unverifiable; sha256 checked against the mirror's LFS hash; load the .npz with allow_pickle=False"},
 ]
 
@@ -191,22 +195,52 @@ def digest(path: Path, algo: str) -> str:
     return h.hexdigest()
 
 
-def safe_extract(archive: Path, dest: Path) -> int:
-    """List first; refuse absolute / parent paths and links leaving dest; never run anything."""
+def _present(dest: Path, names) -> set:
+    """Member names already on disk, from one readdir per directory (a stat per file costs ~70 ms on the loaded shared NFS)."""
+    have = set()
+    for d in {str(Path(n).parent) for n in names}:
+        if (dest / d).is_dir():
+            have.update(x if d == "." else f"{d}/{x}" for x in os.listdir(dest / d))
+    return have
+
+
+def safe_extract(archive: Path, dest: Path, threads: int = 4) -> int:
+    """List first; refuse absolute / parent paths and links leaving dest; never run anything.
+    Resumable without a stat per member: zip members are written to <name>.part by a few threads and renamed, so a present name is
+    complete; the last few present members in archive order are still size-checked (tar, and zips cut by the earlier single-thread code)."""
     dest.mkdir(parents=True, exist_ok=True)
     if zipfile.is_zipfile(archive):
         with zipfile.ZipFile(archive) as z:
-            names = z.namelist()
-            if any(n.startswith("/") or ".." in Path(n).parts for n in names):
-                raise RuntimeError(f"unsafe paths in {archive.name}")
-            z.extractall(dest)
-        return len(names)
+            infos = z.infolist()
+        if any(i.filename.startswith("/") or ".." in Path(i.filename).parts for i in infos):
+            raise RuntimeError(f"unsafe paths in {archive.name}")
+        key = lambda n: str(Path(n))  # noqa: E731 — "./a/b" and "a/b" name the same file
+        files = [i for i in infos if not i.is_dir()]; present = _present(dest, [i.filename for i in files])
+        bad = {key(i.filename) for i in [i for i in files if key(i.filename) in present][-8:] if (dest / i.filename).stat().st_size != i.file_size}
+        todo = [i for i in files if key(i.filename) not in present or key(i.filename) in bad]
+        for d in sorted({(dest / i.filename).parent for i in todo}):
+            d.mkdir(parents=True, exist_ok=True)
+
+        def part(chunk):
+            with zipfile.ZipFile(archive) as z:
+                for i in chunk:
+                    out = dest / i.filename; tmp = out.with_name(out.name + ".part")
+                    with z.open(i) as src, open(tmp, "wb") as dst:  # ZipExtFile checks the CRC at EOF
+                        shutil.copyfileobj(src, dst, 1 << 20)
+                    os.replace(tmp, out)
+        with ThreadPoolExecutor(threads) as ex:
+            list(ex.map(part, [todo[k::threads] for k in range(threads)]))
+        return len(infos)
     with tarfile.open(archive) as t:
         members = t.getmembers()
         for m in members:
             if m.name.startswith("/") or ".." in Path(m.name).parts or ((m.issym() or m.islnk()) and (m.linkname.startswith("/") or ".." in Path(m.linkname).parts)):
                 raise RuntimeError(f"unsafe member {m.name} in {archive.name}")
-        t.extractall(dest, filter="data") if sys.version_info >= (3, 12) else t.extractall(dest)
+        key = lambda n: str(Path(n))  # noqa: E731
+        present = _present(dest, [m.name for m in members if not m.isdir()])
+        bad = {key(m.name) for m in [m for m in members if m.isfile() and key(m.name) in present][-8:] if (dest / m.name).stat().st_size != m.size}
+        todo = [m for m in members if m.isdir() or key(m.name) not in present or key(m.name) in bad]
+        t.extractall(dest, members=todo, filter="data") if sys.version_info >= (3, 12) else t.extractall(dest, members=todo)
     return len(members)
 
 
@@ -293,6 +327,32 @@ def do_lfs_media(item, rec) -> None:
                 "bytes": sum(s for _, _, _, s in jobs), "commit": subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()})
     if bad:
         raise RuntimeError(f"{len(bad)} CREMA-D files failed LFS verification (see failed list; GitLab mirror is the fallback)")
+    lfs_checkout(item, rec)
+
+
+def lfs_checkout(item, rec) -> None:
+    """Equivalent of `git lfs checkout` for the dirs: each LFS pointer stub in repo/<dir> is replaced (atomically) by a hard link to its
+    copy in media/<dir> after checking that copy's size and sha256 against the pointer; no extra space is used."""
+    dest = Path(item["dest"]); repo = dest / "repo"; jobs = [(d, n) for d in item["dirs"] for n in sorted(os.listdir(repo / d))]
+    bad = []
+
+    def one(job):
+        d, name = job; wt = repo / d / name; src = dest / "media" / d / name
+        if wt.stat().st_ino == src.stat().st_ino:
+            return True  # already checked out by an earlier pass
+        lines = dict(l.split(" ", 1) for l in wt.read_text().splitlines() if " " in l)
+        oid, size = lines["oid"].split(":", 1)[1], int(lines["size"])
+        if src.stat().st_size != size or digest(src, "sha256") != oid:
+            bad.append(f"{d}/{name}"); return False
+        tmp = wt.with_name(name + ".lfs-tmp"); tmp.unlink(missing_ok=True); os.link(src, tmp); os.replace(tmp, wt)
+        return wt.stat().st_ino == src.stat().st_ino and wt.stat().st_size == size
+    with ThreadPoolExecutor(16) as ex:
+        n_ok = sum(ex.map(one, jobs))
+    rec["working_tree"] = {"path": str(repo), "method": "LFS pointer stubs replaced by hard links to the verified media/ copies (sha256 + size vs pointer)",
+                           "files": len(jobs), "checked_out": n_ok, "failed": bad[:50], "when": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    log(f"  {item['id']}: working tree checkout {n_ok}/{len(jobs)} files")
+    if n_ok != len(jobs):
+        raise RuntimeError(f"working-tree checkout incomplete: {n_ok}/{len(jobs)}")
 
 
 def do_local(item, rec) -> None:
@@ -304,8 +364,9 @@ HANDLERS = {"http": do_http, "hf": do_hf, "git": do_git, "lfs_media": do_lfs_med
 
 def run_item(item, manifest) -> None:
     rec = manifest["items"].setdefault(item["id"], {}); TOUCHED.add(item["id"])
+    rec.update({k: item[k] for k in ("flag", "validation_required", "provenance") if k in item})
     if rec.get("status") == "done":
-        return
+        save(manifest); return  # keeps provenance / validation flags added after the item finished
     if free_gb() < FLOOR_GB + 10:
         rec["status"] = "deferred_free_space"; log(f"DEFER {item['id']}: free {free_gb():.0f} GB < floor"); return
     rec.update({"status": "running", "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}); save(manifest)
@@ -349,10 +410,18 @@ def save(manifest):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("cmd", choices=["manifest", "run", "status"]); ap.add_argument("--group", default=None)
+    ap = argparse.ArgumentParser(); ap.add_argument("cmd", choices=["manifest", "run", "status", "checkout"]); ap.add_argument("--group", default=None)
     ap.add_argument("--ids", nargs="*", default=None); ap.add_argument("--jobs", type=int, default=2); a = ap.parse_args(); manifest = load()
     if a.cmd == "manifest":
         save(manifest); print(f"wrote {MANIFEST} ({len(ITEMS)} items)"); return 0
+    if a.cmd == "checkout":  # LFS working-tree checkout for already-downloaded lfs_media items
+        for i in [i for i in ITEMS if i["kind"] == "lfs_media" and (a.ids is None or i["id"] in a.ids)]:
+            rec = manifest["items"].setdefault(i["id"], {}); TOUCHED.add(i["id"])
+            try:
+                lfs_checkout(i, rec)
+            finally:
+                save(manifest)
+        return 0
     if a.cmd == "status":
         for i in ITEMS:
             r = manifest["items"].get(i["id"], {}); print(f"{i['group']:9s} {i['id']:28s} {r.get('status', 'pending'):22s} {r.get('error', '')[:80]}")
