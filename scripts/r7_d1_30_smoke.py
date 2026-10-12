@@ -100,7 +100,7 @@ def main() -> int:
     for x in (Path("/home/infres/yinwang/CS_QMI/outputs/R7_fixtures/d1/pred_full.jsonl")).read_text().splitlines():
         j = json.loads(x); r720[(j["fixture"], j["qid"])] = j["text"]
     for b, cfg, fxn in (("gqa_fixture", "full", "gqa"), ("textvqa_fixture", "full_ocr", "textvqa")):
-        mine = {r["qid"]: r["pred"] for r in V.read_jsonl(out / "pred_repro" / b / f"{RUN.cfg_file(cfg)}.jsonl")}
+        mine = {r["qid"]: r["pred"] for p in RUN.cfg_paths(out / "pred_repro" / b, cfg) for r in V.read_jsonl(p)}
         same = sum(mine[q] == r720[(fxn, q)] for q in mine if (fxn, q) in r720)
         rep[f"check_repro_{b}"] = f"{same}/{sum((fxn, q) in r720 for q in mine)} identical to R7-20 answers"
     # full grid on sets64

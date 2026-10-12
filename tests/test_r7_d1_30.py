@@ -172,8 +172,9 @@ class Runner(unittest.TestCase):
             cf.write_text("full\nfull_ocr\nstatic:random:72\nstatic:qsim:144\nsel:u1:288\ndyn:u1:0.5\n")
             a = Namespace(sets_dir=str(t / "sets"), bench="gqa_fixture", configs_file=str(cf), shard="0/1", out=str(t / "out"), chunk=2, batch=3, limit=0)
             h = FakeHost(); RUN.run(a, host=h, bank=FakeBank(), opener=lambda fp: None)
-            got = {c: [json.loads(x) for x in (t / "out" / "gqa_fixture" / f"{RUN.cfg_file(c)}.jsonl").read_text().splitlines()] for c in
+            got = {c: [r for p in RUN.cfg_paths(t / "out" / "gqa_fixture", c) for r in json.loads("[" + ",".join(p.read_text().splitlines()) + "]")] for c in
                    ("full", "full_ocr", "static:random:72", "static:qsim:144", "sel:u1:288", "dyn:u1:0.5")}
+            self.assertEqual(sorted(x.name for x in (t / "out" / "gqa_fixture").glob("full*.jsonl")), ["full@s0of1.jsonl", "full_ocr@s0of1.jsonl"])
             self.assertTrue(all(len(v) == 5 for v in got.values()))
             self.assertEqual({r["pred"] for r in got["full"]}, {"v576"}); self.assertEqual({r["pred"] for r in got["static:random:72"]}, {"v72"})
             self.assertEqual({r["kept"] for r in got["sel:u1:288"]}, {288}); self.assertEqual({r["kept"] for r in got["dyn:u1:0.5"]}, {288, 576})
@@ -181,6 +182,22 @@ class Runner(unittest.TestCase):
             self.assertTrue(all(p.endswith("\nShort") for p in h.prompts))                  # the item's prompt as given: no second suffix
             self.assertTrue((t / "out" / "gqa_fixture" / "done_shard0of1.json").exists())
             h2 = FakeHost(); RUN.run(a, host=h2, bank=FakeBank(), opener=lambda fp: None); self.assertEqual(h2.prompts, [])  # resume: nothing redone
+
+    def test_single_writer_files_and_union(self):
+        """Each shard appends only to its own <cfg>@s<i>of<n>.jsonl; answers already in the plain file (or another shard's file) are not redone."""
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t); tiny_sets(t / "sets", n=12); cf = t / "cfg.txt"; cf.write_text("full\nstatic:grid:72\n"); od = t / "out" / "gqa_fixture"; od.mkdir(parents=True)
+            early = RUN.load_items(t / "sets", "gqa_fixture")[:5]
+            (od / "full.jsonl").write_text("".join(json.dumps({"qid": it["qid"], "image_id": it["image_id"], "pred": "early", "kept": 576}) + "\n" for it in early))
+            for sh in ("0/2", "1/2"):
+                h = FakeHost(); RUN.run(Namespace(sets_dir=str(t / "sets"), bench="gqa_fixture", configs_file=str(cf), shard=sh, out=str(t / "out"), chunk=4, batch=4, limit=0),
+                                        host=h, bank=FakeBank(), opener=lambda fp: None)
+            names = sorted(x.name for x in od.glob("*.jsonl"))
+            self.assertEqual(names, ["full.jsonl", "full@s0of2.jsonl", "full@s1of2.jsonl", "static__grid__72@s0of2.jsonl", "static__grid__72@s1of2.jsonl"])
+            full = [json.loads(x) for p in RUN.cfg_paths(od, "full") for x in p.read_text().splitlines()]
+            self.assertEqual(len(full), 12); self.assertEqual(len({r["qid"] for r in full}), 12)                  # early answers kept, none redone
+            self.assertEqual(sum(r["pred"] == "early" for r in full), 5)
+            self.assertTrue((od / "done_shard0of2.json").exists() and (od / "done_shard1of2.json").exists())
 
     def test_shards_partition_groups(self):
         with tempfile.TemporaryDirectory() as t:
@@ -321,6 +338,22 @@ class Scoring(unittest.TestCase):
             self.assertEqual(res["at_latency"]["4"]["grid"]["L50"]["seed_sd"], 0.0)
             self.assertAlmostEqual(res["at_latency"]["4"]["grid"]["L50"]["mean"], res["fixed_budget"]["static:grid:288"]["quality"])
             self.assertEqual(res["dynamic_budget_distribution"]["dyn:vcs_lr0.0003_s0:0.5"]["288"], 1.0)
+
+    def test_integrity_first_record_wins(self):
+        """Duplicates across files resolve to the first complete record (plain file first, then shard files by name); torn / blank lines are
+        dropped and counted; the readout still passes coverage."""
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t); args = self.setup_bench(t); pd = t / "pred" / "gqa_dev"; c = "static:grid:144"
+            first = (pd / f"{RUN.cfg_file(c)}.jsonl").read_text().splitlines()
+            (pd / f"{RUN.cfg_file(c)}.jsonl").write_text("\n".join(first[:20]) + "\n")
+            dup = json.loads(first[3]); dup["pred"] = "flipped"
+            (pd / f"{RUN.cfg_file(c)}@s0of2.jsonl").write_text("\n".join(first[20:] + [json.dumps(dup), '{"qid": "q7", "image_id": "img3", "pr', ""]) + "\n")
+            recs, n = SC.load_config(pd, c)
+            self.assertEqual(n["duplicate_qids"], 1); self.assertEqual(n["dropped_lines"], 1); self.assertEqual(n["blank_lines"], 1)
+            self.assertEqual(recs[dup["qid"]]["pred"], json.loads(first[3])["pred"])                     # the first complete record wins
+            SC.main(args); res = json.loads((t / "res" / "d1_30_results.json").read_text())["benches"]["gqa_dev"]
+            self.assertEqual(res["integrity"]["totals"], {"dropped_lines": 1, "blank_lines": 1, "duplicate_qids": 1})
+            self.assertIn(c, res["integrity"]["configs_with_issues"])
 
     def test_coverage_guard(self):
         with tempfile.TemporaryDirectory() as t:

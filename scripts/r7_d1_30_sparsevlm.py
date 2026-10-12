@@ -104,7 +104,7 @@ def main(argv=None) -> int:
             items = sorted(items, key=lambda it: V._h("d1-30-timing", it["qid"]))[: a.timing]; plan = [(T, False) for T in a.rows]; todo = None
         else:
             items = RUN.load_items(a.sets_dir, bench, a.shard)[: a.limit or None]
-            todo = {(T, o): [it for it in items if it["qid"] not in {r["qid"] for r in V.read_jsonl(out / f"{RUN.cfg_file(row_tag(T, o))}.jsonl")}] for T, o in plan}
+            todo = {(T, o): [it for it in items if it["qid"] not in RUN.answered(out, row_tag(T, o))] for T, o in plan}
         work.append((bench, out, plan, items, todo))
     if not a.timing and not any(v for w in work for v in w[4].values()):
         for bench, out, plan, items, todo in work:
@@ -127,7 +127,7 @@ def main(argv=None) -> int:
                 rec = {"bench": bench, "config": tag, "B": 1, "n_items": len(ms), "per_item_ms_median": float(np.median(ms)), "per_item_ms_p95": float(np.percentile(ms, 95)),
                        "per_item_ms_median_ci95": [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))]}
             else:
-                with open(out / f"{RUN.cfg_file(tag)}.jsonl", "a") as fh:
+                with open(out / f"{RUN.cfg_file(tag)}@{RUN.shard_tag(a.shard)}.jsonl", "a") as fh:   # this shard's own file (single writer)
                     for it in todo[(T, ocr)]:
                         r = host.answer(it["prompt_ocr_anchor"] if ocr else it["prompt"], it["image_file"], max_new_tokens=RUN.MAX_NEW[bench])
                         fh.write(V.jdump({"qid": it["qid"], "image_id": it["image_id"], "pred": r["text"], "kept": T, "wall_ms": r["wall_ms"]}) + "\n"); fh.flush()
@@ -141,6 +141,9 @@ def main(argv=None) -> int:
         if a.timing:
             (out / f"sparsevlm_timing_{bench}.json").write_text(V.jdump({"rows": recs, "env": V.env_info(), "gpu": gpu, "host": __import__("socket").gethostname()}, indent=1))
         else:
+            missing = {row_tag(T, o): sum(it["qid"] not in RUN.answered(out, row_tag(T, o)) for it in items) for T, o in plan}
+            if any(missing.values()):                                                  # no marker: the driver resubmits (the rerun resumes)
+                raise SystemExit(f"incomplete after run ({bench} {a.shard}): {missing}")
             write_marker(out, bench, a.shard, recs, gpu, V.env_info())
     return 0
 

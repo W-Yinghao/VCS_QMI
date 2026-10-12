@@ -53,6 +53,28 @@ def item_scores(bench, items, preds):
     return out
 
 
+def load_config(pred_dir: Path, cfg: str):
+    """Answers of one configuration from all its files (RUN.cfg_paths: plain file first, then per-shard files in name order).  A line that
+    does not parse, or parses without qid / pred, is dropped and counted; a qid seen again is a duplicate — the first complete record wins
+    and duplicates are counted (execution note D1-30-E1)."""
+    recs, n = {}, {"files": [], "dropped_lines": 0, "blank_lines": 0, "duplicate_qids": 0}
+    for p in RUN.cfg_paths(pred_dir, cfg):
+        n["files"].append(p.name)
+        for line in p.read_text().splitlines():
+            if not line.strip():
+                n["blank_lines"] += 1; continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                n["dropped_lines"] += 1; continue
+            if not isinstance(r, dict) or "qid" not in r or "pred" not in r:
+                n["dropped_lines"] += 1; continue
+            if r["qid"] in recs:
+                n["duplicate_qids"] += 1; continue
+            recs[r["qid"]] = r
+    return recs, n
+
+
 class Boot:
     """Shared group-bootstrap replicates: W [reps, groups] multinomial counts; means(x) -> replicate means of an item vector."""
 
@@ -108,12 +130,13 @@ class Bench:
     def __init__(self, bench, sets_dir, pred_dir, timing_dir, expected, reps, rep_unit):
         self.bench = bench; self.items = [json.loads(x) for x in (Path(sets_dir) / f"{bench}.jsonl").read_text().splitlines() if x.strip()]
         self.qids = [it["qid"] for it in self.items]; self.boot = Boot([it["image_id"] for it in self.items], reps); self.S, self.K, self._bm = {}, {}, {}
+        self.integrity = {}
         for cfg in expected:
-            f = Path(pred_dir) / bench / f"{RUN.cfg_file(cfg)}.jsonl"; rows = V.read_jsonl(f); preds = {r["qid"]: r["pred"] for r in rows}
+            recs, self.integrity[cfg] = load_config(Path(pred_dir) / bench, cfg); preds = {q: r["pred"] for q, r in recs.items()}
             if set(preds) != set(self.qids):
                 raise SystemExit(f"coverage guard: {bench} {cfg}: {len(set(preds) & set(self.qids))} / {len(self.qids)} items, "
-                                 f"{len(set(preds) - set(self.qids))} unexpected")
-            sc = item_scores(bench, self.items, preds); kept = {r["qid"]: r.get("kept", RUN.N_VIS) for r in rows}
+                                 f"{len(set(preds) - set(self.qids))} unexpected; integrity {self.integrity[cfg]}")
+            sc = item_scores(bench, self.items, preds); kept = {q: r.get("kept", RUN.N_VIS) for q, r in recs.items()}
             self.S[cfg] = np.array([sc[q] for q in self.qids]); self.K[cfg] = np.array([kept[q] for q in self.qids], float)
         self.T, self.Tci = {}, {}
         for name in (f"timing_{bench}.json", f"sparsevlm_timing_{bench}.json"):
@@ -188,6 +211,10 @@ def contrast(d_pt, d_bs, seed_pts=None):
 
 def score_bench(bn: Bench, main, abl, sparse_rows, sv_primary):
     F = families(main, abl); R = {"n_items": len(bn.items), "n_groups": bn.boot.G}
+    tot = {k: sum(v[k] for v in bn.integrity.values()) for k in ("dropped_lines", "blank_lines", "duplicate_qids")}
+    R["integrity"] = {"totals": tot, "configs_with_issues": {c: v for c, v in bn.integrity.items() if v["dropped_lines"] or v["blank_lines"] or v["duplicate_qids"]},
+                      "files_per_config_max": max(len(v["files"]) for v in bn.integrity.values()),
+                      "rule": "first complete record per qid wins; unparseable / incomplete lines dropped and counted"}
     R["fixed_budget"] = {c: {"quality": 100 * bn.q(c), "ci95": [100 * x for x in ci(bn.bm(c))], "retention_rel": bn.q(c) / bn.q("full") if bn.q("full") else None,
                              "retention_abs_drop": 100 * (bn.q("full") - bn.q(c)), "mean_visual_tokens": float(bn.K[c].mean())} for c in bn.S}
     Bs = sorted({B for (_, B) in bn.T})

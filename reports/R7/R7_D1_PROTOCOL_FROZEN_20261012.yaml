@@ -387,3 +387,12 @@ d1_30_execution_note_early_rows: >
   selector row and skips the non-selector items per (config, qid); the SparseVLM units are the driver's own lines (chained per bench so one
   writer per prediction file), which the driver skips by marker.  Timing and DEV risk run in the driver as frozen.  No output is scored or
   opened before the frozen readout; nothing in the analysis changes.
+d1_30_execution_note_E1: >
+  2026-10-12 (coordinator), before the D1-30 driver reached stage 1 and before any D1-30 output was read: integrity fix D1-30-E1, found by the
+  implementing agent on review.  The frozen design let all shards of a benchmark append to the same pred/<bench>/<config>.jsonl on NFSv3
+  (/home/infres, local_lock=none), where appends from different clients are not atomic; the SparseVLM runner wrote its marker without a
+  completeness check; and the scorer kept the last duplicate silently and dropped unparseable lines uncounted.  Fix (no analysis change; same
+  items, configurations, statistics, markers, driver and lines): every shard writes only its own <cfg>@s<i>of<n>.jsonl (single writer); resume,
+  markers and the scorer read the union (plain file first, then shard files by name); the SparseVLM runner checks completeness before its
+  marker; the scorer keeps the first complete record per qid and reports an integrity block (dropped / blank lines, duplicate qids, files per
+  config); the coverage guard is unchanged.  Patch reviewed and applied by the coordinator (git apply); tests 20 / 20 (job 1035237).

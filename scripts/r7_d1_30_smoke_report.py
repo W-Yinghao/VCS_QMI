@@ -31,7 +31,7 @@ def main() -> int:
         for x in (R720 / f"pred_sparsevlm{T}.jsonl").read_text().splitlines():
             j = json.loads(x); ref[(j["fixture"], j["qid"])] = j["text"]
         for b, fx, ocr in (("gqa_fixture", "gqa", False), ("textvqa_fixture", "textvqa", True)):
-            mine = {r["qid"]: r["pred"] for r in V.read_jsonl(sm / "pred_repro" / b / f"{RUN.cfg_file(f'sparsevlm:{T}:official' + (':ocr' if ocr else ''))}.jsonl")}
+            mine = {r["qid"]: r["pred"] for p in RUN.cfg_paths(sm / "pred_repro" / b, f"sparsevlm:{T}:official" + (":ocr" if ocr else "")) for r in V.read_jsonl(p)}
             n = sum((fx, q) in ref for q in mine); same = sum(mine[q] == ref[(fx, q)] for q in mine if (fx, q) in ref)
             repro[f"sparsevlm{T}_{b}{'_ocr' if ocr else ''}"] = f"{same}/{n} identical to R7-20"
     S["sparsevlm_repro"] = repro

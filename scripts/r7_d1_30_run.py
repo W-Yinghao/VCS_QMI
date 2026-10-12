@@ -10,8 +10,9 @@ Configurations on the fixed budget grid k ∈ {72, 144, 288, 432} (12.5 stress /
                        r7_d1_selectors.dynamic_tau
 The user turn is '<image>\\n' + item['prompt'] (vicuna_v1), where the item's prompt carries its benchmark's official suffix.  Greedy;
 max_new_tokens 128 for GQA / TextVQA (LLaVA model_vqa_loader default), 16 for ChartQA (pinned lmms-eval chartqa.yaml).
-SparseVLM rows: scripts/r7_d1_30_sparsevlm.py.  Output <out>/<bench>/<config with ':' -> '__'>.jsonl rows {qid, image_id, pred, kept};
-appended per chunk and resumed per (config, qid).
+SparseVLM rows: scripts/r7_d1_30_sparsevlm.py.  Output <out>/<bench>/<config with ':' -> '__'>@s<i>of<n>.jsonl rows {qid, image_id, pred,
+kept}: one file per (configuration, shard), so no file has two writers (execution note D1-30-E1; NFSv3 appends from different clients are
+not atomic); appended per chunk and resumed per (config, qid) over every file of the configuration (cfg_paths).
     python scripts/r7_d1_30_run.py --sets-dir S --bench gqa_dev --configs-file C --shard i/n --out O [--selectors-dir D --pca P]
 """
 from __future__ import annotations
@@ -54,6 +55,24 @@ def config_list(main_units, abl_units, ocr_anchor=False):
 
 def cfg_file(cfg: str) -> str:
     return cfg.replace(":", "__")
+
+
+def shard_tag(shard: str) -> str:
+    i, n = (int(x) for x in shard.split("/"))
+    return f"s{i}of{n}"
+
+
+def cfg_paths(out: Path, cfg: str):
+    """Every file holding answers of one configuration: <cfg>.jsonl (one writer: runs before execution note D1-30-E1) and the per-shard files
+    <cfg>@s<i>of<n>.jsonl (one writer each).  No two processes append to the same file: outputs/ is NFSv3, where O_APPEND from different
+    clients is not atomic (lines can be lost or interleaved)."""
+    base = cfg_file(cfg)
+    return [p for p in [Path(out) / f"{base}.jsonl"] + sorted(Path(out).glob(f"{base}@*.jsonl")) if p.exists()]
+
+
+def answered(out: Path, cfg: str):
+    """qids with a parseable answer for one configuration, over all its files."""
+    return {r["qid"] for p in cfg_paths(out, cfg) for r in V.read_jsonl(p) if "qid" in r and "pred" in r}
 
 
 def user_segments(host, text: str):
@@ -206,7 +225,7 @@ def run(a, host=None, bank=None, opener=None):
         items = items[: a.limit]
     configs = [c.strip() for c in Path(a.configs_file).read_text().splitlines() if c.strip() and not c.startswith("#")]
     out = Path(a.out) / a.bench; out.mkdir(parents=True, exist_ok=True)
-    done = {c: {r["qid"] for r in V.read_jsonl(out / f"{cfg_file(c)}.jsonl")} for c in configs}
+    done = {c: answered(out, c) for c in configs}
     todo = [it for it in items if any(it["qid"] not in done[c] for c in configs)]
     if not todo:
         mark_done(out, a, items, configs); print(f"[r7_d1_30] {a.bench} shard {a.shard}: complete ({len(items)} items × {len(configs)} configs)"); return 0
@@ -230,7 +249,7 @@ def run(a, host=None, bank=None, opener=None):
             seqs = [sequence(host, chunk[j], feats[j], kept[j], cfg) for j in need]; texts = []
             for b0 in range(0, len(seqs), a.batch):
                 texts += host.generate(seqs[b0:b0 + a.batch], max_new_tokens=MAX_NEW[a.bench])
-            with open(out / f"{cfg_file(cfg)}.jsonl", "a") as fh:
+            with open(out / f"{cfg_file(cfg)}@{shard_tag(a.shard)}.jsonl", "a") as fh:      # this shard's own file (single writer)
                 for j, tx in zip(need, texts):
                     fh.write(V.jdump({"qid": chunk[j]["qid"], "image_id": chunk[j]["image_id"], "pred": tx,
                                       "kept": N_VIS if kept[j] is None else int(len(kept[j]))}) + "\n")
@@ -244,7 +263,7 @@ def run(a, host=None, bank=None, opener=None):
 def mark_done(out: Path, a, items, configs, seconds=None):
     """Completion marker for the driver's file gate: written only when every (configuration, item) of the shard has an answer."""
     for c in configs:
-        have = {r["qid"] for r in V.read_jsonl(out / f"{cfg_file(c)}.jsonl")}
+        have = answered(out, c)
         if any(it["qid"] not in have for it in items):
             raise SystemExit(f"incomplete after run: {c}")
     (out / f"done_shard{a.shard.replace('/', 'of')}.json").write_text(V.jdump({"items": len(items), "configs": len(configs), "seconds": seconds,
