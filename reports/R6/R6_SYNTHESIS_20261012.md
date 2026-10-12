@@ -15,7 +15,7 @@ Package `r6/package_r6_20261011` (new applications).
 - **GAIN（按需计算额外模态）**
   - 直接回归实际收益h的策略优于熵和随机。CREMA-D上明显（−0.02 Brier），AV-MNIST上很小。
   - 平方分歧z作为目标不安全：CREMA-D的Brier族中z显著劣于h，与受控验证的警告一致。
-  - CREMA-D上真实墙钟成本：25 %预算时约为"总是计算视频"成本的29 %。
+  - CREMA-D上的一个风险—成本操作点：25 %预算时DEV Brier 0.564、9.7 ms/片段，约为"总是计算视频"（Brier 0.486、33.3 ms）的29 %墙钟时间；这不是"质量不变省71 %时间"。
   - 两者都是标准风险回归，不是CS特有方法。
 - **数据发现：** MultiBench AV-MNIST的6万条音频只有1601个唯一片段（每个重复约37次，标签纯度0.44），原图像分组的划分会把音频"记忆"误当作证据。
 
@@ -38,8 +38,9 @@ Package `r6/package_r6_20261011` (new applications).
 - Any VCS-specific advantage: VCS ≈ logistic ≈ InfoNCE at < 42 px in both pilots (frozen wording: a learned-critic class effect).
 
 **What this adds:**
-- Every member of the CS / logistic / InfoNCE critic family yields a registration energy that is more reliable than per-image MI / NMI on a
-  hard multimodal pair (BF / SHG).
+- In the tested BF / SHG setting, learned local cross-modal relations (critics trained with VCS, logistic or InfoNCE) give higher registration
+  success than the compared per-image MI / NMI energies; VCS is one effective training criterion among them.  (Correction 2026-10-12: an earlier
+  sentence grouped the three as a "CS family"; InfoNCE is not a CS criterion, and the result is not a general "CS beats MI" claim.)
   - Its failures are small, while MI's are catastrophic (p90 15–21 px vs about 170–270 px).
   - It transfers to rotations it never saw in training.
 - The earlier negative (P60: raw-pixel closed-form VCS worse than MI on RGB-NIR) is reproduced here by the closed-form kernel critic.  What works is
@@ -80,10 +81,12 @@ no better than encode-once (−3.6 / −1.8; no detectable difference), so the p
 - A side finding about the AV-MNIST benchmark itself: clip reuse and a noisy pairing.  This matters for anyone using it.
 
 ## 3. Scope recommendation for the paper (owner's decision)
-- **REG:** a positive application result for the learned-critic family, stated as a class effect.  It does not carry the VCS objective
-  specifically.  Candidate text: "a CS-family learned local-relation critic yields a more reliable multimodal registration energy than mutual
-  information".
-- **GAIN:** a clarifying, partly negative result about the evidence-gain proxy, with a positive deployment demonstration on CREMA-D.
+- **REG (owner decision 2026-10-12: keep as a positive application, rewrite the attribution):** "In the tested BF–SHG registration settings,
+  learned local cross-modal relations achieve higher success than the compared per-image MI / NMI registration energies; VCS is one effective
+  training criterion among them."  Not a VCS-specific advantage and not yet a core contribution; the CoMIR comparison is "its features + our
+  optimiser", not its full native pipeline.
+- **GAIN (owner decision 2026-10-12: boundary analysis, appendix first):** a clarifying, partly negative result about the evidence-gain proxy
+  (finite models: h − z = 2 (C − b)(b − a)), with a CREMA-D deployment point always shown together with its risk.
 - **Neither result supports a claim that VCS outperforms its logistic / InfoNCE relatives.**  This agrees with the VL findings (R4 / R5), where
   the deficits and gains were properties of the critic class and the normalisation, not of the VCS estimand.
 

@@ -52,9 +52,10 @@ VCS − E = (VCS − VQ) + (VQ − D) + (D − E)
 **Reading:**
 - **The critic class carries most of the deficit, and more of it the larger the deficit.**  The independent pairwise critic does not couple a
   query's candidates.  On RefCOCO, with many same-category objects per image, that costs 7.6 points; the within-query normalization (KLIEP)
-  recovers it while keeping the estimand.
-- **The criterion gap is consistently 0.8–1.7 points with the interval below 0 on all three datasets.**  It is the price of the VCS criterion
-  relative to log-likelihood inside the same normalized model class.
+  recovers most of it while keeping the objective (compatible with the optimal density ratio's constraint; finite-model approximation is empirical).
+- **The criterion gap is consistently 0.8–1.7 points with the interval below 0 on all three datasets (VQ − D).**  It is the gap between the VCS
+  criterion and log-likelihood inside the same normalized model class under the tested setup — not an unavoidable cost or a lower bound.
+  Note the two softmax controls differ: VQ − D is below 0 on all three datasets, while VQ − E contains 0 on RefCOCO+ (correction 2026-10-12).
 - **The positive target contributes nothing detectable.**
 
 ## 4. Secondary observations (descriptive)
@@ -94,5 +95,5 @@ VCS − E = (VCS − VQ) + (VQ − D) + (D − E)
   It grows to −8.88 against all proposals.
 - **The normalized critic ties set softmax up to 15 nested distractors** (intervals contain 0).  It trails only against 31 or more:
   −0.85 at 31 and −1.40 against all.
-- **The same pattern holds on all three datasets.**  Normalization removes the growth of the deficit with the number of competitors and moves
+- **The same pattern holds on all three datasets.**  Normalization substantially reduces (does not remove) the growth of the deficit with the number of competitors and moves
   gradient onto the strongest wrong candidate.  What remains concentrates at the largest candidate sets.

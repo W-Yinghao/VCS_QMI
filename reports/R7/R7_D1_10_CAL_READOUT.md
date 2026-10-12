@@ -136,3 +136,8 @@ Per-item rank criterion (coordinator note 2026-10-12): observed Spearman(h, d) [
   - Verify questions (n = 5,581): h 0.201 vs d 0.210, close.
 - **Masked accuracy at 12.5 %** is 0.79–0.80, against 0.856 for the full teacher. At 75 % it is 0.849–0.850.
 - **The sensitivity row changes nothing.** The yes / no-mass exclusion removes 3 CAL items and 22 FIT items, and the tables move only in the 4th decimal.
+
+> **Clarification (2026-10-12, owner-adopted review).**  The "calibrated-teacher ceiling" band is a reference generated under the full
+> teacher's own probabilities (labels redrawn as C* ~ Bernoulli(p̃_full)); it is what a calibrated teacher would produce on these items, not a
+> theoretical upper bound for all methods on natural data.  D1-10 shows only that the host's squared output gap d relates to the realised risk
+> change h, with systematic bias in some conditions; it is not yet evidence about the trained selectors (D1-20 / D1-30).

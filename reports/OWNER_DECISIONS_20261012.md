@@ -48,7 +48,7 @@ T2 不设非劣效边界；REG-P3 作为低优先级填充运行（我原建议�
 - **文件**：`reports/R7/R7_50_60_OUTLINE_DRAFT.md`（文末附审批文字草稿）。
 
 ### T2 — r5 最终独立评估（RefCOCO 系列官方 test）
-- **现状**：`reports/R5/R5_FINAL_EVALUATION_PROPOSAL_DRAFT_20261011.yaml`，状态为"仅提议，未授权"。
+- **现状**：规范文件是 `reports/R5/final_evaluation_proposal.yaml`（已按 2026-10-12 的决定修订，见其中 `revision_20261012`）；旧草稿 `R5_FINAL_EVALUATION_PROPOSAL_DRAFT_20261011.yaml` 已标为被取代。
 - **它早于 R5-QN / R5-QX1**，方法列表里没有归一化 critic，也没有 RefCOCO。我建议批准前先更新：
   - 加入 VQ / JQ（R5-QN、R5-QX1），以及分布 softmax D；
   - 加入 RefCOCO testA / testB（R5-X1、R5-QX1 已有 CAL 选出的检查点）；

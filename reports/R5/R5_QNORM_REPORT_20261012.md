@@ -56,8 +56,9 @@ The R4-VL1 gap splits exactly:
 
 **Reading:**
 - About 60–70 % of the VCS deficit comes from the pairwise critic class: it has no coupling among a query's candidates.
-- The rest, 0.8–1.0 points with the interval below 0 on both datasets, is the price of the VCS criterion relative to log-likelihood within the same
-  normalized model class.
+- The rest, 0.8–1.0 points with the interval below 0 on both datasets, is the gap between the VCS criterion and log-likelihood within the same
+  normalized model class, under the tested data, function form, optimisation and selection rule.  It is not shown to be an unavoidable cost of
+  VCS, nor a lower bound (correction 2026-10-12, owner-adopted review).
 - The choice of positive target contributes nothing detectable.
 - The pieces are paired contrasts of runs that share seeds, recipe and data; this is an arithmetic decomposition, not a mediation analysis.
 
@@ -75,7 +76,9 @@ The R4-VL1 gap splits exactly:
 - **Fitted critic (VQ):** a ≈ 10.8–11.1 (b ≈ −2.5 is irrelevant after normalization), similar across seeds.
 
 ## 5. Interpretation (hypothesis, not tested)
-- **The deficit is mainly a critic-class effect.**  The normalization constrains the critic class, and the constrained class contains the optimum.
+- **The deficit is mainly a critic-class effect.**  The normalization is compatible with the constraint the population-optimal density ratio
+  satisfies and does not change the objective; whether the restricted a·cos + b model can approximate the true posterior is an empirical question
+  (correction 2026-10-12: an earlier sentence said the constrained class "contains the optimum", which overstated it for this finite model).
   That the same loss ranks better with it says most of the deficit was an inductive-bias / optimization property of the unconstrained pairwise
   critic, not of the VCS estimand.
   - With independent per-pair terms, raising one candidate's score does not lower the others'.
@@ -126,7 +129,7 @@ order, oracle-assisted, image bootstrap.
 | RefCOCO+ VQ − VCS | +0.25 [+0.12, +0.38] | +0.72 [+0.38, +1.07] | +1.81 [+1.24, +2.42] | +2.78 [+1.99, +3.64] |
 
 **Readings (descriptive):**
-1. **Normalization removes most of the growth of the deficit with the number of competitors.**
+1. **Normalization substantially reduces, but does not remove, the growth of the deficit with the number of competitors.**
    - Against all proposals: VCS − E −3.50 / −3.59 versus VQ − E −1.11 / −0.81.
    - VQ − VCS rises from 0.00 / +0.25 at k = 1 to +2.39 / +2.78 against all proposals: the gain is a many-candidate effect, as the
      within-query-competition explanation predicts.

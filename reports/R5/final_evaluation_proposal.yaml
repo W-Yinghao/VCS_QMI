@@ -1,5 +1,5 @@
 # R5-40 — final independent evaluation: PROPOSAL ONLY (updated at R5-40 with the R5-30 decision) (package r5 docs/05 §6; templates/FINAL_EVALUATION_PROPOSAL.yaml).  Not authorized; nothing read.
-status: proposal_only_not_authorized
+status: revised_proposal_owner_decision_20261012  # methods updated, no non-inferiority margin; the test read still needs the owner's final go
 paper_version: V6
 algorithms_frozen: false                      # becomes true only when the owner approves this file (after R5-30 is reported)
 independent_evaluation_authorized: false
@@ -38,7 +38,7 @@ primary_contrasts:
   - vcs_uniform + λ_CAL log s − set_softmax + λ_CAL log s (equal test-time information), per dataset / split
 secondary_contrasts: [vcs_nu − js_nu, vcs_uniform − set_softmax, distribution_softmax − set_softmax]
 multiple_comparison_policy: Holm over the primary contrasts across datasets / splits; secondary descriptive
-practical_noninferiority_margin: OWNER DECISION (options below); fixed before reading, never from DEV
+practical_noninferiority_margin: not used — owner decision 2026-10-12 (see revision_20261012); no non-inferiority claim is made
 margin_options:
   - {margin: 0.5, rationale: about one seed-to-seed sd of the R4 runs; strict, may be underpowered with 3 seeds}
   - {margin: 1.0, rationale: smaller than the differences usually reported between grounding methods on these benchmarks; a "same accuracy class" use}
@@ -47,3 +47,17 @@ margin_justification_not_from_DEV_success: required — the chosen value must be
 no_post_test_tuning: true
 implementation_error_correction_policy: record_all_attempts_and_publish_reason (only implementation errors may be fixed after the first read; never tuning)
 one_shot: one fixed script produces every pre-declared row in a single run
+revision_20261012:
+  decided_by: owner, 2026-10-12 (decision round on reports/OWNER_DECISIONS_20261012.md, T2)
+  methods_added: [vcs_qnorm (VQ, R5-QN / R5-QX1), js_qnorm (JQ), distribution_softmax (D, R5-30 / R5-QX1)]   # CAL-selected checkpoints, seeds 0-2
+  datasets_added: [{dataset: refcoco, split: testA / testB, status_now: never read (TEST_CLOSED), checkpoints: R5-X1 / R5-QX1}]
+  primary_confirmation: VQ − VCS (does within-query normalization improve the original VCS), per dataset / split, paired by seed; Holm across
+    datasets / splits
+  estimation_not_testing: [VQ − D, VQ − E (set softmax), VQ − JQ]   # effect sizes with 95 % intervals; no non-inferiority claim or margin
+  reason_no_margin: >
+    A non-inferiority margin needs a use-based justification — an accuracy loss accepted in exchange for a stated benefit (compute, labels, a
+    capability).  No such compensating benefit has been established for VQ, so a margin would only risk turning an observed shortfall into a
+    "success" by tolerance.  If such a benefit is established later, a margin is defined from that use, never from DEV.
+  previous_primaries_now_secondary: [vcs_nu − set_softmax, vcs_uniform + λ_CAL log s − set_softmax + λ_CAL log s]
+  kept: [all official task samples; uncovered queries count as errors, standard query-level metric reported separately from the development
+         image-macro metric, licences checked and every model hash listed before reading, one fixed script]

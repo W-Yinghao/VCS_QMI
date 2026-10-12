@@ -1,6 +1,7 @@
 # R7-50 / R7-60 outline (proposal draft, 2026-10-12)
 
-**Status.** Nothing in this outline is authorised or run. The official test splits stay closed. Any read of them needs the owner's one-shot
+**Status.** Owner decision 2026-10-12: proceed with A after the three corrections below (now applied); the actual test read still needs the
+owner's final go at execution time.  Nothing in this outline has run. The official test splits stay closed. Any read of them needs the owner's one-shot
 approval of the exact list in §A.1. This outline was drafted while D1-20 and D1-30 run, before any D1-30 result was read.
 
 **Package tasks.**
@@ -32,11 +33,15 @@ number, and this is disclosed.
   - S1 dynamic × seeds 0–2 at the three CAL operating points.
 
   That is about 60 configurations.
-- **Qwen2.5-VL-7B**, only if R7-40 is complete: full, the uniform grid, and S1 and S3 × seeds 0–2.
+- **Qwen2.5-VL-7B**, only if R7-40 is complete: full, the uniform grid, and S1, S2 and S3 × seeds 0–2 (owner decision 2026-10-12: R7-40
+  includes S2).
+- All pre-registered primary rows are reported, whatever D1-30 shows; D1-30 results do not decide which test rows are kept.
 
 **A.3 Endpoints.**
-- **Latency** is not re-measured: a configuration's latency does not depend on the split. The frozen D1-30 / R7-40 timing rows and latency
-  points (B* = 4) apply.
+- **Latency** is not re-measured on test.  It is reported as **latency measured on the pre-fixed profiling workload** (the frozen D1-30 / R7-40
+  timing subsets, B* = 4), not as each test set's actual mean end-to-end latency: latency depends on input shapes, generation lengths and batch
+  composition, and Qwen uses dynamic resolution.  Dynamic selector rows additionally report the kept-token counts and budget distribution
+  observed on the test set (correction 2026-10-12, owner-adopted review).
 - **Contrasts:** the D1-30 primary contrasts at the D1-30 latency points:
   - S1 − S2;
   - S1 − S3;
@@ -44,13 +49,23 @@ number, and this is disclosed.
 - **Statistics:** the same as D1-30 — image / chart-grouped paired bootstrap with 2,000 replicates, seeds, and Holm per point.
 - **Secondary:** fixed-budget rows and retention.
 
+**A.3b Exposure statement (graded; correction 2026-10-12).**
+- Relative to this project: the test splits were never used for selector training, hyperparameters or any selection.
+- Relative to the hosts' public training data: known overlaps are checked and reported (LLaVA-1.5's mix includes GQA, Visual Genome, COCO and
+  TextCaps; all GQA images, test-dev included, come from Visual Genome, so GQA test-dev is not "clean" with respect to upstream image exposure).
+- Undisclosed upstream pre-training exposure is not guaranteed either way.
+
 **A.4 Procedure.**
 1. The owner approves this list in writing. Approval is one-shot.
 2. Answers are generated with the frozen code into a sealed directory, using single-writer files (E1). Their sha256 are committed before any
    scoring.
-3. One CPU job reads the test labels once and scores every row.
-4. Results are committed as they come out. A rerun is allowed only after an infrastructure failure (same code and seeds, reported).
-5. No method or row changes after the read.
+3. One CPU job reads the test labels and scores every row.
+4. Results are committed as they come out.
+5. What protects the evaluation is the frozen analysis — test results take no part in choosing models, thresholds, methods or reported rows —
+   not the number of physical label reads.  Three cases are kept separate and reported: (a) fixing an implementation error (the error, the fix
+   and both outputs are published; never tuning); (b) re-verifying frozen predictions with the deterministic evaluator (allowed, recorded);
+   (c) re-selecting methods or rows (not allowed).  A rerun after an infrastructure failure uses the same code and seeds and is reported.
+6. Multiplicity is handled by the pre-declared Holm correction, not by the one-read procedure.
 
 **A.5 Cost.** About 15,000 items × about 60 configurations is about 0.9 M answers on LLaVA: 6–10 GPU-h on H100 / L40S. The Qwen rows add about
 15,000 × 28, about 0.42 M answers: 4–6 GPU-h.
