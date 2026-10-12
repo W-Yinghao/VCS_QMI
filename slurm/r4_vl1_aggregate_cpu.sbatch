@@ -8,5 +8,5 @@
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # R4-VL1 frozen readings (scripts/r4_vl1_aggregate.py); main env.
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh; set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot
-"$PYTHON" scripts/r4_vl1_aggregate.py; rc=$?
+"$PYTHON" scripts/r4_vl1_aggregate.py "$@"; rc=$?
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
