@@ -95,15 +95,73 @@ class DataRoles(unittest.TestCase):
             mix.write_text(json.dumps([{"image": f"gqa/images/{binq['image_id']}.jpg", "conversations": [
                 {"from": "human", "value": "<image>\n" + binq["question"] + DA.SHORT}, {"from": "gpt", "value": "Yes"}]},
                 {"image": "coco/train2017/1.jpg", "conversations": [{"from": "human", "value": binq["question"]}]}]))
-            seen = DA.llava_seen_pairs(mix); self.assertEqual(seen, {(binq["image_id"], DA.norm_q(binq["question"]))})
+            seen, st = DA.llava_seen_pairs(mix, with_stats=True); self.assertEqual(seen, {(binq["image_id"], DA.norm_q(binq["question"]))})
+            self.assertEqual((st["mix665k_gqa_conversations"], st["mix665k_gqa_human_turns"]), (1, 1))
             man, meta = DA.build_manifest(iter(rows), 20, 4, 4, 2, seen=seen)
             self.assertNotIn(binq["qid"], {r["qid"] for r in man}); self.assertGreaterEqual(meta["excluded_llava_seen_qa"], 1)
+            self.assertEqual(meta["llava_exclusion"]["seen_pairs_matching_a_train_balanced_question"], 1)
         plan = DA.plan_shards(man, images_per_shard=3, shards_per_bundle=2)
         self.assertTrue(next(iter(plan["shards"])).startswith("CAL-"))
         allimg = [i for v in plan["shards"].values() for i in v]; self.assertEqual(len(allimg), len(set(allimg))); self.assertEqual(len(allimg), 28)
         self.assertEqual(sorted(s for v in plan["bundles"].values() for s in v), sorted(plan["shards"]))
         for line in DA.feed_lines(plan):
             self.assertNotIn("--export", line); self.assertIn("--partition=H100,L40S", line); self.assertIn("--exclude=node51,node52,node60", line)
+
+
+class ClosedSources(unittest.TestCase):
+    def test_only_train_member_is_opened(self):
+        import zipfile
+        with tempfile.TemporaryDirectory() as t:
+            z = Path(t) / "questions1.2.zip"
+            with zipfile.ZipFile(z, "w") as zz:
+                zz.writestr("train_balanced_questions.json", json.dumps({"1": {"imageId": "i1", "question": "Is it red?", "answer": "yes", "types": {}}}))
+                zz.writestr("testdev_balanced_questions.json", "NOT JSON: must never be opened")
+                zz.writestr("test_balanced_questions.json", "NOT JSON: must never be opened")
+            self.assertEqual([r["qid"] for r in DA.read_questions(z)], ["1"])
+            for bad in ("testdev_balanced_questions.json", "closed/x.json", "val_balanced_questions.json"):
+                with self.assertRaises(SystemExit):
+                    list(DA.read_questions(Path(t) / bad))
+
+
+class TrainAllAndBalance(unittest.TestCase):
+    def test_train_all_reader_opens_only_allow_listed_files(self):
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t) / "train_all_questions"; d.mkdir()
+            for n in range(2):
+                (d / f"train_all_questions_{n}.json").write_text(json.dumps({f"{n}a": {"imageId": "i1", "question": "Is it red?", "answer": "no", "types": {}}}))
+            (d / "testdev_all_questions.json").write_text("NOT JSON: must never be opened")
+            self.assertEqual(sorted(r["qid"] for r in DA.read_questions(d, "all")), ["0a", "1a"])
+            with self.assertRaises(SystemExit):
+                list(DA.read_questions(Path(t) / "closed" / "train_all_questions", "all"))
+
+    def test_balanced_selection_band_cap_determinism(self):
+        g = np.random.default_rng(3); rows = []
+        for i in range(400):
+            for j in range(int(g.integers(1, 8))):
+                ans = "yes" if g.uniform() < 0.75 else "no"                                    # strong yes skew
+                rows.append({"qid": f"{i}_{j}", "image_id": f"img{i}", "question": f"q{j}?", "answer": ans, "structural": "verify",
+                             "semantic": "s", "detailed": "d"})
+        man, meta = DA.build_manifest(iter(rows), 100, 20, 20, 4, balance=True)
+        man2, _ = DA.build_manifest(iter(list(reversed(rows))), 100, 20, 20, 4, balance=True)
+        self.assertEqual([(r["qid"], r["role"]) for r in man], [(r["qid"], r["role"]) for r in man2])
+        for role in ("FIT", "CAL", "DEV"):
+            sel = [r for r in man if r["role"] == role]; pi = sum(r["C"] == 1 for r in sel) / len(sel)
+            self.assertTrue(0.48 <= pi <= 0.52, (role, pi)); self.assertAlmostEqual(meta["balance"][role]["pi_yes"], pi, places=12)
+            per = {}
+            for r in sel:
+                per[r["image_id"]] = per.get(r["image_id"], 0) + 1
+            self.assertEqual(len(per), meta["counts"][role]["images"]); self.assertLessEqual(max(per.values()), 4); self.assertGreaterEqual(min(per.values()), 1)
+        self.assertEqual(DA.pick_alternating(["y1", "y2"], ["n1"], 4, start_yes=False), ["n1", "y1", "y2"])
+
+
+class FiniteL1(unittest.TestCase):
+    def test_identities_and_calibrated_full_teacher(self):
+        import r7_d1_l1 as L1
+        res = L1.run(n_cal=6168)
+        self.assertLess(res["identity_I1_max_abs_error"], 1e-12); self.assertLess(res["identity_I2_max_abs_mean_residual_calibrated_full"], 1e-10)
+        self.assertLess(res["max_pointwise_identity_error"], 1e-12)
+        miscal = [r for r in res["table"] if r["teacher"].startswith("tau_full=2.0")]
+        self.assertTrue(any(abs(r["E_res"]) > 1e-4 for r in miscal))                 # an overconfident full teacher does leave a residual
 
 
 class FakeLlava:

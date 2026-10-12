@@ -304,3 +304,58 @@ coordinator_decisions_20261012:
   OPEN-7: pin the ChartQA relaxed-accuracy evaluator (source + commit) before any ChartQA read.
   OPEN-8: accept SparseVLM at 25 / 50 / 75 % via adapted token lists, labelled "adapted"; the official 192 / 64-token points stay as anchor rows.
   OPEN-9: run D1-L1 (CPU-only finite nested-mask check) as this round's light check.
+
+execution_addendum_20261012_manifest:
+  status: "forced by data before any result: no D1-10 teacher unit has run; CAL / DEV untouched"
+  finding: >
+    The mixstats subcommand (jobs 1034924 and 1034929) looked at the GQA part of llava_v1_5_mix665k.json (HF liuhaotian/LLaVA-Instruct-150K,
+    rev 9d451dc, sha256 ce959ce6...).  It holds 72,140 conversations, one per GQA train-balanced image, and their 943,000 human turns are the
+    943,000 train-balanced questions.  That is 942,045 distinct (imageId, normalised question) pairs, 100 % of train-balanced pairs: 331,898 of
+    331,898 binary pairs are seen, with 0 unmatched seen pairs and 0 unseen binary pairs.  The OPEN-3 exclusion therefore removes every
+    train-balanced binary question; manifest job 1034921 stopped with 0 eligible images.
+  match_rule: >
+    (imageId, normalised question text).  imageId is the file stem of the mix665k image path gqa/images/<imageId>.jpg.  Normalisation drops
+    '<image>' and the LLaVA short-answer suffix, lowercases, keeps only [a-z0-9 ] and strips (scripts/r7_d1_data.py MATCH_RULE).
+  rule_applied: "the coordinator's pre-stated case (a): at least 99 % of train-balanced binary pairs are LLaVA-seen"
+  change:
+    question_source: >
+      GQA train_all, the unbalanced release (train_all_questions_0..9.json from questions1.2), train only.  The reader is allow-listed by
+      exact name, so test / testdev / challenge / submission files are never opened.
+    exclusion: every mix665k-seen pair is removed before role assignment — 331,902 binary rows excluded, on 66,852 images
+    unchanged: >
+      Image-grouped roles and sizes: FIT 10,000 / CAL 2,000 / DEV 2,000 images, at most 4 binary questions per image, sha256 orders,
+      5:1:1 interleave.
+    yes_no_balance_rule: >
+      Within each role, images are taken in role order.  Inside an image, the unseen binary questions are split into YES and NO lists, each
+      in sha256('r7-30/d1-q/<qid>') order, and taken alternately.  Picking starts with the class the role is short of so far (YES on a tie),
+      up to 4 per image; when one class runs out, the other continues.  Then, while the role's pi_yes lies outside [0.48, 0.52], the
+      latest-selected question of the over-represented class is removed from the last image that keeps at least one question.
+    yes_no_balance_achieved: "pi_yes FIT 0.495, CAL 0.493, DEV 0.493; no trimming was needed"
+  frozen_manifest:
+    path: outputs/R7_D1/data/d1_manifest.jsonl (with d1_manifest_meta.json and d1_shards.json)
+    sha256: 32c72126ec9d40a362c67883f3a0b92a7212ae063b7ab9a369c47a696706d794
+    frozen_utc: "2026-10-12T00:40:39Z (job 1034940; builder job 1034930)"
+    counts: "FIT 10,000 images / 39,960 q (yes 19,785); CAL 2,000 / 7,989 (yes 3,937); DEV 2,000 / 7,986 (yes 3,940); 55,935 questions; 56 shards in 14 bundles"
+    source_counts: "train_all: 14,305,356 questions read, 11,077,125 binary, 74,256 eligible images; sha256 of the ten files in d1_manifest_meta.json questions_sha256"
+    images_zip_check: all 14,000 images present in images.zip (148,854 images)
+  disclosure:
+    image_exposure: >
+      Images in LLaVA-1.5's GQA mix: FIT 9,714 of 10,000, CAL 1,941 of 2,000, DEV 1,934 of 2,000.  The rest are GQA train images outside
+      train-balanced.  All GQA images come from Visual Genome, which is also in the mix.
+    question_exposure: >
+      No selected question appears verbatim in LLaVA-1.5's mix.  Unbalanced GQA questions can still be paraphrases or entailments of seen
+      balanced questions on the same image; GQA's 'equivalent' / 'entailed' links were not used for exclusion.
+    class_balance: the unbalanced release is 77 % binary; balance is imposed per role by the rule above
+  cost_update: "55,935 questions × 14 prefill passes ≈ 5.3 GPU-h on H100 at the smoke rate, plus staged loads: about 7–11 GPU-h"
+  feed: >
+    slurm/r7_d1_10_feed_lines.txt was regenerated from the frozen plan: 14 bundles, H100,L40S, node51 / node52 / node60 excluded, no
+    --export.  The coordinator launches it with CAP=27.  Launch gates: frozen manifest sha256 and a passing probe report.
+coordinator_note_20261012_rank_criterion: >
+  Added before any D1-10 CAL readout (the teacher has not run), prompted by D1-L1 (outputs/R7_D1/L1/d1_l1.md; reports/R7/R7_D1_L1_light_check.md):
+  even a perfectly calibrated full teacher gives a per-item corr(h, d) of only about 0.44–0.48 and P(h < 0) of about 0.35–0.43, because h
+  contains the label C (Bernoulli noise) and d does not.  The interpretation-grid line "per-item Spearman < 0.5 => d does not rank
+  per-question losses" would therefore fire for a perfect teacher.  It is read instead against a calibrated-teacher ceiling computed on the
+  same CAL items: redraw C ~ Bernoulli(b) from the full teacher's own probabilities (B = 200 draws), recompute Spearman(h, d) per draw, and
+  report the observed value with the ceiling's 2.5–97.5 % band.  "d does not rank per-question losses" is written only if the observed
+  value lies below the band's lower end by more than its image-clustered bootstrap margin.  Every other line of the grid is unchanged; the
+  original 0.5 line is still reported, labelled "superseded (unattainable for a calibrated teacher)".
