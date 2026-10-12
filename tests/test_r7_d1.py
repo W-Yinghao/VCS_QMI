@@ -263,6 +263,25 @@ class Analysis(unittest.TestCase):
         self.assertAlmostEqual(c["mean_residual"], (h - d).mean(), places=12); self.assertLess(c["identity_max_abs_error"], 1e-12)
         self.assertAlmostEqual(out["teacher"]["brier_full"], ((C - Tb) ** 2).mean(), places=12)
 
+    def test_rank_ceiling_decision_rule(self):
+        """The frozen rule ('d does not rank' iff observed + image-clustered margin < ceiling band's lower end) must not fire for a calibrated
+        teacher (20 simulated datasets: at most 1 firing) and must fire for an anti-informative one.  The false-firing rate is printed."""
+        fires, inside, n_sets = 0, 0, 20
+        for seed in range(n_sets):
+            g = np.random.default_rng(100 + seed); n = 3000; pt = g.uniform(0.02, 0.98, n); Tb = 2 * pt - 1
+            Ta = np.clip(Tb * g.uniform(0.0, 1.0, n) + g.normal(0, 0.1, n), -1, 1)
+            C = np.where(g.uniform(size=n) < pt, 1.0, -1.0)                                        # labels drawn FROM the full teacher
+            rc = AN.rank_ceiling(C, Ta, Tb, [i // 3 for i in range(n)], draws=200, boot=200, seed=seed)
+            fires += rc["verdict"] == "d_does_not_rank_per_question_losses"; inside += rc["ceiling_band"][0] <= rc["observed"] <= rc["ceiling_band"][1]
+            self.assertEqual(rc["verdict"] == "d_does_not_rank_per_question_losses", rc["observed_boot_ci"][1] < rc["ceiling_band"][0])
+        print(f"\n[rank-ceiling rule] calibrated teacher: false-firing {fires}/{n_sets} = {fires / n_sets:.2f}; "
+              f"observed inside its own 95 % band {inside}/{n_sets} (informational)")
+        self.assertLessEqual(fires, 1)
+        g = np.random.default_rng(7); n = 2000; Tb = g.uniform(-0.9, 0.9, n); Ta = -Tb; C = np.sign(Ta)    # anti-informative: h = −4|Tb|, d = 4 Tb²
+        rb = AN.rank_ceiling(C, Ta, Tb, [i // 2 for i in range(n)], draws=100, boot=200, seed=1)
+        print(f"[rank-ceiling rule] anti-informative teacher: observed {rb['observed']:.3f}, band {rb['ceiling_band']}, verdict {rb['verdict']}")
+        self.assertEqual(rb["verdict"], "d_does_not_rank_per_question_losses")
+
     def test_dev_sealed(self):
         old = sys.argv
         try:

@@ -9,6 +9,7 @@ The analyser refuses partial coverage.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -43,6 +44,27 @@ def boot(x, w, g, reps=2000, seed=0):
 def spearman(a, b):
     ra, rb = np.argsort(np.argsort(a)), np.argsort(np.argsort(b))
     return float(np.corrcoef(ra, rb)[0, 1]) if np.std(ra) > 0 and np.std(rb) > 0 else None
+
+
+def rank_ceiling(C, Ta, Tb, groups, draws=200, boot=1000, seed=0):
+    """Coordinator note 2026-10-12 (rank criterion), fixed before any CAL readout.  Calibrated-teacher ceiling: redraw C* ~ Bernoulli(p̃_full)
+    with p̃_full = (T_b + 1) / 2, recompute Spearman(h*, d) per draw (d does not involve C); 2.5–97.5 % band over `draws`.  Observed
+    Spearman(h, d) with an image-clustered bootstrap; "d does not rank per-question losses" only if the bootstrap 97.5 % point (observed +
+    its margin) lies below the band's lower end.  The superseded 0.5 line is reported alongside."""
+    C, Ta, Tb, g = (np.asarray(x) for x in (C, Ta, Tb, groups)); rng = np.random.default_rng(seed)
+    d = (Tb - Ta) ** 2; obs = spearman((C - Ta) ** 2 - (C - Tb) ** 2, d); pt = np.clip((Tb + 1) / 2, 0, 1); ceil = []
+    for _ in range(draws):
+        Cs = np.where(rng.uniform(size=len(pt)) < pt, 1.0, -1.0); ceil.append(spearman((Cs - Ta) ** 2 - (Cs - Tb) ** 2, d))
+    lo, hi = (float(np.nanpercentile(ceil, q)) for q in (2.5, 97.5))
+    ug, inv = np.unique(g, return_inverse=True); members = [np.flatnonzero(inv == j) for j in range(len(ug))]; bs = []
+    hh = (C - Ta) ** 2 - (C - Tb) ** 2
+    for _ in range(boot):
+        idx = np.concatenate([members[j] for j in rng.integers(0, len(ug), len(ug))]); bs.append(spearman(hh[idx], d[idx]))
+    b_lo, b_hi = (float(np.nanpercentile(bs, q)) for q in (2.5, 97.5))
+    return {"observed": obs, "ceiling_band": [lo, hi], "ceiling_median": float(np.nanmedian(ceil)), "observed_boot_ci": [b_lo, b_hi],
+            "margin": b_hi - obs, "verdict": "d_does_not_rank_per_question_losses" if b_hi < lo else "not_below_calibrated_ceiling",
+            "rule_0p5_superseded": {"observed_below_0p5": bool(obs < 0.5), "label": "superseded (unattainable for a calibrated teacher)"},
+            "draws": draws, "boot": boot}
 
 
 def load_role(teacher_dir: Path, manifest_dir: Path, role: str):
@@ -83,6 +105,7 @@ def analyse(rows, weights):
                 "frac_h_negative": wmean((hh < 0).astype(float), w), "frac_h_exceeds_d": wmean((hh > dd).astype(float), w),
                 "pearson_h_d": float(np.corrcoef(hh, dd)[0, 1]) if hh.std() > 0 and dd.std() > 0 else None, "spearman_h_d": spearman(hh, dd),
                 "acc_masked": wmean((np.sign(Ta) == C).astype(float), w),
+                "rank_ceiling": rank_ceiling(C, Ta, Tb, g, seed=int(hashlib.sha256(f"{m}:{k}".encode()).hexdigest()[:8], 16)),
                 "by_structural": {s: {"n": int(np.sum(sel)), "mean_h": wmean(hh[sel], w[sel]), "mean_d": wmean(dd[sel], w[sel])}
                                   for s in sorted({r["structural"] for r in rows if r["structural"]}) for sel in [np.array([r["structural"] == s for r in rows])]}}
     return out
@@ -103,6 +126,14 @@ def markdown(res):
                      f"{f(c['mean_residual'], c['mean_residual_ci'])} | {c['frac_h_negative']:.2f} | {c['frac_h_exceeds_d']:.2f} | "
                      f"{c['pearson_h_d'] if c['pearson_h_d'] is None else round(c['pearson_h_d'], 2)} / "
                      f"{c['spearman_h_d'] if c['spearman_h_d'] is None else round(c['spearman_h_d'], 2)} | {c['acc_masked']:.3f} |")
+        L.append("\nPer-item rank criterion (coordinator note 2026-10-12): observed Spearman(h, d) [image-clustered 95 %] against the "
+                 "calibrated-teacher ceiling band (C* ~ Bernoulli(p̃_full), 200 draws); the 0.5 line is superseded.\n")
+        L.append("| mechanism | budget | observed [95 %] | ceiling band (median) | verdict | 0.5 line (superseded) |"); L.append("|---|---|---|---|---|---|")
+        for c in R_["cells"].values():
+            rc = c["rank_ceiling"]
+            L.append(f"| {c['mechanism']} | {c['budget_fraction']:.3g} | {rc['observed']:.3f} [{rc['observed_boot_ci'][0]:.3f}, {rc['observed_boot_ci'][1]:.3f}] | "
+                     f"[{rc['ceiling_band'][0]:.3f}, {rc['ceiling_band'][1]:.3f}] ({rc['ceiling_median']:.3f}) | {rc['verdict']} | "
+                     f"{'below 0.5' if rc['rule_0p5_superseded']['observed_below_0p5'] else 'at or above 0.5'} |")
         L.append("")
     return "\n".join(L) + "\n"
 
