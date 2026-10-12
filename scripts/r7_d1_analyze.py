@@ -87,6 +87,14 @@ def load_role(teacher_dir: Path, manifest_dir: Path, role: str):
     return [rows[q] for q in sorted(rows)], {"expected": len(expected), "present": len(rows), "skipped_questions": skipped_q}
 
 
+def mass_qc(rows):
+    """QC only (no readout change): first-token yes / no probability mass of the full and masked passes; items below 0.9 counted."""
+    full = np.array([sum(r["full"]) for r in rows]); masked = np.array([sum(r["masked"][m][k]) for r in rows for m in r["masked"] for k in r["masked"][m]])
+    d = lambda x: {"min": float(x.min()), "p01": float(np.percentile(x, 1)), "median": float(np.median(x)), "n_below_0.9": int(np.sum(x < 0.9)),  # noqa: E731
+                   "n_below_0.5": int(np.sum(x < 0.5)), "n": int(len(x))}
+    return {"full": d(full), "masked": d(masked)}
+
+
 def analyse(rows, weights):
     C = np.array([r["C"] for r in rows], float); g = np.array([r["image_id"] for r in rows]); w = np.where(C > 0, weights["w_yes"], weights["w_no"])
     Tb = np.array([T(r["full"]) for r in rows]); Tt = np.array([T(r["text"]) for r in rows])
@@ -94,7 +102,8 @@ def analyse(rows, weights):
            "teacher": {"brier_full": wmean((C - Tb) ** 2, w), "brier_full_ci": boot((C - Tb) ** 2, w, g),
                        "brier_text_only": wmean((C - Tt) ** 2, w), "acc_full": wmean((np.sign(Tb) == C).astype(float), w),
                        "acc_text_only": wmean((np.sign(Tt) == C).astype(float), w),
-                       "mean_residual_text_only": wmean(REF.finite_risk_delta(C, Tt, Tb)[2], w)}, "cells": {}}
+                       "mean_residual_text_only": wmean(REF.finite_risk_delta(C, Tt, Tb)[2], w),
+                       "yes_no_mass_qc": mass_qc(rows)}, "cells": {}}
     for m in MK.MECHANISMS:
         for k in MK.BUDGETS:
             Ta = np.array([T(r["masked"][m][str(k)]) for r in rows]); hh, dd, res = REF.finite_risk_delta(C, Ta, Tb)
@@ -118,6 +127,9 @@ def markdown(res):
         L.append(f"## {role}: {R_['n_questions']} questions, {R_['n_images']} images (balanced weights)\n")
         L.append(f"Teacher: balanced Brier full {t['brier_full']:.4f} {t['brier_full_ci']}, text-only {t['brier_text_only']:.4f}; "
                  f"accuracy full {t['acc_full']:.3f}, text-only {t['acc_text_only']:.3f}.\n")
+        q = t["yes_no_mass_qc"]
+        L.append(f"QC yes / no mass: full min {q['full']['min']:.3f}, below 0.9 {q['full']['n_below_0.9']} / {q['full']['n']}; masked min "
+                 f"{q['masked']['min']:.3f}, below 0.9 {q['masked']['n_below_0.9']} / {q['masked']['n']}.\n")
         L.append("| mechanism | budget | mean h [95 %] | mean d [95 %] | mean h − d [95 %] | P(h<0) | P(h>d) | Pearson / Spearman (h,d) | acc |")
         L.append("|---|---|---|---|---|---|---|---|---|")
         for c in R_["cells"].values():

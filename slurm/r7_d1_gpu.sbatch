@@ -21,6 +21,12 @@ case "$what" in
   timing) $E/bin/python scripts/r7_d1_teacher.py timing --out "$D1/timing" --fixture "$FX/gqa.jsonl" "$@"; rc=$?;;
   smoke) $E/bin/python scripts/r7_d1_teacher.py smoke --out "$D1/smoke" --fixture "$FX/gqa.jsonl" \
            --r720-preds /home/infres/yinwang/CS_QMI/outputs/R7_fixtures/d1/pred_full.jsonl "$@"; rc=$?;;
-  *) echo "usage: bundle <id> | probe | timing | smoke"; rc=2;;
+  cache_smoke) $E/bin/python scripts/r7_d1_cache.py smoke --fixture "$FX/gqa.jsonl" --out "$D1/cache_smoke"; rc=$?;;
+  d1_20_smoke)   # one slot: feature cache on the fixture (LLaVA env) then the three selectors' pipeline smoke (main env, torch 2.9)
+    $E/bin/python scripts/r7_d1_cache.py smoke --fixture "$FX/gqa.jsonl" --out "$D1/cache_smoke"; rc=$?
+    [ $rc -eq 0 ] && { /home/infres/yinwang/CS_QMI/env/bin/python scripts/r7_d1_train.py smoke --probe-records "$D1/smoke/probe/probe_records.jsonl" \
+                         --cache "$D1/cache_smoke" --out "$D1/train_smoke" "$@"; rc=$?; };;
+  cache) $E/bin/python scripts/r7_d1_cache.py "$@" --manifest-dir "$D1/data" --out "$D1/cache"; rc=$?;;
+  *) echo "usage: bundle <id> | probe | timing | smoke | cache_smoke | d1_20_smoke | cache <fit_pca|encode --role R|questions>"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc

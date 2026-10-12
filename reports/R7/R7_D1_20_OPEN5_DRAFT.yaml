@@ -1,0 +1,105 @@
+# R7-30 D1-20 — OPEN-5 (gate training) and OPEN-6 (learning-rate search) details for the staged freeze.  DRAFT for coordinator review:
+# frozen after the D1-10 CAL readout and before any D1-20 run; DEV sealed.  Code: scripts/r7_d1_selectors.py, r7_d1_train.py,
+# r7_d1_cache.py; tests tests/test_r7_d1_selectors.py (8 tests; 34 / 34 with the D1 suites in both envs).
+protocol_ref: reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (D1_20; coordinator_decisions OPEN-5, OPEN-6)
+status: draft_for_staged_freeze_not_frozen
+
+inputs:
+  teacher_records: >
+    outputs/R7_D1/teacher/{FIT,CAL}-*.jsonl (D1-10; the frozen manifest sha256 32c72126…).  D1-20 never reads DEV: the CLI refuses it.
+    Both roles pass the analyser's coverage guard before training.
+  masks_per_question: >
+    12 = {random, grid, qsim} × {72, 144, 288, 432} tokens, D1-10's fixed trials.  random / grid are re-derived from the question id and
+    checked against the recorded digests (a mismatch stops the unit); qsim uses the recorded ordering.
+  targets_pm1_scale: "T = 2 p̃ − 1 with p̃ = P(yes) / (P(yes) + P(no)); h = (C − a)² − (C − b)²; d = (b − a)²"
+  class_weights: "from FIT (frozen manifest meta): w_yes 1.0099, w_no 0.9903"
+
+feature_cache:                       # D1-20 inputs computed once; pixels and question text only — no label and no teacher output
+  visual: >
+    LLaVA-1.5 mm_projector output (576 × 4096, the official fp32 tower path), reduced by PCA to 512 dimensions.  The PCA is fitted on FIT
+    images only: all 10,000 FIT images, 64 seeded tokens each (coordinator decision), streaming fp64 covariance, then eigh.  Explained
+    variance is recorded.
+    Cache size: fp16 [n_img, 576, 512] per role, 14,000 images ≈ 8.3 GB under outputs/R7_D1/cache (/home has 31 TB free; /projects is 96 % full).
+  question: LLaVA tokenizer ids of the question (no special tokens) and the frozen input-embedding table (fp16 32000 × 4096)
+  env_and_cost: SparseVLM / LLaVA env, H100 / L40S, one job (fit_pca, encode FIT / CAL / DEV, questions) ≈ 20–30 min including the staged load
+
+architecture_shared:                 # identical for S1, S2 and S3 (and the ablations)
+  backbone: >
+    2-layer pre-LN transformer, d 512, 8 heads, FFN 2048, GELU, dropout 0.1, over [question tokens: frozen embedding -> Linear(4096, 512) +
+    type; visual tokens: PCA-512 -> Linear(512, 512) + learned 576 × 512 position embedding + type].  Keys are masked by an additive per-key
+    bias: 0 keep, −1e9 drop or pad, log m soft.  A dropped token therefore affects nothing; this is unit-tested.
+  pooling: attention pooling (learned query) over the unmasked keys
+  heads: >
+    critic MLP -> f, T = tanh f (S1, S2); risk MLP on [pool_B, pool_A] -> ĥ (S3; the A2 ablation's d target); gate MLP on the detached
+    full-pass visual outputs -> per-token keep logit.  About 10 M trainable parameters; the host is never trained.
+
+phase_A_estimator:                   # the frozen D1_20 rule, made explicit
+  steps: 20000
+  batch: 64 questions × 4 of their 12 masks, sampled uniformly without replacement
+  optimiser: AdamW, weight decay 0.01, 1,000-step linear warm-up, then cosine from the base learning rate to 0 (coordinator decision)
+  objectives: >
+    S1 vcs: −[J(T_B) + J(T_A)] with class weights, J = E_P(T − T²/2) + E_Q(−T − T²/2).
+    S2 logistic: balanced BCE on 2f for T_B and T_A.
+    S3 direct: class-weighted MSE of ĥ(q, V, K) against the realised h.
+  schedule: 1,000-step linear warm-up, then cosine (coordinator decision)
+  checkpoint_selection: >
+    Every 1,000 steps: Spearman between r(K) and the realised teacher h over ALL CAL (question, mask) pairs (about 96k).  The best state is
+    kept.  The same criterion applies to S1–S3; it reads D1-10 CAL outputs only and needs no host pass.
+  readout_r: "S1 / S2: (T_B − T_A(K))²;  S3: ĥ(q, V, K)"
+
+OPEN_6_learning_rate:   # coordinator decision — symmetric, seed 0, CAL-chosen
+  grid: [1.0e-4, 3.0e-4]
+  rule: >
+    For each objective, seed 0 is trained at both rates.  The chosen rate has the higher selected CAL Spearman; a tie of 1e-4 or less goes
+    to 3e-4.  Seeds 1 and 2 use each objective's chosen rate.  The ablations use the chosen rate of the objective they modify (A1 -> S1,
+    A2 -> S3).
+
+OPEN_5_gate_training:                # proposed for the staged freeze
+  phase: B, after phase A; the estimator is frozen (no parameter of the backbone, critic or risk head changes)
+  steps: 5000
+  batch: 64 questions; each draws one budget uniformly from {72, 144, 288, 432}
+  relaxation: >
+    Gumbel-perturbed gate logits z = g + Gumbel.  The threshold t_k sits midway between the k-th and (k+1)-th largest z (detached).  The soft
+    mask is m = sigmoid((z − t_k) / tau), with tau following a cosine from 1.0 to 0.1, so the soft mask sums to k as tau -> 0.  (A
+    threshold placed on the k-th value would have left k − 0.5 tokens; the unit test caught this and it is fixed.)
+  objective: >
+    The frozen estimator's predicted risk of the soft-masked observation, averaged over the batch.  Gradients reach the gate MLP only,
+    through log m in the key bias.
+  optimiser: AdamW 3e-4 (all objectives), weight decay 0.01
+  selection: "none — the final state after 5,000 steps (coordinator decision; phase A already selects on CAL)"
+  recorded: >
+    Per budget on CAL: the estimator-predicted risk of the relaxed mask at tau = 0.1 against the deployed hard top-k mask, and their gap.
+    The host's realised risk of the deployed masks is measured in D1-30, not here.
+  deployment: hard top-k of the gate logits (exactly k tokens, raster order) at k ∈ {72, 144, 288, 432}; 576 means no selection
+  dynamic_budget: >
+    The smallest k in {72, 144, 288, 432, 576} whose hard top-k mask has r <= tau_dyn.  tau_dyn is fixed on CAL by bisection so that the
+    mean kept fraction is 0.25 / 0.50 / 0.75 (three operating points, stored with the unit).
+
+units:
+  main: "3 objectives × seed 0 × 2 learning rates (6) + 3 objectives × seeds 1, 2 at the chosen rate (6) = 12"
+  ablations: "A1 S1 without question tokens × 3 seeds; A2 S3 regressing d × 3 seeds — at the chosen rate of the modified objective (6)"
+  total: "18 resumable GPU units (main env, torch 2.9: RTX6000PRO, H100 or L40S; node51 / 52 / 60 excluded; slurm/r7_d1_sel.sbatch)"
+  resume: state saved at every CAL evaluation and at the end of phase A; a restarted unit continues bit-exactly (unit-tested)
+  outputs: outputs/R7_D1/selectors/<objective>_lr<lr>_s<seed>[_noq][_dtarget].{pt,json} with evals, selected step, soft / hard gap, dynamic tau
+cost_estimate: FILL from the smoke (job 1034956; s/step on the reference GPU) — prior 1–2 GPU-h per unit, so about 18–36 GPU-h for 18 units
+smoke: >
+  Job 1034956: feature cache on the R7-20 GQA fixture (PCA fitted on those 57 images, smoke only), then the three selectors' full pipeline
+  (phase A with CAL selection, phase B gates, soft / hard gap, dynamic tau).  The 68 probe records stand in for both FIT and CAL, so it is a
+  pipeline check only, not a result.
+coordinator_decisions_20261012:      # fixed before any D1-10 / D1-20 result; already implemented in the code
+  pca: >
+    Fitted on FIT only, never CAL / DEV: all 10,000 FIT images, each with a fixed seeded subsample of 64 visual tokens (the seed comes from
+    sha256 of the image id), so 640,000 tokens; streaming fp64 covariance, then eigh (scripts/r7_d1_cache.py token_subsample / fit_pca).
+  phase_A_schedule: 1,000-step linear warm-up, then cosine to 0 over the remaining 19,000 steps; identical for every objective and ablation (Cfg.warmup)
+  gate_phase_B: no selection — the final state after the fixed 5,000 steps
+expected_storage:                    # coordinator: large outputs on /home/infres (31 TB free); never more than ~50 GB to /projects unannounced
+  d1_10_teacher_records: >
+    About 2.9 KB per question (measured on the probe records: 197,219 B for 68).  For 55,935 questions that is about 160 MB in
+    outputs/R7_D1/teacher (/home), plus done records.
+  d1_20_feature_cache: >
+    Visual: 14,000 images × 576 × 512 × fp16 = 8.3 GB.  Embedding table: 0.26 GB.  Question ids and PCA basis: < 0.02 GB.  About 8.6 GB in
+    outputs/R7_D1/cache (/home).
+  d1_20_selector_outputs: >
+    About 0.04 GB of weights plus about 0.12 GB of resume state per unit; for 18 units that is about 3 GB in outputs/R7_D1/selectors (/home).
+  projects_usage_by_r7: >
+    Under /projects/EEG-foundation-model: the SparseVLM env (2.8 GB) and the R7-20 fixture images (55 MB) only.  Nothing new is planned there.
