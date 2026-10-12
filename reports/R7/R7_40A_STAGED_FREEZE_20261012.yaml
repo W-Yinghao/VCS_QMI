@@ -1,0 +1,42 @@
+# R7-40a staged freeze (Qwen2.5-VL-7B teacher on the frozen D1 manifest; FIT / CAL only, DEV sealed).  Coordinator, 2026-10-12, after the
+# implementation commit 8c5c9d8 and fixture-only smokes (R7-20 fixture, 200 items); before any Qwen FIT / CAL / DEV teacher pass and before
+# any D1-30 result.  Protocol draft: reports/R7/R7_40_PROTOCOL_DRAFT_20261012.yaml (its open_decisions.before_the_40a_freeze are answered here).
+status: frozen
+scope: "R7-40a only (launch probe + 12 CAL / FIT teacher bundles b000–b011, CAL first); 40b and 40c are frozen separately later"
+decisions:
+  D40a-1_S4_yes_no_mass: >
+    S4_RULE=rate:0.9 — the launch probe's S4 passes when at least 90 % of the binary probe items have full-pass first-token yes / no mass >= 0.9.
+    Disclosure: the frozen rule was 'every item >= 0.9'.  On Qwen, 64 of 68 binary fixture items reach 0.9; the four others (min 0.048) are GQA
+    logical 'either X or Y' questions that Qwen answers with an object word, already visible in the R7-20 answers.  The rate was chosen after
+    seeing the fixture.  The teacher prompt is unchanged (the LLaVA D1-10 prompt).  Analysis handling is the D1-10 rule
+    (coordinator_note_20261012_yes_no_mass): the primary readout keeps every item (p̃ renormalised over yes / no); one secondary sensitivity row
+    repeats the CAL table without items whose full-pass mass is below 0.9, with the number excluded per role; the QC line (minimum mass and count
+    below 0.9 per role and pass) for FIT, CAL and, at 40c, DEV; plus the low-mass share by GQA structural / semantic type.
+  D40a-2_S1_reference: >
+    S1_RULE=same_gpu — the frozen S1 tolerance (|ΔP(yes)| <= 0.02, no yes / no flip) for the batched spliced path against the official path on
+    the probe's own GPU.  The R7-20 comparison (values from an H100 NVL) is reported as S1d, descriptive: bf16 results differ by GPU type alone
+    (official vs official, L40S vs H100 NVL: 0.054).  Chosen after S1d was seen (disclosed).  The strict pipeline check is S1b in the gate:
+    batch-1 spliced prefill vs the official path on the same GPU, |ΔP(yes)| <= 1e-3 (measured 0.0).
+  D40a-3_teacher_batching: >
+    Batched prefill, the frozen D1-10 implementation (right-padded batches of <= 16,384 tokens / <= 64 sequences sorted by length), as on LLaVA.
+    Measured batching noise on the fixture (all 2,800 passes vs batch 1, same GPU), disclosed with the results: median |ΔP| 3e-7, 2.1 % of
+    passes > 0.02, 9 yes / no flips (0.3 %), p99 |ΔT| 0.058.
+  D40a-4_teacher_hardware: >
+    One GPU class for the probe and every teacher bundle: L40S (PROBE_PARTITION=L40S, TEACHER_PARTITION=L40S; node51 / 52 / 60 excluded).
+    Reasons: one numeric class for all teacher targets (the E5 principle); the class on which every fixture smoke and the batching-noise
+    measurement ran (three probe smokes gave identical values); RTX PRO 6000 / H100 are saturated by D1-20 and other users.  Teacher peak
+    18.9 GB.
+  D40a-5_DEV_teacher_passes: "deferred to R7-40c, as implemented (the code refuses DEV bundles without --allow-dev)"
+  D40a-6_new_sentinels: "accepted into the launch gate: S0 host interface, S1b, S5b, S6 rotary ids, S7 all-kept == full (with the frozen S1–S5)"
+  D40a-7_B_star: >
+    Qwen's own B* from the reference-node timing (job 1035608 on nodesumo01) under the rule and the pool-of-batches procedure pre-declared in the
+    draft (text block hash-checked, unchanged since before any timing).  Used only at 40c.  The indicative L40S timing (job 1035634) is not
+    used for B*.  The R7-50 outline now says "the host's own B*".
+  D40a-8_freeze_mechanics: >
+    This file plus the key r7_40a_staged_freeze in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (the driver's gate 0).  CAP 27.  Launch
+    (login node, stop by PID; log slurm_logs/r7_d1_40_submit.log):
+    S4_RULE=rate:0.9 S1_RULE=same_gpu PROBE_PARTITION=L40S TEACHER_PARTITION=L40S nohup setsid bash slurm/r7_d1_40_submit.sh 40a
+  OPEN-R740-8: "confirmed: if Qwen has no B*, the 40c primary is quality at fixed fractions and no acceleration is claimed"
+deferred_to_the_40b_freeze: [OPEN-R740-3 (2-rate seed-0 search re-run on Qwen), D40b-2 micro-batching, D40b-3 selector hardware,
+                             D40b-4 64 × 64 position tables, D40b-5 nominal fractions in the dynamic rule]
+units_and_budget: "1 launch probe + 12 teacher bundles (47,949 CAL / FIT questions, 12,000 images); measured 0.283 s / question + 381 s staging per job on L40S -> about 5.4 GPU-h; storage about 3 GB of teacher records under outputs/R7_D1/r7_40/teacher"

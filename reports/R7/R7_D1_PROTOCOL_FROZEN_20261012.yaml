@@ -429,3 +429,8 @@ d1_20_execution_note_E5: >
   Fix (no analysis change; same units, data, recipe, seeds and rates): D1-20 units run only on RTX6000PRO,H100.  The six still-pending units
   were updated (scontrol Partition=RTX6000PRO,H100); the three failed units were resubmitted with that partition and restart from scratch (none
   had reached its first checkpoint), so every unit runs on one hardware class.
+r7_40a_staged_freeze: >
+  2026-10-12, coordinator: R7-40a (Qwen2.5-VL teacher, FIT / CAL only, DEV sealed) frozen after the implementation commit 8c5c9d8 and
+  fixture-only smokes, before any Qwen FIT / CAL / DEV pass and before any D1-30 result — reports/R7/R7_40A_STAGED_FREEZE_20261012.yaml
+  (S4_RULE rate:0.9 and S1_RULE same_gpu, both chosen after seeing the fixture and disclosed; batched teacher as D1-10; one GPU class, L40S;
+  DEV deferred to 40c; B* from the reference node at 40c).

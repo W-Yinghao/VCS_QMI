@@ -40,7 +40,7 @@ number, and this is disclosed.
 
 **A.3 Endpoints.**
 - **Latency** is not re-measured on test.  It is reported as **latency measured on the pre-fixed profiling workload** (the frozen D1-30 / R7-40
-  timing subsets, B* = 4), not as each test set's actual mean end-to-end latency: latency depends on input shapes, generation lengths and batch
+  timing subsets at each host's own B*: 4 for LLaVA, Qwen's from R7-40's reference-node timing), not as each test set's actual mean end-to-end latency: latency depends on input shapes, generation lengths and batch
   composition, and Qwen uses dynamic resolution.  Dynamic selector rows additionally report the kept-token counts and budget distribution
   observed on the test set (correction 2026-10-12, owner-adopted review).
 - **Contrasts:** the D1-30 primary contrasts at the D1-30 latency points:
