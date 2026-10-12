@@ -1,0 +1,47 @@
+# R5-FINAL — one-shot official-test evaluation of the r5 rankers: FROZEN (coordinator, 2026-10-12), before any test file was parsed.
+status: frozen
+approval: >
+  owner, 2026-10-12 10:16 UTC: "我都确认", scope confirmed "两项都批准" (R7-50 and the r5 final evaluation); recorded in b22c540
+  (reports/R5/final_evaluation_proposal.yaml approved_by_reference; reports/OWNER_DECISIONS_20261012.md §七).
+protocol: reports/R5/R5_FINAL_EVAL_PROTOCOL_DRAFT_20261012.yaml (this file answers its open_decisions and supersedes its status)
+final_code_commit: 5890434   # scripts/r5_final_eval.py sha256 fbd3051a8f0d0711e1f2f9e6e9b5ce32e6dbcc24b80816c9c0b6e6e69c2354b2 (= the integrity run)
+plan: {file: reports/R5/R5_FINAL_EVAL_PLAN_DRAFT_20261012.json, sha256: f6d3ef59a0503ba45831118fac553a293abf03c35835e451d4eb78d89a252c68,
+       checkpoints: 66, rows: 153, splits: [refcocog_test (umd), refcocoplus_testA, refcocoplus_testB, refcoco_testA, refcoco_testB]}
+test_source_sha256_before_parsing:   # hashed only (bytes, not parsed) by CPU job 1035972 on 2026-10-12, before the freeze; build re-checks them
+  "refcocog_umd/refcocog/refs(umd).p": 0331c7533537b67c2f7ac8c8bab0da2d379d1754c6f5c110fd79f70e17e7bddb   # 33,853,676 B; train / val / test refs in one pickle
+  refcocog_umd/refcocog/instances.json: 96c89b426c657f2f32247c16848ba67c3cb61fca74945da16c19e1027575c924     # 124,416,571 B
+  mdetr_annotations/finetune_refcoco_testA.json: 6adda34ddc5a2231192daaad1f96dcb45d57e62dc332d05fa059e189e505bb41
+  mdetr_annotations/finetune_refcoco_testB.json: 2f2ac2c98cc561bf5c4dbac375708b1e93698786bd0ce51da2531b7a1c99c17c
+  "mdetr_annotations/finetune_refcoco+_testA.json": a3199a84e4032e8f7c9e4a54ad93496544c0e4d50bf4b861fef75aa46002542c
+  "mdetr_annotations/finetune_refcoco+_testB.json": 8036546460e5d295bbd2ab3a9ec99babfa4c1c791849a810865c14d302a4ffd7
+  root: /projects/EEG-foundation-model/yinghao/datasets
+disclosure_not_sealed: >
+  These test annotations were never moved to a closed/ directory and no per-file hash had been recorded (finding of the implementation, 2026-10-12).
+  The shared R4 / r5 loader parsed refs(umd).p and the scene_inputs caches in full in every run and dropped test records by role; no test item
+  was ever scored, ranked or used for any choice.  The R4-02 ledger §6.1 now says so (this commit).
+decisions:
+  D1_refcocog_source: "default accepted: synthetic tests + the DEV-content REFER smoke + the checks at the single opening (DEV records re-derived from the same refs(umd).p must equal the DEV meta, recorded split counts, archive hash / member identity)"
+  D2_test_file_hashes: "hashed before parsing (above) and again by build at the single opening; any difference stops build"
+  D3_fused_rows: "default: only the 45 fused rows that have a CAL-selected λ (R5-10 F1); the missing cells are listed as not evaluated; no new CAL selection before the read"
+  D4_primary_decision: >
+    VQ − VCS per split on the primary metric (query-level Acc@0.5 over every official expression).  Seed-paired two-sided t (df 2) with Holm over
+    the 5 splits at α 0.05, as implemented.  Reading rule (the project's two-interval rule, applied when reporting): "VQ improves / lowers VCS on
+    <split> by x" only when the Holm-adjusted seed-t test rejects AND the image-cluster bootstrap 95 % interval excludes 0 with the same sign;
+    otherwise "no detectable difference at the family-wise level" (no equivalence claim).
+  estimation_not_testing: "VQ − D, VQ − E, VQ − JQ: effect sizes with both 95 % intervals; no non-inferiority margin (owner decision T2)"
+  D5_bootstrap: "B = 1,000 image-cluster resamples, as in the r5 reports (script constant BOOT_B; the verified code is not changed)"
+  D6_detector_gpu: "RTX6000PRO pinned, the GPU type of the stored DEV proposals (L40S regeneration matches 98.1 % of boxes at IoU >= 0.99 but is not bit-identical)"
+  D7_rank_jobs: "3 (one per dataset)"
+  D8_scores_kept: "top box per expression only; no sealed score matrices (nothing can be re-ranked after the read)"
+  D9_iou: "continuous coordinates, as on DEV"
+  D10_results: "results in <root>/score; copied into reports/R5 by a results-only commit after scoring"
+  D11_licences_and_ledger: >
+    licences checked and documented per item in the D5 register (reports/DATA_LICENCE_REGISTER_20261012.md, f231439): V1 RefCOCOg (attribution /
+    notice), V2 / V3 RefCOCO / RefCOCO+ (conflicting sources: MDETR archive CC BY 4.0 vs the UNC citation request), V17 detector (torchvision
+    ImageNet-1k backbone weights: terms unknown, ImageNet non-commercial) are flagged for the owner's publication basis.  The read computes numbers
+    only; no image or annotation is redistributed.  Ledger note added to R4-02 §6.1.
+policies: "implementation-error fixes, deterministic re-verification and re-selection kept separate (owner decision T1 / 七); a second default scoring is refused by the script; test results choose nothing"
+execution: >
+  root /home/infres/yinwang/CS_QMI/outputs/R5_FINAL; driver slurm/r5_final_eval_submit.sh (build -> proposals -> rank -> manifest -> STOP); the
+  coordinator commits sealed/predictions/MANIFEST.sha256 and manifest.json, then writes manifest_sha256=<hash> into <root>/ALLOW_SCORING; score.
+budget: "about 1.5 GPU-h (cap 3 incl. one retry) + CPU < 10 min"

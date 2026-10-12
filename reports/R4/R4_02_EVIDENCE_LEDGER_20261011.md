@@ -224,7 +224,7 @@ Not superseded:
 | CIFAR-10-C released files | not used | 0 | — |
 | CIFAR-100 official test | Never opened.  The file is hashed for provenance only; `final_official_test` refuses non-CIFAR-10 runs. | 0 | unread |
 | ImageNet val | not used to evaluate any of our models (P154 pilot, P132 preflight).  **Correction 2026-10-12:** 10 000 images (the first 10 per class by file name) were read as implementation gates for public encoders — VL1-12 addendum 2 (SigLIP 2 B zero-shot, job 1030280, `reports/VL1/vl1_12_siglip2_check.json`) and VL1-15 (SigLIP 2 L, `vl1_12_siglip2_check_large.json`); no selection used them | 0 for our models | partly read (10 per class, public encoders only) |
-| RefCOCO / RefCOCO+ / RefCOCOg official test splits | Never evaluated.  Image ids were used only to exclude those images from detector training. | 0 | unread |
+| RefCOCO / RefCOCO+ / RefCOCOg official test splits | Never evaluated.  Image ids were used only to exclude those images from detector training.  **Disclosure 2026-10-12:** the files were never sealed in closed/, and the shared R4 / r5 loader parsed refs(umd).p and the scene_inputs caches in full in every run, dropping test records by role; no test item was scored, ranked or used for a choice.  One-shot read approved and frozen (reports/R5/R5_FINAL_EVAL_FROZEN_20261012.yaml). | 0 | unread (parsed in memory, discarded) |
 | RefCOCO / RefCOCO+ / RefCOCOg official val | external-baseline reproductions:<br>• Grounding DINO-T;<br>• MDETR R101 on 3 datasets + raw-caption variant;<br>• MDETR EB3 attempt;<br>• ReCLIP IPS / official.<br>Also the VL1-21 detector's val proposals and box recall. | — | read for external rows and detector recall only; **none of our rankers or critics was scored on val** |
 
 Consequences:
