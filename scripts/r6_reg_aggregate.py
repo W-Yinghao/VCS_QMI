@@ -33,7 +33,8 @@ def tint(x):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("--smoke", action="store_true"); a = ap.parse_args(); rd = (ROOT / "smoke" if a.smoke else ROOT) / "results"; sfx = "_smoke" if a.smoke else ""
+    ap = argparse.ArgumentParser(); ap.add_argument("--smoke", action="store_true"); ap.add_argument("--contrast-thr", type=float, default=42.0, help="secondary: contrasts at another success threshold (written with suffix _thr<N>)"); a = ap.parse_args()
+    rd = (ROOT / "smoke" if a.smoke else ROOT) / "results"; sfx = "_smoke" if a.smoke else ""; osfx = sfx + ("" if a.contrast_thr == 42.0 else f"_thr{int(a.contrast_thr)}"); CT = a.contrast_thr
     runs, missing = {}, []
     for m in SEEDED:
         for s in SEEDS:
@@ -49,6 +50,8 @@ def main() -> int:
         else:
             missing.append(f.name)
     res = {"protocol": "reports/R6/R6_REG_P1_PROTOCOL_FROZEN_20261011.yaml", "methods": {}, "contrasts": {}, "missing": missing}
+    if CT != 42.0:
+        res["contrast_threshold_px"] = CT; res["note"] = "secondary analysis: the frozen primary contrasts are at < 42 px"
     for m in SEEDED + DETERMINISTIC:
         keys = [k for k in runs if k[0] == m]
         if not keys:
@@ -69,20 +72,20 @@ def main() -> int:
         if not vk or not ok:
             continue
         pairs = [(v, next((o for o in ok if o[1] == v[1]), None) if other in SEEDED else ok[0]) for v in vk]; pairs = [(v, o) for v, o in pairs if o is not None]
-        imgs = sorted(set.intersection(*[set(per_image(runs[v]["dev"], 42.0)) & set(per_image(runs[o]["dev"], 42.0)) for v, o in pairs]))
-        D = np.array([[per_image(runs[v]["dev"], 42.0)[i] - per_image(runs[o]["dev"], 42.0)[i] for i in imgs] for v, o in pairs])   # [pairs, images]
+        imgs = sorted(set.intersection(*[set(per_image(runs[v]["dev"], CT)) & set(per_image(runs[o]["dev"], CT)) for v, o in pairs]))
+        D = np.array([[per_image(runs[v]["dev"], CT)[i] - per_image(runs[o]["dev"], CT)[i] for i in imgs] for v, o in pairs])   # [pairs, images]
         boot = [float(D[:, g.integers(0, len(imgs), len(imgs))].mean()) for _ in range(2000)] if len(imgs) else []
         res["contrasts"][f"vcs_minus_{other}"] = {**tint(D.mean(1)), "image_boot95": [float(np.quantile(boot, 0.025)), float(np.quantile(boot, 0.975))] if boot else None,
                                                   "n_images": len(imgs), "pairs": [[v[1], o[1]] for v, o in pairs]}
-    OUT.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT / f"R6_REG_P1_results{sfx}.json", "w"), indent=1)
+    OUT.mkdir(parents=True, exist_ok=True); json.dump(res, open(OUT / f"R6_REG_P1_results{osfx}.json", "w"), indent=1)
     p = lambda t: "—" if not t or t.get("mean") is None else f"{100 * t['mean']:.1f}" + (f" ± {100 * t['sd']:.1f}" if t.get("sd") is not None else "")
     q = lambda t: f"{100 * t['mean']:+.1f}" + (f" [{100 * t['ci95'][0]:+.1f}, {100 * t['ci95'][1]:+.1f}]" if t.get("ci95") else "") + (f"; image bootstrap [{100 * t['image_boot95'][0]:+.1f}, {100 * t['image_boot95'][1]:+.1f}]" if t.get("image_boot95") else "")
-    L = [f"# R6 REG-P1 — BF/SHG translation-only registration: DEV results{' (SMOKE)' if a.smoke else ''}", "", f"Missing: {missing or 'none'}.", "",
+    L = [f"# R6 REG-P1 — BF/SHG translation-only registration: DEV results{' (SMOKE)' if a.smoke else ''}{'' if CT == 42.0 else f' — contrasts at < {CT:g} px (secondary)'}", "", f"Missing: {missing or 'none'}.", "",
          "| method | seeds | success < 42 px (%) | success < 9 px (%) | median error (px) | p90 error (px) | s / registration |", "|---|---|---|---|---|---|---|"]
     for m, r in res["methods"].items():
         L.append(f"| {m} | {r['seeds']} | {p(r['success42'])} | {p(r['success9'])} | {r['dev_median_err']['mean']:.1f} | {r['dev_p90_err']['mean']:.1f} | {r['dev_sec_per_registration']['mean']:.2f} |")
-    L += ["", "| contrast (success < 42 px, image-macro) | value |", "|---|---|"] + [f"| {k} | {q(v)} |" for k, v in res["contrasts"].items()]
-    (OUT / f"R6_REG_P1_tables{sfx}.md").write_text("\n".join(L) + "\n"); print("\n".join(L)); return 0
+    L += ["", f"| contrast (success < {CT:g} px, image-macro){'' if CT == 42.0 else ' — secondary analysis'} | value |", "|---|---|"] + [f"| {k} | {q(v)} |" for k, v in res["contrasts"].items()]
+    (OUT / f"R6_REG_P1_tables{osfx}.md").write_text("\n".join(L) + "\n"); print("\n".join(L)); return 0
 
 
 if __name__ == "__main__":
