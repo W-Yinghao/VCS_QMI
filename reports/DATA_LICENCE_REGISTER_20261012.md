@@ -326,3 +326,7 @@ Versions and licences come from the installed package metadata (`importlib.metad
 | pycocotools | 2.0.11 | FreeBSD (BSD-2) | — |
 | PyAV | 19.0.1 (`r6_av`) | BSD-3-Clause; the wheel bundles LGPL-3.0+ FFmpeg | CREMA-D decoding |
 | FFmpeg cluster module | 8.1 (`/projects/share/apps/ffmpeg/8.1`) | GPL + nonfree build: "This version of ffmpeg has nonfree parts compiled in. Therefore it is not legally redistributable." | ffprobe / decoder cross-check only. **Never redistribute.** |
+
+> **Action taken (2026-10-12, owner decision):** the repository is public and stays public.  `reports/VL1/box_check_{0..3}.jpg` were removed
+> from `main` (local copies: `outputs/VL1_box_check_local/`; still present in git history at commit `51316c3`); `.gitignore` keeps them out.  From now
+> on no dataset files, dataset-derived images or correspondence drafts are pushed.  The AOMIC slices in `reports/slices_fmri/` are CC0 and stay.
