@@ -93,9 +93,13 @@ if [ "$PHASE" = L ]; then
   UNITS=$("$PY" -I scripts/r7_d1_30_plan.py units --lr-choice "$D1/selectors/lr_choice.json") || { say "STOP: unit list"; exit 1; }
   for u in $UNITS; do gate "$D1/selectors/$u.pt"; gatedyn "$D1/selectors/$u.json"; done
   say "D1-20 complete: $(echo $UNITS | wc -w) units"
-  gatelog "$D30LOG" "stage 1 complete"
-  for b in gqa_dev chartqa_val; do gate "$D30/timing/$b/timing_$b.json"; gate "$D30/timing/$b/sparsevlm_timing_$b.json"; done
-  say "D1-30 stage 1 complete; profiling-workload timing present"
+  # execution note r7_50_1 (coordinator 2026-10-12): wait for exactly the D1-30 outputs R7-50 relies on — the GQA DEV / ChartQA val quality and
+  # SparseVLM shards (the integrity gate's references) — instead of all of D1-30; the timing files move to just before scoring
+  for i in 0 1 2 3 4 5; do gate "$D30/pred/gqa_dev/done_shard${i}of6.json"; done
+  for i in 0 1; do gate "$D30/pred/chartqa_val/done_shard${i}of2.json"; done
+  for i in 0 1 2; do gate "$D30/pred/gqa_dev/sparsevlm_run_gqa_dev_shard${i}of3.json"; done
+  gate "$D30/pred/chartqa_val/sparsevlm_run_chartqa_val_shard0of1.json"
+  say "D1-30 gqa_dev / chartqa_val quality and SparseVLM shards complete (execution note r7_50_1); timing is gated before scoring"
 else
   for v in F_LR_CHOICE F_SELECTORS F_PCA F_INTEGRITY_REF F_TIMING_DIR; do [ -n "${!v}" ] || { say "STOP: phase F needs $v"; exit 1; }; done
   [ "$F_INTEGRITY_REF" != none ] || { say "STOP: F_INTEGRITY_REF=none is not allowed (coordinator decision F2)"; exit 1; }
@@ -145,6 +149,10 @@ grep -q "^manifest_sha256=$MSHA\$" "$A" || { say "STOP: $A does not carry manife
 [ "$PHASE" = L ] || [ -f "$ROOT/manifest_L/predictions_manifest.json" ] || { say "STOP: phase F scoring needs phase L's sealed baseline rows (manifest_L)"; exit 1; }
 say "stage 3: $(basename "$A") present ($(grep -v '^manifest_sha256=' "$A" | tr '\n' ' ' | cut -c1-200))"
 # stage 4 — score (CPU, waits): the only job that opens the sealed labels
+if [ "$PHASE" = L ]; then   # execution note r7_50_1: the profiling-workload timing is needed only by the scorer
+  for b in gqa_dev chartqa_val; do gate "$D30/timing/$b/timing_$b.json"; gate "$D30/timing/$b/sparsevlm_timing_$b.json"; done
+  say "profiling-workload timing present (D1-30 gqa_dev / chartqa_val)"
+fi
 subwait --job-name=r7_50_score_$PHASE $CPUJ slurm/r7_50_cpu.sbatch score "$ROOT" "$PHASE" $XT
 [ -f "$ROOT/results_$PHASE/r7_50_results.json" ] || { say "STOP: score job $ID ended without results_$PHASE/r7_50_results.json"; exit 1; }
 say "done: $ROOT/results_$PHASE/r7_50_results.json and .md"

@@ -327,3 +327,11 @@ r7_50_freeze_20261012:
   F4_family: "phase F is its own Holm family"
   Q_qwen_addendum: "phase Q (Qwen rows) is frozen by a separate addendum after R7-40c exists and before any Qwen test generation; the outline's '≈ 28 configurations' is superseded by that addendum"
   reporting: "every pre-registered primary row is reported whatever D1-30 or D1-FULL shows; test results choose nothing"
+execution_note_r7_50_1: >
+  2026-10-12 ~19:20 UTC, coordinator, before anything of R7-50 ran (the phase-L driver was waiting in gate 1 and had submitted nothing; no test
+  file opened): gate 1 now waits for exactly the D1-30 outputs R7-50 relies on — all 6 GQA DEV and 2 ChartQA val quality shards and their
+  SparseVLM shards (the integrity gate's references) — instead of "stage 1 complete" for all of D1-30, and the profiling-workload timing files
+  are gated just before scoring (the only step that uses them).  Reason: D1-30's remaining units (4 TextVQA shards, H100 only by E2; 3 timing
+  units pinned to nodesumo01) wait for H100s held by other users until about 2026-10-14, while R7-50 uses neither TextVQA nor timing before
+  scoring.  The stated rationale ("the identical code has run at scale on val first") holds for both R7-50 benchmarks.  The full-scale
+  integrity gate, the build, the hash-commit-before-scoring rule and all analysis are unchanged.  Tests 16 / 16 (job 1036372).

@@ -555,6 +555,7 @@ class DriverDryRun(unittest.TestCase):
     """slurm/r7_50_submit.sh with stubbed sbatch / squeue (R750_DRYRUN=1, temporary roots; nothing is submitted)."""
 
     def env(self, t: Path, **kw):
+        no_d30_markers = kw.pop("_no_d30_markers", None)                              # execution note r7_50_1: the gate waits for these shards
         b = t / "bin"; b.mkdir(exist_ok=True); (b / "sbatch").write_text(STUB_SBATCH); (b / "squeue").write_text("#!/usr/bin/env bash\nexit 0\n")
         for f in ("sbatch", "squeue"):
             os.chmod(b / f, 0o755)
@@ -563,6 +564,13 @@ class DriverDryRun(unittest.TestCase):
             (d1 / "d1_30" / "timing" / tb).mkdir(parents=True, exist_ok=True)
             for f in (f"timing_{tb}.json", f"sparsevlm_timing_{tb}.json"):
                 (d1 / "d1_30" / "timing" / tb / f).write_text("{}")
+        if not no_d30_markers:
+            for tb, n, nsv in (("gqa_dev", 6, 3), ("chartqa_val", 2, 1)):
+                pd = d1 / "d1_30" / "pred" / tb; pd.mkdir(parents=True, exist_ok=True)
+                for i in range(n):
+                    (pd / f"done_shard{i}of{n}.json").write_text(json.dumps({"env": {"gpu": "NVIDIA L40S"}}))
+                for i in range(nsv):
+                    (pd / f"sparsevlm_run_{tb}_shard{i}of{nsv}.json").write_text(json.dumps({"env": {"gpu": "NVIDIA L40S"}}))
         (t / "d30.log").write_text("x stage 1 complete (23 units)\n"); (t / "proto.yaml").write_text(FROZEN)
         e = dict(os.environ, PATH=f"{b}:{os.environ['PATH']}", STUB_STATE=str(t / "state"), STUB_PY=sys.executable, PY=sys.executable, R750_DRYRUN="1",
                  R750_ROOT=str(t / "root"), D1_ROOT=str(d1), D30_LOG=str(t / "d30.log"), SUBMIT_LOG=str(t / "drv.log"), PROTOCOL=str(t / "proto.yaml"),
@@ -609,7 +617,7 @@ class DriverDryRun(unittest.TestCase):
         cases = [(dict(PROTOCOL="/nonexistent.yaml"), "not a frozen R7-50 protocol", ""),
                  (dict(R750_DRYRUN="0"), "not committed", ""),
                  (dict(R750_ROOT=str(T.ROOT)), "refuses the production root", ""),
-                 (dict(WAIT_H="0", D30_LOG="/nonexistent.log"), "stage 1 complete' not in", ""),
+                 (dict(WAIT_H="0", _no_d30_markers="1"), "done_shard0of6.json missing", ""),
                  (dict(STUB_NOID="1"), "no job id", ""),
                  (dict(STUB_INTEGRITY="fail"), "full-scale integrity gate FAILED", "integrity-compare"),
                  (dict(STUB_FAIL_UNIT="integrity_sv_L40S", STUB_FAIL_TIMES=99), "integrity unit failed 3 times", "integrity-prepare"),
