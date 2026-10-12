@@ -1,7 +1,8 @@
 # R7-50 / R7-60 outline (proposal draft, 2026-10-12)
 
-**Status.** Owner decision 2026-10-12: proceed with A after the three corrections below (now applied); the actual test read still needs the
-owner's final go at execution time.  Nothing in this outline has run. The official test splits stay closed. Any read of them needs the owner's one-shot
+**Status.** Owner decision 2026-10-12: proceed with A after the three corrections below (now applied).  **Final go: owner, 2026-10-12 10:16 UTC: "我都确认", clarified by the owner's answer to the scope question ("两项都批准"): one-shot reads for R7-50 (GQA testdev-balanced and ChartQA test) and for the r5 final evaluation (RefCOCOg test; RefCOCO+ and RefCOCO testA / testB).**
+Execution order: the R7-50 protocol is frozen before any D1-30 result; the LLaVA rows run once D1-20 (selectors and CAL operating points) is
+complete; the Qwen rows once R7-40 is complete.  Nothing in this outline has run. The official test splits stay closed. Any read of them needs the owner's one-shot
 approval of the exact list in §A.1. This outline was drafted while D1-20 and D1-30 run, before any D1-30 result was read.
 
 **Package tasks.**
