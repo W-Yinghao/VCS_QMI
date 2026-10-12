@@ -19,3 +19,10 @@ decisions:
   time_limits: "unit sbatch limits lowered from 12 h to 6 h (about 3 × the measured unit cost) so units can backfill; drivers resubmit a unit that hits its limit"
 launch: "SEL_PARTITION=L40S CACHE_PARTITION=L40S nohup setsid bash slurm/r7_d1_40_submit.sh 40b  (CAP 27; log slurm_logs/r7_d1_40_submit.log)"
 budget: "cache about 0.8 GPU-h + 12 units × about 1.9 GPU-h on L40S ≈ 23 GPU-h"
+execution_note_40b_1: >
+  2026-10-12 ~17:05 UTC, coordinator, before any 40b unit ran (the cache job 1036206 was still pending; nothing produced, nothing read): the
+  selector and cache partitions are widened from L40S to RTX6000PRO,H100,L40S.  Reason: every L40S was occupied while two RTX PRO 6000 GPUs
+  sat idle, and RTX is about 2× faster for these units.  Check first: an RTX selector smoke (job 1036280, RTX PRO 6000 Blackwell) ran all three
+  objectives and its GPU check matched CPU fp64 within 6.1e-6 (rel. loss / gradients, as on L40S).  Each unit still runs on one GPU; units may
+  differ in GPU type, as D1-20's did (RTX / H100).  The pending cache job was cancelled and the 40b driver (pid 1132352) stopped and relaunched
+  with SEL_PARTITION=RTX6000PRO,H100,L40S CACHE_PARTITION=RTX6000PRO,H100,L40S.  No analysis change.
