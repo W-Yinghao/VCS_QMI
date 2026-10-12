@@ -1,0 +1,8 @@
+# R5-QX1 pending runs re-queued 2026-10-12 through slurm/feed_gated.sh (filler: submitted only when <3 GPU jobs are pending; --nice=300); original pending ids 1034765 1034775 1034779 1034781 1034782 1034786 1034803 cancelled before starting (no compute lost)
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_d_s0 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective distribution_softmax --seed 0 --chunk-crops 384
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_vq_s1 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective vcs_qnorm --seed 1 --chunk-crops 384
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_jq_s1 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective js_qnorm --seed 1 --chunk-crops 384
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_d_s1 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective distribution_softmax --seed 1 --chunk-crops 384
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_vq_s2 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective vcs_qnorm --seed 2 --chunk-crops 384
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_jq_s2 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective js_qnorm --seed 2 --chunk-crops 384
+sbatch --parsable --nice=300 --time=10:00:00 --export=ALL,VL_DATASET=refcoco --job-name=r5qx1_refcoco_d_s2 slurm/r4_vl1_finetune.sbatch --backbone siglip2_b16 --objective distribution_softmax --seed 2 --chunk-crops 384
