@@ -404,3 +404,13 @@ d1_30_execution_note_E2: >
   the batch composition are unchanged, so outputs stay hardware-independent (R7-20: full-model answers identical on 700 / 700 items across
   L40S and H100 NVL).  The early TextVQA job was resubmitted on H100 (1035259, same command).  Patch reviewed and applied by the coordinator;
   tests 20 / 20 (job 1035267).
+d1_30_execution_note_E3: >
+  2026-10-12 (coordinator), before any D1-30 readout: the early SparseVLM shards stopped on the frozen exact counter check at the 432-adapted
+  row (e.g. official 432.2357 vs predicted 432.21875) after writing every answer of the measured rows.  Cause (implementing agent, reproduced bit
+  for bit): every item had exactly the predicted count; SparseVLM's own Equal-Tokens counter accumulates in float32 and 432.21875 = 13831 / 32 is
+  not representable at running sums >= 2^19, so the mean drifts upward.  Fix: the check passes when |official − predicted| <= 0.5 token (the
+  nearest rows are 7.06 equal tokens apart); per row and shard the deviation, tolerance and the float32-accumulated prediction are recorded in a
+  single-writer rows file, the marker is built from it, and the scorer reports a sparsevlm_counters list.  Answers, rows and analysis are
+  unchanged.  Recovery: scripts/r7_d1_30_backfill_rows.py copies the counter records the stopped shards printed into their rows file (data
+  record), then the driver's own line is resubmitted (slurm/r7_d1_30_e3_recover.sh).  The TextVQA shards stopped before their 4 OCR anchor
+  rows, which run on resubmission.  Patch reviewed and applied by the coordinator; tests 23 / 23 (job 1035342).

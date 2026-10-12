@@ -306,6 +306,21 @@ def score_bench(bn: Bench, main, abl, sparse_rows, sv_primary):
     return R
 
 
+def sparsevlm_counters(bench_dir: Path, bench):
+    """E3: every SparseVLM row's official 'Equal Tokens' counter per shard, from the shard markers: predicted, official, deviation, tolerance
+    check, and whether the deviation is the official counter's float32 accumulation."""
+    out = []
+    for f in sorted(Path(bench_dir).glob(f"sparsevlm_run_{bench}_shard*.json")):
+        j = json.loads(f.read_text())
+        for r in j.get("rows", []):
+            out.append({"shard": f.stem.split("_shard")[-1], "config": r.get("config"), "forwards": r.get("official_forwards"),
+                        "predicted": r.get("predicted_equal_tokens"), "official": r.get("equal_visual_tokens"), "deviation": r.get("counter_deviation"),
+                        "within_tolerance": r.get("counter_check"), "float32_accumulation": r.get("deviation_is_float32_accumulation")})
+        for t in j.get("rows_without_counter_record", []):
+            out.append({"shard": f.stem.split("_shard")[-1], "config": t, "official": None, "within_tolerance": None})
+    return out
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--sets-dir", required=True); ap.add_argument("--pred-dir", required=True); ap.add_argument("--timing-dir", required=True)
     ap.add_argument("--lr-choice", required=True); ap.add_argument("--out", required=True); ap.add_argument("--benches", nargs="+", default=["gqa_dev", "textvqa_val", "chartqa_val"])
@@ -323,6 +338,8 @@ def main(argv=None) -> int:
         sv = [] if a.no_sparsevlm else [SV.row_tag(T, o) for T, o in SV.rows_for(bench, list(SV.ANCHORS + SV.ADAPTED))]
         bn = Bench(bench, a.sets_dir, a.pred_dir, a.timing_dir, exp + sv, a.reps, rep)
         res["benches"][bench] = score_bench(bn, main_u, abl_u, sv, a.sparsevlm_primary)
+        if sv:
+            res["benches"][bench]["sparsevlm_counters"] = sparsevlm_counters(Path(a.pred_dir) / bench, bench)
     for L in LPOINTS:                                                                  # Holm over the 9 primary contrasts at each latency point
         keys = [(b, k) for b in res["benches"] for k, v in res["benches"][b]["contrasts"].items() if f"@{L}" in k and v.get("role") == "primary" and "p" in v]
         if keys:

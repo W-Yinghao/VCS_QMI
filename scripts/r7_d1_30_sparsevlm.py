@@ -9,6 +9,9 @@ v1.0 lists {64, 96, 128, 192} and the no-pruning list [576, 576, 576] at 576; on
 closest to the target.  The runtime check compares the code's own counter with that prediction for every row.
 The rows run in one process: the official module reads RETAIN_TOKN / sparse_token_dict at call time, so they are set per row
 (score.RETAIN_TOKN and score.sparse_token_dict[T]); the environment variable is set as well.
+Execution note E3: the counter check passes when |official − predicted| <= 0.5 token; the official counter is a float32 running mean, which
+drifts for the 432 row on large shards (exactly reproduced by official_counter_float32).  Every measured row is recorded in the shard's own
+sparsevlm_rows_<bench>_shard<i>of<n>.jsonl; the marker lists each planned row's latest counters with its deviation.
     quality: python scripts/r7_d1_30_sparsevlm.py --sets-dir S --bench gqa_dev [...] --shard i/n --out O [--rows 192 128 96 64 72 144 288 432]
     timing : python scripts/r7_d1_30_sparsevlm.py --sets-dir S --bench gqa_dev --out O --timing 64     (nodesumo01 only; 8 forced tokens;
              the same first 64 timing items as our B = 1 rows; bootstrap CI of the median over items)
@@ -56,6 +59,43 @@ def adapted_list(T, n=N_VIS):
         if best is None or err < best[0] - 1e-12:
             best = (err, lst)
     return best[1]
+
+
+COUNTER_TOL = 0.5     # execution note E3: tolerance of the counter check (the nearest rows, 64 official at 64.81 and 72 adapted at 71.88
+                      # equal tokens, are 7.06 tokens apart, so a row setting that did not take effect still fails by > 14 × the tolerance)
+
+
+def official_counter_float32(per_forward, n):
+    """The official counter as the code accumulates it: num_token_pool turns into a float32 CUDA tensor and adds the per-forward value once per
+    prefill, so the running mean drifts when that value is not representable at the running sum's float32 spacing (beyond 2^19 / 2^20)."""
+    s = np.float32(0)
+    for _ in range(int(n)):
+        s = np.float32(s + np.float32(per_forward))
+    return float(s) / n if n else None
+
+
+def counter_fields(cnt, pred):
+    """E3: pass when |official − predicted| <= COUNTER_TOL; record the deviation and whether it equals the float32 accumulation of the
+    predicted per-forward value (432 adapted: +0.017 over 2,666 prefills, exactly the float32 drift; every item has the predicted count)."""
+    if not cnt:
+        return {"counter_check": None}
+    off, n = cnt["equal_visual_tokens"], cnt["official_forwards"]; f32 = official_counter_float32(pred, n)
+    return {"counter_deviation": off - pred, "counter_tolerance": COUNTER_TOL, "predicted_float32_accumulated": f32,
+            "deviation_is_float32_accumulation": abs(off - f32) < 1e-9, "counter_check": abs(off - pred) <= COUNTER_TOL}
+
+
+def rows_file(out: Path, bench, shard):
+    """Per-shard record of every measured row (single writer), so counters survive a later stop or a resubmission."""
+    return Path(out) / f"sparsevlm_rows_{bench}_shard{shard.replace('/', 'of')}.jsonl"
+
+
+def compose_rows(path: Path, plan_tags):
+    """Latest record with measured counters per planned row (this run and earlier ones); rows never measured are listed separately."""
+    latest = {}
+    for r in V.read_jsonl(Path(path)):
+        if r.get("counter_check") is not None:
+            latest[r["config"]] = r
+    return [latest[t] for t in plan_tags if t in latest], [t for t in plan_tags if t not in latest]
 
 
 def row_tag(T, ocr=False):
@@ -106,9 +146,9 @@ def main(argv=None) -> int:
             items = RUN.load_items(a.sets_dir, bench, a.shard)[: a.limit or None]
             todo = {(T, o): [it for it in items if it["qid"] not in RUN.answered(out, row_tag(T, o))] for T, o in plan}
         work.append((bench, out, plan, items, todo))
-    if not a.timing and not any(v for w in work for v in w[4].values()):
+    if not a.timing and not any(v for w in work for v in w[4].values()):                # every answer present: re-check the recorded counters
         for bench, out, plan, items, todo in work:
-            write_marker(out, bench, a.shard, [{"config": row_tag(T, o), "items": 0} for T, o in plan], None, None)
+            write_marker(out, bench, a.shard, plan, None, V.env_info())
         print("[r7_d1_30_sparsevlm] complete"); return 0
     host = V.Host(Path(a.out), sparse=True, retain=192); torch = host.torch
     import llava.model.language_model.score as SC                                       # imported by the host; the module the official code reads
@@ -134,25 +174,33 @@ def main(argv=None) -> int:
                 rec = {"bench": bench, "config": tag, "shard": a.shard, "items": len(todo[(T, ocr)])}
             cnt = host.sparse_counters(); pred = official_equal_tokens(SC.sparse_token_dict[T])
             rec.update({"retain": T, "layer_list": SC.sparse_token_dict[T], "predicted_equal_tokens": pred, **cnt, "seconds": time.time() - t0,
-                        "peak_mem_gb": V.cuda_peak_gb(torch), "counter_check": (None if not cnt else abs(cnt["equal_visual_tokens"] - pred) < 1e-6)})
+                        "peak_mem_gb": V.cuda_peak_gb(torch), **counter_fields(cnt, pred)})
             recs.append(rec); print(V.jdump(rec), flush=True)
-            if cnt and abs(cnt["equal_visual_tokens"] - pred) > 1e-6:
-                raise SystemExit(f"official counter {cnt['equal_visual_tokens']} != predicted {pred} for row {tag}: the row setting did not take effect")
+            if not a.timing and cnt:
+                with open(rows_file(out, bench, a.shard), "a") as fh:                     # this shard's own record file (single writer)
+                    fh.write(V.jdump(rec) + "\n")
+            if rec["counter_check"] is False:
+                raise SystemExit(f"official counter {cnt['equal_visual_tokens']} vs predicted {pred} for row {tag}: |deviation| > {COUNTER_TOL} — "
+                                 "the row setting did not take effect")
         if a.timing:
             (out / f"sparsevlm_timing_{bench}.json").write_text(V.jdump({"rows": recs, "env": V.env_info(), "gpu": gpu, "host": __import__("socket").gethostname()}, indent=1))
         else:
             missing = {row_tag(T, o): sum(it["qid"] not in RUN.answered(out, row_tag(T, o)) for it in items) for T, o in plan}
             if any(missing.values()):                                                  # no marker: the driver resubmits (the rerun resumes)
                 raise SystemExit(f"incomplete after run ({bench} {a.shard}): {missing}")
-            write_marker(out, bench, a.shard, recs, gpu, V.env_info())
+            write_marker(out, bench, a.shard, plan, gpu, V.env_info())
     return 0
 
 
-def write_marker(out: Path, bench, shard, recs, gpu, env):
-    """Completion marker for the driver's file gate (kept when it already exists: a rerun of a complete shard does no work)."""
+def write_marker(out: Path, bench, shard, plan, gpu, env):
+    """Completion marker for the driver's file gate, composed from the shard's row records (E3): every planned row's latest measured counters
+    (deviation, tolerance check, float32 explanation) and the rows never measured; refuses when a recorded row fails the tolerance."""
+    rows, unmeasured = compose_rows(rows_file(out, bench, shard), [row_tag(T, o) for T, o in plan])
+    bad = [r["config"] for r in rows if r["counter_check"] is False]
+    if bad:
+        raise SystemExit(f"recorded counters outside the tolerance for {bad}")
     p = out / f"sparsevlm_run_{bench}_shard{shard.replace('/', 'of')}.json"
-    if gpu is not None or not p.exists():
-        p.write_text(V.jdump({"rows": recs, "env": env, "gpu": gpu}, indent=1))
+    p.write_text(V.jdump({"rows": rows, "rows_without_counter_record": unmeasured, "counter_tolerance": COUNTER_TOL, "env": env, "gpu": gpu}, indent=1))
 
 
 if __name__ == "__main__":

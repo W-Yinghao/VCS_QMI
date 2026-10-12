@@ -267,6 +267,37 @@ class SparseVLMLists(unittest.TestCase):
         self.assertEqual(SV.ANCHORS, (192, 128, 96, 64)); self.assertEqual(len(SV.rows_for("textvqa_val", list(SV.ANCHORS + SV.ADAPTED))), 12)
 
 
+class CounterE3(unittest.TestCase):
+    def test_float32_drift_and_tolerance(self):
+        self.assertEqual(SV.official_counter_float32(432.21875, 2666), 432.23574643660913)            # job 1035245, gqa_dev 0/3
+        self.assertEqual(SV.official_counter_float32(432.21875, 1587), 432.2260554505356)             # job 1035248, textvqa_val 0/3
+        self.assertEqual(SV.official_counter_float32(192.03125, 2666), 192.03125)
+        ok = SV.counter_fields({"equal_visual_tokens": 432.23574643660913, "official_forwards": 2666}, 432.21875)
+        self.assertTrue(ok["counter_check"]); self.assertTrue(ok["deviation_is_float32_accumulation"]); self.assertAlmostEqual(ok["counter_deviation"], 0.016996, 5)
+        bad = SV.counter_fields({"equal_visual_tokens": 64.8125, "official_forwards": 100}, SV.official_equal_tokens(SV.adapted_list(72)))
+        self.assertFalse(bad["counter_check"])                                                       # 64 official instead of 72 adapted
+        self.assertIsNone(SV.counter_fields({}, 72.0)["counter_check"])
+        gaps = sorted(SV.official_equal_tokens(SV.adapted_list(T)) for T in SV.ANCHORS + SV.ADAPTED)
+        self.assertGreater(min(b - a for a, b in zip(gaps, gaps[1:])), 14 * SV.COUNTER_TOL)
+
+    def test_rows_file_and_marker(self):
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t); plan = [(192, False), (432, False), (64, True)]; f = SV.rows_file(t, "textvqa_val", "0/3")
+            recs = [{"config": "sparsevlm:192:official", "counter_check": True, "equal_visual_tokens": 192.03125, "run": 1},
+                    {"config": "sparsevlm:432:adapted", "counter_check": True, "equal_visual_tokens": 432.2260554505356, "run": 1},
+                    {"config": "sparsevlm:432:adapted", "counter_check": True, "equal_visual_tokens": 432.2260554505356, "run": 2},
+                    {"config": "sparsevlm:64:official:ocr", "counter_check": None, "run": 2}]
+            f.write_text("".join(json.dumps(r) + "\n" for r in recs))
+            rows, unmeasured = SV.compose_rows(f, [SV.row_tag(T, o) for T, o in plan])
+            self.assertEqual([r["config"] for r in rows], ["sparsevlm:192:official", "sparsevlm:432:adapted"]); self.assertEqual(rows[1]["run"], 2)
+            self.assertEqual(unmeasured, ["sparsevlm:64:official:ocr"])
+            SV.write_marker(t, "textvqa_val", "0/3", plan, None, None); m = json.loads((t / "sparsevlm_run_textvqa_val_shard0of3.json").read_text())
+            self.assertEqual(len(m["rows"]), 2); self.assertEqual(m["rows_without_counter_record"], ["sparsevlm:64:official:ocr"]); self.assertEqual(m["counter_tolerance"], 0.5)
+            f.write_text(f.read_text() + json.dumps({"config": "sparsevlm:64:official:ocr", "counter_check": False}) + "\n")
+            with self.assertRaises(SystemExit):
+                SV.write_marker(t, "textvqa_val", "0/3", plan, None, None)
+
+
 class Timing(unittest.TestCase):
     def test_rows(self):
         with tempfile.TemporaryDirectory() as t:
@@ -338,6 +369,16 @@ class Scoring(unittest.TestCase):
             self.assertEqual(res["at_latency"]["4"]["grid"]["L50"]["seed_sd"], 0.0)
             self.assertAlmostEqual(res["at_latency"]["4"]["grid"]["L50"]["mean"], res["fixed_budget"]["static:grid:288"]["quality"])
             self.assertEqual(res["dynamic_budget_distribution"]["dyn:vcs_lr0.0003_s0:0.5"]["288"], 1.0)
+            self.assertEqual(res["sparsevlm_counters"], [])                                              # no shard markers in this synthetic run
+
+    def test_sparsevlm_counters_in_readout(self):
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t); args = self.setup_bench(t); pd = t / "pred" / "gqa_dev"
+            (pd / "sparsevlm_run_gqa_dev_shard0of3.json").write_text(json.dumps({"rows": [{"config": "sparsevlm:432:adapted", "official_forwards": 2666,
+                "predicted_equal_tokens": 432.21875, "equal_visual_tokens": 432.23574643660913, "counter_deviation": 0.0169964, "counter_check": True,
+                "deviation_is_float32_accumulation": True}], "rows_without_counter_record": ["sparsevlm:64:official"]}))
+            SC.main(args); c = json.loads((t / "res" / "d1_30_results.json").read_text())["benches"]["gqa_dev"]["sparsevlm_counters"]
+            self.assertEqual(len(c), 2); self.assertEqual(c[0]["shard"], "0of3"); self.assertTrue(c[0]["float32_accumulation"]); self.assertIsNone(c[1]["official"])
 
     def test_integrity_first_record_wins(self):
         """Duplicates across files resolve to the first complete record (plain file first, then shard files by name); torn / blank lines are
