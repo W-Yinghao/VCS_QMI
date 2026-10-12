@@ -223,15 +223,16 @@ Not superseded:
 | CIFAR-10 official test images, corrupted only | P131 CIFAR-10-C-style regeneration (owner 2026-10-04, "全部提交"); clean images never scored; reporting only | 1 pass | corrupted versions read |
 | CIFAR-10-C released files | not used | 0 | — |
 | CIFAR-100 official test | Never opened.  The file is hashed for provenance only; `final_official_test` refuses non-CIFAR-10 runs. | 0 | unread |
-| ImageNet val | not used for evaluation (P154 pilot, P132 preflight) | 0 | unread |
+| ImageNet val | not used to evaluate any of our models (P154 pilot, P132 preflight).  **Correction 2026-10-12:** 10 000 images (the first 10 per class by file name) were read as implementation gates for public encoders — VL1-12 addendum 2 (SigLIP 2 B zero-shot, job 1030280, `reports/VL1/vl1_12_siglip2_check.json`) and VL1-15 (SigLIP 2 L, `vl1_12_siglip2_check_large.json`); no selection used them | 0 for our models | partly read (10 per class, public encoders only) |
 | RefCOCO / RefCOCO+ / RefCOCOg official test splits | Never evaluated.  Image ids were used only to exclude those images from detector training. | 0 | unread |
 | RefCOCO / RefCOCO+ / RefCOCOg official val | external-baseline reproductions:<br>• Grounding DINO-T;<br>• MDETR R101 on 3 datasets + raw-caption variant;<br>• MDETR EB3 attempt;<br>• ReCLIP IPS / official.<br>Also the VL1-21 detector's val proposals and box recall. | — | read for external rows and detector recall only; **none of our rankers or critics was scored on val** |
 
 Consequences:
 - **No unread CIFAR-10 confirmation set remains.**  The clean test was read in three protocols, and the corrupted pass reused its images.
 - **No v3–v7 recipe was ever confirmed on held-out data.**  This covers G2, A-P3, JS-AP3 and others; P68 predates them.
-- **Unread sets:** the CIFAR-100 test, ImageNet val, the VL test splits, and the VL val split for our models.  Any of these would need a one-shot
-  protocol approved by the owner.
+- **Unread sets:** the CIFAR-100 test, the VL test splits, and the VL val split for our models.  ImageNet val is not unread: 10 images per class
+  were read for public-encoder gates (correction 2026-10-12; disclose if ImageNet val is ever used for confirmation).  Any of these would need a
+  one-shot protocol approved by the owner.
 
 ### 6.2 Development splits (repeated use)
 | split | role | reads (record counts from `outputs/`) | consequence |
