@@ -335,3 +335,7 @@ execution_note_r7_50_1: >
   units pinned to nodesumo01) wait for H100s held by other users until about 2026-10-14, while R7-50 uses neither TextVQA nor timing before
   scoring.  The stated rationale ("the identical code has run at scale on val first") holds for both R7-50 benchmarks.  The full-scale
   integrity gate, the build, the hash-commit-before-scoring rule and all analysis are unchanged.  Tests 16 / 16 (job 1036372).
+execution_note_r7_50_2: >
+  2026-10-12 ~19:36 UTC, coordinator, before anything of R7-50 ran: the phase-L driver passed gate 1 but could not submit, because its CAP 26
+  (count < 26) never opened while the D1-FULL driver (CAP 27) refilled every freed slot.  Restarted with CAP=27 (the same as the other drivers;
+  the global <= 27 rule holds) and POLL=60 s, so its ~18 short jobs take freed slots ahead of D1-FULL's long backlog.  No other change.
