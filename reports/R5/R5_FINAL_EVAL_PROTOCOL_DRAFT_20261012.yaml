@@ -1,0 +1,479 @@
+# R5-FINAL — one-shot official-test evaluation of the r5 VL rows: protocol DRAFT for the coordinator's freeze (2026-10-12).
+# Written by the implementation agent.  NOTHING in this file or in its development runs opened, listed, hashed or loaded an official test
+# annotation file (RefCOCOg test, RefCOCO / RefCOCO+ testA / testB) or anything under a closed/ directory.  Development used only the MDETR
+# *train* files, the R4-VL0 DEV meta, the stored VL1-21 DEV proposals and a REFER-format file holding RefCOCOg DEV content only.
+# To freeze: set status: frozen, fill final_code_commit, resolve open_decisions (each has a default), commit this file with the code and the plan
+# (reports/R5/R5_FINAL_EVAL_PLAN_DRAFT_20261012.json, renamed if wanted), then launch (execution below).  Rows are listed at the end (generated
+# from the plan by `r5_final_eval.py rows-yaml`; checkpoint and detector sha256 computed 2026-10-12 by CPU jobs 1035743 / 1035765).
+protocol_id: R5-FINAL
+status: draft_for_freeze
+approval:
+  approved_by_reference: 'owner, 2026-10-12 10:16 UTC: "我都确认", clarified by the owner''s answer to the scope question ("两项都批准"): one-shot reads for R7-50 (GQA testdev-balanced and ChartQA test) and for the r5 final evaluation (RefCOCOg test; RefCOCO+ and RefCOCO testA / testB)'
+  recorded_in: ['reports/R5/final_evaluation_proposal.yaml (status approved_for_one_shot_execution_20261012; revision_20261012)', 'reports/OWNER_DECISIONS_20261012.md (T2, 七)', 'commit b22c540']
+  still_required_before_reading: ['licences checked (D5 register)', 'every model hash listed (this file)', 'protocol frozen', 'non-test smoke (done, below)']   # owner decision 七
+final_code_commit: null                      # the commit holding scripts/r5_final_eval.py + slurm wrappers + this file, set at the freeze
+
+splits:                                       # every official expression of each split; counts already recorded by the data audits (no test file opened here)
+  - {id: refcocog_test, dataset: RefCOCOg (UMD split), split: test, images: 2600, referred_objects: 5023, expressions: 9602, images_ge2_referred: 1580}
+  - {id: refcocoplus_testA, dataset: RefCOCO+ (UNC), split: testA, images: 750, referred_objects: 1975, expressions: 5726, images_ge2_referred: 715}
+  - {id: refcocoplus_testB, dataset: RefCOCO+ (UNC), split: testB, images: 750, referred_objects: 1798, expressions: 4889, images_ge2_referred: 689}
+  - {id: refcoco_testA, dataset: RefCOCO (UNC), split: testA, images: 750, referred_objects: 1975, expressions: 5657, images_ge2_referred: 715}
+  - {id: refcoco_testB, dataset: RefCOCO (UNC), split: testB, images: 750, referred_objects: 1810, expressions: 5095, images_ge2_referred: 691}
+splits_notes:
+  count_sources: 'reports/VL1/VL1_DATA_AUDIT.json (split_counts.TEST_CLOSED), reports/VL2/VL2_DATA_AUDIT_{refcoco,refcocoplus}.json (splits); equal to the published statistics'
+  official_val: not used (read before only for external rows and detector recall; R4-02 §6.1)
+
+test_annotation_files:                        # where the official test annotations live; NOT opened, listed, hashed or loaded by this work
+  sealed_in_closed_dir: false                 # finding: none of these files was ever moved to a closed/ directory
+  refcocog_test:
+    files: ["/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/refcocog/refs(umd).p", /projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/refcocog/instances.json]
+    note: refs(umd).p holds the train, val AND test refs in one pickle (REFER release); the test split is selected inside the file (split == 'test')
+    per_file_sha256_recorded: none
+    recorded_archive: {path: /projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/refcocog.zip, sha256: 3d1f7e5b2ff2205940bf59de55f861f5f2cc1403fb980669933a7f9af1aa8211, recorded_in: "reports/VL1/VL1_DATA_AUDIT.json revision.sha256; src/vcs_vl/refcocog.py ARCHIVE; D5 register V1"}
+    why_this_source: the RefCOCOg models were trained and DEV-evaluated on the REFER `raw` sentences; MDETR's finetune_refcocog_test.json carries the lower-cased tokenised `sent` form (on DEV only 1 504 of 6 442 MDETR captions equal the raw text), so it is NOT used
+  refcoco_testA_testB: {files: [/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco_testA.json, /projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco_testB.json], per_file_sha256_recorded: none}
+  refcocoplus_testA_testB: {files: ["/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco+_testA.json", "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco+_testB.json"], per_file_sha256_recorded: none}
+  mdetr_recorded_archive: {path: /projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations_dl/mdetr_annotations.tar.gz, sha256: ed7bf62535aef48b6b6f44f2ab32fea33c467bd1a94e8fb304408a23baaae11a, recorded_in: "reports/DATA_LICENCE_REGISTER_20261012.md V4 (computed 2026-10-12, not recorded before)"}
+  text_form_check_refcoco: on DEV the MDETR train-file captions and target boxes equal the inputs of every reported RefCOCO / RefCOCO+ DEV number (11 698 / 11 698 and 11 666 / 11 666 expressions; CPU job 1035661)
+  derived_copies_holding_test_content: >
+    refcoco_unc/scene_inputs.pkl and refcocoplus_unc/scene_inputs.pkl (built by src/vcs_vl/refcocog.py _unc_inputs from all four MDETR splits, incl.
+    testA / testB expressions); outputs/VL1_21/exclusions.json (test image ids, no labels).  Not opened by this work.
+  exposure_note_for_the_ledger: >
+    The R4 / r5 loaders (RG.load_scenes) read refs(umd).p and the scene_inputs.pkl caches IN FULL in every run, so the test annotations were parsed
+    into memory and dropped by role (TEST_CLOSED); no test item was ever scored, ranked or used for a choice.  R4-02 §6.1 says "image ids were used
+    only to exclude those images from detector training" — suggest adding "(the loaders parsed the whole annotation files; test records were
+    discarded by role)".
+  hashing_at_execution: >
+    `build` reads each source once, hashes the bytes it parsed (sha256 logged with the counts), hashes the release archive and checks that the
+    archive member is byte-identical to the opened file and that the archive matches its recorded sha256 (refcocog.zip, mdetr_annotations.tar.gz).
+
+methods:                                     # all checkpoints CAL-selected (all-proposal image-macro Acc@0.5, ties earliest epoch); seeds 0-2; SigLIP 2 B/16
+  VCS: {source: 'R4-VL1 (RefCOCOg / RefCOCO+), R5-X1 (RefCOCO)', dir: models/r4_vl1, law: uniform nu, rank: cosine}
+  JS: {source: R4-VL1 / R5-X1 matched JS, dir: models/r4_vl1, rank: cosine}
+  E: {source: R4-VL1 / R5-X1 set-event softmax, dir: models/r4_vl1, rank: cosine}
+  VNU: {source: 'R4-VL2 VCS(nu), RefCOCOg / RefCOCO+ only', dir: models/r4_vl2, rank: 'native 2 a cos + log s (lambda = 1)'}
+  JNU: {source: 'R4-VL2 JS(nu), RefCOCOg / RefCOCO+ only', dir: models/r4_vl2, rank: native}
+  D: {source: 'R5-30 (RefCOCOg / RefCOCO+), R5-QX1 (RefCOCO) distribution softmax', dir: models/r5_dist, rank: cosine}
+  VQ: {source: 'R5-QN (RefCOCOg / RefCOCO+), R5-QX1 (RefCOCO) VCS with the query-normalized critic', dir: models/r5_qnorm, rank: 'cosine (normalizer constant per query)'}
+  JQ: {source: R5-QN / R5-QX1 JS with the query-normalized critic, dir: models/r5_qnorm, rank: cosine}
+  fused_rows: {rule: "R5-10 F1: 2 a cos + lambda_CAL log s_r, lambda in {0, 0.25, 0.5, 1, 2, 4} chosen on CAL image-macro Acc@0.5, ties smallest", rows: "VCS+F, JS+F, E+F (test_time_fusion), VNU+F, JNU+F (native when lambda_CAL = 1, else posthoc_task_calibration)", datasets: [refcocog, refcocoplus]}
+lambda_CAL:                                  # reports/R5/fusion_F0_F1.json (F1), per seed 0 / 1 / 2
+  refcocog: {VCS: [2.0, 1.0, 1.0], JS: [1.0, 1.0, 1.0], E: [1.0, 1.0, 0.5], VNU: [2.0, 2.0, 2.0], JNU: [2.0, 1.0, 2.0]}
+  refcocoplus: {VCS: [0.5, 1.0, 1.0], JS: [1.0, 1.0, 1.0], E: [1.0, 1.0, 1.0], VNU: [2.0, 2.0, 1.0], JNU: [1.0, 1.0, 2.0]}
+  refcoco: none (R5-10 F1 was run on RefCOCOg / RefCOCO+ only)
+rows_summary: {checkpoints: 66, rows: 153, per_split: {refcocog_test: 39, refcocoplus_testA: 39, refcocoplus_testB: 39, refcoco_testA: 18, refcoco_testB: 18}}
+rows_of_the_proposal_without_checkpoint: [VNU and JNU on RefCOCO (never trained; R4-VL2 covered RefCOCOg / RefCOCO+) — not trained here]
+rows_of_the_proposal_without_lambda_CAL: [VCS+F / JS+F / E+F on RefCOCO; D+F / VQ+F / JQ+F on all datasets (not part of R5-10 F1)]   # open decision D3
+
+candidate_generator:
+  detector: VL1-21 clean Faster R-CNN R50-FPN (models/vl1_21_detector/final.pt, sha256 7df2fa15...147b = reports/R4/intake_hashes.json)
+  settings: torchvision defaults of scripts/vl1_21_detector.py (score >= 0.05, per-class NMS, top-100), fp16 autocast, batches of 8 over the split's images sorted by image id
+  candidates: top-100 in detector order, clipped to the image, < 1 px dropped (scripts/r4_vl1_finetune.py build); no proposal -> the query is an error
+  gpu: RTX6000PRO (the GPU type of the reported DEV / CAL proposals, job 1033362)            # open decision D6
+  measured_sensitivity: >
+    same GPU type -> bit-identical (two L40S smokes, identical proposals and prediction manifests); L40S vs the stored RTX PRO 6000 DEV proposals
+    with the same batches: 0 / 40 images bit-identical, 97.5 % of boxes matched at IoU >= 0.99, top-1 box equal on 97.5 % of images; a different
+    batch composition (padding): 83 % of boxes matched, top-1 equal on 67.5 % of images.  The frozen order (sorted ids, batches of 8) defines the
+    proposals of each split.
+
+metrics:
+  primary: query-level Acc@0.5 over ALL official expressions of the split; IoU of the top-1 box with the annotated box (xywh -> xyxy, continuous coordinates, >= 0.5); no proposal / no valid proposal = error
+  development_table: image-macro Acc@0.5 on images with >= 2 (non-degenerate) referred objects — the DEV definition, own table
+  subset_table: query-level Acc@0.5 on the >= 2-referred-objects subset, own table
+  context_only: proposal ceiling (queries with >= 1 proposal at IoU >= 0.5), queries without any proposal
+statistics:
+  primary_confirmation: VQ - VCS on the primary metric per split (5 splits), paired by seed (0-2); seed-paired two-sided t test (df 2); Holm over the 5 splits at alpha 0.05   # open decision D4
+  decision_wording: "Holm-rejected and mean > 0 -> 'VQ improves VCS on <split> by x'; Holm-rejected and mean < 0 -> 'VQ lowers VCS by x'; not rejected -> 'no detectable difference at the family-wise level' (no equivalence claim)"
+  estimation_not_testing: [VQ - D, VQ - E, VQ - JQ]   # effect sizes with 95 % intervals; NO non-inferiority margin (owner decision 2026-10-12)
+  secondary_descriptive: [VNU - E, VCS+F - E+F (each with its own lambda_CAL), VNU - JNU, VCS - E, D - E]
+  intervals: seed-paired 95 % t (df = n - 1) AND a 95 % percentile image-cluster bootstrap (B = 1000, images resampled with all their expressions, seed-averaged per-image differences, one index matrix per split shared by every row and contrast, numpy SeedSequence([20261012, 77, split index])) — as the r5 reports
+  every_metric_gets_every_contrast: true (only the primary metric carries the Holm decision)
+  pooling_over_datasets: none (descriptive only, outside the script); testA / testB share checkpoints (Holm is valid under dependence)
+  interval_reading: '"contains 0" is containment, never equivalence'
+
+execution:                                    # one fixed script; stages file-gated by slurm/r5_final_eval_submit.sh (login node, nohup setsid; stop by PID)
+  root: /home/infres/yinwang/CS_QMI/outputs/R5_FINAL   # sealed/labels (0700 / 0400), sealed/predictions (0444), inputs/, proposals/, logs/, score/
+  launch: 'mkdir -p /home/infres/yinwang/CS_QMI/outputs/R5_FINAL && cd /home/infres/yinwang/CS_QMI/ssl_pilot && PLAN_SRC=<frozen plan json> CAP=27 nohup setsid bash slurm/r5_final_eval_submit.sh /home/infres/yinwang/CS_QMI/outputs/R5_FINAL >> /home/infres/yinwang/CS_QMI/outputs/R5_FINAL/driver.log 2>&1 < /dev/null &'
+  stages:
+    - build (CPU): opens refs(umd).p + instances.json and the four MDETR test files ONCE (each attempt logged in logs/build_attempts.log); writes inputs without labels and the sealed labels (GT box per query, >= 2 flag per image); logs counts and sha256 only.  Stops BEFORE writing anything if a count differs from the recorded split size, an image is missing, the archive hash / member identity fails, or (RefCOCOg) the DEV records re-derived from the same refs(umd).p differ from the R4-VL0 DEV meta (6 442 expressions)
+    - proposals (GPU, RTX6000PRO): detector on each split's images
+    - rank (GPU, 3 shards = dataset): verifies every checkpoint sha256 and its CAL epoch / critic slope against the plan; top-1 box per query for every row -> sealed/predictions/pred__<model>__<split>.json (single writer, atomic)
+    - manifest (CPU): completeness (every row, every query) + sha256 of every prediction file (MANIFEST.sha256, manifest.json); refuses if the script changed between stages
+    - STOP: the driver waits for <root>/ALLOW_SCORING
+    - coordinator: commit sealed/predictions/MANIFEST.sha256 + manifest.json (+ logs/*.json), then write 'manifest_sha256=<sha256 of MANIFEST.sha256>' and the commit id into <root>/ALLOW_SCORING
+    - score (CPU): the only step that opens the labels; verifies the gate's manifest hash and every prediction file; writes score/results.json and score/tables.md
+  driver_rules: [submit only while my normal-QOS jobs < CAP - 1 (CAP 27), stop on an empty job id, NFS settle 180 s before declaring a unit lost, retry proposals / rank / manifest up to 3 times, NEVER auto-retry build or score (they open the sources / labels), stop on exit=3 (a deliberate check failure) or exit=0 without marker]
+policies:                                     # owner decision 七 / T1: implementation-error fixes, re-verification of frozen predictions and re-selection are kept apart
+  no_post_test_tuning: true                   # no model, checkpoint, lambda, metric, row or wording is chosen from test results; every pre-declared row is reported
+  implementation_error_correction: >
+    Only implementation errors (e.g. a parser or I/O fault) may be fixed after the first read.  Each fix: a new commit with the reason, the affected
+    stages re-run into a NEW root (R5_FINAL_fix<n>) with the SAME frozen plan, all attempts and both results published; never a change of rows,
+    checkpoints, lambda, metrics or statistics.
+  re_verification: >
+    Deterministic re-checks of the frozen predictions are allowed at any time and are not a new read: `score --out <root>/score_reverify_<n>`
+    re-scores the committed, hash-verified prediction files (the default score directory refuses a second scoring).
+  re_selection: forbidden.  A new method, a new checkpoint choice or a new lambda needs a new protocol AND a still-unread test set (none is left for RefCOCO*).
+  failed_build_before_labels: a build stopped by a check writes nothing; a corrected rerun is an implementation-error fix (logged), labels unused
+licences:
+  status: pending the D5 register (reports/DATA_LICENCE_REGISTER_20261012.md); the proposal requires licences checked before reading
+  items: ['V1 RefCOCOg - attribution or notice; owner confirmation pending since 2026-10-08', 'V2 / V3 RefCOCO / RefCOCO+ - conflicting (MDETR archive CC BY 4.0 vs UNC citation-only); owner records the basis', 'V4 MDETR annotations - attribution', 'V5 COCO images / annotations - attribution; per-image Flickr licences', 'V10 SigLIP 2 B/16 - clear', 'V17 VL1-21 detector - unknown (ImageNet-1k backbone weights); owner records the non-commercial research basis']
+exposure_ledger_update_before_reading: reports/R4/R4_02_EVIDENCE_LEDGER_20261011.md §6.1 (proposal field training_exposure_ledger) — add the loader note above
+
+development_checks:                           # all on NON-test data; code checks, not results
+  unit_tests:
+    file: tests/test_r5_final_eval.py
+    result: 11 / 11 pass (job 1035793, final script)
+    covers:
+      - 'guard: test / closed / multi-split files refused before any open'
+      - 'REFER and MDETR parsers: query order, raw text, xyxy boxes, >= 2 flag, degenerate boxes'
+      - 'official build path on synthetic files: RG.dev_roles DEV echo, recorded counts, archive hash and member identity; nothing written on any failed check'
+      - 'tar member hashing'
+      - 'ranking rules: cosine, 2 a cos + lambda log s, ties in detector order, non-positive score refused; candidate clipping'
+      - 'hits and metrics: IoU >= 0.5 inclusive, uncovered = error, image-macro on the >= 2 subset'
+      - 'statistics: Holm, t interval equal to the reports'' tint, bootstrap determinism'
+      - 'CPU end-to-end build -> manifest -> gate -> score; second scoring refused; re-verification identical; tamper detection'
+  format_checks:
+    mdetr_train_file_vs_dev_inputs: {job: 1035661, refcoco: 11698 / 11698 expressions (text and box) equal, refcocoplus: 11666 / 11666 equal}
+    refcocog_caption_form: {job: 1035664, mdetr_caption_equals_raw: 1504 / 6442, equals_lower_raw: 2799 / 6442, alnum_normalized_equal: 6442 / 6442, consequence: RefCOCOg test read from refs(umd).p (raw)}
+  smokes:                                     # 40 DEV images per dataset, VCS / E / VQ / VNU seed 0, regenerated proposals (the official proposals path), full driver incl. the gate
+    smoke1: {root: outputs/R5_FINAL_SMOKE, jobs: [1035694 build, 1035698 proposals, 1035703-1035705 rank, 1035707 manifest, 1035716 score], finding: 'driver race: the score marker reached the login node after the job left the queue (NFS), so a second score job (1035717) ran; fixed (180 s settle, no automatic retry of build / score)'}
+    smoke2: {root: outputs/R5_FINAL_SMOKE2, jobs: [1035731, 1035733, 1035734-1035736, 1035744, 1035746], result: 'same prediction manifest as smoke1 (75431140...), metrics identical'}
+    smoke3_final_code: {root: outputs/R5_FINAL_SMOKE3, script_sha256: fbd3051a8f0d0711e1f2f9e6e9b5ce32e6dbcc24b80816c9c0b6e6e69c2354b2, jobs: [1035763 build, 1035766 proposals, 1035771-1035773 rank, 1035795 manifest, 1035798 score], result: 'prediction manifest 75431140... identical to smoke1 / smoke2 (bit-identical proposals and predictions on two L40S nodes); every stage recorded the same script hash'}
+  integrity_check_final_code:                 # reproduction of reported DEV numbers with the new script (rank + score paths isolated: stored VL1-21 DEV proposals)
+    root: outputs/R5_FINAL_DEVCHECK2
+    jobs: {build: 1035764, proposals: 1035767, rank: [1035779, 1035780, 1035781], manifest: 1035905, score_and_comparison: 1035950}
+    note: a leftover command from an earlier attempt re-ran only the comparison as job 1035955 right after 1035950 ended (no overlap, identical output, submitted without the queue-cap check)
+    inputs_built_from: ['MDETR train files filtered to the VL1-21 DEV images (RefCOCO, RefCOCO+)', 'a REFER-format file holding the RefCOCOg DEV meta (refer parser path)']
+    build_echo: {refcoco: 11698 / 11698, refcocoplus: 11666 / 11666, refcocog: 6442 / 6442, meaning: 'expressions equal to the R4-VL0 DEV meta (text, box, >= 2 flag)'}
+    rows: 51 (VCS, E, VQ x 3 datasets, VNU x RefCOCOg / RefCOCO+, fused VCS+F / E+F / VNU+F with lambda_CAL; seeds 0-2; 33 checkpoints)
+    tolerance: 0.3 point per row (the R4-VL0 G2 gate; fp16 reload and bf16 numerics vs the runs' fp32 DEV readouts)
+    result: all 51 rows within tolerance; max |diff| 0.26 point (image-macro, VCS RefCOCO s1), 0.20 point (query-level)
+    method_means_new_vs_reported:             # DEV image-macro Acc@0.5 on the >= 2-referred images (%)
+      refcocog: {VCS: [71.74, 71.73], E: [73.56, 73.58], VQ: [72.78, 72.86], VNU: [73.79, 73.81], VCS+F: [73.91, 73.87], E+F: [74.31, 74.31], VNU+F: [74.03, 74.07]}
+      refcocoplus: {VCS: [73.09, 73.03], E: [76.27, 76.25], VQ: [75.23, 75.25], VNU: [75.49, 75.49], VCS+F: [75.12, 75.10], E+F: [76.87, 76.86], VNU+F: [75.77, 75.78]}
+      refcoco: {VCS: [66.46, 66.60], E: [75.44, 75.45], VQ: [74.15, 74.17]}
+      reported_in: [R4_VL1_REPORT (VCS / E RefCOCOg, RefCOCO+), R5_QNORM_REPORT (VQ), R4_VL2_REPORT (VNU), fusion_F0_F1.json (fused, R5-10 F1), R5_X1 / R5_QX1 RefCOCO reports]
+    contrasts_new_vs_reported:                # paired by seed, seed-paired 95 % t; DEV image-macro (points)
+      VQ_minus_VCS: {refcocog: ['+1.04 [+0.54, +1.55]', '+1.13 [+0.62, +1.63]'], refcocoplus: ['+2.13 [+1.33, +2.94]', '+2.22 [+1.29, +3.15]'], refcoco: ['+7.69 [+7.39, +7.99]', '+7.56 [+6.82, +8.30]']}
+      VQ_minus_E: {refcocog: ['-0.78 [-1.27, -0.29]', '-0.72 [-0.81, -0.63]'], refcocoplus: ['-1.05 [-2.11, +0.02]', '-1.00 [-2.22, +0.21]'], refcoco: ['-1.30 [-2.52, -0.07]', '-1.28 [-2.35, -0.21]']}
+      VCS_minus_E: {refcocog: ['-1.82 [-2.27, -1.38]', '-1.85 [-2.41, -1.29]'], refcocoplus: ['-3.18 [-4.93, -1.43]', '-3.22 [-5.08, -1.37]'], refcoco: ['-8.99 [-10.51, -7.47]', '-8.84 [-10.57, -7.12]']}
+      format: '[new, reported]'
+    detector_check: {gpu: L40S, vs_stored_RTX_DEV_proposals_same_batches: {bit_identical: 0, boxes_matched_iou99: 98.1 %, top1_box_equal: '98.4-99.0 % of images', median_max_score_diff: 0.002}, ranked_with: stored proposals}
+
+measured_costs:                               # development runs on L40S (the slowest allowed GPU), final script
+  build_cpu: 11 s for three DEV sets (48 MB MDETR train files); test estimate 2-4 min (adds the 1.08 GB MDETR archive and the 57 MB refcocog.zip for the member checks)
+  proposals_gpu: 28-31 images/s; 5 588 DEV images in 199 s incl. model load (job 1035767)
+  rank_gpu: 1 300-1 380 crops/s per checkpoint (SigLIP 2 B/16, bf16) + about 5 s per checkpoint for the sha256 check and loading; e.g. 86 206 crops (RefCOCO DEV, 1 699 images) in 62 s (jobs 1035779-1035781)
+  integrity_run_total: 2 260 GPU-seconds (0.63 GPU-hours) for 33 checkpoints x DEV
+  development_gpu_spent: about 0.75 GPU-hours (three 40-image smokes + the integrity run); the RTX-only detector bit-identity check was cancelled before it started
+gpu_budget_test_run:                          # L40S estimate from the measured rates; RTX PRO 6000 / H100 are faster
+  proposals: 5 600 images, about 4 min
+  rank_refcocog_test: 24 checkpoints x about 119 k crops (2 600 images x 45.8 proposals) -> about 40 min
+  rank_refcocoplus_testA_testB: 24 checkpoints x about 78 k crops -> about 26 min
+  rank_refcoco_testA_testB: 18 checkpoints x about 76 k crops -> about 19 min
+  total: about 1.5 GPU-hours (three rank jobs in parallel, about 40 min wall-clock once GPUs are free); cap 3 GPU-hours including one retry
+  cpu: build + manifest + score under 10 CPU-minutes
+  queue_slots: at most 3 GPU jobs + 1 CPU job at a time (CAP 27 rule respected by the driver)
+
+open_decisions:                               # each has a default (the plan as committed); the coordinator / owner settles them before the freeze
+  D1_refcocog_source:
+    question: RefCOCOg test is read from refs(umd).p (REFER release; all splits in one pickle), the only source with the raw text the models were trained on.  Its parser could not be smoke-tested on the real file without loading the test split.
+    default: accept — the parser mirrors src/vcs_vl/refcocog.py load_scenes (which parsed this file in every R4 / r5 run), is unit-tested on synthetic REFER files and smoke / integrity-tested on a REFER-format file with RefCOCOg DEV content; at the single opening the build re-derives the DEV records from the same file and must match the R4-VL0 DEV meta (6 442 expressions), the recorded counts (2600 / 5023 / 9602 / 1580) and the archive hash (refcocog.zip) before any input or label is written
+    alternatives: [MDETR finetune_refcocog_test.json (format tested on the train file, but sent-form captions != training text: a protocol deviation)]
+  D2_test_file_hashes:
+    question: no per-file sha256 of any RefCOCO-family test file was recorded before; the files were never moved to a closed/ directory.
+    default: hash at the single opening (build logs the sha256 of every parsed file, checks archive member identity and the recorded archive hashes 3d1f7e5b... / ed7bf625...)
+    alternative: a hash-only CPU job before the freeze (it would open the test files before the freeze; the coordinator's call)
+  D3_fused_rows_scope:
+    question: lambda_CAL exists only for VCS / JS / E (R4-VL1) and VCS(nu) / JS(nu) (R4-VL2) on RefCOCOg and RefCOCO+ (R5-10 F1).
+    default: fused rows only where lambda_CAL exists (45 rows); the 36 checkpoint cells without lambda_CAL (63 fused rows) are listed, never filled
+    alternative: run the F1 CAL rule for VQ / JQ / D (all datasets) and VCS / JS / E on RefCOCO before the freeze (new CAL scoring, about 0.5–1 GPU-hour; the existing CAL tools load the full annotation files)
+  D4_primary_test:
+    default: seed-paired two-sided t test per split (df 2), Holm over the 5 splits at alpha 0.05, primary metric only; testA / testB of one dataset share checkpoints (Holm holds under dependence)
+    alternatives: [one-sided (H1 VQ > VCS), Holm over 3 datasets with testA / testB pooled per dataset, a bootstrap p-value]
+  D5_bootstrap: {default: B = 1000 image-cluster percentile bootstrap (as the r5 reports), alternative: B = 10000}
+  D6_detector_gpu:
+    default: proposals on RTX6000PRO (the GPU type of the reported DEV / CAL proposals); the job may wait for a slot (RTX nodes 58 / 59 / 61; node60 excluded; sbatch --test-only at 12:58 UTC estimated the first RTX start at 2026-10-13 00:02 because the r7 D1-20 units hold every RTX card for up to 12 h)
+    alternative: any of RTX6000PRO / H100 / L40S (measured cross-type effect small but not zero; same-type reruns bit-identical; an RTX-vs-stored bit-identity check was cancelled to spare the GPU quota)
+  D7_rank_shards: {default: '3 rank jobs (one per dataset, about 0.5-1 h each)', alternative: '11 jobs (dataset x checkpoint directory; plan --shard-by family)'}
+  D8_keep_cosines: {default: 'only the top-1 box per query and row is kept (no score matrices, so no post-hoc re-ranking is possible)', alternative: 'also keep sealed cosine matrices for audits'}
+  D9_metric_conventions: {default: 'continuous-coordinate IoU (as the DEV evaluation and MDETR), IoU >= 0.5 counts, ground truth = the annotated box unclipped, prediction = the clipped proposal', alternative: 'the +1-pixel IoU of some REFER evaluators (not used anywhere in this project)'}
+  D10_results_location: {default: results stay in <root>/score until the coordinator copies results.json / tables.md into reports/R5 and writes the report}
+  D11_licences_and_ledger: {required: 'owner records the D5 basis for V1 / V2 / V3 / V17 and the ledger note (R4-02 §6.1) before the read; then set licenses_checked / all_controls_declared_before_reading / algorithms_frozen in the proposal'}
+
+# ---- frozen row list (generated: python -I scripts/r5_final_eval.py rows-yaml --plan reports/R5/R5_FINAL_EVAL_PLAN_DRAFT_20261012.json) ----
+plan_file: "/home/infres/yinwang/CS_QMI/ssl_pilot/reports/R5/R5_FINAL_EVAL_PLAN_DRAFT_20261012.json"
+plan_sha256: f6d3ef59a0503ba45831118fac553a293abf03c35835e451d4eb78d89a252c68
+plan_mode: test
+detector: {path: "/projects/EEG-foundation-model/yinghao/models/vl1_21_detector/final.pt", sha256: 7df2fa153372ef896ee2f1e4bf6f760f4f0c42eac807a4ec07f71fcd6093147b, recorded_sha256: 7df2fa153372ef896ee2f1e4bf6f760f4f0c42eac807a4ec07f71fcd6093147b, matches_record: true}
+backbone: {hf_repo: google/siglip2-base-patch16-224, snapshot: 75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2, files_sha256: {"config.json": "fe8b5fe6d5734360678fd71c11c21e1ea3364bd8598d34295d9206335973ffd7", "model.safetensors": "612923381c76ec5a9bed335d1c48827e3f2e506ac31b044b63b2031fadee6a0b", "preprocessor_config.json": "9b36b57ebaf20f09bf4c22100ccc21877ea6bfe5aead0c00c59f8af8ccefacfc", "special_tokens_map.json": "baec30ea10906f16adb8c18af7a34023002c1746542612b8b41c9f09e1351351", "tokenizer.json": "cb9140fae3ac5122c972d37adf83e1248471a38147ad76f8215c8872c6fd8322", "tokenizer.model": "61a7b147390c64585d6c3543dd6fc636906c9af3865a5548f27f31aee1d4c8e2", "tokenizer_config.json": "14afe629fe4959b9e0d51e1852b8d9f7ad074f90a1a7125a4fcdd17f06e78fc8"}, vs_r5_hashes: {"files_not_in_record": ["tokenizer.model"], "recorded_files": 6, "recorded_files_matching": 6, "snapshot_matches": true}}
+evaluation_sets:
+  - {id: refcoco_testA, dataset: refcoco, split: testA, format: mdetr, sources: {"mdetr": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco_testA.json"}, expected_counts: {"expressions": 5657, "images": 750, "images_ge2": 715, "referred": 1975}, archive: {"path": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations_dl/mdetr_annotations.tar.gz", "recorded_sha256": "ed7bf62535aef48b6b6f44f2ab32fea33c467bd1a94e8fb304408a23baaae11a", "recorded_in": "reports/DATA_LICENCE_REGISTER_20261012.md V4 (archive hashed 2026-10-12, members listed from tar headers, nothing extracted)"}}
+  - {id: refcoco_testB, dataset: refcoco, split: testB, format: mdetr, sources: {"mdetr": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco_testB.json"}, expected_counts: {"expressions": 5095, "images": 750, "images_ge2": 691, "referred": 1810}, archive: {"path": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations_dl/mdetr_annotations.tar.gz", "recorded_sha256": "ed7bf62535aef48b6b6f44f2ab32fea33c467bd1a94e8fb304408a23baaae11a", "recorded_in": "reports/DATA_LICENCE_REGISTER_20261012.md V4 (archive hashed 2026-10-12, members listed from tar headers, nothing extracted)"}}
+  - {id: refcocog_test, dataset: refcocog, split: test, format: refer, sources: {"instances": "/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/refcocog/instances.json", "refs": "/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/refcocog/refs(umd).p"}, expected_counts: {"expressions": 9602, "images": 2600, "images_ge2": 1580, "referred": 5023}, archive: {"path": "/projects/EEG-foundation-model/yinghao/datasets/refcocog_umd/refcocog.zip", "recorded_sha256": "3d1f7e5b2ff2205940bf59de55f861f5f2cc1403fb980669933a7f9af1aa8211", "recorded_in": "reports/VL1/VL1_DATA_AUDIT.json revision.sha256; src/vcs_vl/refcocog.py ARCHIVE (download 2026-10-08)"}}
+  - {id: refcocoplus_testA, dataset: refcocoplus, split: testA, format: mdetr, sources: {"mdetr": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco+_testA.json"}, expected_counts: {"expressions": 5726, "images": 750, "images_ge2": 715, "referred": 1975}, archive: {"path": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations_dl/mdetr_annotations.tar.gz", "recorded_sha256": "ed7bf62535aef48b6b6f44f2ab32fea33c467bd1a94e8fb304408a23baaae11a", "recorded_in": "reports/DATA_LICENCE_REGISTER_20261012.md V4 (archive hashed 2026-10-12, members listed from tar headers, nothing extracted)"}}
+  - {id: refcocoplus_testB, dataset: refcocoplus, split: testB, format: mdetr, sources: {"mdetr": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations/finetune_refcoco+_testB.json"}, expected_counts: {"expressions": 4889, "images": 750, "images_ge2": 689, "referred": 1798}, archive: {"path": "/projects/EEG-foundation-model/yinghao/datasets/mdetr_annotations_dl/mdetr_annotations.tar.gz", "recorded_sha256": "ed7bf62535aef48b6b6f44f2ab32fea33c467bd1a94e8fb304408a23baaae11a", "recorded_in": "reports/DATA_LICENCE_REGISTER_20261012.md V4 (archive hashed 2026-10-12, members listed from tar headers, nothing extracted)"}}
+checkpoints:   # 66 CAL-selected checkpoints (selection rule: CAL all-proposal image-macro Acc@0.5, ties earliest epoch)
+  - {id: VCS_refcocog_s0, method: VCS, dataset: refcocog, seed: 0, cal_selected_epoch: 5, critic_a: 10.164737, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_vcs_s0_calAcc.pt", sha256: 8061ca3f82407290b5d1a5dc971098883adee911aa2b1d1afb66716f1551d674}
+  - {id: VCS_refcocog_s1, method: VCS, dataset: refcocog, seed: 1, cal_selected_epoch: 6, critic_a: 10.209026, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_vcs_s1_calAcc.pt", sha256: 29d9cf85a4866c7afe5830cdec0eb61fd71a05ece201b1c2b537d88f304a89f6}
+  - {id: VCS_refcocog_s2, method: VCS, dataset: refcocog, seed: 2, cal_selected_epoch: 8, critic_a: 10.270761, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_vcs_s2_calAcc.pt", sha256: 23ebfe8bab92c4732153b51f44db27896998313dd77a2eb37f36548d2e35d976}
+  - {id: JS_refcocog_s0, method: JS, dataset: refcocog, seed: 0, cal_selected_epoch: 8, critic_a: 10.296666, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_js_s0_calAcc.pt", sha256: 465e5695cabce2ffc3ac26728508956df7d90b7e2ad1d54d3d3d2f1231e9501b}
+  - {id: JS_refcocog_s1, method: JS, dataset: refcocog, seed: 1, cal_selected_epoch: 7, critic_a: 10.274077, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_js_s1_calAcc.pt", sha256: bd9a6a4986610554387cbbc0194c23c1cfc8050c79192c32e38678e8a9a6c6ef}
+  - {id: JS_refcocog_s2, method: JS, dataset: refcocog, seed: 2, cal_selected_epoch: 7, critic_a: 10.276311, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_js_s2_calAcc.pt", sha256: e96035d4b74f0f0732e3cac00c2796d5f4db900801982e026883a01d449d9cbf}
+  - {id: E_refcocog_s0, method: E, dataset: refcocog, seed: 0, cal_selected_epoch: 2, critic_a: 10.277956, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_softmax_s0_calAcc.pt", sha256: fc2afed9073f3f9c4ff31aee566335928e87755e0692c9d1341c7b0b4ab5c33b}
+  - {id: E_refcocog_s1, method: E, dataset: refcocog, seed: 1, cal_selected_epoch: 3, critic_a: 10.539045, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_softmax_s1_calAcc.pt", sha256: cf71b8d5675ed27f9c69f949ad4ef752cc7b872de3eca02f413c3ccd18727f66}
+  - {id: E_refcocog_s2, method: E, dataset: refcocog, seed: 2, cal_selected_epoch: 2, critic_a: 10.277034, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocog_siglip2_b16_softmax_s2_calAcc.pt", sha256: 57b2e701fb589d404cb41eb9c3a25c417970df80350629c6cc01047f14953f96}
+  - {id: VNU_refcocog_s0, method: VNU, dataset: refcocog, seed: 0, cal_selected_epoch: 5, critic_a: 10.164507, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocog_siglip2_b16_vcs_nuscore_s0_calAcc.pt", sha256: 30327b716c4c2a894dffce58f499b79d36adf703b9fe6ab3df0c5d5651277a02}
+  - {id: VNU_refcocog_s1, method: VNU, dataset: refcocog, seed: 1, cal_selected_epoch: 6, critic_a: 10.206901, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocog_siglip2_b16_vcs_nuscore_s1_calAcc.pt", sha256: 37dc4a6a82a08a1211e0624f88e99dd865c29f6b57c17eb7f9ad53c2f8beab2a}
+  - {id: VNU_refcocog_s2, method: VNU, dataset: refcocog, seed: 2, cal_selected_epoch: 5, critic_a: 10.162014, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocog_siglip2_b16_vcs_nuscore_s2_calAcc.pt", sha256: 3b8ca19239cd2f2b2a96b1b1ed08b8e2bb3b02dba33268d6faac3e7f8c27547e}
+  - {id: JNU_refcocog_s0, method: JNU, dataset: refcocog, seed: 0, cal_selected_epoch: 4, critic_a: 10.139119, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocog_siglip2_b16_js_nuscore_s0_calAcc.pt", sha256: 64a6e1842ec031a9f3e2689a51e7e7c1d5b0259c7dbab54403079494a814c52c}
+  - {id: JNU_refcocog_s1, method: JNU, dataset: refcocog, seed: 1, cal_selected_epoch: 3, critic_a: 10.082523, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocog_siglip2_b16_js_nuscore_s1_calAcc.pt", sha256: d416f9e9b7beff9fa3e28a3335ac93ec88f6f1eac1039e1f69787a0b1f96a801}
+  - {id: JNU_refcocog_s2, method: JNU, dataset: refcocog, seed: 2, cal_selected_epoch: 6, critic_a: 10.238600, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocog_siglip2_b16_js_nuscore_s2_calAcc.pt", sha256: 19e3ff2dffb3dc5975b038398b97a757d420b694ebd4cf3d8183bf027d3e87c6}
+  - {id: D_refcocog_s0, method: D, dataset: refcocog, seed: 0, cal_selected_epoch: 2, critic_a: 10.239858, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcocog_siglip2_b16_distribution_softmax_s0_calAcc.pt", sha256: c3b6095bdca4bd9ce13e8317a867e22f387f33fc0928695fbe751264e0b4f382}
+  - {id: D_refcocog_s1, method: D, dataset: refcocog, seed: 1, cal_selected_epoch: 2, critic_a: 10.232977, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcocog_siglip2_b16_distribution_softmax_s1_calAcc.pt", sha256: 40e102266fb9b1b0b3e26e653870cfb76a1c58465812121ab5c506dac2500391}
+  - {id: D_refcocog_s2, method: D, dataset: refcocog, seed: 2, cal_selected_epoch: 2, critic_a: 10.233420, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcocog_siglip2_b16_distribution_softmax_s2_calAcc.pt", sha256: 7df8e5bdfb1a36c970d7090b7560bd45b639f21a9bd414a9ed1996439c05e619}
+  - {id: VQ_refcocog_s0, method: VQ, dataset: refcocog, seed: 0, cal_selected_epoch: 8, critic_a: 11.095132, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocog_siglip2_b16_vcs_qnorm_s0_calAcc.pt", sha256: 21774f70383435c57e57a17cf4848e6cc899faabca4960f7b48db5ff31c0244d}
+  - {id: VQ_refcocog_s1, method: VQ, dataset: refcocog, seed: 1, cal_selected_epoch: 7, critic_a: 11.035729, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocog_siglip2_b16_vcs_qnorm_s1_calAcc.pt", sha256: 8681ab59b65abbb9bcb2d655dca5966aaa600620c6739ad932572f74e8d33104}
+  - {id: VQ_refcocog_s2, method: VQ, dataset: refcocog, seed: 2, cal_selected_epoch: 6, critic_a: 10.944103, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocog_siglip2_b16_vcs_qnorm_s2_calAcc.pt", sha256: 6a10d441591ce9ac3e6555db853a0b3c4a47730602045b5ff4837c05c2308efc}
+  - {id: JQ_refcocog_s0, method: JQ, dataset: refcocog, seed: 0, cal_selected_epoch: 6, critic_a: 10.973087, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocog_siglip2_b16_js_qnorm_s0_calAcc.pt", sha256: 7419d077167e49aed2916d3f1cad0320f4f3ee5f3c1556ff784574f35391383f}
+  - {id: JQ_refcocog_s1, method: JQ, dataset: refcocog, seed: 1, cal_selected_epoch: 5, critic_a: 10.844480, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocog_siglip2_b16_js_qnorm_s1_calAcc.pt", sha256: 0da15b525e1c2bde9a0f7a1be019ca89b50dda9080c27c8c90db0562eeb0cb91}
+  - {id: JQ_refcocog_s2, method: JQ, dataset: refcocog, seed: 2, cal_selected_epoch: 7, critic_a: 11.049007, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocog_siglip2_b16_js_qnorm_s2_calAcc.pt", sha256: fa9fcfd44462cf87ead8562a4fa450d69910559a60d5b4a3e23f2ab58cf6ff19}
+  - {id: VCS_refcocoplus_s0, method: VCS, dataset: refcocoplus, seed: 0, cal_selected_epoch: 4, critic_a: 10.130486, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_vcs_s0_calAcc.pt", sha256: 494ac6d92852cd5c078d75f5c0e46b65dbd3045ddd727ac1e61f3dcd45718256}
+  - {id: VCS_refcocoplus_s1, method: VCS, dataset: refcocoplus, seed: 1, cal_selected_epoch: 6, critic_a: 10.235547, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_vcs_s1_calAcc.pt", sha256: 7c19c5bd10328e772bc52c7b63343b8b8d0a3dbd6448274be4be7e5cc062c697}
+  - {id: VCS_refcocoplus_s2, method: VCS, dataset: refcocoplus, seed: 2, cal_selected_epoch: 7, critic_a: 10.286802, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_vcs_s2_calAcc.pt", sha256: c0fd6c7cbcd272954bd105cbf0a70c44bc7081e4ca57f32707b5a79d05db8848}
+  - {id: JS_refcocoplus_s0, method: JS, dataset: refcocoplus, seed: 0, cal_selected_epoch: 4, critic_a: 10.147168, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_js_s0_calAcc.pt", sha256: 87c7bc74142d4e13500a62507b2288c85de3059264ba3cb0a358838a5887a40f}
+  - {id: JS_refcocoplus_s1, method: JS, dataset: refcocoplus, seed: 1, cal_selected_epoch: 7, critic_a: 10.299321, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_js_s1_calAcc.pt", sha256: 09c29410e5eb1d064f2cd7e93f7bbf259ba63b2405cd754ace9217e02f5eb72a}
+  - {id: JS_refcocoplus_s2, method: JS, dataset: refcocoplus, seed: 2, cal_selected_epoch: 5, critic_a: 10.209366, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_js_s2_calAcc.pt", sha256: ad883166236b42ee68d8aad21444a02b403f578267d2ae52d2d04df56f8e8d71}
+  - {id: E_refcocoplus_s0, method: E, dataset: refcocoplus, seed: 0, cal_selected_epoch: 4, critic_a: 10.946966, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_softmax_s0_calAcc.pt", sha256: fd5fe10a8a682070205f84fe7961b93e84ec8ed8c38e21ba2fa264184a9662a3}
+  - {id: E_refcocoplus_s1, method: E, dataset: refcocoplus, seed: 1, cal_selected_epoch: 4, critic_a: 10.960258, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_softmax_s1_calAcc.pt", sha256: 00aeb1aae3bcd40ee708c343d56d1b8179f3628573be9d99b242fe40a773539e}
+  - {id: E_refcocoplus_s2, method: E, dataset: refcocoplus, seed: 2, cal_selected_epoch: 4, critic_a: 10.954051, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcocoplus_siglip2_b16_softmax_s2_calAcc.pt", sha256: 4c34d6a5f57b2af26547f871ca4ce7cb018a83d1dc8354028af62a847c7ffbb2}
+  - {id: VNU_refcocoplus_s0, method: VNU, dataset: refcocoplus, seed: 0, cal_selected_epoch: 7, critic_a: 10.294512, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocoplus_siglip2_b16_vcs_nuscore_s0_calAcc.pt", sha256: bb9b5fff6748a5f009fa43071c72ea21736bfc124de74ee2e368792c473a5de4}
+  - {id: VNU_refcocoplus_s1, method: VNU, dataset: refcocoplus, seed: 1, cal_selected_epoch: 3, critic_a: 10.086145, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocoplus_siglip2_b16_vcs_nuscore_s1_calAcc.pt", sha256: d42f5c60842260fa20df541068a47d1aad4a5816dd7a1cf8d4fb52b00a85facc}
+  - {id: VNU_refcocoplus_s2, method: VNU, dataset: refcocoplus, seed: 2, cal_selected_epoch: 3, critic_a: 10.089371, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocoplus_siglip2_b16_vcs_nuscore_s2_calAcc.pt", sha256: af71ea7bdb2a7ee7c3a36b4c611360a7fb4a93caa36521b7fb72d1dbdab5ad59}
+  - {id: JNU_refcocoplus_s0, method: JNU, dataset: refcocoplus, seed: 0, cal_selected_epoch: 3, critic_a: 10.095662, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocoplus_siglip2_b16_js_nuscore_s0_calAcc.pt", sha256: d08a2cce0d7edf53b62c778fff18cc51a250bee9269086989f119bf04e6f3b81}
+  - {id: JNU_refcocoplus_s1, method: JNU, dataset: refcocoplus, seed: 1, cal_selected_epoch: 3, critic_a: 10.092209, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocoplus_siglip2_b16_js_nuscore_s1_calAcc.pt", sha256: 85bc4fd654d6e126a0d0ee065ec2920f0d3ed8fdc46322468047469fc8231b93}
+  - {id: JNU_refcocoplus_s2, method: JNU, dataset: refcocoplus, seed: 2, cal_selected_epoch: 4, critic_a: 10.158823, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl2/refcocoplus_siglip2_b16_js_nuscore_s2_calAcc.pt", sha256: cb5393cb6e2c0269c1d93b2545c729ad47c51913b7f4a7df71fe1500f6b127bb}
+  - {id: D_refcocoplus_s0, method: D, dataset: refcocoplus, seed: 0, cal_selected_epoch: 4, critic_a: 10.848839, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcocoplus_siglip2_b16_distribution_softmax_s0_calAcc.pt", sha256: a7d4f6517a8317c7b17d486e136372badf597391ccd8ba10f00d900601f496d9}
+  - {id: D_refcocoplus_s1, method: D, dataset: refcocoplus, seed: 1, cal_selected_epoch: 5, critic_a: 11.058036, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcocoplus_siglip2_b16_distribution_softmax_s1_calAcc.pt", sha256: 3fa89f95d87fd720e725bd55ece773679a7bcdabc9cc8e2021a1ac99cf82d005}
+  - {id: D_refcocoplus_s2, method: D, dataset: refcocoplus, seed: 2, cal_selected_epoch: 3, critic_a: 10.573483, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcocoplus_siglip2_b16_distribution_softmax_s2_calAcc.pt", sha256: 6c0c0721b54f64008814973a5642f2a9be48f12823ee83ed9acea6ea84cbc5f3}
+  - {id: VQ_refcocoplus_s0, method: VQ, dataset: refcocoplus, seed: 0, cal_selected_epoch: 5, critic_a: 10.958282, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocoplus_siglip2_b16_vcs_qnorm_s0_calAcc.pt", sha256: 886745413d15fa172238c967353361b5028b10a176f6a28ea9191d9a41456974}
+  - {id: VQ_refcocoplus_s1, method: VQ, dataset: refcocoplus, seed: 1, cal_selected_epoch: 4, critic_a: 10.776917, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocoplus_siglip2_b16_vcs_qnorm_s1_calAcc.pt", sha256: 9f1c27eebcaecc215ae222a2426d6ceb21ec898df90479fc40eaff4e1ff24aaf}
+  - {id: VQ_refcocoplus_s2, method: VQ, dataset: refcocoplus, seed: 2, cal_selected_epoch: 5, critic_a: 10.979242, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocoplus_siglip2_b16_vcs_qnorm_s2_calAcc.pt", sha256: 9b58c49de8c30fc4e50a57c09d541879deac4adb7bff0fccb75d831d82a65beb}
+  - {id: JQ_refcocoplus_s0, method: JQ, dataset: refcocoplus, seed: 0, cal_selected_epoch: 4, critic_a: 10.760123, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocoplus_siglip2_b16_js_qnorm_s0_calAcc.pt", sha256: 74c07b2cccc7ee94b7ffdecd878f5613fcdd2c13d160f761ee8fdea2a2fe20f4}
+  - {id: JQ_refcocoplus_s1, method: JQ, dataset: refcocoplus, seed: 1, cal_selected_epoch: 5, critic_a: 10.965660, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocoplus_siglip2_b16_js_qnorm_s1_calAcc.pt", sha256: 8105b2cce29e4f2972b2014e4bdb58681994e73062775f5e496b00bca71c5e8b}
+  - {id: JQ_refcocoplus_s2, method: JQ, dataset: refcocoplus, seed: 2, cal_selected_epoch: 5, critic_a: 10.988279, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcocoplus_siglip2_b16_js_qnorm_s2_calAcc.pt", sha256: 19bb2fa1b5c80fdb567445921a90004d929f9ec9a450fb270106fde7607d09cf}
+  - {id: VCS_refcoco_s0, method: VCS, dataset: refcoco, seed: 0, cal_selected_epoch: 8, critic_a: 10.260986, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_vcs_s0_calAcc.pt", sha256: bb6d64333ce59ae8ece3ffe1aed4a13fc450a65aa3eff7a62aacc32037a635dd}
+  - {id: VCS_refcoco_s1, method: VCS, dataset: refcoco, seed: 1, cal_selected_epoch: 10, critic_a: 10.271370, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_vcs_s1_calAcc.pt", sha256: b7f55ab80601ac624d8ecc66aa3e43c07f21ce13619d25f28849c1f2e252c576}
+  - {id: VCS_refcoco_s2, method: VCS, dataset: refcoco, seed: 2, cal_selected_epoch: 7, critic_a: 10.223241, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_vcs_s2_calAcc.pt", sha256: c4a7ca78b7c14eb8bd9ff940a3ea3c30a622551d6117861bd7502bfba76db869}
+  - {id: JS_refcoco_s0, method: JS, dataset: refcoco, seed: 0, cal_selected_epoch: 8, critic_a: 10.280591, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_js_s0_calAcc.pt", sha256: cb8f79af4c185ff09fd2a7f18571c120c3ca85b8e8ef99d43c208507f35e727e}
+  - {id: JS_refcoco_s1, method: JS, dataset: refcoco, seed: 1, cal_selected_epoch: 8, critic_a: 10.271879, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_js_s1_calAcc.pt", sha256: db0a6103cf2352f85616b62f2b860a2c8fd0bb6a99deafa3d819fd6557475ec8}
+  - {id: JS_refcoco_s2, method: JS, dataset: refcoco, seed: 2, cal_selected_epoch: 4, critic_a: 10.116096, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_js_s2_calAcc.pt", sha256: 89e50603b9614a90a78e2cbd4efcf18e7513849579b1a7df0f8e9d55dad46cab}
+  - {id: E_refcoco_s0, method: E, dataset: refcoco, seed: 0, cal_selected_epoch: 5, critic_a: 11.049473, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_softmax_s0_calAcc.pt", sha256: 1e2d2aaa8be23e1d1b49b1469f160122ee8c1e0b4e991d2f19e317c362f56012}
+  - {id: E_refcoco_s1, method: E, dataset: refcoco, seed: 1, cal_selected_epoch: 7, critic_a: 11.350436, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_softmax_s1_calAcc.pt", sha256: c8f74074bd102d0919564a9537801dda3c6f1846cdf7fbe49df12764f9e79c7e}
+  - {id: E_refcoco_s2, method: E, dataset: refcoco, seed: 2, cal_selected_epoch: 5, critic_a: 11.060936, path: "/projects/EEG-foundation-model/yinghao/models/r4_vl1/refcoco_siglip2_b16_softmax_s2_calAcc.pt", sha256: ca4003acfa8a347ed66597f4072209f2766601f97823a8b0d83a23249009b7cb}
+  - {id: D_refcoco_s0, method: D, dataset: refcoco, seed: 0, cal_selected_epoch: 9, critic_a: 11.245533, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcoco_siglip2_b16_distribution_softmax_s0_calAcc.pt", sha256: 62df6eb8aff513522bca8d0a037b41d91c5c2b052e400ed139696a4e256f6828}
+  - {id: D_refcoco_s1, method: D, dataset: refcoco, seed: 1, cal_selected_epoch: 8, critic_a: 11.213089, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcoco_siglip2_b16_distribution_softmax_s1_calAcc.pt", sha256: dd0af5eccf5b99bbd4d20cfaabc2358516640949e43d3b6064e241e545893544}
+  - {id: D_refcoco_s2, method: D, dataset: refcoco, seed: 2, cal_selected_epoch: 9, critic_a: 11.225618, path: "/projects/EEG-foundation-model/yinghao/models/r5_dist/refcoco_siglip2_b16_distribution_softmax_s2_calAcc.pt", sha256: 5142fb961379b220d31c5f3c40b5152cfb3218cafb443f2ec8cbfe1f073cacc7}
+  - {id: VQ_refcoco_s0, method: VQ, dataset: refcoco, seed: 0, cal_selected_epoch: 8, critic_a: 11.143245, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcoco_siglip2_b16_vcs_qnorm_s0_calAcc.pt", sha256: 4865ccca16254b0ae596f0f524eb67aa5fe994a4f391141d2da171902149373c}
+  - {id: VQ_refcoco_s1, method: VQ, dataset: refcoco, seed: 1, cal_selected_epoch: 8, critic_a: 11.138735, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcoco_siglip2_b16_vcs_qnorm_s1_calAcc.pt", sha256: e85fe01e4ec34227e977fb7125386bbfcc07be333170658b5e6f974ef967de42}
+  - {id: VQ_refcoco_s2, method: VQ, dataset: refcoco, seed: 2, cal_selected_epoch: 8, critic_a: 11.137822, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcoco_siglip2_b16_vcs_qnorm_s2_calAcc.pt", sha256: 4b68114dc1845f86f73f6204ceb74197a84fc2e040e713a39ae31aa0d7249022}
+  - {id: JQ_refcoco_s0, method: JQ, dataset: refcoco, seed: 0, cal_selected_epoch: 7, critic_a: 11.099877, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcoco_siglip2_b16_js_qnorm_s0_calAcc.pt", sha256: 2f0ef9eea3dde35ca2cb10c9dcf59c3b602885d9bac6578c6af7677b7c658e1c}
+  - {id: JQ_refcoco_s1, method: JQ, dataset: refcoco, seed: 1, cal_selected_epoch: 9, critic_a: 11.182296, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcoco_siglip2_b16_js_qnorm_s1_calAcc.pt", sha256: c831787f93a7bfa03ac3ee2bd1b16adc338239bb716108bb5300b1f5feba7fc0}
+  - {id: JQ_refcoco_s2, method: JQ, dataset: refcoco, seed: 2, cal_selected_epoch: 7, critic_a: 11.079220, path: "/projects/EEG-foundation-model/yinghao/models/r5_qnorm/refcoco_siglip2_b16_js_qnorm_s2_calAcc.pt", sha256: bd91b4a3ce713457015ac405705c91c7e22a65fb0a12cda3a1a70b6323c549f7}
+rows:   # 153 rows = checkpoint x official split x rank rule
+  - {row: "D|refcoco_testA|s0", model: D_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "D|refcoco_testA|s1", model: D_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "D|refcoco_testA|s2", model: D_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "E|refcoco_testA|s0", model: E_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "E|refcoco_testA|s1", model: E_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "E|refcoco_testA|s2", model: E_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "JQ|refcoco_testA|s0", model: JQ_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "JQ|refcoco_testA|s1", model: JQ_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "JQ|refcoco_testA|s2", model: JQ_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "JS|refcoco_testA|s0", model: JS_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "JS|refcoco_testA|s1", model: JS_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "JS|refcoco_testA|s2", model: JS_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "VCS|refcoco_testA|s0", model: VCS_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "VCS|refcoco_testA|s1", model: VCS_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "VCS|refcoco_testA|s2", model: VCS_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "VQ|refcoco_testA|s0", model: VQ_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "VQ|refcoco_testA|s1", model: VQ_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "VQ|refcoco_testA|s2", model: VQ_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "D|refcoco_testB|s0", model: D_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "D|refcoco_testB|s1", model: D_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "D|refcoco_testB|s2", model: D_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "E|refcoco_testB|s0", model: E_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "E|refcoco_testB|s1", model: E_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "E|refcoco_testB|s2", model: E_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "JQ|refcoco_testB|s0", model: JQ_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "JQ|refcoco_testB|s1", model: JQ_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "JQ|refcoco_testB|s2", model: JQ_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "JS|refcoco_testB|s0", model: JS_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "JS|refcoco_testB|s1", model: JS_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "JS|refcoco_testB|s2", model: JS_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "VCS|refcoco_testB|s0", model: VCS_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "VCS|refcoco_testB|s1", model: VCS_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "VCS|refcoco_testB|s2", model: VCS_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "VQ|refcoco_testB|s0", model: VQ_refcoco_s0, rank: {"kind": "cos"}}
+  - {row: "VQ|refcoco_testB|s1", model: VQ_refcoco_s1, rank: {"kind": "cos"}}
+  - {row: "VQ|refcoco_testB|s2", model: VQ_refcoco_s2, rank: {"kind": "cos"}}
+  - {row: "D|refcocog_test|s0", model: D_refcocog_s0, rank: {"kind": "cos"}}
+  - {row: "D|refcocog_test|s1", model: D_refcocog_s1, rank: {"kind": "cos"}}
+  - {row: "D|refcocog_test|s2", model: D_refcocog_s2, rank: {"kind": "cos"}}
+  - {row: "E|refcocog_test|s0", model: E_refcocog_s0, rank: {"kind": "cos"}}
+  - {row: "E|refcocog_test|s1", model: E_refcocog_s1, rank: {"kind": "cos"}}
+  - {row: "E|refcocog_test|s2", model: E_refcocog_s2, rank: {"kind": "cos"}}
+  - {row: "E+F|refcocog_test|s0", model: E_refcocog_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "E+F|refcocog_test|s1", model: E_refcocog_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "E+F|refcocog_test|s2", model: E_refcocog_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 0.5, "native": false}}
+  - {row: "JNU|refcocog_test|s0", model: JNU_refcocog_s0, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU|refcocog_test|s1", model: JNU_refcocog_s1, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU|refcocog_test|s2", model: JNU_refcocog_s2, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocog_test|s0", model: JNU_refcocog_s0, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "JNU+F|refcocog_test|s1", model: JNU_refcocog_s1, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocog_test|s2", model: JNU_refcocog_s2, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "JQ|refcocog_test|s0", model: JQ_refcocog_s0, rank: {"kind": "cos"}}
+  - {row: "JQ|refcocog_test|s1", model: JQ_refcocog_s1, rank: {"kind": "cos"}}
+  - {row: "JQ|refcocog_test|s2", model: JQ_refcocog_s2, rank: {"kind": "cos"}}
+  - {row: "JS|refcocog_test|s0", model: JS_refcocog_s0, rank: {"kind": "cos"}}
+  - {row: "JS|refcocog_test|s1", model: JS_refcocog_s1, rank: {"kind": "cos"}}
+  - {row: "JS|refcocog_test|s2", model: JS_refcocog_s2, rank: {"kind": "cos"}}
+  - {row: "JS+F|refcocog_test|s0", model: JS_refcocog_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JS+F|refcocog_test|s1", model: JS_refcocog_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JS+F|refcocog_test|s2", model: JS_refcocog_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VCS|refcocog_test|s0", model: VCS_refcocog_s0, rank: {"kind": "cos"}}
+  - {row: "VCS|refcocog_test|s1", model: VCS_refcocog_s1, rank: {"kind": "cos"}}
+  - {row: "VCS|refcocog_test|s2", model: VCS_refcocog_s2, rank: {"kind": "cos"}}
+  - {row: "VCS+F|refcocog_test|s0", model: VCS_refcocog_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 2.0, "native": false}}
+  - {row: "VCS+F|refcocog_test|s1", model: VCS_refcocog_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VCS+F|refcocog_test|s2", model: VCS_refcocog_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VNU|refcocog_test|s0", model: VNU_refcocog_s0, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU|refcocog_test|s1", model: VNU_refcocog_s1, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU|refcocog_test|s2", model: VNU_refcocog_s2, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU+F|refcocog_test|s0", model: VNU_refcocog_s0, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VNU+F|refcocog_test|s1", model: VNU_refcocog_s1, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VNU+F|refcocog_test|s2", model: VNU_refcocog_s2, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VQ|refcocog_test|s0", model: VQ_refcocog_s0, rank: {"kind": "cos"}}
+  - {row: "VQ|refcocog_test|s1", model: VQ_refcocog_s1, rank: {"kind": "cos"}}
+  - {row: "VQ|refcocog_test|s2", model: VQ_refcocog_s2, rank: {"kind": "cos"}}
+  - {row: "D|refcocoplus_testA|s0", model: D_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "D|refcocoplus_testA|s1", model: D_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "D|refcocoplus_testA|s2", model: D_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "E|refcocoplus_testA|s0", model: E_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "E|refcocoplus_testA|s1", model: E_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "E|refcocoplus_testA|s2", model: E_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "E+F|refcocoplus_testA|s0", model: E_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "E+F|refcocoplus_testA|s1", model: E_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "E+F|refcocoplus_testA|s2", model: E_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JNU|refcocoplus_testA|s0", model: JNU_refcocoplus_s0, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU|refcocoplus_testA|s1", model: JNU_refcocoplus_s1, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU|refcocoplus_testA|s2", model: JNU_refcocoplus_s2, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocoplus_testA|s0", model: JNU_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocoplus_testA|s1", model: JNU_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocoplus_testA|s2", model: JNU_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "JQ|refcocoplus_testA|s0", model: JQ_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "JQ|refcocoplus_testA|s1", model: JQ_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "JQ|refcocoplus_testA|s2", model: JQ_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "JS|refcocoplus_testA|s0", model: JS_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "JS|refcocoplus_testA|s1", model: JS_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "JS|refcocoplus_testA|s2", model: JS_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "JS+F|refcocoplus_testA|s0", model: JS_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JS+F|refcocoplus_testA|s1", model: JS_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JS+F|refcocoplus_testA|s2", model: JS_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VCS|refcocoplus_testA|s0", model: VCS_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "VCS|refcocoplus_testA|s1", model: VCS_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "VCS|refcocoplus_testA|s2", model: VCS_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "VCS+F|refcocoplus_testA|s0", model: VCS_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 0.5, "native": false}}
+  - {row: "VCS+F|refcocoplus_testA|s1", model: VCS_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VCS+F|refcocoplus_testA|s2", model: VCS_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VNU|refcocoplus_testA|s0", model: VNU_refcocoplus_s0, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU|refcocoplus_testA|s1", model: VNU_refcocoplus_s1, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU|refcocoplus_testA|s2", model: VNU_refcocoplus_s2, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU+F|refcocoplus_testA|s0", model: VNU_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VNU+F|refcocoplus_testA|s1", model: VNU_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VNU+F|refcocoplus_testA|s2", model: VNU_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "VQ|refcocoplus_testA|s0", model: VQ_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "VQ|refcocoplus_testA|s1", model: VQ_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "VQ|refcocoplus_testA|s2", model: VQ_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "D|refcocoplus_testB|s0", model: D_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "D|refcocoplus_testB|s1", model: D_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "D|refcocoplus_testB|s2", model: D_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "E|refcocoplus_testB|s0", model: E_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "E|refcocoplus_testB|s1", model: E_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "E|refcocoplus_testB|s2", model: E_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "E+F|refcocoplus_testB|s0", model: E_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "E+F|refcocoplus_testB|s1", model: E_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "E+F|refcocoplus_testB|s2", model: E_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JNU|refcocoplus_testB|s0", model: JNU_refcocoplus_s0, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU|refcocoplus_testB|s1", model: JNU_refcocoplus_s1, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU|refcocoplus_testB|s2", model: JNU_refcocoplus_s2, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocoplus_testB|s0", model: JNU_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocoplus_testB|s1", model: JNU_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "JNU+F|refcocoplus_testB|s2", model: JNU_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "JQ|refcocoplus_testB|s0", model: JQ_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "JQ|refcocoplus_testB|s1", model: JQ_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "JQ|refcocoplus_testB|s2", model: JQ_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "JS|refcocoplus_testB|s0", model: JS_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "JS|refcocoplus_testB|s1", model: JS_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "JS|refcocoplus_testB|s2", model: JS_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "JS+F|refcocoplus_testB|s0", model: JS_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JS+F|refcocoplus_testB|s1", model: JS_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "JS+F|refcocoplus_testB|s2", model: JS_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VCS|refcocoplus_testB|s0", model: VCS_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "VCS|refcocoplus_testB|s1", model: VCS_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "VCS|refcocoplus_testB|s2", model: VCS_refcocoplus_s2, rank: {"kind": "cos"}}
+  - {row: "VCS+F|refcocoplus_testB|s0", model: VCS_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 0.5, "native": false}}
+  - {row: "VCS+F|refcocoplus_testB|s1", model: VCS_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VCS+F|refcocoplus_testB|s2", model: VCS_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "test_time_fusion", "lambda": 1.0, "native": false}}
+  - {row: "VNU|refcocoplus_testB|s0", model: VNU_refcocoplus_s0, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU|refcocoplus_testB|s1", model: VNU_refcocoplus_s1, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU|refcocoplus_testB|s2", model: VNU_refcocoplus_s2, rank: {"kind": "score_fusion", "lambda": 1.0, "native": true}}
+  - {row: "VNU+F|refcocoplus_testB|s0", model: VNU_refcocoplus_s0, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VNU+F|refcocoplus_testB|s1", model: VNU_refcocoplus_s1, rank: {"kind": "score_fusion", "label": "posthoc_task_calibration", "lambda": 2.0, "native": false}}
+  - {row: "VNU+F|refcocoplus_testB|s2", model: VNU_refcocoplus_s2, rank: {"kind": "score_fusion", "label": "native", "lambda": 1.0, "native": true}}
+  - {row: "VQ|refcocoplus_testB|s0", model: VQ_refcocoplus_s0, rank: {"kind": "cos"}}
+  - {row: "VQ|refcocoplus_testB|s1", model: VQ_refcocoplus_s1, rank: {"kind": "cos"}}
+  - {row: "VQ|refcocoplus_testB|s2", model: VQ_refcocoplus_s2, rank: {"kind": "cos"}}
+rows_without_checkpoint_or_lambda:
+  - {method: "JNU", dataset: refcoco, seed: 0, reason: "never trained (no checkpoint)"}
+  - {method: "JNU", dataset: refcoco, seed: 1, reason: "never trained (no checkpoint)"}
+  - {method: "JNU", dataset: refcoco, seed: 2, reason: "never trained (no checkpoint)"}
+  - {method: "VNU", dataset: refcoco, seed: 0, reason: "never trained (no checkpoint)"}
+  - {method: "VNU", dataset: refcoco, seed: 1, reason: "never trained (no checkpoint)"}
+  - {method: "VNU", dataset: refcoco, seed: 2, reason: "never trained (no checkpoint)"}
+  - {method: "D+F", dataset: refcoco, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcoco, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcoco, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "E+F", dataset: refcoco, seed: 0, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "E+F", dataset: refcoco, seed: 1, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "E+F", dataset: refcoco, seed: 2, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "JQ+F", dataset: refcoco, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcoco, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcoco, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JS+F", dataset: refcoco, seed: 0, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "JS+F", dataset: refcoco, seed: 1, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "JS+F", dataset: refcoco, seed: 2, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "VCS+F", dataset: refcoco, seed: 0, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "VCS+F", dataset: refcoco, seed: 1, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "VCS+F", dataset: refcoco, seed: 2, reason: "no lambda_CAL (R5-10 F1 covered RefCOCOg / RefCOCO+ only)"}
+  - {method: "VQ+F", dataset: refcoco, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcoco, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcoco, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcocog, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcocog, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcocog, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcocog, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcocog, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcocog, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcocog, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcocog, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcocog, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcocoplus, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcocoplus, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "D+F", dataset: refcocoplus, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcocoplus, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcocoplus, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "JQ+F", dataset: refcocoplus, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcocoplus, seed: 0, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcocoplus, seed: 1, reason: "no lambda_CAL (not part of R5-10 F1)"}
+  - {method: "VQ+F", dataset: refcocoplus, seed: 2, reason: "no lambda_CAL (not part of R5-10 F1)"}
