@@ -69,3 +69,30 @@ VCS − E = (VCS − VQ) + (VQ − D) + (D − E)
   definitions as R5-20.
 - Paper (owner's decision): the three-dataset decomposition is the clearest single result of the r5 line.  The normalized critic is a candidate
   method component (KLIEP-normalized VCS critic).  The remaining criterion gap is the honest limit.
+
+## Addendum — R5-20 diagnostics on RefCOCO (results-only commit effb2c7; reports/R5/diag_refcoco/)
+- **Inputs:** DEV scoring of all RefCOCO checkpoints (R5-X1 VCS / JS / E; R5-QX1 VQ / JQ / D; zero-shot).  Every rescored accuracy matches its run
+  (G1 / G2 gates pass).
+- **Definitions:** the R5-20 diagnostics with unchanged definitions, written to a separate directory (`--out-suffix _refcoco`).
+- **Not available:** the R4-VL2 ν models were never trained on RefCOCO, so they are listed as missing.
+
+**Nested distractors** (same query, same target box; accuracy difference × 100; 95 % image bootstrap; 1 053 images):
+| contrast | k = 1 | 3 | 7 | 15 | 31 | all |
+|---|---|---|---|---|---|---|
+| VCS − E | −0.69 [−0.88, −0.51] | −1.51 | −2.59 | −4.17 | −6.43 | −8.88 [−10.09, −7.66] |
+| **VQ − E** | **+0.00 [−0.13, +0.15]** | −0.04 [−0.31, +0.21] | −0.19 [−0.55, +0.18] | −0.49 [−0.99, +0.03] | −0.85 [−1.51, −0.19] | −1.40 [−2.23, −0.53] |
+| VQ − VCS | +0.69 | +1.46 | +2.40 | +3.68 | +5.58 | +7.49 [+6.35, +8.60] |
+| D − E | +0.18 | +0.32 | +0.42 | +0.43 | +0.54 | +0.85 [+0.11, +1.69] |
+
+**Gradient allocation** (share of the invalid-candidate |gradient| on the model's own strongest wrong box):
+- VCS 0.490, JS 0.480 → VQ 0.582, JQ 0.578.
+- Softmaxes: D 0.643, E 0.708.
+- Saturated wrong boxes: ≤ 0.6 % for every model.
+
+**Readings (descriptive):**
+- **On RefCOCO the pairwise deficit exists already against a single distractor** (−0.69, larger than RefCOCOg's −0.28 and RefCOCO+'s −0.19).
+  It grows to −8.88 against all proposals.
+- **The normalized critic ties set softmax up to 15 nested distractors** (intervals contain 0).  It trails only against 31 or more:
+  −0.85 at 31 and −1.40 against all.
+- **The same pattern holds on all three datasets.**  Normalization removes the growth of the deficit with the number of competitors and moves
+  gradient onto the strongest wrong candidate.  What remains concentrates at the largest candidate sets.
