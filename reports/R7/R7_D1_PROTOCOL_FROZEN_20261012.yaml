@@ -422,3 +422,10 @@ d1_20_execution_note_E4: >
   vcs 3e-4 (CAL Spearman 0.0920 vs 0.0874), logistic 1e-4 (0.0961 vs 0.0922), direct 1e-4 (0.1685 vs 0.1660); the logistic / direct choices
   equal an earlier computation with the planner's own functions (scripts/r7_d1_20_early_stage2.py -> lr_choice_early_E4.json), made for E4's
   early partial submission, which became unnecessary.  No unit, rate or analysis changed.
+d1_20_execution_note_E5: >
+  2026-10-12 (coordinator), during D1-20 stage 2: three stage-2 units (logistic 1e-4 s2, direct 1e-4 s1 and s2) ran out of GPU memory on an L40S
+  (44 GB; ~42 GB in use, a further 2.7 GiB requested in the backward pass) within minutes of starting.  All six stage-1 units had run on
+  96 GB RTX PRO 6000 or 94 GB H100 NVL; the smoke that timed L40S used the small probe fixture, whose batches are shorter than real-data batches.
+  Fix (no analysis change; same units, data, recipe, seeds and rates): D1-20 units run only on RTX6000PRO,H100.  The six still-pending units
+  were updated (scontrol Partition=RTX6000PRO,H100); the three failed units were resubmitted with that partition and restart from scratch (none
+  had reached its first checkpoint), so every unit runs on one hardware class.
