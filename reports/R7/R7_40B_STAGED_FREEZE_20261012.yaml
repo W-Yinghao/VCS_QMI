@@ -26,3 +26,9 @@ execution_note_40b_1: >
   objectives and its GPU check matched CPU fp64 within 6.1e-6 (rel. loss / gradients, as on L40S).  Each unit still runs on one GPU; units may
   differ in GPU type, as D1-20's did (RTX / H100).  The pending cache job was cancelled and the 40b driver (pid 1132352) stopped and relaunched
   with SEL_PARTITION=RTX6000PRO,H100,L40S CACHE_PARTITION=RTX6000PRO,H100,L40S.  No analysis change.
+execution_note_40b_2: >
+  2026-10-12 ~21:00 UTC, coordinator: selector unit direct_lr0.0001_s0 (job 1036397, node57, L40S) ran out of GPU memory (43.7 GiB in use,
+  7.5 GiB more requested): the 25.6 GB smoke measurement did not cover the full-size run for the direct objective (the E5 lesson again).
+  Every 40b selector unit now runs on RTX6000PRO,H100 only (>= 80 GB): the pending unit was moved, and slurm/part_updater.sh (PAT
+  '^r7d40s_', 5 s) moves the driver's retry and later units before they start (the driver is not restarted, which would duplicate running
+  units).  The failed unit is retried by the driver (resuming from its last checkpoint if any).  No analysis change.
