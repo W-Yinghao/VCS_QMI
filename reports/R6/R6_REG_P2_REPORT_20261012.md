@@ -65,3 +65,21 @@ Reading rule as in REG-P1: a difference counts as detected only when both interv
 ## 5. Next
 - **Addendum:** CoMIR warp-then-encode rows and the CoMIR wte − CoMIR sensitivity contrast.
 - **r6 synthesis (R6-06):** REG-P1 / P2 and GAIN-P1 (AV-MNIST, CREMA-D).
+
+## Addendum — CoMIR warp-then-encode sensitivity rows (complete aggregate, job 1035096; results-only commit after 335bce1)
+| | < 42 px | < 9 px | p90 (px) | failures (energy) | s / registration |
+|---|---|---|---|---|---|
+| CoMIR encode-once (primary row) | 90.0 ± 1.1 | 62.0 ± 1.9 | 93.6 | 96 (94) | 0.27 |
+| CoMIR warp-then-encode (sensitivity, DEV only) | 86.4 ± 4.6 | 60.2 ± 3.7 | 191.1 | 131 (102) | 10.99 |
+
+- **CoMIR wte − CoMIR:** −3.6 at < 42 px (seed [−13.5, +6.2]; image [−6.2, −1.4]) and −1.8 at < 9 px (seed [−15.4, +11.9]; image
+  [−5.5, +1.9]).  Under the two-interval rule there is no detectable difference.  The point estimates and the < 42 px image interval point to
+  encode-once being at least as good.
+- **The primary encode-once row did not disadvantage CoMIR.**  Re-encoding each warped candidate is about 40× slower and somewhat less reliable,
+  consistent with CoMIR's rotation-equivariant training.
+- **VCS − CoMIR wte:** +7.8 at < 42 px (seed [−6.2, +21.8]) and +8.0 at < 9 px (seed [−2.9, +18.9]).  Seed intervals contain 0 → no
+  detectable difference.
+- **Bootstrap note.**  In the complete table the image-bootstrap bounds of the < 9 px contrasts differ from §1 by up to 1 point.  Their point
+  estimates and seed intervals are identical.  The aggregator draws all contrasts' bootstrap resamples from one seeded stream, and the
+  sensitivity contrasts are inserted before the < 9 px block.  This is Monte-Carlo variation; no reading changes.  §1 quotes the primary-run
+  values; the committed table is the complete run.
