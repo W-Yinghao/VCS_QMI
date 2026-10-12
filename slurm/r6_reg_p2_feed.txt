@@ -1,0 +1,16 @@
+# R6 REG-P2 rigid pilot (reports/R6/R6_REG_P2_PROTOCOL_*_20261011.yaml) — job list; submitted by slurm/r6_reg_p2_submit.sh (CAP 27) after the
+# protocol is frozen.  No training: every registration reads REG-P1's cache and trained runs (outputs/R6_REG, read only).  No afterok chains:
+# each job is gated on the files it reads (REG-P1's train.json / comir.json are written at the end of a run).
+# stage 0 (CPU): rigid perturbations (needs REG-P1's manifest.json + cache)
+slurm/r6_reg_p2_cpu.sbatch perturb
+# stage 1 (GPU): deterministic references; after perturbations.json
+slurm/r6_reg_p2_gpu.sbatch register --method mi
+slurm/r6_reg_p2_gpu.sbatch register --method nmi
+slurm/r6_reg_p2_gpu.sbatch register --method kernel --seed 0
+# stage 2 (GPU): REG-P1 critics (CAL selection over their 12 checkpoints, DEV) and CoMIR models; each after REG-P1's run of the same seed
+slurm/r6_reg_p2_gpu.sbatch register --method {vcs,logistic,infonce} --seed {0,1,2}        # gate: outputs/R6_REG/runs/{objective}_s{seed}/train.json
+slurm/r6_reg_p2_gpu.sbatch register --method comir --seed {0,1,2}                         # gate: outputs/R6_REG/runs/comir_s{seed}/comir.json
+# stage 2b (GPU, last; COMIR_WTE=0 skips): CoMIR warp-then-encode sensitivity row, DEV only, 12 h limit
+slurm/r6_reg_p2_gpu.sbatch register --method comir_wte --seed {0,1,2}                     # after the primary rows (comir.json already present)
+# stage 3 (CPU): readings, once every registration job has left the queue
+slurm/r6_reg_p2_aggregate_cpu.sbatch

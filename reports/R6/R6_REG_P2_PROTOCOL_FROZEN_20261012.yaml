@@ -1,0 +1,116 @@
+# R6 REG-P2 — rigid (rotation + translation) follow-up of REG-P1 on BF/SHG.  FROZEN 2026-10-12 by the main session before any REG-P2 result
+# (implementation, 12 + 9 unit tests and CPU smokes on the REG-P1 smoke artefacts only).  REG-P1's ceiling readout was NOT triggered (CAL < 42 px:
+# MI / NMI 0.875, kernel 0.50); REG-P2 runs as the REG route's planned second stage (rigid family, CoMIR's ±30° test range) under the owner's
+# instruction to complete the package tasks.  Coordinator decisions of 2026-10-12 are folded in; see changelog and disclosure.
+protocol_id: R6-REG-P2
+status: frozen
+route: REG (reports/R6/R6_ROUTE_DECISION.md); REG-P1 pre_registered_ceiling_readout -> rigid family
+go_ahead: owner standing authorization 2026-10-11 (useful experiments on free GPUs); freeze and launch by the coordinator
+question: >
+  Under rotation + translation, does the frozen learned local-relation energy F_T(θ, t) = J(T; P_T, Q_T) recover known rigid transforms more
+  reliably than per-image MI / NMI, the same-target kernel critic and CoMIR representations, all under one shared optimizer?  (REG-P1's
+  translation-only task risks a ceiling: in its smoke, MI and CoMIR were near-perfect at < 9 px.)
+data: identical to REG-P1 (Zenodo 4550300 train / validation1 / validation2; test split closed and untouched; FIT 32 / CAL 8 / DEV 32; images are the units)
+reuse_no_retraining: >
+  Every model is REG-P1's, read from outputs/R6_REG (cache, manifest, runs/{vcs,logistic,infonce}_s{0,1,2}/ckpt_*.pt — all 12 checkpoints —,
+  runs/comir_s{0,1,2}/comir.pt, the kernel fit recomputed by REG-P1's own deterministic fit_kernel).  No retraining is needed because each model is
+  used in the frame it was trained for: the critics never see rotated descriptors (warp-then-encode), and CoMIR's representations are trained for
+  rotation equivariance (p4 + continuous rotation augmentation), which is exactly what its encode-once use relies on.  Retraining would be needed
+  only for an encode-once use of the critics (descriptors sampled at rotated positions), which this protocol does not make.
+transform:
+  family: rigid, T_{θ,t}(z) = R(θ)(z − c) + c + t (reference -> moving coordinates), c = image centre (255.5, 255.5) at 512 px
+  perturbations: >
+    10 per CAL / DEV image: t* = REG-P1's translation for the same image and index (strata 0–17 / 17–34 / 34–51 px at 512 by i mod 3, so every
+    REG-P2 registration has a REG-P1 twin with the same translation); θ* uniform on [−30°, 30°] (CoMIR's test range), seeded by sha256 of
+    "R6-REG-P2|core"; SHG is the moving image
+  moving_image: >
+    V_p = V ∘ T*⁻¹ on the 512 grid, built once per perturbation from the ×4-downsampled raw SHG intensity (bilinear, reflection outside the
+    image), then each input path's REG-P1 preprocessing on the image as given (median / IQR; log1p first for the learned path).  Every method
+    sees (U, V_p) only — no method reads the unperturbed V
+  allowed_set: "|θ| <= 30°, |t| <= 51 px at 512 (search set = perturbation set, as REG-P1)"
+  note: CoMIR's test protocol uses ±100 px per axis on 834-px crops; REG-P1's translations (up to 204 full-resolution px) are kept for pairing
+support: >
+  Ω = disk of radius 129 px about c (REG-P1: square [117, 394)²).  For every allowed (θ, t) and (θ*, t*) every sample stays inside V:
+  129 (Ω) + 16√2 (critic receptive field 15 px + bilinear neighbour) + 51 (|t|) + 51 (|t*|) + √2 (bilinear neighbour of V_p's construction)
+  = 255.0 <= 255.5; kernel patches (+4√2) and MI samples are inside that bound; checked analytically and numerically (tests)
+laws: >
+  x uniform (continuous) on the disk Ω; P_T = (U(x), V_p(T(x))), Q_T = (U(x), V_p(T(x_π))) with a fixed within-scene permutation π; 4 096
+  positions per (image, perturbation), fixed by sha256("R6-REG-P2|pos|core|i") and shared by every method
+energies:   # one per method, each in the frame its model was trained for; maximised
+  critics: >
+    VCS / logistic / InfoNCE (REG-P1 runs, 3 seeds): warp-then-encode — for a candidate (θ, t) the moving log1p image is resampled on the
+    reference box [110, 401]² (Ω + receptive field), encoded by the REG-P1 SHG encoder, sampled at x; BF descriptors encoded once on the full
+    image; F = J(tanh f).  The coarse grid encodes the rotation-only warp once per angle on [59, 452]² and applies translations as descriptor
+    shifts R(−θ) t (translation equivariance, exactly REG-P1's approximation); refinement and every reported F are exact (tests: grid mode =
+    exact where both are exact; identity energy = REG-P1's)
+  comir: >
+    primary row, encode-once (CoMIR's published use): REG-P1's trained CoMIR (3 seeds) encodes the BF RGB reference once and V_p's log1p image
+    once per perturbation; F = −MSE between latents at x and T(x) (bilinear); labelled "CoMIR features + our optimiser", not CoMIR's SIFT / α-AMD
+  comir_wte: >
+    secondary sensitivity row "CoMIR warp-then-encode" (same 3 CoMIR models, DEV only — CoMIR selects nothing on CAL): for a candidate (θ, t)
+    the whole moving log1p image is resampled into the 512 reference frame (bilinear, reflection outside; CoMIR's receptive field is not local,
+    so no sub-box) and encoded by CoMIR's SHG network; F = −MSE of latents at x.  Grid: the rotation-only warp encoded once per angle,
+    translations as latent shifts R(−θ) t (the critics' machinery); refinement exact (backpropagation through the DenseUNet, activation
+    checkpointing off — same values).  Test: at θ = 0, t = 0 it equals the encode-once energy up to interpolation; grid = exact at t = 0
+  mi_nmi: REG-P1's soft 64-bin MI / NMI on luminance / intensity, V_p sampled at T(x); fixed per-(image, perturbation) range (0.5–99.5 percentiles of U and V_p)
+  kernel: REG-P1's closed-form RFF kernel critic (fit on FIT at the identity, recomputed deterministically); 9 × 9 moving patches sampled at T(x + δ) (warp-then-extract)
+optimizer: >
+  identical for every energy — grid θ ∈ {−30°, −27°, …, 30°} (21) × REG-P1's 4-px translation grid over |t| <= 51 (508) = 10 668 candidates;
+  best 3 starts refined by 100 Adam steps (lr 0.5) on (u, ty, tx) with u = θ·ρ, ρ = 91.2 px (RMS radius of Ω, so u is the mean displacement of
+  Ω in px); after every step θ is clamped to ±30° and t projected onto the disk; final = best exact energy among the 3
+metrics:
+  primary: per image, success rate at < 42 px of CoMIR's mean corner error (four corners of the central 834 × 834 full-resolution patch, i.e. ±104.125 px at 512 about c, × 4); image-macro over DEV
+  secondary: >
+    success < 9 px; median / p90 corner error; median rotation error (°) and translation error at the centre (full-resolution px); success by
+    translation stratum and by |θ*| bin (0–10 / 10–20 / 20–30°); failure attribution (F at the estimate >= F at the truth -> energy failure, else
+    search failure); REG-P1 -> REG-P2 change per method (same translations); runtime per registration; exact F profiles along θ (±10°, 1°) and x
+    (±40 px, 2 px) for 5 DEV images, inside the allowed set
+  scale: < 42 px = a pure rotation error < 4.09° or a pure translation error < 10.5 px at 512; < 9 px = < 0.88° or < 2.25 px
+selection: >
+  on REG-P2's CAL (8 images × 10 rigid perturbations), lexicographic, pre-specified before any REG-P2 result (coordinator decision
+  2026-10-12; REG-P1 keeps its frozen rule): best CAL success < 42 px, then success < 9 px, then lower median corner error, then the earliest
+  checkpoint (critics: all 12 REG-P1 checkpoints re-selected, no reuse of REG-P1's choice) / the smaller multiplier (kernel: {0.5, 1, 2} ×
+  median heuristic).  CoMIR (both rows) / MI / NMI: none.  Every candidate's CAL success < 42, < 9 and median error is recorded
+statistics: as REG-P1 — mean ± sd over seeds; contrasts paired by seed and image (VCS − MI, − NMI, − kernel, − logistic, − InfoNCE, − CoMIR; secondary VCS − CoMIR wte and the sensitivity contrast CoMIR wte − CoMIR) with 95 % t over the 3 seeds and an image bootstrap (2 000, indices shared across methods), at < 42 px and at < 9 px
+primary_contrasts: [VCS − MI (success < 42 px), VCS − CoMIR features (success < 42 px)]
+wording_fixed:
+  - "interval containing 0 -> no detectable difference; above / below 0 -> VCS registers x more / fewer DEV images"
+  - "VCS ≈ logistic ≈ InfoNCE -> a learned-critic class effect; no VCS-specific claim (package docs/04 §8)"
+  - "a stronger CoMIR is reported as is; the baseline is never weakened"
+  - "REG-P1 critics reused frozen; REG-P2 measures transfer of the same energies to a harder transform class, not a retuned method"
+pre_registered_ceiling_readout: >
+  (accepted 2026-10-12.)  If every method reaches CAL success >= 0.95 at < 42 px (the DEV-only sensitivity row has no CAL), REG-P2 is reported as non-discriminative at < 42 px for rigid ±30° / 51 px, and the
+  < 9 px success (already a secondary readout here) is the reading that discriminates; no further transform family is opened without a new protocol
+budget: see budget_measured (CPU smoke) and the GPU estimate there
+official_test_access: false
+decisions_20261012:   # coordinator, before any REG-P2 result
+  - "selection tie-break: lexicographic (success < 42, success < 9, lower median corner error, earliest checkpoint / smaller multiplier); REG-P1 keeps its frozen rule.  v2 smoke: it chose ckpt_00200 (CAL 1.0 / 1.0 / 5.4 px) over the tied ckpt_00050 (1.0 / 0.5 / 9.8) and ckpt_00100 (1.0 / 0.75 / 4.9)"
+  - "ceiling rule: accepted as drafted"
+  - "CoMIR: primary row = encode-once; secondary sensitivity row = warp-then-encode with the critics' machinery (added: one energy kind + one test; DEV only)"
+  - "critic cost: re-selection over all 12 checkpoints on REG-P2's CAL (no reuse of REG-P1's choice)"
+  - "the 4-epoch CoMIR check (job 1034747) is a code check only, not used to choose rows"
+budget_measured: >
+  CPU smoke (job 1034745, nodecpu04, 8 threads per method, REG-P1 smoke artefacts: 2 CAL / 2 DEV images): s / registration MI 39.4,
+  NMI 38.6, kernel 196, VCS 87.7, CoMIR 1.34; peak RSS <= 1.6 GiB.  Registrations: MI / NMI 400 each, kernel 560 (3 multipliers on CAL),
+  each critic run 1 280 (12 checkpoints × 80 CAL + 320 DEV; 9 runs), CoMIR 400 per seed.  GPU estimate (REG-P1 MI measured 0.45 s / reg on an
+  RTX PRO 6000 against 6.6 s on CPU; REG-P2 batches the grid): about 1 s / reg (MI / NMI), 2 s (kernel), 1–3 s (critics), 0.5 s (CoMIR) ->
+  about 4–11 GPU-hours, three quarters in the critics' CAL selection; every job < 1.5 h on one GPU.  The first GPU jobs measure it.
+  CoMIR warp-then-encode row: 320 DEV registrations per seed, each 21 full-frame DenseUNet forwards (grid) + 300 forward + backward passes
+  (refinement); v2 smoke (job 1034808) 952 s / registration on 24 CPU threads, peak RSS 4.0 GiB; REG-P1's CoMIR training ran about 70×
+  faster on an RTX PRO 6000 than on 32 CPU threads -> about 10–15 s / registration, about 1–1.5 h per seed, about 3.5–5 GPU-hours for 3 seeds
+  (12 h job limit for slower L40S); queued after every primary row (driver switch COMIR_WTE=0 skips it).  v2 smoke, other rows (s / reg on
+  CPU, 6 rows sharing one node): MI 44, NMI 50, kernel 362, VCS 91, CoMIR 1.3
+code_checks: >
+  CoMIR encode-once path, job 1034747: REG-P1's code unchanged trained CoMIR for 4 recipe epochs on the 4 smoke FIT images (normalised learned
+  inputs; check root), then REG-P2 registered the 2 smoke CAL / 2 smoke DEV images: all 40 registrations < 9 px (median 3.0 px, 0.05°) — a
+  pipeline check (CoMIR's latents survive ±30° under encode-once), not used to choose rows
+changelog:
+  - "2026-10-11 v1: draft (rigid family, reuse without retraining, disk support r = 129, 21 × 508 grid, corner error, REG-P1 selection rule)"
+  - "2026-10-12 v2: coordinator decisions — lexicographic CAL selection (critics and kernel); ceiling rule accepted; CoMIR warp-then-encode sensitivity row added (DEV only; queued last; switch COMIR_WTE); critic re-selection over 12 checkpoints kept; the CoMIR check is a code check only"
+code: scripts/r6_reg_p2.py (imports scripts/r6_reg_pilot.py read-only), scripts/r6_reg_p2_aggregate.py (imports scripts/r6_reg_aggregate.py read-only), tests/test_r6_reg_p2.py, slurm/r6_reg_p2_{cpu,gpu,aggregate_cpu,tests_cpu,smoke_cpu}.sbatch, slurm/r6_reg_p2_feed.txt, slurm/r6_reg_p2_submit.sh
+disclosure_at_freeze: >
+  The coordinator's P2 decisions (lexicographic checkpoint tie-break, ceiling rule, CoMIR encode-once primary + warp-then-encode sensitivity row,
+  re-selection of all 12 checkpoints on P2's CAL) were taken on 2026-10-12 after REG-P1 seed-0 DEV results for MI, NMI, kernel, CoMIR and VCS
+  had been read.  None of the decisions uses those values: the tie-break was motivated by the smoke's tied checkpoints, the CoMIR rows by input
+  fairness, and re-selection by the task change.  The implementing agent saw only the MI result line, after the v1 draft was written.
+freeze_note: "2026-10-12 (main session): v2 frozen unchanged apart from the header / status and this disclosure; tests 21 / 21 and the v2 CPU smoke in job 1034808; driver slurm/r6_reg_p2_submit.sh (CAP 27; file gates instead of afterok chains)"
