@@ -1,0 +1,17 @@
+# R6 REG-P3 EPFL RGB-NIR rigid pilot (reports/R6/R6_REG_P3_PROTOCOL_*_20261012.yaml) — job list; submitted by slurm/r6_reg_p3_submit.sh (CAP 27)
+# after the protocol is frozen.  Root outputs/R6_REG_P3 (cache ≈ 0.95 GB for 420 windows).  No afterok chains: each job is gated on the files it
+# reads; a job that leaves the queue without its file stops the driver.  Comma lists below are program arguments (run in sequence inside one job),
+# never --export values.  The Zurich path and the CoMIR warp-then-encode row are not run.
+# stage 0 (CPU): base-alignment check, exclusions, near-duplicate units, roles, windows, cache (≈ 11 min), then the rigid perturbations (seconds)
+slurm/r6_reg_p3_cpu.sbatch prepare --dataset epfl --root outputs/R6_REG_P3
+slurm/r6_reg_p3_cpu.sbatch perturb --root outputs/R6_REG_P3                                   # gate: manifest.json
+# stage 1 (GPU): training on FIT (REG-P1 recipes); gate: manifest.json
+slurm/r6_reg_p3_gpu.sbatch train --objective vcs,logistic,infonce --seed {0,1,2} --root outputs/R6_REG_P3      # one job per seed
+slurm/r6_reg_p3_gpu.sbatch comir --seed 0,1,2 --root outputs/R6_REG_P3                                         # one job
+# stage 2 (GPU): registrations; gate: perturbations.json (+ the run's train.json / comir.json)
+slurm/r6_reg_p3_gpu.sbatch register --method mi,nmi --root outputs/R6_REG_P3
+slurm/r6_reg_p3_gpu.sbatch register --method kernel --seed 0 --root outputs/R6_REG_P3
+slurm/r6_reg_p3_gpu.sbatch register --method {vcs,logistic,infonce} --seed {0,1,2} --root outputs/R6_REG_P3   # gate: runs/{objective}_s{seed}/train.json
+slurm/r6_reg_p3_gpu.sbatch register --method comir --seed 0,1,2 --root outputs/R6_REG_P3                       # gate: runs/comir_s{0,1,2}/comir.json
+# stage 3 (CPU): readings, once every registration job has left the queue
+slurm/r6_reg_p3_aggregate_cpu.sbatch --root outputs/R6_REG_P3

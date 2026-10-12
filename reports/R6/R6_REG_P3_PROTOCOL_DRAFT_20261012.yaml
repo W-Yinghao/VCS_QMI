@@ -1,0 +1,270 @@
+# R6 REG-P3 — the REG-P2 rigid comparison on a second modality pair: EPFL RGB–NIR Scene (visible vs near-infrared photographs).  DRAFT v2
+# 2026-10-12, written before any REG-P3 registration on a DEV window.  It contains the implementation, unit tests, the data audit, a full prepare
+# check, and CPU / GPU smokes whose "DEV" is two relabelled CAL windows.  The coordinator's rules of 2026-10-12 are folded in (decisions_20261012).
+# The Zurich Summer version (draft v1) is NOT run and is kept below as zurich_not_run.  Nothing is frozen and nothing of the pilot is launched.
+protocol_id: R6-REG-P3
+status: draft
+route: REG (reports/R6/R6_ROUTE_DECISION.md); R6 synthesis §1 "what a stronger claim would need — a second modality pair"
+go_ahead: owner standing authorization 2026-10-11 (useful experiments on free GPUs); freeze and launch by the coordinator
+question: >
+  On a second modality pair (visible RGB vs near-infrared photographs of natural and urban scenes, two separate exposures), does the REG-P1 /
+  REG-P2 finding replicate?  That finding: learned local-relation critics (VCS, logistic, InfoNCE), trained on FIT and then frozen, give a rigid
+  registration energy F_T(θ, t) = J(T; P_T, Q_T) that recovers known rigid transforms more reliably than per-image MI / NMI, the same-target kernel
+  critic and CoMIR representations, all under REG-P2's shared optimiser.
+zurich_not_run:
+  status: "not run (coordinator, 2026-10-12): pan-sharpened bands share the panchromatic detail, so MI / NMI / kernel are at ceiling in the smokes (median 0.2–0.4 px); licence conflict CC BY vs CC BY-NC-ND noted"
+  data: >
+    Zurich Summer v1.0, Zenodo 5914759.  The zip's md5 c79a08ec… was verified.  20 GeoTIFF tiles, uint16, bands B, G, R, NIR,
+    principal-component pansharpened, 0.6 m pixels, 622 × 782 to 1 639 × 1 672 px.  No official split.  Licence: the Zenodo record says
+    CC BY 4.0; the README inside the archive says the images are DigitalGlobe property under CC BY-NC-ND 4.0.
+    v1 design: 17 units (tiles merged when closer than 50 m); DEV 8 units / 38 windows, CAL 4 / 9, FIT 5 (6.5 Mpx); P2's family on 512-px windows
+  comir_zurich_protocol: >
+    The CoMIR repository (commit 1750b11) has no Zurich registration protocol.
+    - train-zurich.ipynb trains on zh10 and logs a test loss on zh12 (lines 314–315).  Settings: 128-px crops, flips and ±180° rotation
+      (294–296), 3 latent channels (110), τ 0.1 (136), Adam (192), 5 epochs × batch 24 (180–182), DN / 2¹² (257), RGB = channels 0–2 and
+      NIR = 3 (114–119).  It then studies equivariance and stability on one zh12 patch (780–829).
+    - The evaluation scripts are BF/SHG only (scripts/Evaluation_RegSIFT.m lines 57, 71; scripts/MI_registration/Evaluation_RegMI.m lines 70, 87).
+    - competitors/pytorch-CycleGAN-and-pix2pix/commands.sh lines 13–35 use zurich_rotated / standard / whole folders that nothing in the
+      repository generates
+  smokes: "CPU smoke job 1035257 and GPU smoke job 1035258, both on 4 CAL windows (code checks): MI / NMI / kernel median 0.23–0.38 px, every registration < 2.25 px"
+  code: "scripts/r6_reg_p3.py prepare --dataset zurich (kept for the record; pinned by tests ZurichDataFacts); not run"
+data:
+  source: >
+    EPFL IVRL RGB–NIR Scene dataset (nirscene1).  Brown & Süsstrunk, "Multispectral SIFT for Scene Category Recognition", CVPR 2011.  Archive
+    nirscene1.zip, sha256 7c465a23…f746bc, downloaded 2026-09-27 (PROVENANCE.json); per-file sha256 in the manifest
+  path: /projects/EEG-foundation-model/yinghao/data/epfl_rgb_nir/nirscene1/<category>/<id>_rgb.tiff and <id>_nir.tiff (read only; untrusted download — read as bytes by REG-P1's strict TIFF reader, nothing executed)
+  content: >
+    477 scene pairs in 9 categories: country 52, field 51, forest 53, indoor 56, mountain 55, oldbuilding 51, street 50, urban 58, water 51.
+    Uncompressed 8-bit TIFF: RGB with 3 channels, NIR with 1 channel; RGB and NIR shapes match in every pair.  The images are the authors'
+    registered crops of the 1024 × 768 resized photographs: 1024 wide × 620–759 high, or 501–1023 wide × 768 high.  Each pair was taken as two
+    separate exposures of a modified SLR camera.  The alignment truth is the authors' SIFT registration, so residual error and scene motion
+    between the exposures are possible — hence the alignment check below
+  licence: "no licence or terms text on the dataset page (re-checked 2026-10-11).  The owner accepted the source for internal research (P60, 2026-09-27); publication needs the owner's OK"
+  official_split: "none — nothing to keep closed (official_test_access false); every kept pair is used in exactly one role"
+  prior_internal_evidence: >
+    P60 B-T2 (60 pairs; histogram MI / NMI vs a closed-form raw-pixel VCS energy; truth = the dataset registration).  MI succeeded
+    0.95 / 0.89 / 0.71 / 0.50 at perturbation ranges R = 5 / 10 / 20 / 30, so MI fails more at larger translations.  This is why EPFL was chosen
+    over the ceiling-bound Zurich data, and why REG-P2's translation strata are kept (disclosure)
+  checks:   # code: scripts/r6_reg_p3.py alignment_check / misaligned / near_duplicate_links — the data audit's computation ported verbatim; the full prepare check (job 1035339) reproduced the audit's lists exactly
+    alignment_rule: >
+      Gradient magnitudes of the RGB luminance (0.299 R + 0.587 G + 0.114 B) and of the NIR are taken at half resolution (2 × 2 area mean).  For
+      every integer shift (dy, dx) in [−6, 6]², the correlation of their z-scored interiors (8-px margin) is computed; the first maximum in scan
+      order (dy outer, dx inner) is the best shift.  A pair is EXCLUDED when max(|dy|, |dx|) >= 2 half-resolution px, i.e. >= 4 native px.
+      Excluded pairs are listed below (not silently dropped) and are never used in any role
+    size_rule: "a pair whose image is narrower or lower than the 512-px window cannot hold the registration image and is excluded (forced by the geometry; listed)"
+    near_duplicate_rule: >
+      Within a category, two scenes are linked when their z-scored luminance thumbnails (half resolution ÷ 16) have the same shape and correlate
+      > 0.9 (mean product).  Links are merged transitively into units, also through excluded scenes, so linked kept scenes stay together
+  exclusions:
+    alignment: [country/0015, country/0017, country/0018, country/0024, country/0040, country/0042, field/0029, field/0039, field/0040, field/0045,
+                field/0054, forest/0054, mountain/0028, mountain/0030, mountain/0051, mountain/0053, oldbuilding/0085, oldbuilding/0101, street/0016,
+                street/0028, street/0050, street/0051, street/0052, street/0054, water/0009, water/0024, water/0043, water/0045, water/0058,
+                water/0060, water/0062, water/0065, water/0083]
+    alignment_detail: >
+      best shift (dy, dx) in half-resolution px; correlation at zero → at the best shift:
+      country/0015 (−2, −6) 0.320 → 0.345; country/0017 (−2, −2) 0.257 → 0.278; country/0018 (0, 2) 0.337 → 0.364;
+      country/0024 (4, −2) 0.390 → 0.434; country/0040 (1, −2) 0.483 → 0.508; country/0042 (−2, −2) 0.250 → 0.314;
+      field/0029 (0, −4) 0.267 → 0.348; field/0039 (0, 2) 0.278 → 0.295; field/0040 (1, 2) 0.207 → 0.244;
+      field/0045 (0, 2) 0.298 → 0.336; field/0054 (−1, 2) 0.187 → 0.206; forest/0054 (−1, −3) 0.272 → 0.305;
+      mountain/0028 (1, −4) 0.214 → 0.249; mountain/0030 (1, −2) 0.497 → 0.544; mountain/0051 (−1, −3) 0.502 → 0.595;
+      mountain/0053 (1, −2) 0.507 → 0.567; oldbuilding/0085 (1, −2) 0.333 → 0.550; oldbuilding/0101 (−3, 2) 0.399 → 0.450;
+      street/0016 (0, −2) 0.408 → 0.469; street/0028 (0, −2) 0.478 → 0.569; street/0050 (−1, 3) 0.365 → 0.468;
+      street/0051 (−1, −2) 0.506 → 0.566; street/0052 (−2, −1) 0.378 → 0.518; street/0054 (2, 0) 0.346 → 0.415;
+      water/0009 (0, 6) 0.172 → 0.275; water/0024 (−1, −2) 0.512 → 0.556; water/0043 (0, 4) 0.193 → 0.197;
+      water/0045 (−3, 1) 0.234 → 0.396; water/0058 (2, −3) 0.325 → 0.350; water/0060 (0, 4) 0.306 → 0.321;
+      water/0062 (0, 3) 0.453 → 0.506; water/0065 (−1, −2) 0.461 → 0.558; water/0083 (−1, −3) 0.522 → 0.528.
+      Of all 477 pairs, 373 peak at (0, 0) and 444 within ±1
+    size: [country/0007, country/0011, forest/0003, mountain/0001, mountain/0002, mountain/0003, oldbuilding/0001, oldbuilding/0003, oldbuilding/0004,
+           oldbuilding/0081, oldbuilding/0084, oldbuilding/0086, oldbuilding/0087, oldbuilding/0093, oldbuilding/0096, street/0031, urban/0004,
+           urban/0008, urban/0024, urban/0025, urban/0045, urban/0086, water/0038, water/0053]
+    size_detail: "24 portrait images 501–511 px wide (768 high); none of them fails the alignment check"
+    kept: "420 of 477 pairs (33 + 24 excluded; the two lists are disjoint)"
+    by_category: >
+      alignment exclusions: country 6, field 5, forest 1, indoor 0, mountain 4, oldbuilding 2, street 6, urban 0, water 9.  Size exclusions:
+      country 2, forest 1, mountain 3, oldbuilding 9, street 1, urban 6, water 2.  The exclusions thin water and street scenes most, where the
+      two exposures differ most (moving water, traffic); DEV keeps 8 units per category regardless
+  near_duplicate_links: ["country/0001 ~ country/0025", "country/0001 ~ country/0032", "country/0016 ~ country/0018", "country/0016 ~ country/0044",
+                         "country/0017 ~ country/0025", "country/0017 ~ country/0032", "country/0023 ~ country/0027", "country/0025 ~ country/0032",
+                         "country/0036 ~ country/0045", "field/0011 ~ field/0042", "field/0013 ~ field/0014", "field/0020 ~ field/0038",
+                         "mountain/0039 ~ mountain/0041"]
+  near_duplicate_detail: >
+    correlations 0.9029–0.9218.  The borderline link country/0017 ~ country/0025 (0.900038) changes no unit: country/0017 is excluded, and 0025
+    is linked to 0001 and 0032 directly
+  independent_unit: >
+    the scene (an image pair), with near-duplicates merged: 420 kept pairs give 411 units.  Merged units:
+    country/0001+0025+0032, country/0016+0044, country/0023+0027, country/0036+0045, field/0011+0042, field/0013+0014, field/0020+0038,
+    mountain/0039+0041.  Every statistic aggregates per unit first
+  roles:
+    rule: >
+      one split, stratified by category: within each category, units are ordered by sha256("R6-REG-P3|EPFL|unit|" + unit); the first 8 are DEV,
+      the next 1 is CAL, the rest FIT.  Fixed before any EPFL registration, under the coordinator's rule (b): DEV at least P2's 32 images
+    sizes: "DEV 72 units / 74 windows (2.3× REG-P2's 32); CAL 9 units / 10 windows (REG-P2: 8); FIT 330 units / 336 windows"
+    CAL_units: [country/0023+country/0027, field/0021, forest/0028, indoor/0000, mountain/0050, oldbuilding/0095, street/0049, urban/0001, water/0031]
+    DEV_units: [country/0006, country/0034, country/0035, country/0041, country/0046, country/0047, country/0050, country/0051,
+                field/0001, field/0011+field/0042, field/0019, field/0020+field/0038, field/0023, field/0037, field/0051, field/0057,
+                forest/0007, forest/0012, forest/0018, forest/0025, forest/0030, forest/0032, forest/0034, forest/0048,
+                indoor/0007, indoor/0010, indoor/0013, indoor/0015, indoor/0024, indoor/0034, indoor/0040, indoor/0050,
+                mountain/0000, mountain/0011, mountain/0013, mountain/0015, mountain/0020, mountain/0022, mountain/0024, mountain/0027,
+                oldbuilding/0008, oldbuilding/0009, oldbuilding/0010, oldbuilding/0056, oldbuilding/0061, oldbuilding/0075, oldbuilding/0078, oldbuilding/0089,
+                street/0006, street/0008, street/0012, street/0013, street/0015, street/0021, street/0040, street/0045,
+                urban/0021, urban/0023, urban/0043, urban/0068, urban/0072, urban/0076, urban/0077, urban/0097,
+                water/0021, water/0025, water/0026, water/0027, water/0028, water/0030, water/0046, water/0064]
+    FIT_units: "the other 330 units (manifest.json): country 30, field 34, forest 42, indoor 47, mountain 38, oldbuilding 31, street 34, urban 43, water 31"
+    pinned_by: tests/test_r6_reg_p3.py EpflDataFacts and ProtocolFile (recomputed from the files)
+  windows: >
+    the registration image is one 512 × 512 window at native resolution, centred in each kept image, in every role.  It is the size of REG-P2's
+    working image, so REG-P2's support, search set, corner patch and thresholds carry over in pixels
+  inputs: >
+    reference U = RGB, moving V = NIR (REG-P2: BF reference, SHG moving).  Learned methods (critics and CoMIR) get RGB (3 channels) and linear
+    NIR (/ 255; coordinator rule (d)), each robust-normalised (median / IQR) per window, REG-P1's normalisation.  MI / NMI and the kernel use
+    RGB luminance and NIR intensity, robust-normalised
+methods:   # REG-P2's rows except the CoMIR warp-then-encode sensitivity row, which is not run (coordinator rule (e))
+  - "VCS critic (J on T = tanh f), 3 seeds"
+  - "logistic critic (balanced logistic on 2f; common readout T = tanh f), 3 seeds"
+  - "InfoNCE critic (within-window negatives), 3 seeds"
+  - "CoMIR features + our optimiser, encode-once (the CoMIR row), 3 seeds"
+  - "MI and NMI per registration window (soft 64-bin), deterministic"
+  - "RFF kernel critic (closed form, same target), deterministic; bandwidth chosen on CAL"
+training:   # REG-P1's recipes, code unchanged (scripts/r6_reg_pilot.py cmd_train / cmd_comir / fit_kernel), on REG-P3's FIT windows; nothing tuned on EPFL
+  critics: >
+    VCS / logistic / InfoNCE, seeds 0–2.  Two 4-layer CNN encoders (RGB 3 channels, NIR 1 channel; 32 channels; receptive field 31 px) feed
+    16-d descriptors into a joint MLP critic (32 -> 64 -> 64 -> 1), with T = tanh f.  Each step takes 16 windows × 128 positions on aligned
+    160-px crops, with identical rot90 / flip on both modalities.  AdamW 1e-3, 3 000 steps, a checkpoint every 250 steps (12).  InfoNCE
+    negatives are the other 127 positions of the same window
+  comir: >
+    official DenseUNet (MIT, commit 1750b11) with REG-P1's train-biodata recipe (coordinator rule (d)): p4 equivariance, ±180° rotation on a
+    182-px reflection-padded crop (centre 128), MSE similarity τ 0.5, activation decay, SGD 1e-2 momentum 0.9, clipping 1, 23 × 32 × 32;
+    seeds 0–2; no checkpoint selection.  Modality A = NIR (1 channel), B = RGB
+  kernel: REG-P1's closed-form RFF kernel critic (m = 1 024 on [9 × 9 luminance, 9 × 9 NIR] patch pairs, ridge 1e-3 × mean diagonal) fitted on the FIT windows at the identity (2 048 positions per window); bandwidth {0.5, 1, 2} × median heuristic chosen on CAL
+transform:
+  family: REG-P2's rigid family, T_{θ,t}(z) = R(θ)(z − c) + c + t (reference -> moving coordinates), c = the window centre (255.5, 255.5)
+  perturbations: >
+    10 per CAL / DEV window, REG-P2's draw keyed by the window id (scripts/r6_reg_p2.py perturbations_p2; ids like "country_0006").  θ* is
+    uniform on [−30°, 30°], seeded by sha256("R6-REG-P2|" + window).  t* follows REG-P1's magnitude strata 0–17 / 17–34 / 34–51 px by i mod 3
+    (kept, coordinator rule (c)), radius uniform in area and angle uniform, seeded by sha256("R6-REG-P1|" + window).  NIR is the moving image
+  moving_image: >
+    V_p = V ∘ T*⁻¹ on the window grid, built once per perturbation from the raw NIR window (/ 255; bilinear, reflection outside the window;
+    REG-P2's perturb_map), then robust-normalised as given.  Every method sees (U, V_p) only
+  allowed_set: "|θ| <= 30°, |t| <= 51 px (search set = perturbation set, as REG-P2)"
+support: >
+  REG-P2's disk Ω of radius 129 px about the window centre, unchanged because the window is REG-P2's 512-px working image: 129 + 16√2 + 51 +
+  51 + √2 = 255.0 <= 255.5, so every sample of every method stays inside the window for every allowed (θ, t) and (θ*, t*)
+laws: as REG-P2 — x uniform (continuous) on Ω, P_T = (U(x), V_p(T(x))), Q_T = (U(x), V_p(T(x_π))) with a fixed within-window permutation π; 4 096 positions per (window, perturbation), seeded by sha256("R6-REG-P2|pos|" + window + "|" + i) and shared by every method
+energies: >
+  as REG-P2 (scripts/r6_reg_p2.py RigidEnergy, unchanged).  Critics: warp-then-encode; the coarse grid encodes the rotation-only warp once per
+  angle and applies translations as descriptor shifts, while the refinement and every reported F are exact.  CoMIR: encode-once,
+  F = −MSE of latents at x and T(x).  MI / NMI: soft 64-bin, range = 0.5–99.5 percentiles per (window, perturbation).  Kernel:
+  warp-then-extract 9 × 9 NIR patches
+optimizer: REG-P2's, identical for every energy — grid θ ∈ {−30°, −27°, …, 30°} × REG-P1's 4-px translation grid over |t| <= 51 (10 668 candidates); best 3 starts refined by 100 Adam steps (lr 0.5) on (u, ty, tx), u = θ·91.2 px; projection onto the allowed set after every step; final = best exact energy
+metrics:
+  primary: >
+    per unit, the success rate at < 10.5 px of CoMIR's mean corner error.  The error is the mean over the four corners of the central
+    208.25-px patch of the window (±104.125 px about c), in native px of the 1024-px images.  Pool all registrations of the unit's windows, then
+    average over the DEV units (unit-macro)
+  threshold_definition: >
+    REG-P2's patch and thresholds in working-resolution pixels (coordinator rule (c)): its 834-px full-resolution corner patch and its
+    42 / 9-px thresholds, all ÷ 4.  So the thresholds are 5 % and 1.08 % of the corner-patch side, CoMIR's relative criteria.  The 512-px
+    window is REG-P2's working image, so search set, support, corner patch and thresholds are identical in pixels, and the only change from
+    REG-P2 is the modality pair.  The result files keep REG-P2's units: err_full = 4 × native px, so success < 42 / < 9 there = < 10.5 / < 2.25
+    native px
+  secondary: >
+    success < 2.25 px; median / p90 corner error; median rotation error (°) and translation error at the centre; success by translation stratum
+    (from |t*|) and by |θ*| bin (0–10 / 10–20 / 20–30°); failure attribution (F at the estimate >= F at the truth -> energy failure, else search
+    failure); runtime per registration; exact F profiles along θ (±10°, 1°) and x (±40 px, 2 px) for the first DEV window of 5 categories
+    (country, field, forest, indoor, mountain); the window-macro success (REG-P2's summary, descriptive)
+  scale: "< 10.5 px = a pure rotation error < 4.09° or a pure translation error < 10.5 px; < 2.25 px = < 0.88° or < 2.25 px (as REG-P2 at its working resolution)"
+  truth_caveat: >
+    the alignment check resolves 2 native px.  A kept pair may keep a residual misalignment of up to about ±1 half-resolution px (2–3 native px),
+    and such a residual bounds every method's corner error from below.  The < 2.25 px readout (secondary) therefore carries truth noise; the
+    primary < 10.5 px does not, to the check's resolution
+selection: >
+  REG-P2's lexicographic rule on REG-P3's CAL (10 windows × 10 rigid perturbations), applied to the unit-pooled CAL records: best CAL success
+  < 10.5 px, then success < 2.25 px, then lower median corner error, then the earliest checkpoint (critics: all 12 checkpoints of the REG-P3 run)
+  or the smaller multiplier (kernel).  CoMIR, MI and NMI: none.  Every candidate's CAL success < 10.5 / < 2.25 and median error is recorded
+statistics: >
+  as REG-P1 / REG-P2: mean ± sd over seeds; contrasts paired by seed and unit — VCS − MI, − NMI, − kernel, − logistic, − InfoNCE, − CoMIR — with
+  95 % t over the 3 seeds and a unit bootstrap (2 000 resamples; the same unit indices for every contrast), at < 10.5 px and < 2.25 px
+primary_contrasts: [VCS − MI (success < 10.5 px), VCS − CoMIR features (success < 10.5 px)]
+reading_rule: "a difference counts as detected only when both intervals (seed t and unit bootstrap) exclude 0 (the rule the REG-P1 / REG-P2 reports used, pre-registered here)"
+wording_fixed:
+  - "interval containing 0 -> no detectable difference; above / below 0 -> VCS registers x more / fewer DEV images"
+  - "VCS ≈ logistic ≈ InfoNCE -> a learned-critic class effect; no VCS-specific claim (package docs/04 §8)"
+  - "a stronger CoMIR is reported as is; the baseline is never weakened"
+  - "REG-P1's recipes retrained on EPFL FIT without retuning; REG-P3 measures transfer of the method family to a second modality pair, not a retuned method"
+pre_registered_ceiling_readout: >
+  If every method reaches CAL success >= 0.95 at < 10.5 px (unit-macro; seed mean for seeded rows), REG-P3 is reported as non-discriminative
+  at < 10.5 px for rigid ±30° / 51 px on EPFL RGB–NIR.  The < 2.25 px success (already a secondary readout) is then the reading that
+  discriminates, with the truth caveat above.  No further transform family is opened without a new protocol
+budget: see budget_measured
+official_test_access: false   # no official split exists
+budget_measured: >
+  EPFL GPU smoke, job 1035355, on one RTX PRO 6000 (node61).  Smoke subset: 4 FIT windows; 4 CAL windows, 2 of them relabelled "DEV";
+  2 perturbations per window.  Timings:
+  - per registration: MI / NMI 0.51 s, kernel 2.2 s, each critic 0.77 s, CoMIR encode-once 0.21 s;
+  - critic training ≈ 0.44 s per 50 steps after a ≈ 3-s warm-up, so ≈ 0.5 min per 3 000-step run (REG-P1 logged 80–90 s on its GPUs);
+  - one CoMIR recipe epoch (32 × 32) 10.5 s with warm-up, so ≤ 4 min for the 23-epoch recipe (REG-P1: 150–165 s);
+  - peak GPU memory ≤ 5.5 GiB (CoMIR training) and ≤ 0.9 GiB in the smoke registrations; peak RSS ≤ 2.1 GiB.
+  In the pilot the FIT data held in memory grows to 336 windows: about 1.4 GiB of GPU memory for critic training, 1.4 GiB of RAM for CoMIR
+  training, and ≈ 6 GiB of GPU memory for the kernel fit (688 k positions × 1 024 features).
+  Prepare: 11 min on 8 CPUs (full prepare check, job 1035339); cache 0.95 GB for 420 windows.
+  Full pilot: CAL 10 windows × 10 = 100 and DEV 74 × 10 = 740 registrations per method run.  MI and NMI do 840 each; the kernel 1 040 (3
+  multipliers on CAL); each of the 9 critic runs 1 940 (12 checkpoints × 100 + 740); CoMIR 840 per seed.
+  On RTX PRO 6000 this comes to about:
+  - training 0.2–0.4 h;
+  - MI + NMI 0.25 h;
+  - kernel 0.65 h;
+  - critics 3.7 h;
+  - CoMIR 0.15 h;
+  - profiles 0.1 h.
+  Total ≈ 5.3 GPU-hours.  L40S registers 1.5–2.3× slower (REG-P2 logs), so up to ≈ 9–11 GPU-hours if every job lands on L40S.  Longest single
+  job: a critic registration run, ≈ 25 min (RTX PRO 6000) to ≈ 1 h (L40S); the kernel ≤ 1.5 h; all within the 6-h wrapper limit.  16 GPU
+  jobs (3 critic training, 1 CoMIR training, 1 MI + NMI, 1 kernel, 9 critic registrations, 1 CoMIR registration), 2 CPU jobs (prepare,
+  perturb) and the aggregate
+code_checks: >
+  Unit tests: tests/test_r6_reg_p3.py (27 tests) with REG-P2's 12 and REG-P1's 9 — jobs 1035378 and 1035463, 48 / 48 OK on the final code and draft.  The P3 tests cover:
+  - EPFL: the alignment check recovers known shifts and applies the >= 2 rule; near-duplicate links (within category, same shape, > 0.9);
+    units merged through excluded scenes; per-category roles; centred windows; an end-to-end prepare on a synthetic EPFL-like folder (exclusions,
+    links, units, roles, cache contents);
+  - EPFL data facts recomputed from the files: 477 pairs, the 33 / 24 exclusion lists, the 13 links, 420 kept, 411 units, roles 72 / 9 / 330,
+    the CAL units, 74 DEV windows;
+  - shared machinery: the smoke subset reads no DEV window, the per-window perturbation family, the profile windows, the V_p round trip, an
+    end-to-end MI registration of grid-aligned rigid transforms (error < 2.25 px), the critic and CoMIR registration paths including the
+    selection tie-break, unit pooling vs the window macro, strata from |t*|, shared bootstrap indices, the readings with the warp-then-encode
+    row not run;
+  - Zurich (not run): footprints, units, roles, windows, band order, data facts;
+  - this file: the exclusion lists, links, CAL / DEV units and fixed fields against the code.
+  The full prepare check (job 1035339) reproduced the audit's exclusion lists and links exactly.  Driver dry run with stub sbatch / squeue (job
+  1035375): a full run submits 19 jobs in order, a restart skips all 17 units, and a missing train.json stops the driver.  Smokes are code
+  checks, not results: the smoke subset was prepared once (job 1035353), then the EPFL CPU smoke (job 1035356) and GPU smoke (job 1035355) ran
+  every row and the readings.  Smoke observation, not used for any choice: on the 2 relabelled CAL windows, MI / NMI already fail some
+  registrations (median 10.8–11.5 px) — unlike Zurich, no smoke sign of a ceiling
+decisions_20261012:   # coordinator, before any EPFL result
+  - "Zurich is not run (zurich_not_run); REG-P3 is built on EPFL RGB–NIR (option c), reusing the P3 machinery (scripts/r6_reg_p3.py --dataset epfl); REG-P1 / P2 files unmodified"
+  - "(a) exclude the pairs whose base-alignment check peaks >= 2 px from zero shift (33 / 477), listed with the rule and the check's code — flagged, not silently dropped"
+  - "(b) units = scenes, with the 13 within-category near-duplicate links merged into units; roles by unit, one split; DEV at least as large as P2's 32 images"
+  - "(c) REG-P2's rigid family on 512-px windows with the P3 threshold scaling (primary < 10.5 px, secondary < 2.25 px native); REG-P2's translation strata kept"
+  - "(d) CoMIR: REG-P1's recipe; NIR linear for the learned methods"
+  - "(e) the CoMIR warp-then-encode row is skipped (REG-P2 showed encode-once is not disadvantaged)"
+  - "(f) everything else as REG-P2: selection, statistics, contrasts, wording, ceiling readout"
+  - "(g) licence: no licence text; the owner accepted the data for P60 (internal research); publication needs the owner's OK"
+decisions_open:   # implementation choices not fixed by (a)–(g); the implemented option is first
+  - "1 size exclusion: the 24 portrait images narrower than 512 px cannot hold the 512-px window and are excluded (listed).  The alternative is a smaller window for every image, which would change REG-P2's geometry"
+  - "2 role sizes: per category 8 DEV + 1 CAL (DEV 72 units / 74 windows, CAL 9 / 10, FIT 330 / 336).  A smaller DEV, e.g. 4 per category (36), saves about 0.4 GPU-h; a CAL of 2 per category doubles the critics' selection cost"
+  - "3 windows: one centred 512-px window per image.  Two windows per 1024-wide image would double registrations per unit (within-unit repeats) rather than add units"
+  - "4 FIT: all 330 remaining units (REG-P1's FIT had 32 images).  The recipes are unchanged, so every learned method — CoMIR included — sees more varied FIT data than in REG-P1"
+  - "5 truth noise at < 2.25 px (metrics.truth_caveat).  Optional descriptive covariate, not implemented: a native-resolution residual check on the kept pairs (±3 px), to report the < 2.25 px success on pairs whose residual peaks at zero"
+code: >
+  scripts/r6_reg_p3.py (imports scripts/r6_reg_pilot.py and scripts/r6_reg_p2.py read-only), scripts/r6_reg_p3_aggregate.py (imports
+  scripts/r6_reg_aggregate.py and scripts/r6_reg_p2_aggregate.py read-only), tests/test_r6_reg_p3.py,
+  slurm/r6_reg_p3_{cpu,gpu,aggregate_cpu,tests_cpu,smoke_cpu,smoke_gpu}.sbatch, slurm/r6_reg_p3_feed.txt, slurm/r6_reg_p3_submit.sh
+disclosure_at_draft: >
+  The implementing agent and the coordinator knew the REG-P1 / REG-P2 results and P60's EPFL MI / NMI numbers (from the reports).  On EPFL the
+  agent saw:
+  - the data audit: sizes, base-alignment shifts and correlations, near-duplicate correlations;
+  - the role assignment;
+  - CPU / GPU smokes on 4 FIT windows (training) and 4 CAL windows (2 as CAL, 2 relabelled "DEV"), with their smoke registration errors.
+  No DEV window was read by any registration.  The exclusion, unit and role rules were fixed by the coordinator (2026-10-12) on these data facts,
+  before any EPFL registration
+changelog:
+  - "2026-10-12 v1: draft on Zurich Summer (RGB / NIR, QuickBird PC-pansharpened): 17 units, roles by hash, REG-P2 family on 512-px windows"
+  - "2026-10-12 v2: coordinator decisions — Zurich not run (smoke ceiling, licence conflict); EPFL RGB–NIR with the alignment exclusion (33), size exclusion (24), near-duplicate units (13 links, 411 units), per-category roles (72 / 9 / 330 units), no warp-then-encode row"
