@@ -414,3 +414,11 @@ d1_30_execution_note_E3: >
   unchanged.  Recovery: scripts/r7_d1_30_backfill_rows.py copies the counter records the stopped shards printed into their rows file (data
   record), then the driver's own line is resubmitted (slurm/r7_d1_30_e3_recover.sh).  The TextVQA shards stopped before their 4 OCR anchor
   rows, which run on resubmission.  Patch reviewed and applied by the coordinator; tests 23 / 23 (job 1035342).
+d1_20_execution_note_E4: >
+  2026-10-12 (coordinator; owner approved an early-submission plan E4 the same hour): the last stage-1 unit (vcs lr 1e-4 s0, slow node) finished
+  at 08:51:46Z; the frozen driver ran the frozen choice job (1035512), which wrote selectors/lr_choice.json, but the driver checked 3 s later,
+  did not yet see the file (NFS visibility), and stopped.  The coordinator completed the driver's final step unchanged: the frozen planner
+  (`r7_d1_plan20.py stage2`) wrote the 12 stage-2 lines from lr_choice.json and they were submitted at once (CAP respected).  Frozen choice:
+  vcs 3e-4 (CAL Spearman 0.0920 vs 0.0874), logistic 1e-4 (0.0961 vs 0.0922), direct 1e-4 (0.1685 vs 0.1660); the logistic / direct choices
+  equal an earlier computation with the planner's own functions (scripts/r7_d1_20_early_stage2.py -> lr_choice_early_E4.json), made for E4's
+  early partial submission, which became unnecessary.  No unit, rate or analysis changed.

@@ -1,0 +1,13 @@
+# R7-30 D1-20 stage 2: seeds 1-2 at the chosen rate + ablations A1 / A2 × seeds 0-2; submit with: CAP=27 nohup setsid bash slurm/feed_normal.sh slurm/r7_d1_20_stage2_lines.txt >/dev/null 2>&1 &
+sbatch --parsable --job-name=r7d1s_vcs_lr0.0003_s1 --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train vcs 0.0003 1
+sbatch --parsable --job-name=r7d1s_vcs_lr0.0003_s2 --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train vcs 0.0003 2
+sbatch --parsable --job-name=r7d1s_logistic_lr0.0001_s1 --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train logistic 0.0001 1
+sbatch --parsable --job-name=r7d1s_logistic_lr0.0001_s2 --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train logistic 0.0001 2
+sbatch --parsable --job-name=r7d1s_direct_lr0.0001_s1 --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train direct 0.0001 1
+sbatch --parsable --job-name=r7d1s_direct_lr0.0001_s2 --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train direct 0.0001 2
+sbatch --parsable --job-name=r7d1s_vcs_lr0.0003_s0_noq --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train vcs 0.0003 0 --no-question
+sbatch --parsable --job-name=r7d1s_vcs_lr0.0003_s1_noq --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train vcs 0.0003 1 --no-question
+sbatch --parsable --job-name=r7d1s_vcs_lr0.0003_s2_noq --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train vcs 0.0003 2 --no-question
+sbatch --parsable --job-name=r7d1s_direct_lr0.0001_s0_dtarget --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train direct 0.0001 0 --target d
+sbatch --parsable --job-name=r7d1s_direct_lr0.0001_s1_dtarget --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train direct 0.0001 1 --target d
+sbatch --parsable --job-name=r7d1s_direct_lr0.0001_s2_dtarget --partition=RTX6000PRO,H100,L40S --exclude=node51,node52,node60 slurm/r7_d1_sel.sbatch train direct 0.0001 2 --target d
