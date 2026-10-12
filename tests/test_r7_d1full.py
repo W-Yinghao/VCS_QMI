@@ -408,8 +408,9 @@ class Readout(unittest.TestCase):
             C = r["full_scale"]["contrasts"]
             for L in ("L25", "L50", "L75"):
                 prim = [k for k, v in C.items() if f"@{L}" in k and v.get("role") == "primary"]
-                self.assertEqual(sorted(prim), [f"S1-S2@{L}", f"S1-S3@{L}"]); self.assertTrue(all(C[k]["holm_family_size"] == 2 for k in prim))
-                self.assertEqual(C[f"S1-SparseVLM@{L}[budget]"]["role"], "secondary")
+                self.assertEqual(sorted(prim), sorted([f"S1-S2@{L}", f"S1-S3@{L}", f"S1-SparseVLM@{L}[budget]"]))   # the frozen D1-30 family
+                self.assertTrue(all(C[k]["holm_family_size"] == 3 for k in prim))                                  # 3 per benchmark (1 benchmark here)
+                self.assertEqual(C[f"S1-SparseVLM@{L}[budget]"]["role"], "primary")
                 for o in ("S1", "S2", "S3"):
                     s = r["scale_contrasts"][f"{o}:full-10k@{L}"]; self.assertEqual(s["role"], "descriptive"); self.assertIn("ci95", s)
                 self.assertGreater(r["scale_contrasts"][f"S1:full-10k@{L}"]["delta"], 0)

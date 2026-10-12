@@ -6,9 +6,9 @@ selector rows (same tags, trained on FIT_FULL) from the D1-FULL prediction root,
 architecture: every sel row takes the representative unit's sel:k latency, as in D1-30); the D1-FULL dynamic rows take their own latency
 from the D1-FULL timing units (frozen D1-30 timing procedure, nodesumo01; coordinator 2026-10-12) — the readout refuses if any is missing
 (--allow-missing-dyn-timing only for a labelled partial readout).
-  primary (D1-FULL, pre-registration draft): S1F - S2F and S1F - S3F at L25 / L50 / L75 (B* = 4) per benchmark; Holm across the 6 contrasts at each
-          latency point.  Every frozen D1-30 secondary is computed for the D1-FULL units with the frozen scorer (score_bench); its S1 - SparseVLM
-          rows are secondary here.
+  primary (D1-FULL, frozen 2026-10-12): the D1-30 family S1F - S2F, S1F - S3F, S1F - SparseVLM (D30-1) at L25 / L50 / L75 (B* = 4) per benchmark; Holm across the 9 contrasts at each
+          latency point.  Every frozen D1-30 secondary is computed for the D1-FULL units with the frozen scorer (score_bench); S1 - SparseVLM
+          keeps its D1-30 role (primary on the D30-1 budget-matched basis).
   scale (descriptive): full - 10k per objective (seed means of the per-seed interpolated quality; paired bootstrap; per-seed deltas) at L25 / L50 / L75
           and at each fixed budget (S1-S3, A1, A2); dynamic rows: quality and realised mean tokens per scale (no contrast: budgets differ).
   10k   : the D1-30 primary family recomputed with the same functions (it must equal the D1-30 readout) for the side-by-side table.
@@ -111,7 +111,7 @@ def main(argv=None) -> int:
     mF, aF = renamed(mF0), renamed(aF0); rep_unit = m10["vcs"][0]
     cfgF = [c for c in RUN.config_list([u for o in RUN.OBJECTIVES for u in mF0[o]], aF0["A1"] + aF0["A2"]) if c.startswith(("sel:", "dyn:"))]
     res = {"representative_unit_for_latency": rep_unit, "unit_prefix_full_scale": PFX, "benches": {}, "notes": [
-        "D1-FULL primary: S1F - S2F, S1F - S3F at L25 / L50 / L75 (B* = 4); Holm across the 6 contrasts per latency point",
+        "D1-FULL primary: the frozen D1-30 family (S1F - S2F, S1F - S3F, S1F - SparseVLM on the D30-1 basis) at L25 / L50 / L75 (B* = 4); Holm across the 9 contrasts per latency point",
         "scale contrasts full - 10k are descriptive (no multiplicity adjustment, no claim)",
         "sel rows of both scales take the D1-30 representative unit's measured sel:k latency (same architecture)",
         "the 10k block recomputes the frozen D1-30 primary family with the same functions and bootstrap; it must equal the D1-30 readout"]}
@@ -124,14 +124,12 @@ def main(argv=None) -> int:
         if miss and not a.allow_missing_dyn_timing:                                     # coordinator 2026-10-12: the D1-FULL dynamic rows carry their own latency
             raise SystemExit(f"D1-FULL dynamic-row timing missing for {len(miss)} (row, B), e.g. {miss[:3]} (timing unit on nodesumo01)")
         RF = SC.score_bench(bn, mF, aF, sv, "budget")
-        for k, v in RF["contrasts"].items():                                            # D1-FULL primary family: S1 - S2, S1 - S3 only
-            if k.startswith("S1-SparseVLM"):
-                v["role"] = "secondary"
+        # D1-FULL primary family = the frozen D1-30 family (coordinator, D1-FULL freeze 2026-10-12): S1F - S2F, S1F - S3F and S1F - SparseVLM (D30-1)
         R10 = SC.score_bench(bn, m10, a10, sv, "budget"); sc, dyn = scale_contrasts(bn, m10, a10, mF, aF)
         res["benches"][bench] = {"full_scale": RF, "k10_primary_family": {k: v for k, v in R10["contrasts"].items() if v.get("role") == "primary"},
                                  "k10_at_latency": R10["at_latency"], "scale_contrasts": sc, "dynamic_rows_by_scale": dyn,
                                  "full_scale_dynamic_rows_timed": timed}
-    for L in SC.LPOINTS:                                                                # Holm: 6 D1-FULL primaries per latency point; 9 for the 10k family
+    for L in SC.LPOINTS:                                                                # Holm: 9 primaries per latency point for both scales (the frozen D1-30 family)
         for blk, fam in (("full_scale", "contrasts"), ("k10_primary_family", None)):
             keys = []
             for b, r in res["benches"].items():

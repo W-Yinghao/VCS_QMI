@@ -1,0 +1,32 @@
+# D1-FULL staged freeze — full-data replication of r7 D1 (owner directive 2026-10-12: "还是多做全量实验，要不结论不保真").  Coordinator,
+# 2026-10-12, after the implementation commit bb1a2a9 and passing smokes, BEFORE any D1-30 result (D1-30 units are generating predictions; no
+# D1-30 readout or score has run and nothing of D1-30 has been read).  Draft: reports/R7/R7_D1_FULL_PROTOCOL_DRAFT_20261012.yaml (DF-1..DF-11 answered here).
+status: frozen
+purpose: "repeat the frozen D1 pipeline (D1-10 teacher, D1-20 recipe, D1-30 evaluation) with every eligible GQA training image, to test whether the D1 conclusions hold at full data scale"
+data: >
+  eligibility unchanged (train_all minus every LLaVA-seen pair: 74,256 eligible images; the coordinator's earlier 66,852 was the provisional
+  train-balanced count).  FIT_FULL = 70,256 images / 280,787 questions (π_yes 0.4951; the frozen FIT's 10,000 images / 39,960 questions are its
+  first block, byte prefix verified); CAL and DEV are the frozen ones (id lists sha256-identical).  Manifest sha256 c4404f7b… (job 1035862).
+decisions:
+  DF-1_pca_basis: "PCA fitted on FIT_FULL (PCA_BASIS=fitfull; 'PCA on FIT only' with FIT = FIT_FULL); the frozen-basis option is not run"
+  DF-2_reuse: "the frozen FIT / CAL teacher records are reused (static digests + GPU bit-identical replay passed); the rule stays automatic: any failed check recomputes FIT-000..039"
+  DF-3_class_weights: "from FIT_FULL (1.00997 / 0.99022; frozen 1.00986 / 0.99033)"
+  DF-4_steps: "the frozen recipe unchanged: 20,000 phase-A + 5,000 phase-B steps (about 4.6 passes per question; D1-20's selected steps were 1,000–13,000, all before the end)"
+  DF-5_primary_family: >
+    the frozen D1-30 family, unchanged: S1F − S2F, S1F − S3F and S1F − SparseVLM (D30-1 budget-matched basis) per benchmark at L25 / L50 / L75
+    (B* = 4), Holm across the 9 contrasts per latency point.  The readout code was changed to this family before the freeze (the draft had 6
+    contrasts with S1 − SparseVLM secondary); tests rerun.
+  DF-6_dev_risk: "DEVRISK=0 — no D1-FULL DEV-risk unit: the frozen D1-30 calls its DEV-risk read the first and only read of the sealed DEV teacher records"
+  DF-7_textvqa_partition: "H100,L40S (D1-FULL has no OCR-anchor rows, the reason for E2's H100-only rule)"
+  DF-8_claim_rule: >
+    a D1 claim is made only where the two scales (10k FIT, D1-30; full FIT, D1-FULL) agree in sign and both pass their Holm-corrected primary
+    tests; full-scale numbers are the headline; any disagreement is reported as scale-dependent.  (Set before any result; the owner may revise
+    it before the D1-30 readout.)
+  DF-9_timing_of_freeze: "before any D1-30 result (see header)"
+  DF-10_queue_order: "natural submission order: the already-queued D1-30 and R7-40b units first, then D1-FULL; no renicing"
+  DF-11_allocator: "PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True for the selectors (allocator layout only; no numerical effect; peak reserved 77.5 GiB on H100 NVL); selectors on RTX6000PRO,H100 (E5)"
+  teacher_hardware: "H100,L40S, as D1-10 (the reused FIT records came from mixed H100 / L40S)"
+  dynamic_row_timing: "TIMING=1: three timing units on nodesumo01 for the D1-FULL dynamic rows only; the readout refuses without them"
+units_and_budget: "teacher on 240,827 new questions (18 GPU-h H100 – 34 GPU-h L40S) + cache about 1.5 + 18 selector units 37–44 + evaluation 10–17 + timing 3–4.5 on nodesumo01 ≈ 70–101 GPU-h; storage about 48 GB under outputs/R7_D1_FULL (/home)"
+launch: "DEVRISK=0 nohup setsid bash slurm/r7_d1full_submit.sh  (PCA_BASIS=fitfull and TIMING=1 by default; CAP 27; stop by PID)"
+readout: "scripts/r7_d1full_score.py, run by the coordinator only after the D1-30 readout"
