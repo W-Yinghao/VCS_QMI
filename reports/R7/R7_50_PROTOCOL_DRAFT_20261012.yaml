@@ -1,0 +1,313 @@
+# R7-50 — one-shot official-test evaluation.  PROTOCOL DRAFT for the coordinator's freeze (2026-10-12).
+# Implements reports/R7/R7_50_60_OUTLINE_DRAFT.md §A as approved, plus the owner directive of 2026-10-12 relayed by the coordinator ("还是多做全量
+# 实验，要不结论不保真"): a full-scale integrity gate before any test generation, and three pre-declared generation phases (L, F, Q).  Drafted while
+# D1-20 stage 2, D1-FULL and the D1-30 driver run, before any D1-30 result was read, and without opening, listing, hashing or loading any
+# official test file (code checked on synthetic CPU tests and smoked on non-test data only: GQA DEV / balanced val, ChartQA val / train).
+# To freeze: copy to reports/R7/R7_50_PROTOCOL_FROZEN_20261012.yaml (the driver's default path), set 'status: frozen', add the top-level key
+# 'r7_50_freeze_20261012:' with the coordinator's note (the build and the driver check both: a line starting 'status: frozen' and a line
+# starting 'r7_50_freeze_<yyyymmdd>:'), resolve open_decisions, and commit it together with code.commit_list.
+protocol_id: R7-50
+status: draft
+date: 2026-10-12
+parent: "reports/R7/R7_50_60_OUTLINE_DRAFT.md §A (approved; A.3 latency at each host's own B*, commit 4ba4860); D1-30 staged freeze reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml with execution notes E1-E3 in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml"
+
+approval:
+  owner_final_go: "2026-10-12 10:16 UTC: '我都确认', scope '两项都批准' (reports/OWNER_DECISIONS_20261012.md 七; commit b22c540): one read of GQA testdev-balanced and ChartQA test for R7-50; LLaVA rows once D1-20 is complete, Qwen rows once R7-40 is complete; protocol frozen before any D1-30 result"
+  adopted_corrections: "graded exposure statement, profiling-workload latency, evaluation protection by the frozen analysis (A.4.5), all pre-registered rows reported (OWNER_DECISIONS T1 [已定])"
+  owner_directive_20261012: "全量实验: (1) full-scale integrity gate before any test generation (any mismatch stops); (2) phases L / F / Q with every row declared now; each phase hash-committed and then scored once; test results never choose rows (relayed by the coordinator, 2026-10-12)"
+  coordinator_decisions_20261012_before_any_rehearsal_number:
+    gate_rule: "deterministic rows (full, grid-144, S1 seed 0 at 144): identical answer, kept count and input on every item; SparseVLM-192: answer agreement >= 98.0 % (documented run-to-run agreement 99.1 %), kept counts identical and the E3 counter within tolerance; anything below stops the driver; the same rule for phase F's gate"
+    F2: "phase F's gate reference is D1-FULL's own D1-30-style full-scale DEV / val outputs (the D1-FULL agent produces them); F_INTEGRITY_REF=none is not allowed"
+    F3: "D1-FULL's dynamic rows get their own timing run with the D1-30 procedure on nodesumo01 (the D1-FULL agent runs it); phase F's manifest seals it and its scoring requires it"
+    D50-5: "GQA's test splits extend Visual Genome with new images whose scene graphs are hidden (Hudson & Manning 2019, p. 4 footnote 2 and p. 17), so test-dev images need not be VG images; the coordinator corrects the outline's exposure sentence; the build counts the test-dev image ids by prefix ('n'-prefixed vs numeric VG ids) and the exposure statement reports the counts (image ids only, never labels)"
+    qid_seeding: "the uniform-grid rows on ChartQA test are seeded by the official chartqa_test_<row index> ids (deterministic, fixed before the read)"
+
+phases:
+  L: {what: "LLaVA-1.5-7B rows with the D1-20 selectors (10k FIT images)", after: "D1-20 complete and D1-30 stage 1 complete", rows_generated: 58, status: "implemented, smoked"}
+  F: {what: "LLaVA-1.5-7B selector rows with the D1-FULL selectors (retrained on all 62,852 eligible GQA train images, same CAL / DEV / recipe)", after: "D1-FULL complete", rows_generated: 45, baseline_rows: "full, uniform grid and SparseVLM are phase L's sealed predictions (not regenerated)", status: "implemented, smoked with D1-FULL-like random selectors"}
+  Q: {what: "Qwen2.5-VL-7B rows", after: "R7-40 complete", status: "declared only: needs its addendum and the R7-40c Qwen runner (the driver refuses PHASE=Q)"}
+  rule: "each phase: generation -> sha256 manifest -> committed -> ALLOW_SCORING_<P> -> one scoring job; a phase never changes another phase's rows or results; test results never choose rows, checkpoints or operating points"
+
+# ------------------------------------------------------------------------------------------------------------------------------ data
+test_files:
+  record: "reports/R7/R7_DATA_CLOSED_SHA256.csv (sha256 computed at download; contents never parsed).  Not re-hashed during development."
+  read_rule: >
+    Phase L's 'prepare' (one CPU job, after the integrity gate passed) opens each file once: the size is compared with the record before the
+    open, the sha256 of the bytes read before anything is parsed (mismatch -> stop, nothing parsed or written), the item count with §A.1 before any
+    input or label file is written.  Closed sources need this protocol frozen and the instruction-mix file present (§A.3b), both checked before the
+    first open.  Phases F and Q reuse the sealed inputs: no second read of a test file.
+  gqa_testdev_balanced:
+    path: /projects/EEG-foundation-model/yinghao/data/gqa/closed/testdev_balanced_questions.json
+    bytes: 10848046
+    sha256: 14039069c0b3c797c7aa9bcd5f4c2aa4b5976e02c0b6773e1a584d942a03a318
+    items_expected: 12578
+    images: "only from the extracted folder /projects/EEG-foundation-model/yinghao/data/gqa/images/<imageId>.jpg (the zips were deleted, D4); every referenced image must exist and decode, else STOP (no archive fallback); sha256 per image recorded"
+  chartqa_test:
+    path: /projects/EEG-foundation-model/yinghao/data/chartqa/closed/data/test-00000-of-00001.parquet
+    bytes: 68916402
+    sha256: 84889bae30aaf6e24ff899e1604221606c0b65e658b6c70a7d02c79f50fc87df
+    items_expected: 2500
+    split_counts: "human / augmented counted at read (frozen D1-30 rule: 'type' must name exactly one of the two, else STOP)"
+    images: "extracted from the parquet (original bytes) into the sealed input dir, one file per chart name; a chart name carrying two different images stops the build"
+    schema_check: "columns imgname, query, label, type (string) and image, checked from the parquet footer before any row is read"
+  textvqa_test: "NOT read (labels only on the EvalAI server; third-party upload forbidden).  TextVQA val stays the final TextVQA number (disclosed)."
+  not_touched: "chartqa/ChartQA Dataset.zip (outside closed/, 875 MB, the upstream archive, which presumably also holds test annotations) is not opened by any R7-50 step"
+
+inputs_and_labels:
+  root: "/home/infres/yinwang/CS_QMI/outputs/R7_50: sealed/{inputs,labels} shared; per phase P sealed/pred_<P>, configs_<P>, lines_<P>.txt, manifest_<P>/, ALLOW_SCORING_<P>, results_<P>, integrity_<P>/"
+  inputs: "sealed/inputs/<bench>.jsonl, the D1-30 set format WITHOUT answers: bench, qid, image_id, image_file, question, prompt (bench = gqa_testdev / chartqa_test)"
+  prompts: "GQA: question + '\\nAnswer the question using a single word or phrase.' (D1-30 gqa_dev; LLaVA model_vqa_loader).  ChartQA: query + '\\nAnswer the question with a single word.' (D1-30 chartqa_val; pinned lmms-eval 19085f3 chartqa.yaml)"
+  question_ids: "GQA question ids; ChartQA 'chartqa_test_<row index, 5 digits>' (the D1-30 rule with the bench name; row order = the parquet's, fixed by its sha256)"
+  qid_seeded_masks: >
+    Fixed before the read (coordinator, 2026-10-12): the uniform-grid rows draw their lattice order from the frozen D1-10 grid mechanism, seeded by
+    sha256 of (mechanism, qid); on ChartQA test they are seeded deterministically by the official chartqa_test_<row index> ids (on GQA by the
+    official question ids).  Smoke evidence: with R7-50's ids on ChartQA val, grid-144 kept the same token set as D1-30's chartqa_val_* run on
+    30 / 96 items, with identical answers on all 30; every mismatch was a different but equally valid lattice (kept counts 96 / 96).  With D1-30's
+    ids the R7-50 path reproduces the early D1-30 rows 96 / 96 (smoke.integrity).  No other row depends on the qid string.
+  labels: "sealed/labels/<bench>.labels.jsonl (mode 0400): GQA answer + structural / semantic / detailed types; ChartQA label + type + split.  Opened only by 'score'; sha256 recorded at build and checked before the read"
+  build_record: "sealed/inputs/build_summary.json + build_<bench>.json + images_<bench>.json: counts, sha256 of the sources / inputs / labels / images, the §A.3b overlap counts; no label printed or copied"
+
+# ------------------------------------------------------------------------------------------------------------------------------ rows
+host_and_generation:
+  host: "LLaVA-1.5-7B exactly as D1-30 (SparseVLM env, official LLaVA code in Gumpest/SparseVLMs a9e7142, fp16, CLIP fp32 path, 336 px, 576 tokens, vicuna_v1 + benchmark suffix)"
+  selection_point: "LLM input, kept tokens spliced in raster order, positions re-indexed (frozen D1-10 / D1-20 / D1-30)"
+  decoding: "greedy; max_new_tokens 128 GQA / 16 ChartQA (r7_d1_30_run.MAX_NEW of gqa_dev / chartqa_val, D30-7); our rows in left-padded batches of 32 with chunks of 32 items (D30-8); SparseVLM batch 1 (official code)"
+  code_reuse: "the D1-30 runners are imported unchanged (r7_d1_30_run.run, r7_d1_30_sparsevlm.main); r7_50_test only adds the bench names to MAX_NEW (same values), the sealed paths and the phase layout; selectors and PCA are read from the phase's hashed configs_<P>/rows.json"
+  hardware: "generation units --partition=H100,L40S --exclude=node51,node52,node60 --time=04:00:00 (D1-30 partition rule; no Blackwell kernels in the env); integrity units pinned to the reference shard's GPU class (--time=03:00:00)"
+
+rows:
+  rule: "the frozen D1-30 grid (scripts/r7_d1_30_plan.py write_configs on the phase's lr_choice.json) filtered to §A.2 by r7_50_test.a2_rows / phase_rows; phase L cross-checked as a subset of the D1-30 driver's own configs files; nothing selected on test; every declared row of every phase is reported"
+  phase_L:
+    per_benchmark: 58          # 50 pipeline + 8 SparseVLM; identical for gqa_testdev and chartqa_test
+    full: [full]
+    uniform_grid: ["static:grid:72", "static:grid:144", "static:grid:288", "static:grid:432"]          # 12.5 (stress) / 25 / 50 / 75 %
+    S1_vcs_fixed: "sel:vcs_lr0.0003_s{0,1,2}:{72,144,288,432}  (12)"
+    S2_logistic_fixed: "sel:logistic_lr0.0001_s{0,1,2}:{72,144,288,432}  (12)"
+    S3_direct_fixed: "sel:direct_lr0.0001_s{0,1,2}:{72,144,288,432}  (12)"
+    S1_dynamic: "dyn:vcs_lr0.0003_s{0,1,2}:{0.25,0.5,0.75}  (9; per item the smallest k in {72,144,288,432,576} with r(top-k) <= tau_f, tau_f fixed on CAL in D1-20)"
+    sparsevlm_official_anchors: {"sparsevlm:192:official": [300, 200, 110], "sparsevlm:128:official": [303, 110, 36], "sparsevlm:96:official": [238, 48, 26], "sparsevlm:64:official": [66, 30, 17]}
+    sparsevlm_adapted: {"sparsevlm:72:adapted": [106, 33, 19], "sparsevlm:144:adapted": [302, 132, 54], "sparsevlm:288:adapted": [368, 294, 226], "sparsevlm:432:adapted": [472, 434, 401]}
+    sparsevlm_counter_check: "official 'Equal Tokens' counter vs the exact prediction, |deviation| <= 0.5 token (E3); the float32 drift at the production shard sizes is at most 0.044 token (smoke)"
+    answers: "58 × (12,578 + 2,500) = 874,524 (753,900 pipeline + 120,624 SparseVLM)"
+  phase_F:
+    per_benchmark: "45 generated (same rule as phase L's selector rows) + 13 baseline rows from phase L (full, 4 uniform-grid, 8 SparseVLM; sealed under manifest_L)"
+    S1_S2_S3_fixed: "sel:<D1-FULL unit>:{72,144,288,432} for S1 / S2 / S3 × seeds 0-2 at D1-FULL's CAL-chosen rates (36)"
+    S1_dynamic: "dyn:<D1-FULL S1 unit s0-2>:{0.25,0.5,0.75} at D1-FULL's CAL operating points (9)"
+    unit_tags: "by the frozen D1-30 rule from D1-FULL's lr_choice.json (<objective>_lr<rate>_s<seed>); checkpoints after D1-FULL"
+    answers: "45 × 15,078 = 678,510"
+  phase_Q: "Qwen2.5-VL-7B: full, the uniform grid and S1, S2, S3 × seeds 0-2 (outline §A.2; exact list in the Q addendum, open_decisions.Q1)"
+  not_in_r7_50: "random, qsim, A1 / A2 ablations, S2 / S3 dynamic, TextVQA full_ocr (not in §A.2; they remain D1-30 rows)"
+
+selectors:
+  phase_L:
+    source: "outputs/R7_D1/selectors (D1-20; the D1-30 runs load the same files): the CAL-selected checkpoint at the CAL-chosen rate per unit, CAL dynamic taus in <unit>.json"
+    lr_choice: {file: outputs/R7_D1/selectors/lr_choice.json, sha256: ad22e343581db4a9009d11b53c9f4e60169a1a578c044e616f5f88f447d81d0c, chosen: {vcs: 3.0e-4, logistic: 1.0e-4, direct: 1.0e-4}}
+    pca: {file: outputs/R7_D1/cache/pca.pt, sha256: fbb666ad6a631f6e5e5f8a6456d6258d9f36e0d7787ef06ab113fa1a23471e19}
+    units:
+      vcs_lr0.0003_s0: {pt_sha256: b3eeae9f21cdb8a34315b38ff2e02e1bd5fee19a3974e1384b1d0014e73adb51, json_sha256: a31003b1d3541c1a58af53891f683641d6cdaa123e56a685a52b220b256ede49, selected_step: 8000, tau: {"0.25": 0.09808818623423576, "0.5": 0.0034066176740452665, "0.75": 7.213418939500537e-05}}
+      vcs_lr0.0003_s1: after D1-20
+      vcs_lr0.0003_s2: after D1-20
+      logistic_lr0.0001_s0: {pt_sha256: 6a66722de0600d8d71ba65d51b587267e6f5282e3e96402e5539f55d0d18a4ed, json_sha256: 2a93a336a8a7e4402ab89ae363171878fbafc59f9b193c1444ba7df874e4682c, selected_step: 11000}
+      logistic_lr0.0001_s1: after D1-20
+      logistic_lr0.0001_s2: after D1-20
+      direct_lr0.0001_s0: {pt_sha256: c805b7781571493ed48b7ee33481ffd8286905d370f37cff89dcf5d6498b7422, json_sha256: 7152a5f40974a67253eecb14dc465fa2dac2df65e16d1db835152c1c3494512d, selected_step: 4000}
+      direct_lr0.0001_s1: after D1-20
+      direct_lr0.0001_s2: after D1-20
+  phase_F: "all 9 units, their lr_choice.json and PCA: after D1-FULL (paths given to the driver as F_LR_CHOICE / F_SELECTORS / F_PCA; hashed into configs_F/rows.json)"
+  record_at_run: "'configs' writes configs_<P>/rows.json with the sha256 of all 9 units (.pt / .json), the PCA and lr_choice.json; the runner reads selectors / PCA from it; the manifest hashes rows.json; both are committed with the prediction hashes before scoring"
+
+# ------------------------------------------------------------------------------------------------------------------------------ integrity gate
+full_scale_integrity_gate:
+  rule: >
+    Owner directive 2026-10-12; rule fixed by the coordinator before any rehearsal number: before any test generation the R7-50 path runs on the
+    FULL GQA DEV (7,986 q) and FULL ChartQA val (1,920 q) sets with D1-30's own question ids; the inputs (question, prompt, image file / bytes)
+    must be identical on every item; the deterministic rows (full, grid-144, S1 seed 0 at 144) must give the identical answer and kept count on
+    every item; SparseVLM-192 must reach >= 98.0 % identical answers with identical kept counts and its E3 counter within tolerance.  Anything
+    else -> STOP and report (driver), before any test file is opened (phase L) / before any generation (phase F).
+  phase_L_rows: ["full", "static:grid:144", "sparsevlm:192:official", "sel:vcs_lr0.0003_s0:144 (S1 seed 0 at 25 %)"]
+  reproduction: >
+    The R7-50 build path in development mode (D1-30's DEV items re-expressed in the GQA balanced format with answers withheld; the ChartQA val
+    parquet with ids chartqa_val_<row>), then the R7-50 runners with D1-30's sharding and chunking: full + grid-144 as D1-30's early shard 0/1
+    run (chunks of 32 in shard order), the selector row as D1-30's stage-1 quality shards (GQA i/6, ChartQA i/2), SparseVLM batch 1.  Each task
+    runs on the GPU class recorded in its reference shard's completion marker (env.gpu; SparseVLM: L40S, where every D1-30 SparseVLM shard ran),
+    one host load per (GPU class) unit.  Reference shards retried by the D1-30 driver are listed (a resumed shard has different chunk
+    compositions after the resume point, which can explain a mismatch; it is reported, not waived).
+  phase_F_rows: "sel:<D1-FULL S1 seed-0 unit>:144 against D1-FULL's own D1-30-style full-scale DEV / val outputs (F_INTEGRITY_REF, required; 'none' not allowed: decision F2), same rule"
+  gate_record: "<root>/integrity_<P>/{plan.json, lines.txt, done_<unit>.json, integrity.json}: counts per row, the first 20 mismatched question ids, retried reference shards; no label opened, nothing scored, no prediction printed"
+  smoke_evidence: "96-item check (code only; outputs/R7_50_smoke): 96 / 96 on all six rows (2 benchmarks × full, grid-144, SparseVLM-192) with D1-30's ids, L40S (jobs 1035823 / 1035827)"
+  rehearsal: "full-scale rehearsal of full / grid-144 / SparseVLM-192 (references exist now): PASS — deterministic rows identical on all 9,906 items, SparseVLM-192 99.92 % (GQA) and 99.06 % (ChartQA); smoke.rehearsal_full_scale"
+  cost: "measured (rehearsal, L40S): full + grid-144 unit 24 min, SparseVLM-192 unit 32 min; with the selector-row tasks (≈ 9,906 single-row answers, ≈ 15-20 min per GPU-class unit) ≈ 1.2-1.5 GPU-h for phase L (≈ 35-40 min wall if concurrent); ≈ 0.4 GPU-h for phase F"
+
+# ------------------------------------------------------------------------------------------------------------------------------ analysis
+evaluators:
+  gqa: "exact match after LLaVA scripts/convert_gqa_for_eval.py normalisation (rstrip('.'), lower) — Gumpest/SparseVLMs a9e7142 copy (scripts/r7_vl_common.gqa_correct via r7_d1_30_score.item_scores)"
+  chartqa: "relaxed accuracy, google-research/pix2struct pix2struct/metrics.py::relaxed_correctness at 6fe25c1dc8151823ee3b479519d8d5948812fee4 (5 % relative change for a non-zero numeric target, a trailing % divides by 100, else case-insensitive exact match; prediction stripped) — scripts/r7_d1_30_eval.py; identical logic in lmms-eval 19085f3"
+
+endpoints:
+  latency: >
+    Not re-measured on test.  Every latency is copied from the frozen D1-30 timing results of the mapped validation benchmark — gqa_dev for GQA
+    testdev-balanced, chartqa_val for ChartQA test (outputs/R7_D1/d1_30/timing/<bench>/timing_<bench>.json and sparsevlm_timing_<bench>.json;
+    NVIDIA H100 NVL on nodesumo01, 8 forced decode steps, B* = 4 primary, B = 1 / 16 / 32 secondary) — and labelled 'latency measured on the
+    pre-fixed profiling workload', never as the test sets' actual mean end-to-end latency.  Every fixed-budget selector row (phases L and F) takes
+    the representative 10k S1 seed-0 unit's latency (D1-30 rule: same architecture and cost).  Phase F's dynamic rows take their latencies from
+    D1-FULL's own timing run (D1-30 procedure on nodesumo01, decision F3; F_TIMING_DIR, D1-30 layout); the D1-30 files take precedence for every
+    row they contain.  All timing files' sha256 enter the phase's manifest and are re-checked by the scorer.
+  primary_per_benchmark_and_phase:
+    - "S1 − S2 at L25 / L50 / L75 (B* = 4; L = uniform-grid 144 / 288 / 432-token per-item latency on the profiling workload): seed mean of per-seed interpolated qualities (seed i vs seed i), as D1-30"
+    - "S1 − S3 at L25 / L50 / L75, same"
+    - "S1 − SparseVLM budget-matched (D30-1 primary basis): S1 fixed budget k (seed mean, per item) vs the adapted SparseVLM row at k = 144 / 288 / 432"
+  holm_family: "per phase: the 6 primary contrasts at each latency point (3 contrasts × GQA testdev-balanced and ChartQA test combined); phases are separate families (open_decisions.D50-2)"
+  secondary:
+    - "S1 − uniform grid at L25 / L50 / L75 (B* = 4)"
+    - "S1 − SparseVLM latency-matched at B = 1 (D30-1 secondary; no latency claim against SparseVLM at B* = 4)"
+    - "every family (S1, S2, S3, S1 dynamic, grid; SparseVLM at B = 1) at L25 / L50 / L75 for B = 1 / 4 / 16 / 32"
+    - "fixed-budget quality of every row with absolute / relative retention and mean visual tokens, plus the profiling-workload latency columns"
+    - "A3 for S1: dynamic − fixed at the dynamic row's realised mean kept tokens on test (fixed curve interpolated in tokens)"
+    - "S1 dynamic rows: kept-token counts and budget distribution observed on test, next to the profiling workload's distribution (B = 4)"
+    - "latency to stay within 1.0 point of full (B* = 4), preserve / correct / break when the full model is wrong / right"
+    - "subsets: GQA structural types (quality per row); ChartQA human and augmented separately (quality per row with CIs and the contrasts on each split with its own chart bootstrap, unadjusted) and the mean of the two splits; the combined ChartQA set (item mean over all items) is the primary"
+    - "integrity (dropped / blank lines, duplicate qids, files per row), the SparseVLM counter records per shard, the row source (phase) of every row"
+  claims_not_made: "no equivalence / non-inferiority claim (no margin); no latency claim against SparseVLM at B* = 4; no claim that the profiling-workload latency is the test sets' latency; no pooling across phases or hosts"
+
+statistics:
+  resampling: "image (GQA) / chart (ChartQA) grouped paired bootstrap, 2,000 replicates shared by every statistic of a benchmark (r7_d1_30_score.Boot, seed 0)"
+  seeds: "per-seed contrasts with their own bootstrap CI; seed mean ± sd; the p-value entering Holm is the group bootstrap of the seed-averaged contrast (seeds fixed)"
+  p_value: "two-sided bootstrap 2 · min(P(Δ* <= 0), P(Δ* >= 0)) with +1 correction"
+  coverage_guard: "the manifest and the scorer stop unless every row covers exactly the benchmark's items (first complete record per qid; dropped / duplicate lines counted, E1)"
+
+exposure_statement_graded_A3b:
+  project: "the test splits were never used for selector training, hyperparameters or any selection; rows, checkpoints, operating points and statistics are fixed by this protocol before the read"
+  host_public_training_data: >
+    LLaVA-1.5's instruction mix (llava_v1_5_mix665k.json, sha256 ce959ce6…, the file D1 used) includes GQA train-balanced, Visual Genome, COCO
+    and TextCaps.  GQA's test splits extend Visual Genome with new images whose scene graphs are hidden (Hudson & Manning 2019), so test-dev
+    images need not be Visual Genome images (decision D50-5).  The build counts, from image ids and question text only: test-dev image ids by
+    prefix ('n'-prefixed vs numeric Visual Genome ids), test-dev images among the mix's gqa/ and vg/ images, test-dev (image, normalised question)
+    pairs among the mix's GQA turns (frozen D1 match rule); ChartQA: mix entries with chart image paths.  The results carry these counts as
+    'exposure_statement_measured'.  The check reproduces the frozen D1 DEV disclosure (smoke: 1,934 of 2,000 DEV images in the mix's GQA part,
+    0 seen pairs).  ChartQA is not in LLaVA-1.5's published mix.
+  upstream: "undisclosed upstream pre-training exposure (CLIP ViT-L/14-336 data, Vicuna / LLaMA) is not guaranteed either way"
+  wording: "decided (D50-5): the outline's 'all GQA images, test-dev included, come from Visual Genome' is corrected by the coordinator; the measured prefix and overlap counts are reported"
+
+# ------------------------------------------------------------------------------------------------------------------------------ procedure
+procedure_A4:
+  driver_L: "cd /home/infres/yinwang/CS_QMI/ssl_pilot && nohup setsid bash slurm/r7_50_submit.sh >/dev/null 2>&1 &   (PROTOCOL=<path> to override the frozen file name; log slurm_logs/r7_50_submit_L.log, first line carries the PID; stop with kill <pid>, never pkill -f)"
+  driver_F: "PHASE=F F_LR_CHOICE=<D1-FULL lr_choice.json> F_SELECTORS=<dir> F_PCA=<pca.pt> F_INTEGRITY_REF=<D1-FULL D1-30-style DEV / val prediction dir> F_TIMING_DIR=<D1-FULL timing run, D1-30 layout> nohup setsid bash slurm/r7_50_submit.sh >/dev/null 2>&1 &   (log slurm_logs/r7_50_submit_F.log)"
+  driver_Q: "refused until the Q addendum and the R7-40c runner exist"
+  gate_0: "the protocol carries 'status: frozen' and a top-level 'r7_50_freeze_<yyyymmdd>:' key; it, the R7-50 code, the imported D1 / D1-30 modules and R7_DATA_CLOSED_SHA256.csv are committed and unchanged (git ls-files / git diff HEAD); else STOP before anything is read"
+  gate_1_L: "D1-20 complete (the D1-30 driver's file gates: lr_choice.json, the 15 units' .pt and .json with dynamic taus) AND 'stage 1 complete' in slurm_logs/r7_d1_30_submit.log AND the four D1-30 timing files; WAIT_H 96 h per gate, then STOP"
+  gate_1_F: "D1-FULL complete (F_LR_CHOICE, its 9 units' .pt / .json with dynamic taus, F_PCA), D1-FULL's timing run (F_TIMING_DIR/<gqa_dev|chartqa_val>/timing_<bench>.json) AND phase L's sealed inputs; F_INTEGRITY_REF required ('none' refused)"
+  integrity_stage: "CPU integrity-prepare -> GPU units (pinned, markers, retries) -> CPU integrity-compare; STOP unless integrity_<P>/integrity.json says pass"
+  stage_0: "phase L: one CPU job 'prepare' = build (the only job that opens the two test files) + configs_L + lines_L; phase F: configs_F + lines_F only"
+  stage_1_generation: "phase L: 12 GPU units (GQA quality 6 + SparseVLM 3, ChartQA 2 + 1); phase F: 8 (quality only); single-writer shard files (E1); a unit whose job left the queue without its marker is resubmitted (resumes) at most 2 times, then STOP; submissions only while fewer than 26 normal-QOS jobs are queued (count stays below 27); no afterok; an empty / non-numeric job id stops the driver"
+  stage_2_manifest: "one CPU job: coverage of every generated row (prediction files read for question ids only), sha256 of every prediction file of the phase, of rows.json, the build summary and the four timing files -> manifest_<P>/predictions_manifest.json + .sha256; generation of that phase refuses to run once it exists"
+  stage_3_wait: "the driver STOPS AND WAITS (up to 336 h) for <root>/ALLOW_SCORING_<P>"
+  coordinator_between_2_and_4: >
+    (1) copy manifest_<P>/predictions_manifest.json (+ .sha256), sealed/inputs/build_summary.json and configs_<P>/rows.json into reports/R7/
+    (e.g. R7_50_<P>_PREDICTIONS_MANIFEST.json, R7_50_BUILD_SUMMARY.json, R7_50_<P>_ROWS.json, plus integrity_<P>/integrity.json; counts and hashes
+    only), commit (and push);  (2) printf 'manifest_sha256=%s\ncommit=%s\nmanifest_copy=reports/R7/R7_50_<P>_PREDICTIONS_MANIFEST.json\nby=coordinator\nutc=%s\n'
+    "$(cut -d' ' -f1 /home/infres/yinwang/CS_QMI/outputs/R7_50/manifest_<P>/predictions_manifest.sha256)" "$(git rev-parse HEAD)" "$(date -u +%FT%TZ)"
+    > /home/infres/yinwang/CS_QMI/outputs/R7_50/ALLOW_SCORING_<P>  — for the production root the scorer refuses unless 'git show <commit>:<manifest_copy>'
+    hashes to the manifest's sha256 (the hashes are verifiably committed before any label is opened)
+  stage_4_score: "one CPU job per phase: the only job that opens the sealed labels; re-checks ALLOW_SCORING_<P> against the manifest and its committed copy, every prediction file (phase F: also phase L's baseline files against manifest_L), the timing files, inputs and labels; writes results_<P>/r7_50_results.json and .md (never overwrites; a re-verification writes to a new --out dir)"
+  results: "committed as they come out (A.4.4)"
+  error_rules_A4_5: >
+    (a) an implementation error is fixed and published with both outputs (never tuning); (b) re-verifying frozen predictions with the
+    deterministic evaluator is allowed and recorded (score --out <new dir>); (c) re-selecting methods or rows is not allowed.  A rerun after an
+    infrastructure failure uses the same code, rows and seeds and is reported.  A stop inside 'prepare' after the files were read (e.g. a missing
+    image or a count mismatch) is case (a): no output exists yet, the fix is published and the second physical read is disclosed.
+
+# ------------------------------------------------------------------------------------------------------------------------------ code
+code:
+  commit_list:
+    - scripts/r7_50_test.py         # build / units / configs / lines / prepare / run / sparsevlm / integrity-{prepare,run,compare} / manifest / score
+    - scripts/r7_50_smoke.py        # smoke on non-test data (prep / gpu / allow / integrity / report, + the integrity-only steps)
+    - tests/test_r7_50.py           # 16 CPU tests incl. stubbed dry runs of the driver (phases L / F / Q)
+    - slurm/r7_50_cpu.sbatch
+    - slurm/r7_50_gpu.sbatch
+    - slurm/r7_50_submit.sh
+    - reports/R7/R7_50_PROTOCOL_DRAFT_20261012.yaml   # this file (+ the coordinator's FROZEN copy)
+  frozen_modules_imported_unchanged: [scripts/r7_d1_30_run.py, scripts/r7_d1_30_sparsevlm.py, scripts/r7_d1_30_plan.py, scripts/r7_d1_30_score.py, scripts/r7_d1_30_data.py, scripts/r7_d1_30_eval.py, scripts/r7_d1_data.py, scripts/r7_d1_masks.py, scripts/r7_d1_selectors.py, scripts/r7_d1_teacher.py, scripts/r7_vl_common.py]
+  python: "-I for every step that reads downloaded data (CPU / GPU wrappers, the driver's planner calls)"
+  tests: "tests/test_r7_50.py 16 / 16 (job 1036192; earlier revisions: 15 / 15 in 1035858, 1035932, 1035935; 12 / 12 in 1035699, 1035711, 1035745, 1035828)"
+
+smoke:
+  data: "non-test only: GQA DEV (D1-30's 7,986 items re-expressed in the GQA balanced format, answers withheld; never scored), GQA balanced val subset (24 images, 85 q), ChartQA val (1,920 rows; never scored) and a ChartQA TRAIN subset (48 human + 48 augmented rows); no closed/ file opened, listed, hashed or loaded"
+  v1_jobs: "CPU tests 1035697 (11 / 12: a test bug), 1035699, 1035711, 1035745, 1035828 (12 / 12); prep 1035700 (superseded), 1035712; GPU 1035718 (L40S node50, 20 min, exit 0); finish 1035808 (exit 1: the qid-seeding finding below); integrity rerun with D1-30's ids 1035822 / 1035823 / 1035827"
+  build:
+    integrity_root: "GQA DEV 7,986 items / 2,000 images (8 s, images hashed and decoded); ChartQA val 1,920 items / 1,056 charts (human 960, augmented 960)"
+    scored_root: "GQA val subset 85 items / 24 images; ChartQA train subset 96 items / 58 charts (48 / 48); schema imgname / query / label / type: string, image: binary"
+    refusals: "a closed/ path without a frozen protocol refused before any open; a test-type file name outside closed/ refused before any open"
+    exposure_check: "integrity build: 1,934 of 2,000 DEV images among the mix's gqa/ images and 0 seen (image, question) pairs = the frozen D1 DEV disclosure (match: true); mix sha256 ce959ce6… as recorded by D1"
+  generation_L40S: "50 pipeline rows: 4,250 GQA answers in 182 s (42.7 ms / answer), 4,800 ChartQA answers in 248 s (51.7 ms); SparseVLM 8 rows: 0.113 s / answer (GQA), 0.179 s (ChartQA); official counter == prediction on all 18 rows (deviation 0)"
+  manifest: "122 prediction files, 58 rows per benchmark, coverage complete, hub_links skipped"
+  gate_refusals: "score refused with no ALLOW_SCORING, a wrong manifest sha256, a changed prediction file and an extra prediction file; generation refused after the manifest (all 5 refused)"
+  scorer_code_checks: "both benchmarks: 58 rows, 9 / 9 primary contrasts computed (Holm family 6 per latency point), CIs contain the point estimates, latency columns on all 58 rows, 9 dynamic rows with shares summing to 1, GQA structural subsets, ChartQA human / augmented / mean of splits, SparseVLM counters within tolerance, no dropped / duplicate lines.  Smoke quality numbers (random-init selectors on smoke subsets) are not results and are not quoted"
+  float32_counter_drift: "max |official − predicted| over the 8 SparseVLM rows at 2,500-12,578 prefills: 0.044 token (tolerance 0.5)"
+  integrity_96_items:
+    with_r7_50_ids: "GQA DEV: full 96 / 96, grid-144 96 / 96, SparseVLM-192 96 / 96; ChartQA val (chartqa_test_* ids): full 96 / 96, SparseVLM-192 96 / 96, grid-144 60 / 96 with kept counts 96 / 96 — same kept set on 30 / 96 items and identical answers on all 30 (qid-seeded lattice; inputs_and_labels.qid_seeded_masks)"
+    with_d1_30_ids: "all six rows 96 / 96 identical answers and 96 / 96 identical kept counts; inputs identical on 7,986 / 7,986 GQA and 1,920 / 1,920 ChartQA items (L40S, jobs 1035823 / 1035827) — the integrity gate passed for the freeze"
+  v2_refactored_code: >
+    Phase-aware code (L / F layout, integrity gate, D1-FULL timing, exposure prefix counts) re-smoked end to end on fresh non-test roots
+    (outputs/R7_50_smoke_v2): prep 1035860, GPU 1035866 (L40S node50, 27 min, exit 0), finish 1036191 (exit 0).  Phase L: 58 rows per
+    benchmark, manifest 122 files with coverage complete, 9 / 9 primary contrasts (Holm family 6), latency columns on all 58 rows.  Phase F (a
+    second random-init 'D1-FULL-like' selector set, other unit tags): 45 rows per benchmark generated (44.1 / 54.2 ms per answer GQA / ChartQA),
+    manifest_F 92 files, scored with phase L's 13 sealed baseline rows (row sources 'phase F' + 'phase L'), 9 / 9 primary contrasts (Holm 6),
+    dynamic-row latencies from a stand-in F timing file (smoke-only relabelling, D1-30 layout).  Gate refusals 5 / 5.  Integrity with D1-30's ids:
+    all six rows 96 / 96 (answers and kept counts), inputs identical on 7,986 / 7,986 and 1,920 / 1,920.  SparseVLM counters within tolerance on all
+    18 rows.  CPU tests 16 / 16 (job 1036192).
+  rehearsal_full_scale: >
+    The gate code on the FULL sets for the rows whose D1-30 references exist now (root outputs/R7_50_rehearsal; plan 1035867, units 1035901
+    pipe_L40S (24 min) and 1035907 sv_L40S (32 min), comparisons 1036094 interim / 1036233 final; rule fixed by the coordinator before these
+    numbers).  GQA DEV (7,986): full 7,986 / 7,986 identical, grid-144 7,986 / 7,986, SparseVLM-192 7,980 / 7,986 = 99.92 % (official counter
+    192.0107 vs predicted 192.03125: float32 drift −0.021, within 0.5); ChartQA val (1,920): full 1,920 / 1,920, grid-144 1,920 / 1,920,
+    SparseVLM-192 1,902 / 1,920 = 99.06 % (counter exact); kept counts identical everywhere; inputs identical on every item; no retried reference
+    shard; PASS.  The S1 seed 0 at 144 row is checked by the production gate once D1-30 stage 1 has produced its reference.  Rates: 54.7 ms /
+    answer (GQA, 2 rows per chunk), 76 ms (ChartQA); SparseVLM 0.110 s (GQA DEV), 0.191 s (ChartQA val).
+cost_and_budget:
+  measured_on_L40S: "smoke job 1035718 (node50): our pipeline at 50 rows 42.7 ms / answer (GQA val subset) and 51.7 ms (ChartQA train subset); SparseVLM batch 1 0.113 s (GQA) and 0.179 s (ChartQA); host staging + load 377 s.  At scale (D1-30 early jobs, L40S): SparseVLM 0.108 s (GQA DEV), 0.19 s (ChartQA val)"
+  phase_L_generation: "GQA 628,900 answers × 42.7 ms ≈ 7.5 GPU-h; ChartQA 125,000 × 51.7 ms ≈ 1.8; SparseVLM 100,624 × 0.113 s ≈ 3.2 and 20,000 × 0.179 s ≈ 1.0; 12 loads ≈ 1.3 -> ≈ 14.7 GPU-h if every unit lands on L40S, ≈ 9 GPU-h on H100 (D1-30 smoke: 23 ms / answer on H100 NVL); about 1.5 h per unit on L40S; ≈ 2.5 h wall with 8 GPUs"
+  phase_L_integrity_gate: "≈ 1.2-1.5 GPU-h (measured: full + grid-144 unit 24 min, SparseVLM-192 unit 32 min; plus the S1 seed 0 at 25 % tasks ≈ 15-20 min per GPU-class unit)"
+  phase_F_generation: "678,510 answers: GQA 566,010 × 42.7 ms ≈ 6.7 GPU-h, ChartQA 112,500 × 51.7 ms ≈ 1.6, 8 loads ≈ 0.8 -> ≈ 9.2 GPU-h on L40S (≈ 5.5 on H100); its integrity gate ≈ 0.5 GPU-h"
+  cpu: "prepare (build incl. the 1 GB instruction-mix scan + configs) ≈ 2-4 min; manifest ≈ 1-2 min; score ≈ 2-5 min per phase"
+  total_L_plus_F: "≈ 26 GPU-h on L40S (≈ 16 on H100) + CPU minutes; the outline's §A.5 estimate (6-10 GPU-h for the LLaVA rows) is exceeded because of the integrity gate, the phase-F rows and the measured L40S rate"
+  storage: "sealed inputs + ChartQA images ≈ 0.1 GB, predictions ≈ 0.15 GB per phase, integrity roots ≈ 0.1 GB, all on /home/infres/yinwang/CS_QMI/outputs/R7_50"
+open_decisions:
+  # ---- before the freeze (phases L and F)
+  D50-1_freeze_mechanics: >
+    Freeze = a copy named reports/R7/R7_50_PROTOCOL_FROZEN_20261012.yaml (driver default; PROTOCOL=<path> otherwise) with 'status: frozen' and
+    a top-level 'r7_50_freeze_20261012:' key, committed with code.commit_list; optionally a pointer key r7_50_freeze in
+    reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml for the record (the R7-50 code does not read it).  Recommended.
+  D50-2_holm_family: >
+    Recommended: Holm per latency point over the 6 primary contrasts of one phase (S1 − S2, S1 − S3, S1 − SparseVLM[budget] × 2 benchmarks);
+    phases L, F and Q are separate families scored at different times.  A joint family would make earlier phases wait for later ones.
+  D50-3_chartqa_split: >
+    Recommended: the combined ChartQA test set (item mean over all items, the D1-30 convention) is primary; human and augmented are secondary
+    (quality per row with CIs, the same contrasts with their own chart bootstrap, unadjusted) plus the mean of the two splits.
+  D50-4_secondary_set: "all secondaries are computed from declared rows only (listed under endpoints.secondary); confirm or trim; nothing is added to the rows"
+  D50-5_exposure_wording: "DECIDED by the coordinator (see approval.coordinator_decisions_20261012_before_any_rehearsal_number.D50-5); implemented: prefix and overlap counts at the build, reported as exposure_statement_measured.  Context: the shared GQA image folder holds 108,079 numeric ids and 40,775 'n'-prefixed ids (file names counted, nothing opened)."
+  D50-6_latency_mapping: "GQA testdev-balanced <- D1-30's gqa_dev timing results; ChartQA test <- chartqa_val's (the frozen subsets, B* = 4, nodesumo01).  Confirm."
+  D50-7_hardware: >
+    Generation: (a) D1-30's rule, H100,L40S (recommended; outputs hardware-independent per R7-20, and the paired S1 / S2 / S3 rows of an item come
+    from the same shard job, hence the same GPU) or (b) L40S only (one numeric class; the L40S queue is congested by other users).  Integrity
+    units are always pinned to the reference shard's class.
+  D50-8_shards_and_time: "D1-30 shard counts (GQA 6 quality + 3 SparseVLM, ChartQA 2 + 1); --time=04:00:00 per generation unit and 03:00:00 per integrity unit (backfill-friendly; measured ≤ 1.5 h and ≤ 0.5 h).  Confirm."
+  D50-9_commit_before_scoring: "file names of the committed copies (manifest, build summary, rows.json, integrity.json) per phase; confirm"
+  D50-10_chartqa_zip: >
+    /projects/EEG-foundation-model/yinghao/data/chartqa/ChartQA Dataset.zip (875 MB, outside closed/, never opened by R7-50) is the upstream
+    archive and presumably holds the test annotations; it is an unguarded test path for other jobs.  Recommended: move it under closed/ (or
+    delete it, the owner's call), independent of this protocol.
+  D50-11_driver_waits: "WAIT_H 96 h per gate file and per generation stage; WAIT_SCORE_H 336 h for ALLOW_SCORING_<P>; CAP 26 (count < 27).  Confirm."
+  D50-12_integrity_rule: "DECIDED by the coordinator before any rehearsal number (identity for deterministic rows; SparseVLM-192 >= 98.0 % with kept counts and E3 counters); implemented in r7_50_test.integrity_compare (SV_AGREEMENT_MIN = 0.98).  Residual risk, reported not waived: a D1-30 reference shard that was retried has different chunk compositions after its resume point (retried shards are listed in the record)."
+  # ---- phase F (D1-FULL)
+  F1_rows: "45 rows declared by the same rule as phase L's selector rows (S1 / S2 / S3 × seeds 0-2 × 4 budgets + S1 dynamic × 3 operating points); full / grid / SparseVLM shared from phase L.  Confirm that phase F does not regenerate the baselines."
+  F2_integrity_reference: "DECIDED: D1-FULL's own D1-30-style full-scale DEV / val outputs (D1-30 prediction layout with completion markers); F_INTEGRITY_REF=none is refused by the driver"
+  F3_dynamic_latency: "DECIDED: D1-FULL's own timing run (D1-30 procedure on nodesumo01; F_TIMING_DIR in the D1-30 layout); sealed in manifest_F, required by the scorer"
+  F4_holm: "phase F is its own Holm family (6 primary contrasts per latency point); L vs F comparisons are descriptive only (no test, no pooling)"
+  # ---- phase Q (Qwen2.5-VL, after R7-40; a separate addendum frozen before any Qwen test generation)
+  Q1_rows: >
+    §A.2 lists for Qwen: full, the uniform grid and S1, S2, S3 × seeds 0-2 (no SparseVLM, no dynamic rows).  At R7-40c's four fractions that is
+    41 rows per benchmark (1 + 4 + 36); §A.5's '≈ 28 configurations' matches neither 41 nor the 3 latency-point fractions (31): fix the exact list.
+  Q2_latency: "Qwen's own B* from R7-40's reference-node timing (outline as of 4ba4860) and R7-40c's frozen timing subsets; if Qwen has no B*, quality at fixed fractions and no acceleration claim (R7-40 OPEN-R740-8)"
+  Q3_code: "the R7-40c Qwen quality runner on the SAME sealed inputs (no second read of the test files), writing into sealed/pred_Q/ with its own lines, markers, manifest_Q and ALLOW_SCORING_Q (the layout already reserves phase Q); its own integrity gate against R7-40c's full-scale DEV / val outputs"
+  Q4_holm: "Qwen family per latency point (S1 − S2 and S1 − S3 × 2 benchmarks = 4, plus S1 − grid if R7-40c makes it primary); cross-host reading descriptive only, no pooling"
+  Q5_prompts: "Qwen chat template with the same benchmark suffixes and Qwen's own dynamic-resolution preprocessing of the same image files (as R7-40); fix in the addendum"
