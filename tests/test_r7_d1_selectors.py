@@ -73,6 +73,28 @@ class Schedules(unittest.TestCase):
         self.assertEqual(len(a), 64); self.assertEqual(len(set(a.tolist())), 64); self.assertTrue(np.array_equal(a, b)); self.assertFalse(np.array_equal(a, c))
 
 
+class UnitPlan(unittest.TestCase):
+    def test_stage_lines_and_lr_choice(self):
+        import json
+        import r7_d1_plan20 as P
+        s1 = P.stage1("12345"); self.assertEqual(len(s1), 6)
+        for ln in s1:
+            self.assertIn("--dependency=afterok:12345", ln); self.assertNotIn("--export", ln); self.assertIn("--exclude=node51,node52,node60", ln)
+            self.assertIn("RTX6000PRO,H100,L40S", ln)
+        with tempfile.TemporaryDirectory() as t:
+            d = Path(t)
+            with self.assertRaises(SystemExit):
+                P.choose(d)                                                                    # refuses before the seed-0 units are complete
+            vals = {("vcs", 1e-4): 0.40, ("vcs", 3e-4): 0.45, ("logistic", 1e-4): 0.50, ("logistic", 3e-4): 0.44, ("direct", 1e-4): 0.30, ("direct", 3e-4): 0.30005}
+            for (o, lr), v in vals.items():
+                (d / f"{P.tag(o, lr, 0)}.json").write_text(json.dumps({"selected_cal_spearman": v})); (d / f"{P.tag(o, lr, 0)}.pt").write_bytes(b"x")
+            ch = P.choose(d)
+        self.assertEqual({o: ch[o]["chosen_lr"] for o in ch}, {"vcs": 3e-4, "logistic": 1e-4, "direct": 3e-4})   # tie within 1e-4 -> 3e-4
+        s2 = P.stage2(ch); self.assertEqual(len(s2), 12)
+        self.assertEqual(sum("--no-question" in x for x in s2), 3); self.assertEqual(sum("--target d" in x for x in s2), 3)
+        self.assertTrue(all(" 0.0001 " in x for x in s2 if "train logistic" in x))
+
+
 class Training(unittest.TestCase):
     def test_end_to_end_all_objectives(self):
         fit, cal = synth(48, 0), synth(24, 1)
@@ -83,6 +105,27 @@ class Training(unittest.TestCase):
             best = max(e["cal_spearman_r_h"] for e in log["evals"]); self.assertAlmostEqual(log["selected_cal_spearman"], best, places=12)
             self.assertEqual(set(log["soft_hard_gap"]), {"2", "4", "8", "12"})
             dyn = SEL.dynamic_tau(model, cal, cfg, 0.5); self.assertLessEqual(abs(dyn["mean_kept_fraction"] - 0.5), 0.26)
+
+    def test_native_criterion_secondary(self):
+        fit, cal = synth(48, 0), synth(24, 1)
+        for obj, target, name, better in (("vcs", "h", "J", "higher"), ("logistic", "h", "bce", "lower"), ("direct", "h", "mse_h", "lower"), ("direct", "d", "mse_d", "lower")):
+            cfg = SEL.Cfg(**TINY, steps_a=30, steps_b=4, eval_every=10, lr=3e-3, seed=0, target=target)
+            model, log = SEL.train(cfg, obj, fit, cal, (1.0, 1.0))
+            nat = [e["native"] for e in log["evals"]]; self.assertTrue(all(n["name"] == name and n["better"] == better for n in nat))
+            vals = [n["value"] for n in nat]; pick = vals.index(max(vals) if better == "higher" else min(vals))
+            self.assertEqual(log["native_selected"]["step"], log["evals"][pick]["step"])
+            self.assertEqual(log["native_selected"]["cal_spearman_r_h"], log["evals"][pick]["cal_spearman_r_h"])
+            best = max(range(len(log["evals"])), key=lambda i: log["evals"][i]["cal_spearman_r_h"])
+            self.assertEqual(log["selected_step"], log["evals"][best]["step"])                  # the frozen rule is unchanged
+        # the logged value equals an independent computation from the same predictions
+        model, _ = SEL.train(SEL.Cfg(**TINY, steps_a=10, steps_b=0, eval_every=10, lr=3e-3, seed=1), "vcs", fit, cal, (1.0, 1.0))
+        r, fb, fa = SEL.predict_r(model, cal, np.arange(cal.n), with_critic=True); C = cal.C.numpy().astype(float)
+        tb, ta = np.tanh(fb), np.tanh(fa)
+        j = np.mean(np.where(C > 0, tb - tb ** 2 / 2, -tb - tb ** 2 / 2)) + np.mean(np.where(np.repeat(C, ta.shape[1]) > 0, ta.reshape(-1) - ta.reshape(-1) ** 2 / 2,
+                                                                                       -ta.reshape(-1) - ta.reshape(-1) ** 2 / 2))
+        got = SEL.native_criterion("vcs", "h", r, fb, fa, C, cal.h.numpy(), cal.d.numpy(), np.array([1.0, 1.0]))["value"]
+        self.assertAlmostEqual(got, float(j), places=6)
+        self.assertTrue(np.allclose(r, (np.tanh(fb)[:, None] - np.tanh(fa)) ** 2, atol=1e-6))  # the read-out comes from the same critics
 
     def test_resume_is_bit_exact(self):
         fit, cal = synth(32, 2), synth(16, 3); cfg = SEL.Cfg(**TINY, steps_a=40, steps_b=8, eval_every=10, lr=3e-3, seed=5)

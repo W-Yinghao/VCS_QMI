@@ -6,6 +6,7 @@ Modes:  fit_pca  --manifest-dir D --out C [--max-images 10000]    (FIT images on
         encode   --manifest-dir D --out C --role FIT|CAL|DEV         (pixels only; no label, no teacher output is read)
         questions --manifest-dir D --out C                           (token ids for every manifest question + the embedding table)
         smoke    --fixture F --out C                                 (R7-20 GQA fixture: PCA fitted on the fixture images; smoke only)
+        d1_20    --manifest-dir D --out C                            (one load: PCA on FIT, FIT / CAL features, FIT / CAL question ids)
 """
 from __future__ import annotations
 
@@ -79,7 +80,7 @@ def save_questions(h, rows, out: Path):
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(); ap.add_argument("mode", choices=["fit_pca", "encode", "questions", "smoke"]); ap.add_argument("--out", required=True)
+    ap = argparse.ArgumentParser(); ap.add_argument("mode", choices=["fit_pca", "encode", "questions", "smoke", "d1_20"]); ap.add_argument("--out", required=True)
     ap.add_argument("--manifest-dir"); ap.add_argument("--role", choices=["FIT", "CAL", "DEV"]); ap.add_argument("--max-images", type=int, default=10000)
     ap.add_argument("--fixture"); ap.add_argument("--pca-dim", type=int, default=512)
     a = ap.parse_args(); out = Path(a.out); out.mkdir(parents=True, exist_ok=True); h, src = host(out); torch = h.torch; t0 = time.time()
@@ -94,7 +95,15 @@ def main() -> int:
         md = Path(a.manifest_dir); meta = json.loads((md / "d1_manifest_meta.json").read_text())
         if meta.get("frozen") is not True:
             raise SystemExit("manifest not frozen")
-        if a.mode == "fit_pca":
+        if a.mode == "d1_20":                                                          # one load: PCA on FIT, FIT / CAL features, FIT / CAL questions
+            imgs, rows = images_of(md, "FIT")
+            pca = fit_pca(h, ((i, src.open(i)) for i in imgs[: a.max_images]), a.pca_dim)
+            pca.update({"fit_images": min(len(imgs), a.max_images), "tokens_per_image": 64, "manifest_sha256": meta["manifest_sha256"]}); torch.save(pca, out / "pca.pt")
+            for role in ("FIT", "CAL"):                                                # DEV is encoded at D1-30, not here
+                ri, _ = images_of(md, role); np.save(out / f"feats_{role}.npy", encode_role(h, pca, [src.open(i) for i in ri]))
+                (out / f"images_{role}.json").write_text(json.dumps(ri))
+            save_questions(h, [r for r in rows if r["role"] in ("FIT", "CAL")], out)
+        elif a.mode == "fit_pca":
             imgs, _ = images_of(md, "FIT"); imgs = imgs[: a.max_images]                 # FIT only; never CAL / DEV
             pca = fit_pca(h, ((i, src.open(i)) for i in imgs), a.pca_dim)
             pca.update({"fit_images": len(imgs), "tokens_per_image": 64, "manifest_sha256": meta["manifest_sha256"]})
@@ -103,7 +112,7 @@ def main() -> int:
             pca = torch.load(out / "pca.pt"); imgs, _ = images_of(md, a.role)
             np.save(out / f"feats_{a.role}.npy", encode_role(h, pca, [src.open(i) for i in imgs])); (out / f"images_{a.role}.json").write_text(json.dumps(imgs))
         else:
-            _, rows = images_of(md, "FIT"); save_questions(h, rows, out)
+            _, rows = images_of(md, "FIT"); save_questions(h, [r for r in rows if r["role"] in ("FIT", "CAL")], out)
     rec = {"mode": a.mode, "role": a.role, "seconds": time.time() - t0, "env": V.env_info()}
     (out / f"cache_{a.mode}{'_' + a.role if a.role else ''}.json").write_text(json.dumps(rec, indent=1)); print(json.dumps(rec, indent=1))
     return 0

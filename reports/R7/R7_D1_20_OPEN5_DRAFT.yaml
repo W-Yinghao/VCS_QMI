@@ -2,7 +2,7 @@
 # frozen after the D1-10 CAL readout and before any D1-20 run; DEV sealed.  Code: scripts/r7_d1_selectors.py, r7_d1_train.py,
 # r7_d1_cache.py; tests tests/test_r7_d1_selectors.py (8 tests; 34 / 34 with the D1 suites in both envs).
 protocol_ref: reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (D1_20; coordinator_decisions OPEN-5, OPEN-6)
-status: draft_for_staged_freeze_not_frozen
+status: final_draft_for_the_staged_freeze (coordinator appends the freeze; nothing has run except smokes)
 
 inputs:
   teacher_records: >
@@ -75,17 +75,65 @@ OPEN_5_gate_training:                # proposed for the staged freeze
     The smallest k in {72, 144, 288, 432, 576} whose hard top-k mask has r <= tau_dyn.  tau_dyn is fixed on CAL by bisection so that the
     mean kept fraction is 0.25 / 0.50 / 0.75 (three operating points, stored with the unit).
 
-units:
-  main: "3 objectives × seed 0 × 2 learning rates (6) + 3 objectives × seeds 1, 2 at the chosen rate (6) = 12"
-  ablations: "A1 S1 without question tokens × 3 seeds; A2 S3 regressing d × 3 seeds — at the chosen rate of the modified objective (6)"
-  total: "18 resumable GPU units (main env, torch 2.9: RTX6000PRO, H100 or L40S; node51 / 52 / 60 excluded; slurm/r7_d1_sel.sbatch)"
-  resume: state saved at every CAL evaluation and at the end of phase A; a restarted unit continues bit-exactly (unit-tested)
-  outputs: outputs/R7_D1/selectors/<objective>_lr<lr>_s<seed>[_noq][_dtarget].{pt,json} with evals, selected step, soft / hard gap, dynamic tau
-cost_estimate: FILL from the smoke (job 1034956; s/step on the reference GPU) — prior 1–2 GPU-h per unit, so about 18–36 GPU-h for 18 units
+units_and_stages:
+  stage_0_feature_cache: >
+    One GPU job in the LLaVA env, H100 / L40S only: slurm/r7_d1_gpu.sbatch cache d1_20.  It runs scripts/r7_d1_cache.py d1_20: PCA on all
+    10,000 FIT images × 64 seeded tokens, FIT and CAL features, FIT and CAL question ids.  DEV is not encoded here (D1-30).  About 20–30 min
+    including the staged load; about 7 GB written to outputs/R7_D1/cache (/home).
+  stage_1_lr_search: >
+    6 units: S1 vcs, S2 logistic, S3 direct × lr {1e-4, 3e-4} × seed 0, each with --dependency=afterok:<stage-0 job>.
+    Lines from scripts/r7_d1_plan20.py stage1 --cache-job <id> --lines slurm/r7_d1_20_stage1_lines.txt.
+  choice: >
+    scripts/r7_d1_plan20.py choose --selectors-dir outputs/R7_D1/selectors.  Per objective, the rate with the higher selected CAL Spearman;
+    a tie within 1e-4 goes to 3e-4.  It refuses to run until both seed-0 runs of every objective are complete and writes lr_choice.json.
+  stage_2_dependent: >
+    12 units, all waiting for the choice: seeds 1 and 2 × 3 objectives at each objective's chosen rate (6); A1 = S1 vcs without question
+    tokens × seeds 0, 1, 2 at S1's chosen rate (3); A2 = S3 direct regressing d × seeds 0, 1, 2 at S3's chosen rate (3).
+    Lines from scripts/r7_d1_plan20.py stage2 --selectors-dir outputs/R7_D1/selectors --lines slurm/r7_d1_20_stage2_lines.txt.
+  why_stage_2_waits: >
+    Every stage-2 unit runs at a CAL-chosen rate (frozen OPEN-6), so nothing in stage 2 is independent of the choice.  Running both rates
+    for seeds 1–2 to avoid the wait would add 6 units and give extra selection opportunities, so it is not proposed.
+  total: 18 training units + 1 cache job; main env, torch 2.9, any of RTX6000PRO / H100 / L40S; node51 / node52 / node60 excluded; no --export
+  feed: slurm/feed_normal.sh with CAP=27; one stage at a time
+  resume: state saved at every CAL evaluation and at the end of phase A; a restarted unit continues bit-exactly (unit-tested); a complete unit (.pt present) is skipped
+  outputs: outputs/R7_D1/selectors/<objective>_lr<lr>_s<seed>[_noq][_dtarget].{pt,json,resume.pt}, with evals, selected step, soft / hard gap, dynamic tau and timing
+cost_estimate: >
+    Measured in the smokes (jobs 1035064 on L40S and 1035065 on RTX PRO 6000) at the real batch of 64 questions × 4 masks.
+    L40S: a phase-A step takes 0.584–0.588 s, an evaluation pair 7.1–8.5e-4 s and a phase-B step 0.149 s, so about 3.8–3.9 GPU-h per unit.
+    RTX PRO 6000: 0.297–0.313 s per phase-A step, 3.5e-4 s per pair and 0.074 s per phase-B step, so about 1.9–2.0 GPU-h per unit.
+    H100 was not re-timed after the fix and is expected in between.
+    18 units therefore cost about 35–70 GPU-h, plus the cache job (about 0.5 h).
+    Each unit is 20,000 phase-A steps, 20 CAL evaluations over 95,868 pairs and 5,000 phase-B steps.
 smoke: >
-  Job 1034956: feature cache on the R7-20 GQA fixture (PCA fitted on those 57 images, smoke only), then the three selectors' full pipeline
-  (phase A with CAL selection, phase B gates, soft / hard gap, dynamic tau).  The 68 probe records stand in for both FIT and CAL, so it is a
-  pipeline check only, not a result.
+    Jobs 1035064 (L40S) and 1035065 (RTX PRO 6000 Blackwell), both exit 0, after the explicit-attention fix.
+    The CUDA check scripts/r7_d1_attn_check.py compares CUDA fp32 against CPU fp64 with the same weights:
+    - one block, 577 keys, per-key bias that requires grad: relative error at most 7.7e-7 for outputs, input grad, bias grad and parameter grads;
+    - the selector's phase-A step and phase-B gate step at 585 keys: losses and gradients within 9.1e-6, and the gate gradient is non-zero.
+    The pipeline smoke ran on the 68 R7-20 probe records, which stand in for FIT and CAL (not a result).  All three objectives ran: phase A
+    with CAL selection, phase B gates, soft / hard gap, and the dynamic tau, which reaches a mean kept fraction of 0.49–0.50 at the 0.5 target.
+selection_asymmetry_disclosure: >
+  The frozen phase-A selection criterion is CAL Spearman between r(K) and the realised teacher h, and the same criterion picks the
+  learning rate.  That quantity is exactly S3's training target, so checkpoint and learning-rate selection favour S3 by construction.  S1 / S2
+  estimate the information loss of their own critics, not the host's h.  Coordinator decision 2026-10-12: keep the frozen criterion (the
+  deployment-relevant ranking; S3 is the package's direct-risk control that the posterior route must beat) and keep fp32 (no bf16 re-check
+  now).  D1-30 uses the frozen selection only.
+secondary_native_criterion:          # coordinator decision 2026-10-12, pre-declared before launch; reporting only, never used for selection
+  logged_at: every CAL evaluation (every 1,000 steps), from the same evaluation pass — the critic logits come out of the forward that yields r(K)
+  criteria: >
+    S1 vcs (and A1): J(T_B) + J(T_A) over all CAL (question, mask) pairs with the training class weights; higher is better.
+    S2 logistic: balanced BCE on 2f for T_B and T_A; lower is better.
+    S3 direct: class-weighted MSE of ĥ against h; lower is better.
+    A2 (direct with target d): class-weighted MSE against d; lower is better.
+  reported_per_unit: >
+    The native-selected step, its native value and its CAL Spearman(r, h), shown next to the frozen h-selected step and Spearman, so readers
+    see whether the h-criterion moved S1 / S2 materially.  The frozen selection rule and every D1-30 input are unchanged.
+  code: >
+    scripts/r7_d1_selectors.py native_criterion and predict_r(with_critic=True); the train log holds evals[*].native and native_selected.
+    Unit test test_native_criterion_secondary: the logged value equals an independent computation from the same predictions, the
+    native-selected step is the arg-best of the logged values, and the frozen selection still picks the max-Spearman evaluation.
+  gpu_path: >
+    Forward operations are unchanged; the evaluation pass only returns the critic logits it already computed.  So no GPU re-smoke was run
+    (coordinator: a re-smoke only if the GPU code path changes).
 coordinator_decisions_20261012:      # fixed before any D1-10 / D1-20 result; already implemented in the code
   pca: >
     Fitted on FIT only, never CAL / DEV: all 10,000 FIT images, each with a fixed seeded subsample of 64 visual tokens (the seed comes from

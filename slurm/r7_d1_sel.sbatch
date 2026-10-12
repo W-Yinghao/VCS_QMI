@@ -15,7 +15,9 @@ D1=/home/infres/yinwang/CS_QMI/outputs/R7_D1; export PYTHONNOUSERSITE=1
 echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1) start=$(date -u +%FT%TZ)"
 what="$1"; shift
 case "$what" in
-  smoke) "$PYTHON" scripts/r7_d1_train.py smoke --probe-records "$D1/smoke/probe/probe_records.jsonl" --cache "$D1/cache_smoke" --out "$D1/train_smoke" "$@"; rc=$?;;
+  smoke) "$PYTHON" scripts/r7_d1_attn_check.py --out "$D1/train_smoke"; rc=$?           # CUDA biased-attention check first (default vs math path)
+         [ $rc -eq 0 ] && { "$PYTHON" scripts/r7_d1_train.py smoke --probe-records "$D1/smoke/probe/probe_records.jsonl" --cache "$D1/cache_smoke" \
+                              --out "$D1/train_smoke" "$@"; rc=$?; };;
   train) obj="$1"; lr="$2"; seed="$3"; shift 3
          "$PYTHON" scripts/r7_d1_train.py train --objective "$obj" --lr "$lr" --seed "$seed" --teacher-dir "$D1/teacher" --manifest-dir "$D1/data" \
            --cache "$D1/cache" --out "$D1/selectors" "$@"; rc=$?;;

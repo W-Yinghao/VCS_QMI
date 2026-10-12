@@ -70,9 +70,12 @@ class Block(nn.Module):
         self.ff = nn.Sequential(nn.Linear(d, ffn), nn.GELU(), nn.Linear(ffn, d)); self.drop = nn.Dropout(p)
 
     def forward(self, x, bias):                                                        # bias [B, 1, 1, L], additive per key
+        """Explicit attention softmax(QKᵀ/√d + bias) V: exact and portable (L40S / H100 / Blackwell).  The memory-efficient SDPA kernel
+        cannot back-propagate into a broadcast per-key bias ("LSE is not correctly aligned"), which the gate phase needs."""
         B, L, D = x.shape; q, k, v = self.qkv(self.ln1(x)).view(B, L, 3, self.h, D // self.h).permute(2, 0, 3, 1, 4)
-        a = F.scaled_dot_product_attention(q, k, v, attn_mask=bias.to(q.dtype), dropout_p=self.p if self.training else 0.0)
-        x = x + self.drop(self.out(a.transpose(1, 2).reshape(B, L, D)))
+        att = torch.softmax((q @ k.transpose(-1, -2)) / math.sqrt(D // self.h) + bias.to(q.dtype), -1)
+        att = F.dropout(att, p=self.p, training=self.training)
+        x = x + self.drop(self.out((att @ v).transpose(1, 2).reshape(B, L, D)))
         return x + self.drop(self.ff(self.ln2(x)))
 
 
@@ -182,17 +185,39 @@ def spearman(a, b):
 
 
 @torch.no_grad()
-def predict_r(model, data, idx, chunk=64):
-    """Predicted risk r(K) for every (question, mask) pair of the questions `idx` -> [len(idx), M]."""
-    model.eval(); out = []
+def predict_r(model, data, idx, chunk=64, with_critic=False):
+    """Predicted risk r(K) for every (question, mask) pair of the questions `idx` -> [len(idx), M].  With with_critic, also the critic
+    logits f_B [len(idx)] and f_A [len(idx), M] from the same forward pass (used by the secondary native criterion; no extra pass)."""
+    model.eval(); out, fbs, fas = [], [], []
     for c in range(0, len(idx), chunk):
         b = data.batch(idx[c:c + chunk], all_masks=True); Q, M, N = b["keep"].shape
         _, pb = model.encode(b["q_emb"], b["q_pad"], b["v"], torch.zeros(Q, N, device=b["v"].device))
         rep = lambda x: x.repeat_interleave(M, 0)  # noqa: E731
         _, pa = model.encode(rep(b["q_emb"]), rep(b["q_pad"]), rep(b["v"]), hard_bias(b["keep"].reshape(Q * M, N)))
         out.append(model.readout(rep(pb), pa).reshape(Q, M).float().cpu())
+        if with_critic:
+            fbs.append(model.T(pb)[1].float().cpu()); fas.append(model.T(pa)[1].reshape(Q, M).float().cpu())
     model.train()
-    return torch.cat(out).numpy()
+    r = torch.cat(out).numpy()
+    return (r, torch.cat(fbs).numpy(), torch.cat(fas).numpy()) if with_critic else r
+
+
+def native_criterion(objective, target, r, fb, fa, C, h, d, wts):
+    """Pre-declared secondary (coordinator decision 2026-10-12): each objective's own CAL criterion, logged at every evaluation, never used
+    for the frozen selection.  vcs: J(T_B) + J(T_A) (higher is better); logistic: balanced BCE on 2f for B and A (lower is better);
+    direct: class-weighted MSE of ĥ against its own target (h, or d for the A2 ablation; lower is better).  Class weights as in training."""
+    C = np.asarray(C, float); w = np.where(C > 0, wts[0], wts[1]); M = r.shape[1]; wm = np.repeat(w, M); Cm = np.repeat(C, M)
+    if objective == "direct":
+        y = (h if target == "h" else d).reshape(-1)
+        return {"name": f"mse_{target}", "better": "lower", "value": float(np.sum(wm * (r.reshape(-1) - y) ** 2) / wm.sum())}
+    if objective == "vcs":
+        tb, ta = np.tanh(fb), np.tanh(fa).reshape(-1)
+        jb = np.sum(w * np.where(C > 0, tb - 0.5 * tb * tb, -tb - 0.5 * tb * tb)) / w.sum()
+        ja = np.sum(wm * np.where(Cm > 0, ta - 0.5 * ta * ta, -ta - 0.5 * ta * ta)) / wm.sum()
+        return {"name": "J", "better": "higher", "value": float(jb + ja)}
+    sp = lambda z: np.logaddexp(0.0, z)  # noqa: E731   softplus; BCE(2f, y) = softplus(-2f) for y = 1, softplus(2f) for y = 0
+    fa_ = fa.reshape(-1); lb = np.sum(w * np.where(C > 0, sp(-2 * fb), sp(2 * fb))) / w.sum(); la = np.sum(wm * np.where(Cm > 0, sp(-2 * fa_), sp(2 * fa_))) / wm.sum()
+    return {"name": "bce", "better": "lower", "value": float(lb + la)}
 
 
 class TupleData:
@@ -255,15 +280,21 @@ def train(cfg: Cfg, objective: str, fit: TupleData, cal: TupleData, wts, log_pat
             torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "best": best, "log": log, "step": step, "phase_a_done": done,
                         "rng": _rng_state(rng, gen)}, tmp)
             tmp.replace(resume_path)
+    tm = log.setdefault("timing", {"phase_a_train_s": 0.0, "phase_a_steps": 0, "eval_s": 0.0, "eval_pairs": 0, "phase_b_s": 0.0, "phase_b_steps": 0})
+    sync = (lambda: torch.cuda.synchronize()) if dev != "cpu" and torch.cuda.is_available() else (lambda: None)  # noqa: E731
     if not phase_a_done:
         for step in range(start, cfg.steps_a + 1):
+            sync(); ts = time.time()
             for gpar in opt.param_groups:
                 gpar["lr"] = cosine_lr(step, cfg.steps_a, cfg.lr, min(cfg.warmup, cfg.steps_a))
             qi = rng.choice(fit.n, size=min(cfg.q_per_step, fit.n), replace=False); mi = np.stack([rng.choice(M, size=cfg.masks_per_q, replace=False) for _ in qi])
             loss = estimator_loss(model, fit.batch(qi, mi), wts); opt.zero_grad(set_to_none=True); loss.backward(); opt.step()
+            sync(); tm["phase_a_train_s"] += time.time() - ts; tm["phase_a_steps"] += 1
             if step % cfg.eval_every == 0 or step == cfg.steps_a:
-                r = predict_r(model, cal, cal_idx); rho = spearman(r.reshape(-1), cal_h.reshape(-1))
-                log["evals"].append({"step": step, "loss": float(loss), "cal_spearman_r_h": rho, "seconds": time.time() - t0})
+                ts = time.time(); r, fb, fa = predict_r(model, cal, cal_idx, with_critic=True); sync(); tm["eval_s"] += time.time() - ts; tm["eval_pairs"] += r.size
+                rho = spearman(r.reshape(-1), cal_h.reshape(-1))
+                nat = native_criterion(objective, cfg.target, r, fb, fa, cal.C.cpu().numpy(), cal_h, cal.d.cpu().numpy(), wts.cpu().numpy())
+                log["evals"].append({"step": step, "loss": float(loss), "cal_spearman_r_h": rho, "native": nat, "seconds": time.time() - t0})
                 if np.isfinite(rho) and rho > best[0]:
                     best = (rho, {k: v.detach().clone() for k, v in model.state_dict().items()}, step)
                 save(step)
@@ -271,16 +302,23 @@ def train(cfg: Cfg, objective: str, fit: TupleData, cal: TupleData, wts, log_pat
                     return model, log
         if best[1] is not None:
             model.load_state_dict(best[1])
-        log["selected_step"], log["selected_cal_spearman"] = best[2], best[0]; save(cfg.steps_a, done=True)
+        log["selected_step"], log["selected_cal_spearman"] = best[2], best[0]
+        ev = [e for e in log["evals"] if "native" in e]                                # secondary: the native-criterion choice, reported only
+        if ev:
+            pick = (max if ev[0]["native"]["better"] == "higher" else min)(ev, key=lambda e: e["native"]["value"])
+            log["native_selected"] = {"criterion": pick["native"]["name"], "step": pick["step"], "native_value": pick["native"]["value"],
+                                      "cal_spearman_r_h": pick["cal_spearman_r_h"], "role": "secondary (reported; never used for selection)"}
+        save(cfg.steps_a, done=True)
     for p in model.estimator_parameters():                                             # phase B: estimator frozen
         p.requires_grad_(False)
     gopt = torch.optim.AdamW(model.gate.parameters(), lr=cfg.lr_gate, weight_decay=cfg.wd); budgets = torch.as_tensor(cfg.budgets, device=dev)
-    gl = None
+    gl = None; sync(); tb0 = time.time()
     for step in range(1, cfg.steps_b + 1):
         tau = cfg.tau_end + 0.5 * (cfg.tau_start - cfg.tau_end) * (1 + math.cos(math.pi * step / max(cfg.steps_b, 1)))
         qi = rng.choice(fit.n, size=min(cfg.q_per_step, fit.n), replace=False); b = fit.batch(qi, np.zeros((len(qi), 1), dtype=int))
         k = budgets[torch.randint(len(cfg.budgets), (len(qi),), generator=gen, device=dev)]
         gl = gate_loss(model, b, k, tau, gen); gopt.zero_grad(set_to_none=True); gl.backward(); gopt.step()
+    sync(); tm["phase_b_s"] += time.time() - tb0; tm["phase_b_steps"] += cfg.steps_b
     log["gate_final_loss"] = float(gl) if gl is not None else None
     log["soft_hard_gap"] = soft_hard_gap(model, cal, cfg, gen) if cfg.steps_b else None
     log["seconds"] = time.time() - t0

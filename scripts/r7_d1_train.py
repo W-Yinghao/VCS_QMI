@@ -76,11 +76,20 @@ def main() -> int:
     import torch
     dev = "cuda" if torch.cuda.is_available() else "cpu"; out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     if a.cmd == "smoke":
+        if dev == "cuda":                                                              # one sub-folder per GPU type (smokes may run in parallel)
+            out = out / torch.cuda.get_device_name(0).replace(" ", "_"); out.mkdir(parents=True, exist_ok=True)
         recs = V.read_jsonl(Path(a.probe_records)); fit = tuple_data(recs, Path(a.cache), "PROBE", dev); res = {}
         for obj in ("vcs", "logistic", "direct"):
-            cfg = SEL.Cfg(steps_a=a.steps_a, steps_b=a.steps_b, eval_every=max(a.steps_a // 4, 1), q_per_step=min(32, fit.n), seed=0)
+            cfg = SEL.Cfg(steps_a=a.steps_a, steps_b=a.steps_b, eval_every=max(a.steps_a // 4, 1), q_per_step=min(64, fit.n), seed=0, warmup=min(20, a.steps_a))
             _, log = SEL.train(cfg, obj, fit, fit, (1.0, 1.0), out / f"smoke_{obj}.json", out / f"smoke_{obj}.pt")
-            res[obj] = {"evals": log["evals"], "selected_step": log["selected_step"], "soft_hard_gap": log["soft_hard_gap"], "seconds": log["seconds"]}
+            tm = log["timing"]; full = SEL.Cfg()
+            per = {"s_per_phase_a_step": tm["phase_a_train_s"] / max(tm["phase_a_steps"], 1), "s_per_eval_pair": tm["eval_s"] / max(tm["eval_pairs"], 1),
+                   "s_per_phase_b_step": tm["phase_b_s"] / max(tm["phase_b_steps"], 1)}
+            n_evals = full.steps_a // full.eval_every; cal_pairs = 7989 * 12                # frozen CAL size × 12 masks
+            per["unit_hours_estimate"] = (full.steps_a * per["s_per_phase_a_step"] + n_evals * cal_pairs * per["s_per_eval_pair"]
+                                          + full.steps_b * per["s_per_phase_b_step"]) / 3600
+            res[obj] = {"evals": log["evals"], "selected_step": log["selected_step"], "soft_hard_gap": log["soft_hard_gap"], "seconds": log["seconds"],
+                        "timing": tm, "per_unit": per, "q_per_step": cfg.q_per_step, "masks_per_q": cfg.masks_per_q}
             res[obj]["dynamic_tau_50"] = SEL.dynamic_tau(_, fit, cfg, 0.5)
         res["env"] = V.env_info(); (out / "smoke_report.json").write_text(V.jdump(res, indent=1)); print(V.jdump(res, indent=1))
         return 0

@@ -13,7 +13,7 @@ E=/projects/EEG-foundation-model/yinghao/envs/sparsevlm; D1=/home/infres/yinwang
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 PYTHONNOUSERSITE=1
 what="$1"; shift
 case "$what" in
-  tests) "$PYTHON" -m unittest tests/test_r7_d1.py tests/test_r7_d1_selectors.py tests/test_r7_fixtures.py -v; rc=$?;;
+  tests) "$PYTHON" -m unittest tests/test_r7_d1.py tests/test_r7_d1_selectors.py tests/test_r7_d1_20_submit.py tests/test_r7_fixtures.py -v; rc=$?;;
   tests_vl) "$E/bin/python" -m unittest tests/test_r7_d1.py tests/test_r7_d1_selectors.py tests/test_r7_fixtures.py -v; rc=$?;;
   manifest) "$E/bin/python" scripts/r7_d1_data.py manifest --out "$D1/data" "$@"; rc=$?;;
   shards) "$PYTHON" scripts/r7_d1_data.py shards --out "$D1/data" "$@"; rc=$?;;

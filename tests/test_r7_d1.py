@@ -282,6 +282,18 @@ class Analysis(unittest.TestCase):
         print(f"[rank-ceiling rule] anti-informative teacher: observed {rb['observed']:.3f}, band {rb['ceiling_band']}, verdict {rb['verdict']}")
         self.assertEqual(rb["verdict"], "d_does_not_rank_per_question_losses")
 
+    def test_secondary_excludes_low_mass(self):
+        g = np.random.default_rng(5); rows = []
+        for i in range(60):
+            C = 1 if i % 2 else -1; pf = g.uniform(0.1, 0.9); mass = 0.4 if i < 4 else 0.99                  # 4 low-mass items
+            rows.append({"qid": f"q{i}", "image_id": f"i{i // 3}", "C": C, "structural": "verify", "full": (pf * mass, (1 - pf) * mass), "text": (0.5, 0.5),
+                         "masked": {m: {str(k): (0.5, 0.5) for k in MK.BUDGETS} for m in MK.MECHANISMS}})
+        sec = AN.secondary_mass({"CAL": rows, "FIT": rows[10:]}, {"w_yes": 1.0, "w_no": 1.0})
+        self.assertEqual(sec["excluded_per_role"]["CAL"], {"excluded": 4, "of": 60}); self.assertEqual(sec["excluded_per_role"]["FIT"], {"excluded": 0, "of": 50})
+        self.assertEqual(sec["tables"]["CAL"]["n_questions"], 56); self.assertNotIn("FIT", sec["tables"])
+        prim = AN.analyse(rows, {"w_yes": 1.0, "w_no": 1.0}); self.assertEqual(prim["n_questions"], 60)               # primary keeps every item
+        md = AN.markdown({"roles": {"CAL": prim}, "secondary_mass_ge_0p9": sec}); self.assertIn("Secondary: excludes yes/no mass < 0.9", md)
+
     def test_dev_sealed(self):
         old = sys.argv
         try:
