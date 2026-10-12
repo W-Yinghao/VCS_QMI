@@ -1,0 +1,306 @@
+# R7-30 D1 — protocol FROZEN 2026-10-12 by the coordinator (main session) before any quality result: nothing below has run except the
+# D1-10 smokes listed under provenance (timing only; no answer scored on FIT / CAL / DEV).  Staged freezes: D1-20 gate details (OPEN-5) and the
+# ChartQA evaluator pin (OPEN-7) are frozen before their stages run, with DEV still sealed.  Package: directions/D1_token_evidence/SERVER_EXPERIMENTS_CN.md (D1-10/20/30, §E ablations), docs/03 §3, docs/04, docs/05.
+# Route decision: reports/R7/R7_ROUTE_DECISION.md.  R7-20 evidence: reports/R7/R7_BASELINE_REPRODUCTION.md (commit 23e840b).
+# Field names follow templates/D1_PROTOCOL_TEMPLATE.yaml; stage blocks added.  Items marked OPEN are decisions for the coordinator.
+protocol_id: R7-30-D1
+status: frozen_D1-10__staged_D1-20_D1-30
+draft_date: 2026-10-12
+direction: D1 question-conditioned visual evidence compression
+round_rule: one main route (D1) + at most one light check (D1-L1, CPU-only; see route decision §9)
+official_test_access: false            # GQA testdev, TextVQA test, ChartQA test closed; final evaluation = D1-40, separate pre-registration
+
+scientific_question: >
+  For a fixed VLM host and the current question, can a selector predict the ACTUAL task-risk increase caused by dropping visual tokens, and
+  does choosing kept tokens / budgets with that prediction give better official task quality at fixed measured latency than attention or
+  similarity heuristics (SparseVLM, uniform-grid, random) and than the same selector architecture trained as a logistic posterior or as a
+  direct risk regressor?
+new_contribution_beyond_RPC_and_nearest_task_prior: >
+  Candidate, to be earned by D1-30 / D1-40: the nested-mask binary risk object h = d + 2(C − b)(b − a), measured with an independent label C,
+  (i) tests whether disagreement-based importance d is a valid proxy for the actual risk change h, and (ii) trains budget selectors that are
+  compared with logistic and direct-risk selectors at equal information.  NOT claimed as new: the L² projection identity (F01–F03, U01),
+  information-theoretic pruning (IF-Prune T05), task-loss-trained pruning (DiffPrune T06), evidence-aware dynamic budgets (ET-Prune T07).
+source_paper_ids: [T01, T02, T03, T04, T05, T06, T07, F08, U01, F01, F02, F03]
+
+# ------------------------------------------------------------------------------------------------------------------------------ host
+host_checkpoint_and_revision:
+  primary: >
+    LLaVA-1.5-7B liuhaotian/llava-v1.5-7b@4481d270 with openai/clip-vit-large-patch14-336@ce19dc91, official LLaVA code as shipped in
+    Gumpest/SparseVLMs a9e7142 (dynamic_sparse=False for every non-SparseVLM arm), fp16 LLM, official CLIP path under device_map='auto'
+    (the tower runs fp32 — kept as official), image_aspect_ratio pad, 336 px, 576 visual tokens, vicuna_v1 prompt + short-answer suffix.
+  why_primary: >
+    R7-20: the official SparseVLM baseline exists only for this host (and DiffPrune T06 reports it); the reproduction is verified (TextVQA 58.7
+    vs 58.2); its vision tower is cheap relative to the 7B LLM (vision 21 ms vs prefill 31–34 ms at batch 1 on H100 NVL), so LLM-side
+    selection can matter in a batched regime.  Qwen2.5-VL-7B (the package's suggested host) spends 62–70 % of batch-1 wall time in its
+    vision encoder at native resolution (306–971 tokens), which post-encoder pruning cannot remove.
+  second_host_D1_40_only: >
+    Qwen2.5-VL-7B-Instruct@cc594898 (bf16, SDPA, min/max pixels 256·28² / 1280·28²), cross-host confirmation of the FINAL method and the
+    main strong controls only.  OPEN-1: either (a) selection BEFORE the encoder as a question-conditioned resolution budget (max_pixels per
+    question; nested by construction: a resize is a function of the full image), or (b) the same post-encoder selector with the vision cost
+    stated and claims limited to the LLM side in the measured regime.  Recommended: (a).
+  environment: >
+    /projects/EEG-foundation-model/yinghao/envs/sparsevlm (python 3.10, torch 2.1.2+cu121, transformers 4.37.0, flash-attn 2.3.3,
+    numpy 1.26.4; FREEZE.txt); PYTHONNOUSERSITE=1.  No Blackwell kernels -> every LLaVA unit runs on H100 / L40S only (never RTX6000PRO).
+    Qwen units: /projects/EEG-foundation-model/yinghao/envs/vl_baselines (torch 2.9 cu128; any of the three partitions).
+  weights_staging: "node-local disk copy before load (R7-20: 255 s + about 60 s load, against 966–1085 s for a direct NFS mmap load)"
+  one_process_per_host: every GPU job loads the host once and loops over its bundle of units
+
+where_selection_acts:
+  point: >
+    LLM input (layer 0), after CLIP + projector; kept tokens spliced in raster order between prompt prefix and suffix exactly as
+    llava_arch.prepare_inputs_labels_for_multimodal splices all 576; positions re-indexed contiguously (SparseVLM USE_VERSION 1_0 / FastV)
+  selector_inputs: question tokens (frozen LLM input-embedding lookup) + the 576 projected visual tokens (already computed; no extra encoder pass)
+  forbidden: >
+    running the full VLM (or reading its answer) before choosing K; access to the true answer; in-LLM attention reads (that is
+    SparseVLM's mechanism and stays a baseline)
+  claim_scope: the vision tower always runs in full, so only LLM-side savings may be claimed (docs/04 §4)
+
+latency_regime:
+  fixed_before_any_quality_result: true
+  reference_gpu: NVIDIA H100 NVL on nodesumo01 (pinned with --partition=H100 --nodelist=nodesumo01) for every latency number
+  quality_runs: "any H100 / L40S (R7-20: full-host answers identical on 700 / 700 items across L40S and H100 NVL; SparseVLM 99.1 %)"
+  dtype_resolution: fp16 LLM, official fp32 CLIP path, 336 px, 576 tokens before selection
+  generation: greedy; max_new_tokens GQA 16, TextVQA 16, ChartQA 32; timing uses forced length (min_new_tokens = 8) so decode is equal across arms
+  per_item_latency: >
+    (vision + selector + prefill + decode of a batch) / batch size; median and P95 over a fixed timing subset of 512 items per
+    benchmark, after one warm-up; batches bucketed by kept-token count (equal budget inside a batch)
+  regime_rule: >
+    From the D1-10 timing smoke (no answer scored): B* = the smallest batch size in {1, 4, 16, 32} at which uniform-grid 25 % reduces the
+    per-item total latency (vision + prefill + 8 decode steps) by at least 25 % relative to 100 %.  The primary endpoint is evaluated at B*.
+    If no batch size qualifies, D1 reports "no LLM-side latency saving in any tested regime"; the primary endpoint becomes quality at fixed
+    kept-token budget, and no acceleration is claimed.
+  measured_inputs: "R7-20 batch 1 on H100 NVL — full 71–107 ms/item, SparseVLM 76–120 (192) / 74–115 (64) ms/item: no saving at batch 1."
+  smoke_result: >
+    Job 1034889, H100 NVL, timing only (reports/R7/R7_D1_10_SMOKE.md).  Uniform-grid 25 % saves 9.4 % of per-item total latency at
+    B = 1, 27.2 % at B = 4, 41.4 % at B = 16 and 43.6 % at B = 32, so the rule above gives B* = 4.  B = 16 (41 %) is the
+    throughput alternative.  Moving the primary regime there is OPEN-2 and must be decided before any quality result.
+    Pruning at the LLM input cuts batch-1 prefill from 34 to 15.5 ms at 25 %, but at batch 1 the 8 decode steps and vision dominate.
+
+# ------------------------------------------------------------------------------------------------------------------------------ data
+pretrained_data_exposure:
+  llava_1_5: >
+    arXiv 2310.03744 Table 7 lists GQA 72K in the instruction mix and footnotes that GQA training images were observed in training; GQA train-balanced has 72,140 images
+    (943,000 questions).  All GQA images come from Visual Genome, which is also in the mix.  So every FIT / CAL / DEV image was seen
+    in training.  Mitigation (OPEN-3, recommended): exclude the exact QA pairs listed in llava_v1_5_mix665k.json (1 GB annotation file,
+    to be fetched to /projects/EEG-foundation-model) before role assignment; image exposure stays and is disclosed.  The text-only pass
+    (0 % tokens) measures question-level memorisation on every split.
+  qwen2_5_vl: undisclosed training data; assume GQA / TextVQA / ChartQA train exposure
+  r7_20_reads: >
+    GQA val 200 q (not train: no overlap with FIT / CAL / DEV), TextVQA val 200 q (host reproduction only; disclosed in D1-30),
+    POPE 300 q (not used in D1)
+dataset_versions_and_license:
+  - "GQA questions1.2.zip (1,498,616,372 B; train_balanced_questions.json sha256-of-zip cffe9277…) + images.zip (21,817,965,542 B, sha256 02ce5c49…, extracted, 148,854 images); Stanford, CC BY 4.0"
+  - "TextVQA 0.5.1 val (CC BY 4.0 annotations; images: Open Images, CC BY 2.0) — /projects/EEG-foundation-model/yinghao/data/textvqa"
+  - ChartQA val (GPL-3.0 repository; dataset terms per authors) — /projects/EEG-foundation-model/yinghao/data/chartqa (test in closed/)
+  - "SP-DocVQA: not downloaded -> not in R7-30 (gap)"
+independent_unit: image (GQA, TextVQA); chart (ChartQA)
+roles:
+  FIT: "GQA train-balanced, 10,000 images, <= 4 binary (yes / no) questions per image (provisional build 31,105 q) — D1-10 teacher targets, D1-20 training"
+  CAL: GQA train-balanced, 2,000 other images, <= 4 binary q per image — D1-10 pre-registered readout; D1-20 checkpoint / threshold selection
+  DEV: >
+    GQA train-balanced, 2,000 other images — teacher outputs sealed until D1-30; full-answer GQA evaluation in D1-30 (all question types,
+    <= 4 per image, sha256 order) and selector risk calibration
+  FINAL_EVAL: D1-40 only (GQA testdev-balanced, TextVQA test, ChartQA test) under a separate pre-registration
+  rules: >
+    images sorted by sha256('r7-30/d1-role/<imageId>'); the first 14,000 eligible images (>= 1 binary question) interleaved 5:1:1
+    (FIT×5, CAL, DEV); questions per image in sha256('r7-30/d1-q/<qid>') order; manifest + sha256 frozen before any teacher pass
+    (scripts/r7_d1_data.py; reference assert_group_disjoint).  If OPEN-3 is accepted, QA pairs seen by LLaVA-1.5 are removed first.
+  class_prior: balanced task law M — class weights w_yes = 0.5 / pi_yes, w_no = 0.5 / pi_no with pi_yes from FIT, applied to every split
+
+P_definition: observations (question, visual tokens [, mask]) of GQA binary questions with answer yes (C = +1), class-weighted to 1/2
+Q_definition: the same with answer no (C = −1), class-weighted to 1/2
+class_prior_or_condition_weights: "balanced (see roles.class_prior); QMI wording forbidden (theory doc §2: D1 is a two-distribution task, not QMI)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ D1-10
+D1_10:
+  purpose: the binary risk object at the teacher level — h, d, h − d by budget and mechanism, independent CAL readout; training targets for D1-20
+  teacher: >
+    the primary host itself (finite model): b = T(full), a = T(masked), T = 2 p̃ − 1, p̃ = P(yes) / (P(yes) + P(no)) of the first generated
+    token (prefill only); yes / no mass recorded (smoke: >= 0.9 required)
+  masks:
+    trials_per_question: "3 fixed trials, one per mechanism (package: 3 fixed mask trials, no mask search)"
+    mechanisms:
+      random: uniform random ordering; log P(set_k) = −log C(576, k)
+      grid: four 2-stride lattices in a random order, 12.5 % = checkerboard of the first lattice; log P(set) = −log 8 / 4 / 6 / 4
+      qsim: Plackett–Luce (Gumbel top-k) on z-scored cosine(projected visual token, mean question word embedding); log P of the ordered prefix
+    nesting: kept set at k = prefix of the trial's ordering; A_72 ⊂ A_144 ⊂ A_288 ⊂ A_432 ⊂ B
+    budgets_tokens: [72, 144, 288, 432]        # 12.5 (stress), 25, 50, 75 %; 576 = full pass; 0 = text-only diagnostic pass
+    seeds: sha256 of (mechanism, question id); qsim orderings stored, random / grid re-derivable (digests stored)
+  passes_per_question: 14 (1 full + 3 × 4 masked + 1 text-only); cached once, reused by D1-20 / D1-30
+  readout_pre_registered:
+    split: CAL (primary); FIT descriptive; DEV sealed
+    per_mechanism_x_budget: >
+      [mean h, mean d, mean h − d (balanced, image-cluster bootstrap 95 %, 2000 reps), P(h < 0), P(h > d),
+      Pearson and Spearman (h, d), masked accuracy]
+    teacher_quality: [balanced Brier full (with CI), balanced Brier text-only, accuracy full, accuracy text-only, mean residual text-only]
+    strata: GQA structural type (verify / logical / compare / choose as present)
+    identity_check: max |h − d − 2(C − b)(b − a)| <= 1e-12
+  interpretation_grid_written_before_any_CAL_result:
+    - "|mean h − d| <= 0.1 × mean h with the CI covering 0 at every budget: d tracks h at the population level for this teacher; the squared read-out is a defensible budget-level signal."
+    - "CI of mean h − d excludes 0 with a consistent sign across budgets: teacher miscalibration along the compression direction; d is biased; D1-20 must be judged on realised h, and any d-based read-out calibrated on CAL."
+    - "Per-item Spearman (h, d) < 0.5: d does not rank per-question losses; per-question token selection by d is not supported (budget-level use only)."
+    - "Text-only balanced accuracy clearly above 0.5: question-level memorisation / priors; visual-evidence share reported as Brier_text − Brier_full."
+    - "Package §F: if h − d is large and unpredictable, the direct-risk strategy is the practical reference and no information estimate is claimed."
+  qc_sentinels:
+    probe (R7-20 GQA val fixture, never FIT / CAL / DEV): >
+      S1 spliced full path vs official R7-20 path |ΔP(yes)| <= 0.02, no yes / no argmax flip; S2 bit-identical replay; S3 mean |T_72 − T_576|
+      >= 0.02 for every mechanism; S4 yes / no mass >= 0.9; S5 batched left-padded generation reproduces the official answers on >= 98 % of the
+      200 GQA fixture items; S6 nested kept sets with exact counts
+    per_bundle: bit-identical replay of the first chunk; coverage guard (unique qid count == expected − reason-coded image skips); no duplicates
+    analyser: refuses partial coverage; DEV read only with --allow-dev at D1-30
+  units: "56 shards (250 images, about 780 questions) in 14 bundles of 4 shards; real shard / image ids from data/d1_shards.json; CAL bundles first (provisional build: 43,479 questions in total)"
+  cost_estimate: "smoke: 0.34 s / question (14 passes, H100 NVL) -> 43.5k questions ≈ 4.1 GPU-h H100 (L40S about 1.5–2× slower) + 14 staged loads ≈ 1.4 GPU-h; total about 6–10 GPU-h"
+  code: >
+    scripts/r7_d1_masks.py, r7_d1_data.py (manifest / shards / feed / zipcheck / freeze), r7_d1_teacher.py (bundle / probe / timing /
+    smoke), r7_d1_analyze.py.  tests/test_r7_d1.py: 23 / 23 in both envs.  slurm/r7_d1_{cpu,gpu}.sbatch.  Feed: slurm/r7_d1_10_feed_lines.txt,
+    14 bundles, via slurm/feed_normal.sh with CAP=27.  Launch gates: a bundle refuses an unfrozen manifest, a manifest whose sha256
+    changed, or a missing / failing probe report.
+# ------------------------------------------------------------------------------------------------------------------------------ D1-20
+D1_20:
+  purpose: three same-architecture selectors, 3 seeds each = 9 training units; outputs full answers through the host (not probes)
+  architecture_shared:
+    backbone: >
+      2-layer transformer (d_model 512, 8 heads, pre-LN) over [question tokens -> linear(4096 -> 512); 576 visual tokens ->
+      linear(4096 -> 512) + learned 24 × 24 position embedding]; about 10 M trainable parameters; host frozen (not trained)
+    gate_head: per-visual-token keep logit g_i(q, V)
+    critic_heads: T_B(q, V) on all tokens; T_A(q, V, K) on the kept tokens (masked attention pooling); T = tanh(f)
+    risk_readout: r(K) for a candidate mask K
+  selectors:
+    S1_VCS: >
+      critics trained with the original J (P: C = +1, Q: C = −1, class weights) on full and masked observations of the D1-10 FIT
+      masks; r(K) = (T_B − T_A(K))², the predicted information loss
+    S2_logistic: the same critics trained with balanced logistic loss on 2f; T = tanh f; the same read-out r(K) = (T_B − T_A(K))²
+    S3_direct_risk: the same backbone; one head regresses the teacher's realised h(q, K) (class-weighted MSE)
+  information_budget: >
+    identical FIT tuples (q, V, K, C, a, b), identical D1-10 masks, steps, optimiser and selection rule.  Disclosed asymmetry: S3 uses the
+    teacher's masked passes as labels (h); S1 / S2 use the true label C only.  The A2 ablation isolates label-free teacher supervision.
+  gate_training_OPEN_5: >   # freeze after D1-10 and before any D1-20 run
+    continuous gates trained to minimise the selector's own predicted risk r of the gated observation at each budget (Gumbel top-k
+    relaxation, temperature anneal), identical procedure for S1–S3; deployment = hard top-k of g; the soft / hard gap is recorded
+  optimisation: >
+    AdamW 3e-4, wd 0.01, cosine schedule, 20k steps, batch 256 (question, mask) tuples; search_budget OPEN-6 (none vs a symmetric
+    2-learning-rate × seed-0 search with CAL selection, identical for S1–S3)
+  checkpoint_selection: >
+    every 1k steps, max CAL Spearman between r(K) and realised teacher h over CAL (question, mask) pairs — the same
+    criterion for S1–S3 (D1-10 CAL outputs; no host pass needed)
+  dynamic_budget_rule: >
+    smallest budget in {12.5, 25, 50, 75, 100 %} with r(K_top-k) <= tau; tau fixed on CAL so the mean kept fraction is
+    25 / 50 / 75 % (three operating points)
+  seeds: {selection: [0], confirmation: [1, 2], rule: all three seeds run for every selector regardless of the seed-0 outcome}
+  units: 9 (S1, S2, S3 × seeds 0, 1, 2)
+  cost_estimate: about 1–2 GPU-h per unit on cached projected visual tokens (14k images × 576 × 4096 fp16 = 66 GB on /projects) -> 9–18 GPU-h
+
+# ------------------------------------------------------------------------------------------------------------------------------ D1-30
+D1_30:
+  purpose: every method on the fixed budget curve, full answers, official evaluators, latency on the reference GPU
+  budgets_percent: [12.5, 25, 50, 75, 100]       # 12.5 = stress point; fixed grid, never changed after DEV readings
+  methods:
+    full: 100 %
+    uniform_grid: grid mechanism, fixed seed
+    random: random mechanism, fixed seed
+    SparseVLM: official code at native 192 / 128 / 96 / 64 (anchors) and adapted token lists for 144 / 288 / 432 (labelled 'adapted')
+    selectors_fixed_budget: S1, S2, S3 × seeds 0, 1, 2 (hard top-k at each budget)
+    selectors_dynamic_budget: S1, S2, S3 × seeds 0, 1, 2 at the three CAL-fixed operating points
+    not_run_this_round: >
+      FastV (no licence; pins transformers 4.31), PyramidDrop / FEATHER (not adapted), IF-Prune (needs its own pinned env
+      and InternVL / Qwen2-VL hosts; required before any paper claim -> D1-40)
+  benchmarks_where_data_allow:
+    GQA_DEV: official exact match after LLaVA convert_gqa_for_eval normalisation; all question types of DEV images, <= 4 per image
+    TextVQA_val: >
+      5,000 q; m4c soft accuracy; primary prompt WITHOUT OCR tokens (pure visual evidence; FEATHER's point), the LLaVA
+      OCR-token prompt as the published-number anchor (OPEN-4)
+    ChartQA_val: relaxed accuracy (5 % numeric tolerance), human and augmented separately
+  complete_task_endpoint: official task quality of the host's full answers
+  primary_endpoint: >
+    official quality at fixed measured latency in regime B*: each method's quality interpolated linearly at the reference-GPU latencies
+    L25, L50, L75 of uniform-grid 25 / 50 / 75 %; per benchmark; contrasts S1 − SparseVLM, S1 − S2, S1 − S3 (paired image bootstrap per seed;
+    seed mean ± sd)
+  secondary_endpoints: >
+    [quality at fixed budget, latency to stay within 1.0 point of full, TTFT, per-token decode, peak memory, visual tokens,
+    dynamic-budget distribution, preserve vs correct when the full model is wrong (package §E), selector risk
+    calibration on DEV masks (predicted r vs realised h), absolute and relative retention]
+  statistics_and_resampling: >
+    image (chart) grouped paired bootstrap, 2000 reps, per seed; training-seed spread reported separately; Holm across the 9 primary
+    contrasts (3 contrasts × 3 benchmarks) at each latency point; no equivalence / non-inferiority claim (no margin set in advance);
+    full tables for every metric and subset
+  checkpoint_selection: CAL only (D1-20 rule); nothing selected on DEV / TextVQA / ChartQA
+  evaluator_revision: >
+    Gumpest/SparseVLMs a9e7142 copies of LLaVA eval (convert_gqa_for_eval.py, m4c_evaluator.py); ChartQA relaxed accuracy
+    per the ChartQA reference implementation (to pin: OPEN-7)
+  cost_estimate: >
+    about 65 configurations × (GQA DEV about 8k + TextVQA 5k + ChartQA 1.9k q) at 0.1 s/item (batch 1) ≈ 27 GPU-h; batched
+    regime B* lowers this; latency runs about 2 GPU-h on nodesumo01
+
+# ------------------------------------------------------------------------------------------------------------------------------ ablations
+ablations_package_E:
+  A1_no_question: S1 with question tokens removed from the backbone (3 seeds) — same masks and information
+  A2_d_instead_of_h: S3 regressing d = (b − a)² instead of h (3 seeds) — tests the label-based correction h − d
+  A3_fixed_instead_of_dynamic: evaluation only — S1–S3 fixed-budget curves against their dynamic versions at matched mean budget
+  units: 6 training units (A1, A2 × 3 seeds) + evaluation in D1-30
+  rule: when the full model is wrong, report separately the fraction of compressed answers that keep the error and that correct it
+
+# ------------------------------------------------------------------------------------------------------------------------------ budget
+methods_and_information_budget: see D1_20.information_budget and D1_30.methods
+seeds: [0, 1, 2]
+seed0_winner_screening: false
+gpu_budget_8_gpu_quota:
+  measured_inputs: "R7-20 (H100 NVL, batch 1) full 0.099 s/item, SparseVLM 0.103–0.108 s/item; staged load 380 s; D1-10 teacher 0.34 s/question (14 prefill passes); timing grid in reports/R7/R7_D1_10_SMOKE.md"
+  D1_10: about 6–10 GPU-h; 14 bundle jobs, H100 / L40S
+  D1_20: 9–18 GPU-h (9 units) + 6–12 GPU-h (A1, A2) + one-off caching of projected visual tokens (about 0.1 GPU-h)
+  D1_30: about 27 GPU-h at batch 1 (less in regime B*) + about 2 GPU-h latency runs (nodesumo01 only)
+  total_prior: about 45–65 GPU-h; on 8 GPUs about 6–8 h of wall time if the whole quota were free (it is shared with r6)
+  scheduling: feed_normal.sh with CAP=27 (normal QOS), partitions H100,L40S for LLaVA units, --exclude=node51,node52,node60, no --export
+
+hypothesized_advantage: >
+  A task-conditioned risk estimate allocates kept tokens / budgets better than attention or similarity at equal measured latency in a regime
+  where LLM-side cost matters; the predicted loss correlates with, and is calibratable to, the realised loss across task difficulty.
+what_would_refute_this_hypothesis: >
+  S1 not better than S3 (direct risk) at equal information -> the gain is the selector, not the divergence; S1 not better than SparseVLM /
+  uniform at matched latency -> no practical advantage; D1-10 shows h − d large and unpredictable -> the squared-gap read-out is not a risk
+  estimate; the regime rule finds no saving -> no acceleration claim.
+actual_resource_measurement: R7-20 (reports/R7/R7_BASELINE_REPRODUCTION.md §5, compute_budget.csv) + D1-10 smoke (job 1034889)
+authorization_or_standing_scope: >
+  Coordinator R7-30 request (2026-10-12): draft + D1-10 code / tests / smokes only; no full runs, no commit.  Full D1-10 needs the
+  coordinator's freeze of this draft; D1-20 / D1-30 need their own go after D1-10.
+
+open_decisions:
+  OPEN-1: Qwen2.5-VL in D1-40 as pre-encoder resolution budget (recommended) or post-encoder with vision cost stated
+  OPEN-2: latency regime B* from the smoke (rule above) — confirm the 25 % / 25 % rule and the batch grid
+  OPEN-3: fetch llava_v1_5_mix665k.json and exclude LLaVA-seen GQA QA pairs before role assignment (recommended)
+  OPEN-4: TextVQA primary prompt without OCR tokens (recommended) vs the official LLaVA OCR-token prompt
+  OPEN-5: D1-20 gate-training details (relaxation, temperature schedule, budget penalty) — freeze after D1-10, before any D1-20 run
+  OPEN-6: selector search budget — none (shared recipe) or symmetric 2-LR × seed-0 search with CAL selection
+  OPEN-7: pin the ChartQA relaxed-accuracy evaluator source
+  OPEN-8: SparseVLM at non-native budgets via adapted token lists — accept as 'adapted' rows
+  OPEN-9: light check D1-L1 (CPU finite nested-mask check) or none
+
+provenance:
+  smokes:
+    cpu_tests: "jobs 1034887 (main env) and 1034888 (SparseVLM env) — 23 / 23 pass (1 skipped in the main env: needs llava)"
+    gpu_smoke: "job 1034889 on nodesumo01 (H100 NVL): probe sentinels S1–S6 all pass (max |ΔP(yes)| 0.0038, bit-identical replay, masking acts 0.25–0.27, mass ≥ 0.997, generation 200/200 identical, nesting ok); timing grid; reports/R7/R7_D1_10_SMOKE.md"
+  data_status: >
+    GQA images.zip and questions1.2.zip complete.  PROVISIONAL manifest (job 1034911, no mix665k exclusion, NOT frozen) in
+    outputs/R7_D1/data_provisional:
+    - 943,000 train-balanced questions, 331,898 binary, 66,852 eligible images.
+    - FIT 10,000 images / 31,105 q; CAL 2,000 / 6,168; DEV 2,000 / 6,206; pi_yes 0.488.
+    - 56 shards in 14 bundles; all 14,000 images present in images.zip.
+    The frozen manifest is rebuilt after OPEN-3.
+
+coordinator_decisions_20261012:
+  go_ahead: >
+    Owner 2026-10-11: "总之不要让GPU空着，这几个包的任务全都需要完成" (all package tasks) and the standing authorization for useful GPU experiments.
+    r7 rules kept: one main route (D1) + one light check (D1-L1); no official test read (final evaluation needs the owner's approval of a
+    separate one-shot protocol); no third-party uploads; no paid judges.
+  OPEN-1: >
+    (b) — D1-40 confirms the SAME post-encoder method on Qwen2.5-VL with the vision cost stated and claims limited to the LLM side, as
+    docs/D1 §D asks ("只扩展最终方案及主要强对照").  The pre-encoder resolution budget (a) is a different method; it would need its own protocol.
+  OPEN-2: >
+    B* = 4 by the rule written before any timing was read (smallest batch in {1, 4, 16, 32} where uniform-grid 25 % saves >= 25 %:
+    27.2 % at B = 4).  Not moved to B = 16 after seeing its larger saving.  B = 1, 16 and 32 are reported as secondary regimes.
+  OPEN-3: yes — exclude every GQA QA pair in llava_v1_5_mix665k.json before role assignment; the manifest is rebuilt and frozen only after that file is verified.
+  OPEN-4: TextVQA primary without OCR tokens; the official LLaVA OCR-token prompt is the anchor row to published numbers.
+  OPEN-5: D1-20 gate-training details frozen after D1-10's CAL readout and before any D1-20 run (DEV sealed).
+  OPEN-6: symmetric search — learning rate in {1e-4, 3e-4} on seed 0 for every objective (S1 VCS, S2 logistic, S3 direct risk), chosen on CAL; seeds 1–2 use each objective's chosen rate.
+  OPEN-7: pin the ChartQA relaxed-accuracy evaluator (source + commit) before any ChartQA read.
+  OPEN-8: accept SparseVLM at 25 / 50 / 75 % via adapted token lists, labelled "adapted"; the official 192 / 64-token points stay as anchor rows.
+  OPEN-9: run D1-L1 (CPU-only finite nested-mask check) as this round's light check.
