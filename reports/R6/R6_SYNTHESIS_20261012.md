@@ -45,7 +45,8 @@ Package `r6/package_r6_20261011` (new applications).
 - The earlier negative (P60: raw-pixel closed-form VCS worse than MI on RGB-NIR) is reproduced here by the closed-form kernel critic.  What works is
   a learned critic, not the closed-form estimator on raw patches.
 
-**Pending:** the CoMIR warp-then-encode sensitivity rows (REG-P2 addendum).
+**Sensitivity (REG-P2 addendum, complete):** re-encoding each warped candidate with CoMIR (warp-then-encode) gives 86.4 / 60.2 % (< 42 / < 9 px),
+no better than encode-once (−3.6 / −1.8; no detectable difference), so the primary CoMIR row did not disadvantage CoMIR.
 
 **What a stronger claim would need:**
 - A second modality pair: the EPFL RGB-NIR and Zurich data are downloaded.
@@ -90,6 +91,6 @@ Package `r6/package_r6_20261011` (new applications).
 | unit | protocol | results-only | report |
 |---|---|---|---|
 | REG-P1 | R6_REG_P1_PROTOCOL_FROZEN_20261011.yaml | f4a8ef8, 26bd7a8 | 6cb7fb8 |
-| REG-P2 | R6_REG_P2_PROTOCOL_FROZEN_20261012.yaml | 4120ca3 | 335bce1 |
+| REG-P2 | R6_REG_P2_PROTOCOL_FROZEN_20261012.yaml | 4120ca3, 4a73ae2 | 335bce1, e891be2 |
 | GAIN-P1 AV-MNIST | R6_GAIN_P1_PROTOCOL_FROZEN_20261012.yaml | 8abc5aa | 79fb495 |
 | GAIN-P1 CREMA-D | R6_GAIN_P1_CREMAD_PROTOCOL_FROZEN_20261012.yaml | 69e283b | 404a966, 29c3665 |
