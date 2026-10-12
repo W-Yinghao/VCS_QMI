@@ -30,7 +30,14 @@ case "$what" in
              --selectors-dir "$DF/selectors" --pca "$DF/cache/pca.pt"; rc=$?;;
   timing) $E/bin/python scripts/r7_d1_30_timing.py --sets-dir "$D1/d1_30/sets" --bench "$1" --configs-file "$DF/d1_30/configs/timing_$1.txt" \
             --out "$DF/d1_30/timing/$1" --selectors-dir "$DF/selectors" --pca "$DF/cache/pca.pt"; rc=$?;;
+  timing_all)   # owner rule 2026-10-13: the nodesumo01 timing units run back-to-back in ONE job; resumable (finished benchmarks are skipped)
+          rc=0; for b in gqa_dev textvqa_val chartqa_val; do
+            [ -f "$DF/d1_30/timing/$b/timing_$b.json" ] && { echo "timing $b already present"; continue; }
+            $E/bin/python scripts/r7_d1_30_timing.py --sets-dir "$D1/d1_30/sets" --bench "$b" --configs-file "$DF/d1_30/configs/timing_$b.txt" \
+              --out "$DF/d1_30/timing/$b" --selectors-dir "$DF/selectors" --pca "$DF/cache/pca.pt" || { rc=1; echo "timing $b failed"; }
+          done
+          [ $rc -eq 0 ] && echo "{\"benches\": [\"gqa_dev\", \"textvqa_val\", \"chartqa_val\"], \"done\": \"$(date -u +%FT%TZ)\"}" > "$DF/d1_30/timing/timing_bundle.done.json";;
   smoke) $E/bin/python scripts/r7_d1full_smoke.py --out "$DF/smoke" "$@"; rc=$?;;
-  *) echo "usage: bundle <id> | cache [--pca-basis fitfull|frozen] | eval <bench> <i/n> | devrisk | timing <bench> | smoke"; rc=2;;
+  *) echo "usage: bundle <id> | cache [--pca-basis fitfull|frozen] | eval <bench> <i/n> | devrisk | timing <bench> | timing_all | smoke"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc

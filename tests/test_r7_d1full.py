@@ -311,13 +311,13 @@ class Plans(unittest.TestCase):
             cf = (Path(t) / "configs_textvqa_val.txt").read_text().split(); self.assertFalse(any(c.startswith(("full", "static:")) for c in cf))
             self.assertEqual(len([c for c in cf if c.startswith("sel:")]), 60); self.assertEqual(sorted(cf), sorted(c for c in RUN.config_list(
                 [u for o in RUN.OBJECTIVES for u in RUN.unit_names(ch)[0][o]], RUN.unit_names(ch)[1]["A1"] + RUN.unit_names(ch)[1]["A2"], True) if c.startswith(("sel:", "dyn:"))))
-        L = FP.eval_lines(Path("/x/d1_30")); self.assertEqual(len(L), 16); Ln = FP.eval_lines(Path("/x/d1_30"), devrisk=False, timing=False); self.assertEqual(len(Ln), 12)
+        L = FP.eval_lines(Path("/x/d1_30")); self.assertEqual(len(L), 14); Ln = FP.eval_lines(Path("/x/d1_30"), devrisk=False, timing=False); self.assertEqual(len(Ln), 12)
         Ld = FP.eval_lines(Path("/x/d1_30"), devrisk_only=True); self.assertEqual(len(Ld), 1); self.assertIn("devrisk", Ld[0][0])
         self.assertTrue(str(Ld[0][1]).endswith("/x/d1_30/devrisk/d1_30_devrisk.json"))
         for line, _ in L:
             self.assertIn("--exclude=node51,node52,node60", line); self.assertNotIn("RTX6000PRO", line); self.assertNotIn("--export", line); self.assertIn("--time=", line)
-        tl = [(l, m) for l, m in L if " timing " in l]; self.assertEqual(len(tl), 3)
-        self.assertTrue(all("--partition=H100 --nodelist=nodesumo01" in l for l, _ in tl)); self.assertTrue(all(str(m).endswith(f"timing/{l.split()[-1]}/timing_{l.split()[-1]}.json") for l, m in tl))
+        tl = [(l, m) for l, m in L if " timing_all" in l]; self.assertEqual(len(tl), 1)   # one bundled nodesumo01 job (owner rule 2026-10-13)
+        self.assertTrue(all("--partition=H100 --nodelist=nodesumo01" in l for l, _ in tl)); self.assertTrue(str(tl[0][1]).endswith("timing/timing_bundle.done.json"))
         self.assertTrue(all("H100,L40S" in l for l, _ in L if " eval " in l)); self.assertTrue(all("/x/d1_30/pred/" in str(m) for l, m in L if " eval " in l))
 
 
@@ -462,6 +462,7 @@ case "$args" in
   *"r7_d1full_cpu.sbatch choose"*) "$PY" scripts/r7_d1full_plan.py choose --selectors-dir "$DF_ROOT/selectors" >> "$STUB_DIR/wrap.log" 2>&1 || exit 1;;
   *"r7_d1full_gpu.sbatch eval"*) set -- $args; i=${@: -1}; b=${@: -2:1}; mk "$DF_ROOT/d1_30/pred/$b/done_shard${i%%/*}of${i##*/}.json";;
   *"r7_d1full_gpu.sbatch devrisk"*) mk "$DF_ROOT/d1_30/devrisk/d1_30_devrisk.json";;
+  *"r7_d1full_gpu.sbatch timing_all"*) for b in gqa_dev textvqa_val chartqa_val; do mk "$DF_ROOT/d1_30/timing/$b/timing_$b.json"; done; mk "$DF_ROOT/d1_30/timing/timing_bundle.done.json";;
   *"r7_d1full_gpu.sbatch timing"*) set -- $args; b=${@: -1}; mk "$DF_ROOT/d1_30/timing/$b/timing_$b.json";;
 esac
 echo $n
@@ -499,7 +500,7 @@ class DriverDryRun(unittest.TestCase):
                      or (" train " in c and "train") or ("choose" in c and "choose") or (" eval " in c and "eval") or ("devrisk" in c and "devrisk")
                      or ("sbatch timing" in c and "timing") or "?" for c in calls]
             self.assertEqual(kinds, ["data"] + ["bundle"] * 3 + ["complete", "cache"] + ["train"] * 6 + ["choose"] + ["train"] * 12 + ["eval"] * 12
-                             + ["timing"] * 3 + ["devrisk"], kinds)
+                             + ["timing"] * 1 + ["devrisk"], kinds)   # one bundled nodesumo01 timing job (owner rule 2026-10-13)
             self.assertTrue(all("--partition=H100 --nodelist=nodesumo01 --exclude=node51,node52,node60" in c for c in calls if "sbatch timing" in c))
             self.assertFalse(any("--dependency" in c or "--export" in c for c in calls))
             self.assertTrue(all("--exclude=node51,node52,node60" in c for c in calls if "--partition=CPU" not in c))

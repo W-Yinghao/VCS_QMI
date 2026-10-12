@@ -86,9 +86,9 @@ def eval_lines(root: Path, devrisk=True, timing=True, devrisk_only=False):
                       root / "pred" / b / f"done_shard{i}of{SHARDS[b]}.json"))
     if devrisk:
         L.append((f"sbatch --parsable --job-name=r7dFr_devrisk {LLAVA_GPU} {TIME['devrisk']} slurm/r7_d1full_gpu.sbatch devrisk", root / "devrisk" / "d1_30_devrisk.json"))
-    if timing:
-        for b in BENCHES:
-            L.append((f"sbatch --parsable --job-name=r7dFt_timing_{b} {REF_GPU} {TIME['timing']} slurm/r7_d1full_gpu.sbatch timing {b}", root / "timing" / b / f"timing_{b}.json"))
+    if timing:   # owner rule 2026-10-13: units pinned to one node run as ONE job (back-to-back, no other job can slip in between)
+        L.append((f"sbatch --parsable --job-name=r7dFt_timing_all {REF_GPU} --time=10:00:00 slurm/r7_d1full_gpu.sbatch timing_all",
+                  root / "timing" / "timing_bundle.done.json"))
     return L
 
 

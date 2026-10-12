@@ -34,3 +34,10 @@ execution_note_df_1: >
   2026-10-12 ~20:40 UTC, coordinator: queue order changed from "natural submission order" (DF-10) to D1-FULL last: pending D1-FULL jobs
   (names ^r7dF) get Nice 100 (slurm/nice_filler.sh, PAT='^r7dF' NICE=100), so the owner-approved R7-50 test run and R7-40b's units start
   before D1-FULL's long teacher backlog on the shared L40S.  Ordering only; no unit, setting or analysis changes.
+execution_note_df_2: >
+  2026-10-13, coordinator, owner rule ("必须要求同一块卡的作业…整体提交"): the three D1-FULL dynamic-row timing units, all pinned to the
+  reference node nodesumo01, are submitted as ONE job (slurm/r7_d1full_gpu.sbatch timing_all, job name r7dFt_timing_all, --time 10 h) that
+  runs gqa_dev, textvqa_val and chartqa_val back-to-back with the frozen D1-30 timing procedure, skips a benchmark whose timing file already
+  exists, and writes timing/timing_bundle.done.json only when all three succeeded; the driver waits on that one marker.  Changed before the
+  stage was reached, in the plan script and the job wrapper only (the paused driver's own script is untouched).  Tests 19 / 19 in both envs
+  (jobs 1036567 / 1036568).  Timing outputs and analysis unchanged.
