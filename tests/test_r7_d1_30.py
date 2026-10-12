@@ -376,8 +376,11 @@ class Plan(unittest.TestCase):
             res = PL.write_configs({o: {"chosen_lr": 3e-4} for o in RUN.OBJECTIVES}, Path(t))
             self.assertEqual(res["gqa_dev"], {"configs": 100, "timing_configs": 1 + 12 + 4 + 27}); self.assertEqual(res["textvqa_val"]["configs"], 101)
             L = PL.lines(Path("/x")); self.assertEqual(len(L), 6 + 4 + 2 + 3 + 3 + 1 + 3 + 1)
-            self.assertTrue(all("--partition=H100,L40S" in l or "--nodelist=nodesumo01" in l for l, _ in L))
-            self.assertTrue(all("RTX6000PRO" not in l and "--export" not in l for l, _ in L))
+            self.assertTrue(all("--partition=H100,L40S" in l or "--nodelist=nodesumo01" in l or ("r7d30q_textvqa_val_" in l and "--partition=H100 " in l) for l, _ in L))
+            self.assertTrue(all("RTX6000PRO" not in l and "--export" not in l and "--exclude=node51,node52,node60" in l for l, _ in L))
+            tv = [l for l, _ in L if "r7d30q_textvqa_val_" in l]; self.assertEqual(len(tv), 4)                       # E2: TextVQA quality on H100 only
+            self.assertTrue(all("--partition=H100 " in l and "L40S" not in l for l in tv))
+            self.assertTrue(all("--partition=H100,L40S" in l for l, _ in L if "r7d30q_gqa_dev_" in l or "r7d30q_chartqa_val_" in l or "r7d30v_" in l or "devrisk" in l))
 
 
 if __name__ == "__main__":

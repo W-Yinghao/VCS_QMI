@@ -5,8 +5,9 @@
   lines --root R --lines F      : sbatch lines — quality shards (GQA 6, TextVQA 4, ChartQA 2), SparseVLM shards (GQA 3, TextVQA 3, ChartQA 1; 8 rows, + 4 OCR anchors on TextVQA),
                                   timing per benchmark on nodesumo01 (our pipeline + the SparseVLM batch-1 rows in one job), the DEV risk
                                   calibration; each line carries its completion marker as a trailing comment (#MARK <path>)
-LLaVA-env units: --partition=H100,L40S --exclude=node51,node52,node60 (no Blackwell kernels in that env); timing: --partition=H100
---nodelist=nodesumo01.  Positional wrapper arguments only (no --export).
+LLaVA-env units: --partition=H100,L40S --exclude=node51,node52,node60 (no Blackwell kernels in that env), except the TextVQA quality units:
+--partition=H100 (execution note E2: OCR-anchor prompts at batch 32 exceed L40S memory); timing: --partition=H100 --nodelist=nodesumo01.
+Positional wrapper arguments only (no --export).
 """
 from __future__ import annotations
 
@@ -23,6 +24,11 @@ SHARDS = {"gqa_dev": 6, "textvqa_val": 4, "chartqa_val": 2}
 SV_SHARDS = {"gqa_dev": 3, "textvqa_val": 3, "chartqa_val": 1}
 GPU = "--partition=H100,L40S --exclude=node51,node52,node60"
 REF = "--partition=H100 --nodelist=nodesumo01"
+# Execution note D1-30-E2: TextVQA's OCR-anchor prompts (912–1,055 tokens) at the frozen generation batch of 32 exceed an L40S (44.4 GB):
+# OOM in the prefill (job 1035243; probe 1035261).  GQA / ChartQA / TextVQA without OCR fit in the forced worst case (32 longest prompts,
+# full 576 tokens, every answer forced to max_new_tokens: peak allocated 38.6–39.2 GB of 44.4).  TextVQA quality units therefore run on H100
+# only; batch size, batch composition and every other unit are unchanged.
+QUALITY_GPU = {"gqa_dev": GPU, "textvqa_val": "--partition=H100 --exclude=node51,node52,node60", "chartqa_val": GPU}
 
 
 def write_configs(lr_choice: dict, out: Path):
@@ -41,7 +47,7 @@ def lines(root: Path):
     L = []
     for b in BENCHES:
         for i in range(SHARDS[b]):
-            L.append((f"sbatch --parsable --job-name=r7d30q_{b}_{i} {GPU} slurm/r7_d1_30_gpu.sbatch run {b} {i}/{SHARDS[b]}",
+            L.append((f"sbatch --parsable --job-name=r7d30q_{b}_{i} {QUALITY_GPU[b]} slurm/r7_d1_30_gpu.sbatch run {b} {i}/{SHARDS[b]}",
                       root / "pred" / b / f"done_shard{i}of{SHARDS[b]}.json"))
         for i in range(SV_SHARDS[b]):
             L.append((f"sbatch --parsable --job-name=r7d30v_{b}_{i} {GPU} slurm/r7_d1_30_gpu.sbatch sparsevlm {b} {i}/{SV_SHARDS[b]}",

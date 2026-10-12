@@ -396,3 +396,11 @@ d1_30_execution_note_E1: >
   markers and the scorer read the union (plain file first, then shard files by name); the SparseVLM runner checks completeness before its
   marker; the scorer keeps the first complete record per qid and reports an integrity block (dropped / blank lines, duplicate qids, files per
   config); the coverage guard is unchanged.  Patch reviewed and applied by the coordinator (git apply); tests 20 / 20 (job 1035237).
+d1_30_execution_note_E2: >
+  2026-10-12 (coordinator), before the D1-30 driver reached stage 1 and before any D1-30 output was read: the early TextVQA quality job ran out
+  of memory on an L40S (44 GB).  A memory probe on L40S (job 1035261; real generation, batch 32, longest prompts, forced and normal stopping)
+  showed that only TextVQA's full_ocr prompts (912–1,055 tokens) overflow it; GQA / ChartQA / TextVQA without OCR peak at 37–39 GB.  Fix:
+  scripts/r7_d1_30_plan.py writes the 4 TextVQA quality units with --partition=H100 (node exclusions kept); every other unit, the batch size and
+  the batch composition are unchanged, so outputs stay hardware-independent (R7-20: full-model answers identical on 700 / 700 items across
+  L40S and H100 NVL).  The early TextVQA job was resubmitted on H100 (1035259, same command).  Patch reviewed and applied by the coordinator;
+  tests 20 / 20 (job 1035267).
