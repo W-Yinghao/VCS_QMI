@@ -1,0 +1,251 @@
+# R7-40 — D1 cross-host confirmation on Qwen2.5-VL-7B-Instruct: PROTOCOL DRAFT for the coordinator's staged freezes (40a first, then 40b; 40c
+# outline only).  Nothing here is frozen.  Nothing has run except the CPU tests and the smokes listed under provenance (R7-20 fixtures only:
+# no FIT / CAL / DEV teacher pass, no D1-30 / D1-40 data).  Written before any D1-30 result was read.
+# Parents: reports/R7/R7_40_PLAN_DRAFT.yaml (commit 8b41b0a), reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (coordinator OPEN-1 = (b)),
+# reports/R7/R7_D1_20_STAGED_FREEZE_20261012.yaml, reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml, reports/OWNER_DECISIONS_20261012.md (I1).
+# Section R7_40a_teacher.latency_regime.procedure was written into this file BEFORE any Qwen timing ran and is unchanged since (file sha256
+# b593e6d5… at 2026-10-12T09:57:03Z, copy outputs/R7_D1/r7_40/protocol_draft_before_timing.yaml; block sha256 under provenance).
+protocol_id: R7-40-D1-QWEN
+status: draft_for_staged_freeze      # 40a: freeze key 'r7_40a_staged_freeze'; 40b: 'r7_40b_staged_freeze' (checked verbatim by slurm/r7_d1_40_submit.sh)
+date: 2026-10-12
+official_test_access: false          # official test splits stay closed; any test read is R7-50 under the owner's one-shot approval
+
+scope_rules:
+  - "the SAME post-encoder method on the second host (frozen OPEN-1 (b)): the frozen D1-10 teacher / D1-20 recipe / D1-30 evaluation, with only the host-interface changes listed below, fixed before any Qwen FIT / CAL / DEV result"
+  - "method under test fixed as S1 (VCS) before any D1-30 result (owner I1); controls S3 (direct risk) and S2 (logistic: owner decision 2026-10-12, so that 'the VCS-fitting advantage replicates across hosts' can be tested), training-free uniform grid / random / qsim; no A1 / A2 ablations on Qwen"
+  - "IF-Prune (or any external Qwen pruning method) only as a separate host column (background reference), never a same-condition head-to-head (owner I1)"
+  - "claims limited to the LLM side: Qwen2.5-VL spends 62–70 % of batch-1 wall time in its vision encoder (R7-20); the vision cost is printed in every latency row"
+  - "no D1-30 DEV / TextVQA / ChartQA result chooses anything here; Qwen selection uses Qwen CAL only"
+
+host:
+  checkpoint: "Qwen/Qwen2.5-VL-7B-Instruct@cc594898 at /projects/EEG-foundation-model/yinghao/models/Qwen2.5-VL-7B-Instruct, bf16, SDPA, AutoProcessor min_pixels 256·28², max_pixels 1280·28² (the R7-20 setting)"
+  environment: "/projects/EEG-foundation-model/yinghao/envs/vl_baselines (python 3.12.12, torch 2.9.0+cu128, transformers 4.57.6, FREEZE.txt); any of RTX6000PRO / H100 / L40S; node51 / node52 / node60 excluded; weights staged to node-local disk once per job; python -I"
+  exposure: "training data undisclosed: GQA / TextVQA / ChartQA train (and possibly val) exposure assumed and disclosed (frozen D1 protocol)"
+
+host_interface_verified:              # read in the installed transformers 4.57.6 code, then checked by CPU tests and the GPU probe (provenance)
+  image_processor: "AutoProcessor resolves Qwen2VLImageProcessor to the FAST torchvision processor (FORCE_FAST_IMAGE_PROCESSOR), the class R7-20 used; smart_resize to multiples of 28 within [256·28², 1280·28²]; patches flattened as (t, H/28, W/28, 2, 2) so every 2 × 2 merge group is contiguous"
+  token_merger: "model.model.visual: patch embed -> window reordering -> 32 blocks (full attention at 7 / 15 / 23 / 31; SDPA runs every window / image separately) -> PatchMerger (RMSNorm, 4 × 1280 = 5120 -> 5120 -> 3584 MLP over each 2 × 2 group) -> inverse window reordering.  Output per image: N = (H/28)·(W/28) merged tokens × 3584 (= the LLM width), raster order over the rows × cols merged grid"
+  selection_point: "after the merger, before the LLM: kept merged tokens spliced in raster order between the chat-template text before / after the image placeholder; the selector never reads the LLM"
+  position_ids: >
+    The official get_rope_index on the FULL sequence: text before the image t = h = w = position; merged token (r, c) gets (s, s + r, s + c)
+    (s = the image's first position; temporal index 0 for images); text after the image restarts at s + max(rows, cols).  Pruned sequences keep
+    the full sequence's ids column by column (kept visual tokens keep their (t, h, w) ids, every text token its position); decoding continues at
+    max position + 1 (= current length + the full sequence's rope delta) on all three axes.  The text model uses 3-row ids for the rotary
+    embedding only; its causal mask comes from the 2-D attention mask and the cache positions (sequence order), never from position values
+    (packed-sequence detection needs a 4-row id tensor or no mask), so gaps in the ids are well defined.
+  token_counts: "N = rows · cols per image, 256 ≤ N ≤ 1280 by the pixel bounds; R7-20 GQA fixture: 102 images, mean 307, median 280, range 260–999 (6 % above 600: 609 / 999); TextVQA fixture mean 971.  Probe S0: on all 200 GQA fixture items the spliced ids equal the processor's input_ids, N = t·h·w / 4 equals the image-token count and the R7-20 count, and the image processor's pixel values equal the processor call's bit for bit"
+  prompts: "Qwen chat template (system 'You are a helpful assistant.' added by the shipped template), user content [image, question + '\\nAnswer the question using a single word or phrase.'] — the frozen D1-10 teacher prompt and the R7-20 Qwen fixture prompt; text-only pass: user content [text] only, positions 0..L−1"
+  generation: >
+    Shipped generation config: do_sample true, temperature 1e-6, repetition_penalty 1.05, eos [151645, 151643], pad 151643.  R7-20 called
+    generate(do_sample=False): greedy WITH the 1.05 repetition penalty over the prompt + generated ids.  The spliced decode loop
+    (scripts/r7_d1_40_host.py QwenCore.generate) reproduces it (fp32 penalised logits, argmax, finished rows emit pad, stop when every row has
+    emitted an eos id or at max_new_tokens; min_new_tokens masks the eos ids): CPU test against HF generate on a tiny random Qwen2.5-VL (single
+    and left-padded batches, normal and forced length), GPU sentinels S5 / S5b on the real model.
+  yes_no_ids: "R7-20 lists: yes [7414, 9454, 9693, 9834, 14004], no [902, 2152, 2308, 2753, 8996]; P(yes) / P(no) from the raw fp32 first-step logits"
+  budgets: "fractions f of each image's own N: k(f, N) = max(1, floor(f·N + 1/2)), f ∈ {0.125 (stress), 0.25, 0.5, 0.75}; f = 1 is the full pass (coordinator, task statement 2026-10-12)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ 40a
+R7_40a_teacher:
+  purpose: "D1-10 on Qwen: the nested-mask binary risk object h, d, h − d by budget fraction and mechanism (CAL readout); training targets for 40b"
+  data: >
+    The frozen D1 manifest (outputs/R7_D1/data/d1_manifest.jsonl, sha256 32c72126…; FIT 10,000 images / 39,960 q, CAL 2,000 / 7,989, DEV
+    2,000 / 7,986), roles and questions unchanged, the frozen shard plan d1_shards.json (56 shards of 250 images in 14 bundles).  40a runs the
+    CAL and FIT bundles only (b000–b011, CAL first: 47,949 questions, 12,000 images); the DEV bundles (b012, b013) are refused by the code
+    (--allow-dev at R7-40c only) — OPEN D40a-5.
+  images: >
+    The extracted GQA folder /projects/EEG-foundation-model/yinghao/data/gqa/images ONLY.  The owner deleted the image archives on 2026-10-12
+    09:26 UTC (gqa/zips/images.zip and others, after a file-by-file check of the extracted folders; coordinator message).  R7-40 has no zip
+    fallback (unlike the frozen LLaVA r7_d1_teacher.ImageSource): scripts/r7_d1_40_teacher.ExtractedImageSource raises MissingImage with a clear
+    message and the unit stops (a missing file is never reason-coded as a skip); the feature cache uses the same source; a test asserts that no
+    R7-40 module imports zipfile or the frozen ImageSource.  Image check (CPU job 1035628): all 10,000 FIT, 2,000 CAL and 2,000 DEV manifest
+    images are present (file names only; nothing decoded).  Unreadable files (decode errors) stay reason-coded skips counted against coverage.
+  teacher: "b = T(full), a = T(masked), T = 2 p̃ − 1, p̃ = P(yes) / (P(yes) + P(no)) of the first generated token (prefill only); class weights from FIT (w_yes 1.0099, w_no 0.9903)"
+  masks:
+    trials_per_question: "3 fixed trials, one per mechanism (frozen D1-10 rule), on the image's rows × cols merged grid"
+    random: "uniform random ordering of the N tokens; log P(set) = −log C(N, k)"
+    grid: >
+      the four 2-stride lattices in a random order, the first split into the checkerboard of its 2 × 2 coarse grid (first) and the rest, random
+      order inside each block (frozen D1-10 code); on 24 × 24 every budget is a block boundary and log P = −log 8 / 4 / 6 / 4 is recovered (test);
+      on other grids a budget can end inside a block, whose kept part is a uniform random subset of that block; log P(set) exact by enumeration
+      of the 48 configurations (test: brute force on 3 × 4, 5 × 5, 2 × 7 at every k)
+    qsim: "Plackett–Luce (Gumbel top-k) on z-scored cosine(merged visual token, mean Qwen input embedding of the raw question tokens); log P of the ordered prefix"
+    nesting: "kept set at f = prefix of the trial's ordering, k non-decreasing in f: A_0.125 ⊂ A_0.25 ⊂ A_0.5 ⊂ A_0.75 ⊂ B"
+    seeds: "sha256('r7-40/d1-mask/<mechanism>/<qid>') with the D1 seed 20261012 (a stream separate from the LLaVA masks); qsim orderings stored (uint16 base64), random / grid re-derivable and digest-checked"
+  passes_per_question: "14 (1 full + 3 × 4 masked + 1 text-only), prefill only; frozen D1-10 implementation: right-padded batches of ≤ 16,384 tokens / ≤ 64 sequences sorted by length (OPEN D40a-3: batch 1); one vision pass per image (chunks of 16 images)"
+  record: "qid, image_id, role, C, GQA types, n_vis, grid [rows, cols], budgets {f: k}, text_tokens, full / text (P(yes), P(no)), masked {mech: {f: pair}}, logp, order digests, qsim order (≈ 2.3 KB per question)"
+  qc_sentinels_probe:                 # R7-20 GQA fixture only (200 items; 68 binary on 57 images); never FIT / CAL / DEV
+    S0_host_interface: "for all 200 items: spliced ids (pre + N image tokens + post) == the processor's input_ids; N == image tokens == t·h·w / 4 == the R7-20 count; image-processor pixel values == those of the processor call (bitwise)"
+    S1: "spliced full path (batched teacher prefill) vs the official path: max |ΔP(yes)| ≤ 0.02, no yes / no argmax flip (frozen D1-10 threshold); reference: 'r720' = the R7-20 values (computed on an H100 NVL; frozen) or 'same_gpu' = the official path on the probe's GPU (OPEN D40a-2)"
+    S1b: "spliced full prefill at batch 1 vs the official path on the same GPU: max |ΔP(yes)| ≤ 1e-3 (the plan's 'within 1e-3')"
+    S1c_S1d_reported: "S1c = batched teacher vs official on the same GPU (batching alone); S1d = official on this GPU vs R7-20 (GPU type alone)"
+    S2: "bit-identical replay"
+    S3: "masking acts: mean |T_0.125 − T_full| ≥ 0.02 for every mechanism"
+    S4: "yes / no mass of the full pass: 'min' = frozen rule (every binary probe item ≥ 0.9) — FAILS on Qwen by construction; 'rate:0.9' = ≥ 90 % of items (OPEN D40a-1)"
+    S5: "batched left-padded generation (batch 16, max_new_tokens 128) reproduces the official R7-20 answers on ≥ 98 % of the 200 items (frozen)"
+    S5b: "batch-1 spliced generation == the official generate on the same GPU on ≥ 98 % (expected 100 %)"
+    S6: "nested kept sets with exact counts k = round(f·N); image ids (s, s + r, s + c); text after the image at s + max(rows, cols); kept tokens keep their full-sequence ids"
+    S7: "all tokens kept through the masking path == the full sequence (embeddings and ids) bit for bit"
+    per_bundle: "bit-identical replay of the first chunk; coverage guard (unique qid count == expected − reason-coded image skips); no duplicates; single writer per shard file (E1); bundle marker written last"
+    launch_gates: "a bundle refuses an unfrozen manifest, a changed manifest sha256, a missing or failing probe report (outputs/R7_D1/r7_40/probe/probe_report.json, written by the driver's stage-0 launch probe under the frozen S1 / S4 rules), any DEV shard, and a missing image file"
+    smoke_results: >
+      Code checks on the fixture, not results.  L40S (jobs 1035606 and 1035635, identical sentinel values): S0 200 / 200 on all four checks;
+      S1 vs R7-20 max 0.0544 (4 of 68 items above 0.02, all with P(yes) between 0.05 and 0.75), 0 flips — FAILS 'r720'; decomposition: S1c
+      (batched vs official, same L40S) max 0.0192, median 6e-6, 0 items above 0.02, 0 flips — passes 'same_gpu'; S1d (official on L40S vs R7-20 on
+      H100 NVL) max 0.0544, 4 items above 0.02, so the excess is GPU-type bf16 noise, not the spliced path; S1b 0.0 (bit-identical);
+      S2 identical; S3 0.281 / 0.289 / 0.282; S4 min 0.048, 64 / 68 items ≥ 0.9 (the 4 low-mass items are GQA logical 'either X or Y'
+      existence questions answered with an object word, masses 0.05–0.50) — FAILS 'min', passes 'rate:0.9'; S5 0.99 (198 / 200); S5b 1.0;
+      S6, S7 pass.  So on L40S the probe passes exactly under S1 = 'same_gpu' and S4 = 'rate:0.9'.  RTX PRO 6000 (Blackwell) teacher smoke:
+      job 1035607 queued behind the D1-20 stage-2 units (results will be in outputs/R7_D1/r7_40/smoke_rtx/).
+    batching_noise_measured: >
+      L40S (job 1035635), all 2,800 passes of the 200 fixture questions, batched teacher vs every pass at batch 1 on the same GPU: median
+      |ΔP(yes)| 3e-7, max 0.041, 59 passes (2.1 %) above 0.02, 9 yes / no argmax flips (0.3 %), mean |ΔT| 0.0077, p99 0.058, max 0.124.  Batch 1
+      costs 0.486 s / question against 0.283 batched (+72 %).  (LLaVA, fp16: S1 0.0038.)
+  latency_regime:
+    rule: >
+      Frozen D1 latency_regime rule, re-applied on Qwen (plan R7-40a): B* = the smallest batch size in {1, 4, 16, 32} at which uniform-grid 25 %
+      reduces the per-item total latency (vision + selection + prefill + 8 forced new tokens) by at least 25 % relative to 100 %.  If no batch
+      size qualifies, Qwen reports "no LLM-side latency saving in any tested regime", its primary endpoint becomes quality at fixed kept-token
+      fraction, and no acceleration is claimed (pre-declared; OPEN-R740-8).
+    reference_gpu: "NVIDIA H100 NVL on nodesumo01 (--partition=H100 --nodelist=nodesumo01); the timing code refuses another GPU"
+    procedure: >
+      Pre-declared here before the Qwen timing smoke (scripts/r7_d1_40_teacher.py timing): the R7-20 GQA fixture items in file order; for B in
+      {1, 4, 16, 32}, consecutive batches of B over the first 64 items (B = 1) or the first 192 items (B ≥ 4; 48 / 12 / 6 batches); for each kept
+      fraction f in {1, 0.75, 0.5, 0.25, 0.125} of uniform-grid tokens, one warm-up batch (not recorded), then per batch, CUDA-synchronised:
+      vision = image processor (CPU) + vision tower (images opened and decoded before the clock), select = grid ordering + gather + embedding
+      assembly + position ids, prefill = a separate prefill-only pass (TTFT), llm = prefill + 7 decode forwards (8 forced new tokens,
+      min_new_tokens = max_new_tokens = 8, repetition penalty as shipped).  Per-item total = (vision + select + llm) / B per batch; median over
+      batches.  Saving(B) = 1 − median total at 25 % / median total at 100 %.  The total without 'select' (the D1-10 smoke's vision + prefill + 8
+      decode) is reported alongside; the rule uses the total with 'select'.  Why batches over a pool instead of D1-10's one batch × 3 repeats:
+      Qwen's N varies per image (260–999 on the fixture), so one batch of B = 1 would time one image's N.
+    smoke_result: >
+      PENDING on the reference GPU: job 1035608 (nodesumo01) is queued — both nodesumo01 GPUs (and node53's four H100 NVL) are held by other
+      users' 1-day jobs; it writes outputs/R7_D1/r7_40/timing/timing_report.json (rows, savings, B_star) with the frozen code.  Indicative only
+      (job 1035634, L40S node50, NOT the reference GPU, --allow-any-gpu, outputs/R7_D1/r7_40/timing_l40s_indicative/): per-item totals at 100 /
+      25 % = 258 / 248 ms (B = 1), 135 / 117 (B = 4), 143 / 102 (B = 16), 147 / 102 (B = 32); savings at 25 % = 3.8 / 13.8 / 28.4 / 30.4 %, so on
+      L40S the rule would give B* = 16 (LLaVA: B* = 4).  At B = 1 the 8 decode steps (~190 ms) and vision (~58 ms, processor + tower) dominate;
+      at B ≥ 16 right padding to the batch's largest image weighs on the 100 % row.  The rule is applied only to the reference measurement.
+  readout_pre_registered:
+    split: "CAL (primary); FIT descriptive; DEV sealed"
+    tables: "the frozen D1-10 readout re-applied by scripts/r7_d1_40_analyze.py (imports the frozen r7_d1_analyze statistics unchanged): per mechanism × fraction mean h, d, h − d (balanced, image-cluster bootstrap 95 %, 2,000 reps), P(h < 0), P(h > d), Pearson / Spearman (h, d), masked accuracy, realised mean kept tokens; teacher quality (balanced Brier full with CI, text-only, accuracies, text-only residual); GQA structural strata"
+    interpretation_grid: "the frozen D1-10 grid, with the coordinator's rank-criterion note (calibrated-teacher ceiling band, the 0.5 line reported as superseded) and the 2026-10-12 clarification that the band is a reference under the teacher's own probabilities, not an upper bound"
+    yes_no_mass: "frozen coordinator note re-applied: primary keeps every item (p̃ renormalised over yes / no), the pre-declared secondary repeats the CAL table without items whose full-pass mass < 0.9, excluded counts per role; NEW descriptive QC: low-mass counts by GQA structural / semantic type (Qwen answers some 'either X or Y' questions with an object word); the frozen FIT-only tool scripts/r7_d1_massqc.py reads the Qwen records unchanged"
+    identity_check: "max |h − d − 2(C − b)(b − a)| ≤ 1e-12"
+    analyser: "refuses partial coverage; DEV only with --allow-dev (R7-40c)"
+  units: "stage 0: 1 launch-probe GPU job; stage 1: 12 bundle jobs (b000–b011; 4 shards of 250 images ≈ 4,000 questions each); stage 2: completeness + CAL readout (2 CPU jobs)"
+  cost: >
+    Measured on L40S (smokes 1035606 / 1035635): 0.283 s per question batched (0.486 at batch 1), weight staging + load 381 s per job, peak 18.3 GB
+    (worst cases: tower on 16 images of 1,225 tokens 18.9 GB, a 16,384-token prefill batch 17.7 GB; fits all three GPU types).  47,949 questions:
+    3.8 GPU-h batched (6.5 at batch 1) + 12 loads 1.3 h + first-chunk replays 0.1 h + launch probe 0.2 h ≈ 5.4 GPU-h on L40S (≈ 8.1 at batch 1);
+    RTX PRO 6000 / H100 NVL expected faster (RTX smoke pending).
+  driver: "S4_RULE=… S1_RULE=… PROBE_PARTITION=… TEACHER_PARTITION=… nohup setsid bash slurm/r7_d1_40_submit.sh 40a >/dev/null 2>&1 &  (after the freeze key 'r7_40a_staged_freeze' is in the protocol file; the four parameters as frozen)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ 40b
+R7_40b_selectors:
+  purpose: "D1-20 on Qwen with the frozen recipe: S1 VCS, S2 logistic, S3 direct risk; symmetric 2-learning-rate seed-0 search per objective, then seeds 1–2"
+  feature_cache: >
+    One GPU job (scripts/r7_d1_40_cache.py d1_40; pixels and question text only — no label, no teacher output): merged visual tokens (official
+    processor + tower + merger, bf16) -> PCA 3584 -> 512 fitted on FIT images only (all 10,000, 64 seeded tokens each,
+    seed sha256('r7-40/d1-pca/<imageId>'); streaming fp64 covariance, eigh; explained variance recorded) -> fp16 features of every token, a
+    role's images concatenated (feats_<role>.npy [Σ N_i, 512] + offsets / N_i / grid); FIT and CAL only (DEV at R7-40c); Qwen tokenizer ids of
+    the raw question (no special tokens) and the frozen bf16 input-embedding table.  Images from the extracted folder only.
+  architecture: >
+    The frozen D1-20 selector (scripts/r7_d1_selectors.py, imported unchanged) with two host-interface changes (scripts/r7_d1_40_selectors.py):
+    question tokens: Qwen input embedding (3584) -> Linear(3584, 512); visual tokens: PCA-512 -> Linear(512, 512) + learned ROW table[r] + learned
+    COLUMN table[c] (64 × 512 each, N(0, 0.02²); factorised positions replace the 576 × 512 table of the 24 × 24 grid) + type.  Visual keys are
+    padded to the batch maximum with the additive key bias −1e9 (the frozen per-key bias mechanism); gates, relaxed and hard top-k act on valid
+    tokens only.  A test shows that on a constant 4 × 4 grid with the frozen table set to row + column, the adapter reproduces the frozen
+    encoder, every objective's loss and its gradients.  Images whose grid exceeds 64 × 64 stop the unit (FIT / CAL maxima recorded by the cache).
+  recipe: >
+    Frozen D1-20: phase A 20,000 steps of 64 questions × 4 of their 12 masks, AdamW wd 0.01, 1,000-step warm-up then cosine, objectives S1 vcs
+    −[J(T_B) + J(T_A)] / S2 balanced logistic on 2f / S3 class-weighted MSE to h; every 1,000 steps CAL Spearman(r(K), realised h) over all CAL
+    (question, mask) pairs selects the state (same rule for S1–S3, disclosed asymmetry: it is S3's target); native criterion logged (secondary,
+    never used); phase B 5,000 gate steps, budget fraction drawn uniformly from {0.125, 0.25, 0.5, 0.75}, relaxed top-k (Gumbel, threshold midway
+    between the k-th and (k+1)-th perturbed valid logits), tau cosine 1 -> 0.1, AdamW 3e-4, final state; soft / hard gap on CAL; dynamic
+    rule = smallest f in {0.125, 0.25, 0.5, 0.75, 1} with r(top-k) ≤ tau, tau fixed on CAL by bisection for mean kept fraction 0.25 / 0.5 / 0.75
+    (nominal fractions); bit-exact resume; explicit fp32 attention.  A unit is complete only when its marker <tag>.done.json is written, after
+    the CAL dynamic taus (a unit stopped between the checkpoint and the taus is finished on rerun, not skipped).
+  exact_micro_batching: >
+    Implementation, not recipe: with variable N the longest image of a step would pad all 320 sequences (≈ 6 % of GQA images have ≥ 609 tokens).
+    A step's 64 questions are sorted by length and cut into contiguous micro-batches by an exact dynamic programme that minimises the padded
+    compute Σ n·s·(L + γL²) + a per-batch overhead under the memory cap n·s·L² ≤ the frozen LLaVA step's 320 × 606²; each micro-batch adds its
+    terms with the step's GLOBAL normalisers (Σ w for the full pass, 4 Σ w for the masked ones), so loss and gradient equal the single-batch ones
+    (test: S1–S3, any partition, fp32 precision, dropout off); only the dropout draws differ.  CAL evaluation, soft / hard gap and dynamic tau are
+    grouped the same way (cap 64 × 13 × 606²).
+  learning_rate: "frozen OPEN-6 rule re-run on Qwen (OPEN-R740-3): lr {1e-4, 3e-4} × seed 0 per objective; the higher selected CAL Spearman wins, a tie within 1e-4 -> 3e-4 (scripts/r7_d1_plan20.choose imported unchanged); seeds 1–2 at each objective's chosen rate"
+  units: "1 cache job; stage 1: 6 units (3 objectives × 2 rates × seed 0); choice (CPU); stage 2: 6 units (3 objectives × seeds 1, 2) = 12 training units"
+  hardware: "default RTX6000PRO / H100 (D1-20 execution note E5: one hardware class); the cap-bound worst case measured 25.6 GB on an L40S, so L40S would also fit (OPEN D40b-3); cache job any of the three"
+  outputs: "outputs/R7_D1/r7_40/selectors/<objective>_lr<lr>_s<seed>.{pt,json,resume.pt,done.json} — evals, selected step, native secondary, soft / hard gap, dynamic taus, timing, peak memory"
+  smoke_results: >
+    Code checks on the 68 fixture probe records standing in for FIT and CAL (not results).  L40S job 1035653 (final grouping): CUDA fp32 vs CPU
+    fp64 with padding — relative errors ≤ 5.0e-6 (phase-A loss / gradients, phase-B gate gradients, non-zero); all three objectives train
+    (CAL selection, native criterion, soft / hard gap per fraction, dynamic tau 0.50 at the 0.5 target); 0.284 s per phase-A step (≈ 5
+    micro-batches), 3.4e-4 s per CAL pair, 0.070 s per phase-B step, peak 7.1 GB on the fixture; worst-case memory probe (64 questions on
+    1,280-token images, every micro-batch at the cap): 25.6 GB, no OOM on the 44-GB L40S.  The earlier greedy cap-filling grouping (job 1035633)
+    took 0.738 s per step and 32.4 GB (superseded).  RTX PRO 6000 selector smoke: job 1035629 queued (outputs/R7_D1/r7_40/train_smoke/NVIDIA_RTX_PRO_6000_Blackwell_Server_Edition/).
+  cost: >
+    Per unit: 20,000 × 0.284 s + 20 evaluations × 95,868 CAL pairs × 3.4e-4 s + 5,000 × 0.070 s ≈ 1.86 GPU-h on L40S; RTX PRO 6000 ran the
+    frozen D1-20 step ≈ 1.95× faster than L40S, so ≈ 1.0 GPU-h on the default hardware class (to be confirmed by job 1035629).  12 units ≈ 12
+    GPU-h (RTX / H100) or ≈ 22 GPU-h (L40S); cache ≈ 22,000 image passes × ≈ 0.1 s + load ≈ 0.8 GPU-h.  The fixture's length mix matches GQA's
+    (mean 319 selector tokens, max 1,009); real FIT questions are slightly longer.
+  driver: "SEL_PARTITION=… CACHE_PARTITION=… nohup setsid bash slurm/r7_d1_40_submit.sh 40b >/dev/null 2>&1 &  (after 'r7_40b_staged_freeze'; refuses unless 40a is complete)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ 40c (outline; not implemented in this round)
+R7_40c_evaluation_outline:
+  benchmarks: "the D1-30 sets unchanged (gqa_dev, textvqa_val minus the 127 R7-20 images, chartqa_val with the pinned pix2struct 6fe25c1 evaluator)"
+  rows: "full; uniform grid / random / qsim at 0.125 / 0.25 / 0.5 / 0.75; S1, S2, S3 × seeds 0–2 at the four fractions; S1–S3 dynamic × seeds 0–2 at the three CAL operating points (76 configurations per benchmark); an external Qwen method only as a separate host column"
+  primary: "at Qwen's B* (if any): quality at fixed measured latency (L25 / L50 / L75 = uniform-grid 25 / 50 / 75 % latencies), contrasts S1 − S3, S1 − S2 (owner: does the VCS-fitting advantage replicate) and S1 − uniform grid; seed mean of per-seed interpolations; image / chart-grouped paired bootstrap (2,000); Holm per latency point over 9 contrasts (3 × 3 benchmarks); otherwise the same contrasts at fixed fractions 0.25 / 0.5 / 0.75"
+  cross_host_reading: "descriptive only: sign and size of S1 − S3, S1 − S2 and S1 − grid on LLaVA (D1-30) and Qwen side by side; no pooling, no cross-host test"
+  needs: "its own staged freeze; DEV teacher passes (if D40a-5 defers them) and DEV features; a Qwen quality runner / timing / scorer reusing the D1-30 modules through imports and QwenCore.generate (batched decoding already checked against HF generate)"
+  cost_rough: "≈ 1.1 M answers (76 × ≈ 14.7 k items) at 25–40 ms batched ≈ 8–12 GPU-h + DEV teacher / features ≈ 1 GPU-h + timing ≈ 3–4 GPU-h on nodesumo01"
+
+statistics: "as D1-10 / D1-20 / D1-30: balanced task law with FIT class weights, image (chart) grouped bootstrap 2,000 replicates, seeds reported as mean ± sd, Holm per latency (or fraction) point over the primary family; no equivalence claim"
+
+gpu_budget:
+  R7_40a: "≈ 5.4 GPU-h on L40S batched (≈ 8.1 at batch 1); less on RTX PRO 6000 / H100"
+  R7_40b: "≈ 0.8 (cache) + 12 × ≈ 1.0 (RTX / H100) ≈ 13 GPU-h; ≈ 23 if run on L40S"
+  R7_40c: "≈ 12–17 GPU-h (outline; its own freeze)"
+  total: "≈ 30–48 GPU-h (plan: 25–45 + 8 with S2); the reference-node timing (≈ 0.5 h for 40a, 3–4 h for 40c) depends on nodesumo01"
+storage:
+  home: "/home/infres/yinwang/CS_QMI/outputs/R7_D1/r7_40: teacher records ≈ 0.11 GB (2.3 KB per question); feature cache ≈ 4.9 GB (≈ 3.7 M tokens × 512 fp16 = 3.8 GB, embedding table 1.09 GB, PCA 7 MB); selectors ≈ 2.4 GB (12 × ≈ 0.2 GB with resume state); smokes ≈ 1.3 GB (cache_smoke holds a 1.09 GB embedding table; deletable after the freeze); total ≈ 9 GB"
+  projects: "nothing new (the Qwen weights, 15.5 GiB, and the R7-20 fixtures are already there; staging copies go to node-local disk and are deleted after loading)"
+
+open_decisions:
+  before_the_40a_freeze:
+    D40a-1_S4_yes_no_mass: >
+      BLOCKING.  The frozen S4 sentinel ('full-pass yes / no mass ≥ 0.9 on every binary probe item') fails on Qwen by construction: 4 of 68 binary
+      fixture items get an object word as the first token ('giraffe', 'bus', 'horse'; mass 0.05–0.50), all GQA logical 'either X or Y'
+      questions (visible in the R7-20 Qwen answers before any R7-40 code ran).  Options: (a) S4_RULE=rate:0.9 — keep the frozen prompt, the frozen
+      primary (every item, p̃ renormalised) and the pre-declared mass ≥ 0.9 secondary, plus the new low-mass-by-type QC (the rate was chosen after
+      seeing the fixture: disclose); (b) keep 'min' — 40a cannot start; (c) another teacher prompt for binary questions — a different teacher than
+      D1-10 and than the D1-30 pinned prompts (not recommended).
+    D40a-2_S1_reference: >
+      BLOCKING.  The frozen S1 reference is the R7-20 values, computed on an H100 NVL; bf16 differences between GPU types alone reach 0.054
+      (S1d on L40S), so the probe fails 'r720' off the H100 NVL although the spliced path is exact (S1b 0.0).  Options: (a) S1_RULE=same_gpu —
+      the frozen threshold against the official path on the probe's own GPU (measured 0.019 on L40S, 0 flips; thin margin), S1d reported; (b) keep
+      'r720' and pin the probe to the H100 partition (PROBE_PARTITION=H100: same GPU model as R7-20; S1 then ≈ batching noise ~0.02, also thin;
+      both H100 NVL nodes are now held by 1-day jobs of other users); (c) a bf16-specific threshold (post hoc).
+    D40a-3_teacher_batching: "batched prefill (the frozen D1-10 implementation; measured noise vs batch 1: median |ΔP| 3e-7, 2.1 % of passes > 0.02, 0.3 % flips, p99 |ΔT| 0.058) vs every pass at batch 1 (each pass = the official computation on its GPU; +72 % teacher compute, ≈ +2.7 GPU-h on L40S) — code change needed only for (b): run_items(max_seqs=1)"
+    D40a-4_teacher_hardware: "TEACHER_PARTITION: mixed RTX6000PRO / H100 / L40S (as D1-10's mixed H100 / L40S; b and a of one question always come from the same job and GPU) vs one class (e.g. L40S: free capacity, peak 18.9 GB) so that all teacher records share bf16 kernels; RTX PRO determinism (bit-identical replay) is still to be confirmed by job 1035607"
+    D40a-5_DEV_teacher_passes: "deferred to R7-40c (implemented: the code refuses DEV bundles without --allow-dev; the strongest seal) vs run now with 40a and kept sealed (the LLaVA D1-10 precedent)"
+    D40a-6_new_sentinels: "S0 (host interface), S1b (same-GPU batch-1 |ΔP(yes)| ≤ 1e-3), S5b (same-GPU batch-1 generation ≥ 98 %), S6 (rotary ids), S7 (all-kept == full) in the launch gate, beyond the frozen S1–S6"
+    D40a-7_B_star: "Qwen's B* comes from the pending reference-node timing (job 1035608) under the rule and the pre-declared procedure (pool of batches instead of D1-10's single batch × 3 repeats, because N varies per image); indicative L40S value B* = 16, not LLaVA's 4 — R7-50's outline assumes B* = 4 for the Qwen timing rows and should read 'Qwen's B*'"
+    D40a-8_freeze_mechanics: "freeze keys 'r7_40a_staged_freeze' / 'r7_40b_staged_freeze' looked up in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (or a separate frozen R7-40 file via PROTOCOL); record the launch parameters S4_RULE, S1_RULE, PROBE_PARTITION, TEACHER_PARTITION in the freeze; the driver's CAP default stays 27 (submits while my normal-QOS count < 27, as the frozen drivers)"
+    OPEN-R740-8: "confirm: if no B* on Qwen, the 40c primary is quality at fixed fraction and no acceleration is claimed"
+  before_the_40b_freeze:
+    OPEN-R740-3: "the symmetric 2-rate seed-0 search re-run on Qwen (implemented, as the task states) vs reusing the D1-20 chosen rates"
+    D40b-2_micro_batching: "exact gradient accumulation over the DP partition of length-sorted questions (identical loss and gradient; dropout draws differ) and grouped evaluation — accept as an implementation of the frozen recipe"
+    D40b-3_selector_hardware: "SEL_PARTITION: RTX6000PRO,H100 (E5, default) vs adding L40S (cap-bound worst case 25.6 GB measured on L40S; ≈ 1.9 GPU-h per unit there)"
+    D40b-4_position_tables: "64 × 64 row / column tables; a larger grid stops the unit; FIT / CAL maxima recorded by the cache job; DEV checked at 40c"
+    D40b-5_dynamic_rule: "nominal fractions in the dynamic rule (k = round(f·N); the mean kept fraction is computed with the nominal f)"
+  for_40c:
+    OPEN-R740-6: "an external Qwen method only as a separate host column (owner I1), with an official Qwen2.5-VL implementation and licence; none -> disclosed gap"
+    OPEN-R740-7: "prompts: the D1-30 pinned prompts (recommended) vs Qwen's own evaluation prompts; TextVQA without OCR tokens (Qwen's published TextVQA number uses none)"
+    generation: "max_new_tokens 128 (GQA / TextVQA) / 16 (ChartQA) as D30-7; the shipped repetition penalty kept (R7-20 official path)"
+    primary_family: "S1 − S3, S1 − S2 (owner I1), S1 − uniform grid × 3 benchmarks, Holm per point"
+
+provenance:
+  code: "scripts/r7_d1_40_{masks,host,teacher,analyze,cache,selectors,train,plan}.py, tests/test_r7_d1_40.py, slurm/r7_d1_40_{gpu,sel,cpu}.sbatch, slurm/r7_d1_40_submit.sh; no frozen D1 file modified (imports only)"
+  cpu_tests: "tests/test_r7_d1_40.py: 28 tests — main env (torch 2.9, no transformers) 24 run + 4 skipped (the tiny-Qwen checks need transformers), job 1035678; vl_baselines env 28 / 28, job 1035679; code sha256 f82ca6fa4d24898c (scripts, tests, wrappers, as printed by the jobs); YAML of this draft parsed (job 1035677)"
+  timing_procedure_block_sha256: "5708996236b528b9f3940bf7f913f9e2659dd62c5aaa4fa73b1f99f05cb85454 (unchanged since 09:57:03Z, before any timing job)"
+  smokes: "L40S teacher 1035606, 1035635 (probe, throughput, memory, cache smoke) and 1035680 (final code f82ca6fa…, identical sentinel values; rule matrix: only S1=same_gpu with S4=rate:0.9 passes on L40S); L40S selectors 1035633 (greedy grouping, superseded), 1035653 (final); L40S indicative timing 1035634; image check 1035628; queued: 1035607 (RTX teacher), 1035629 (RTX selectors), 1035608 (reference timing); cancelled while queued: 1035610, 1035630 (H100 smokes: nodes held by other users' 1-day jobs)"
+  data_change: "coordinator 2026-10-12: image archives deleted at 09:26 UTC; R7-40 reads extracted folders only (above)"
