@@ -21,7 +21,7 @@
 | **D1** | SP-DocVQA 注册 | 暂不需要 | 缺口已记录 |
 | **D2** | Ego4D NLQ 许可 | 暂不需要 | 未下载 |
 | **D3** | Tier C 大数据集 | 继续推迟 | 未下载 |
-| **D4** | 删除冗余文件 | 删除建议清单，保留 11 GB 易失档案 | 不删（删除由你执行） |
+| **D4** | 删除冗余文件（约 77 GB，清单见下） | 删除 A–D，保留 11 GB 易失档案和 REG-P3 用的目录 | 不删（删除由你执行） |
 | **D5** | 发表前的数据许可确认 | 见下文逐项 | 内部研究使用 |
 | **U1** | 从未授权的 R4-VL2 增补 1（softmax(ν)） | 放弃 | 不运行 |
 
@@ -108,14 +108,60 @@
 ### D3 — Tier C（DataComp-small 约 450 GB、CC3M 130–400 GB、HowTo100M、原始视频）
 - 放不进 1.2 TB 的空间下限（当前剩余约 1.5 TB；这个文件系统与其他用户共享）。**建议**：继续推迟。
 
-### D4 — 删除冗余文件（删除由你执行）
-- **重新可下载的已解压档案，72.4 GB**：GQA images.zip 21.8 GB、CLEVR 19.0 GB、COCO zip 21.5 GB、TextVQA images 7.1 GB、CUB 1.15 GB，以及若干小文件。清单和校验见 `reports/R7/R7_DATA_FINAL_REPORT.md` §3。
-- **应保留，11.0 GB**：托管在 Google Drive 的档案（链接已经失效过）和 QVHighlights 镜像压缩包。
-- **其他**：
-  - 我的 AV-MNIST 重复解压副本 1.5 GB；
-  - R4-02 问题 5：74 个未跟踪的 `*.partial.json` 和 `outputs/P128_*` 的部分运行；
-  - 冒烟测试和检查目录，例如 `outputs/R6_REG_P3_check`（288 MB），以及各 `*_smoke` 目录。
-- **建议**：删除以上清单，保留那 11 GB。按你的惯例用 `scripts/cleanup_outputs.sh` 先干跑，再加 `DO_DELETE=1`。
+### D4 — 删除冗余文件（删除由你执行；合计约 77 GB）
+
+**A. 已解压、可从官方重新下载的档案，72.4 GB**
+- 位置：`/projects/EEG-foundation-model/yinghao/data/` 下。
+- 校验：19 个档案逐一核对过，其中每个文件都已在磁盘上，大小与档案内一致；sha256 仍记在 manifest 里。
+
+| 档案 | GB |
+|---|---:|
+| `gqa/zips/images.zip` | 21.82 |
+| `clevr_v1/zips/CLEVR_v1.0.zip` | 19.02 |
+| `coco/zips/train2014.zip` | 13.51 |
+| `textvqa/zips/train_val_images.zip` | 7.07 |
+| `coco/zips/val2014.zip` | 6.65 |
+| `gqa/zips/questions1.2.zip` | 1.50 |
+| `cub_200_2011/zips/CUB_200_2011.tgz` | 1.15 |
+| `coco/zips/val2017.zip` | 0.82 |
+| `coco/zips/annotations_trainval2014.zip`、`annotations_trainval2017.zip` | 0.50 |
+| `zurich_summer_5914759/zips/Zurich_dataset_v1.0.zip` | 0.14 |
+| `snli_ve/zips/snli_1.0.zip` | 0.09 |
+| `pcmepp/zips/coco_annotations.tar.gz` | 0.05 |
+| `gqa/zips/sceneGraphs.zip` | 0.04 |
+| `coco/zips/caption_datasets.zip` | 0.04 |
+
+注意：删掉 GQA questions、CLEVR、SNLI、PCME++ 的档案后，它们的测试文件只剩 `closed/` 里那一份（已计算哈希，从未读取）。
+
+**B. AV-MNIST 重复解压副本，1.50 GB**
+- 路径：`av_mnist_multibench/avmnist/`。
+- GAIN 实验读取的是另一份只含训练集的副本 `extracted/avmnist/`。
+
+**C. 已完成 SSL 单元的中间文件（R4-02 问题 5），约 1.3 GB**
+- 236 个**未纳入 git** 的 `*.partial.json`：在 `ssl_pilot/reports/` 下（P116、P118、P142–P144 等，10-02 至 10-07），约 55 MB，各单元的最终 JSON 都在。
+  - 另有 16 个已提交进 git 的保留不动。R4-02 账本当时写的是 74 个，现在实际数是 236。
+- `outputs/P128_*` 四个 SimCLR 部分运行，共 1.23 GB。这组网格已于 10-04 被你撤回。
+
+**D. 已完成单元的冒烟 / 检查目录，约 1.6 GB**
+- 都在 `/home/infres/yinwang/CS_QMI/outputs/` 下；对应结果都已写进报告。
+
+| 目录 | 大小 |
+|---|---:|
+| `R7_D1/d1_30_smoke` | 579 MB |
+| `R7_D1/train_smoke` | 230 MB |
+| `R7_D1/cache_smoke` | 216 MB |
+| `R6_GAIN/smoke` | 182 MB |
+| `R6_REG_cpu_smoke`、`R6_REG_cpu_smoke2` | 各 59 MB |
+| `R6_REG_P2_comir_check`、`R6_REG_P2_comir_check_reg`、`R6_REG_P2_cpu_smoke` | 约 16 MB |
+| `R6_GAIN/superseded_image_roles` | 8.8 MB |
+| `R7_D1/d1_30_fix_staging`、`_E2`、`_E3`（补丁已应用并提交） | 各约 4 MB |
+| `R7_D1/data_provisional`（已被冻结的 manifest 取代） | 2.2 MB |
+
+**暂不删除**
+- `R6_REG/smoke`（50 MB）、`R6_REG_P3_check`（289 MB）、`R6_REG_P3_cpu_smoke`、`R6_REG_P3_gpu_smoke`（各 63 MB）：REG-P3 还在开发，它的测试和冒烟会用到。等 REG-P3 结束再删。
+- 应保留的 11.0 GB：托管在 Google Drive 的 `avmnist.tar.gz`、`cvpr2016_cub.tar.gz`、`AMBER_images.zip`（这些 Drive 链接已经失效过），以及 QVHighlights 镜像压缩包（在通过验证前保留）。
+
+**建议**：删除 A–D。`outputs/` 下的部分按你的惯例用 `scripts/cleanup_outputs.sh`（先干跑，再加 `DO_DELETE=1`）；`/projects` 下的档案目前没有脚本覆盖，需要的话我可以写一个默认干跑的删除脚本给你执行。
 
 ### D5 — 发表前的数据许可
 | 数据 | 情况 | 建议 |
