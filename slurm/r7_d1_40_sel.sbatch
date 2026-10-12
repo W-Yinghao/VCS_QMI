@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
-#SBATCH --time=12:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # R7-40b selector units: torch only, main env (torch 2.9 cu128).  RTX6000PRO / H100 only (D1-20 execution note E5: one hardware class; real-data
 # selector batches exceeded an L40S).  Resumable per unit (state saved at every CAL evaluation); the unit's marker <tag>.done.json is written

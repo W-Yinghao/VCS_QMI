@@ -1,0 +1,21 @@
+# R7-40b staged freeze (Qwen2.5-VL selectors S1 VCS / S2 logistic / S3 direct with the frozen D1-20 recipe).  Coordinator, 2026-10-12, after
+# R7-40a completed (completeness: CAL 7,989 + FIT 39,960, manifest sha256 unchanged) and its CAL readout (commit 2372208; DEV sealed), before any
+# R7-40b unit and before any D1-30 result.  Draft: reports/R7/R7_40_PROTOCOL_DRAFT_20261012.yaml (open_decisions.before_the_40b_freeze answered here).
+status: frozen
+scope: "R7-40b only: feature cache + 6 seed-0 learning-rate-search units + the frozen choice + 6 stage-2 units (S1 / S2 / S3; S2 per owner decision 2026-10-12)"
+decisions:
+  OPEN-R740-3_lr_search: "re-run the symmetric 2-rate seed-0 search {1e-4, 3e-4} on Qwen with the frozen D1-20 choice rule (implemented); the LLaVA rates are not reused"
+  D40b-2_micro_batching: >
+    accepted as an implementation of the frozen recipe: each 64-question step is split into length-sorted micro-batches by an exact dynamic
+    programme under the frozen memory cap, every micro-batch normalised by the step's global weights, so loss and gradient equal the unsplit step
+    (tested for S1–S3); only dropout draws differ (disclosed).
+  D40b-3_selector_hardware: >
+    SEL_PARTITION=L40S and CACHE_PARTITION=L40S — one GPU class for every R7-40 training stage, the class of the 40a teacher; worst case at the
+    memory cap 25.6 GB measured on L40S (no out-of-memory); about 1.9 GPU-h per unit.  (E5's RTX6000PRO,H100 restriction was a LLaVA memory
+    limit and does not bind on Qwen.)
+  D40b-4_position_tables: "64 × 64 row / column tables; a larger grid stops the unit; the cache job records the FIT / CAL maxima (CAL readout: at most 1,247 merged tokens per image)"
+  D40b-5_dynamic_rule: "nominal fractions in the dynamic rule (k = round(f · N); the mean kept fraction is computed with the nominal f)"
+  yes_no_mass: "as 40a: the primary keeps every item; the secondary without full-pass mass < 0.9 (CAL 367 / 7,989, FIT 1,768 / 39,960; almost all logical 'either X or Y' items) is reported"
+  time_limits: "unit sbatch limits lowered from 12 h to 6 h (about 3 × the measured unit cost) so units can backfill; drivers resubmit a unit that hits its limit"
+launch: "SEL_PARTITION=L40S CACHE_PARTITION=L40S nohup setsid bash slurm/r7_d1_40_submit.sh 40b  (CAP 27; log slurm_logs/r7_d1_40_submit.log)"
+budget: "cache about 0.8 GPU-h + 12 units × about 1.9 GPU-h on L40S ≈ 23 GPU-h"

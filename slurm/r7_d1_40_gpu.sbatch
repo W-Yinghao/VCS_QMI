@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=96G
-#SBATCH --time=12:00:00
+#SBATCH --time=06:00:00
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # R7-40 Qwen2.5-VL-7B-Instruct units in the vl_baselines env (torch 2.9 cu128 -> any of RTX6000PRO / H100 / L40S).  One host process per job
 # (weights staged to node-local disk once), per-chunk appends to single-writer shard files, skip-if-done.  Python runs with -I (downloaded data
