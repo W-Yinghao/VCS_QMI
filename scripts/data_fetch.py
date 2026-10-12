@@ -58,7 +58,9 @@ ITEMS = [
      "files": [http("https://zenodo.org/api/records/4550300/files/test.zip/content", "test.zip", md5="caa9ae81837a41664ed7b61df81e96fa")]},
     {"id": "av_mnist", "group": "r6", "kind": "http", "dest": DATA / "av_mnist_multibench", "extract": True, "auth": NC_AUTH,
      "licence": "MNIST CC BY-SA 3.0; FSDD CC BY-SA 4.0; ESC-50 noise CC BY-NC 3.0 (non-commercial); MultiBench code MIT",
-     "files": [http(gdrive("1KvKynJJca5tDtI5Mmp6CoRh9pQywH8Xp"), "avmnist.tar.gz")]},
+     "files": [http(gdrive("1KvKynJJca5tDtI5Mmp6CoRh9pQywH8Xp"), "avmnist.tar.gz")], "close_after_extract": ["test_*"],
+     "note": "official MultiBench test arrays (image/audio test_data.npy, test_labels.npy, incl. the avmnist_temp copy) closed 2026-10-12; they had been left open by "
+             "the first extraction (no close pattern); the data steward never read them and no repo script references them (the r6 GAIN pilot reads its own train-only extraction in extracted/avmnist)"},
     {"id": "crema_d", "group": "r6", "kind": "lfs_media", "dest": DATA / "crema_d", "auth": NC_AUTH, "dirs": ["AudioWAV", "VideoFlash"],
      "repo": "https://github.com/CheyneyComputerScience/CREMA-D.git", "media": "https://media.githubusercontent.com/media/CheyneyComputerScience/CREMA-D/master/",
      "licence": "ODbL 1.0 (database) + DbCL 1.0 (contents); authors request a registration form (owner-directed download)",
@@ -117,7 +119,7 @@ ITEMS = [
      "licence": "BSD-3-Clause (repo)", "note": EVAL_ONLY + "; the README's Drive zip (1eeO1i0G9BSZTE1yd5XeFwmrbe1hwyf_0) returns 404 on 2026-10-11, images come from hallusionbench_images"},
     {"id": "hallusionbench_images", "group": "tierA", "kind": "hf", "repo": "rayguan/HallusionBench", "type": "dataset", "dest": DATA / "hallusionbench" / "hf",
      "licence": "BSD-3-Clause (repo)", "provenance": "first author's upload (Tianrui Guan, HF account 'rayguan', 2023-12-10); the README's Drive zip returns 404 "
-     "(2026-10-11); source accepted by the coordinator 2026-10-12; its HallusionBench.json is byte-identical to the GitHub repo's copy "
+     "(2026-10-11); source accepted by the coordinator 2026-10-12; its HallusionBench.json is byte-identical to the GitHub repo's copy at commit 744007c232c292942c7f80eb61edb2465482da31 "
      "(sha256 ca6e0fb677dd56e5fb0e2700d06c58d01f8a6ae66e0f1773b2ac48c0a095d051)", "note": EVAL_ONLY + "; same layout as hallusion_bench.zip"},
     {"id": "amber", "group": "tierA", "kind": "git+http", "repo": "https://github.com/junyangwang0410/AMBER.git", "dest": DATA / "amber", "extract": True,
      "files": [http(gdrive("1MaCHgtupcZUjf007anNl4_MV0o4DjXvl"), "AMBER_images.zip")], "licence": "Apache-2.0 (repo)", "note": EVAL_ONLY},
@@ -170,6 +172,9 @@ ITEMS = [
      "validation_required": "before any D6 use, reproduce Moment-DETR's published QVHighlights val numbers with these features (same code and config); if they do not match "
                             "within the paper's rounding, the features are not used for any claim.",
      "provenance": "HF mirror dpaul06/QVHighlights_preprocessed, approved by the coordinator 2026-10-12",
+     "checks": "2026-10-12 structure check (file names only, no array loaded): features/clip_features and slowfast_features 12,562 .npz each, clip_text_features "
+               "10,310 + args.json, clip_sub_features 329,746; every train (7,218 queries / 7,100 videos) and val (1,550 / 1,519) annotation has its video and "
+               "query features; test annotations closed, not checked",
      "note": "mirror of the official Moment-DETR SlowFast + CLIP feature tarball: the official Drive link (1Hiln02F1NEpoW8-iPZurRyi-47-W2_B9) returns 404 on 2026-10-11 "
              "and no official checksum exists, so identity with the official file is unverifiable; sha256 checked against the mirror's LFS hash; load the .npz with allow_pickle=False"},
 ]
@@ -382,7 +387,7 @@ def close_item(item, rec) -> None:
 
 def run_item(item, manifest) -> None:
     rec = manifest["items"].setdefault(item["id"], {}); TOUCHED.add(item["id"])
-    rec.update({k: item[k] for k in ("flag", "validation_required", "provenance") if k in item})
+    rec.update({k: item[k] for k in ("flag", "validation_required", "provenance", "checks") if k in item})
     if "error" in rec:  # a retried failure is kept as history, never left as a stale error next to a later success
         rec.setdefault("history", []).append({"status": "failed", "error": rec.pop("error"), "finished": rec.get("finished"),
                                               "resolution": "retried; see the current status" if rec.get("status") != "done" else "retried and verified"})
