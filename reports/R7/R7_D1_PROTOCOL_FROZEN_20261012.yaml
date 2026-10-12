@@ -380,3 +380,10 @@ d1_30_staged_freeze: >
   (recorded deviation), forced 8 decode steps for timing; timing pools 512 / 256 / 64 with bootstrap CIs of the medians; dynamic rows timed in
   two stages as the implementation of "bucketed by kept-token count").  Smoke 1035097 (H100 NVL) and timing re-check 1035183 (L40S) pass;
   the frozen D1-10 / D1-20 files are unchanged.  Driver slurm/r7_d1_30_submit.sh (waits for lr_choice.json and the 15 D1-20 units it uses).
+d1_30_execution_note_early_rows: >
+  2026-10-12 (coordinator), before D1-20 completed: to use idle GPUs, the D1-30 sets build and the rows that do not depend on the selectors
+  (full, full_ocr, grid / random / qsim at the four budgets; and the 7 SparseVLM units) were run with the frozen code via
+  slurm/r7_d1_30_early.sh.  The non-selector quality rows used shard 0/1 (a denominator the driver never uses), so the driver still runs every
+  selector row and skips the non-selector items per (config, qid); the SparseVLM units are the driver's own lines (chained per bench so one
+  writer per prediction file), which the driver skips by marker.  Timing and DEV risk run in the driver as frozen.  No output is scored or
+  opened before the frozen readout; nothing in the analysis changes.
