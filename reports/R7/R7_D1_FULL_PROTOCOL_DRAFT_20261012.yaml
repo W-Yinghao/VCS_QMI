@@ -1,0 +1,331 @@
+# R7-30 D1-FULL — DRAFT for the coordinator's pre-registration.  NOT frozen.  It must be frozen BEFORE any D1-30 result is read.  The freeze
+# adds the key 'd1_full_staged_freeze' (with a pointer to the frozen copy of this file) to reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml.  Until
+# then the driver, the data stage (freeze / data), the DEV-risk wrapper and the readout refuse to run.
+# Nothing below has run except the steps under 'provenance': CPU tests, the D1-FULL manifest build (not frozen), the pre-freeze verification and
+# code-check smokes.  No D1-FULL teacher bundle, cache, selector unit or evaluation unit has run.  No D1-30 result and no D1 DEV teacher record was read.
+title: "R7-30 D1-FULL: the pre-registered D1 study (D1-10 teacher, D1-20 selectors, D1-30 selector rows) repeated with every eligible FIT image"
+status: draft
+date: 2026-10-12
+directive: 'owner 2026-10-12: "还是多做全量实验，要不结论不保真" — run full-scale experiments, otherwise the conclusions are not faithful'
+parent: >
+  reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (D1-10; staged freezes D1-20 and D1-30; execution notes E1-E5; coordinator notes
+  rank_criterion and yes_no_mass); reports/R7/R7_D1_20_STAGED_FREEZE_20261012.yaml; reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml
+freeze_key_expected: >
+  d1_full_staged_freeze — checked verbatim by slurm/r7_d1full_submit.sh (gate 0), scripts/r7_d1full_data.py freeze / data,
+  slurm/r7_d1full_gpu.sbatch devrisk and scripts/r7_d1full_score.py
+
+purpose: >
+  D1-20 trains every selector on FIT = 10,000 images (39,960 binary questions) of the 74,256 images eligible under the frozen D1 rule.
+  D1-FULL asks whether the D1 conclusions — S1 VCS against S2 logistic and S3 direct risk at matched measured latency, the A1 / A2 ablations,
+  the dynamic budgets and the DEV risk calibration — still hold when the identical pipeline is trained on every eligible FIT image.  Only the
+  size of FIT changes.  Host, teacher, masks, CAL, DEV, training recipe, selection rule, evaluation sets, evaluators, latency regime and
+  statistics are the frozen ones.
+
+scope_rules:
+  - "frozen code is imported read-only; D1-FULL lives in new files (scripts/r7_d1full_*.py, slurm/r7_d1full_*, tests/test_r7_d1full.py); no frozen file is modified"
+  - "CAL and DEV are exactly the frozen ones (row identity and sha256 of their image / question id lists, verified)"
+  - "the D1 DEV teacher records stay sealed: D1-FULL plans and computes no DEV shard; the only DEV read is the D1-30 DEV-risk secondary for the D1-FULL units (after the D1-30 freeze, as D1-30's own)"
+  - "nothing is selected on DEV / TextVQA / ChartQA; checkpoint, learning-rate and tau selection on CAL only (frozen D1-20 rules)"
+  - "frozen before any D1-30 result; no official test split (the later official-test phase has its own protocol; the D1-FULL DEV / val outputs are its full-scale reference, coordinator 2026-10-12)"
+
+correction_to_the_request_text: >
+  The request quoted 66,852 eligible GQA train-balanced images and 331,898 binary questions.  Those are the provisional numbers of job 1034911,
+  before OPEN-3.  OPEN-3 found that LLaVA-1.5's mix665k contains all 331,898 train-balanced binary pairs.  The frozen manifest (execution
+  addendum, builder job 1034930, frozen job 1034940) therefore draws questions from GQA train_all minus every LLaVA-1.5-seen pair.  Under that
+  frozen eligibility 74,256 images qualify.  D1-FULL uses the frozen eligibility.
+
+# ------------------------------------------------------------------------------------------------------------------------------ data
+data:
+  rule: >
+    The frozen builder scripts/r7_d1_data.build_manifest is called unchanged with n_fit = eligible − n_cal − n_dev.  Sources: the ten
+    train_all_questions_<n>.json files and llava_v1_5_mix665k.json, re-hashed against the frozen meta before the build.  The builder applies
+    the frozen rules: every LLaVA-seen (image, normalised question) pair excluded; at least one binary question per image; images in
+    sha256('r7-30/d1-role/<id>') order; 5:1:1 interleave; yes / no alternation per role; at most 4 binary questions per image in
+    sha256('r7-30/d1-q/<qid>') order; band trim to [0.48, 0.52].  The first 14,000 images of the sha256 order receive exactly the frozen
+    roles and questions: the interleave and the per-role running yes / no counts are the same.  Every later image goes to FIT.  The frozen
+    manifest is therefore a byte prefix of the D1-FULL manifest.
+  build: >
+    Job 1035862 (CPU, python -I, the SparseVLM env as in the frozen build, 3,828 s; the frozen builder's per-role running yes / no count is
+    quadratic in role size).  Output: outputs/R7_D1_FULL/data/d1_manifest.jsonl (296,762 rows, 68,604,581 B), sha256
+    c4404f7be19640385072c39e27ce026589acbfcb1187aedffa1bd58c638fb21e.  Not frozen: the driver's data stage freezes it after the protocol key.
+  counts:
+    eligible_images: "74,256 (frozen meta: 74,256): 14,305,356 train_all questions read, 11,077,125 binary, 331,902 LLaVA-seen binary rows excluded"
+    FIT_FULL: "70,256 images, 280,787 questions, 139,007 yes, pi_yes 0.495062"
+    of_which_frozen_FIT: "10,000 images, 39,960 questions, 19,785 yes (pi_yes 0.495120): rows identical to the frozen manifest"
+    additional: "60,256 images, 240,827 questions, 119,222 yes, pi_yes 0.495052; 3.997 questions per image"
+    CAL: "2,000 images, 7,989 questions, 3,937 yes (pi_yes 0.492803): the frozen CAL"
+    DEV: "2,000 images, 7,986 questions, 3,940 yes (pi_yes 0.493363): the frozen DEV (not read beyond the manifest rows, which are the frozen ones)"
+    band_trim: "0 in every role (frozen build: 0)"
+    questions_per_image: "1-4"
+    share_of_eligible: "FIT_FULL is 94.6 % of the eligible images (D1-20 FIT: 13.5 %)"
+  verification: >
+    Precheck job 1035984 (scripts/r7_d1full_data.py precheck; d1full_verify.json): ok.  The frozen manifest (sha256 32c72126…) is a byte prefix
+    of the D1-FULL manifest.  CAL rows are identical: sha256 of the ordered image ids f44db2fd4378a755…, of the question ids 41a2746d67e9eadc…,
+    equal in both manifests.  DEV rows are identical: images b70c68a20b128e2e…, question ids ab850544844bd8b7….  The frozen FIT rows are the
+    first 39,960 FIT rows in role order and the frozen FIT images the first 10,000 (images sha256 190e11efc3c0df7b…).  All 74,256 eligible
+    images are assigned; no image has two roles; no duplicate qid; every answer is yes / no with C consistent.  The question-file and mix665k
+    sha256 equal the frozen meta.
+  class_weights: >
+    The frozen rule applied to the training set: w_yes = 0.5 / pi_yes and w_no = 0.5 / pi_no with pi_yes from FIT_FULL.  pi_yes 0.495062 gives
+    w_yes 1.0099743 and w_no 0.9902208.  The frozen D1-20 values are 1.0098560 / 0.9903346, so the change is in the 4th decimal.  The frozen
+    trainer reads the weights from the D1-FULL manifest meta (OPEN DF-3).
+  images: >
+    Extracted folder /projects/EEG-foundation-model/yinghao/data/gqa/images only; the zips were deleted on 2026-10-12.  Every FIT_FULL / CAL / DEV
+    image file is present: 148,854 jpg files in the folder, 0 missing for FIT_FULL, CAL and DEV.  D1-FULL readers use a strict source: a
+    missing file raises MissingImage, a BaseException.  The frozen bundle loop catches only Exception (its reason-coded skip), so the error
+    cannot be swallowed and nothing falls back to a zip.  The bundle wrapper also checks that every image exists before the host loads.
+  exposure_disclosure: "as frozen: every GQA image is a Visual Genome image seen by LLaVA-1.5; no selected question is a LLaVA-seen pair; the frozen freeze step records the FIT_FULL image exposure from mix665k"
+
+# ------------------------------------------------------------------------------------------------------------------------------ teacher
+teacher:
+  host_and_code: >
+    LLaVA-1.5-7B through the frozen D1-10 code, scripts/r7_d1_teacher.cmd_bundle and run_items, unchanged.  Per question: the full pass, 3
+    mechanisms × 4 nested budgets, and the text-only pass; first-token yes / no probabilities.  Frozen settings: 16 images per chunk; prefill
+    batches of at most 16,384 tokens or 64 sequences.  These are the r7_d1_teacher.py defaults that every D1-10 bundle used (checked by the
+    reuse check).  Mask seeds come from sha256 of (mechanism, qid), as frozen.  Frozen launch gates: a frozen D1-FULL manifest (sha256) and a
+    passing probe report.  The probe is the frozen probe rerun in the D1-FULL smoke (outputs/R7_D1_FULL/smoke/probe/probe_report.json).
+  scope: "the FIT_FULL shards not covered by D1-10: FIT-040 … FIT-281, 242 shards, 60,256 images, 240,827 questions; CAL and DEV are never computed"
+  units: >
+    Shards are the frozen 250-image shards (names continue FIT-040 …).  Bundles hold 8 shards, about 8,000 questions: 31 bundle jobs (30 × 8
+    shards + 1 × 2; 36 if FIT-000..039 must be recomputed) in the LLaVA env, H100,L40S, node51 / node52 / node60 excluded.  Single writer per
+    shard file (E1).  The marker bundle_<id>.ok.json is written only when every shard of the bundle is complete with no skipped image.
+    Per-question resume as frozen.
+  reuse_vs_recompute:
+    rule: >
+      FIT-000..039 (the 10,000 frozen FIT images, 39,960 records) are reused if and only if two conditions hold.  (1) Static check: identical
+      shard image lists and manifest rows; every record qid equals the manifest; record fields (image, C, role, structural, semantic) equal
+      the manifest; random and grid orderings and their log-probabilities, re-derived from the qid with the current mask code, equal the
+      recorded digests and values; the recorded qsim ordering is a permutation of 576 with its recorded digest; each record file's sha256
+      equals its done record; no duplicates or skipped images; the teacher code (r7_d1_teacher.py, r7_d1_masks.py, r7_vl_common.py) is clean
+      against HEAD and last changed before the D1-10 run; the env FREEZE.txt and the model files predate the run; the teacher settings equal
+      those of D1-10.  (2) GPU replay: the first chunk (16 images) of frozen FIT shards is recomputed with the frozen code and settings.  On
+      each shard made on the smoke's own GPU type, every qsim ordering must be identical and max |ΔP| <= 1e-3; bit identity is reported.
+      Otherwise FIT-000..039 are recomputed by D1-FULL bundles (+5 bundles).  CAL-000..007 are always the frozen D1-10 records: they are the
+      pre-registered CAL readout and the D1-20 selection set.  A failed CAL static check stops the driver (coordinator decision).
+    reused_files: "verified copies (sha256 re-checked; an existing different file is never overwritten) of FIT-000..039 and CAL-000..007 (.jsonl + .done.json) in outputs/R7_D1_FULL/teacher"
+    result_static: >
+      Pass (precheck job 1035984; teacher/reuse_check_dryrun.json).  All 40 FIT and 8 CAL shards pass: 47,949 records.  Each record's random /
+      grid digests and log-probabilities are re-derived and its qsim permutation checked.  Record sha256 equal the done records; 0
+      duplicates; 0 skipped.  D1-10 GPUs: 44 shards on L40S, 4 on H100 NVL (FIT-020..023).  The teacher code (r7_d1_teacher.py blob b95e9aca,
+      r7_d1_masks.py 62e8bcc7, r7_vl_common.py 954b3b23) is clean at HEAD; it last changed in 2424556 / 23e840b (2026-10-12T00:17Z / 2026-10-11T23:44Z),
+      before the first D1-10 shard (2026-10-12T01:34Z).  The env FREEZE.txt (sha256 567a9767…) and all 21 model files predate the run.  The 14
+      D1-10 feed lines pass no chunk / batch option, and the teacher defaults (16 / 16,384 / 64) equal the D1-FULL settings.
+    result_replay: >
+      Pass (smoke 1035985, L40S node57; smoke/reuse_replay.json).  The first chunks of FIT-000 and FIT-001, made on L40S, recompute
+      bit-identically: 64 / 64 records each, max |ΔP| 0, qsim orders identical.  FIT-020 was made on H100 NVL; cross-GPU, reported only: max
+      |ΔP| 0.0061, max |ΔT| 0.0121, and the qsim orders differ for all 64 items.  Near-tied similarity scores reorder across GPU types.  This is
+      inherent to the D1-10 records, which mixed L40S and H100 NVL; each record stores the order the teacher actually used, and the trainer
+      uses that order.
+    decision_now: >
+      Reuse FIT-000..039: the static check and the replay both pass.  D1-FULL computes 242 shards / 240,827 questions in 31 bundles.  The
+      driver's data stage reruns the static check with the replay file and copies the verified files.
+
+# ------------------------------------------------------------------------------------------------------------------------------ cache
+feature_cache:
+  format: >
+    The frozen D1-20 format, unchanged: pca.pt {mean, basis, explained_variance, tokens, fit_images, tokens_per_image, manifest_sha256};
+    feats_{FIT,CAL}.npy fp16 [n_img, 576, 512] in role order; images_{FIT,CAL}.json; question_ids.jsonl (FIT + CAL rows in manifest order);
+    embed_table.pt.  DEV is not cached, as in the frozen D1-20 design: D1-30 encodes its evaluation images inside the runner.
+  encoding: >
+    The frozen encode_role arithmetic ((f − mean) @ basis → fp16) per chunk of 16 images in role order, streamed to disk.  The frozen
+    in-memory path cannot hold FIT_FULL (about 41 GB).  The streamed file is byte-identical to np.save of the frozen result (unit test) and
+    array-identical to the frozen encode_role output on the GPU (smoke).  One LLaVA-env job (H100,L40S).  Steps are resumable; the marker
+    cache_d1_full.json is written last.
+  pca_basis_OPEN_DF_1:
+    fitfull_default: "the frozen fit_pca (64 seeded tokens per image, streaming fp64 covariance, eigh, 512 components) on ALL FIT_FULL images — the frozen rule 'PCA fitted on FIT only' applied to FIT_FULL"
+    frozen_option: "the frozen D1-20 basis (fitted on the 10,000 frozen FIT images), copied byte for byte (PCA_BASIS=frozen); isolates the training-set effect from the feature-basis effect"
+    note: "the evaluation always uses the D1-FULL cache's pca.pt (the frozen D1-30 runner's --pca option), so training and evaluation inputs stay consistent under either choice"
+
+# ------------------------------------------------------------------------------------------------------------------------------ selectors
+selectors:
+  recipe: >
+    The frozen D1-20 trainer, scripts/r7_d1_train.py train, unchanged.  Phase A: 20,000 steps of 64 questions × 4 of their 12 D1-10 masks;
+    AdamW, weight decay 0.01, 1,000-step linear warm-up, then cosine to 0.  Every 1,000 steps: CAL Spearman(r, h) over all CAL (question, mask)
+    pairs; the best state is kept; the native-criterion secondary is logged.  Phase B: 5,000 gate steps with the estimator frozen.  Dynamic
+    taus on CAL for mean kept fractions 0.25 / 0.5 / 0.75.  Objectives: S1 vcs, S2 logistic, S3 direct.  Ablations: A1 = S1 without question
+    tokens; A2 = S3 regressing d.
+  search_and_units: >
+    Frozen OPEN-6, rerun at full scale: seed 0 × lr {1e-4, 3e-4} × 3 objectives (6 units).  Then the frozen choice r7_d1_plan20.choose:
+    higher selected CAL Spearman; a tie within 1e-4 goes to 3e-4.  The D1-FULL choice may differ from D1-20's.  Then 12 units: seeds 1-2 × 3
+    objectives at the chosen rates, A1 × seeds 0-2 at S1's rate, A2 × seeds 0-2 at S3's rate.  Total 18 training units + the cache job, as in D1-20.
+  data_scale_consequence_disclosed: >
+    The recipe fixes the steps, not the epochs.  D1-20 sees each FIT question about 32 times (20,000 × 64 / 39,960).  D1-FULL sees it about
+    4.6 times (20,000 × 64 / 280,787).  The scale contrast therefore measures more distinct training tuples at an equal optimisation budget
+    (OPEN DF-4).
+  hardware: >
+    RTX6000PRO,H100 only (E5).  The frozen trainer keeps all FIT_FULL features on the GPU: 38.6 GiB fp16, plus 1.8 GiB of masks.  An L40S
+    (44.3 GiB) cannot hold a unit: the static data alone is 41.9 GiB.  So E5 is kept.
+  memory_measured: >
+    Memory smoke 1035986 (RTX PRO 6000, 95.1 GiB).  Setup: FIT_FULL-size synthetic tensors (70,256 images, 281,000 questions), every
+    question at a worst-case length of 40 tokens (FIT_FULL + CAL maximum 37, smoke 1035985), the frozen SEL.train with full CAL evaluations, phase B
+    and dynamic tau.  Static 41.9 GiB; peak allocated 73.4 GiB; peak reserved by the caching allocator 89.6 GiB.  That fits RTX PRO 6000.
+    On H100 NVL (93.1 GiB) it leaves 3.4 GiB on the reserved peak (19.7 GiB on the allocated peak).  Memory smoke 1036018 (RTX PRO 6000) adds
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True, which changes allocator layout only, not numerics.  It gives the same peak allocated
+    (73.4 GiB) and a peak reserved of 77.5 GiB: 15.6 GiB headroom on H100 NVL.  Steady-state step time is unchanged (direct objective
+    0.313 vs 0.311 s; the first objective's 30-step figure includes warm-up).  slurm/r7_d1full_sel.sbatch sets it for every D1-FULL unit
+    (OPEN DF-11).
+  bookkeeping: >
+    The wrapper scripts/r7_d1full_train.py runs the frozen trainer as a subprocess.  The trainer resumes bit-exactly from <tag>.resume.pt.
+    A unit can stop after its checkpoint but before its final log write; a frozen rerun would then report it complete without taus.  The
+    wrapper finishes such a unit with the frozen dynamic_tau on CAL; the smoke recomputes identical taus.  Marker: <tag>.complete.json.
+
+# ------------------------------------------------------------------------------------------------------------------------------ evaluation
+evaluation:
+  rows: >
+    The D1-30 selector rows only, through the frozen D1-30 runner (scripts/r7_d1_30_run.py) with its configs mechanism
+    (--configs-file / --selectors-dir / --pca).  Rows: sel:<unit>:<k> for the 15 D1-FULL units × k ∈ {72, 144, 288, 432} (60) and
+    dyn:<unit>:<f> for the 9 S1-S3 units × f ∈ {0.25, 0.5, 0.75} (27): 87 configurations per benchmark.  The full / static / qsim /
+    SparseVLM / OCR-anchor rows do not depend on the selectors.  They are shared with D1-30 and not rerun.
+  sets: "the D1-30 sets, unchanged and shared (outputs/R7_D1/d1_30/sets: GQA DEV <= 4 questions per DEV image, TextVQA val minus the 127 R7-20 images, ChartQA val human + augmented); the driver waits for the D1-30 build"
+  output_format_coordinator_2026_10_12: >
+    The frozen D1-30 format in D1-FULL's own root, outputs/R7_D1_FULL/d1_30, which mirrors outputs/R7_D1/d1_30.  Layout: configs/;
+    pred/<bench>/<cfg>@s<i>of<n>.jsonl rows {qid, image_id, pred, kept}, written by single-writer shard files (E1), with
+    done_shard<i>of<n>.json markers; timing/<bench>/timing_<bench>.json; devrisk/d1_30_devrisk.json.  These outputs are the full-scale
+    reference for the later official-test phase.
+  units: >
+    12 quality shards with the D1-30 sharding (GQA 6, TextVQA 4, ChartQA 2), H100,L40S.  The D1-FULL configs carry no OCR-anchor row, so the
+    E2 reason for H100-only TextVQA does not apply (OPEN DF-7).  Plus the D1-30 DEV-risk secondary for the 15 D1-FULL units (default on,
+    OPEN DF-6).  It is submitted only once D1-30's own DEV-risk output exists, an existence check, so that D1-30 reads the sealed D1-10 DEV
+    records first, as its freeze states.
+  timing_coordinator_2026_10_12: >
+    The D1-FULL dynamic rows need their own latency.  Their realised budget mix differs per unit, as in D1-30.  Three timing units, one per
+    benchmark, use the frozen D1-30 timing procedure (scripts/r7_d1_30_timing.py) on the reference node (--partition=H100
+    --nodelist=nodesumo01, node51 / node52 / node60 excluded).  They time the 27 D1-FULL dynamic rows only: frozen pools of 512 items at
+    B* = 4, 256 at B = 16 / 32 and 64 at B = 1; two-stage bucketed timing; bootstrap CIs of the medians.  The fixed-budget rows share D1-30's
+    latency, because the architecture is the same.  Every sel:<unit>:k row takes the representative unit's measured sel:k latency, as frozen in D1-30.
+  readout_tool: "scripts/r7_d1full_score.py (frozen D1-30 scorer functions; refuses without both freeze keys, on any coverage gap, and on any missing D1-FULL dynamic-row timing)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ endpoints
+endpoints:
+  primary_D1_FULL: >
+    As in D1-30: official quality at fixed measured latency in regime B* = 4 on nodesumo01.  Each family's (latency, quality) points
+    including full are interpolated linearly at L25 / L50 / L75, the uniform-grid 144 / 288 / 432-token latencies.  Contrasts per benchmark:
+    S1F − S2F and S1F − S3F, each the seed mean of per-seed interpolated quality differences (seed i vs seed i).  Holm across the 6
+    contrasts (2 × 3 benchmarks) at each latency point.
+  secondary_D1_FULL: >
+    Every frozen D1-30 secondary for the D1-FULL units, with the frozen scorer: S1F − SparseVLM (budget-matched at 144 / 288 / 432, and
+    latency-matched at B = 1); every family at L25 / L50 / L75 for B = 1 / 16 / 32; S1F − grid / random / qsim; A1F − S1F and A2F − S3F
+    at each fixed budget; A3 dynamic − fixed; fixed-budget tables with retention; latency to stay within 1.0 point of full; preserve /
+    correct; dynamic budget distribution; subsets; DEV risk calibration of the D1-FULL units.
+  scale_contrast_descriptive: >
+    full − 10k per objective (S1, S2, S3): seed means of the per-seed interpolated qualities at L25 / L50 / L75 (B* = 4), with a paired image
+    bootstrap CI and per-seed deltas.  Also at each fixed budget for S1-S3, A1 and A2.  Dynamic rows: quality and realised mean tokens per
+    scale, without a contrast because their budgets differ.  Descriptive only: no multiplicity adjustment and no claim.
+  k10_block: "the frozen D1-30 primary family (9 contrasts per point) recomputed by the same functions on the same bootstrap; it must equal the D1-30 readout (unit-tested)"
+statistics: >
+  The frozen D1-30 statistics.  Image (GQA, TextVQA) or chart (ChartQA) grouped paired bootstrap, 2,000 replicates, seed 0, one bootstrap per
+  benchmark shared by every statistic of both scales.  Two-sided bootstrap p with +1 correction; Holm per latency point; per-seed CIs and the
+  seed spread reported.  No equivalence or non-inferiority claim: no margin was set in advance.
+reporting_both_scales:
+  proposal: >
+    Both scales are reported side by side in one table per benchmark and latency point: S1 / S2 / S3 at 10k and at full scale, each scale's
+    primary contrasts with their own Holm families (D1-30: 9 per point; D1-FULL: 6 per point), and the descriptive scale contrast.  The D1-30
+    readout is not altered by D1-FULL.
+  open_main_claim_OPEN_DF_8: >
+    If the scales disagree, the coordinator / owner decides before any D1-30 result which one carries the main D1 claim.  Options: (a) D1-FULL
+    is the main claim and D1-30 the pre-registered 10k replicate (the owner's directive points here); (b) conjunction — a superiority claim
+    only where both scales agree in sign and pass Holm; (c) no hierarchy — both reported, the disagreement stated.  Recommendation: (b) for
+    claims, with the full-scale numbers as the headline estimates and any sign flip reported as a data-scale dependence.
+
+# ------------------------------------------------------------------------------------------------------------------------------ costs
+measured_costs:
+  teacher: "D1-10 done records (FIT / CAL shards only): L40S 0.456 s / question (43,949 q on 44 shards), H100 NVL 0.218 s / question (4,000 q on 4 shards); host staging + load about 6.5 min per job"
+  cache: "frozen D1-20 cache job 1035082 (L40S): 697 s for about 22,000 encodes = 31.7 ms per image including the NFS image read, plus 6.5 min load"
+  selectors: >
+    D1-20 unit logs: RTX PRO 6000 6,990-7,030 s per unit (one slow-node outlier 16,984 s), H100 NVL 8,057 s.  FIT_FULL memory smoke (RTX
+    PRO 6000, 40-token worst case): 0.31-0.35 s per phase-A step, 3.7e-4 s per CAL evaluation pair, 0.077-0.081 s per phase-B step, so
+    2.0-2.3 h per unit.  The per-step cost does not depend on FIT size: the batch is gathered on the GPU.  Setup at FIT_FULL scale: the
+    NFS read of the cache ran at 1.74 GB/s on the frozen 5.9 GB file, so the 41.4 GB feats_FIT take about 0.5-6 min; assemble() costs
+    0.17 ms per record, so 281k records take about 50 s; host RAM is about 46 GB (the 96 GB request is kept).
+  evaluation: "D1-30 smoke 1035097 (H100 NVL, batch 32): 23 ms / answer GQA, 29 TextVQA, 23 ChartQA prompt"
+  timing: >
+    Smoke 1035985 (L40S, two D1-FULL dynamic rows, small pools).  Per-item medians: B = 1 227-235 ms, B = 4 101-111, B = 16 69-82, B = 32
+    66-80.  Wall time per row: 5.6 s (16 items, B = 1), 12.8 s (64, B = 4), 20.0 s (64, B = 16), 32.2 s (64, B = 32).  Scaling linearly to
+    the frozen pools gives 333 s per row, i.e. 2.5 h per benchmark on L40S.  That is an upper bound: each small-pool row also pays the fixed
+    per-bucket warm-ups and image reads.  A per-item model gives about 190 s per row on L40S.  The reference H100 NVL is faster.  D1-30's
+    own timing jobs, 44-45 rows, take about 1-1.2 h per benchmark.
+budget:
+  teacher:
+    new_questions: "240,827 (FIT-040 … FIT-281; 242 shards in 31 bundles of 8)"
+    on_H100_NVL: "240,827 × 0.218 s = 52,500 s = 14.6 GPU-h + 31 staged loads × 6.5 min = 3.4 h → 18.0 GPU-h (a bundle ≈ 29 min + load)"
+    on_L40S: "240,827 × 0.456 s = 109,800 s = 30.5 GPU-h + 3.4 h of loads → 33.9 GPU-h (a bundle ≈ 61 min + load)"
+    expected_mix: "the bundles run on H100,L40S as D1-10 did (44 of its 48 FIT / CAL shards ran on L40S), so expect close to the L40S figure"
+    if_FIT_000_039_recomputed: "+ 39,960 questions: + 2.4 GPU-h (H100 NVL) / + 5.1 GPU-h (L40S) + 5 loads ≈ 0.5 h"
+  cache: "about 1.5 GPU-h (PCA pass over FIT_FULL + encode FIT_FULL + CAL ≈ 142,500 encodes at 31.7 ms on L40S, + load; less on H100)"
+  selectors: "18 units × 2.0-2.4 h (+ about 2-7 min of setup each) ≈ 37-44 GPU-h on RTX6000PRO / H100 (slow-node outliers extra)"
+  evaluation_quality: "87 configurations × about 14,700 items (GQA DEV ≈ 8,000, TextVQA ≈ 4,800, ChartQA 1,920) ≈ 1.28 M answers ≈ 8.7 GPU-h on H100 (up to ≈ 15.7 on L40S) + 12 loads ≈ 1.3 h → ≈ 10-17 GPU-h"
+  devrisk: "≈ 0.5 GPU-h (D1-30 estimate)"
+  timing_reference_node: "3 units (one per benchmark, 27 dynamic rows each) ≈ 1-1.5 h each on nodesumo01 → ≈ 3-4.5 GPU-h (upper bound ≈ 7.5)"
+  total: "≈ 70-101 GPU-h on H100 / L40S / RTX PRO 6000 (teacher 18-34, cache ≈ 1.5, selectors 37-44, evaluation 10-17, DEV risk 0.5) + ≈ 3-4.5 GPU-h on nodesumo01; + ≈ 3-6 GPU-h only if FIT-000..039 had to be recomputed (not the case now)"
+  queue_note: "the 8-GPU share is saturated by main-route jobs; D1-FULL needs the coordinator's place in the queue order (OPEN DF-10)"
+storage:
+  root: "outputs/R7_D1_FULL on /home/infres (31 TB free); nothing new on /projects"
+  estimate: "manifest ≈ 0.07 GB; teacher ≈ 0.8 GB (240,827 new records × 2.9 KB + verified copies of the 48 frozen FIT / CAL shards); cache ≈ 42.9 GB (feats_FIT 41.4 GB, CAL 1.2, embed 0.26); selectors ≈ 3.5 GB (18 × 0.2); d1_30 outputs ≈ 0.2 GB; ≈ 48 GB in total"
+  cleanup: "resume.pt files (≈ 2.8 GB) and the cache can be removed after the readout (owner's cleanup rules; never before the D1-FULL readout and the official-test phase)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ code, driver
+code:
+  new_files: >
+    scripts/r7_d1full_data.py (build / verify / freeze / reuse / plan / complete / data / precheck); r7_d1full_teacher.py (strict source,
+    bundle wrapper, GPU replay); r7_d1full_cache.py (streamed frozen-format cache, PCA basis option); r7_d1full_train.py (frozen trainer
+    wrapper, finish path, memory smoke); r7_d1full_plan.py (selector lines, choice, evaluation configs / lines incl. timing);
+    r7_d1full_score.py (readout); r7_d1full_smoke.py (GPU smoke); tests/test_r7_d1full.py; slurm/r7_d1full_{cpu,gpu,sel}.sbatch;
+    slurm/r7_d1full_submit.sh
+  frozen_files_used_read_only: "r7_d1_data, r7_d1_masks, r7_d1_teacher, r7_vl_common, r7_d1_cache, r7_d1_selectors, r7_d1_train, r7_d1_analyze, r7_d1_plan20, r7_d1_30_run, r7_d1_30_timing, r7_d1_30_devrisk, r7_d1_30_score, r7_d1_30_sparsevlm, r7_d1_30_data"
+driver:
+  file: slurm/r7_d1full_submit.sh
+  command: "nohup setsid bash slurm/r7_d1full_submit.sh >/dev/null 2>&1 &   (stop by PID; log slurm_logs/r7_d1full_submit.log; decisions via PCA_BASIS=fitfull|frozen, DEVRISK=1|0, TIMING=1)"
+  stages: >
+    0 gates: freeze key, PCA_BASIS valid, passing probe report.  1 data: CPU, sbatch --wait — build if absent, verify, freeze the D1-FULL
+    manifest, reuse check + verified copy, plan, teacher lines.  2 teacher bundles.  3 completeness: CPU, --wait.  4 cache.  5 LR search (6
+    units).  6 choice: CPU, --wait, with a 15-min visibility wait (the E4 lesson).  7 stage 2 (12 units).  8 evaluation: needs the D1-30 freeze
+    key and the D1-30 sets; selector-row configs, then 12 quality shards and 3 timing units on nodesumo01; the DEV-risk unit follows once
+    D1-30's DEV-risk output exists.  No readout stage: the readout is the coordinator's, after the D1-30 readout.
+  rules: >
+    File gates only, no afterok chains.  CAP 27 on `squeue -h -u $USER -q normal | wc -l` before every submission.  An empty or non-numeric
+    job id STOPs.  A unit that left the queue (listed empty or 'Invalid job id') without its marker is resubmitted at most RETRIES = 2
+    times, after a 1-min marker visibility wait; every unit resumes.  No --export.  Every GPU line excludes node51,node52,node60.  LLaVA-env
+    units run on H100,L40S, selector units on RTX6000PRO,H100, timing on nodesumo01.  Time limits are about 3× the expected runtime, for
+    backfill: bundle 4 h, cache 6 h, selector unit 8 h, quality shard 5 h, DEV risk 2 h, timing 5 h.
+
+# ------------------------------------------------------------------------------------------------------------------------------ provenance
+provenance:
+  tests: "tests/test_r7_d1full.py: 19 / 19 pass in the SparseVLM env (job 1036211, with the final precheck) and in the main env (job 1036212); synthetic data, the frozen fake host and a parse of this draft only (earlier rounds: 1036001, 1036003, 1036013)"
+  build_and_precheck: "build job 1035862 (exit 0).  Precheck job 1035984: verify ok, static reuse ok, dry plan of 31 bundles / 240,827 questions if FIT is reused and 36 / 280,787 if not.  Its unittest half failed twice because of a synthetic-data issue; this was fixed and rerun as 1036001.  Final precheck in job 1036211, with the replay file: verify ok, fit_reuse true, outcome reuse_fit"
+  gpu_smoke_llava: >
+    Job 1035985 (L40S node57, 21 min including 10 min of staging + load; exit 0; pass).
+    - Probe S1-S6 pass, with the D1-10 smoke values: S1 0.0038 with 0 flips; S2 bit-identical; S3 0.25 / 0.26 / 0.27; S4 0.997; S5 200 / 200;
+      S6 ok.  This writes outputs/R7_D1_FULL/smoke/probe/probe_report.json, the bundles' launch gate.
+    - Replay as above.
+    - Strict reads: a missing image stops in preflight, and MissingImage propagates through the frozen loop.
+    - Strict bundle on 4 additional FIT images: 16 / 16 records, marker written.
+    - Question tokens over FIT_FULL + CAL: max 37, p99 20, mean 10.4.
+    - Cache: with the frozen basis, the first 16 frozen FIT images are bit-identical to the frozen D1-20 cache rows.  For both bases the
+      streamed FIT / CAL files equal the frozen encode_role output; question ids and embed table are correct; the frozen pca copy is byte-identical.
+    - Evaluation: the frozen D1-30 runner with the 87 D1-FULL selector configs completes on 16 items each of gqa_fixture, textvqa_fixture
+      and chartqa_proxy, with markers and no shared rows.
+    - Timing: the frozen D1-30 timing code on 2 D1-FULL dynamic rows at B = 1 / 4 / 16 / 32, bucketed.
+    - DEV-risk code path on the 68 probe records (15 units).
+    - Main-env path: the selector wrapper and the frozen trainer (torch 2.9) run vcs, logistic, direct, A1 and A2 on the mini root, using the
+      reused FIT-000 / CAL-000 records and the newly computed FIT-040 records (FIT coverage 32 / 32); all 5 markers are written.  The finish
+      path recomputes identical taus (max difference 0).
+    - Smoke-only artefacts are under outputs/R7_D1_FULL/smoke.
+  gpu_smoke_main: >
+    Memory smokes in the main env (torch 2.9), synthetic FIT_FULL-size tensors with every question at 40 tokens, the frozen SEL.train.
+    Job 1035986 (RTX PRO 6000): static 41.9 GiB, peak allocated 73.4 GiB, peak reserved 89.6 GiB; NFS read of the frozen 5.9 GB cache at
+    1.74 GB/s; frozen assemble() 0.17 ms per record (40k frozen FIT records read; FIT only).  Job 1036018 (RTX PRO 6000, expandable
+    segments, no I/O part): peak allocated 73.4 GiB, peak reserved 77.5 GiB.  Both exit 0.
+  not_read: "no D1 DEV teacher record, no D1-30 prediction / timing / result file, no TextVQA / ChartQA item; FIT / CAL records and the R7-20 fixtures only"
+
+open_decisions:
+  DF-1: "PCA basis: FIT_FULL basis (default; the frozen 'fit on FIT' rule applied to FIT_FULL) or the frozen 10k basis (PCA_BASIS=frozen)"
+  DF-2: "reuse rule for FIT-000..039 (static check + GPU replay, else recompute) and CAL always the frozen records — confirm; current outcome: reuse (static and replay pass)"
+  DF-3: "class weights from FIT_FULL (default; the frozen rule on the training set) or the frozen D1-20 weights"
+  DF-4: "recipe: 20,000 phase-A steps unchanged (default; fewer passes per question at full scale) — confirm that steps are not rescaled"
+  DF-5: "primary family: S1F − S2F, S1F − S3F (6 per point, Holm per point); S1F − SparseVLM secondary — confirm"
+  DF-6: "DEV-risk secondary for the D1-FULL units (default on): a second read of the sealed D1-10 DEV records, for calibration only, submitted after D1-30's own DEV-risk output exists (the D1-30 freeze calls its read the first and only one; DEVRISK=0 drops it)"
+  DF-7: "TextVQA quality shards on H100,L40S (no OCR-anchor rows in D1-FULL) or H100 only as in D1-30 E2"
+  DF-8: "which scale carries the main D1 claim if the scales disagree (proposal: conjunction for claims, full-scale numbers as headline)"
+  DF-9: "freeze timing: before any D1-30 result (required); the D1-FULL manifest is frozen by the driver's data stage after the protocol key"
+  DF-10: "queue order relative to R7-40 / R7-50 / r5 work on the saturated 8-GPU share (D1-FULL ≈ 70-101 GPU-h + 3-4.5 on nodesumo01)"
+  DF-11: "selector units on RTX6000PRO,H100 with PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (default; measured peak reserved 77.5 GiB, 15.6 GiB below an H100 NVL; an allocator setting the D1-20 units did not use, no numerical effect) or RTX6000PRO only without it (measured 89.6 GiB reserved of 95.1)"
