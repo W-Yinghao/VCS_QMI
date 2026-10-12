@@ -1,0 +1,77 @@
+# R7-40 — D1-40 cross-host confirmation on Qwen2.5-VL-7B-Instruct (post-encoder selection, frozen OPEN-1 (b)).  PLAN DRAFT for a later staged
+# freeze: nothing here has run; written while D1-20 / D1-30 run, before any D1-30 result is read.  Package: D1 SERVER_EXPERIMENTS §D (D1-40:
+# "只扩展最终方案及主要强对照，不自动重跑所有组合"); task R7-40 (complete the selected route's training / evaluation units).
+title: "R7-40: the D1 method and its main controls re-run on a second host (Qwen2.5-VL-7B), selection after the vision encoder, LLM-side claims only"
+status: plan_draft_for_staged_freeze
+date: 2026-10-12
+parent: "reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (host_checkpoint_and_revision.second_host_D1_40_only; coordinator OPEN-1 = (b)); D1-20 / D1-30 staged freezes"
+official_test_access: false            # official test splits stay closed; any test read is R7-50 under the owner's one-shot approval
+
+scope_rules:
+  - "the SAME post-encoder method on the second host: the D1-20 training recipe and the D1-30 evaluation protocol, with only the host-interface changes listed under host_interface (stated before any Qwen result)"
+  - "final method and main strong controls only; no full re-run of every D1 combination (no A1 / A2 ablations, no qsim-trained variants)"
+  - "the method under test is fixed now, independent of the D1-30 outcome (OPEN-R740-1): S1 (VCS); main controls S3 (direct risk, same architecture) and the training-free uniform grid / random; S2 (logistic) optional"
+  - "claims limited to the LLM side: Qwen2.5-VL spends 62–70 % of batch-1 wall time in its vision encoder (R7-20), which post-encoder selection cannot remove; the vision cost is printed in every latency row"
+  - "no D1-30 DEV / TextVQA / ChartQA result is used to choose anything here; selection on Qwen uses CAL only"
+
+host:
+  checkpoint: "Qwen/Qwen2.5-VL-7B-Instruct@cc594898 (frozen protocol), bf16, SDPA, AutoProcessor min_pixels 256·28², max_pixels 1280·28² (R7-20 setting), shipped generation config with sampling off"
+  environment: "/projects/EEG-foundation-model/yinghao/envs/vl_baselines (torch 2.9 cu128, transformers as installed for R7-20); any of RTX6000PRO / H100 / L40S; node51 / 52 / 60 excluded; PYTHONNOUSERSITE=1; weights staged to node-local disk"
+  r7_20_facts: "TextVQA 83.0 [77.5, 88.0] vs 84.9 reported (fixture); visual tokens 306 (GQA), 971 (TextVQA), 354 (POPE) on average; vision 73–203 ms, prefill 20–40 ms, decode 15–43 ms at batch 1 on H100 NVL; 15.8 GiB peak"
+  exposure: "training data undisclosed: GQA / TextVQA / ChartQA train (and possibly val) exposure assumed and disclosed"
+
+host_interface:                         # the only differences from the LLaVA pipeline, fixed before any Qwen result
+  selection_point: "after the vision tower + PatchMerger (model.visual output: N merged visual tokens × 3584 per image, N = h'·w' on the 28-px grid), before the LLM; the selector never reads the LLM"
+  positions: >
+    kept tokens keep their original M-RoPE (t, h, w) ids and every text token keeps its full-sequence position (position ids from the
+    official get_rope_index on the full sequence, then pruned positions removed; decoding continues from the full sequence's rope delta).
+    LLaVA's contiguous re-indexing has no canonical analogue on a 3-D rotary grid (OPEN-R740-4)
+  budgets: "fractions of the image's own token count, k = max(1, round(f · N)), f ∈ {12.5 % (stress), 25, 50, 75 %} + 100 %; nested as prefixes of one ordering (OPEN-R740-5)"
+  masks_D1_10: "random (qid-seeded permutation), grid (four 2-stride lattices on the h' × w' grid in a qid-seeded order, raster inside a lattice), qsim (Plackett–Luce on z-scored cosine between merged tokens and the mean question word embedding of Qwen's input table); 3 trials per question as frozen"
+  selector_inputs: "merged visual tokens -> PCA 3584 -> 512 fitted on FIT (64 seeded tokens per image), fp16 cache; question = Qwen input-embedding lookup of the raw question (no special tokens) -> linear 3584 -> 512"
+  selector_positions: "factorised learned row + column embeddings (max 64 × 64) replace the fixed 24 × 24 table; visual keys padded to the batch maximum with additive bias −1e9 (the frozen per-key bias mechanism); gates and top-k over valid tokens only"
+  prompts: "Qwen chat template, user content [image, text]; text = question + '\\nAnswer the question using a single word or phrase.' (GQA / TextVQA, no OCR tokens — Qwen's published TextVQA number uses none) and query + '\\nAnswer the question with a single word.' (ChartQA, the pinned D1-30 prompt) (OPEN-R740-7)"
+  decoding: "greedy; max_new_tokens 128 (GQA / TextVQA) and 16 (ChartQA) as D1-30 (D30-7); batched left-padded generation with per-item 3-D position ids; batch-1 vs batched answers checked on the fixtures (sentinel)"
+
+stages:                                  # each stage frozen separately, as for D1-10 / 20 / 30
+  R7-40a_teacher:
+    purpose: "D1-10 on Qwen: the nested-mask binary risk object h, d, h − d by budget and mechanism; teacher targets for R7-40b"
+    data: "the frozen D1 manifest (FIT 10,000 / CAL 2,000 / DEV 2,000 images, 55,935 binary questions; sha256 32c72126…), roles unchanged; DEV teacher outputs sealed until R7-40c"
+    teacher: "b = T(full), a = T(masked), T = 2 p̃ − 1, p̃ = P(yes) / (P(yes) + P(no)) of the first generated token (prefill only; Qwen yes / no ids as R7-20); 14 passes per question (full, text-only, 3 mechanisms × 4 budgets); yes / no mass QC as D1-10"
+    sentinels: "on the R7-20 GQA fixture only: masking acts, bit-identical replay, nesting, all-kept == official generate (answers and P(yes) within 1e-3), mass ≥ 0.9"
+    regime_rule: "the frozen latency_regime rule on Qwen's own timing smoke (fixture, nodesumo01): B* = smallest B in {1, 4, 16, 32} where uniform-grid 25 % saves ≥ 25 % of per-item total latency (vision + selection + prefill + 8 decode); if none qualifies, Qwen reports no LLM-side latency saving and its primary endpoint becomes quality at fixed kept-token fraction, no acceleration claim (pre-declared)"
+    readout: "CAL readout with the frozen D1-10 interpretation grid (rank-ceiling criterion, yes / no-mass secondary), reported before any R7-40b unit"
+    cost: "≈ 5–8 GPU-h (GQA images average 306 tokens: cheaper prefill than LLaVA's 576; one vision pass per image reused by 14 passes)"
+  R7-40b_selectors:
+    purpose: "D1-20 on Qwen with the frozen recipe (phase A 20k steps with 1k warm-up + cosine and CAL Spearman(r, h) selection every 1k; phase B 5k gate steps, relaxed top-k, tau 1 -> 0.1; dynamic tau on CAL)"
+    units: "S1 VCS and S3 direct: symmetric learning-rate search {1e-4, 3e-4} on seed 0 (CAL-chosen, frozen OPEN-6 rule), then seeds 1–2 at the chosen rate -> 8 units; + S2 logistic (4 units) if OPEN-R740-2 is yes"
+    cost: "≈ 1–2 GPU-h per unit (sequence ≈ 306 + question tokens) -> 8–24 GPU-h"
+  R7-40c_evaluation:
+    purpose: "D1-30 on Qwen: every row on the fixed fraction grid, official evaluators, latency on the reference GPU"
+    benchmarks: "the D1-30 sets unchanged: gqa_dev (same items), textvqa_val (same R7-20 exclusion), chartqa_val (pinned pix2struct 6fe25c1 relaxed accuracy, human / augmented)"
+    rows: "full; uniform grid / random / qsim at 12.5 / 25 / 50 / 75 %; S1 and S3 × seeds 0–2 at the four fractions; S1 dynamic × seeds 0–2 at the three CAL operating points; [S2 × seeds 0–2]; [one external Qwen2.5-VL pruning baseline, OPEN-R740-6] -> 46 (58) configurations per benchmark"
+    primary: >
+      if B* exists: quality at fixed measured latency at B* (L25 / L50 / L75 = uniform-grid 25 / 50 / 75 % latencies), contrasts S1 − S3 and
+      S1 − uniform grid, seed mean of per-seed interpolations, image / chart-grouped paired bootstrap (2,000), Holm across the 6 primary
+      contrasts (2 × 3 benchmarks) per latency point; otherwise the same contrasts at fixed fractions 25 / 50 / 75 %
+    secondary: "B = 1 / 16 / 32; S1 − random / qsim; S1 dynamic − fixed (A3); fixed-fraction table with retention and mean visual tokens; TTFT, decode per token, peak memory, vision share; preserve / correct; DEV risk calibration on Qwen's DEV masks; subsets"
+    cross_host_reading: "descriptive only: sign and size of S1 − S3 and S1 − grid on LLaVA (D1-30) and Qwen at matching fractions, side by side; no pooling across hosts, no cross-host test"
+    io_rule: "single writer per prediction file (D1-30 execution note E1), first complete record wins, integrity counts reported"
+    cost: "≈ 46 × 14.7 k answers at about 30–40 ms (batched) -> 6–8 GPU-h; timing ≈ 3 GPU-h on nodesumo01"
+  total_cost: "≈ 25–45 GPU-h (+ ≈ 8 GPU-h with S2, + the external baseline if any), any partition for training / quality, nodesumo01 for timing"
+
+statistics: "as D1-30: image (chart) grouped paired bootstrap, 2,000 replicates, per seed, seed mean ± sd; Holm per latency (or fraction) point over the primary family; no equivalence claim"
+code_plan: >
+  new modules only (frozen D1 files untouched): r7_d1_40_host.py (Qwen prefill / generate with keep-position M-RoPE, sentinels), r7_d1_40_masks.py
+  (variable-N orderings), r7_d1_40_teacher.py, r7_d1_40_cache.py, r7_d1_40_selectors.py (adapter around the frozen Selector: factorised
+  positions, key padding), r7_d1_40_train.py, r7_d1_40_run.py / timing / score (reusing the D1-30 scorer through imports); CPU tests with
+  fakes, GPU smokes on the R7-20 fixtures only, file-gated drivers within CAP 27
+open_items_for_the_coordinator:
+  OPEN-R740-1: "method under test fixed now as S1 (VCS), whatever D1-30 shows (recommended: no post-hoc choice of the 'final' method); alternative: the D1-30 winner"
+  OPEN-R740-2: "include S2 (logistic) on Qwen (+4 units, +12 rows per benchmark) — recommended only if D1-30's S1 − S2 is the claim to confirm"
+  OPEN-R740-3: "repeat the symmetric 2-LR seed-0 search on Qwen (recommended: it is part of the frozen method) vs reuse the D1-20 chosen rates"
+  OPEN-R740-4: "keep original M-RoPE ids for kept tokens (recommended) vs re-index the kept grid"
+  OPEN-R740-5: "budgets as fractions of each image's token count (recommended) vs absolute token counts"
+  OPEN-R740-6: "external baseline with an official Qwen2.5-VL implementation and a licence (to be verified by the data steward before the freeze); at most one; none -> disclosed gap"
+  OPEN-R740-7: "prompts: the D1-30 pinned prompts (recommended, comparability) vs Qwen's own evaluation prompts"
+  OPEN-R740-8: "if no B* on Qwen: primary at fixed fraction and no acceleration claim (follows the frozen regime rule; confirm)"
