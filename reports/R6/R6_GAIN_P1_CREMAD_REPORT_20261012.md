@@ -66,8 +66,8 @@ Protocol `reports/R6/R6_GAIN_P1_CREMAD_PROTOCOL_FROZEN_20261012.yaml` (frozen be
   - The audio side carries information about when the video helps (which emotions and actors) that the cheap head's own uncertainty does not
     reflect.
 - **z overstates the realised gain about 2×** (mean z 0.26–0.28 vs mean h 0.14).  h is positive for 67–68 % of clips.
-- **The oracle gap stays large:** 0.13 Brier for both families.  Deployable policies capture about a fifth of the never → oracle_h improvement
-  at matched budget.
+- **The oracle gap stays large:** 0.13 Brier for both families.  At matched budget, gain_h closes about a fifth of the gap between random
+  selection and oracle_h: (0.5722 − 0.5432) / (0.5722 − 0.4140) = 18 % (Brier); (0.5659 − 0.5376) / (0.5659 − 0.4042) = 17.5 % (CE).
 - **Identity check:** h − z = 2 (b − a)·(e − b) holds to 1.3e-15.
 - **Codecs:** decode dominates the video path (≈ 80 %); the 31 H.264 clips decode slightly faster than VP6F.
 
