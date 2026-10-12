@@ -40,3 +40,8 @@ decisions:
 deferred_to_the_40b_freeze: [OPEN-R740-3 (2-rate seed-0 search re-run on Qwen), D40b-2 micro-batching, D40b-3 selector hardware,
                              D40b-4 64 × 64 position tables, D40b-5 nominal fractions in the dynamic rule]
 units_and_budget: "1 launch probe + 12 teacher bundles (47,949 CAL / FIT questions, 12,000 images); measured 0.283 s / question + 381 s staging per job on L40S -> about 5.4 GPU-h; storage about 3 GB of teacher records under outputs/R7_D1/r7_40/teacher"
+execution_note_40a_1: >
+  2026-10-12, coordinator: after the driver's own CAL readout (job 1036190, 15:31–15:35 UTC) I submitted a manual readout (job 1036197,
+  --roles CAL, 15:34–15:36) without checking that the driver runs one; the two jobs overlapped and wrote the same r7_40a_results.{json,md},
+  leaving my CAL-only version on disk.  Restored by re-running the driver's exact command alone (job 1036204); its output is byte-identical to
+  job 1036190's (deterministic, hash-seeded).  No teacher record was touched; analysis unchanged.
