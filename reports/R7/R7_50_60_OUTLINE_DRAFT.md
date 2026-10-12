@@ -52,8 +52,11 @@ number, and this is disclosed.
 
 **A.3b Exposure statement (graded; correction 2026-10-12).**
 - Relative to this project: the test splits were never used for selector training, hyperparameters or any selection.
-- Relative to the hosts' public training data: known overlaps are checked and reported (LLaVA-1.5's mix includes GQA, Visual Genome, COCO and
-  TextCaps; all GQA images, test-dev included, come from Visual Genome, so GQA test-dev is not "clean" with respect to upstream image exposure).
+- Relative to the hosts' public training data: known overlaps are checked and reported.  LLaVA-1.5's mix includes GQA (train), Visual Genome,
+  COCO and TextCaps.  GQA's train / val images are Visual Genome images, but its test splits extend Visual Genome with new images and 5k
+  crowdsourced "hidden" scene graphs (Hudson & Manning 2019, p. 4 footnote 2 and p. 17); the shared image folder holds 40,775 'n'-prefixed
+  (non-VG) ids.  The test build counts the test-dev image ids by prefix (image ids only, no labels) and the exposure statement reports that
+  count.  (Correction 2026-10-12: an earlier sentence here said all GQA images, test-dev included, come from Visual Genome.)
 - Undisclosed upstream pre-training exposure is not guaranteed either way.
 
 **A.4 Procedure.**
