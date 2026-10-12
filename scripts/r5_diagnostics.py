@@ -22,7 +22,7 @@ Statistics: per seed; seed mean; image bootstrap with ONE index matrix per datas
 contrasts = seed-averaged per-image differences.  Every missing input is listed, never filled.
 Writes per-model / per-bin summaries (no per-query dump) to reports/R5/{gradient_diagnostics.jsonl, gradient_summary.md, multiplicity_diagnostics.jsonl,
 support_counts.json, nested_query_manifest.json, nested_curves.json, r5_diagnostics_inputs.json} (smoke: reports/R5/smoke/); missing inputs are listed.
-    python scripts/r5_diagnostics.py [--datasets refcocog refcocoplus] [--role DEV] [--parts A B C] [--boot 1000] [--smoke]
+    python scripts/r5_diagnostics.py [--datasets refcocog refcocoplus] [--role DEV] [--parts A B C] [--boot 1000] [--smoke] [--out-suffix _refcoco]
 """
 from __future__ import annotations
 
@@ -279,8 +279,12 @@ def per_image_from_queries(items, vals, n_img, field):
 # ---------------------------------------------------------------------------------------------------------------- driver
 def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--datasets", nargs="+", default=["refcocog", "refcocoplus"]); ap.add_argument("--role", default="DEV", choices=["DEV", "CAL"])
-    ap.add_argument("--parts", nargs="+", default=["A", "B", "C"]); ap.add_argument("--boot", type=int, default=1000); ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
-    out = OUT / "smoke" if a.smoke else OUT; out.mkdir(parents=True, exist_ok=True); B = 50 if a.smoke else a.boot
+    ap.add_argument("--parts", nargs="+", default=["A", "B", "C"]); ap.add_argument("--boot", type=int, default=1000); ap.add_argument("--smoke", action="store_true")
+    ap.add_argument("--out-suffix", default="", help="write into reports/R5/diag<suffix>/ instead of reports/R5/ (e.g. _refcoco for the RefCOCO addendum); default unchanged"); a = ap.parse_args()
+    out = OUT / "smoke" if a.smoke else OUT
+    if a.out_suffix:
+        out = out / f"diag{a.out_suffix}"
+    out.mkdir(parents=True, exist_ok=True); B = 50 if a.smoke else a.boot
     inputs = {"role": a.role, "missing": [], "used": [], "epoch_anchors": "missing: only CAL-selected checkpoints are saved (no epoch 1 / 5 / 10 states)"}
     gl, ml, summ_md = [], [], ["# r5 R5-20A — hard-distractor reference mass and score-level gradients (exploratory, DEV)", "",
                                "Score-level derivatives of each model's own training loss at its CAL-selected state; not encoder gradients.  Image-macro over queries with >= 1 valid "

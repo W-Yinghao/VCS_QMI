@@ -1,0 +1,172 @@
+# R7-30 D1-30 — STAGED FREEZE (copy of R7_D1_30_DRAFT.yaml at freeze time, sha256 prefix 3cf32bb0fd5a; the draft is kept for history).
+# R7-30 D1-30 — draft for the coordinator's staged freeze.  Frozen before any D1-20 DEV read; D1-20 results are CAL-only.
+# Until the freeze carries the key 'd1_30_staged_freeze_<date>' in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml, the set builder and the
+# driver refuse to run: no GQA DEV, TextVQA val or ChartQA read beyond the R7-20 fixtures.
+title: "R7-30 D1-30: every method on the fixed budget grid, official answers and evaluators, latency on the reference GPU"
+status: frozen  # D1-30 staged freeze by the coordinator, 2026-10-12, before any D1-20 DEV read and any D1-30 run
+date: 2026-10-12
+parent: "reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (section D1_30; addendum d1_20_staged_freeze_20261012)"
+freeze_key_expected: "d1_30_staged_freeze_<date> (checked verbatim by scripts/r7_d1_30_data.py build and slurm/r7_d1_30_submit.sh)"
+
+scope_rules:
+  - "D1-20 outputs are used as frozen: the CAL-selected checkpoint at the CAL-chosen learning rate, gates trained with fixed steps, CAL dynamic taus; nothing is selected on DEV / TextVQA / ChartQA"
+  - "no GQA DEV, TextVQA val or ChartQA read before the freeze; code checked on synthetic CPU tests and smoked on the R7-20 fixtures only (reports/R7/R7_D1_30_SMOKE.md)"
+  - "the D1-20 code and driver are untouched; D1-30 lives in new modules that import the frozen D1-10 / D1-20 modules read-only"
+  - "no official test split is read (D1-40 only, separate pre-registration)"
+
+host_and_selection:
+  host: "LLaVA-1.5-7B, official code in Gumpest/SparseVLMs a9e7142 (SparseVLM env: torch 2.1.2, transformers 4.37.0, flash-attn 2.3.3), fp16, H100 / L40S"
+  selection_point: "LLM input: kept visual tokens spliced in raster order, positions re-indexed contiguously (as frozen for D1-10 / D1-20)"
+  user_turn: "'<image>\\n' + prompt (vicuna_v1, as LLaVA model_vqa_loader); the prompt carries the benchmark's official suffix"
+  selector_inputs: "PCA 4096 -> 512 from D1-20 (cache/pca.pt, fitted on FIT), rounded to fp16 exactly as the D1-20 cache; question = frozen LLaVA input embeddings of the raw question text (no special tokens)"
+  decoding: "greedy; max_new_tokens 128 for GQA / TextVQA (model_vqa_loader default, the R7-20 reproduction setting), 16 for ChartQA (pinned lmms-eval chartqa.yaml) — D30-7: a recorded deviation from the D1 protocol's generation block (16 / 16 / 32), made before any D1-30 read; timing keeps the frozen forced length (8 decode steps)"
+  batching: "our pipeline generates in left-padded batches of 32 (LlavaPrefill.generate, which reproduced the official answers in D1-10 / R7-20); SparseVLM batch 1 (official code)"
+
+budget_grid:
+  tokens: [72, 144, 288, 432, 576]
+  percent: [12.5, 25, 50, 75, 100]
+  stress_point: "12.5 % (reported, never a primary latency point)"
+  rule: "fixed for every method; never changed after any D1-30 reading"
+
+methods:
+  full: "576 tokens; TextVQA adds 'full_ocr' (LLaVA OCR-token prompt) as the published-number anchor (not on any curve)"
+  uniform_grid: "D1-10 grid mechanism (four 2-stride lattices, qid-seeded order), k in {72, 144, 288, 432}"
+  random: "D1-10 random mechanism (qid-seeded), same budgets"
+  qsim: "D1-10 question-similarity mechanism (untrained), same budgets — extra baseline row, secondary contrasts only (D30-3)"
+  selectors_fixed_budget: "S1 vcs / S2 logistic / S3 direct at the D1-20 chosen rates × seeds 0, 1, 2: hard top-k of the gate logits"
+  selectors_dynamic_budget: "S1 / S2 / S3 × seeds 0-2 at the three CAL operating points f = 0.25 / 0.5 / 0.75: per item the smallest k in {72, 144, 288, 432, 576} with r(top-k) <= tau_f (rule of r7_d1_selectors.dynamic_tau) — ablation A3 (fixed vs dynamic)"
+  ablations: "A1 = S1 without question tokens (seeds 0-2); A2 = S3 regressing d (seeds 0-2); fixed budgets only (D30-6)"
+  SparseVLM:
+    official_anchors: "the four native official configurations RETAIN_TOKN 192 / 128 / 96 / 64 (USE_VERSION 1_0), labelled 'official' (D30-2); TextVQA also with the OCR prompt (published SparseVLM anchors)"
+    adapted_rows: "72 / 144 / 288 / 432, labelled 'adapted' (frozen OPEN-8)"
+    adapted_rule: >
+      per-layer lists for the pruning layers (2, 6, 15): shape interpolated linearly in the nominal budget between the bracketing official
+      v1.0 lists {64, 96, 128, 192} and the no-pruning list [576, 576, 576] at 576, then one common scale chosen so that the official
+      'Equal Tokens' counter is closest to the target.  The counter is computed exactly (keep min(s, v − 1); merge int(0.3 · pruned) + 1
+      tokens into int(that / 10) + 1 clusters); it reproduces the R7-20 measurements 192.03125 (192) and 64.8125 (64).  Resulting lists:
+      72 -> [106, 33, 19] (71.88), 144 -> [302, 132, 54] (143.97), 288 -> [368, 294, 226] (288.06), 432 -> [472, 434, 401] (432.22).
+      Every run checks the code's own counter against this prediction and stops on mismatch (D30-2).
+    relation_to_frozen_text: "frozen D1_30 listed native 192 / 128 / 96 / 64 anchors and adapted 144 / 288 / 432; D1-30 keeps all four anchors (D30-2) and adds the adapted 72 (12.5 % stress point of the fixed grid)"
+    batch_limit: "the official sparse forward is batch-1 only, so SparseVLM has no B* = 4 latency; no latency claim is made against SparseVLM at B* = 4 (D30-1)"
+  configuration_count: "100 per benchmark in our pipeline (1 full + 12 static + 36 S1-S3 fixed + 24 A1 / A2 + 27 dynamic) + 1 TextVQA OCR anchor; SparseVLM 8 rows (4 official + 4 adapted) + 4 TextVQA OCR anchors"
+
+benchmarks:
+  GQA_DEV:
+    images: "the 2,000 DEV images of the frozen D1 manifest (sha256 32c72126…), in manifest role order"
+    questions: >
+      GQA train_all questions of those images (all question types; train-balanced is entirely seen by LLaVA-1.5, frozen case a) minus every
+      LLaVA-seen (image, normalised question) pair of llava_v1_5_mix665k.json (frozen D1 match rule); per image the first 4 in
+      sha256('r7-30/d1-q/<qid>') order (the frozen D1 question rule) -> at most 8,000 questions; binary and open questions both kept
+    evaluator: "exact match after LLaVA convert_gqa_for_eval normalisation (rstrip '.', lower), SparseVLM a9e7142 copy"
+    group: image
+    disclosed: "every DEV image was seen by LLaVA-1.5 in training (Visual Genome / GQA images); unseen QA pairs only"
+  TextVQA_val:
+    items: "TextVQA 0.5.1 validation (lmms-lab parquet, 5,000 q) minus every question on the 127 images read in R7-20 (the 200 fixture questions and any other question on those images; D30-5)"
+    prompts: "primary: question + '\\nAnswer the question using a single word or phrase.' (no OCR tokens, frozen OPEN-4); anchor: LLaVA's OCR-token layout (full and the four SparseVLM official rows only)"
+    evaluator: "m4c TextVQAAccuracyEvaluator (SparseVLM a9e7142 copy of llava/eval/m4c_evaluator.py)"
+    group: image
+  ChartQA_val:
+    items: "ChartQA val parquet (1,920 rows: imgname, query, label, type), human and augmented reported separately (type must name exactly one; checked at build)"
+    prompt: "query + '\\nAnswer the question with a single word.' (lmms-eval 19085f3 chartqa.yaml default post_prompt), max_new_tokens 16"
+    evaluator_pin_OPEN_7: >
+      relaxed accuracy = google-research/pix2struct pix2struct/metrics.py::relaxed_correctness(target, prediction, max_relative_change=0.05)
+      at commit 6fe25c1dc8151823ee3b479519d8d5948812fee4: numeric prediction (a trailing '%' divides by 100) within 5 % relative change
+      of a non-zero numeric target, otherwise case-insensitive exact match; prediction stripped only.  Identical logic in
+      EvolvingLMMs-Lab/lmms-eval 19085f3ac07e4631fd2f0218786741b6bbc40f69 lmms_eval/tasks/chartqa/utils.py (copied from Qwen-VL 34b4c0e;
+      argument order (prediction, target), relative change still w.r.t. the gold answer).  Code: scripts/r7_d1_30_eval.py
+    group: "chart image (imgname)"
+  sizes_and_hashes: "recorded at build in outputs/R7_D1/d1_30/sets/d1_30_sets.json (items, groups, sha256 per set, exclusion counts)"
+
+endpoints:
+  complete_task: "official quality of the full answers (full row)"
+  primary: >
+    quality at fixed measured latency in regime B* = 4 on nodesumo01 (NVIDIA H100 NVL): each method family's (latency, quality) points
+    incl. full, linear interpolation at L25 / L50 / L75 = uniform-grid 144 / 288 / 432-token per-item latencies; not reached = reported.
+    It covers our pipeline's rows (full, static, selectors, dynamic, ablations); SparseVLM enters through S1 − SparseVLM on the D30-1 basis
+  primary_contrasts:
+    S1_minus_S2: "seed mean of per-seed interpolated quality differences (seed i vs seed i)"
+    S1_minus_S3: same
+    S1_minus_SparseVLM: "D30-1: (a) budget-matched — S1 fixed budget k vs the adapted SparseVLM row at k = 144 / 288 / 432 (the uniform-grid budgets that define L25 / L50 / L75) — is the primary basis; (b) latency-matched at B = 1 (both interpolated at uniform-grid's B = 1 latencies) is secondary.  No latency claim is made against SparseVLM at B* = 4 (official code batch-1 only)"
+    family: "9 contrasts (3 × 3 benchmarks) per latency point; Holm per latency point"
+  secondary:
+    - "every family at L25 / L50 / L75 for B = 1 / 16 / 32"
+    - "S1 − uniform grid / random / qsim at L25 / L50 / L75 (B* = 4)"
+    - "A1 − S1 and A2 − S3 at each fixed budget (same masks and information)"
+    - "A3: dynamic − fixed at the dynamic row's realised mean budget (fixed curve interpolated in tokens), per objective and operating point"
+    - "fixed-budget quality with absolute / relative retention and mean visual tokens (all rows incl. 12.5 %)"
+    - "latency to stay within 1.0 point of full (B* = 4), per family and seed"
+    - "TTFT, per-token decode, peak memory per configuration and batch size"
+    - "dynamic budget distribution"
+    - "preserve vs correct when the full model is wrong (wrong = score < 0.5; TextVQA soft accuracy)"
+    - "selector risk calibration on DEV masks: every unit's r(K) on the 12 D1-10 masks of the DEV binary questions vs the realised teacher h (Spearman with image-bootstrap CI, slope / intercept, per budget and mechanism) — first and only read of the sealed D1-10 DEV records, through the analyser's coverage guard"
+    - "subsets: GQA structural type, ChartQA human / augmented"
+  claims_not_made: "no equivalence / non-inferiority claim (no margin set in advance)"
+
+latency_protocol:
+  gpu: "NVIDIA H100 NVL on nodesumo01 only (--partition=H100 --nodelist=nodesumo01; the timing code refuses another GPU)"
+  subset: "per benchmark the frozen 512-item timing subset = the first 512 items in sha256('r7-30/d1-30-timing/<qid>') order; all 512 at B* = 4, the first 256 at B = 16 / 32, the first 64 at B = 1 (D30-9); answers not scored"
+  warm_up: "one warm-up batch per (configuration, B), not recorded (per budget bucket for dynamic rows)"
+  measured_per_batch: "CUDA-synchronised, images read and decoded before the clock (as the frozen D1-10 timing): vision (pre-processing + CLIP + projector), select (question embedding, qsim scoring or PCA + selector forwards; 0 for full), assemble, prefill (separate pass, for TTFT), llm = prefill + 8 forced decode steps (frozen forced length)"
+  per_item_latency_fixed_rows: "(vision + select + assemble + llm) / B per batch — the frozen '(vision + selector + prefill + decode of a batch) / batch size' with the selection cost; median and P95 over batches"
+  per_item_latency_dynamic_rows: >
+    implementation of the frozen latency_regime.per_item_latency text "batches bucketed by kept-token count (equal budget inside a batch)"
+    (two-stage interpretation accepted by the coordinator, 2026-10-12): stage 1 = arrival batches of B (vision + selection,
+    which yields each item's budget), stage 2 = per budget bucket full batches of B for assemble + llm (a bucket's items cycled to fill its
+    last batch: the steady-state cost of serving that budget, no partial-batch artefact of a finite subset); per-item latency = median
+    stage-1 per-item time + Σ_k w_k · median stage-2 per-item time of bucket k (w_k = bucket share); P95 likewise
+  ttft: "vision + select + assemble + prefill of the request's batch (not divided by B); dynamic rows: stage-1 batch + bucket-weighted assemble + prefill"
+  latency_ci: "bootstrap CI (2,000 replicates over batches; within stages / buckets for dynamic rows) of every row's median per-item latency — reported, not propagated into the quality-at-latency interpolation (D30-9)"
+  timed_configurations: "full (+ full_ocr), the 12 static rows, one representative selector unit (S1 seed 0) at the 4 fixed budgets (all units share the architecture and cost), every dynamic row (realised budgets differ per unit)"
+  latency_assignment: "full / static / dynamic rows: their own measurement; every sel:<unit>:k row: the representative unit's sel:k latency"
+  SparseVLM: "batch 1 only, same node, the same first 64 timing items, 8 forced tokens, wall time incl. pre-processing (image read before the clock), bootstrap CI over items"
+
+statistics:
+  resampling: "image (GQA, TextVQA) / chart (ChartQA) grouped paired bootstrap, 2,000 replicates shared by every statistic of a benchmark"
+  seeds: "per-seed contrasts with their own paired bootstrap CI; seed mean ± sd reported; the p-value entering Holm is the group bootstrap of the seed-averaged contrast (seeds fixed)"
+  p_value: "two-sided bootstrap: 2 · min(P(Δ* <= 0), P(Δ* >= 0)) with +1 correction"
+  multiplicity: "Holm across the 9 primary contrasts at each latency point (L25, L50, L75); secondaries unadjusted, labelled"
+  coverage_guard: "the readout stops unless every configuration covers exactly the benchmark's items"
+
+exclusions_and_prior_reads:
+  - "TextVQA: the 127 R7-20 fixture images (200 questions) and all their questions are excluded"
+  - "GQA: R7-20 used GQA val (not train), no overlap with DEV"
+  - "D1-10 DEV teacher records: sealed until this stage; read only by the DEV risk-calibration secondary"
+
+budget:
+  quality_pipeline: "about 1.48 M (configuration, item) answers; smoke on H100 NVL, batch 32: 23 ms / answer (GQA), 29 ms (TextVQA), 23 ms (ChartQA prompt) -> about 10 GPU-h on H100 (up to about 18 on L40S); 12 shards (GQA 6, TextVQA 4, ChartQA 2)"
+  SparseVLM: "8 rows × (≈ 8,000 + ≈ 4,800 + 1,920) + 4 TextVQA OCR anchors ≈ 137 k answers; smoke 0.10 s (GQA), 0.14 s (TextVQA), 0.10 s (ChartQA prompt) per answer -> about 4.5 GPU-h on H100 (up to about 8 on L40S); 7 shards (GQA 3, TextVQA 3, ChartQA 1)"
+  timing: "3 jobs on nodesumo01, about 1–1.2 h each (44–45 configurations; 512 / 256 / 64-item pools) + SparseVLM batch 1 (8 rows × 64 items) -> about 3.5 GPU-h"
+  dev_risk: "about 0.5 GPU-h"
+  total: "about 15–26 GPU-h on H100 / L40S + about 3.5 GPU-h on nodesumo01 (frozen estimate: 27 GPU-h at batch 1 + 2 GPU-h latency); measured smoke costs in R7_D1_30_SMOKE.md"
+  storage: "sets + TextVQA / ChartQA images ≈ 0.6 GB and predictions ≈ 0.2 GB on /home (outputs/R7_D1/d1_30); nothing new on /projects"
+
+code:
+  modules: >
+    scripts/r7_d1_30_eval.py (pinned ChartQA evaluator), r7_d1_30_data.py (gated set builder + fixture sets), r7_d1_30_run.py (quality runner,
+    SelectorBank), r7_d1_30_sparsevlm.py (official rows, exact counter, adapted lists, batch-1 timing), r7_d1_30_timing.py (latency),
+    r7_d1_30_devrisk.py (DEV risk calibration), r7_d1_30_score.py (readout), r7_d1_30_plan.py (configurations, unit lines),
+    r7_d1_30_smoke.py + r7_d1_30_smoke_report.py (fixture smoke)
+  wrappers: "slurm/r7_d1_30_gpu.sbatch (run | sparsevlm | timing | devrisk | smoke; H100 / L40S, exclude node51,52,60), slurm/r7_d1_30_cpu.sbatch (build | score | tests)"
+  tests: "tests/test_r7_d1_30.py: 18 CPU tests (evaluator semantics, freeze gate, set rules, synthetic end-to-end build with the production schemas, runner resume / anchor / markers, SelectorBank vs the frozen top-k and dynamic rules, SparseVLM counter and anchors, timing pools / bucketing / CIs, scorer incl. coverage guard / Holm / bootstrap identity, unit plan) — pass"
+  resume: "quality: per (configuration, item) appends; SparseVLM: per (row, item); completion markers per shard"
+
+driver:
+  file: slurm/r7_d1_30_submit.sh
+  gates: "freeze key in the protocol; D1-20 complete = lr_choice.json + the 15 units D1-30 uses (.pt and .json with dynamic taus)"
+  stages: "build (CPU, --wait) -> configurations + 23 GPU units below CAP 27 (12 quality, 7 SparseVLM, 3 timing on nodesumo01, 1 DEV risk) -> readout (CPU, --wait)"
+  failure_handling: "a unit whose job left the queue without its marker is resubmitted (resumable) at most 2 times, then STOP; squeue 'Invalid job id' after purge counts as gone; no afterok"
+  dry_run: "stubbed sbatch / squeue: unfrozen STOP, D1-20-incomplete STOP, full pass with one retry, STOP after retries — all as specified"
+
+coordinator_decisions_20261012:
+  fixed_before: "any D1-20 result and any D1-30 read"
+  D30-1: "S1 − SparseVLM: (a) budget-matched at 144 / 288 / 432 is the primary basis; (b) latency-matched at B = 1 is secondary.  No latency claim is made against SparseVLM at B* = 4 (its official code is batch-1 only).  The overall primary endpoint (quality at fixed latency at B* = 4) covers our pipeline rows"
+  D30-2: "SparseVLM adapted rows by the recommended rule (interpolation toward no-pruning + exact counter calibration; stop on counter mismatch); all four native official configurations 192 / 128 / 96 / 64 included as anchor rows"
+  D30-3: "qsim included as an extra untrained row; secondary contrasts only"
+  D30-4: "GQA DEV: DEV images from the frozen manifest; first 4 questions per image in the frozen sha256 order (binary + open), train_all minus LLaVA-seen pairs"
+  D30-5: "TextVQA: exclude by image (all questions on the 127 R7-20 images)"
+  D30-6: "dynamic budgets for S1–S3; A1 / A2 at fixed budgets"
+  D30-7: "quality runs: max_new_tokens 128 for GQA / TextVQA (LLaVA official eval) and 16 for ChartQA (pinned config) — a recorded deviation from the D1 protocol's generation block (16 / 16 / 32), made before any D1-30 read; the timing protocol keeps the frozen forced length (8 decode steps), so latency is unchanged"
+  D30-8: "batched generation (32, left padding) for our rows; SparseVLM batch 1; disclosed"
+  D30-9: "timing: the frozen 512-item subset at the primary B* = 4; 256 at B = 16 / 32; 64 at B = 1; a bootstrap CI of each row's median latency is reported and not propagated into the quality-at-latency interpolation (stated)"
+  timing_bucketing: "the two-stage timing of dynamic rows (arrival batches for vision + selection; full batches per kept-token bucket for assembly + LLM) is accepted as the implementation of the frozen 'batches bucketed by kept-token count (equal budget inside a batch)'; images are read and decoded before the clock, as in the frozen D1-10 timing"
+  nodesumo01: "the reference node has 2 GPUs shared with other users; the 3 timing units may queue there (accepted)"

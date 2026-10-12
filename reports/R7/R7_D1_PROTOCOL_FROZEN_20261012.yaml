@@ -372,3 +372,11 @@ d1_20_staged_freeze_20261012: >
   units = 18 training units; CAL-Spearman(r, h) selection kept with the disclosed asymmetry (it is S3's training target); native-criterion
   secondary logged and reported, never used for selection; fp32 explicit attention verified against fp64 on L40S and RTX PRO 6000; driver
   slurm/r7_d1_20_submit.sh with file gates, CAP 27).  Measured cost 1.9–3.9 GPU-h per unit (35–70 GPU-h in total).
+d1_30_staged_freeze: >
+  2026-10-12, coordinator: D1-30 frozen before any D1-20 DEV read and before any D1-30 run — reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml
+  (coordinator decisions D30-1 … D30-9; S1 − SparseVLM primary at matched budgets 144 / 288 / 432, latency-matched at B = 1 secondary, no
+  latency claim against SparseVLM at B* = 4; all four native SparseVLM anchors + adapted rows with the exact counter check; ChartQA evaluator
+  pinned to pix2struct 6fe25c1 relaxed_correctness; TextVQA minus every question on the 127 R7-20 images; generation 128 / 16 for quality runs
+  (recorded deviation), forced 8 decode steps for timing; timing pools 512 / 256 / 64 with bootstrap CIs of the medians; dynamic rows timed in
+  two stages as the implementation of "bucketed by kept-token count").  Smoke 1035097 (H100 NVL) and timing re-check 1035183 (L40S) pass;
+  the frozen D1-10 / D1-20 files are unchanged.  Driver slurm/r7_d1_30_submit.sh (waits for lr_choice.json and the 15 D1-20 units it uses).
