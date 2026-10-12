@@ -7,7 +7,7 @@
 # C  outputs/P128_* (withdrawn SimCLR partial runs): only the checkpoints (*.pt) go; configs, metrics, logs, sha256 and plots stay as the
 #    record.  The 236 untracked reports/**/*.partial.json are kept (owner decision).
 # D  finished smoke / check directories: only checkpoint and array files go (*.pt *.pth *.npy *.npz *.safetensors *.bin *.pkl); logs,
-#    manifests, JSON / YAML / text records and patches stay in place.  Smoke directories of runs still in development are not listed.
+#    manifests, JSON / YAML / text records and patches stay in place.  REG-P3's smoke / check directories were added after its report (2026-10-12).
 # Every deletion is appended to slurm_logs/cleanup_records.log.
 O=/home/infres/yinwang/CS_QMI/outputs; DATA=/projects/EEG-foundation-model/yinghao/data/av_mnist_multibench
 LOG=/home/infres/yinwang/CS_QMI/slurm_logs/cleanup_records.log; DEL=${DO_DELETE:-0}; total=0
@@ -31,7 +31,7 @@ for d in "$O"/P128_*; do [ -d "$d" ] || continue; s0=$total
 echo "== D  smoke / check directories (checkpoints and arrays only)"
 for d in R7_D1/d1_30_smoke R7_D1/train_smoke R7_D1/cache_smoke R6_GAIN/smoke R6_REG_cpu_smoke R6_REG_cpu_smoke2 R6_REG_P2_comir_check \
          R6_REG_P2_comir_check_reg R6_REG_P2_cpu_smoke R6_GAIN/superseded_image_roles R7_D1/d1_30_fix_staging R7_D1/d1_30_fix_staging_E2 \
-         R7_D1/d1_30_fix_staging_E3 R7_D1/data_provisional; do
+         R7_D1/d1_30_fix_staging_E3 R7_D1/data_provisional R6_REG/smoke R6_REG_P3_check R6_REG_P3_cpu_smoke R6_REG_P3_gpu_smoke; do
   [ -d "$O/$d" ] || { echo "   absent: $d"; continue; }; s0=$total
   while IFS= read -r -d '' f; do rmfile "$f"; done < <(find "$O/$d" -type f \( -name '*.pt' -o -name '*.pth' -o -name '*.npy' -o -name '*.npz' \
       -o -name '*.safetensors' -o -name '*.bin' -o -name '*.pkl' \) -print0)

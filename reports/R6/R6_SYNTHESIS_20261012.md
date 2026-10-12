@@ -97,3 +97,13 @@ no better than encode-once (−3.6 / −1.8; no detectable difference), so the p
 | REG-P2 | R6_REG_P2_PROTOCOL_FROZEN_20261012.yaml | 4120ca3, 4a73ae2 | 335bce1, e891be2 |
 | GAIN-P1 AV-MNIST | R6_GAIN_P1_PROTOCOL_FROZEN_20261012.yaml | 8abc5aa | 79fb495 |
 | GAIN-P1 CREMA-D | R6_GAIN_P1_CREMAD_PROTOCOL_FROZEN_20261012.yaml | 69e283b | 404a966, 29c3665 |
+
+## Addendum (2026-10-12) — REG-P3: the second modality pair (EPFL RGB–NIR)
+- Report `reports/R6/R6_REG_P3_REPORT_20261012.md`; results-only commit `2baf6c5`.
+- Both primary contrasts are detected at < 10.5 px: VCS − MI +5.5 points and VCS − CoMIR features +3.1 points.  VCS ≈ logistic ≈ InfoNCE.
+- Qualifiers:
+  - The margin is smaller than on BF/SHG, because every energy is more reliable on EPFL.
+  - About half of MI's failures are search failures under the shared optimiser.
+  - At < 2.25 px no difference from MI or CoMIR is detected.
+- The REG candidate statement now covers both pairs (wording in that report's §5).  There is still no VCS-specific advantage.  EPFL needs its
+  usage basis before publication (owner decision D5).
