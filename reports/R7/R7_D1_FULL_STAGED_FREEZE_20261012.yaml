@@ -30,3 +30,7 @@ decisions:
 units_and_budget: "teacher on 240,827 new questions (18 GPU-h H100 – 34 GPU-h L40S) + cache about 1.5 + 18 selector units 37–44 + evaluation 10–17 + timing 3–4.5 on nodesumo01 ≈ 70–101 GPU-h; storage about 48 GB under outputs/R7_D1_FULL (/home)"
 launch: "DEVRISK=0 nohup setsid bash slurm/r7_d1full_submit.sh  (PCA_BASIS=fitfull and TIMING=1 by default; CAP 27; stop by PID)"
 readout: "scripts/r7_d1full_score.py, run by the coordinator only after the D1-30 readout"
+execution_note_df_1: >
+  2026-10-12 ~20:40 UTC, coordinator: queue order changed from "natural submission order" (DF-10) to D1-FULL last: pending D1-FULL jobs
+  (names ^r7dF) get Nice 100 (slurm/nice_filler.sh, PAT='^r7dF' NICE=100), so the owner-approved R7-50 test run and R7-40b's units start
+  before D1-FULL's long teacher backlog on the shared L40S.  Ordering only; no unit, setting or analysis changes.
