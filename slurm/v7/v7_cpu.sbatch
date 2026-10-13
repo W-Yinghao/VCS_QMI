@@ -25,6 +25,7 @@ case "$what" in
                $BIG/n0/work/dataset/train_mask.json $BIG/smoke/n0_work/dataset/train_mask.json; rc=$?
            fi;;
   rank-inputs) $PY scripts/v7/v7_genai.py rank-inputs --out $O/data; rc=$?;;
+  seal-rank) $PY scripts/v7/v7_genai.py seal-rank --out $O/data --approved-by "$1"; rc=$?;;    # owner-approved sealed split of human_rating.json
   *) echo "usage: tests | genai-prompts | audit | n0-prep | rank-inputs"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc

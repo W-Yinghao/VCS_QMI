@@ -26,8 +26,9 @@ $E/bin/pip freeze > $E/FREEZE.txt
 cd /tmp && PATH=$E/bin:$PATH $E/bin/python -I - <<'PY'
 import torch, transformers, numpy
 print("torch", torch.__version__, "| transformers", transformers.__version__, "| numpy", numpy.__version__)
-import t2v_metrics
-from t2v_metrics.models.vqascore_models.clip_t5_model import CLIPT5Model, CLIP_T5_MODELS, default_question_template, default_answer_template
-print("t2v_metrics import ok:", t2v_metrics.__file__); print("clip-flant5-xxl:", CLIP_T5_MODELS["clip-flant5-xxl"]); print("templates:", default_question_template, "|", default_answer_template)
+import sys; sys.path.insert(0, "/home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7")
+from v7_vqascore import import_clip_t5
+CT, root = import_clip_t5()
+print("CLIP-T5 path import ok:", root); print("clip-flant5-xxl:", CT.CLIP_T5_MODELS["clip-flant5-xxl"]); print("templates:", CT.default_question_template, "|", CT.default_answer_template)
 PY
 rc=$?; date -u; echo "ENV_DONE rc=$rc"; exit $rc

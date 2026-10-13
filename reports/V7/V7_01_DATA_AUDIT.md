@@ -142,3 +142,7 @@ FIT prior (prompt → image → element uniform): π = 0.5712 over all main elem
 
 max 85, p99 51; over 32 tokens: 1,428 of 26,177 (the native 32-token cut); over 128: 0; over 512: 0.  Fast vs model (slow) tokenizer id mismatches: 0.
 
+## 6. N0 native preparation (FGA's own scripts on FIT)
+
+FIT records in: 26,177; kept by the native element-to-token mapping: 26,177; dropped (any element without an exact token match): 0; native counts: {"prompts_over_32_tokens": 1428, "records": 26177, "unmatched_elements": 0}.
+
