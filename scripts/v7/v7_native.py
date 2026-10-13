@@ -72,6 +72,20 @@ def cmd_stage(a):
     print(json.dumps({"dest": str(dest), "roles": a.roles, "images": len(want), "extracted_now": n, "seconds": time.time() - t0})); return 0
 
 
+def cmd_stage_list(a):
+    """Extract exactly the TRAIN images named (img_path) in the given native annotation / eval files to DEST/<generator>/<file>."""
+    want = set()
+    for f in a.from_files:
+        want |= {r["img_path"] for r in json.loads(Path(f).read_text())}
+    dest = Path(a.dest); z = VD.open_archive(); t0 = time.time(); n = 0
+    for img in sorted(want):
+        out = dest / img
+        if out.exists():
+            continue
+        out.parent.mkdir(parents=True, exist_ok=True); tmp = out.with_suffix(out.suffix + ".part"); tmp.write_bytes(z.read(VD.ZIP_PREFIX + img)); os.replace(tmp, out); n += 1
+    print(json.dumps({"dest": str(dest), "images": len(want), "extracted_now": n, "seconds": time.time() - t0})); return 0
+
+
 def cmd_stage_rank(a):
     """GenAI-Rank candidates (genai_rank_inputs.jsonl: candidate_index 0..8 only) extracted from DALLE_3.zip / SDXL_Base.zip to DEST/<generator>/<file>."""
     import zipfile
@@ -109,10 +123,11 @@ def main(argv=None):
     y.add_argument("--out-dir", required=True); y.add_argument("--max-epoch", type=int, default=0)
     s = sub.add_parser("stage"); s.add_argument("--dest", required=True); s.add_argument("--roles", nargs="+", required=True); s.add_argument("--data-dir", default=str(VC.DATA_OUT))
     e = sub.add_parser("evalset"); e.add_argument("--roles", nargs="+", required=True); e.add_argument("--out", required=True); e.add_argument("--data-dir", default=str(VC.DATA_OUT))
+    sl = sub.add_parser("stage-list"); sl.add_argument("--dest", required=True); sl.add_argument("--from", dest="from_files", nargs="+", required=True)
     sr = sub.add_parser("stage-rank"); sr.add_argument("--dest", required=True); sr.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
     er = sub.add_parser("evalset-rank"); er.add_argument("--out", required=True); er.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
     a = ap.parse_args(argv)
-    return {"prep": cmd_prep, "yaml": cmd_yaml, "stage": cmd_stage, "evalset": cmd_evalset, "stage-rank": cmd_stage_rank, "evalset-rank": cmd_evalset_rank}[a.cmd](a)
+    return {"prep": cmd_prep, "yaml": cmd_yaml, "stage": cmd_stage, "evalset": cmd_evalset, "stage-rank": cmd_stage_rank, "evalset-rank": cmd_evalset_rank, "stage-list": cmd_stage_list}[a.cmd](a)
 
 
 if __name__ == "__main__":

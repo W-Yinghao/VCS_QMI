@@ -30,18 +30,20 @@ case "$what" in
      if [ "$what" = smoke-n0 ]; then seed=17; unit=smoke_n0; ep=1; W=$BIG/smoke/n0_work; else seed="$1"; unit="$2"; ep=0; W=$BIG/n0/work; fi
      [ -f $W/dataset/train_mask.json ] || { echo "missing $W/dataset/train_mask.json (run the CPU n0-prep first)"; exit 3; }
      L=$(local_dir) || { echo "no node-local space >= 60 GB for the N0 images"; exit 4; }; mkdir -p $L; trap "rm -rf $L" EXIT
-     roles="FIT CAL_SELECT CAL_PROB DEV"; [ "$what" = smoke-n0 ] && roles="FIT CAL_SELECT"
-     $PY scripts/v7/v7_native.py stage --dest $L/images --roles $roles || exit 5
-     U=$BIG/units/$unit; mkdir -p $U; $PY scripts/v7/v7_native.py yaml --work $W --images $L/images --seed $seed --out-dir $U --max-epoch $ep || exit 6
+     U=$BIG/units/$unit; mkdir -p $U; evroles="CAL_SELECT CAL_PROB DEV"; [ "$what" = smoke-n0 ] && evroles="CAL_SELECT"
+     for role in $evroles; do
+       $PY scripts/v7/v7_native.py evalset --roles $role --out $U/evalset_$role.json || exit 7
+       [ "$what" = smoke-n0 ] && $PY -c "import json,sys; d=json.load(open(sys.argv[1])); json.dump(d[:20], open(sys.argv[1],'w'))" $U/evalset_$role.json
+     done
+     $PY scripts/v7/v7_native.py stage-list --dest $L/images --from $W/dataset/train_mask.json $(for r in $evroles; do echo $U/evalset_$r.json; done) || exit 5
+     $PY scripts/v7/v7_native.py yaml --work $W --images $L/images --seed $seed --out-dir $U --max-epoch $ep || exit 6
      R=$BIG/n0/run_$unit; mkdir -p $R; ln -sfn /projects/EEG-foundation-model/yinghao/models/bert-base-uncased $R/bert-base-uncased; cd $R
      PORT=$(( 20000 + SLURM_JOB_ID % 20000 )); $E/bin/python -m torch.distributed.run --nnodes=1 --nproc_per_node=1 --master_port=$PORT \
         /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_native_launch.py train.py --cfg-path $U/fga_blip2_unit.yaml; rc=$?
      cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7
      if [ $rc -eq 0 ]; then
        CK=$(ls -t $U/*/checkpoint_*.pth | head -1); echo "native checkpoint (last epoch): $CK"
-       for role in $([ "$what" = smoke-n0 ] && echo CAL_SELECT || echo CAL_SELECT CAL_PROB DEV); do
-         $PY scripts/v7/v7_native.py evalset --roles $role --out $U/evalset_$role.json || exit 7
-         [ "$what" = smoke-n0 ] && $PY -c "import json,sys; d=json.load(open(sys.argv[1])); json.dump(d[:20], open(sys.argv[1],'w'))" $U/evalset_$role.json
+       for role in $evroles; do
          (cd $R && $E/bin/python -I /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_native_launch.py eval.py --data_file $U/evalset_$role.json \
             --save_path $U/native_eval_$role.json --model_path "$CK" --dataset_dir $L/images/) || { rc=8; break; }
        done
