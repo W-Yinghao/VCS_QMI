@@ -1,6 +1,7 @@
 # V7-03 execution notes (dated; each note is written before the event it governs)
 
-## n1 — 2026-10-14 ~00:10 UTC: DEV metrics written as a by-product of the M-arm export (before any M unit has started)
+## n1 — 2026-10-14 ~00:10 UTC: DEV metrics written as a by-product of the M-arm export (before any export has run: the first two tuning
+## units had been training for ~11 min; an export follows ~1.4 h of training)
 `v7_train.py export` (run inside every M unit's job after training) calls the shared `evaluate()` for CAL_SELECT, CAL_PROB and DEV, so it
 writes DEV metrics into `<unit>/pred/export.json` and prints a DEV natural Brier line into the unit's job log.  The frozen protocol says no
 DEV label is read before all 12 formal units and every export exist.  Rule from now on (no code change: the code is frozen and every job
