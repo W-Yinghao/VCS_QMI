@@ -47,3 +47,9 @@ execution_note_df_3: >
   '^r7dF' was stopped and the pending evaluation units set back to Nice 0; the backfill extensions (E1, E2) keep Nice 300 and run under the
   backfill guard (emulated submission cap 20).  Ordering only.  Recorded alongside: D1-FULL's evaluation stays on H100,L40S as frozen — its
   SparseVLM environment (torch 2.1.2+cu121) cannot run on the Blackwell RTX PRO 6000 cards.
+execution_note_df_4: >
+  2026-10-13 ~18:00 UTC, coordinator: the D1-FULL evaluation unit chartqa_val shard 1 (job 1037810, L40S node52) stopped on CUDA
+  out-of-memory after 352 of 963 items (44.26 of 44.39 GiB in use; the process grows over the shard).  Its automatic retry (and any retry of
+  chartqa_val shard 0, still running on L40S) is moved to H100 (94 GB) by slurm/part_updater.sh (PAT ^r7dFq_chartqa, PART H100); the runner
+  resumes per (configuration, item), so answers already written are kept.  RTX PRO 6000 is not an option (the SparseVLM environment cannot run
+  on Blackwell).  No unit, row or analysis changes.
