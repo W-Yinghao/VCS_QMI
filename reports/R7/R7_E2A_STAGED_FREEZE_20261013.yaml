@@ -73,3 +73,7 @@ execution_note_e2a_7: >
   a GPU-type numeric difference relative to R7-40a's L40S records (the reused CAL shards and the 10k FIT of R7-40b).  Every bundle marker
   records its GPU; the E2 report states the GPU-type mix of the FIT records.  The frozen teacher code has no GPU-type gate in bundle mode (only
   the timing mode requires the H100 reference), and the same Qwen host ran on H100 (R7-40a timing) and RTX PRO 6000 (R7-40c smoke).
+execution_note_e2a_8: >
+  2026-10-13 15:46 UTC, coordinator: slurm/after_e2_teacher.sh waits until all 36 teacher bundle markers exist and no r7e2t_ job is queued, then
+  relaunches the frozen teacher driver once (CAP 20) for its completeness step (note e2a_6); the grouped rest driver (note e2_1) waits for that
+  completeness file exactly as the frozen rest path does.
