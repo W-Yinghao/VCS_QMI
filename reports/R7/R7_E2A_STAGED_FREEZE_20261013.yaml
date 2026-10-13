@@ -66,3 +66,10 @@ execution_note_e2a_6: >
   The teacher driver (PID 3093419) was stopped and its 6 pending bundles cancelled before starting (none was running); the groups are fed by
   slurm/feed_gated.sh (CAP 24) at Nice 300.  When all 36 bundle markers exist, the teacher driver is relaunched once (it skips every bundle by
   its marker and runs the frozen R7-40a completeness step that the E2 rest driver waits for).
+execution_note_e2a_7: >
+  2026-10-13 15:39 UTC, owner decision (asked why so much ran on L40S only; chose to open the teacher to other GPU types): E2a-3 is relaxed —
+  the teacher group jobs r7e2t_g1..g7 may run on L40S, H100 or RTX PRO 6000 (slurm/part_updater.sh PAT ^r7e2t_g).  Disclosed cost: bf16
+  P(yes) differs between GPU types by up to 0.054 (frozen R7-40a probe note S1d, L40S vs H100 NVL), so part of E2's FIT teacher targets carry
+  a GPU-type numeric difference relative to R7-40a's L40S records (the reused CAL shards and the 10k FIT of R7-40b).  Every bundle marker
+  records its GPU; the E2 report states the GPU-type mix of the FIT records.  The frozen teacher code has no GPU-type gate in bundle mode (only
+  the timing mode requires the H100 reference), and the same Qwen host ran on H100 (R7-40a timing) and RTX PRO 6000 (R7-40c smoke).
