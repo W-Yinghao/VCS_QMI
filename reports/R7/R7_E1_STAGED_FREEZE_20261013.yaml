@@ -39,3 +39,9 @@ execution_note_e1_2: >
   GATE 10; Nice 300 via nice_filler).  The automatic start (slurm/after_e1_smokes.sh) did not fire for MMTok because it read only the first
   line of the multi-line SMOKECHECK JSON (empty verdict = hold); fixed for HiPrune (full JSON, ms_median rate check, FlashAttention2 required
   on both attention classes under D-E1-4).
+execution_note_e1_3: >
+  2026-10-13 12:57 UTC, coordinator: HiPrune validation smoke (job 1037517, node52, L40S, code 519635f47ebbe9c0, HiPrune 8278100,
+  transformers 4.52.0) passed: 16 rows per benchmark, 0 dropped / blank / duplicate lines, kept == rule on all 32 items (mean kept fraction
+  0.2495 / 0.2502), FlashAttention2 in the vision blocks and the LLM (so D-E1-4's fallback is not needed: FA2 works on L40S), peak 15.6 / 16.8 GB,
+  steady-state per-item median 0.104 s (GQA; estimate 0.19) and 0.223 s (ChartQA; estimate 0.36) — planned limits stand.  HiPrune's 12 frozen
+  unit lines were fed at 12:57 UTC by slurm/after_e1_smokes.sh (feed_gated.sh, CAP 27, GATE 10; Nice 300).
