@@ -23,7 +23,7 @@ echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=c
 case "$what" in
   bundle) $E/bin/python scripts/r7_d1full_teacher.py bundle "$1" --manifest-dir "$DF/data" --out "$DF/teacher" --probe-report "$DF/smoke/probe/probe_report.json"; rc=$?;;
   cache) $E/bin/python scripts/r7_d1full_cache.py --manifest-dir "$DF/data" --out "$DF/cache" "$@"; rc=$?;;
-  eval) $E/bin/python scripts/r7_d1_30_run.py --sets-dir "$D1/d1_30/sets" --bench "$1" --configs-file "$DF/d1_30/configs/configs_$1.txt" --shard "$2" \
+  eval) PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True $E/bin/python scripts/r7_d1_30_run.py --sets-dir "$D1/d1_30/sets" --bench "$1" --configs-file "$DF/d1_30/configs/configs_$1.txt" --shard "$2" \
           --out "$DF/d1_30/pred" --selectors-dir "$DF/selectors" --pca "$DF/cache/pca.pt"; rc=$?;;
   devrisk) grep -q 'd1_full_staged_freeze' "$P" || { echo "D1-FULL not frozen"; exit 3; }
            $E/bin/python scripts/r7_d1_30_devrisk.py --out "$DF/d1_30/devrisk" --protocol "$P" --lr-choice "$DF/selectors/lr_choice.json" \

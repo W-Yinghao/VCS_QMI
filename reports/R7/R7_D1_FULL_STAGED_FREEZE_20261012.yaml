@@ -53,3 +53,10 @@ execution_note_df_4: >
   chartqa_val shard 0, still running on L40S) is moved to H100 (94 GB) by slurm/part_updater.sh (PAT ^r7dFq_chartqa, PART H100); the runner
   resumes per (configuration, item), so answers already written are kept.  RTX PRO 6000 is not an option (the SparseVLM environment cannot run
   on Blackwell).  No unit, row or analysis changes.
+execution_note_df_5: >
+  2026-10-13 18:58 UTC, coordinator (owner: shorten GPU waiting; both H100 nodes full, 0 free cards): the chartqa_val shard 1 retry
+  (job 1038184, which resumes at item 352 of 963) may again run on L40S as well as H100.  The out-of-memory stop of note df_4 was gradual
+  growth with fragmentation (a 174 MiB request failed with 39 GiB allocated and about 5 GiB reserved but unallocated), so the evaluation mode of
+  slurm/r7_d1full_gpu.sbatch now sets PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (allocator layout only, no numerical effect — as DF-11
+  for the selectors; supported by the SparseVLM env's torch 2.1.2).  SLURM keeps each job's script from submission, so this applies to any
+  later resubmission (the driver's last retry if needed), not to job 1038184; an L40S attempt that stops again still keeps its answers.
