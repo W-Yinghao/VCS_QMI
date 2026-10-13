@@ -1,0 +1,247 @@
+# R7-40c — evaluation stage of the R7-40 cross-host confirmation of r7 D1 on Qwen2.5-VL-7B-Instruct: PROTOCOL DRAFT for the coordinator's
+# staged freeze.  Nothing here is frozen.  Nothing has run except the CPU tests and the smokes listed under provenance, on non-sealed data only
+# (the R7-20 fixtures, a ChartQA TRAIN subset, the R7-40b smoke selectors).  Written before any D1-30, D1-FULL, R7-40b or R7-50 result,
+# prediction or score was read, before any Qwen DEV teacher record existed, and without opening any official test file.  The design is the
+# frozen D1-30 design (reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml with execution notes E1–E3) with only the host-interface changes below.
+protocol_id: R7-40c
+status: draft_for_staged_freeze      # freeze key 'r7_40c_staged_freeze' in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (driver gate 0; the scorer refuses without it)
+date: 2026-10-13
+parents:
+  - "reports/R7/R7_40_PROTOCOL_DRAFT_20261012.yaml: R7_40c_evaluation_outline and open_decisions.for_40c (OPEN-R740-6 external method, OPEN-R740-7 prompts, generation, primary family)"
+  - "reports/R7/R7_40A_STAGED_FREEZE_20261012.yaml: D40a-1 (DEV yes / no-mass QC line at 40c), D40a-4 (teacher GPU class L40S), D40a-5 (DEV teacher passes deferred to 40c), D40a-7 (Qwen's own B* from the reference timing, used at 40c), OPEN-R740-8 confirmed"
+  - "reports/R7/R7_40B_STAGED_FREEZE_20261012.yaml: D40b-4 (64 × 64 position tables, 'DEV checked at 40c'), D40b-5 (nominal fractions in the dynamic rule); execution notes 40b_1 / 40b_2"
+  - "reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml + reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (D1_30, latency_regime, E1–E3)"
+  - "reports/R7/R7_50_PROTOCOL_FROZEN_20261012.yaml (phase Q declared; its addendum: reports/R7/R7_50_PHASE_Q_ADDENDUM_DRAFT_20261012.yaml)"
+
+scope_rules:
+  - "the frozen D1-30 evaluation on the second host: same sets, budget grid (as fractions of each image's own token count), dynamic operating points, latency design, evaluators and statistics; only the host interface differs (R7-40a, frozen)"
+  - "selectors are the frozen R7-40b units: CAL-chosen rates, CAL-selected checkpoints, gates trained with fixed steps, CAL dynamic taus; nothing is selected on GQA DEV, TextVQA val or ChartQA val"
+  - "S1 (VCS) is the method under test (owner I1); S2 (logistic) and S3 (direct risk) are the same-information controls; the uniform grid is the training-free control"
+  - "claims are limited to the LLM side: Qwen's vision encoder always runs in full (62–70 % of batch-1 wall time in R7-20); every latency row prints its vision share"
+  - "an external Qwen method appears only as a separate host column, never as a same-condition head-to-head (owner I1)"
+  - "official test splits stay closed; Qwen test rows belong to R7-50 phase Q under its own addendum"
+
+# ------------------------------------------------------------------------------------------------------------------------------ host
+host_and_generation:
+  host: "Qwen/Qwen2.5-VL-7B-Instruct@cc594898, bf16, SDPA, AutoProcessor min_pixels 256·28², max_pixels 1280·28² (the R7-20 / R7-40 setting); env /projects/EEG-foundation-model/yinghao/envs/vl_baselines (torch 2.9 cu128, transformers 4.57.6); weights staged to node-local disk once per job; python -I"
+  host_interface: >
+    The frozen R7-40a interface (scripts/r7_d1_40_host.py): selection after the token merger, before the LLM; kept merged tokens spliced in raster
+    order between the chat-template text before / after the image placeholder; every kept token keeps its official 3-D rotary id from get_rope_index
+    on the FULL sequence, every text token its full-sequence position; decoding continues at max position + 1 on all three axes.  The runner checks
+    that the processor's pixel bounds, patch size and merge size are the frozen ones and that each image's merged grid from its header (smart_resize,
+    a verbatim copy tested against transformers' function) equals the encoder's (any mismatch stops the unit).
+  prompts_OPEN_R740_7: >
+    DECIDED (decision 2): the D1-30 pinned prompt of each item ('prompt' of the frozen set files) as the user text after the image in the Qwen
+    chat template (the shipped template adds the system prompt 'You are a helpful assistant.'): GQA / TextVQA question + '\nAnswer the question using
+    a single word or phrase.' (no OCR tokens: Qwen's published TextVQA number uses none, as did the R7-20 Qwen run); ChartQA query + '\nAnswer the
+    question with a single word.' (pinned lmms-eval 19085f3).  No OCR-anchor row (LLaVA-only).  (Qwen's own evaluation prompts were the
+    alternative not taken.)
+  generation: >
+    Greedy with the shipped repetition penalty 1.05 (QwenCore.generate, frozen; equal to HF generate on a tiny Qwen2.5-VL in single and left-padded
+    batches, R7-40a CPU test; S5 / S5b on the real model), left-padded batches of 32 (D30-8 analogue), max_new_tokens 128 (GQA, TextVQA) / 16
+    (ChartQA) as D30-7.  Every answer records n_new and hit_max (cut at max_new_tokens without an eos).
+  computation_order: >
+    Implementation, not design: one vision-tower call per image (the official path's call), so an image's merged tokens do not depend on chunking;
+    a shard's items (the D1-30 sharding by image group, r7_d1_30_run.load_items) are sorted by the image's merged-token count, then D1-30 group
+    order, then qid (less padding per generation batch; deterministic), then processed in chunks of 32 items, every configuration of a chunk in the
+    same job (paired rows share the GPU and the chunk); selector forwards are per item without padding, so a selection does not depend on chunking,
+    batch composition or a resume.  Generation batches depend on the chunk, as in D1-30 (bf16).
+  batching_noise_disclosed: >
+    bf16 batching changes a few answers on Qwen (LLaVA's fp16 batched path reproduced the official answers on 200 / 200 GQA fixture items in
+    D1-10): in the smoke the production batch-32 path matched the official batch-1 HF path
+    on 200 / 200 GQA, 197 / 200 TextVQA and 62 / 64 ChartQA-train full-row answers, and batch 1 on 98.0–100 % of pruned-row answers; at batch 1
+    the spliced path equals HF generate exactly (100 % on full and pruned rows).  Every row of an item is generated in the same chunk and job, so
+    paired contrasts share the regime; the S5 threshold (98 %) is met on GQA (R7-40a) and is borderline on the small ChartQA subset; the batch-1
+    official full-row anchor (decision 15) measures the batching effect on every item of the three sets.
+  answers_and_images: "the runner never holds an answer (answer / answers / label stripped on load; only the scorer reads them); images only from each item's image_file (GQA: the extracted folder; TextVQA / ChartQA: the bytes written by the D1-30 build); a missing file stops the unit (no archive fallback, no skip)"
+
+evaluation_sets:
+  sets: "the frozen D1-30 sets unchanged: outputs/R7_D1/d1_30/sets/{gqa_dev,textvqa_val,chartqa_val}.jsonl with the build summary d1_30_sets.json (sha256 per set re-checked by stage 0)"
+  counts: "gqa_dev 7,986 items / 2,000 images (all question types, binary 6,473); textvqa_val 4,799 / 3,039 (5,000 minus the 201 questions on the 127 R7-20 images, which Qwen also read in R7-20); chartqa_val 1,920 / 1,056 charts (human 960, augmented 960) — counts from the build summary only"
+  merged_tokens_per_item: "pre-freeze header check (gridcheck job 1036522; image headers only, no answer, nothing decoded): GQA DEV mean 312.6, median 280, p90 324, range 260–1,258; TextVQA val mean 963.4, median 999, p90 1,221, range 333–1,260; ChartQA val mean 600.1, median 580, p90 630, range 256–1,276; every image present; merged-grid maxima 37 × 41 / 43 × 41 / 54 × 31 (none beyond the selectors' 64 × 64 tables)"
+  evaluators: "unchanged (r7_d1_30_score.item_scores): GQA exact match after LLaVA convert_gqa_for_eval normalisation; TextVQA m4c soft accuracy; ChartQA relaxed accuracy pinned to pix2struct 6fe25c1 (ChartQA combined primary, human / augmented secondary)"
+  groups: "image (GQA, TextVQA), chart (ChartQA)"
+  exposure: "Qwen2.5-VL's training data is undisclosed; GQA / TextVQA / ChartQA train (and possibly val) exposure assumed and disclosed (frozen D1 protocol); DEV images are GQA train images"
+
+budgets:
+  rule: "fractions f of each image's own N merged tokens: k(f, N) = max(1, floor(f·N + 1/2)), f ∈ {0.125 (stress point, never primary), 0.25, 0.5, 0.75}; f = 1 is the full pass (r7_d1_40_masks.budget, frozen)"
+  nesting: "within a mechanism the kept sets are nested (prefixes of one ordering); selector top-k sets at increasing k are nested by construction"
+
+# ------------------------------------------------------------------------------------------------------------------------------ rows
+rows:
+  grammar: "scripts/r7_d1_40c_plan.py: full | static:<grid|random|qsim>:<f> | sel:<unit>:<f> | dyn:<unit>:<op>; unit tags <objective>_lr<chosen rate>_s<seed> from R7-40b's lr_choice.json"
+  core_implemented_default: >
+    50 per benchmark (the coordinator's 40c task list): full; static:grid at 0.125 / 0.25 / 0.5 / 0.75 (the frozen D1-10 grid mechanism on the
+    image's merged grid, qid-seeded stream 'r7-40/d1-mask'); sel: S1 VCS / S2 logistic / S3 direct × seeds 0-2 × the four fractions (hard top-k
+    of the unit's gate logits over the image's tokens, the R7-40b deployment rule); dyn: S1 × seeds 0-2 × CAL operating points 0.25 / 0.5 / 0.75
+  extended_options_OPEN_R740C_1: "static (+ random / qsim × 4 = 58), dynamic (+ S2 / S3 dynamic × 3 seeds × 3 = 68), all (76 = the R7-40 protocol outline and the D1-30 mirror minus A1 / A2)"
+  dynamic_rule: >
+    Per item the smallest f in {0.125, 0.25, 0.5, 0.75, 1} whose top-k mask has predicted risk r(K) <= tau_op, tau_op fixed on CAL by R7-40b for the
+    mean kept fraction op (r7_d1_40_selectors.dynamic_tau40, nominal fractions, D40b-5); f = 1 is the full row.  CPU test: the runner's per-item
+    risks equal r7_d1_40_selectors.risk_grid on the same items (atol 1e-5) and the choice equals its rule.
+  diagnostic_row: "full_official (decision 15): the full row through the official HF generate at batch 1 — not one of the 50 rows, outside every family and contrast, reported next to the batched full row"
+  not_run: "text-only (D1-30 has no text-only row; the text-only pass is a D1-10 teacher diagnostic, already in the R7-40a records), OCR anchor (LLaVA-only), A1 / A2 (no Qwen ablations, R7-40 scope), SparseVLM (official code is LLaVA-only), random / qsim and S2 / S3 dynamic (decision 1)"
+  selector_inputs: "the R7-40b PCA (outputs/R7_D1/r7_40/cache/pca.pt, fitted on FIT) applied exactly as the feature cache (fp32 centre-and-project of the bf16 merged tokens, rounded to fp16; CPU test bit-equal), the Qwen input embeddings of the raw question (no special tokens), row / column indices of the merged grid; a grid beyond the 64 × 64 tables stops the unit (D40b-4)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ latency
+latency:
+  reference_gpu: "NVIDIA H100 NVL on nodesumo01 only (--partition=H100 --nodelist=nodesumo01; the code refuses another GPU)"
+  b_star: >
+    Qwen's own B* from the R7-40a reference timing report (outputs/R7_D1/r7_40/timing/timing_report.json; rule and pool-of-batches procedure
+    pre-declared in the R7-40 draft and hash-checked; the indicative L40S value 16 is not used).  It is measured ONCE, by the pending R7-40a job
+    1035608 (r7d40_timing, first in line for nodesumo01; decision 14: BSTAR=report): the 40c timing bundle is gated on that report and reuses it,
+    never re-measuring.  (The implemented alternative BSTAR=in_bundle, which would run the identical frozen procedure first inside the bundle and
+    which the driver refuses while r7d40_timing is queued, is not used.)  The timing code and the scorer
+    refuse a report not measured on NVIDIA H100 NVL / nodesumo01.  No B* -> OPEN-R740-8 (confirmed at the 40a freeze): primary at fixed
+    fractions, no acceleration claim.
+  one_job_on_the_reference_node: >
+    Owner rule 2026-10-13 (relayed by the coordinator): units that must run on one specific node run as ONE job, back-to-back, so that other
+    users' jobs cannot slip in between.  Every nodesumo01 unit of R7-40c is one bundle job (slurm/r7_d1_40c_gpu.sbatch timing_bundle; one host
+    load): part 0 Qwen's B* (reused or measured as above), parts 1-3 the timing rows of gqa_dev, textvqa_val and chartqa_val, each benchmark's
+    timing file written when its part ends, then ONE bundle marker eval_40c/timing/timing_bundle.done.json (parts, status, sha256, seconds, GPU,
+    node, job).  The driver waits on that marker only; a failure inside the bundle is retried as the whole bundle (a part whose file an earlier
+    attempt already wrote is kept and listed as such; B* is never re-measured).  --time = the sum of the parts plus margin (see budget).
+  subset_and_pools: "D30-9 on Qwen: the first 512 items of each benchmark in the frozen D1-30 timing order (r7_d1_30_timing.timing_items); all 512 at the primary batch (B*, or 4 when there is no B*), the first 256 at the other B >= 4, the first 64 at B = 1 (OPEN-R740C-6)"
+  measured_per_batch: "CUDA-synchronised; images opened and decoded before the clock: vision (image processor + one batched tower call), select (grid / random ordering, qsim scoring, or question ids + embeddings + PCA + one batched selector forward with padded keys + top-k; 0 for full), assemble (chat-template segments, embeddings, full-sequence 3-D rotary ids, pruning, splicing), prefill (separate prefill-only pass, TTFT), llm (prefill + 7 decode forwards = 8 forced new tokens, min_new_tokens = max_new_tokens = 8)"
+  per_item_latency: "fixed rows: (vision + select + assemble + llm) / B per batch, median and P95 over batches, bootstrap CI of the median (2,000 over batches; reported, not propagated); dynamic rows: D1-30's two stages with the bucket = chosen nominal fraction (Qwen's N varies per image, so 'equal kept-token count inside a batch' becomes 'equal budget fraction inside a batch'; OPEN-R740C-6): stage 1 arrival batches (vision + selection), stage 2 per fraction bucket full batches of B (cycled) for assemble + llm; per-item = median stage 1 + Σ_f w_f · median stage 2"
+  rows_timed: "full, every static row, the representative unit (S1 seed 0) at the four fractions (all units share the architecture and cost; every sel row takes its latency, as D1-30), every dynamic row; reported per row: per-item median / P95 / CI, TTFT, decode ms per token ((llm − prefill) / 7; D1-30 divided by 8), peak memory, mean visual tokens, mean kept fraction, vision share"
+  batched_selection: "the timed selection is the efficient batched form (QwenSelectorBank.select_batch); CPU test and GPU smoke (d): it keeps exactly the runner's per-item sets"
+
+# ------------------------------------------------------------------------------------------------------------------------------ statistics
+statistics:
+  primary_family: "S1 − S2, S1 − S3 and S1 − uniform grid × 3 benchmarks = 9 contrasts per point; Holm over 9 per point (decision 5).  S1 − grid takes the slot that S1 − SparseVLM holds in D1-30's LLaVA family (SparseVLM's official code is LLaVA-only); the cross-host replication claim rests on the shared S1 − S2 and S1 − S3"
+  primary_points: "Qwen has a B*: L25 / L50 / L75 = uniform-grid 0.25 / 0.5 / 0.75 per-item latencies at B* (quality at fixed measured latency; seed mean of per-seed interpolated qualities, curves include full).  No B*: fixed fractions 0.25 / 0.5 / 0.75 (seed-mean per-item scores, paired)"
+  resampling: "image / chart-grouped paired bootstrap, 2,000 replicates shared by every statistic of a benchmark (r7_d1_30_score.Boot, seed 0)"
+  seeds: "per-seed contrasts with their own CI; seed mean ± sd; the p-value entering Holm is the group bootstrap of the seed-averaged contrast (seeds fixed); two-sided with +1 correction (D1-30)"
+  secondary: >
+    every family at L25 / L50 / L75 for B = 1 / 4 / 16 / 32; the fixed-fraction contrasts incl. the 0.125 stress point (and the latency contrasts at
+    B = 4 when there is no B*); S1 − random / qsim when those rows run; A3 (S1 dynamic − fixed at the dynamic row's realised mean kept fraction, fixed
+    curve interpolated in kept fraction, per operating point; S2 / S3 too when their dynamic rows run); fixed-fraction table (quality with CI,
+    absolute / relative retention, mean visual tokens, mean kept fraction, answers cut at max_new_tokens); latency to stay within 1.0 point of full at
+    the primary batch; preserve / correct / break when full is wrong / right; dynamic fraction distribution; GQA structural types; ChartQA human /
+    augmented; integrity (dropped / blank lines, duplicates, files per configuration)
+  cross_host_reading: "descriptive only: sign and size of S1 − S2, S1 − S3 and S1 − grid on LLaVA (D1-30) and Qwen side by side (scorer option --d1-30-results, the coordinator's step after reading D1-30); no pooling, no cross-host test"
+  coverage_guard: "the readout stops unless every configured row covers exactly the benchmark's items (first complete record per qid; E1 counts)"
+  claims_not_made: "no equivalence / non-inferiority claim (no margin); no acceleration claim without B*; no claim about the vision encoder's cost"
+  scorer_gates: "refuses without 'r7_40c_staged_freeze' in the frozen protocol; refuses a timing report not from the reference GPU / node, a B* that differs between the report and the 40c timing files, a missing timing file when there is a B*; never overwrites a readout (re-verification writes to a new directory)"
+
+dev_secondaries_OPEN_R740C_9:
+  teacher: "the two sealed DEV bundles b012 / b013 of the frozen D1 shard plan (2,000 images, 7,986 questions) with the frozen R7-40a teacher code (--allow-dev, its first use; launch gates = frozen manifest + passing probe report), on the R7-40a GPU class (L40S, D40a-4), into the R7-40a teacher directory"
+  completeness: "DEV shards' done-records complete, manifest sha256 unchanged -> eval_40c/devrisk/dev_completeness.json (the R7-40a CAL / FIT completeness file is never touched)"
+  qc: "the DEV yes / no-mass QC line promised by D40a-1 (minimum and counts below 0.9 / 0.5 for the full and masked passes; low-mass items by GQA type)"
+  risk_calibration: "the D1-30 secondary 'selector risk calibration on DEV masks' re-applied: each of the 9 units' r(K) for the DEV binary questions × their 12 R7-40a masks vs the realised teacher h = (C − a)² − (C − b)²; Spearman with an image-bootstrap CI (2,000), slope / intercept of h on r, per fraction and mechanism; r computed with the frozen training-side code (feature-cache encode_role40 with the 40b PCA -> assemble40 -> predict_r40), i.e. exactly as the CAL Spearman that selected the checkpoints; the first and only read of the DEV teacher records, through the frozen D1-10 analyser's coverage guard"
+
+external_baseline_OPEN_R740C_4:
+  criterion: "OPEN-R740-6 (owner I1): an external Qwen method only as a separate host column, with an OFFICIAL Qwen2.5-VL implementation by the authors and a usable licence; none -> disclosed gap"
+  survey: "web only, 2026-10-12/13; nothing cloned, installed or run (pages, README, LICENSE and individual source files read); a delegated sweep, its key facts re-read by me where marked [re-read]"
+  IF_Prune_T05: >
+    NOT admissible -> disclosed gap.  snap-research/EVLM-IF-Prune has no LICENSE file: the README states 'Apache 2.0 ... see the LICENSE file', but
+    raw .../main/LICENSE returns 404 and GitHub shows no licence [re-read]; the documented code covers Qwen2-VL and InternVL2.5 only (README:
+    'For Qwen2-VL', 'For InternVL'; transformers 4.51.3 / 4.42.4; torch 2.6 + flash-attn 2.7.4) [re-read]; a qwen_kl/src/model/qwen2_5 folder with
+    pruning hooks is undocumented scaffolding.  The R7-50 outline's alternative (IF-Prune on its own host Qwen2-VL-7B, B.2) is a different host and
+    would also need the missing licence.
+  admissible_alternatives_not_in_the_preregistered_literature: >
+    Official Qwen2.5-VL code with a licence file exists for: MMTok (ICLR 2026; github.com/Ironieser/MMTok @8e26868; Apache-2.0 LICENSE [re-read];
+    question-conditioned selection after the merger, before the LLM; budget TOKEN_RETAIN_RATIO, k = int(r·N) per image [re-read: env variable];
+    transformers==4.52.4 with 'newer versions may cause errors', torch 2.8 [re-read install.md]; batch_size > 1 not supported [re-read README];
+    Qwen2.5-VL-7B GQA / TextVQA numbers at 20 / 10 / 5 % in its paper), HiPrune (ACL 2026 Findings; MIT LICENSE [re-read]; question-agnostic,
+    ViT-attention scores, after the ViT; HIPRUNE_QWEN_RETENTION, k = round(f·N) [re-read: the README's retention hyperparameter]; full modeling copy
+    pinned to transformers 4.52.0 with flash-attn / eager vision attention; batch 1; a guarded import breaks on 4.57.6), and, with more friction,
+    HAWK (Apache-2.0; text-patches transformers 4.52.0, anchor mismatch on 4.57.6), DART (Apache-2.0; in-LLM pruning at layer 2, budget
+    4 + 8·int(N·f/8), batch 1, Qwen2-VL numbers only) and VisionZip (Apache-2.0; modified from transformers 4.49.0, fractions hard-coded, batch 1).
+    CDPruner, VisPruner, SparseVLM (all branches), PyramidDrop, FastV, FEATHER, FlowCut, HoliTom and others: no official Qwen2.5-VL code (or no
+    licence); DivPrune is CC BY-NC.  Third-party ports (LightCompress) do not count.
+  why_not_implemented_in_this_round: >
+    (1) None runs in the frozen vl_baselines env as shipped: every candidate pins transformers <= 4.55 (MMTok 4.52.4, HiPrune 4.52.0) while R7-40
+    uses 4.57.6; running it 'officially' needs its own pinned environment (new downloads), and porting it to 4.57.6 would no longer be the
+    official code.  (2) All are batch-1 only, so no latency at Qwen's B*: a host column would be quality at fixed fractions (+ batch-1 latency).
+    (3) The draft named IF-Prune; adopting a method outside the pre-registered literature package (MMTok, HiPrune) is a design choice for the
+    coordinator, to be fixed before any result.
+  decision: "DECIDED (decision 4): disclosed gap — IF-Prune inadmissible; no MMTok / HiPrune column in this freeze; the owner may ask for a later addendum"
+  options_that_were_offered: >
+    (a) Disclosed gap (IF-Prune inadmissible; admissible alternatives listed, not run).  (b) One host column, recommended MMTok (the closest
+    operating point to S1: question-conditioned, after the merger, per-image ratio): official code read then vendored at commit 8e26868 with its
+    LICENSE, its own pinned env under /projects/EEG-foundation-model/yinghao/envs (transformers 4.52.4, torch 2.8, per its install.md), our sets /
+    prompts / evaluators / pixel bounds, retain ratios 0.125 / 0.25 / 0.5 / 0.75 with its own floor rule (mean kept tokens reported) plus the full row
+    run in the same env as the column's anchor, batch 1, quality only (+ batch-1 latency secondary); 5 × 14,705 = 73,525 batch-1 answers, about
+    4–6 GPU-h on L40S; its own addendum, units and smoke (a full-row check against R7-40c's full row).  (c) HiPrune instead (question-agnostic,
+    exact round(f·N)), same structure.  Never a same-condition head-to-head and never in the primary family.
+
+# ------------------------------------------------------------------------------------------------------------------------------ units
+units_and_partitions:
+  stage_0_check: "CPU (main env): sets vs build summary; every image present; merged grids within 64 × 64 (header + smart_resize; nothing decoded); token-count summary; the 9 units' .pt / .json with CAL taus; configuration files for ROWS; configs/rows.json with the sha256 of every selector file, the PCA and lr_choice.json -> check/check.json 'pass' (else STOP)"
+  quality: "12 GPU units on L40S (decision 7): GQA 6, TextVQA 4, ChartQA 2 shards (the D1-30 sharding), every configuration of a shard in one job"
+  official_anchor: "3 GPU units on L40S (decision 15), one per benchmark (official generate at batch 1, D1-30 shard order); markers pred/<bench>/done_official_shard0of1.json"
+  timing: "ONE GPU job on nodesumo01 (owner rule 2026-10-13): BSTAR=report (decision 14) — gated on job 1035608's B* report, reused — then the three benchmarks back-to-back; one marker; retried as a whole"
+  dev: "2 DEV teacher units (L40S) + 1 DEV-risk unit (L40S) gated on both bundle markers (OPEN-R740C-9)"
+  stage_2_complete: "CPU: every configured row and the official anchor cover each benchmark's items (prediction files read for question ids only) and every shard / anchor marker exists -> completeness.json (else STOP)"
+  scoring: "not run by the driver: the coordinator's step (sbatch ... slurm/r7_d1_40c_cpu.sbatch score), SparseVLM env for the m4c TextVQA evaluator, after the driver's 'done' line; the scorer refuses without the freeze key"
+  markers: "quality pred/<bench>/done_shard<i>of<n>.json (written only when every (configuration, item) of the shard is answered; carries GPU, seconds per answer, set / config / selector sha256); timing: the single bundle marker timing/timing_bundle.done.json (per-benchmark files timing/<bench>/timing_<bench>.json inside); DEV teacher/bundle_b01[23].done.json (frozen code); DEV risk devrisk/r7_40c_devrisk.json"
+  single_writer: "one file per (configuration, shard) <cfg>@s<i>of<n>.jsonl (E1); resume per (configuration, qid) over every file of the configuration; a unit is resubmitted only after its job left the queue without its marker"
+  memory_E2: "measured (smoke job 1036517, f): runner worst case = 32 items with 1,280-token images, 1,357-token sequences, 128 forced new tokens and the dynamic selector forwards -> peak 25.2 GB allocated; timing worst case = one tower call over 32 such images (23.6 GB) + prefill + 8 decode steps -> 25.2 GB; fits the 44.4 GB L40S with about 19 GB margin (allocator peaks are hardware-independent to first order; measured on an RTX PRO 6000)"
+  time_limits: "≈ 2 × the runtime at the L40S rates measured in job 1036576: quality shards (largest shard of the D1-30 sharding) GQA 1.5 h (1,334 items × 50 rows × 27.7 ms ≈ 31 min + load 7 min), TextVQA 3 h (1,212 × 50 × 76.7 ms ≈ 77 min + load), ChartQA 2.5 h (963 × 50 × 63.6 ms × 1.18 for val's larger charts ≈ 60 min + load); official anchors GQA 1 h (7,986 × 0.136 s ≈ 18 min + load), TextVQA 1.25 h (4,799 × 0.350 s ≈ 28 min + load), ChartQA 0.75 h (1,920 × 0.201 s × 1.18 ≈ 8 min + load; 3× for load-time variance); DEV teacher 1 h per bundle (≈ 3,993 questions × 0.283 s ≈ 19 min + load); DEV risk 1 h (≈ 15–20 min); the timing bundle 8 h = about 2 × its estimated parts on H100 NVL (≈ 4 h: B* reused from job 1035608 (BSTAR=report), the three benchmarks extrapolated from the smoke timing rows to the production pools; not measured on the reference node).  A shard killed at its limit resumes per (configuration, item) on retry; a killed timing bundle keeps its finished parts"
+
+budget:
+  measured_smoke: "L40S (job 1036576, node39, AMD EPYC 9374F, 8 torch threads, code d8deb21d): the production runner with the 50 core rows on 32-item subsets: GQA fixture 27.7 ms per answer (1,600 answers in 44 s; 38 s inside generate), TextVQA fixture 76.7 ms (123 s), ChartQA train 63.6 ms (102 s); host staging + load 404 s; a sorted batch-32 GQA full-row prefill of 9,898 tokens 0.90 s.  The batch-1 official anchor: 0.136 / 0.350 / 0.201 s per item.  The earlier RTX PRO 6000 smoke (job 1036517, node61) measured 65.1 / 131.6 / 82.3 ms per answer on 64-item subsets: the RTX node was 1.3–2.4× slower for this HF Qwen path (decision 7: L40S only)"
+  quality: "core 50 rows: 735,250 answers (GQA 399,300, TextVQA 239,950, ChartQA 96,000).  At the L40S rates: 3.1 + 5.1 + 2.0 (ChartQA × 1.18 for val's larger charts) = 10.2 GPU-h + 12 loads × 404 s ≈ 1.3 h ≈ 11.5 GPU-h on L40S"
+  timing: "one nodesumo01 job, ≈ 2–3.5 h estimated (limit 8 h): B* reused from job 1035608's report (decision 14, BSTAR=report: no B* measurement in the bundle) + the three benchmarks (pools 512 at the primary B, 256 at the other B >= 4, 64 at B = 1; 18 timing rows each).  Extrapolated from the L40S smoke's timing rows on GQA-fixture images (B = 1 ≈ 250 ms, B = 4 ≈ 130–180 ms per item; 36 rows on 4- / 8-item pools in 78 s), with TextVQA's and ChartQA's larger images ≈ 1.5–2.5 × GQA's per item; not measured on the reference node (the H100 NVL is expected to be faster than the L40S)"
+  official_anchor: "14,705 batch-1 answers at 0.136 / 0.350 / 0.201 (× 1.18) s per item ≈ 18 + 28 + 8 min + 3 loads ≈ 0.3 h ≈ 1.2 GPU-h on L40S (3 units)"
+  dev: "DEV teacher: 7,986 questions × 0.283 s (R7-40a, L40S) ≈ 0.63 h + 2 staged loads ≈ 0.2 h ≈ 0.85 GPU-h; DEV risk ≈ 0.3 GPU-h (2,000 images through the tower + 9 units × 95,832 pairs)"
+  total: "≈ 14 GPU-h on L40S (quality 11.5 + official anchors 1.2 + DEV 1.2) + ≈ 2–3.5 h on nodesumo01 (one timing bundle, limit 8 h; B* comes from job 1035608) + CPU minutes.  The R7-40 outline's 12–17 GPU-h (25–40 ms per answer) holds on L40S"
+storage: "/home/infres/yinwang/CS_QMI/outputs/R7_D1/r7_40/eval_40c: configs ≈ 0.1 MB, predictions ≈ 0.13 GB for the core rows (735,250 rows × ≈ 0.18 KB; ≈ 0.2 GB for all 76 rows), timing ≈ 1 MB, DEV teacher records ≈ 18 MB in r7_40/teacher (2.3 KB per question), DEV risk ≈ 1 MB; smoke outputs/R7_D1/r7_40/smoke_40c ≈ 0.33 GB (relabelled smoke selectors 0.33 GB; predictions 2.5 MB) (deletable after the freeze); nothing new on /projects"
+
+# ------------------------------------------------------------------------------------------------------------------------------ code
+code:
+  new_files:
+    - scripts/r7_d1_40c_plan.py        # configuration grammar, row sets, timing list, unit lines with markers and gates (no torch)
+    - scripts/r7_d1_40c_run.py         # quality runner, QwenSelectorBank (per-item and batched), batch-1 official anchor, stage-0 check, gridcheck, stage-2 completeness
+    - scripts/r7_d1_40c_timing.py      # D1-30 timing rows on Qwen (fixed, two-stage dynamic) + the single nodesumo01 bundle (B*, 3 benchmarks)
+    - scripts/r7_d1_40c_score.py       # readout (frozen D1-30 statistics imported), freeze gate, latency / fraction primary bases
+    - scripts/r7_d1_40c_devrisk.py     # DEV completeness, DEV mass QC, DEV risk calibration
+    - scripts/r7_d1_40c_smoke.py       # smoke on non-sealed data (prep / gpu / throughput / anchor / report)
+    - tests/test_r7_d1_40c.py          # CPU tests (fakes, tiny selectors, tiny Qwen2.5-VL, stubbed driver)
+    - slurm/r7_d1_40c_gpu.sbatch       # run | official | timing_bundle | devteacher | devrisk | smoke | throughput | anchor_smoke (vl_baselines env)
+    - slurm/r7_d1_40c_cpu.sbatch       # tests | tests_vl | tests_sv | tests_all | check | gridcheck | complete | score | smoke_prep | smoke_report
+    - slurm/r7_d1_40c_submit.sh        # file-gated driver
+    - reports/R7/R7_40C_PROTOCOL_DRAFT_20261012.yaml
+    - reports/R7/R7_50_PHASE_Q_ADDENDUM_DRAFT_20261012.yaml
+  frozen_modules_imported_unchanged: [scripts/r7_d1_40_host.py, scripts/r7_d1_40_masks.py, scripts/r7_d1_40_selectors.py, scripts/r7_d1_40_teacher.py, scripts/r7_d1_40_cache.py, scripts/r7_d1_40_train.py, scripts/r7_d1_40_analyze.py, scripts/r7_d1_30_run.py, scripts/r7_d1_30_score.py, scripts/r7_d1_30_eval.py, scripts/r7_d1_30_timing.py, scripts/r7_d1_30_devrisk.py, scripts/r7_d1_30_data.py, scripts/r7_d1_selectors.py, scripts/r7_d1_plan20.py, scripts/r7_d1_analyze.py, scripts/r7_vl_common.py]
+  no_frozen_file_modified: "git diff of every committed scripts/r7_d1_* / slurm/r7_d1_* file is empty"
+driver:
+  launch: "cd /home/infres/yinwang/CS_QMI/ssl_pilot && QUALITY_PARTITION=L40S ROWS=core BSTAR=report DEV=1 TIMING=1 nohup setsid bash slurm/r7_d1_40c_submit.sh >/dev/null 2>&1 &   (decision 13; login node, after the key 'r7_40c_staged_freeze'; log slurm_logs/r7_d1_40c_submit.log, its first line carries the PID; stop with kill <pid>)"
+  gates: "0: freeze key; 1: R7-40b complete = selectors/lr_choice.json + the 12 unit markers <tag>.done.json (6 stage-1 + 6 stage-2); the timing bundle: the R7-40a report (BSTAR=report); DEV risk: both DEV bundle markers; quality shards, anchors and DEV teacher units: none"
+  cap_and_retries: "submissions only while my normal-QOS count < CAP = 27 (as the frozen drivers); a unit whose job left the queue (listed empty or purged) without its marker after SOON_S = 600 s is resubmitted at most 2 times, then STOP; no afterok chains; an empty / non-numeric job id stops the driver; WAIT_H 96 h per gate and for the unit loop"
+  dry_run: "stubbed sbatch / squeue (tests): full sequence with one retry and ONE timing bundle, B* in the bundle or from the report, DEV risk after both bundles, STOP on no freeze key / R7-40b incomplete / failed check / sbatch failure / three failures / a gate that never opens / r7d40_timing still queued with BSTAR=in_bundle / bad QUALITY_PARTITION, ROWS or BSTAR; the driver never submits the scorer"
+
+provenance:
+  cpu_tests: "tests/test_r7_d1_40c.py, 27 tests, final code 95094ae8bf6474d4 (sha256 prefix of the R7-40c scripts, tests and wrappers, concatenated in glob order; job 1036686): main env 27 run / 2 skipped (the Qwen2.5-VL transformers checks), vl_baselines 27 / 27, SparseVLM env 27 run / 2 skipped incl. the m4c TextVQA scorer path; they cover the official anchor (rows, marker, crash-resume, missing image, stage-2 coverage, scorer block and coverage guard), BSTAR=report as the driver default and the timing module's refusal when B* is not among the measured batches.  Earlier revisions: 1036487, 1036489 (2 errors: transformers 4.37 lacks Qwen2.5-VL, guard fixed), 1036520 (code fba31c62 = the RTX GPU smoke's code), 1036588, 1036590, 1036595, 1036604, 1036661, 1036673 (code d8deb21d = the L40S smoke's code).  Changes after d8deb21d: the unit time limits (plan) and the primary-batch guard of the timing module with its test assertions"
+  smokes: "prep 1036493 (SparseVLM env: fixture sets + ChartQA TRAIN subset 32 + 32 rows); GPU smoke 1036517 (RTX PRO 6000, code fba31c62, 89.6 min, exit 0): (a) spliced ids == processor input_ids and N == header estimate on 664 / 664 smoke items; (b) full row, production batch 32 vs the official HF path at batch 1 on the same GPU: GQA 200 / 200, TextVQA 197 / 200, ChartQA-train 62 / 64 (official vs R7-20 on H100 NVL: GQA 199 / 200, TextVQA 195 / 200); (c) pruned rows: QwenCore at batch 1 == HF generate with the spliced ids injected (HF's own loop, penalty and cache) on 100 % of 6 pruned configurations (GQA grid 0.25 / S1 0.25 / S1 dynamic 0.5 × 200 items; TextVQA grid 0.25 / S1 0.5 × 64), production batch 32 vs batch 1 98.0–100 % (GQA 99.0 / 98.5 / 98.0, TextVQA 98.4 / 100), GQA full through the injected path 200 / 200; (d) batched timing selection == per-item runner selection 64 / 64 on 3 configurations, 63 / 64 on a dynamic one (an item at the smoke tau, which was calibrated on these items); (e) every row through the production runner, resume redoes nothing; (f) memory as above; (g) timing rows on fixture subsets (stand-in B* 16, not the reference GPU); (h) DEV-risk code path on the 68 probe records (3 units × 816 pairs).  gridcheck 1036522 (image headers of the three D1-30 sets: counts above, no image beyond 64 × 64, none missing).  Scorer smoke 1036587 (SparseVLM env): latency basis 9 primary contrasts per benchmark with Holm family 6 (2 smoke benchmarks), fraction basis Holm family 9 (3 benchmarks), none not-reached, integrity clean, refusal without the freeze key.  Consolidated L40S smoke 1036576 (node39, code d8deb21d, 14 min, exit 0; it absorbed the anchor-only smoke 1036610, cancelled while pending): (1) the runner's L40S costs (budget.measured_smoke); (2) the batch-1 official anchor through the production function run_official on 32-item subsets of the three smoke benchmarks: 32 / 32 answers equal to the frozen QwenPrefill.official_answer and 32 / 32 equal to the batched full row on the same GPU on each benchmark, markers written, a second run redid nothing, no answer reached max_new_tokens, 0.136 / 0.350 / 0.201 s per item; (3) the timing bundle in the decided BSTAR=report mode with a stand-in report: part 'b_star' = reused report (sha256 recorded), the GQA-fixture part measured (36 rows: 18 configurations × B 1 / 4 on 4- / 8-item pools, 78 s), one bundle marker.  Smoke quality numbers (fixture data, smoke selectors) are not results and are not quoted"
+  reads: "by me: the D1-30 build summary's counts, the gridcheck job's counts and the per-shard item counts of the D1-30 sharding (GQA 1,326–1,334, TextVQA 1,185–1,212, ChartQA 957 / 963; no answer used or printed) only; by the gridcheck job: each set item's image path and image header (no answer used or printed, no pixel decoded); not read: any answer, prediction or result of D1-30 / D1-FULL / R7-40b / R7-50, any R7-40b unit log, any DEV teacher record (none exists yet), any closed/ file; smoke data = R7-20 fixtures, ChartQA TRAIN rows, R7-40a probe records, R7-40b smoke checkpoints"
+
+open_decisions:     # all DECIDED by the coordinator, 2026-10-13, before the 40c freeze and before any D1-30 / R7-40b / R7-40c result was read
+  OPEN-R740C-1_rows: "DECIDED: core, 50 per benchmark (full; uniform grid × 4 fractions; S1 / S2 / S3 × seeds 0-2 × 4 fractions; S1 dynamic × seeds 0-2 × 3 CAL operating points); ROWS=core"
+  OPEN-R740C-2_prompts: "DECIDED: the D1-30 pinned prompts in the Qwen chat template; TextVQA without OCR tokens"
+  OPEN-R740C-3_generation: "DECIDED: max_new_tokens 128 / 128 / 16 (GQA / TextVQA / ChartQA), the shipped repetition penalty 1.05, left-padded batches of 32"
+  OPEN-R740C-4_external: "DECIDED: IF-Prune is inadmissible (no licence file; Qwen2-VL / InternVL code only) and is recorded as a disclosed gap.  No MMTok / HiPrune column in this freeze; the owner may ask for a later addendum (the admissible alternatives stay listed under external_baseline_OPEN_R740C_4)"
+  OPEN-R740C-5_primary: >
+    DECIDED as drafted: S1 − S2, S1 − S3 and S1 − uniform grid × 3 benchmarks = 9 contrasts per point, Holm over 9 per point; latency basis at
+    Qwen's B* (L25 / L50 / L75), fixed fractions 0.25 / 0.5 / 0.75 if there is no B*.  S1 − grid takes the slot that S1 − SparseVLM holds in
+    D1-30's LLaVA family (SparseVLM's official code is LLaVA-only); the cross-host replication claim rests on the contrasts both hosts share,
+    S1 − S2 and S1 − S3 (S1 − grid is reported side by side as a secondary on LLaVA and as a primary on Qwen, never pooled or tested across hosts).
+  OPEN-R740C-6_timing: "DECIDED (accepted): pools 512 at the primary batch (B*, or 4 without B*), 256 at the other B >= 4, 64 at B = 1; dynamic rows bucketed by chosen fraction; timing run even without a B* (rows then secondary); all of it ONE nodesumo01 bundle job (owner rule 2026-10-13)"
+  OPEN-R740C-7_quality_hardware: "DECIDED: QUALITY_PARTITION=L40S only (quality shards and the official anchors); worst-case memory 25.2 GB measured; not RTX6000PRO (the HF Qwen path ran 1.6–2.4× slower per item there)"
+  OPEN-R740C-8_shards_and_limits: "DECIDED (accepted): GQA 6 / TextVQA 4 / ChartQA 2 quality shards and the time limits under units_and_partitions"
+  OPEN-R740C-9_dev: "DECIDED yes (DEV=1): the two sealed DEV teacher bundles b012 / b013 (frozen R7-40a code, --allow-dev, L40S), DEV completeness, the DEV yes / no-mass QC line (D40a-1) and the DEV risk calibration secondary"
+  OPEN-R740C-10_grids_beyond_tables: "RESOLVED: no image of the three sets exceeds the 64 × 64 tables and none is missing (gridcheck job 1036522); stage 0 re-checks"
+  OPEN-R740C-11_implementation: "DECIDED (accepted as implementation): per-image tower calls, per-item selector forwards, items sorted by merged-token count inside a shard, the HF-generate-with-injected-ids reference used by the smoke for pruned rows"
+  OPEN-R740C-12_scoring_procedure: "DECIDED yes: scoring is the coordinator's step after the driver's 'done' line; the cross-host side-by-side only with --d1-30-results after the coordinator has read D1-30"
+  OPEN-R740C-13_freeze_mechanics: "DECIDED: this file (copied to a FROZEN name) plus the key r7_40c_staged_freeze in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml; launch parameters QUALITY_PARTITION=L40S, ROWS=core, BSTAR=report, DEV=1, TIMING=1"
+  OPEN-R740C-14_b_star_once: "DECIDED: BSTAR=report.  Job 1035608 (r7d40_timing, first in line for nodesumo01) is kept: B* is measured there once with the frozen R7-40a procedure (D40a-7 unchanged), and the 40c timing bundle waits for that report and reuses it (gated on outputs/R7_D1/r7_40/timing/timing_report.json; never re-measured)"
+  OPEN-R740C-15_official_anchor: >
+    DECIDED yes and implemented: the batch-1 official full-row anchor 'full_official' = the full row through the official HF generate at batch 1
+    (r7_d1_40c_run.official_generate: the exact call of the frozen QwenPrefill.official_answer — processor with the chat template and the image,
+    model.generate do_sample False, one beam, shipped generation config, KV cache) on all three benchmarks, one L40S unit per benchmark with
+    markers (pred/<bench>/done_official_shard0of1.json; single-writer file full_official@s0of1.jsonl; resumable); a secondary diagnostic reported
+    next to the batched full row (quality with CI, full − anchor with a paired image bootstrap, identical-answer fraction, items whose score
+    differs), under the scorer's coverage guard, never in the primary family; stage 2 checks its coverage and markers.  Cost and smoke under
+    budget / provenance.

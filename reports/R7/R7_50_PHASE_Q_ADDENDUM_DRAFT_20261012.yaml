@@ -1,0 +1,92 @@
+# R7-50 phase Q (Qwen2.5-VL-7B-Instruct rows on the official test splits) — ADDENDUM DRAFT for the coordinator.  Nothing here is frozen and nothing
+# of phase Q has run.  Written with the R7-40c implementation (before any R7-40c production unit, any D1-30 / D1-FULL / R7-40b / R7-50 result and
+# without opening any official test file).  The frozen R7-50 protocol (reports/R7/R7_50_PROTOCOL_FROZEN_20261012.yaml) declares phase Q
+# ('declared only: needs its addendum and the R7-40c runner; the driver refuses PHASE=Q') and lists the decisions Q1–Q5 answered below.
+# Freeze rule (R7-50 r7_50_freeze_20261012.Q_qwen_addendum): frozen by the coordinator after R7-40c exists and BEFORE any Qwen test generation;
+# the outline's '≈ 28 configurations' is superseded by this addendum.  Phase Q is its own Holm family (D50-2) and is scored once, after its
+# prediction hashes are committed (procedure_A4, unchanged).
+addendum_id: R7-50-Q
+status: draft_with_coordinator_decisions_20261013   # frozen by the coordinator after R7-40c exists and before any Qwen test generation
+date: 2026-10-13
+parents:
+  - reports/R7/R7_50_PROTOCOL_FROZEN_20261012.yaml (phases, sealed inputs / labels, manifest -> commit -> ALLOW_SCORING -> score once; Q1–Q5)
+  - reports/R7/R7_40C_PROTOCOL_DRAFT_20261012.yaml (the Qwen runner, timing, scorer and primary family this addendum reuses)
+  - reports/R7/R7_50_60_OUTLINE_DRAFT.md §A.2 (Qwen rows: full, the uniform grid and S1, S2, S3 × seeds 0-2; owner decision 2026-10-12)
+
+host_and_generation:
+  host: "Qwen2.5-VL-7B-Instruct@cc594898 exactly as R7-40c (vl_baselines env, bf16, SDPA, min / max pixels 256·28² / 1280·28², frozen R7-40a host interface: selection after the token merger, kept tokens keep their official 3-D rotary ids)"
+  runner: "scripts/r7_d1_40c_run.py run (the R7-40c quality runner, unchanged) with --sets-dir <R7-50 root>/sealed/inputs --bench gqa_testdev|chartqa_test --out <R7-50 root>/sealed/pred_Q; the sealed inputs are already in the D1-30 set format without answers (bench, qid, image_id, image_file, question, prompt) and the runner strips answer fields anyway"
+  generation: "greedy with the shipped repetition penalty 1.05, left-padded batches of 32, chunks of 32 items sorted by merged-token count; max_new_tokens 128 (gqa_testdev) / 16 (chartqa_test) — r7_d1_40c_plan.MAX_NEW already maps the two test benchmarks to the values of their validation counterparts (D30-7)"
+  Q5_prompts: >
+    DECIDED: the R7-40c prompts unchanged — the sealed inputs' 'prompt' field (GQA: question + '\nAnswer the question using a single word or
+    phrase.'; ChartQA: query + '\nAnswer the question with a single word.', the D1-30 / R7-50 phase-L suffixes) as the user text after the image
+    in the Qwen chat template (shipped system prompt), Qwen's own dynamic-resolution preprocessing of the same image files (GQA: the extracted
+    folder; ChartQA: the images phase L's build extracted into the sealed input dir).  Alternative: Qwen's own evaluation prompts (not
+    recommended: a different prompt than R7-40c's validation rows, breaking the integrity gate and the profiling-workload mapping).
+  images: "the sealed inputs' image_file only; a missing file stops the unit (no archive); the merged grid of every image is checked against the selectors' 64 × 64 tables before generation (R7-40c stage-0 rule; a grid beyond them stops the phase for a decision)"
+
+rows:
+  Q1_rows: >
+    DECIDED (R7-50 §A.2): 41 per benchmark = full + static:grid:{0.125, 0.25, 0.5, 0.75} + sel:<S1 / S2 / S3 unit, seeds 0-2>:{0.125, 0.25, 0.5,
+    0.75} (36), with the R7-40b units at their CAL-chosen rates (selectors/lr_choice.json, hashed into configs_Q/rows.json); no dynamic rows, no
+    random / qsim, no SparseVLM (LLaVA-only official code).  The 0.125 rows are the stress point (reported, never a primary point).
+  answers: "41 × (12,578 + 2,500) = 618,198 answers"
+  unit_tags: "by the R7-40c rule from R7-40b's lr_choice.json (<objective>_lr<rate>_s<seed>); checkpoints = R7-40b's CAL-selected states; nothing selected on test"
+
+latency:
+  Q2_latency: >
+    Not re-measured on test (R7-50 D50-6, T1): every row takes the latency of the R7-40c timing results of the mapped validation benchmark
+    (gqa_dev -> gqa_testdev, chartqa_val -> chartqa_test; NVIDIA H100 NVL on nodesumo01; 8 forced decode steps; outputs/R7_D1/r7_40/eval_40c/timing/
+    <bench>/timing_<bench>.json, sha256 into manifest_Q), labelled 'latency measured on the pre-fixed profiling workload'; fixed-fraction selector rows take
+    the representative unit's (S1 seed 0) latency.  Those files come from R7-40c's single nodesumo01 timing bundle (owner rule 2026-10-13: every
+    unit that must run on one specific node is ONE job, back-to-back, one marker, retried as a whole; the bundle also holds Qwen's B*
+    determination when the R7-40a timing job has not produced it), whose marker eval_40c/timing/timing_bundle.done.json is hashed into
+    manifest_Q with the per-benchmark files.  Primary point set = R7-40c's: L25 / L50 / L75 = uniform-grid 0.25 / 0.5 / 0.75 per-item latencies at
+    Qwen's own B* (R7-40a reference timing, D40a-7) when Qwen has a B*; otherwise (OPEN-R740-8) quality at fixed fractions 0.25 / 0.5 / 0.75 and no
+    acceleration claim.  The basis is whatever R7-40c's freeze records; phase Q cannot change it after any R7-40c or test result.
+
+analysis:
+  evaluators: "the frozen D1-30 / R7-50 evaluators: GQA exact match after LLaVA convert_gqa_for_eval normalisation; ChartQA relaxed accuracy pinned to pix2struct 6fe25c1 (all 2,500 pooled primary, human / augmented secondary, D50-3)"
+  Q4_holm: >
+    DECIDED: phase Q is its own family (D50-2): at each point S1 − S2, S1 − S3 and S1 − uniform grid × 2 benchmarks = 6 contrasts (R7-40c keeps
+    S1 − grid in its primary family, decision 5).  Seed handling, p-values and
+    the bootstrap exactly as R7-40c / D1-30 (image / chart groups, 2,000 shared replicates, seed mean of per-seed values, Holm per point).
+  secondary: "every R7-40c secondary that the 41 rows support: fixed-fraction table with retention and mean visual tokens / kept fraction, the fixed-fraction contrasts incl. 0.125, every family at L25 / L50 / L75 for B = 1 / 4 / 16 / 32 (profiling workload), preserve / correct, GQA structural types, ChartQA human / augmented"
+  cross_host: "descriptive only: phase L (LLaVA) and phase Q (Qwen) contrasts side by side; no pooling, no cross-host test (R7-50 claims_not_made)"
+  exposure: "Qwen2.5-VL's training data is undisclosed: GQA / ChartQA train (and possibly val / test) exposure cannot be excluded and is stated as such; the project-side statement (never used for selection) is unchanged"
+
+integrity_gate:
+  Q3_code_and_gate: >
+    DECIDED: the R7-40c runner on the SAME sealed inputs (no second read of any test file) into sealed/pred_Q with its own configs_Q
+    (rows + sha256 of the 9 units, PCA, lr_choice), lines_Q, single-writer shard files with markers, manifest_Q and ALLOW_SCORING_Q (the layout
+    reserved by r7_50_test.Layout).  Full-scale integrity gate before any test generation (owner directive; same rule as phases L / F): the
+    R7-50 phase-Q path on the FULL GQA DEV (7,986) and ChartQA val (1,920) sets with R7-40c's own question ids and R7-40c's sharding (GQA 6,
+    ChartQA 2) and chunking, on the GPU class recorded in each R7-40c reference marker (env.gpu); deterministic rows full, static:grid:0.25 and
+    S1 seed 0 at 0.25 must give the identical answer and kept count on every item, inputs (question, prompt, image file / bytes) identical on
+    every item; anything else STOPs before generation.  Residual risk (reported, not waived): an R7-40c reference shard resumed after a crash has
+    different chunk compositions after its resume point.
+  implementation_needed_after_this_addendum_is_frozen: >
+    A small phase-Q module (proposed scripts/r7_50_q.py + a PHASE=Q branch in a new driver; the frozen r7_50_test.py and r7_50_submit.sh are
+    not edited): configs_Q (the 41 / 50 rows from r7_d1_40c_plan.config_list, unit hashes), lines_Q (GQA 6 / ChartQA 2 shards on the R7-40c
+    quality GPU class; the 40c sbatch wrapper's run mode pointed at the sealed root), the integrity gate above (prepare / run / compare as
+    r7_50_test.integrity_* with the 40c runner), manifest_Q (coverage + sha256 of every prediction file, rows.json, build summary and the six
+    R7-40c timing / timing-report files), and score_Q = r7_d1_40c_score's Bench40 / score_bench on the sealed labels (opened only there) with
+    the profiling-workload latency; the R7-50 gates (frozen protocol + committed code, ALLOW_SCORING_Q naming the committed manifest copy) apply
+    unchanged.  Tests: stubbed dry runs as tests/test_r7_50.py.
+
+units_and_cost:
+  shards: "GQA test-dev 6 and ChartQA test 2 quality units (as phase L), plus the integrity units (GQA 6 / ChartQA 2 shards × 3 rows, grouped by GPU class)"
+  hardware: "L40S, the R7-40c quality class (decided there, OPEN-R740C-7: the class of the 40a teacher and of the 40c quality shards); integrity units pinned to each reference marker's class (a GPU class, not a node: the owner's one-job rule for node-pinned units does not bind them; if a gate group ever had to share one node or GPU it would be one bundled job)"
+  cost_estimate: "618,198 answers (GQA 515,698 + ChartQA 102,500) at the L40S rates measured in R7-40c's smoke job 1036576 (27.7 ms per GQA answer; 63.6 ms per ChartQA-train answer × 1.18 for val-sized charts ≈ 75 ms, test charts assumed val-sized, no test file read): 4.0 + 2.1 = 6.1 GPU-h + 8 host loads × 404 s ≈ 0.9 GPU-h + the integrity gate (3 rows × 9,906 DEV / val items ≈ 0.3 GPU-h + 8 loads ≈ 0.9 GPU-h) ≈ 8 GPU-h on L40S"
+  storage: "predictions ≈ 0.1 GB under /home/infres/yinwang/CS_QMI/outputs/R7_50/sealed/pred_Q"
+
+decisions_for_the_coordinator:     # DECIDED by the coordinator, 2026-10-13 (with the R7-40c decisions; before any Qwen test generation and any test read)
+  Q1: "DECIDED: 41 rows per benchmark (§A.2): full, uniform grid × 4 fractions, S1 / S2 / S3 × seeds 0-2 × 4 fractions; no dynamic rows"
+  Q2: "DECIDED as proposed: profiling-workload latency from R7-40c's single nodesumo01 timing bundle (gqa_dev -> gqa_testdev, chartqa_val -> chartqa_test) at Qwen's B*; fixed fractions if Qwen has no B*; the basis is the one R7-40c's freeze records"
+  Q3: "DECIDED as proposed: the R7-40c runner on the sealed inputs (no second read of a test file), its own phase-Q layout and markers, manifest_Q and ALLOW_SCORING_Q; the phase-Q module is implemented after this addendum is frozen and before any Qwen test generation"
+  Q4: "DECIDED: Holm over 6 per point (S1 − S2, S1 − S3, S1 − grid × 2 benchmarks); the replication reading across hosts rests on S1 − S2 and S1 − S3 (as R7-40c's decision 5)"
+  Q5: "DECIDED as proposed: the R7-40c prompts and Qwen preprocessing of the same image files"
+  Q6: "DECIDED: the full-scale integrity gate requires identical answers and kept counts for full, static:grid:0.25 and S1 seed 0 at 0.25 on every item of GQA DEV and ChartQA val (R7-40c's sharding, chunking and GPU class), inputs identical on every item; anything else STOPs"
+  Q7: "DECIDED: no timing on test (profiling-workload latency only, the R7-40c bundle's files and marker hashed into manifest_Q)"
+  Q8: "DECIDED: phase Q has no node-pinned unit (integrity units are pinned to a GPU class, L40S); the owner's one-job rule would apply to any unit that had to share one node or GPU"
+  official_anchor_note: "R7-40c's batch-1 official full-row anchor (its decision 15) is a validation-set diagnostic; phase Q's rows are the 41 above (no anchor row on test)"
