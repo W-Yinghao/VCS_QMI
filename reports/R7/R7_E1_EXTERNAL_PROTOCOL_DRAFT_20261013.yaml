@@ -1,0 +1,204 @@
+# R7-E1 — external Qwen2.5-VL-7B-Instruct token-pruning baselines (MMTok, HiPrune) as a separate host column next to R7-40c: PROTOCOL DRAFT
+# for the coordinator's staged freeze.  Nothing here is frozen.  Written 2026-10-13 (agent) after the coordinator's extension decision
+# (reports/R7/R7_EXTENSIONS_DECISION_20261013.md, E1, commit dbf628d), before any E1 GPU job and without reading any R7-40c / D1-30 / D1-FULL /
+# R7-50 result, prediction or score.  Validation data only (GQA DEV, TextVQA val, ChartQA val); no official-test file opened; nothing under
+# outputs/R7_50/sealed/ touched.  Only CPU jobs ran (env builds, import checks, CPU self-checks on synthetic images, stub tests, the unit plan).
+protocol_id: R7-E1
+status: draft_for_staged_freeze      # proposed freeze key 'r7_e1_staged_freeze' (the E1 readout, still to be written, refuses without it)
+date: 2026-10-13
+parents:
+  - "reports/R7/R7_EXTENSIONS_DECISION_20261013.md (E1: MMTok + HiPrune, fractions 0.125 / 0.25 / 0.5 / 0.75, separate host columns, outside every primary family, quality at fixed fractions, batch-1 latency secondary; IF-Prune stays excluded)"
+  - "reports/R7/R7_40C_PROTOCOL_DRAFT_20261012.yaml: external_baseline_OPEN_R740C_4 (admissible alternatives, pins and constraints found at the R7-40c freeze), host_and_generation, evaluation_sets, statistics"
+  - "reports/R7/R7_40C_STAGED_FREEZE_20261013.yaml (R7-40c frozen; external baseline = disclosed gap there; this draft is its later addendum)"
+
+scope_rules:
+  - "each method runs as its official code ships it (no algorithm change), in its own pinned environment, at batch 1 (both are batch-1 only)"
+  - "inputs and outputs are R7-40c's: the frozen D1-30 validation sets and shard order, the pinned prompts in the Qwen chat template, R7-40c's pixel bounds and image processor class, greedy generation with R7-40c's max_new_tokens and the shipped generation config, R7-40c's prediction-file layout"
+  - "a separate host column (owner I1): never a same-condition head-to-head with S1 / S2 / S3 / grid, outside every primary family, no test, no Holm; descriptive side-by-side only"
+  - "no official-test read (an official-test column would need a new owner approval); no change to any frozen R7-40c file"
+
+# ------------------------------------------------------------------------------------------------------------------------------ methods
+methods:
+  admissibility: "both on the admissible list recorded at the R7-40c freeze (official Qwen2.5-VL code by the authors + a licence file); chosen by the coordinator before any R7-40c result existed"
+  fetch: >
+    2026-10-13 ~11:47 UTC, login node, network only: git clone --no-checkout into a NEW empty directory, checkout of the exact commit (hooks
+    disabled), then chmod -R a-w; git status clean afterwards (re-checked after every job).  Never used as a working directory: the E1 glue
+    appends the tree to sys.path (python -I), so nothing is written into it (no __pycache__, no egg-info).  Read before anything ran: README,
+    LICENSE, install / setup files, requirements / pyproject, the Qwen wrappers / modeling files, the core selection code, the lmms-eval adapters.
+  mmtok:
+    paper: "MMTok: Multimodal Coverage Maximization for Efficient Inference of VLMs (ICLR 2026; arXiv 2508.18264)"
+    repo: "github.com/Ironieser/MMTok"
+    commit: "8e2686836ed5bbe05d064f1d1c20e50c73c70b94 (HEAD, 2026-09-02, README only after the code release 5b186b6 of 2026-02-20T14:24:18Z)"
+    tree: "/projects/EEG-foundation-model/yinghao/third_party/MMTok@8e26868 (read-only)"
+    licence: "Apache-2.0 — LICENSE present (Copyright 2025 Zoom Communications, Inc.); sha256 prefix c268112ad7499f84"
+    selection: "question-conditioned: greedy maximum coverage of (P) the text tokens of the user text and (Q) the visual token set (score = coverage gain of P + alpha × coverage gain of Q, softmax-normalised cosine similarities), over the merged visual tokens after the vision merger, before the LLM"
+    code_used: >
+      mmtok.qwen.mmtok_qwen2_5_vl(model, language_tokenizer, processor, retain_ratio) — the official wrapper of its Qwen example and lmms-eval
+      adapter — applied once per process to transformers' Qwen2_5_VLForConditionalGeneration (4.52.4): it binds Qwen2_5_VL_MMTok.forward to
+      model.model, the MMTok vision forward (merged tokens + 2×2-pooled pre-merger features) to model.model.visual, and patches
+      processor.apply_chat_template so that the user text reaches the selector (mmtok/qwen/qwen2_5_vl_mmtok.py, qwen2_5_VLmodel_mmtok.py,
+      modeling_qwen2_5_vl_mmtok.py, core/mmtok_core.py, core/semantic_selector.py; sha256 prefixes c4f243645debb3bc, 3268ce72c772e303,
+      37ff1d952d784566, fb891cda55999601, 1f2f9aac0e2d5b90)
+    knob: "retain_ratio = f (wrapper argument, stored as MMTokCore.retain_ratio and read first by the patched forward); its fallback TOKEN_RETAIN_RATIO is set to the same value and SELECTION_METHOD=mmtok in the worker's environment (the inherited MMTok_JIT_* thresholds are removed, so the defaults 500 / 20 apply)"
+    defaults_kept: "alpha 0.5, softmax_tv_temperature 0.01, softmax_vv_temperature 0.2, remove_padding_indices False (the Qwen wrapper's config); text = 'Question: ' + the user text, tokenised word by word with the fast Qwen tokenizer (processor.tokenizer, as the example), embedded with the model's input embeddings"
+    question_text: "the full user text = the item's pinned prompt including its answer-format suffix (the official hook extracts every text part of the user message; its keyword cleaning is off on the Qwen path) — the same as in its lmms-eval runs, whose GQA prompt carries the same suffix"
+    attention: "SDPA (its Qwen example; as R7-40c)"
+    paper_operating_points: "Qwen2.5-VL-7B GQA / TextVQA at 20 / 10 / 5 % (not ours)"
+  hiprune:
+    paper: "HiPrune: Hierarchical Attention for Efficient Token Pruning in Vision-Language Models (ACL 2026 Findings; arXiv 2508.00553; AAAI-26 student abstract)"
+    repo: "github.com/Danielement321/HiPrune"
+    commit: "82781005a7e72a6be9ede58fd77473efa72b5e4f (HEAD, 2026-04-29, README only; the Qwen code last changed in 716f2d5, 2025-09-24T15:29:24Z)"
+    tree: "/projects/EEG-foundation-model/yinghao/third_party/HiPrune@8278100 (read-only)"
+    licence: "MIT — LICENSE present (Copyright 2025 Jizhihui Liu); sha256 prefix d0446d133993d989"
+    selection: >
+      question-agnostic, from the vision encoder's attention: per block, the attention each token receives (mean over heads and queries, pooled
+      over its 2×2 merge group, raster order); anchors = top round(alpha·k / 5) tokens of block OBJECT_LAYER − 1 = 15 (a full-attention block),
+      buffers = their ±1 and ±width neighbours (clamped, deduplicated; the ±1 neighbours wrap across rows, as shipped), registers = the top
+      remaining tokens of the last block (31, full attention) until k tokens; kept tokens keep their full-sequence 3-D rotary ids; pruned before the LLM
+    code_used: "the repo's full modeling copy Qwen2_5_VL/qwen2_5_vl_HiPrune.py (sha256 prefix bd3801b00e2a2c66; old-structure classes, transformers 4.52.0), imported as its lmms-eval wrapper does (from Qwen2_5_VL.qwen2_5_vl_HiPrune import Qwen2_5_VLForConditionalGeneration) and loaded with from_pretrained on the local checkpoint"
+    knob: "HIPRUNE_QWEN_RETENTION = f, HIPRUNE_ALPHA = 0.1, HIPRUNE_OBJECT_LAYER = 16 (README Qwen defaults; eval_scripts/bench_qwen.sh uses the same alpha / layer), read from the environment at import -> one interpreter per fraction; the worker checks the module's RETAIN / ALPHA / OBJECT_LAYER"
+    attention: >
+      flash_attention_2 for the vision tower and the LLM (setup_qwen.sh: 'FlashAttention is required'; bench_qwen.sh).  SDPA is refused by its
+      vision blocks (assert).  Eager is NOT usable for pruned rows: CPU self-check job 1037485 / 1037502 — with eager attention every pruned
+      prefill fails inside the shipped _prepare_4d_causal_attention_mask_with_cache_position (the mask is built from generate's unpruned
+      cache_position: 'size of tensor a (70) must match ... b (303)'), after the selection ran; with flash_attention_2 the shipped
+      _update_causal_mask returns None at batch 1 (no padding), so no mask is built.  FA2 therefore runs only on GPUs flash-attn 2.8.3 supports
+      (L40S, H100); verified only by the GPU smoke
+    paper_operating_points: "Qwen2.5-VL at retention 0.334 / 0.223 / 0.112 (README defaults; not ours)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ environments
+environments:
+  rule: >
+    One venv per method from the CPython 3.12.12 of the vl_baselines venv (both repos: python 3.12), built by a CPU sbatch job
+    (slurm/r7_e1_cpu.sbatch env <method>; refuses an existing env dir; checks >= 1.25 TB free; a failed build removes only what the job created).
+    Exact pins of the repo kept (never upgraded); torch from the PyTorch cu128 index; every package the repo leaves unpinned resolved from PyPI as
+    of the method's last code commit (pip 26.2.1 --uploaded-prior-to); torch's own dependencies come from the PyTorch index (numpy 2.5.2 /
+    pillow 12.3.0, the versions of R7-40c's vl_baselines env).  Full lists: <env>/FREEZE.txt.  HF_HUB_OFFLINE, python -I, PYTHONNOUSERSITE.
+  mmtok:
+    path: "/projects/EEG-foundation-model/yinghao/envs/mmtok (3.9 GB, 53 packages)"
+    versions: "python 3.12.12; torch 2.8.0+cu128, torchvision 0.23.0, torchaudio 2.8.0 (install.md); transformers 4.52.4 (requirements.txt pin); accelerate 1.12.0, tokenizers 0.21.4, safetensors 0.7.0, huggingface_hub 0.36.2, loguru 0.7.3, sentencepiece 0.2.1, protobuf 6.33.5, einops 0.8.2, open_clip_torch 3.2.0, timm 1.0.24 (cut-off 2026-02-20T14:24:18Z); numpy 2.5.2, pillow 12.3.0; no flash-attn"
+    not_installed: "LLaVA-NeXT (LLaVA path only; mmtok's guarded import logs 'LLaVA not installed. Patch skipped.'), lmms-eval, qwen-vl-utils, flash-attn (optional in install.md); the package itself is imported from the read-only tree instead of 'pip install -e .' (which would write mmtok.egg-info into it)"
+    jobs: "build + import check 1037448 (exit 0: mmtok 1.0.0 imports, wrapper mmtok.qwen.qwen2_5_vl_mmtok); CPU self-check 1037484 (slow processor) and 1037501 (final processor setting): pass"
+  hiprune:
+    path: "/projects/EEG-foundation-model/yinghao/envs/hiprune (4.2 GB, 46 packages)"
+    versions: "python 3.12.12; torch 2.8.0+cu128, torchvision 0.23.0 (torch unpinned by the repo: the last release before its last Qwen-code commit; torchvision >= 0.16 from the bundled lmms-eval); transformers 4.52.0 (setup_qwen.sh pin; YANKED on PyPI, no reason given — installed with pip's warning); numpy 1.26.4 (bundled lmms-eval pin); accelerate 1.10.1, tokenizers 0.21.4, safetensors 0.6.2, huggingface-hub 0.35.1, einops 0.8.1 (cut-off 2025-09-24T15:29:24Z); flash-attn 2.8.3 (official prebuilt wheel cu12 / torch2.8 / cxx11abiTRUE / cp312, the last release before the cut-off; wheel sha256 f25da186…)"
+    not_installed: "lmms-eval and its dependency list, qwen_vl_utils, av, openpyxl (evaluation-harness packages; the method lives in the modeling file)"
+    jobs: "build + import check 1037449 (exit 0: module imports with the three knobs, flash_attn imports on CPU, transformers' FA utilities contain the guarded names; FA2 itself is CUDA-gated); CPU self-check 1037485 (eager failure found) and 1037502 (probe: pass)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ budgets
+budgets:
+  fractions: "f in {0.125 (stress point, as R7-40c), 0.25, 0.5, 0.75} of each image's own N merged tokens, through the method's knob; optional in-env anchor f = 1 (the method's code path with every token kept)"
+  token_counts: >
+    MMTok k = min(int(f·N), N) (floor; qwen2_5_VLmodel_mmtok.py 'int(token_retain_ratio * image_embeds.shape[0])', semantic_selector k_max);
+    HiPrune k = round(N·f) (Python round, half to even; 'visual_token_num = round(n_image_tokens * RETAIN)'; anchors + buffers + registers = k);
+    R7-40c k = max(1, floor(f·N + 1/2)).  |Δk| <= 1, i.e. <= 1/256 of N (0.39 points of kept fraction) with N >= 256 under the frozen bounds.
+    MMTok is one token below R7-40c whenever frac(f·N) >= 1/2 (about half the items at every fraction); HiPrune only when f·N = m + 1/2 with m
+    even.  Examples (f, N): (0.125, 260) -> MMTok 32, HiPrune 32, R7-40c 33; (0.25, 266) -> 66 / 66 / 67; (0.5, 1001) -> 500 / 500 / 501;
+    (0.75, 1258) -> 943 / 944 / 944.  The stub tests check the formulas against the fetched source lines; the CPU self-checks check them on
+    the real method code (kept seen by the LLM == rule on every item and fraction)
+  recorded_per_item: "kept = the visual tokens the LLM actually received (prefill length seen by a forward pre-hook on the LLM module, minus the text tokens; the hook returns nothing), n_vis = N from the processor (== the image-header estimate, else stop), k_rule = the method's own count, f = the knob; every analysis uses the realised mean kept fraction mean(kept / N)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ pipeline
+pipeline:
+  host: "Qwen/Qwen2.5-VL-7B-Instruct@cc594898 (the local checkpoint /projects/EEG-foundation-model/yinghao/models/Qwen2.5-VL-7B-Instruct, staged to node-local disk once per job), bf16"
+  items: "outputs/R7_D1/d1_30/sets/{gqa_dev,textvqa_val,chartqa_val}.jsonl (7,986 / 4,799 / 1,920 items; answers stripped on load, r7_d1_40c_run.load_items), R7-40c's sharding GQA 6 / TextVQA 4 / ChartQA 2 (r7_d1_30_run.load_items), D1-30 shard order (batch 1: no token-count sorting needed)"
+  per_item: >
+    R7-40c's official call (r7_d1_40c_run.official_generate's arguments): user message [image, pinned prompt] through processor.apply_chat_template
+    (shipped system prompt 'You are a helpful assistant.'), processor(text, image) with min / max pixels 256·28² / 1280·28², then
+    model.generate(do_sample=False, num_beams=1, max_new_tokens 128 / 128 / 16, use_cache=True, output_logits=True, return_dict_in_generate=True)
+    with the shipped generation config (repetition penalty 1.05, eos [151645, 151643], pad 151643); answer = new tokens decoded with
+    skip_special_tokens, stripped; n_new / hit_max as R7-40c
+  checks_at_load: "transformers version == the method's pin; the processor's own call on four synthetic sizes gives the frozen-bound grids (else stop); MMTok retain_ratio == f; HiPrune knobs read at import == (f, 0.1, 16); attention classes actually built recorded"
+  outputs: >
+    outputs/R7_D1/r7_40/eval_e1/pred/<bench>/ext__<method>__<f>@s<i>of<n>.jsonl, rows {qid, image_id, pred, kept, n_vis, f, n_new, hit_max,
+    k_rule, ms} (R7-40c's fields + k_rule + ms), readable unchanged by r7_d1_30_score.load_config and r7_d1_40c_score.Bench40 (stub test);
+    configuration names ext:<method>:<f> (ext:mmtok:0.25, ext:hiprune:1, ...); one file per (configuration, shard), single writer, one line
+    written and flushed per item, a torn last line terminated before appending; resume per (configuration, qid) over every file of the
+    configuration; per-session provenance in pred/<bench>/_e1_meta/ (identity: method, fraction, attention, dtype, torch / transformers
+    versions, processor class, knobs, method commit and file hashes — a later session with another identity stops); one marker per shard
+    pred/<bench>/done_e1_<method>_shard<i>of<n>.json only when every (configuration, item) is answered (env, GPUs, node, job, repo commit +
+    dirty count, code sha256, method commit / licence / file sha256, knob, k rule, sets sha256, items, seconds, answers, kept check per
+    configuration, sessions)
+  differences_from_r7_40c:
+    D1_environment: "own pinned envs (torch 2.8.0, transformers 4.52.4 / 4.52.0) instead of vl_baselines (torch 2.9, transformers 4.57.6)"
+    D2_model_code: "MMTok: transformers 4.52.4's Qwen2.5-VL with the MMTok forward / vision forward / processor hook bound by the official wrapper; HiPrune: its own full modeling copy (old-structure classes; vision blocks that also return attention weights)"
+    D3_attention: "MMTok SDPA (as R7-40c); HiPrune flash_attention_2 in the vision tower AND the LLM (mandatory as shipped, see methods.hiprune.attention)"
+    D4_generation_path: "batch 1 through HF generate (the call of R7-40c's batch-1 official anchor full_official), not R7-40c's batched spliced QwenCore path (batch 32): the like-for-like R7-40c reference is full_official, not the batched full row"
+    D5_budget_rounding: "the method's own k (MMTok floor, HiPrune half-to-even) instead of R7-40c's half-up: |Δk| <= 1 (budgets.token_counts)"
+    D6_selector_inputs: "MMTok's selector sees 'Question: ' + the full prompt (suffix included) and the 2×2-pooled pre-merger features; R7-40c's selectors see the raw question and the PCA of the merged tokens — a property of the methods, recorded"
+    D7_processes: "one interpreter per fraction (HiPrune's import-time knob; MMTok's wrapper once per process as in its example); R7-40c runs every configuration of a shard in one process"
+    D8_image_processor: "AutoProcessor(use_fast=True) = Qwen2VLImageProcessorFast, R7-40c's class (4.57.6 default); transformers 4.52.x, and so the methods' own harnesses, would default to the slow PIL processor (same grids, slightly different resampling) — OPEN-E1-3"
+    D9_vs_official_harnesses: >
+      not used from the methods' lmms-eval adapters: max_pixels 1605632 (= 2048·28²; we keep 1280·28²), qwen_vl_utils resizing and the base64
+      JPEG round trip of every image (we feed the image file as R7-40c), eos_token_id 151645 only (we keep the shipped [151645, 151643]), the
+      lmms-eval tasks' generation lengths (we keep 128 / 128 / 16), device_map='auto' (we use .to('cuda'), same weights and dtype);
+      MMTok's standalone example loads fp16 (we use bf16 = its adapter's torch_dtype='auto')
+    D10_timing: "per-item 'ms' = CUDA-synchronised wall time of the generate call on the quality GPU (L40S, shared nodes); not a reference-GPU latency"
+    D11_outputs: "own root eval_e1 and marker names done_e1_<method>_shard…; R7-40c's eval_40c is never written"
+  identical_to_r7_40c: "sets, item order inside a shard, prompts, chat template and system prompt, image files (no archive; RGB conversion), pixel bounds and processor class, greedy decoding with the shipped penalty and eos ids, max_new_tokens, decoding of the answer, hit_max / n_new, row fields, file naming and resume rule, evaluators (at readout)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ rows / units
+rows:
+  core: "2 methods × 4 fractions × 3 benchmarks = 24 rows (ext:<method>:{0.125,0.25,0.5,0.75}); 14,705 items each -> 117,640 batch-1 answers"
+  anchor_OPEN_E1_1: "+ ext:<method>:1 on every benchmark (6 rows, +29,410 answers): the method's code path with nothing removed, in its own env — separates env / backend effects (transformers 4.52 vs 4.57.6, FA2 vs SDPA, torch 2.8 vs 2.9) from pruning; recommended"
+  not_run: "IF-Prune (no licence file; disclosed gap), HAWK / DART / VisionZip (admissible with more friction; not chosen), dynamic budgets (neither method has one), any official-test split"
+units:
+  gpu: "24 units = 2 methods × (GQA 6 + TextVQA 4 + ChartQA 2) shards; each unit stages the checkpoint once and runs its fractions (+ anchor) one after the other in fresh interpreters on the same GPU (slurm/r7_e1_gpu.sbatch run <method> <bench> <i/n> [anchor])"
+  lines: "outputs/R7_D1/r7_40/eval_e1/r7_e1_lines.txt (CPU job 1037518; written with the anchor; 'plan' without 'anchor' writes the 4-fraction version), R7-40c's format '<sbatch line> #MARK <marker>' (feed_normal.sh-compatible); configuration lists eval_e1/configs/configs_e1_<bench>.txt; nothing submitted"
+  partition: "L40S (R7-40c decision 7), node51 / node60 excluded; HiPrune needs a GPU flash-attn 2.8.3 supports (L40S / H100)"
+  time_limits_ESTIMATE: "MMTok GQA 1:15 / TextVQA 2:30 / ChartQA 1:30; HiPrune 1:30 / 3:15 / 1:45 (≈ 3 × the estimated unit time with the anchor; scripts/r7_e1_external.py TIME) — to be replaced by the smoke's measured rates before the freeze"
+  retries: "a unit is resubmitted only after its job left the queue without its marker; resume per (configuration, qid); a configuration file never mixes builds (identity check)"
+  stage_2: "slurm/r7_e1_cpu.sbatch complete [anchor] -> eval_e1/completeness_e1.json (every configuration covers each benchmark's items, every marker present)"
+  scheduling: "after the pre-registered queue (R7-50 phase Q, D1-FULL evaluation and timing, R7-50 phase F), as the extension decision says"
+budget_ESTIMATE:
+  basis: "R7-40c's measured L40S batch-1 official full-row rates (job 1036576): 0.136 / 0.350 / 0.237 s per item (GQA / TextVQA / ChartQA val incl. × 1.18); method factors assumed, not measured: MMTok ≈ 1.1 (greedy coverage selection ≈ the LLM saving at batch 1), HiPrune ≈ 1.4 / 1.6 / 1.5 (attention weights of all 32 vision blocks); staging ≈ 5 min + ≈ 1 min per interpreter per unit"
+  per_configuration: "MMTok ≈ 0.99 GPU-h (7,986 × 0.150 + 4,799 × 0.385 + 1,920 × 0.261 s); HiPrune ≈ 1.36 GPU-h (× 0.19 / 0.56 / 0.36 s)"
+  total: "4 fractions: ≈ 9.4 h of answers + ≈ 4 h of staging / loads ≈ 13.5 GPU-h on L40S; with the anchors ≈ 11.7 + 4 ≈ 15.7 GPU-h (estimate; the smoke measures seconds per answer, peak memory and load time)"
+  storage: "predictions ≈ 30 MB (147,050 rows × ≈ 0.2 KB), meta and markers < 5 MB under outputs/R7_D1/r7_40/eval_e1; envs 8.1 GB and fetched code 22 MB on /projects (2.1 TB free)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ analysis
+analysis:
+  readout: >
+    An E1 readout (to be written and frozen before any E1 prediction is scored; refuses without the freeze key; never overwrites) reuses the
+    frozen R7-40c / D1-30 machinery unchanged: r7_d1_40c_score.Bench40 (coverage guard: every configured row covers exactly the benchmark's
+    items; first complete record per qid; integrity counts) with the configuration list configs_e1_<bench>.txt, r7_d1_30_score.item_scores
+    (GQA exact match after LLaVA's convert_gqa_for_eval normalisation; TextVQA m4c soft accuracy — SparseVLM env, as R7-40c; ChartQA relaxed
+    accuracy pinned to pix2struct 6fe25c1), image- / chart-grouped bootstrap with 2,000 replicates and seed 0 (r7_d1_30_score.Boot)
+  reported_per_row: "quality with its 95 % bootstrap CI; realised mean kept fraction and mean visual tokens; answers cut at max_new_tokens; retention relative to the method's own in-env anchor (if run) and to R7-40c's full_official; GQA structural types and ChartQA human / augmented as descriptive subsets"
+  env_diagnostic: "ext:<method>:1 vs R7-40c full_official (same items, same batch-1 call, other env): identical-answer fraction and quality difference — reported as a diagnostic, never as an effect"
+  host_column: "E1 rows appear as separate columns next to R7-40c's fixed-fraction table at the same nominal fractions, labelled 'external method, own env, batch 1, descriptive'; no contrast with S1 / S2 / S3 / grid is computed, tested or entered in any family (no p-values, no Holm); no claim of superiority or parity in either direction"
+  latency: "secondary and descriptive: median per-row 'ms' (L40S, batch 1, shared nodes; not the reference GPU, not comparable with R7-40c's nodesumo01 latencies); no acceleration claim (OPEN-E1-6)"
+  never: "no official-test read; no tuning of either method (defaults only); no fraction selected on any E1 result"
+
+smoke:
+  validation_smoke: "slurm/r7_e1_gpu.sbatch smokeval <method> 0.25 16 (the coordinator's step): the first 16 items of GQA DEV shard 0/6 and ChartQA val shard 0/2 at f = 0.25 into outputs/R7_E1/smoke/<method>, then 'smokecheck' (rows read back with r7_d1_30_score.load_config; no answer key read, nothing scored)"
+  fixture_smoke: "slurm/r7_e1_gpu.sbatch smoke <method> [items] — the R7-40c smoke fixtures (R7-20 GQA / TextVQA fixtures, ChartQA TRAIN subset), all fractions + anchor, into eval_e1/smoke"
+  acceptance_proposed: "per item kept == the method's rule; SMOKECHECK pass (16 rows per benchmark, zero dropped / blank / duplicate lines, R7-40c's row fields, f); attention classes built = SDPA (MMTok) / FlashAttention2 in vision and LLM (HiPrune); processor Qwen2VLImageProcessorFast; seconds per answer and peak memory recorded -> time limits; optionally the anchor on the fixture items vs R7-40c's smoke full_official rows (identical-answer fraction, threshold to be set by the coordinator)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ code
+code:
+  new_files:
+    - scripts/r7_e1_external.py        # I/O glue: plan, run (stage once, one interpreter per fraction), worker, smokecheck, selfcheck / probe (CPU), complete
+    - tests/test_r7_e1_external.py     # stubbed CPU tests (fake processor / model drive the real hook and worker)
+    - slurm/r7_e1_gpu.sbatch           # run <method> <bench> <i/n> [anchor] | smoke <method> [items] | smokeval <method> <fraction> [items]
+    - slurm/r7_e1_cpu.sbatch           # env <method> | importcheck <method> | selfcheck <method> | tests | plan [anchor] | complete [anchor]
+    - reports/R7/R7_E1_EXTERNAL_PROTOCOL_DRAFT_20261013.yaml
+  frozen_modules_imported_unchanged: [scripts/r7_d1_30_run.py, scripts/r7_d1_40_host.py, scripts/r7_d1_40_masks.py, scripts/r7_d1_40c_plan.py, scripts/r7_d1_40c_run.py, scripts/r7_vl_common.py, scripts/r7_d1_30_score.py (smokecheck / readout), scripts/r7_d1_40c_score.py (tests / readout)]
+  no_existing_file_modified: "git status shows only the five new files (and the outputs / envs / third_party directories outside the repo)"
+provenance:
+  code_hash: "519635f47ebbe9c0 (sha256 prefix of scripts/r7_e1_external.py, tests/test_r7_e1_external.py, slurm/r7_e1_* concatenated in glob order — the wrappers' 'code:' line and the markers' code.sha256)"
+  cpu_jobs: "env builds 1037448 (mmtok) / 1037449 (hiprune); stub tests 1037483 (15 / 15, earlier code), 1037506 (17 / 17, code 519635f4); CPU self-checks 1037484 / 1037501 (mmtok, pass; the second with the fast processor) and 1037485 (hiprune, eager failure found) / 1037502 (hiprune probe, pass); unit plan 1037518"
+  reads: "README / LICENSE / install and setup files / requirements / pyproject / Qwen and core method files / lmms-eval adapters of the two repos; R7-40c's protocol, freeze and code; the D1-30 sets' field names only (no value printed; no answer read); the R7-40c smoke fixture file names.  Not read: any answer, prediction, score or result of R7-40c / D1-30 / D1-FULL / R7-50; any closed/ or sealed file"
+
+open_decisions:
+  OPEN-E1-1_anchor: "run ext:<method>:1 (in-env full row) on all three benchmarks? recommended yes (+≈ 2.3 GPU-h; the only clean way to separate env / backend effects from pruning); the lines file is written with it"
+  OPEN-E1-2_hiprune_transformers: "keep the repo's pin transformers 4.52.0 (yanked on PyPI, no reason given; installed, import and CPU self-check fine) — recommended, faithful — or use 4.52.1 (the actual GitHub 4.52 release, 4 h later; 4.52.2 / 4.52.3 fixed TP / device-map / import issues not on our path)"
+  OPEN-E1-3_image_processor: "R7-40c's fast processor (implemented; same preprocessing as every R7-40c row) vs the slow processor the methods' own harnesses get under transformers 4.52.x (faithful to their runs, adds a host difference)"
+  OPEN-E1-4_hiprune_fa2: "FA2 is mandatory as shipped (eager fails on pruned rows; SDPA refused by its vision blocks).  If the GPU smoke shows FA2 failing on L40S: (a) run HiPrune on H100 only; (b) disclosed gap; (c) a patched mask or a per-sub-config attention setting — NOT the official code, not recommended"
+  OPEN-E1-5_hiprune_torch: "torch 2.8.0 chosen by the date rule (the repo pins none; lmms-eval needs >= 2.1); alternative 2.7.1"
+  OPEN-E1-6_latency: "no E1 latency claim; per-row L40S 'ms' reported descriptively only — or a nodesumo01 batch-1 timing bundle for E1 (not implemented; would need its own script, one bundle job per the owner rule)"
+  OPEN-E1-7_readout: "the E1 readout script (separate output, freeze-gated, reusing Bench40 / SC.Boot / item_scores, no contrast with R7-40c rows) is not written yet — to be written and frozen before any E1 prediction is scored"
+  OPEN-E1-8_time_limits: "replace the estimated limits with ≈ 3 × the smoke's measured unit time (seconds per answer, load time)"
+  OPEN-E1-9_dependency_rule: "accept the resolution rule (repo pins exact; unpinned PyPI packages as of the method's last code commit; torch's own deps from the PyTorch index = vl_baselines' numpy / pillow) — recorded in FREEZE.txt"
+  OPEN-E1-10_question_text: "MMTok keeps its shipped behaviour (coverage text = 'Question: ' + the full prompt including the answer-format suffix), as in its lmms-eval runs — recommended; stripping the suffix would change the method's input"
+  OPEN-E1-11_freeze_mechanics: "this file copied to a FROZEN name + the key 'r7_e1_staged_freeze' in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (as R7-40c), then the 24 unit lines (with or without anchor) fed under the normal-QOS cap"

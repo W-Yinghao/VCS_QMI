@@ -1,0 +1,21 @@
+# R7-E1 staged freeze (coordinator), 2026-10-13 12:31 UTC — external Qwen2.5-VL-7B-Instruct baselines (MMTok, HiPrune) as a separate host column
+# next to R7-40c, validation data only.  Frozen before any E1 production unit ran and before any E1 prediction was scored; the two validation
+# smokes (jobs 1037516 MMTok, 1037517 HiPrune) were queued and had not run.  Design: reports/R7/R7_E1_EXTERNAL_PROTOCOL_DRAFT_20261013.yaml (sha256 bc2913057dab17dc…), code hash 519635f47ebbe9c0
+# (scripts/r7_e1_external.py, tests/test_r7_e1_external.py, slurm/r7_e1_*; stub tests 17 / 17, job 1037506).
+protocol_id: R7-E1
+status: frozen_20261013
+design: "reports/R7/R7_E1_EXTERNAL_PROTOCOL_DRAFT_20261013.yaml (every section applies as written, with the decisions below)"
+decisions:
+  D-E1-1_anchor: "YES — ext:<method>:1 (the method's own code path with nothing removed, in its own env) on all three benchmarks; the lines file is written with it"
+  D-E1-2_hiprune_transformers: "keep the repo's pin transformers 4.52.0 (yanked on PyPI without a stated reason; disclosed); no move to 4.52.1"
+  D-E1-3_image_processor: "R7-40c's fast processor (same preprocessing as every R7-40c row); the difference from the methods' own 4.52.x harnesses (slow processor) is disclosed"
+  D-E1-4_hiprune_fa2: "FlashAttention-2 as shipped; if the GPU smoke fails on L40S, one retry on H100; if it fails there too, HiPrune becomes a disclosed gap — no patch of its code"
+  D-E1-5_hiprune_torch: "torch 2.8.0 (date rule; the repo pins none)"
+  D-E1-6_latency: "no E1 latency claim; per-row L40S batch-1 'ms' descriptive only; no E1 timing bundle"
+  D-E1-7_readout: "the E1 readout is written and frozen (its own commit) before any E1 prediction is scored; it reuses Bench40 / item_scores / Boot unchanged and computes no contrast with S1 / S2 / S3 / grid"
+  D-E1-8_time_limits: "the planned limits (about 3 × the estimate) stand unless a smoke's measured seconds per answer exceed the estimate by more than 1.5 ×; then the lines are re-planned at 3 × the measured rate before submission (recorded here)"
+  D-E1-9_dependency_rule: "accepted as recorded in each env's FREEZE.txt"
+  D-E1-10_question_text: "MMTok keeps its shipped behaviour (coverage text = 'Question: ' + the full prompt incl. the answer-format suffix)"
+  D-E1-11_mechanics: "this file + the key r7_e1_staged_freeze in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml"
+production_gate: "a method's 12 unit lines are fed only after its validation smoke passes the acceptance in the design (kept == rule on every item, SMOKECHECK pass, attention classes as stated, R7-40c row fields)"
+scheduling: "backfill behind the pre-registered queue (R7-50 phase Q, D1-FULL evaluation and timing, R7-50 phase F): slurm/feed_gated.sh (CAP 27, GATE 10) and Nice 300 on the r7e1_ jobs, so main-route units always start first"
