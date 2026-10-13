@@ -1,0 +1,31 @@
+# R7-E2a staged freeze (coordinator), 2026-10-13 12:33 UTC — the TEACHER stage of E2 (Qwen2.5-VL-7B full-data replication): the frozen R7-40a
+# teacher code on D1-FULL's FIT_FULL questions not yet covered by R7-40a.  Frozen before any E2 GPU job ran (the E2 smoke, job 1037541, was
+# queued); the later stages (cache, selectors, evaluation, readout) get their own freeze (key r7_e2_staged_freeze) after their memory smoke.
+# Design: reports/R7/R7_E2_QWEN_FULL_PROTOCOL_DRAFT_20261013.yaml (sha256 f85d586dfb09dd57…), section stage_E2a_teacher with feasibility and open_decisions.teacher_stage_E2a.
+protocol_id: R7-E2a
+status: frozen_20261013
+decisions:
+  E2a-1_questions: "FIT-040 … FIT-281 (242 shards, 60,256 images, 240,827 questions) = FIT_FULL minus R7-40a's FIT; CAL never recomputed; no DEV"
+  E2a-2_reuse: "as DF-2: R7-40a's FIT-000..039 reused iff the static check (passed: precheck job 1037530, 48 shards, 0 problems) AND the L40S
+    bit-identical replay in the smoke pass; otherwise recomputed automatically (+5 bundles); CAL always R7-40a's (a failed CAL check stops)"
+  E2a-3_hardware: "L40S only — the GPU class of every reused R7-40a record and of the replay rule (H100 would be faster but would mix numeric classes)"
+  E2a-4_probe: "the launch probe is rerun in the E2 smoke on L40S (same job as the replay)"
+  E2a-5_shards: "D1-FULL's make_plan unchanged: 250-image shards, 8-shard bundles (31 bundles), --time 02:00:00 per bundle (≈ 3 × the ≈ 40 min expected)"
+  E2a-6_queue: "launched early as backfill: Nice 300 on the r7e2_ teacher jobs so pre-registered main-route units (R7-50 phase Q, D1-FULL
+    evaluation and timing, R7-50 phase F) always start first — ordering only, no unit, rule or analysis change"
+  E2a-7_mechanics: "this file + the key r7_e2a_staged_freeze in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml; launch after the smoke:
+    nohup setsid bash slurm/r7_e2_submit.sh teacher (gates: key, passing probe report, replay file)"
+code:
+  frozen_r7_40_hash: "0b2ac00ea6f0b431 (scripts/r7_d1_40_*.py + scripts/r7_d1_40c_*.py; the teacher bundles run r7_d1_40_teacher.py unchanged)"
+  teacher_stage_files_sha256:
+    scripts/r7_e2_data.py: d71c7e3d06ca23d1
+    scripts/r7_e2_plan.py: ada883109894ac70
+    scripts/r7_e2_smoke.py: 48da127655cd4b9e
+    slurm/r7_e2_gpu.sbatch: 30877a112fc8a5d5
+    slurm/r7_e2_cpu.sbatch: 559384ac0be5903b
+    slurm/r7_e2_submit.sh: 44d2d3a5279f56b8
+  rule: "the teacher-stage files above are not edited until E2a completes (their sha256 here is the record); the printed 'E2' hash covers all
+    r7_e2 files and changes as the later stages are written (the frozen R7-40 hash must not change)"
+estimate: "≈ 20 GPU-h on L40S (240,827 × 0.2655 s per question measured over 14 Qwen L40S bundles, + 31 loads); + ≈ 3.3 GPU-h if FIT-000..039 must be recomputed"
+disclosure: "the implementing agent saw the subject line of the R7-40c report commit (5de605a) in a git log after the E2 design and teacher code
+  were written; nothing in E2 was changed because of it; E2 itself was decided at 11:39:56 UTC, before any R7-40c result existed"

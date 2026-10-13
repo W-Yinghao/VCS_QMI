@@ -1,0 +1,245 @@
+# r7 E2 — Qwen2.5-VL-7B full-data replication (the Qwen analogue of D1-FULL): DRAFT for the coordinator's staged freezes.  NOT frozen.
+# Staged as D1-20 / D1-30 / D1-FULL / R7-40: stage E2a (the teacher) is frozen first and alone, with the top-level key 'r7_e2a_staged_freeze';
+# the cache, selectors, evaluation and readout (E2b / E2c) are frozen later with 'r7_e2_staged_freeze'.  Both keys go into
+# reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml (with a pointer to a frozen copy of this file); slurm/r7_e2_submit.sh (teacher | rest | all),
+# scripts/r7_e2_data.py data and scripts/r7_e2_score.py refuse to run without them.
+# Nothing below has run except the CPU tests and the CPU precheck under provenance.  No E2 GPU job (smoke, teacher, cache, selector, evaluation)
+# has run.  Written without opening any R7-40c / D1-30 / D1-FULL prediction, score or result file, any Qwen DEV teacher record, any official-test
+# file or anything under outputs/R7_50/sealed; R7-40c's shard markers (GPU, seconds, answers, set sha256) and job logs were read for costs only.
+# Disclosure: after this design and its code were written, a 'git log' (repository state check) showed the subject line of the R7-40c report
+# commit 5de605a; nothing in this draft was changed because of it, and the report itself was not opened.
+title: "r7 E2: the frozen R7-40 Qwen2.5-VL-7B pipeline (R7-40a teacher, R7-40b selectors with the CAL rate rule, R7-40c evaluation) on D1-FULL's FIT_FULL"
+status: draft
+date: 2026-10-13
+directive: 'owner "多做全量实验" (run full-data experiments); coordinator decision E2, reports/R7/R7_EXTENSIONS_DECISION_20261013.md (2026-10-13 11:39:56 UTC, 48 s before the R7-40c result files were written; commit 4fd73f3): feasibility first, then its own protocol and freeze before any unit runs; coordinator 2026-10-13 (later): the teacher stage first, as a separable staged freeze'
+parents:
+  - "reports/R7/R7_EXTENSIONS_DECISION_20261013.md (E2)"
+  - "reports/R7/R7_D1_FULL_PROTOCOL_DRAFT_20261012.yaml and reports/R7/R7_D1_FULL_STAGED_FREEZE_20261012.yaml (DF-1..DF-11; the design mirrored here)"
+  - "reports/R7/R7_40_PROTOCOL_DRAFT_20261012.yaml; R7_40A_STAGED_FREEZE_20261012.yaml (D40a-1..8, 40a_1); R7_40B_STAGED_FREEZE_20261012.yaml (40b_1..3); R7_40C_PROTOCOL_DRAFT_20261012.yaml; R7_40C_STAGED_FREEZE_20261013.yaml (40c_1..3)"
+freeze_keys:
+  r7_e2a_staged_freeze: "stage E2a (data stage + teacher bundles + completeness): gates slurm/r7_e2_submit.sh teacher and scripts/r7_e2_data.py data"
+  r7_e2_staged_freeze: "stages E2b / E2c (cache, selectors, evaluation, readout): gates slurm/r7_e2_submit.sh rest and the readout (which also needs r7_40c_staged_freeze and r7_e2a_staged_freeze)"
+
+purpose: >
+  R7-40b trains every Qwen selector on FIT = the frozen 10,000 images (39,960 binary questions).  E2 asks whether the R7-40c conclusions
+  (S1 VCS against S2 logistic, S3 direct risk and the uniform grid at fixed kept-token fractions) still hold when the identical Qwen pipeline is
+  trained on D1-FULL's FIT_FULL (70,256 images, 280,787 questions), so that the cross-host statement rests on full-data selectors on both hosts
+  (LLaVA: D1-FULL, claim rule DF-8).  Only the size of FIT changes.  Host, teacher, masks, CAL, training recipe, CAL rate rule, evaluation sets,
+  prompts, evaluators and statistics are the frozen R7-40 ones.
+
+scope_rules:
+  - "frozen code runs unchanged (called by the E2 wrappers or imported read-only): scripts/r7_d1_40_{teacher,host,masks,cache,train,selectors,analyze}.py, r7_d1_40c_{run,plan,score}.py, r7_d1_plan20.py, r7_d1_teacher.py, r7_d1_masks.py, r7_vl_common.py, r7_d1_data.py, r7_d1full_data.py (make_plan / copy rule); E2 lives in new files only"
+  - "FIT_FULL, CAL and DEV are D1-FULL's frozen manifest (outputs/R7_D1_FULL/data, sha256 c4404f7b…), whose FIT / CAL / DEV rows for the first 14,000 images are the frozen D1 manifest's (byte prefix) — the manifest R7-40a used"
+  - "DEV stays sealed: E2 plans, computes, copies and reads no DEV teacher shard; R7-40c's DEV-risk read stays the first and only read of the Qwen DEV teacher records (E2-6)"
+  - "nothing is selected on GQA DEV, TextVQA val or ChartQA val: rates, checkpoints and dynamic taus on CAL only (frozen R7-40b rules)"
+  - "no official-test read; no timing unit (Qwen has no B*, R7-40a reference timing job 1035608; no acceleration claim)"
+  - "Qwen scope of R7-40 unchanged: S1 / S2 / S3 only, no A1 / A2 ablations; an external Qwen method only as a separate host column (E1, not part of E2)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ data
+data:
+  manifest: >
+    D1-FULL's frozen manifest, used read-only: outputs/R7_D1_FULL/data/d1_manifest.jsonl (296,762 rows, sha256 c4404f7b…, frozen by D1-FULL's
+    data stage at 2026-10-12T15:58:50Z, verified by D1-FULL's own d1full_verify.json).  E2's data stage writes byte copies (sha256 re-checked)
+    to outputs/R7_E2/data with E2's own shard plan.
+  counts: "FIT_FULL 70,256 images / 280,787 questions (pi_yes 0.495062); CAL 2,000 / 7,989 (the frozen CAL); DEV 2,000 / 7,986 (the frozen DEV, never touched by E2)"
+  r7_40a_fit_is_the_frozen_d1_fit: >
+    Yes.  R7-40a ran on outputs/R7_D1/data (the frozen D1 manifest, sha256 32c72126…, and its shard plan of 250-image shards).  That manifest is a
+    byte prefix of D1-FULL's; FIT-000..039 (10,000 images, 39,960 questions) and CAL-000..007 have identical image lists in both plans, and the
+    frozen FIT images are the first 10,000 FIT_FULL images in manifest order (D1-FULL precheck 1035984; re-verified by E2's own precheck, see
+    provenance).  R7-40a's records cover exactly FIT-000..039 + CAL-000..007 (47,949 records; R7-40a completeness job 1036189).
+  class_weights: "from the training set, by the frozen rule: FIT_FULL gives w_yes 1.0099743 / w_no 0.9902208 (R7-40b: 1.0098560 / 0.9903346); the frozen trainer reads them from the manifest meta (E2-3)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ stage E2a (teacher)
+stage_E2a_teacher:
+  freeze_key: r7_e2a_staged_freeze
+  questions: >
+    FIT_FULL minus what R7-40a's records already cover: shards FIT-040 … FIT-281 = 242 shards, 60,256 images, 240,827 questions (outputs/R7_D1_FULL/
+    data/plan_dryrun.json 'reuse_fit'; re-derived by E2's precheck).  CAL is never recomputed; DEV is never planned.  If the reuse rule fails
+    (E2a-2), FIT-000..039 are recomputed too: 282 shards / 70,256 images / 280,787 questions.
+  reuse_rule_and_its_verification: >
+    The analogue of D1-FULL's DF-2.  R7-40a's FIT-000..039 records are reused if and only if (1) the static check passes — the D1-FULL manifest is
+    frozen with sha256 c4404f7b… and D1-FULL-verified; the frozen D1 manifest (32c72126…) is its byte prefix; the frozen CAL / FIT shard image
+    lists equal D1-FULL's; D1-FULL's plan equals make_plan(reuse_fit=True); for every R7-40a CAL / FIT shard: the .jsonl sha256 equals its done
+    record, present == expected == the manifest's questions of its images, no duplicate, no skipped image, made on an NVIDIA L40S; every record's
+    image / C / role / GQA types equal the manifest row, n_vis = rows × cols, budgets = round(f·N), random and grid orderings and their log-
+    probabilities re-derived by the current mask code equal the record, the qsim ordering is a permutation with its recorded digest, every
+    probability pair is well formed; the teacher code is clean at HEAD and last changed before the first R7-40a shard; the vl_baselines
+    FREEZE.txt and the Qwen checkpoint files predate it; R7-40a's and E2's bundle lines pass no chunk / batch option (same teacher settings) —
+    and (2) the GPU replay passes: the first chunk (16 images) of FIT-000 and of FIT-001 recomputed with the frozen teacher on an L40S equals
+    R7-40a's records bit for bit (E2 smoke).  Otherwise FIT-000..039 are recomputed by E2 bundles (5 more).  CAL-000..007 are always R7-40a's
+    records (R7-40b's selection set and the pre-registered CAL readout): a failed CAL check stops the data stage (coordinator decision).
+    Reused files are copied (sha256 re-checked; an existing different file is never overwritten) into outputs/R7_E2/teacher.
+  teacher_code_and_env: >
+    The frozen R7-40a teacher, scripts/r7_d1_40_teacher.py bundle, unchanged (blob e9320ea1; with r7_d1_40_host.py 86f06d76 and r7_d1_40_masks.py
+    52a6d54c, last changed in 8c5c9d8 at 2026-10-12T11:00:21Z; r7_d1_teacher.py b95e9aca, r7_d1_masks.py 62e8bcc7, r7_vl_common.py 954b3b23), in
+    /projects/EEG-foundation-model/yinghao/envs/vl_baselines (torch 2.9.0 cu128, transformers 4.57.6), Qwen2.5-VL-7B-Instruct bf16 / SDPA with the
+    R7-20 pixel bounds, python -I.  Per question the frozen 14 prefill passes (full, 3 mechanisms × 4 nested fractions, text-only), first-token
+    yes / no probabilities; 16 images per chunk; prefill batches of at most 16,384 tokens / 64 sequences (the defaults every R7-40a bundle used);
+    the per-bundle bit-identical replay of the first chunk (determinism sentinel) and the coverage guard as frozen; per-question resume;
+    images from the extracted GQA folder only (MissingImage stops the unit).  Wrapper: slurm/r7_e2_gpu.sbatch bundle <id> (one line, no option).
+  launch_gates: >
+    Driver (slurm/r7_e2_submit.sh teacher): the top-level key r7_e2a_staged_freeze; a passing probe report outputs/R7_E2/smoke/probe/probe_report.json
+    (the frozen R7-40a probe rerun in the E2 smoke with the frozen rules S4 = rate:0.9, S1 = same_gpu, D40a-1 / D40a-2); the replay file
+    outputs/R7_E2/smoke/reuse_replay.json.  Data stage (CPU job, refuses without the key): verification, static check, reuse decision, copies,
+    E2's shard plan and teacher lines; marker data/data_ready.json.  Each bundle (frozen gates): manifest frozen with an unchanged sha256, the
+    passing probe report, no DEV shard (never --allow-dev), every image file present.
+  shard_plan_and_units: >
+    D1-FULL's 250-image shards and 8-shard bundles, by D1-FULL's make_plan imported unchanged (scripts/r7_d1full_data.py): with reuse, the 31
+    bundles f000 … f030 of D1-FULL's own plan (f000–f029: 8 shards ≈ 7,990 questions; f030: FIT-280 (1,000 questions) + FIT-281 (6 images, 24
+    questions)); without reuse 36 bundles.  One line per bundle: 'sbatch --parsable --job-name=r7e2t_<b> --partition=L40S --exclude=node51,node60
+    --time=02:00:00 slurm/r7_e2_gpu.sbatch bundle <b> #MARK outputs/R7_E2/teacher/bundle_<b>.done.json'.  Single writer per shard file; a unit is
+    resubmitted (at most twice) only after its job left the queue without its marker.
+  completeness: "the frozen R7-40a tool (scripts/r7_d1_40_analyze.py complete) on E2's teacher dir and data dir: all 290 CAL / FIT shards complete, per-role totals equal the manifest (CAL 7,989, FIT 280,787), sha256 c4404f7b… unchanged -> teacher/r7_40a_completeness.json"
+  hardware: >
+    L40S only (D40a-4: one GPU class for the probe and every Qwen teacher record; all 56 R7-40a / R7-40c teacher shards were made on L40S).  D40a-4
+    is an R7-40a decision, so it does not bind E2 formally, but E2 mixes new records with the reused R7-40a ones in one training set and the
+    replay rule is defined on L40S; keeping L40S is the consistent choice (E2a-3).  H100 would be ≈ 2× faster per question (derived, never
+    measured for this teacher) and would mix numeric classes.
+  time_limits: "bundle 2 h (≈ 3 × the expected 40 min: 35 min of teacher compute + ≤ 9 min staging / load); data stage and completeness: CPU, 2 h limit (expected minutes)"
+  cost: "≈ 20 GPU-h on L40S for 240,827 questions (feasibility); + ≈ 3.3 GPU-h only if FIT-000..039 must be recomputed; wall ≈ 2–3 h with ≈ 10–15 free L40S"
+  outputs: "outputs/R7_E2/{data, teacher, lines, smoke}: ≈ 0.56 GB of new records (2.34 KB per question) + verified copies of 48 R7-40a shards (0.11 GB) + the manifest copy (0.07 GB)"
+  smoke_before_the_freeze: >
+    GPU (coordinator): sbatch --job-name=r7e2_smoke --partition=L40S --exclude=node51,node60 --time=01:00:00 slurm/r7_e2_gpu.sbatch smoke —
+    one host load: the frozen probe (S0–S7) -> smoke/probe/probe_report.json, then the replay of the first chunks of FIT-000 / FIT-001 ->
+    smoke/reuse_replay.json (expected ≈ 20 min: the R7-40a probe job 1035725 took 12 min including a 489-s load).  CPU (optional, done once):
+    slurm/r7_e2_cpu.sbatch precheck (verification + static check, dry run).
+  launch: "after the freeze: cd /home/infres/yinwang/CS_QMI/ssl_pilot && nohup setsid bash slurm/r7_e2_submit.sh teacher >/dev/null 2>&1 &   (log slurm_logs/r7_e2_submit.log; stop by PID)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ stage E2b (cache, selectors)
+stage_E2b_cache_selectors:
+  freeze_key: r7_e2_staged_freeze
+  feature_cache: >
+    The frozen R7-40b cache script (scripts/r7_d1_40_cache.py d1_40) unchanged on E2's data dir: merged Qwen tokens -> PCA 3584 -> 512 (64 seeded
+    tokens per image, streaming fp64 covariance, eigh) -> fp16 features of every FIT_FULL and CAL token, Qwen ids of the raw questions, the frozen
+    bf16 embedding table.  --max-images sets the PCA images (E2-1): 70,256 (fitfull, default: the frozen 'fit on FIT' rule with FIT = FIT_FULL)
+    or 10,000 (frozen10k: the frozen FIT images, i.e. R7-40b's PCA image set; bit-identity with R7-40b's pca.pt is checked and reported).  One
+    job on RTX6000PRO,H100,L40S (40b_1), independent of the teacher, so it may run while the teacher bundles run.  The frozen script is one pass
+    (not resumable); it holds the features in host RAM (≈ 2 × 22.8 GB at the concatenation) within --mem 96G.  A CPU check compares its outputs
+    with E2's manifest (role image lists and order, token sums, offsets, question ids, PCA image count, grids within 64 × 64).
+  selectors: >
+    The frozen R7-40b trainer (scripts/r7_d1_40_train.py train) unchanged: S1 vcs, S2 logistic, S3 direct; 20,000 phase-A steps of 64 questions × 4
+    of their 12 masks, CAL Spearman(r, h) selection every 1,000 steps, 5,000 phase-B gate steps, dynamic taus on CAL; exact micro-batching (D40b-2);
+    64 × 64 position tables (D40b-4); nominal fractions (D40b-5).  Rate search re-run at full scale with the frozen rule (OPEN-R740-3): seed 0 × lr
+    {1e-4, 3e-4} × 3 objectives (6 units) -> r7_d1_plan20.choose (higher selected CAL Spearman; tie within 1e-4 -> 3e-4; the E2 choice may differ from
+    R7-40b's vcs 3e-4 / logistic 1e-4 / direct 3e-4) -> seeds 1-2 × 3 objectives at the chosen rates (6 units).  12 units, no ablations.
+  data_scale_consequence_disclosed: "the recipe fixes steps, not epochs: R7-40b saw each FIT question ≈ 32 times (20,000 × 64 / 39,960), E2 ≈ 4.6 times (20,000 × 64 / 280,787); the scale contrast measures more distinct tuples at an equal optimisation budget (E2-4)"
+  hardware: "RTX6000PRO,H100 only (40b_2 / 40b_3; FIT_FULL static data alone ≈ 25 GiB on the GPU); PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (E2-11); --time 4.5 h (≈ 3 × 1.1–1.45 h); resumable per unit"
+
+# ------------------------------------------------------------------------------------------------------------------------------ stage E2c (evaluation, analysis)
+stage_E2c_evaluation_and_analysis:
+  freeze_key: r7_e2_staged_freeze
+  stage_0: "the frozen R7-40c check (scripts/r7_d1_40c_run.py check) with E2's units, PCA and lr_choice: sets vs build summary, images, grids within 64 × 64, the 9 units' files and CAL taus; writes E2's 50 core configs (the scorer's list)"
+  rows: >
+    E2-12 (coordinator's direction, default ROWS=selectors): E2 generates its 45 selector rows (S1 / S2 / S3 × seeds 0-2 × 0.125 / 0.25 / 0.5 / 0.75 and S1
+    dynamic × seeds × 3 CAL operating points) plus the full row as an in-job anchor; R7-40c's selector-independent rows (full, uniform grid ×
+    4) are reused after verification.  Option ROWS=core: all 50 core rows rerun (+4 rows per benchmark, ≈ +0.7 GPU-h), every primary contrast within-job.
+  reuse_of_r7_40c_rows_and_its_verification: >
+    R7-40c's uniform-grid rows enter E2's primary family (S1 − grid) iff (static) every R7-40c and E2 quality shard marker carries the same set
+    sha256, equal to the set file and the D1-30 build summary; every marker says NVIDIA L40S; the runner code (r7_d1_40c_run.py, r7_d1_40c_plan.py,
+    r7_d1_40_host.py, r7_d1_40_masks.py, r7_d1_40_selectors.py, r7_d1_selectors.py, r7_d1_30_run.py, r7_d1_masks.py, r7_vl_common.py) has the same
+    blobs at HEAD as at 4174400 (execution note 40c_3) and is clean; R7-40c's completeness passes; and (empirical) E2's in-job full row equals
+    R7-40c's full row on every item of the three benchmarks (answer, kept and visual-token counts, generated length: the same chunks, batches,
+    GPU class and code give bit-identical greedy decoding).  Then the four grid rows are copied (sha256-checked) into E2's prediction dir;
+    otherwise the driver stops for a coordinator decision (rerun with ROWS=core in a fresh eval dir, or disclosed reuse).
+  quality_units: "12 shards with the D1-30 / R7-40c sharding (GQA 6, TextVQA 4, ChartQA 2), L40S only (R7-40c decision 7), the frozen runner with E2's selectors and PCA, prompts / generation / batch 32 / chunk 32 as R7-40c; time limits GQA 1 h 40, TextVQA 3 h 45, ChartQA 2 h 10 (≈ 3 ×)"
+  timing: "none (E2-13): Qwen has no B*, the primary basis is fixed fractions; the sel rows share R7-40c's architecture latency; E2's dynamic-row latency is not measured (secondary only, no acceleration claim)"
+  dev_risk: "none (E2-6, = D1-FULL's DF-6): R7-40c's DEV-risk read was the first and only read of the sealed Qwen DEV teacher records"
+  primary: >
+    R7-40c's family unchanged (E2-5): S1 − S2, S1 − S3 and S1 − uniform grid × GQA DEV / TextVQA val / ChartQA val at the fixed fractions 0.25 /
+    0.5 / 0.75 (seed mean of per-item scores, paired), image / chart-grouped paired bootstrap (2,000, seed 0), two-sided p with +1 correction,
+    Holm over the 9 contrasts per fraction point — computed by the frozen R7-40c scorer on E2's rows (no timing dir, --anchor none).
+  claim_rule_E2_8: >
+    The analogue of D1-FULL's DF-8 across the two Qwen scales: a Qwen D1 claim is made only where the 10k scale (R7-40c) and the full scale (E2)
+    agree in sign and both pass their own Holm-corrected primary tests (alpha 0.05); the full-scale numbers are the headline; any disagreement
+    is reported as scale-dependent.  The cross-host statement (LLaVA D1-FULL vs Qwen E2, each under its own conjunction rule) stays descriptive:
+    no pooling, no cross-host test; it rests on S1 − S2 and S1 − S3 (S1 − grid is Qwen's own primary slot, R7-40c decision 5).
+  scale_contrast_descriptive: "full − 10k per objective (S1, S2, S3) at each fixed fraction incl. 0.125: seed-mean per-item difference (seed i vs seed i), the shared paired bootstrap; S1 dynamic rows: quality and realised kept fraction per scale; no multiplicity adjustment, no claim"
+  secondaries: "every frozen R7-40c secondary computed by its scorer on E2's rows (fixed-fraction table, retention, A3 dynamic − fixed, preserve / correct, dynamic fraction distribution, GQA types, ChartQA human / augmented, integrity); none enters a claim"
+  readout_tool: "scripts/r7_e2_score.py (SparseVLM env; refuses without r7_40c / r7_e2a / r7_e2 keys; never overwrites): the frozen R7-40c scorer on E2's rows, then the claim table and the scale contrast -> eval/results/{r7_40c_results, e2_claims}.{json,md}; run by the coordinator after the driver's done line"
+  official_test: "none (no official-test read in E2; a test column would need a new owner approval)"
+
+# ------------------------------------------------------------------------------------------------------------------------------ feasibility
+feasibility:
+  new_teacher_questions:
+    value: "240,827 questions / 60,256 images / 242 shards (FIT-040 … FIT-281) in 31 bundles; R7-40a's FIT (39,960 q, FIT-000..039) is exactly D1's frozen FIT = the first 10,000 FIT_FULL images; + CAL 7,989 reused"
+    source: "outputs/R7_D1_FULL/data/plan_dryrun.json and d1_shards.json; D1-FULL draft data.verification (precheck 1035984); R7-40a run on outputs/R7_D1/data (slurm/r7_d1_40_gpu.sbatch bundle line); E2 precheck (provenance)"
+  teacher_seconds_per_question_L40S:
+    value: "0.2655 s (55,935 questions in 14 bundles; per bundle 0.259–0.270 s); staging + load 14–519 s per job (mean 242 s)"
+    source: "slurm_logs r7d40t_b000..b011 (jobs 1035835–1035846, node50 / node57) and r7d40cd_b012 / b013 (jobs 1036855 / 1036856, node39 / node50): Σ shard seconds / Σ questions; load = wall − Σ shard seconds"
+  teacher_seconds_per_question_H100:
+    value: "not measured — no Qwen teacher bundle ever ran on an H100 (the H100 smokes 1035610 / 1035630 were cancelled); derived 0.12–0.15 s"
+    source: "derived: prefill per item at B 16 / 32 on H100 NVL vs L40S 21.8–24.0 vs 56.9–59.2 ms (ratio 0.38–0.41) with vision ≈ 72–80 ms per item on both (R7-40a reference timing job 1035608 vs indicative L40S timing job 1035634, outputs/R7_D1/r7_40/timing*/timing_report.json); cross-check: the LLaVA D1-10 teacher ratio 0.218 / 0.456 = 0.48"
+  teacher_gpu_hours:
+    value: "L40S (proposed): 240,827 × 0.2655 s = 17.8 h + 31 loads × 242 s = 2.1 h + per-bundle replay ≈ 0.15 h ≈ 20 GPU-h (bundle ≈ 40 min); H100 (not proposed): ≈ 10–12 GPU-h; recompute of FIT-000..039 if reuse fails: + ≈ 3.3 GPU-h on L40S"
+    source: "the two rows above"
+  cache_size:
+    value: "feats_FIT ≈ 22.8 GB (10k: 3,240,925,312 B for 3,164,966 tokens, mean 316.5 per image, × 70,256 / 10,000 = 7.03); feats_CAL 0.64 GB, embed_table 1.09 GB, pca 7 MB, question ids ≈ 24 MB (unchanged or × 6) -> ≈ 24.5 GB (10k cache: 4.98 GB)"
+    source: "ls of outputs/R7_D1/r7_40/cache; cache_d1_40.json (job 1036281)"
+  cache_time_and_memory:
+    value: "≈ 3.0 h on one GPU (PCA pass 70,256 × 71 ms + FIT encode 70,256 × 77 ms + CAL 154 s + load 317 s + save); GPU peak ≈ 17 GB (unchanged: features leave the GPU per image); host RAM ≈ 46 GB at the concatenation (< --mem 96G); limit 10 h (one pass, not resumable)"
+    source: "cache_d1_40.json of job 1036281 (RTX PRO 6000: pca 711.5 s / 10,000 images, FIT 773.5 s / 10,000, CAL 153.9 s / 2,000, peak 17.0 GB); scripts/r7_d1_40_cache.py encode_role40 (list + np.concatenate)"
+  selector_gpu_memory:
+    value: >
+      ≈ 69 GiB allocated at FIT_FULL: the 10k units peaked at 48.95–49.06 GiB allocated (all 12, RTX PRO 6000 and H100 NVL) with a static FIT
+      footprint of 3.02 GiB features + 0.29 GiB rank tables (N_max already 1,280 at 10k); FIT_FULL adds 18.2 GiB features (22.8 GB fp16) + 1.7 GiB
+      rank tables ([280,787, 3, 1,280] int16) + 0.1 GiB question ids / targets ≈ +20.0 GiB; the activation peak is set by the micro-batch cost caps
+      and the unchanged CAL, not by FIT size.  Reserved: with expandable_segments:True ≈ 73 GiB (D1-FULL measured +4.1 GiB over allocated) ->
+      ≈ 20 GiB headroom on an H100 NVL (93.1 GiB) and ≈ 22 GiB on an RTX PRO 6000 (95.1 GiB): fits; without it ≈ 85 GiB (D1-FULL +16.2 GiB) -> ≈ 8 GiB
+      headroom on H100 NVL.  An L40S (44.4 GiB) cannot hold a unit.  To be confirmed by the memory smoke (slurm/r7_e2_sel.sbatch memsmoke) before the E2 freeze.
+    source: "outputs/R7_D1/r7_40/selectors/*_s?.json peak_mem_gb (torch max_memory_allocated); images_FIT.json / question_ids.jsonl of the 10k cache; D1-FULL memory smokes 1035986 / 1036018; r7_d1_40_selectors.TupleData40 (all FIT tensors on the GPU)"
+  selector_units_and_time:
+    value: "12 units (6 seed-0 + 6 stage-2); per unit ≈ 1.06 h (RTX PRO 6000) / 1.33 h (H100 NVL) + ≈ 5 min setup (288,776 records, 23 GB cache) -> ≈ 13–17.5 GPU-h (+ slow-node outliers: one 10k unit took 2.98 h on an RTX node)"
+    source: "10k unit logs (seconds 3,793–3,816 RTX, 4,766–4,868 H100 NVL, one 10,749 s outlier); per-step cost independent of FIT size (batches gathered on the GPU; numpy choice without replacement O(64))"
+  evaluation:
+    value: "ROWS=selectors: 46 of R7-40c's 50 rows per item -> ≈ 7.85 h of generation + 12 loads ≈ 1.2 h ≈ 9.0 GPU-h on L40S; ROWS=core ≈ 9.7 GPU-h; no timing (0 h on nodesumo01)"
+    source: "R7-40c shard markers (outputs/R7_D1/r7_40/eval_40c/pred/*/done_shard*.json): 735,250 answers in 30,693 GPU-s on L40S (GQA 22.4–23.5, TextVQA 69.1–72.7, ChartQA 46.0–47.0 ms per answer)"
+  partitions: "smoke L40S (+ memory smoke RTX6000PRO / H100); teacher L40S; cache RTX6000PRO,H100,L40S; selectors RTX6000PRO,H100; quality L40S; CPU steps CPU; node51 / node60 excluded everywhere; no nodesumo01"
+  storage: "≈ 27.6 GB under outputs/R7_E2 on /home/infres (31 TB free): teacher 0.74 GB, cache ≈ 24.5 GB, selectors ≈ 2.2 GB (12 × 38 MB .pt + 148 MB resume), predictions ≈ 0.12 GB"
+
+budget:
+  per_stage_gpu_hours: "smoke ≈ 0.5 (L40S) + memory smoke ≈ 0.3 (RTX / H100); E2a teacher ≈ 20 (L40S); cache ≈ 3 (any); selectors ≈ 13–17.5 (RTX / H100); evaluation ≈ 9 (L40S) -> ≈ 46–50 GPU-h; + ≈ 3.3 if FIT-000..039 are recomputed"
+  wall_clock: "teacher ≈ 2–3 h with ≈ 10–15 free L40S (the cache can run alongside); selectors ≈ 3 h (two waves of 6); evaluation ≈ 1.5 h; ≈ 8–10 h of compute if the GPUs are free"
+
+code:
+  new_files: "scripts/r7_e2_plan.py (lines, choice, run configs), scripts/r7_e2_data.py (precheck, data stage, cache check, R7-40c row reuse check), scripts/r7_e2_smoke.py (GPU smoke: probe + replay; memory smoke), scripts/r7_e2_score.py (readout), slurm/r7_e2_{gpu,sel,cpu}.sbatch, slurm/r7_e2_submit.sh (teacher | rest | all), tests/test_r7_e2.py"
+  frozen_files_run_or_imported_unchanged: "r7_d1_40_teacher, r7_d1_40_host, r7_d1_40_masks, r7_d1_40_cache, r7_d1_40_train, r7_d1_40_selectors, r7_d1_40_analyze, r7_d1_40c_run, r7_d1_40c_plan, r7_d1_40c_score, r7_d1_30_run, r7_d1_30_score, r7_d1_plan20, r7_d1_teacher, r7_d1_masks, r7_d1_data, r7_d1full_data, r7_vl_common"
+  frozen_script_changes_needed: "none: the teacher takes D1-FULL's manifest dir and bundle ids as they are; the cache takes --max-images; the trainer reads E2's teacher / manifest / cache dirs; the R7-40c runner, check, completeness and scorer take E2's paths"
+
+provenance:
+  tests: >
+    tests/test_r7_e2.py, 19 tests (CPU; synthetic manifests, R7-40a-style records written by the frozen teacher with the frozen fake Qwen host, stubbed
+    sbatch / squeue; no real record, prediction or result read): 19 / 19 pass in the main env (job 1037527), vl_baselines (1037528) and SparseVLM
+    (1037529, incl. the m4c TextVQA path of the readout); rerun after wrapping the driver in main() (job 1037538).  Earlier round: 1037520 (2 errors,
+    both in the tests: a fake pca.pt hit the real R7-40b comparison, and the fake host records no GPU name).
+  precheck: >
+    Job 1037530 (CPU, main env, real files; dry run: nothing copied or planned; outputs/R7_E2/precheck/precheck.json): verification ok — D1-FULL
+    manifest frozen and D1-FULL-verified with sha256 c4404f7b…; the frozen D1 manifest is its byte prefix; the 10,000 frozen FIT images are the first
+    10,000 FIT_FULL images; counts FIT 70,256 / 280,787, CAL 2,000 / 7,989; class weights 1.0099743 / 0.9902208.  Static check ok on all 48 R7-40a
+    shards: FIT 40 shards / 39,960 records, CAL 8 / 7,989, all made on NVIDIA L40S, 0 shard problems (qids, rows, digests and log-probs re-derived,
+    qsim permutations, sha256); teacher code clean, last changed 2026-10-12T11:00:21Z (8c5c9d8) before the first R7-40a shard (12:33:47Z); env /
+    checkpoint files older; teacher settings identical (16 / 16,384 / 64, no option in either bundle line).  Plan: 31 bundles / 242 shards / 60,256
+    images / 240,827 questions with reuse; 36 / 282 / 70,256 / 280,787 without.  Outcome: reuse, if the GPU replay (smoke) passes.
+
+open_decisions:
+  teacher_stage_E2a:
+    E2a-1: "questions: FIT-040 … FIT-281 (240,827 q) — FIT_FULL minus R7-40a's FIT; CAL never recomputed; DEV never planned"
+    E2a-2: "reuse rule (= DF-2): R7-40a's FIT-000..039 reused iff the static check and the L40S bit-identical replay pass, else recomputed automatically (+5 bundles); CAL always R7-40a's (a failed CAL check stops)"
+    E2a-3: "teacher hardware: L40S only (D40a-4, the class of every reused record; proposed) vs H100,L40S (≈ 2× faster on H100, mixes numeric classes; not proposed)"
+    E2a-4: "launch probe: rerun in the E2 smoke on L40S (proposed, as D1-FULL; same job as the replay) vs reuse R7-40a's probe report outputs/R7_D1/r7_40/probe/probe_report.json"
+    E2a-5: "shard plan: D1-FULL's 250-image shards and 8-shard bundles (31), D1-FULL's make_plan imported unchanged; bundle --time 2 h"
+    E2a-6: "queue order: the extensions note placed E2 after the pre-registered queue; the coordinator now asks for the teacher stage early — ordering only (no unit, rule or analysis change)"
+    E2a-7: "freeze mechanics: the top-level key r7_e2a_staged_freeze + a frozen copy of this file; launch 'nohup setsid bash slurm/r7_e2_submit.sh teacher'"
+  later_stages_E2:
+    E2-1: "PCA basis (= DF-1): fitfull (default; all 70,256 FIT_FULL images) vs frozen10k (the frozen FIT images = R7-40b's set; PCA_BASIS=frozen10k)"
+    E2-3: "class weights (= DF-3): from FIT_FULL (1.0099743 / 0.9902208; the frozen trainer reads the manifest meta) — the frozen weights would need a modified manifest meta (not proposed)"
+    E2-4: "steps (= DF-4): 20,000 + 5,000 unchanged (≈ 4.6 passes per question instead of 32)"
+    E2-5: "primary family (= DF-5): R7-40c's 9 per fixed-fraction point (S1 − S2, S1 − S3, S1 − grid × 3 benchmarks), Holm per point"
+    E2-6: "DEV risk (= DF-6): none"
+    E2-7: "quality partition (= DF-7): L40S only (R7-40c decision 7; also the condition of the row reuse)"
+    E2-8: "claim rule (= DF-8): conjunction across the two Qwen scales, full-scale numbers as headline, disagreements reported as scale-dependent; cross-host reading descriptive"
+    E2-9: "freeze timing (= DF-9): E2 was decided before any R7-40c result existed (11:39:56 UTC) and this draft follows the frozen R7-40 design with no choice taken from R7-40c's results; the R7-40c readout is committed (5de605a), so the E2 freezes come after it — to be stated in the freeze; the claim rule E2-8 is fixed here and is not changed after any E2 result"
+    E2-10: "queue order (= DF-10): coordinator's (E2a now, the rest after the pre-registered queue)"
+    E2-11: "allocator (= DF-11): expandable_segments:True for the selector units, RTX6000PRO,H100 only; memory smoke before the E2 freeze"
+    E2-12: "evaluation rows: ROWS=selectors (default; R7-40c's full / grid rows reused after the verification above) vs ROWS=core (+≈ 0.7 GPU-h, no reuse)"
+    E2-13: "timing: none (fixed-fraction basis, no acceleration claim) vs a nodesumo01 bundle for E2's 9 dynamic rows (secondary only)"
+    E2-14: "readout: scripts/r7_e2_score.py (frozen R7-40c scorer + claim table + descriptive scale contrast) — accept"
