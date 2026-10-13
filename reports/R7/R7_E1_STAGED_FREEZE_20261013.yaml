@@ -19,3 +19,14 @@ decisions:
   D-E1-11_mechanics: "this file + the key r7_e1_staged_freeze in reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml"
 production_gate: "a method's 12 unit lines are fed only after its validation smoke passes the acceptance in the design (kept == rule on every item, SMOKECHECK pass, attention classes as stated, R7-40c row fields)"
 scheduling: "backfill behind the pre-registered queue (R7-50 phase Q, D1-FULL evaluation and timing, R7-50 phase F): slurm/feed_gated.sh (CAP 27, GATE 10) and Nice 300 on the r7e1_ jobs, so main-route units always start first"
+execution_note_e1_1: >
+  2026-10-13 ~12:50 UTC, coordinator (D-E1-7): the E1 readout is frozen in this commit, before any E1 production unit ran and before any E1
+  prediction existed: scripts/r7_e1_readout.py, tests/test_r7_e1_readout.py, slurm/r7_readout_e1_cpu.sbatch (named outside the slurm/r7_e1_*
+  glob so the frozen E1 code hash 519635f47ebbe9c0 stays unchanged); stub tests 6 / 6 in the main and SparseVLM environments (job 1037562).
+  Readings of the design it implements: R7-40c's rows are recomputed from R7-40c's predictions with the same Bench40 on the same items and
+  bootstrap weights, and must equal R7-40c's committed results file (any difference stops); S1 / S2 / S3 cells are seed means with a bootstrap
+  interval of the mean and the per-seed values; the f = 1 row shows R7-40c's batched full and full_official next to the E1 anchors; the env
+  diagnostic (ext:<method>:1 vs full_official) reports both qualities, the paired difference with its interval, the identical-answer
+  fraction and differing items, without a p-value; retention is a point estimate; no difference, test or p-value is computed between any E1
+  column and S1 / S2 / S3 / grid; TextVQA is scored in the SparseVLM environment as R7-40c; a one-method readout exists only for a disclosed
+  gap under D-E1-4 and would need its own execution note.
