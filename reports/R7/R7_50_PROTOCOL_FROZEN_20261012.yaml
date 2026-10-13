@@ -347,3 +347,18 @@ execution_note_r7_50_3: >
   reports/R7/R7_50_PRED_L_PREMANIFEST_SHA256.txt.  The driver is relaunched once D1-30's gqa_dev / chartqa_val timing files exist; it skips the
   finished generation (markers present), writes manifest_L, which must agree with this record for every prediction file, and the coordinator
   commits it before ALLOW_SCORING_L.  No analysis change.
+execution_note_r7_50_4: >
+  2026-10-13 ~08:40 UTC, coordinator: phase-Q module implemented after the phase-Q addendum was frozen (45b3e02, 2026-10-13 02:00:53 UTC).
+  Order: phase L's test build ran 2026-10-12 21:28 UTC (job 1036463), before the addendum; no label was opened before the addendum was frozen
+  (phase L scored at 06:44 UTC) and no Qwen test generation has run.  Files: scripts/r7_50_q.py, slurm/r7_50_q_submit.sh,
+  slurm/r7_50_q_gpu.sbatch, slurm/r7_50_q_cpu.sbatch, tests/test_r7_50_q.py (13 tests: job 1036973 SparseVLM env 13 / 13, job 1036974
+  vl_baselines env 12 + 1 skipped for missing pyarrow; phase L's 16 tests still pass, job 1036968).  Readings where the addendum left a
+  choice (marked OPEN in the code): one integrity unit per R7-40c reference shard (the cost line's 8 host loads); the manifest hashes the R7-40c
+  timing-bundle marker, the R7-40a B* report and the three per-benchmark timing files the marker lists (5 files; the addendum's "six"
+  counted differently); ChartQA human / augmented secondary with per-split intervals and contrasts as in phase L; the timing bundle is gated
+  together with R7-40c's completion; the gate also requires R7-40c's reference sets file to equal the sha256 its markers recorded.  Finding
+  (frozen phase-L driver, not edited): its integrity gate greps '"pass": true', which would also match a passing nested row; phase L's
+  integrity.json has top-level pass true, as do R7-40c's check.json and the R7-40 / D1-FULL probe reports gated the same way, so no gate
+  was affected; the phase-Q driver parses the top-level key.  Launch: nohup setsid bash slurm/r7_50_q_submit.sh — it waits for R7-40c's
+  done line, completeness, reference markers and timing bundle, then runs the integrity gate on GQA DEV / ChartQA val before any test
+  generation.
