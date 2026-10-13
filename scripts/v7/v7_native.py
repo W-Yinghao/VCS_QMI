@@ -72,6 +72,29 @@ def cmd_stage(a):
     print(json.dumps({"dest": str(dest), "roles": a.roles, "images": len(want), "extracted_now": n, "seconds": time.time() - t0})); return 0
 
 
+def cmd_stage_rank(a):
+    """GenAI-Rank candidates (genai_rank_inputs.jsonl: candidate_index 0..8 only) extracted from DALLE_3.zip / SDXL_Base.zip to DEST/<generator>/<file>."""
+    import zipfile
+    rows = VC.read_jsonl(a.inputs); dest = Path(a.dest); zs = {}; t0 = time.time(); n = 0
+    for r in rows:
+        out = dest / r["image_id"]
+        if out.exists():
+            continue
+        g = r["generator_id"]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(f"/projects/EEG-foundation-model/yinghao/data/genai_rank/{g}.zip"))
+        out.parent.mkdir(parents=True, exist_ok=True); tmp = out.with_suffix(".part"); tmp.write_bytes(z.read(r["image_id"])); os.replace(tmp, out); n += 1
+    print(json.dumps({"dest": str(dest), "candidates": len(rows), "extracted_now": n, "seconds": time.time() - t0})); return 0
+
+
+def cmd_evalset_rank(a):
+    """The native eval.py data file for GenAI-Rank: prompt + img_path, no element keys (overall score only; no human score is read)."""
+    rows = VC.read_jsonl(a.inputs)
+    if any(not r.get("prompt") for r in rows):
+        raise SystemExit("GenAI-Rank prompt mapping incomplete")
+    items = [{"prompt_id": r["prompt_id"], "generator_id": r["generator_id"], "candidate_index": r["candidate_index"], "prompt": r["prompt"],
+              "img_path": r["image_id"], "element_score": {}} for r in rows]
+    Path(a.out).write_text(json.dumps(items, ensure_ascii=False)); print(json.dumps({"items": len(items), "out": a.out})); return 0
+
+
 def cmd_evalset(a):
     roles = roles_of(Path(a.data_dir)); raw = json.loads((VD.EVALMUSE / "train_list.json").read_text())
     items = [{"prompt_id": r["prompt_id"], "prompt": r["prompt"], "img_path": r["img_path"], "element_score": {k: 0 for k in r["element_score"]}}
@@ -86,8 +109,10 @@ def main(argv=None):
     y.add_argument("--out-dir", required=True); y.add_argument("--max-epoch", type=int, default=0)
     s = sub.add_parser("stage"); s.add_argument("--dest", required=True); s.add_argument("--roles", nargs="+", required=True); s.add_argument("--data-dir", default=str(VC.DATA_OUT))
     e = sub.add_parser("evalset"); e.add_argument("--roles", nargs="+", required=True); e.add_argument("--out", required=True); e.add_argument("--data-dir", default=str(VC.DATA_OUT))
+    sr = sub.add_parser("stage-rank"); sr.add_argument("--dest", required=True); sr.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
+    er = sub.add_parser("evalset-rank"); er.add_argument("--out", required=True); er.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
     a = ap.parse_args(argv)
-    return {"prep": cmd_prep, "yaml": cmd_yaml, "stage": cmd_stage, "evalset": cmd_evalset}[a.cmd](a)
+    return {"prep": cmd_prep, "yaml": cmd_yaml, "stage": cmd_stage, "evalset": cmd_evalset, "stage-rank": cmd_stage_rank, "evalset-rank": cmd_evalset_rank}[a.cmd](a)
 
 
 if __name__ == "__main__":
