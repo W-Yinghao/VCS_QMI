@@ -30,3 +30,12 @@ execution_note_e1_1: >
   fraction and differing items, without a p-value; retention is a point estimate; no difference, test or p-value is computed between any E1
   column and S1 / S2 / S3 / grid; TextVQA is scored in the SparseVLM environment as R7-40c; a one-method readout exists only for a disclosed
   gap under D-E1-4 and would need its own execution note.
+execution_note_e1_2: >
+  2026-10-13 ~12:56 UTC, coordinator: MMTok validation smoke (job 1037516, node52, L40S, code 519635f47ebbe9c0, MMTok 8e26868) passed: 16 rows per
+  benchmark, 0 dropped / blank / duplicate lines, kept == rule on all 32 items (mean kept fraction 0.2495 / 0.2498), SDPA vision + LLM, fast
+  processor, transformers 4.52.4, peak 15.6 GB.  D-E1-8 read on the steady-state per-item time: the smoke's 'seconds_per_answer' averages 16
+  items including the one-off warm-up (0.83 s GQA, 0.41 s ChartQA), while the per-item median is 0.115 s (GQA; estimate 0.150) and 0.264 s
+  (ChartQA; estimate 0.261), so the planned limits stand.  MMTok's 12 frozen unit lines were fed at 12:55 UTC (slurm/feed_gated.sh, CAP 27,
+  GATE 10; Nice 300 via nice_filler).  The automatic start (slurm/after_e1_smokes.sh) did not fire for MMTok because it read only the first
+  line of the multi-line SMOKECHECK JSON (empty verdict = hold); fixed for HiPrune (full JSON, ms_median rate check, FlashAttention2 required
+  on both attention classes under D-E1-4).
