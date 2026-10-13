@@ -41,3 +41,10 @@ execution_note_40c_2: >
   line) is not submitted a second time; every other unit was submitted again with fresh retry counters (stage 0 re-ran and passed).  The
   coordinator supervises the bundle (one resubmission of its frozen line if it fails, noted here) and runs the score step only when both the
   driver's done line and timing/timing_bundle.done.json exist.  No unit, row, rule or analysis changes.
+execution_note_40c_3: >
+  2026-10-13 07:10 UTC, coordinator (record correction to 40c_1): the code hash every R7-40c job prints also covers the driver-generated,
+  untracked slurm/r7_d1_40c_lines.txt.  The TIMING=0 relaunch (40c_2) rewrote that file without the timing-bundle line, so the relaunched units
+  record 3af41cc868604805, not the 8d299cd10f7ee99a printed by the 40c_1 test job (which saw the first driver's lines file); the tracked R7-40c
+  scripts, tests and wrappers are unchanged since 4174400 (git status: only the untracked lines file).  The timing bundle 1036770 records
+  193ebd71003b8306 (the pre-40c_1 code, which differs only in the load-time guard it does not use).  No file matching the hash glob is edited
+  until R7-40c completes.
