@@ -48,3 +48,9 @@ execution_note_e1_3: >
 execution_note_e1_4: >
   2026-10-13 13:46 UTC, coordinator: the two E1 feeders (feed_gated.sh) run under slurm/backfill_guard.sh (emulated submission cap 20; see
   R7-E2a note e2a_3) so the backfill never holds the job-count cap that main-route drivers need.  Ordering only.
+execution_note_e1_5: >
+  2026-10-13 14:30 UTC, coordinator: MMTok's remaining units may also run on RTX6000PRO (partition L40S,RTX6000PRO via slurm/part_updater.sh,
+  PAT ^r7e1_mmtok_), because L40S / H100 are saturated by higher-priority users (my fair-share factor is near zero) while RTX PRO 6000 cards
+  sit idle.  MMTok's SDPA path and its env (torch 2.8.0+cu128) run on Blackwell; GPU class only flips greedy answers on a few items at random
+  (no target is trained on them); every unit marker records its GPU, and the readout reports the env diagnostic (ext:mmtok:1 vs R7-40c's
+  full_official, which ran on L40S) separately by GPU class.  HiPrune stays on L40S (FlashAttention-2 does not support Blackwell).
