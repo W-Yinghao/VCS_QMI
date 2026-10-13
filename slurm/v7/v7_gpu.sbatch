@@ -9,6 +9,7 @@
 #   smoke-n0                    native FGA trainer on 70 FIT records for 1 epoch + native eval.py on 20 CAL_SELECT items (code check + step time)
 #   m <arm> <lr> <seed> <unit>  M unit: train (5 epochs, CAL_SELECT selection) then export CAL_SELECT / CAL_PROB / DEV predictions
 #   n0 <seed> <unit>            N0 unit: stage FIT + eval images node-local, native train.py (5 epochs, last epoch), native eval.py on the eval roles
+#   parse <cache> <prompts...>  prompt-only element parser cache for external prompts (before any image score exists)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7_fga; PY="$E/bin/python -I"; BIG=/projects/EEG-foundation-model/yinghao/outputs_v7; D=/home/infres/yinwang/CS_QMI/outputs/V7/data
 export TORCH_HOME=/projects/EEG-foundation-model/yinghao/models/torch_home HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
@@ -43,6 +44,8 @@ case "$what" in
             --save_path $U/native_eval_$role.json --model_path "$CK" --dataset_dir $L/images/) || { rc=8; break; }
        done
      fi;;
-  *) echo "usage: smoke-m <arm> | smoke-n0 | m <arm> <lr> <seed> <unit> | n0 <seed> <unit>"; rc=2;;
+  parse) out="$1"; shift                   # prompt-only parser cache (Qwen2.5-VL-7B text-only, vl_baselines env); args: <cache.jsonl> <prompts.jsonl ...>
+     VLPY="/projects/EEG-foundation-model/yinghao/envs/vl_baselines/bin/python -I"; $VLPY scripts/v7/v7_parser.py run --prompts "$@" --out "$out" --batch 16; rc=$?;;
+  *) echo "usage: smoke-m <arm> | smoke-n0 | m <arm> <lr> <seed> <unit> | n0 <seed> <unit> | parse <cache> <prompts...>"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
