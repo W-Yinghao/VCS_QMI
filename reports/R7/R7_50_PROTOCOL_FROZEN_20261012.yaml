@@ -402,3 +402,8 @@ execution_note_r7_50_9: >
   (D1-FULL gqa_dev 6 / chartqa_val 2, decision F2), so no comparison ever runs against an incomplete reference; generation still follows a
   passed gate, and the timing gate stays before the manifest (r7_50_8).  Tests 17 / 17 (job 1038225; the stub writes the reference markers).
   The marker-triggered launcher (slurm/after_d1full_phaseF.sh) was stopped before it fired.
+execution_note_r7_50_10: >
+  2026-10-13 18:52 UTC, coordinator: the early phase-F launch of note r7_50_9 stopped at its first CPU step — the frozen integrity-prepare
+  (job 1038228, exit 1, 12 s) pins each integrity unit to the GPU class of its reference shard and therefore needs every reference marker,
+  and D1-FULL's chartqa_val shard 1 is not done.  Nothing was submitted to a GPU and no test file was opened.  Phase F returns to the
+  marker-triggered launcher (slurm/after_d1full_phaseF.sh, restarted); the reference gate added in r7_50_9 stays (harmless, satisfied by then).
