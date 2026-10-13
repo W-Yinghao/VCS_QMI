@@ -339,3 +339,11 @@ execution_note_r7_50_2: >
   2026-10-12 ~19:36 UTC, coordinator, before anything of R7-50 ran: the phase-L driver passed gate 1 but could not submit, because its CAP 26
   (count < 26) never opened while the D1-FULL driver (CAP 27) refilled every freed slot.  Restarted with CAP=27 (the same as the other drivers;
   the global <= 27 rule holds) and POLL=60 s, so its ~18 short jobs take freed slots ahead of D1-FULL's long backlog.  No other change.
+execution_note_r7_50_3: >
+  2026-10-13 02:12 UTC, coordinator: phase L generation finished (12 / 12 units); the manifest step (job 1036697) stopped with exit 1 before
+  hashing anything, because it also seals D1-30's profiling-workload timing files into manifest_L and those do not exist yet (D1-30's timing
+  units wait for nodesumo01) — execution note r7_50_1 had moved the timing gate in the driver but not in the manifest step.  No label was
+  opened.  A pre-manifest record of all 448 prediction files (sha256, job 1036699) is committed now:
+  reports/R7/R7_50_PRED_L_PREMANIFEST_SHA256.txt.  The driver is relaunched once D1-30's gqa_dev / chartqa_val timing files exist; it skips the
+  finished generation (markers present), writes manifest_L, which must agree with this record for every prediction file, and the coordinator
+  commits it before ALLOW_SCORING_L.  No analysis change.
