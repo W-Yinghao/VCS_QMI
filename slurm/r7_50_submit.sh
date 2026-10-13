@@ -113,14 +113,15 @@ else
 fi
 # full-scale integrity gate (non-test data; before any test file is opened in phase L, before any generation in phase F)
 I=$ROOT/integrity_$PHASE
-if grep -q '"pass": true' "$I/integrity.json" 2>/dev/null; then
+if "$PY" -I -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get("pass") is True else 1)' "$I/integrity.json" 2>/dev/null; then   # top-level key only (note r7_50_7)
   say "integrity gate already passed ($I/integrity.json)"
 else
   [ -f "$I/lines.txt" ] || subwait --job-name=r7_50_iprep_$PHASE $CPUJ slurm/r7_50_cpu.sbatch integrity-prepare "$ROOT" "$PHASE" "${IARGS[@]}"
   [ -f "$I/lines.txt" ] || { say "STOP: $I/lines.txt missing"; exit 1; }
   run_lines "$I/lines.txt" "integrity"
   waitcap; out=$(sbatch --parsable --wait --job-name=r7_50_icmp_$PHASE $CPUJ slurm/r7_50_cpu.sbatch integrity-compare "$ROOT" "$PHASE"); rc=$?
-  grep -q '"pass": true' "$I/integrity.json" 2>/dev/null || { say "STOP: full-scale integrity gate FAILED (job ${out%%;*}, exit $rc; see $I/integrity.json); no test file opened, nothing generated"; exit 1; }
+  for i in $(seq 1 24); do [ -f "$I/integrity.json" ] && break; sleep 5; done   # NFS (note r7_50_7)
+  "$PY" -I -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get("pass") is True else 1)' "$I/integrity.json" 2>/dev/null || { say "STOP: full-scale integrity gate FAILED (job ${out%%;*}, exit $rc; see $I/integrity.json); no test file opened, nothing generated"; exit 1; }
   say "integrity gate passed (job ${out%%;*}; $I/integrity.json)"
 fi
 # stage 0 — inputs (phase L: the one read of each test file) and the phase's configs / lines

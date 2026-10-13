@@ -376,3 +376,12 @@ execution_note_r7_50_6: >
   slurm/r7_50_q_cpu.sbatch score <root> (job 1037696), using the headroom below the QOS limit; ALLOW_SCORING_Q (manifest 070e958e…, commit
   23406a9) is unchanged and the scorer re-checks it; phase Q is scored once.  The driver's 'done' line is replaced by this note and the score
   job's output.
+execution_note_r7_50_7: >
+  2026-10-13 18:40 UTC, coordinator, before phase F: the phase-L / F driver's integrity gate grepped '"pass": true' in integrity.json, which
+  would also match a passing nested row when the top-level gate fails (finding of the phase-Q implementation, note r7_50_4; phase L was not
+  affected — its top-level pass is true).  Both checks now parse the top-level key only, and the post-compare check waits for the file (NFS),
+  as the phase-Q driver does; R7-50 tests 16 / 16 (job 1038214).  Phase F is launched automatically by slurm/after_d1full_phaseF.sh
+  when the D1-FULL driver logs its done line (all 12 evaluation shards and its timing bundle complete), with F_LR_CHOICE, F_SELECTORS, F_PCA,
+  F_INTEGRITY_REF (D1-FULL's D1-30-style DEV / val predictions, decision F2) and F_TIMING_DIR (D1-FULL's own timing run, decision F3) set to
+  the D1-FULL outputs; everything else follows the frozen phase-F design (integrity gate before any generation; manifest committed before
+  ALLOW_SCORING_F; one scoring run).
