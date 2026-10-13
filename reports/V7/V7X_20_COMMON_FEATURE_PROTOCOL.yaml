@@ -1,0 +1,64 @@
+# V7X-20 / V7X-21 common-feature protocol (v2 package docs/10-12, configs/X21_FIT_UNITS.csv) — DRAFT 2026-10-14.
+# To be FROZEN after the X20 extraction smoke and the X21 timing smoke, before any X21 fit on the full FIT and before any DEV / external label.
+# Scope: estimators compared on ONE fixed representation, the same P / Q and the same data roles.  It does not replace the full M0-M2 training
+# (that updates the representation); the two tables stay separate (docs/14).  Code: scripts/v7x/ (outside scripts/v7, so the v1 units' code
+# hash is unchanged), tests/v7x/, slurm/v7x/.
+version: V7X
+handoff: v2
+status: draft
+features:                                          # X20
+  source_model: >
+    the M arms' initialisation exactly (scripts/v7/v7_train.py build_model): FGA_Blip2 'coco' config, eva_vit_g.pth then blip2_finetune_coco.pth
+    (MD5 c483374f..., 0dc9921f...); no EvalMuse supervised update; ViT frozen, eval mode (dropout off), AMP fp16 forward as the M arms' evaluate().
+    The random mask head is not used.  Released FGA-BLIP2 is NOT a feature source (it was trained on EvalMuse TRAIN, which contains our CAL / DEV).
+  pass: "the image-grounded Q-Former pass of v7_train.forward (32 query tokens + text tokens, ITM attention); last hidden state at the text positions"
+  element_pooling: "mean of the element's span tokens (first 64 tokens, as pool_logits) -> 768-d, stored float32"
+  text_and_image: "raw prompt, uncased BERT, max_txt_len 128 (longer = error); BLIP eval processor 364 (full-frame resize); identical to the M arms"
+  roles: "EvalMuse FIT / CAL_SELECT / CAL_PROB / DEV main elements with a span (counts from V7-01: 101,987 / 6,411 / 7,249 / 12,016)"
+  external: "GenAI-Rank 14,400 candidates x the prompt-only parser's v3 elements (the m-rank inputs); no human score is read"
+  stored_per_role: "feats.npy float32 [n, 768]; index.jsonl (element_id, image_id, prompt_id, role, D weight); z0 = itm-head element logit at init"
+  label_rule: "y is written only into the FIT / CAL_SELECT / CAL_PROB fit inputs; DEV and external y are never loaded by the fit code"
+  invariants:
+    - "z0 recomputed from the stored pooled feature (itm_head is linear) equals the pooled token logit of v7_train.forward at init (max abs diff <= 5e-3, fp16) on a 256-image check"
+    - "per role, the element_id list equals the M interface (v7_train.ElementData) in order"
+    - "feature_manifest_hash = sha256 over (role, element_id order, float32 bytes); carried by every X21 result row; validate_shared_features() on every comparison"
+  standardization: "FIT-only D-weighted mean / sd per dimension, applied to every method (kernels and neural); no per-method PCA in the main table"
+  sensitivity: "shared FIT-only PCA (64 and 256 components) for every method; reported apart from the main table"
+  cost: "one GPU job: ~47k images (EvalMuse 32,717 + GenAI-Rank 14,400) through ViT-g + Q-Former; wall time and GPU type recorded"
+pq:
+  pq_id: evalmuse_element_softvote_v1
+  P: "element satisfied: mass a_i proportional to w_i y_i (w_i = D weight w_img / n_elements(image), y_i = mean valid vote)"
+  Q: "element not satisfied: mass b_i proportional to w_i (1 - y_i); a disagreed element contributes to both with its vote shares (integral representation, not duplicated samples; no thresholding)"
+  prior: "pi = FIT D-weighted mean y (0.5713, the M arms' prior_fit_spanned)"
+  reference_measure: "balanced mixture (P + Q) / 2 for S / J; natural probabilities through logit pi"
+  common_readout: "ell = balanced log ratio log(p / q) -> d = sigmoid(ell), T = tanh(ell / 2), p_nat = sigmoid(ell + logit pi) (reference logratio_readout)"
+methods:                                           # X21: 12 neural units (4 x seeds 0, 1, 2) + 3 deterministic kernels = 15 main fits
+  N-VCS-F: {target: mixture_S, loss: "class-balanced VCS: y/(2pi) (1 - sigmoid z)^2 + (1-y)/(2(1-pi)) sigmoid(z)^2 (the M2 element term)", ell: z, variant: task_adaptation}
+  N-BCE-F: {target: JS_logloss, loss: "class-balanced soft BCE (the M1 element term)", ell: z, variant: matched_control}
+  N-DV: {target: KL_PQ, loss: "plain DV: -(E_P f - log E_Q e^f), weighted in-batch log-mean-exp; no MINE EMA correction (named so)", ell: "f - log E_{Q,CAL_PROB}[e^f], normaliser estimated once per selected model on CAL_PROB Q mass (logsumexp), frozen", variant: task_adaptation}
+  N-NWJ: {target: KL_PQ, loss: "-(E_P f - E_Q e^(f - 1))", ell: "f - 1 (raw bridge; no offset re-estimation)", variant: task_adaptation}
+  K-KDE-S: {target: density_p_and_q, fit: "Gaussian KDE of P and Q with every FIT element as a centre (weights a, b); isotropic, h_P = h_Q", ell: "log p_hat - log q_hat (logsumexp, blocks)", variant: task_adaptation}
+  K-RULSIF: {target: relative_Pearson, fit: "alpha = 1/2, Gaussian basis at centres drawn from the P mass, closed form (H + lambda I)^-1 h (reference fit_relative_ratio)", readout: "raw u kept; u clipped to [0, 2] -> d = u / 2 (reference relative_half_readout; clip fraction reported)", variant: task_adaptation}
+  K-NYSTROM: {target: squared_regression_eta, fit: "whitened Nystrom features Phi = K(x, C) (K_CC + eps I)^(-1/2), eps = 1e-6 * mean diag; ridge in the approximate RKHS norm (reference fit_kernel_basis_posterior)", readout: "raw T kept; T clipped to [-1, 1] -> d = (T + 1) / 2 (clip fraction reported)", variant: task_adaptation}
+  K-CS-NATIVE: {panel: A0_native_CS, note: "native squared-ratio CS of the fitted FIT KDEs (diagonal included, scale_factor recorded) per bandwidth; no truth on natural data -> descriptive only; no probability row"}
+neural:
+  architecture: "MLP 768 -> 512 -> 512 -> 1, ReLU, no dropout, PyTorch default init; identical for the four methods (same parameter count); DV / NWJ keep the unbounded linear output"
+  optimiser: "Adam, constant lr, batch 4,096 elements drawn by a seeded shuffle of FIT (weights in the loss), 30 epochs; float32"
+  lr_grid: [1.0e-4, 3.0e-4, 1.0e-3]
+  tuning: "per method: 3 lr at tuning seed 17 (12 tuning fits, counted in cost); chosen lr = lowest CAL_SELECT natural Brier of the selected epoch; tie -> lower lr"
+  formal: "seeds 0, 1, 2 at the chosen lr; epoch with the lowest CAL_SELECT natural Brier (common readout, natural prior)"
+  native_records: "per epoch also the native criterion on CAL_SELECT (VCS risk, balanced log-loss, DV bound, NWJ bound), update norm and non-finite steps"
+kernels:
+  bandwidth: "h = m * h0, m in {0.25, 0.5, 1, 2, 4}; h0 = median pairwise distance of 4,096 FIT elements drawn with seed 17071 (standardized space)"
+  ridge: [1.0e-6, 1.0e-4, 1.0e-2, 1.0]
+  centres: "{256, 1024, 4096}, drawn with seed 17071 (RuLSIF from the P mass; Nystrom from FIT uniformly over D); KDE uses every FIT element"
+  selection_common: "lowest CAL_SELECT natural Brier (primary, the semantic interface)"
+  selection_native: "KDE: CAL_SELECT weighted log-likelihood of P and Q; RuLSIF: its held-out objective 1/2 E_M u^2 - E_P u on CAL_SELECT; Nystrom: held-out squared risk; reported as the native-CV row, never replacing the common row"
+  boundary_rule: "selected at a grid edge -> one pre-declared extension in that direction (bandwidth x0.125 / x8, ridge 1e-8 / 10, centres 8,192), counted in cost; no further extension"
+  records: "condition number, linear-solve residual, clip fraction, centres, effective P / Q mass, kernel evaluations, wall time"
+evaluation:
+  dev: "DEV natural Brier (prompt -> image -> element macro), NLL, AUROC, ECE, common J; raw and CAL_PROB-Platt readouts; by v7x scorer after every X21 prediction file exists (V7-03 label rule)"
+  rank: "E = mean p_nat over the parser elements per GenAI-Rank candidate (decomposition_failed -> no score, flagged) for every method with a sample posterior; scored only through the sealed scorer after the owner's scoring approval; panel C1 (task adaptations), not the primary family"
+  stats: "prompt-cluster bootstrap 5,000 (seed 2718); seed SD and per-seed signs; deterministic kernels are not replicated over seeds"
+  rows: "every result row: panel, method_id, native_target_id, readout_target_id, pq_id, feature_manifest_hash, data_split_hash, reference_measure, sample_role, units, status (EXTERNAL_RESULT_SCHEMA; validate_result / validate_shared_features)"
+budget_estimate: "X20 ~0.5-1 GPU-h; X21 neural 24 fits of a few minutes; kernels 125 configurations (5 KDE + 60 RuLSIF + 60 Nystrom) mostly matrix products on one GPU; measured in the timing smoke before the freeze"

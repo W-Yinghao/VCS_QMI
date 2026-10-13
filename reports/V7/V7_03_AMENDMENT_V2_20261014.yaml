@@ -1,0 +1,22 @@
+# V7-03 amendment v2 — FROZEN 2026-10-14 (UTC), before any GenAI-Rank human label is read (human_rating.json sealed 0400, unread since the
+# owner-approved split, 27996ca) and before any GenAI-Rank prediction of any method exists (B0 / B1 queued, M units training, no TIFA / DSG code
+# installed).  Source: the owner's v2 package (VCS_CVPR_V7_Server_v2_External_Benchmarks_20261014: docs/05 §1, docs/13 §4, configs/V7_MASTER_PROTOCOL.yaml
+# ranking block).  A dated revision, not a back-dated pre-registration; V7-03 (c346a9e) stays in force for everything not named here.
+amends: reports/V7/V7_03_PROTOCOL_FROZEN.yaml (c346a9e)
+primary_family:
+  name: v2_external_primary
+  contrasts: "M2-E vs B0 (released FGA-BLIP2 overall), B1 (VQAScore CLIP-FlanT5-XXL), B4T (TIFA), B4D (DSG); each on DALLE_3 and SDXL_Base; N = 9: 8 contrasts"
+  endpoint: "human score (1-5, sealed labels) of the selected candidate, N = 9, official first-index ties"
+  statistic: "M2-E per seed (3 formal seeds) -> per-prompt difference to the comparator averaged over seeds; prompt-cluster paired bootstrap 5,000 (seed 2718), prompts shared across generators resampled together; effect, 95 % interval, Holm over the 8"
+  reading: "system comparison (backbones, training data and compute differ; listed per row), not a loss attribution"
+attribution_family:
+  name: v2_attribution
+  contrasts: "M2-E vs M1-E on DALLE_3 and SDXL_Base (2 contrasts), Holm within the family; reported in full; never a gate for the external comparisons (no Logistic-win gate)"
+v1_family:
+  status: "the V7-03 family (M2-E vs M1-E, B0, B1; 6 contrasts) is reported in full as registered on 2026-10-13, labelled 'v1-registered'; it is no longer the primary claim family"
+comparator_definitions:
+  B4T: "TIFA, github.com/Yushi-Hu/tifa: the released local question generator tifa-benchmark/llama2_tifa_question_generation, UnifiedQA filter allenai/unifiedqa-v2-t5-large-1363200, VQA mplug-large, tifa_score_single; fallback if mplug-large cannot run: blip2-flant5xl (TIFA's own list), decided before any label and recorded"
+  B4D: "DSG, github.com/j-min/DSG: the released tuple / dependency / question prompts with a local LLM (Qwen2.5-32B-Instruct, greedy; reproduction adaptation: the paper used PaLM 2, the example gpt-3.5-turbo-16k), VQA mPLUG-large, parent-'no' zeroing, mean over questions; fallback VQA InstructBLIP (the repo's other open option), decided before any label and recorded"
+  paid_API_variant: "native GPT routes need the owner's approval; if approved they are added as separate rows, never replacing the frozen local rows"
+unrunnable_rule: "a primary comparator that cannot be run is registered with its reason, and a new frozen family is written, before any label is opened; no comparator is dropped after labels are seen"
+scoring: "GenAI-Rank labels only through scripts/v7/v7_score.py rank --allow-scoring after the owner's separate scoring approval and after every prediction file of the family is in the manifest"
