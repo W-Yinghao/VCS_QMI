@@ -58,3 +58,11 @@ execution_note_e2a_5: >
   before starting, and it was relaunched as 'CAP=20 nohup setsid bash slurm/r7_e2_submit.sh teacher' (PID 3093419): the data stage is skipped
   (data_ready.json exists), completed bundles are skipped by their markers (f010), every other bundle is submitted fresh with full retry
   counters, and the driver itself never takes my job count above 20, so main-route drivers (CAP 27) keep headroom.  Ordering only.
+execution_note_e2a_6: >
+  2026-10-13 15:26 UTC, owner decision ("按选项一来…22小时太极限了": about 5 bundles per job, not one job): the 35 incomplete teacher
+  bundles run as 7 group jobs r7e2t_g1..g7 (f000–f004, f005–f009, f011–f015, f016–f020, f021–f025, f026–f030, f031–f035; L40S; --time 9 h
+  ≈ 3 × 5 × 37 min; the L40S limit is 24 h) via slurm/e2_teacher_group.sbatch, which calls the FROZEN per-bundle wrapper slurm/r7_e2_gpu.sbatch
+  'bundle <id>' for each bundle in turn and skips bundles whose marker exists (code, rule and outputs unchanged; frozen R7-40 hash unchanged).
+  The teacher driver (PID 3093419) was stopped and its 6 pending bundles cancelled before starting (none was running); the groups are fed by
+  slurm/feed_gated.sh (CAP 24) at Nice 300.  When all 36 bundle markers exist, the teacher driver is relaunched once (it skips every bundle by
+  its marker and runs the frozen R7-40a completeness step that the E2 rest driver waits for).

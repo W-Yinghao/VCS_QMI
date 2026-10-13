@@ -60,3 +60,9 @@ execution_note_e1_6: >
   (slurm/feed_gated.sh, CAP=27 GATE=100, feed_mmtok_rest.txt), because they run on idle RTX PRO 6000 cards (note e1_5) while every other pending
   job waits on saturated L40S / H100.  The old MMTok feeder had submitted exactly the first 7 lines; nothing is duplicated.  HiPrune's feeder
   stays under the backfill guard (L40S only).
+execution_note_e1_7: >
+  2026-10-13 15:26 UTC, owner decision (group per-unit L40S jobs): HiPrune's 12 frozen units run as 3 group jobs, one per benchmark
+  (r7e1_hiprune_gqa_dev_all 6 shards --time 8 h, r7e1_hiprune_textvqa_val_all 4 shards 13 h, r7e1_hiprune_chartqa_val_all 2 shards 3.5 h; L40S
+  for FlashAttention-2), via slurm/e1_hiprune_group.sbatch, which calls the FROZEN per-unit wrapper slurm/r7_e1_gpu.sbatch 'run hiprune <bench>
+  <i/n> anchor' for each unit in turn and skips units whose marker exists (E1 code hash 519635f47ebbe9c0 unchanged).  The HiPrune feeder was
+  stopped and its 2 pending units cancelled before starting (none had run).
