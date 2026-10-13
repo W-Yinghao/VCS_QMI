@@ -1,7 +1,7 @@
 """V7 prompt-only element parser (V7 package docs/03 §7; templates/PROMPT_ONLY_ELEMENTS.txt, sha256 recorded): Qwen2.5-VL-7B-Instruct
 @cc594898 in TEXT-ONLY mode, the package's system template verbatim, greedy decoding (no sampling), bf16.  Every prompt of an external set is
 parsed once and cached BEFORE any image score exists; every method shares the cache.  Fixed post-processing (decided before any scoring):
-  span kept      -> in bounds (0 <= s < e <= len(prompt)), word-aligned (no cut inside a word) and sharing a word with the element text
+  span kept      -> in bounds (0 <= s < e <= len(prompt)), word-aligned (no cut inside a word) and its words found in order inside the element text
   span re-derived-> otherwise, the element 'text' located with the deterministic EvalMuse span rules (v7_data.find_spans)
   element dropped-> neither works (counted); polarity outside {positive, negative} -> 'positive' with a flag
   decomposition_failed -> no parseable JSON object or no valid element: the deployment score falls back to O for every method (flag kept)
@@ -29,33 +29,47 @@ SYSTEM = ("Extract verifiable visual requirements from the supplied image-genera
           "Avoid duplicated evidence. If a requirement is ambiguous, put it under unresolved rather than guess. Do not use likelihood of typical images to decide whether "
           "a requirement is fulfilled. Output no fulfillment scores.")
 MAX_NEW_TOKENS = 1024
-PARSER_VERSION = "v7_prompt_only_qwen2.5vl7b_cc594898_greedy_v1"
+PARSER_VERSION = "v7_prompt_only_qwen2.5vl7b_cc594898_greedy_v3"   # v2: top-level arrays accepted; v3: span words must lie inside the element text (both before any scoring)
 
 
 def first_json_object(text: str):
-    """The first balanced {...} block that json-parses (string-aware brace matching); None if there is none."""
-    start = text.find("{")
-    while start != -1:
-        depth, in_str, esc = 0, False, False
-        for k in range(start, len(text)):
+    """The first balanced top-level JSON value that parses, searched from the first '{' or '[' (string-aware bracket matching).  A top-level
+    array of element objects (a common deviation from the template's {"elements": [...]} object) is returned as {"elements": array,
+    "_format": "array"}; None if nothing parses.  Inner values are never returned when an outer value starts earlier but fails to parse."""
+    pos = min([i for i in (text.find("{"), text.find("[")) if i != -1], default=-1)
+    while pos != -1:
+        opener = text[pos]; closer = "}" if opener == "{" else "]"; depth, in_str, esc, end = 0, False, False, None
+        for k in range(pos, len(text)):
             ch = text[k]
             if in_str:
-                esc = (ch == "\\") and not esc
-                if ch == '"' and not esc:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
                     in_str = False
                 continue
             if ch == '"':
                 in_str = True
-            elif ch == "{":
+            elif ch in "{[":
                 depth += 1
-            elif ch == "}":
+            elif ch in "}]":
                 depth -= 1
                 if depth == 0:
-                    try:
-                        return json.loads(text[start:k + 1])
-                    except json.JSONDecodeError:
-                        break
-        start = text.find("{", start + 1)
+                    end = k; break
+        if end is not None:
+            try:
+                v = json.loads(text[pos:end + 1])
+                if isinstance(v, list):
+                    return {"elements": v, "unresolved": [], "_format": "array"}
+                if isinstance(v, dict):
+                    return {**v, "_format": "object"}
+            except json.JSONDecodeError:
+                pass
+            nxt = [i for i in (text.find("{", end + 1), text.find("[", end + 1)) if i != -1]
+        else:
+            nxt = []
+        pos = min(nxt, default=-1)
     return None
 
 
@@ -66,9 +80,10 @@ def word_aligned(prompt: str, s: int, e: int) -> bool:
 
 
 def shares_word(span_text: str, element_text: str) -> bool:
-    """A model span must share at least one word with the element's own text (an empty text accepts any span)."""
-    w = set(re.findall(r"[a-z0-9]+", element_text.lower()))
-    return not w or bool(set(re.findall(r"[a-z0-9]+", span_text.lower())) & w)
+    """A model span is consistent with its element when the span's words appear, in order, inside the element's own text (v3: a shared
+    stopword such as 'a' is not enough); an empty element text accepts any span."""
+    et = " ".join(re.findall(r"[a-z0-9]+", element_text.lower())); st = " ".join(re.findall(r"[a-z0-9]+", span_text.lower()))
+    return not et or (bool(st) and f" {st} " in f" {et} ")
 
 
 def validate(prompt: str, obj):
@@ -135,18 +150,31 @@ def cmd_run(a):
             for r, raw in zip(chunk, outs):
                 obj = first_json_object(raw); els, unres, st = validate(r["prompt"], obj)
                 fh.write(json.dumps({"source": r["source"], "id": str(r["id"]), "prompt": r["prompt"], "prompt_sha256": hashlib.sha256(r["prompt"].encode()).hexdigest(),
-                                     "raw_output": raw, "json_ok": obj is not None, "elements": els, "unresolved": unres, "stats": st,
+                                     "raw_output": raw, "json_ok": obj is not None, "json_format": (obj or {}).get("_format"), "elements": els, "unresolved": unres, "stats": st,
                                      "status": "ok" if els else "decomposition_failed", "parser_version": PARSER_VERSION}, ensure_ascii=False) + "\n")
             fh.flush(); print(f"[v7_parser] {s + len(chunk)}/{len(todo)} prompts ({time.time() - t0:.0f}s)", flush=True)
     return 0
+
+
+def cmd_revalidate(a):
+    """Re-apply the current post-processing (PARSER_VERSION) to the raw model outputs of an existing cache -> a new cache file (no model run)."""
+    rows = [json.loads(l) for l in open(a.inp)]; out = []
+    for r in rows:
+        if "header" in r:
+            out.append({"header": {**r["header"], "post_processing": PARSER_VERSION, "revalidated_from": a.inp}}); continue
+        obj = first_json_object(r["raw_output"]); els, unres, st = validate(r["prompt"], obj)
+        out.append({**r, "json_ok": obj is not None, "json_format": (obj or {}).get("_format"), "elements": els, "unresolved": unres, "stats": st,
+                    "status": "ok" if els else "decomposition_failed", "parser_version": PARSER_VERSION})
+    Path(a.out).write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in out) + "\n"); print(json.dumps({"records": len(out) - 1, "out": a.out})); return 0
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run"); r.add_argument("--prompts", nargs="+", required=True); r.add_argument("--out", required=True)
     r.add_argument("--batch", type=int, default=16); r.add_argument("--limit", type=int, default=None)
+    v = sub.add_parser("revalidate"); v.add_argument("--in", dest="inp", required=True); v.add_argument("--out", required=True)
     a = ap.parse_args(argv)
-    return cmd_run(a)
+    return cmd_run(a) if a.cmd == "run" else cmd_revalidate(a)
 
 
 if __name__ == "__main__":
