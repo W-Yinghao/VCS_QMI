@@ -51,3 +51,10 @@ execution_note_e2a_4: >
   (9) and earlier f014 were cancelled before starting; f000–f003 stay queued to claim L40S.  The teacher driver resubmits each cancelled bundle
   once (its RETRY 1 / 2; one retry is left for a genuine failure), one per 600 s, under the backfill guard.  No record, rule or design changes.
   Also cancelled: the day-long pending node51 probe (job 1036741; node51 stays excluded; resubmittable when the owner wants it).
+execution_note_e2a_5: >
+  2026-10-13 14:41 UTC, coordinator (supersedes the guard part of e2a_3 and the cancellations of e2a_4 for the teacher driver): when resumed,
+  the teacher driver (CAP 27) at once submitted the 9 bundles it had not yet submitted (f015–f023), refilling the cap with jobs that cannot
+  start on the saturated L40S partition.  With no teacher bundle running, the driver was stopped, its 13 pending bundles were cancelled
+  before starting, and it was relaunched as 'CAP=20 nohup setsid bash slurm/r7_e2_submit.sh teacher' (PID 3093419): the data stage is skipped
+  (data_ready.json exists), completed bundles are skipped by their markers (f010), every other bundle is submitted fresh with full retry
+  counters, and the driver itself never takes my job count above 20, so main-route drivers (CAP 27) keep headroom.  Ordering only.
