@@ -368,3 +368,11 @@ execution_note_r7_50_5: >
   node, before NFS showed the file.  Fix: every file check right after a blocking CPU job (integrity-prepare, integrity-compare, configs,
   manifest, score) now waits with the driver's own soon() (SOON_S = 120 s); nothing else changed; the 13 phase-Q tests pass (job 1037400).
   Relaunched; the completed prepare step (plan.json, lines.txt) is reused unchanged.
+execution_note_r7_50_6: >
+  2026-10-13 13:40 UTC, coordinator: after ALLOW_SCORING_Q was accepted (13:34:55), the phase-Q driver could not submit its stage-4 score job
+  because the normal-QOS job count was held at its CAP (27) by backfill jobs (the E2 teacher bundles and E1 units submitted after phase Q's
+  generation).  The driver (PID 2918641) was stopped by PID before submitting anything (no score job had been submitted, no results_Q
+  existed), and the coordinator ran the frozen stage-4 command once: sbatch --job-name=r7_50_score_Q --partition=CPU --gres=gpu:0
+  slurm/r7_50_q_cpu.sbatch score <root> (job 1037696), using the headroom below the QOS limit; ALLOW_SCORING_Q (manifest 070e958e…, commit
+  23406a9) is unchanged and the scorer re-checks it; phase Q is scored once.  The driver's 'done' line is replaced by this note and the score
+  job's output.
