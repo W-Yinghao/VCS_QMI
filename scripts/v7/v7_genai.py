@@ -114,11 +114,50 @@ def cmd_rank_inputs(a):
     return 0 if not unmapped and not conflicts and not many_to_one else 5
 
 
+def cmd_seal_rank(a):
+    """ONLY with the owner's approval (--approved-by records it): split the closed human_rating.json into (i) the prompt text per Rank id -> an
+    input file, and (ii) the ratings -> a sealed labels file (mode 0400) in closed/.  Nothing about the ratings is printed: counts and sha256 only.
+    The candidate-structure checks (both generators, images 1..9) run on the file without reporting any value."""
+    import os
+    import stat
+    if not a.approved_by:
+        raise SystemExit("refusing: the sealed split of human_rating.json needs the owner's approval (--approved-by '<who, when>')")
+    src = RANK / "closed" / "human_rating.json"; raw = src.read_bytes(); d = json.loads(raw); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    prompts, sealed, problems = [], [], Counter()
+    for pid, rec in d.items():
+        if str(rec.get("id")) != str(pid):
+            problems["id_mismatch"] += 1
+        prompts.append({"prompt_id": f"{int(pid):05d}", "prompt": rec["prompt"]})
+        for g in GENS:
+            imgs = rec.get("models", {}).get(g, {})
+            if sorted(int(k) for k in imgs) != list(range(1, N_CAND + 1)):
+                problems[f"{g}_not_1_to_9"] += 1
+            for k, ratings in imgs.items():
+                if 1 <= int(k) <= N_CAND:
+                    sealed.append({"prompt_id": f"{int(pid):05d}", "generator_id": g, "image_id": f"{g}/{int(pid):05d}_{int(k):02d}.jpeg", "candidate_index": int(k) - 1,
+                                   "human_score": float(sum(ratings) / len(ratings)), "ratings": ratings})
+    pf = out / "genai_rank_prompts.jsonl"; pf.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in prompts) + "\n")
+    lf = RANK / "closed" / "genai_rank_labels_sealed.jsonl"
+    if lf.exists():
+        os.chmod(lf, stat.S_IRUSR | stat.S_IWUSR)
+    lf.write_text("\n".join(json.dumps(r) for r in sealed) + "\n"); os.chmod(lf, stat.S_IRUSR)
+    inputs = [json.loads(l) for l in open(out / "genai_rank_inputs.jsonl")]; by = {r["prompt_id"]: r["prompt"] for r in prompts}
+    for r in inputs:
+        r["prompt"] = by.get(r["prompt_id"]); r["prompt_source"] = "human_rating.json prompt field (sealed split, approved)"
+    (out / "genai_rank_inputs.jsonl").write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in inputs) + "\n")
+    rep = {"approved_by": a.approved_by, "source_sha256": hashlib.sha256(raw).hexdigest(), "prompts": len(prompts), "sealed_rows": len(sealed),
+           "sealed_sha256": hashlib.sha256(lf.read_bytes()).hexdigest(), "prompts_sha256": hashlib.sha256(pf.read_bytes()).hexdigest(),
+           "candidates_without_prompt": sum(1 for r in inputs if not r["prompt"]), "structure_problems": dict(problems)}
+    (out / "genai_rank_seal_report.json").write_text(json.dumps(rep, indent=1)); print(json.dumps(rep, indent=1))
+    return 0 if not problems and not rep["candidates_without_prompt"] else 6
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("rank-inputs"); r.add_argument("--out", required=True)
+    sl = sub.add_parser("seal-rank"); sl.add_argument("--out", required=True); sl.add_argument("--approved-by", default=None)
     a = ap.parse_args(argv)
-    return cmd_rank_inputs(a)
+    return cmd_rank_inputs(a) if a.cmd == "rank-inputs" else cmd_seal_rank(a)
 
 
 if __name__ == "__main__":
