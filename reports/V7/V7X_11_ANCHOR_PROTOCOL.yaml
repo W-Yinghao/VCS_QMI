@@ -1,0 +1,36 @@
+# V7X-11 / V7X-12 controlled anchors (v2 package docs/10 §2 'new analytic anchors', docs/11, docs/12) — DRAFT 2026-10-14; frozen before any anchor run.
+# Purpose: fill the gaps of V7X_10 (classical CS-KDE truth / SE / bandwidth edge; kernel same-target rows at grid edges; uLSIF / LSMI never run;
+# MMD / HSIC never on controlled generators; no trained estimator at independence).  Synthetic data only; no human label is involved.
+version: V7X
+status: draft
+code: "scripts/v7x/x11_anchors.py (generators, truths, estimators from scripts/v7x/x_estimators.py), tests/v7x/test_x11_anchors.py"
+anchors:
+  A1_gauss_shift: {P: "N(delta e1, I_d)", Q: "N(0, I_d)", d: [2, 20], delta: [0.0, 0.5, 2.0], note: "delta 0 = the null"}
+  A2_joint_product: {P: "k = d/2 pairs (x_j, y_j) with correlation rho", Q: "product of the marginals N(0, I_d)", d: [2, 20], rho: [0.0, 0.5, 0.9], note: "rho 0 = the null"}
+  A3_xor: {P: "per 2-d pair: 1/2 N(0, S_rho) + 1/2 N(0, S_-rho), rho 0.8, k pairs", Q: "N(0, I_2k)", k: [1, 5], note: "zero correlation, nonzero dependence (the P85 xor family)"}
+sizes: {N_fit_per_class: [256, 4096], N_cal_per_class: "N_fit / 4 (>= 64)", N_eval_per_class: 4096, N_truth_mc: 200000}
+replicates: {estimation: 10, tests: 200, note: "data replicates (fresh samples), not initialisation seeds; Monte-Carlo SE = sd / sqrt(R)"}
+truths:
+  cs_lebesgue_sqratio: "closed form: Gaussian overlaps (A1, A2); mixture overlaps per pair, summed over independent pairs (A3)"
+  KL_PQ: "A1 delta^2 / 2; A2 -k/2 log(1 - rho^2); A3 Monte-Carlo with the analytic log ratio (N_truth_mc)"
+  pearson_chi2: "A1 exp(delta^2) - 1; A2 closed form (finite: (1 - rho^2)^(-k) ... exact det form in code); A3 Monte-Carlo"
+  mixture_S: "E_M tanh(l/2)^2, M = (P + Q)/2, Monte-Carlo with the analytic log ratio l"
+  eta: "tanh(l / 2) per EVAL point (posterior MSE needs this oracle: provenance 'analytic')"
+methods:
+  K-CS-NATIVE: "classical CS of the FIT KDEs (diagonal included), bandwidth h = m h0 (h0 = median pairwise distance of the pooled FIT sample), m in {0.125, 0.25, 0.5, 1, 2}; plus Scott and Silverman rules; plus the CAL-likelihood (CV) choice; error vs cs_lebesgue_sqratio"
+  K-KDE-S: "KDE log ratio -> T = tanh(l / 2); bandwidth by CAL common quadratic risk over the same grid + one extension (x0.0625 or x4) if at an edge"
+  K-RULSIF: "alpha 1/2, Gaussian basis at 100 / 256 centres from the P sample, m in {0.25, 0.5, 1, 2, 4}, ridge in {1e-6, 1e-4, 1e-2, 1}; native CV (CAL RuLSIF objective) and common CAL risk both recorded; raw u and clip fraction kept"
+  K-ULSIF: "alpha 0 (uLSIF), same basis / grid, native CV; native target Pearson chi2 (A1, A2) and LSMI = chi2 / 2 (A2)"
+  K-NYSTROM: "whitened Nystrom squared regression, 256 / 1024 centres, same bandwidth / ridge grid, common CAL risk"
+  N-VCS / N-BCE / N-DV / N-NWJ: "MLP d -> 128 -> 128 -> 1 (ReLU), Adam lr in {1e-4, 1e-3} chosen on CAL (common risk; DV / NWJ also their native bound), 2,000 steps, batch 256 per class; DV plain (no EMA); native KL from the DV / NWJ bound on EVAL; common S / posterior via the docs/12 bridges"
+  T-MMD: "unbiased MMD^2, Gaussian kernel with the median bandwidth of the pooled sample, 200 permutations of the pooled labels (valid: independent P / Q samples); level at the nulls (A1 delta 0), power elsewhere; N 256 per class"
+  T-HSIC: "biased HSIC (Gaussian kernels, median bandwidths) between the x and y halves of the joint sample, 200 permutations of y; level at rho 0, power elsewhere (A2, A3); N 256"
+metrics:
+  native: "bias, RMSE, MC SE over replicates against each method's own truth (never another target's truth)"
+  common: "posterior MSE vs eta (analytic oracle), J-gap S - J_eval; the plug-in S_hat; per method its selected grid point and whether it is at an edge"
+  tests: "rejection rate at alpha 0.05 with its binomial 95 % interval (200 replicates)"
+  cost: "fit + eval seconds, kernel evaluations, centres"
+rules:
+  - "TRUTH samples are never used for selection; every selection uses CAL only"
+  - "results rows follow EXTERNAL_RESULT_SCHEMA (panel A0 / A1 / B0 / B1; truth_target_id must equal readout_target_id for error metrics)"
+  - "no method row is dropped after results are seen; a failure (non-finite, solver) is a row with status failed"
