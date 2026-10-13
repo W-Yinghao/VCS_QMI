@@ -41,3 +41,9 @@ execution_note_df_2: >
   exists, and writes timing/timing_bundle.done.json only when all three succeeded; the driver waits on that one marker.  Changed before the
   stage was reached, in the plan script and the job wrapper only (the paused driver's own script is untouched).  Tests 19 / 19 in both envs
   (jobs 1036567 / 1036568).  Timing outputs and analysis unchanged.
+execution_note_df_3: >
+  2026-10-13 14:20 UTC, coordinator: the Nice 100 of note df_1 (so the R7-50 test runs and R7-40b / R7-40c units started first) is removed:
+  phase L, R7-40c and phase Q are complete, so D1-FULL's remaining units (evaluation, timing) are now the main route.  The nice_filler for
+  '^r7dF' was stopped and the pending evaluation units set back to Nice 0; the backfill extensions (E1, E2) keep Nice 300 and run under the
+  backfill guard (emulated submission cap 20).  Ordering only.  Recorded alongside: D1-FULL's evaluation stays on H100,L40S as frozen — its
+  SparseVLM environment (torch 2.1.2+cu121) cannot run on the Blackwell RTX PRO 6000 cards.
