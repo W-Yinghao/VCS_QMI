@@ -1,0 +1,16 @@
+# R7-40c staged freeze (Qwen2.5-VL evaluation on the frozen D1-30 sets).  Coordinator, 2026-10-13, after implementation commit a203672 and the
+# L40S smoke 1036576, BEFORE any D1-30 result (D1-30's timing units still wait for nodesumo01; nothing of D1-30 has been scored or read) and
+# before any R7-40b DEV / R7-40c result.  Protocol: reports/R7/R7_40C_PROTOCOL_DRAFT_20261012.yaml at a203672 (decisions 1–15 recorded there as decided).
+status: frozen
+decisions_summary:
+  rows: "core 50 per benchmark: full; uniform grid at 12.5 / 25 / 50 / 75 %; S1 VCS / S2 logistic / S3 direct × seeds 0–2 × four fractions; S1 dynamic × 3 seeds × 3 CAL operating points"
+  prompts_generation: "D1-30 pinned prompts, TextVQA without OCR tokens; max_new_tokens 128 / 128 / 16; the shipped repetition penalty; batch 32"
+  external_baseline: "disclosed gap — IF-Prune inadmissible (no licence file; Qwen2-VL / InternVL code only); no other external column in this freeze (owner may request an addendum)"
+  primary_family: "S1 − S2, S1 − S3, S1 − uniform grid × 3 benchmarks, Holm over 9 per latency point at Qwen's own B* (fixed fractions if no B*); S1 − grid takes D1-30's S1 − SparseVLM slot; the cross-host replication claim rests on S1 − S2 and S1 − S3"
+  anchor: "full_official — the full row through the frozen official batch-1 path on all three benchmarks; secondary diagnostic next to the batched full row (quality, full − anchor, identical-answer fraction), never primary"
+  partitions: "quality / anchors / DEV units on L40S only; the timing bundle on nodesumo01 (one job, owner rule 2026-10-13)"
+  b_star: "BSTAR=report: Qwen's B* comes from the queued R7-40a reference timing job 1035608 (frozen procedure, D40a-7); the 40c bundle waits for and reuses that report — measured once"
+  dev_secondaries: "DEV teacher bundles b012 / b013 (frozen R7-40a code), DEV yes / no-mass QC and DEV risk calibration"
+  scoring: "the coordinator scores after the driver's done line; the cross-host side-by-side only after the D1-30 readout"
+launch: "QUALITY_PARTITION=L40S ROWS=core BSTAR=report DEV=1 TIMING=1 nohup setsid bash slurm/r7_d1_40c_submit.sh (gates: this freeze key; R7-40b complete)"
+budget: "about 14 GPU-h on L40S + one nodesumo01 timing bundle (about 2–3.5 h, 8 h limit)"
