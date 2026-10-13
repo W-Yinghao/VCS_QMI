@@ -50,7 +50,7 @@ case "$what" in
      L=$(local_dir) || { echo "no node-local space >= 60 GB"; exit 4; }; mkdir -p $L; trap "rm -rf $L" EXIT
      $PY scripts/v7/v7_native.py stage-rank --dest $L/rank || exit 5
      W=$BIG/b1_work; mkdir -p $W; ln -sfn /projects/EEG-foundation-model/yinghao/models/hf_cache_v7/hub $W/hf_cache
-     (cd $W && HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7 /projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin/python -I \
+     (cd $W && PATH=/projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin:$PATH HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7 /projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin/python -I \
         /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_vqascore.py rank --inputs $D/genai_rank_inputs.jsonl --images $L/rank --out "$out" --batch 16); rc=$?;;
   native-rank|native-evalmuse) ck="$1"; tag="$2"; shift 2      # FGA's own eval.py with checkpoint ck (B0 = released weights; or an N0 unit) on GenAI-Rank / EvalMuse roles
      L=$(local_dir) || { echo "no node-local space >= 60 GB"; exit 4; }; mkdir -p $L; trap "rm -rf $L" EXIT; U=$BIG/native_eval/$tag; mkdir -p $U

@@ -15,6 +15,7 @@ E=/projects/EEG-foundation-model/yinghao/envs/v7_vqascore
 [ -x $E/bin/python ] || ~/anaconda3/bin/conda create -y -q -p $E python=3.10 || exit 1
 $E/bin/pip install -q torch==2.5.1 torchvision==0.20.1 torchaudio==2.5.1 --index-url https://download.pytorch.org/whl/cu124 || exit 2
 $E/bin/pip install -q --no-deps t2v-metrics==3.0 || exit 3
+[ -x $E/bin/ffmpeg ] || ~/anaconda3/bin/conda install -y -q -p $E -c conda-forge ffmpeg=6.1.2 || exit 5   # t2v_metrics/__init__ requires the ffmpeg binary (its own instruction)
 $E/bin/pip install -q "numpy==1.26.4" "transformers==4.49.0" sentencepiece "ftfy>=6.1.1" tqdm "huggingface-hub>=0.19.4" matplotlib "open-clip-torch>=2.23.0" \
   opencv-python-headless pandas scipy datasets tokenizers omegaconf iopath fairscale scikit-learn pycocoevalcap hpsv2 "fire==0.4.0" tiktoken "peft==0.5.0" \
   decord easydict protobuf pytz av icecream markdown2 pydantic accelerate shortuuid requests "httpx==0.24.0" einops-exts einops PyYAML moviepy \
@@ -22,7 +23,7 @@ $E/bin/pip install -q "numpy==1.26.4" "transformers==4.49.0" sentencepiece "ftfy
   blobfile diffusers nltk rouge-score openai || exit 4
 $E/bin/pip check || echo "pip check reported conflicts (logged above)"
 $E/bin/pip freeze > $E/FREEZE.txt
-cd /tmp && $E/bin/python -I - <<'PY'
+cd /tmp && PATH=$E/bin:$PATH $E/bin/python -I - <<'PY'
 import torch, transformers, numpy
 print("torch", torch.__version__, "| transformers", transformers.__version__, "| numpy", numpy.__version__)
 import t2v_metrics
