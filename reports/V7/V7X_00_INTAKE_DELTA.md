@@ -16,7 +16,8 @@ reference code and tests, schema, templates).  This file records where the serve
 | EvalMuse `test.json` | closed: downloaded, sha256 only, never opened | nobody (no labels published for test) |
 | EvalMuse DEV (prompt-disjoint holdout of public TRAIN) | labels inside the derived manifest; read by no decision so far | `v7_score.py table-a` after all 12 formal units and every export exist (V7-03); the M export writes DEV metrics as a by-product, unopened (note n1) |
 | GenAI-Rank `human_rating.json` | sealed 0400 after the owner-approved split (prompts only extracted); source sha256 b4d812ec…, sealed file sha256 0eb955b4… (V7_OWNER_DECISIONS; 800 prompts, 14,400 rows) | `v7_score.py rank --allow-scoring` after the owner's separate scoring approval |
-| GenAI-Bench ratings, TIFA160, RichHF, NegBench, Winoground | not downloaded | would need the owner's decision (download closed + a later read approval) |
+| GenAI-Bench (BaiqiL/GenAI-Bench @ 94e543b) | local since 2026-10-12 (tierA, eval-only); read so far: the Index / Prompt columns and the DALLE_3 / SDXL_Base images (label-free Rank mapping); HumanRatings never read (V7-00) | its ratings: the owner's read approval |
+| TIFA160, RichHF, NegBench, Winoground | not downloaded | the owner's decision (download closed + a later read approval) |
 
 ## 3. Running and queued work (2026-10-14 ~00:30 UTC)
 - V7 v1: N0 seeds 0-2 running (1038695-97); tuning M0 lr 5e-6 / 1e-5 running (1038698-99), 7 tuning units queued; the driver then selects lr
@@ -59,5 +60,9 @@ X20 ~0.5-1 GPU-h (one job); X21 24 small MLP fits + 125 kernel configurations in
 1. **Paid APIs for the native question-generation routes** (TIFA GPT-3.5, DSG GPT-3.5 / PaLM 2, PN-VQA GPT-4).  Default without approval: TIFA's
    released local LLaMA-2 generator (an official route), DSG and PN-VQA with a local LLM (Qwen2.5-32B-Instruct), labelled as adaptations.
 2. **GenAI-Rank scoring approval** after every prediction of the v2 primary family is in the manifest (unchanged from v1).
-3. **Optional extra terminal sets** (GenAI-Bench ratings, TIFA160, RichHF): not downloaded; each would need a download decision and a later read
-   approval.
+3. **Optional extra terminal sets**: GenAI-Bench ratings (local, unread) would need a read approval; TIFA160 and RichHF are not downloaded and
+   would need a download decision and a later read approval.
+
+## Corrections
+- 2026-10-14 (same day, after b89bab8): §2 and §7 first said GenAI-Bench ratings were not downloaded.  GenAI-Bench has been local since
+  2026-10-12; only its Index / Prompt columns and its DALLE_3 / SDXL_Base images were read (V7-00), never its HumanRatings column.
