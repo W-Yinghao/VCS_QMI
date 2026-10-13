@@ -32,3 +32,10 @@ execution_note_40b_2: >
   Every 40b selector unit now runs on RTX6000PRO,H100 only (>= 80 GB): the pending unit was moved, and slurm/part_updater.sh (PAT
   '^r7d40s_', 5 s) moves the driver's retry and later units before they start (the driver is not restarted, which would duplicate running
   units).  The failed unit is retried by the driver (resuming from its last checkpoint if any).  No analysis change.
+execution_note_40b_3: >
+  2026-10-13 ~03:00 UTC, coordinator: when the frozen choice (lr_choice.json: vcs 3e-4, logistic 1e-4, direct 3e-4) released stage 2, two
+  direct-objective units started on L40S in the same second they were submitted (the scheduler starts a job at submission when a card is free),
+  before part_updater.sh could move them — the 40b_2 measure cannot win that race.  All six stage-2 jobs were cancelled after about 30 s
+  (nothing written but at most a first checkpoint), the 40b driver was stopped and restarted with SEL_PARTITION=RTX6000PRO,H100 (the cache and
+  the six seed-0 units are complete and were skipped; the choice was re-read unchanged), and it resubmitted the six units on RTX6000PRO,H100
+  only (jobs 1036721–1036726).  No analysis change.
