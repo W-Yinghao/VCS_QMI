@@ -177,6 +177,26 @@ ITEMS = [
     {"id": "bert_base_uncased", "group": "v7", "kind": "hf", "repo": "google-bert/bert-base-uncased", "type": "model", "dest": MODELS / "bert-base-uncased",
      "allow": ["config.json", "vocab.txt", "tokenizer.json", "tokenizer_config.json", "model.safetensors", "pytorch_model.bin"], "licence": "Apache-2.0",
      "note": "Q-Former init and tokenizer that LAVIS loads by the name 'bert-base-uncased' (served from a local directory of that name)"},
+    # ---- V7X (owner 2026-10-14: v2 external-benchmark package; public scorers of reports/V7/V7X_30 on branch v7/t2i-alignment) ------------
+    {"id": "tifa_llama2_qg", "group": "v7x", "kind": "hf", "repo": "tifa-benchmark/llama2_tifa_question_generation", "type": "model", "dest": MODELS / "tifa_llama2_qg",
+     "licence": "Apache-2.0 (model card; LLaMA-2 fine-tune: the Llama 2 community licence also applies to the base weights)",
+     "note": "TIFA's released local question generator (tifascore get_llama2_pipeline): baseline B4T"},
+    {"id": "unifiedqa_v2_t5_large", "group": "v7x", "kind": "hf", "repo": "allenai/unifiedqa-v2-t5-large-1363200", "type": "model", "dest": MODELS / "unifiedqa-v2-t5-large-1363200",
+     "allow": ["config.json", "pytorch_model.bin", "spiece.model", "tokenizer_config.json", "special_tokens_map.json", "tokenizer.json", "README.md"],
+     "licence": "Apache-2.0 (UnifiedQA repository; no licence field on the card)", "note": "TIFA question filter: B4T"},
+    {"id": "sbert_all_mpnet_base_v2", "group": "v7x", "kind": "hf", "repo": "sentence-transformers/all-mpnet-base-v2", "type": "model", "dest": MODELS / "all-mpnet-base-v2",
+     "allow": ["config.json", "pytorch_model.bin", "model.safetensors", "tokenizer.json", "tokenizer_config.json", "special_tokens_map.json", "vocab.txt", "modules.json",
+               "sentence_bert_config.json", "config_sentence_transformers.json", "1_Pooling/*", "README.md"],
+     "licence": "Apache-2.0", "note": "TIFA free-form -> multiple-choice answer mapping (tifascore SBERTModel): B4T"},
+    {"id": "mplug_large_vqa", "group": "v7x", "kind": "modelscope", "repo": "damo/mplug_visual-question-answering_coco_large_en", "revision": "v1.0.0",
+     "dest": MODELS / "mplug_vqa_coco_large_en", "allow": ["*.json", "*.yaml", "*.bin", "*.txt", "README.md", ".gitattributes"], "licence": "Apache-2.0 (ModelScope card)",
+     "note": "the VQA model TIFA recommends and DSG's example uses (B4T / B4D); weights and configs identical at v1.0.0 and master (2026-10-14 listing)"},
+    {"id": "qwen2_5_32b_instruct", "group": "v7x", "kind": "hf", "repo": "Qwen/Qwen2.5-32B-Instruct", "type": "model", "dest": MODELS / "Qwen2.5-32B-Instruct", "licence": "Apache-2.0",
+     "note": "local LLM for DSG's tuple / dependency / question prompts and PN-VQA's element / question templates (substitutes PaLM 2 / GPT: reproduction adaptation): B4D / B3"},
+    {"id": "qwen2_vl_7b_instruct", "group": "v7x", "kind": "hf", "repo": "Qwen/Qwen2-VL-7B-Instruct", "type": "model", "dest": MODELS / "Qwen2-VL-7B-Instruct", "licence": "Apache-2.0",
+     "note": "PN-VQA's VQA model (the EvalMuse paper's best MLLM family): B3"},
+    {"id": "hpsv3", "group": "v7x", "kind": "hf", "repo": "MizzenAI/HPSv3", "type": "model", "dest": MODELS / "HPSv3", "licence": "Apache-2.0 (model card; code MIT)",
+     "note": "extended preference scorer B5 (runnability check, then GenAI-Rank scores)"},
     # ---- r7 Tier A: model weights named in the D1–D4 plans --------------------------------------------------------
     {"id": "qwen2_5_vl_7b_instruct", "group": "tierA", "kind": "hf", "repo": "Qwen/Qwen2.5-VL-7B-Instruct", "type": "model", "dest": MODELS / "Qwen2.5-VL-7B-Instruct", "licence": "Apache-2.0"},
     {"id": "vqascore_clip_flant5_xxl", "group": "tierA", "kind": "hf", "repo": "zhiqiulin/clip-flant5-xxl", "type": "model", "dest": MODELS / "clip-flant5-xxl", "licence": "Apache-2.0"},
@@ -394,11 +414,30 @@ def lfs_checkout(item, rec) -> None:
         raise RuntimeError(f"working-tree checkout incomplete: {n_ok}/{len(jobs)}")
 
 
+def do_modelscope(item, rec) -> None:
+    """ModelScope model repository at a pinned revision: the file list with published sha256 (API), each blob fetched with wget and verified."""
+    import urllib.request
+    base = "https://www.modelscope.cn/api/v1/models/" + item["repo"]; rev = item.get("revision", "master"); dest = Path(item["dest"]); files = []
+    with urllib.request.urlopen(f"{base}/repo/files?Revision={rev}&Recursive=true", timeout=60) as r:
+        listing = json.load(r)["Data"]["Files"]
+    for f in listing:
+        if f.get("Type") != "blob" or (item.get("allow") and not any(fnmatch.fnmatch(f["Path"], pat) for pat in item["allow"])):
+            continue
+        out = dest / f["Path"]; out.parent.mkdir(parents=True, exist_ok=True)
+        if not (out.exists() and out.stat().st_size == f["Size"]):
+            subprocess.run([WGET, "-c", "-q", "--tries=10", "--timeout=60", "-O", str(out), f"{base}/repo?Revision={rev}&FilePath={f['Path']}"], check=True)
+        got = digest(out, "sha256"); files.append({"name": f["Path"], "bytes": out.stat().st_size, "sha256_published": f.get("Sha256"), "sha256_ok": got == f.get("Sha256")})
+        log(f"  {item['id']}: {f['Path']} {out.stat().st_size} B sha256 ok {got == f.get('Sha256')}")
+    rec.update({"revision": rev, "files": files, "bytes": sum(x["bytes"] for x in files)})
+    if any(x["sha256_ok"] is False for x in files):
+        raise RuntimeError("ModelScope sha256 mismatch")
+
+
 def do_local(item, rec) -> None:
     p = Path(item["dest"]); rec["present"] = p.exists(); rec["bytes"] = sum(f.stat().st_size for f in p.rglob("*") if f.is_file()) if p.exists() else 0
 
 
-HANDLERS = {"http": do_http, "hf": do_hf, "git": do_git, "lfs_media": do_lfs_media, "local": do_local}
+HANDLERS = {"http": do_http, "hf": do_hf, "git": do_git, "lfs_media": do_lfs_media, "local": do_local, "modelscope": do_modelscope}
 
 
 def close_item(item, rec) -> None:
