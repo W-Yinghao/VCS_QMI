@@ -115,7 +115,7 @@ def cmd_run(a):
                 done[(r["source"], r["id"])] = r
     todo = [r for r in rows if (r["source"], str(r["id"])) not in done]
     proc = AutoProcessor.from_pretrained(QWEN_DIR); proc.tokenizer.padding_side = "left"
-    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(QWEN_DIR, torch_dtype=torch.bfloat16, device_map="cuda").eval()
+    model = Qwen2_5_VLForConditionalGeneration.from_pretrained(QWEN_DIR, torch_dtype=torch.bfloat16).to("cuda").eval()   # no device_map: the env has no accelerate
     pkg_tpl = Path("/home/infres/yinwang/CS_QMI/outputs/V7/package_ref/templates/PROMPT_ONLY_ELEMENTS.txt")
     head = {"parser_version": PARSER_VERSION, "model_dir": QWEN_DIR, "transformers": transformers.__version__, "torch": torch.__version__,
             "gpu": torch.cuda.get_device_name(0), "decoding": {"do_sample": False, "max_new_tokens": MAX_NEW_TOKENS}, "system_sha256": hashlib.sha256(SYSTEM.encode()).hexdigest(),
