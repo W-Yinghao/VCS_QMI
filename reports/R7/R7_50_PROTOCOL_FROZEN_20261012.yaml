@@ -362,3 +362,9 @@ execution_note_r7_50_4: >
   was affected; the phase-Q driver parses the top-level key.  Launch: nohup setsid bash slurm/r7_50_q_submit.sh — it waits for R7-40c's
   done line, completeness, reference markers and timing bundle, then runs the integrity gate on GQA DEV / ChartQA val before any test
   generation.
+execution_note_r7_50_5: >
+  2026-10-13 11:38–11:45 UTC, coordinator: the phase-Q driver stopped at its first CPU step ("integrity_Q/lines.txt missing"): the
+  integrity-prepare job 1037388 (exit 0) wrote lines.txt at 11:38:21 on its compute node and the driver checked 25 s later from the login
+  node, before NFS showed the file.  Fix: every file check right after a blocking CPU job (integrity-prepare, integrity-compare, configs,
+  manifest, score) now waits with the driver's own soon() (SOON_S = 120 s); nothing else changed; the 13 phase-Q tests pass (job 1037400).
+  Relaunched; the completed prepare step (plan.json, lines.txt) is reused unchanged.

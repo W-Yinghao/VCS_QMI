@@ -113,22 +113,22 @@ if jtrue "$I/integrity.json" pass; then
   say "integrity gate already passed ($I/integrity.json)"
 else
   [ -f "$I/lines.txt" ] || subwait --job-name=r7_50_iprep_Q $CPUJ slurm/r7_50_q_cpu.sbatch integrity-prepare "$ROOT"
-  [ -f "$I/lines.txt" ] || { say "STOP: $I/lines.txt missing"; exit 1; }
+  soon "$I/lines.txt" || { say "STOP: $I/lines.txt missing"; exit 1; }          # NFS: the CPU job wrote it on another node
   run_lines "$I/lines.txt" "integrity"
   waitcap; out=$(sbatch --parsable --wait --job-name=r7_50_icmp_Q $CPUJ slurm/r7_50_q_cpu.sbatch integrity-compare "$ROOT"); rc=$?
-  jtrue "$I/integrity.json" pass || { say "STOP: full-scale integrity gate FAILED (job ${out%%;*}, exit $rc; see $I/integrity.json); nothing generated on test"; exit 1; }
+  soon "$I/integrity.json"; jtrue "$I/integrity.json" pass || { say "STOP: full-scale integrity gate FAILED (job ${out%%;*}, exit $rc; see $I/integrity.json); nothing generated on test"; exit 1; }
   say "integrity gate passed (job ${out%%;*}; $I/integrity.json)"
 fi
 # stage 0 — configs_Q + lines_Q (no test file opened; the sealed inputs are phase L's)
 [ -f "$ROOT/lines_Q.txt" ] || subwait --job-name=r7_50_configs_Q $CPUJ slurm/r7_50_q_cpu.sbatch configs "$ROOT"
-[ -f "$ROOT/lines_Q.txt" ] || { say "STOP: $ROOT/lines_Q.txt missing"; exit 1; }
+soon "$ROOT/lines_Q.txt" || { say "STOP: $ROOT/lines_Q.txt missing"; exit 1; }
 say "stage 0 complete: configs_Q, $(grep -vc '^#' "$ROOT/lines_Q.txt") unit lines"
 # stage 1 — generation
 run_lines "$ROOT/lines_Q.txt" "generation Q"
 # stage 2 — manifest (CPU, waits)
 M=$ROOT/manifest_Q
 [ -f "$M/predictions_manifest.sha256" ] || subwait --job-name=r7_50_manifest_Q $CPUJ slurm/r7_50_q_cpu.sbatch manifest "$ROOT"
-[ -f "$M/predictions_manifest.json" ] && [ -f "$M/predictions_manifest.sha256" ] || { say "STOP: manifest_Q missing"; exit 1; }
+soon "$M/predictions_manifest.json" && soon "$M/predictions_manifest.sha256" || { say "STOP: manifest_Q missing"; exit 1; }
 MSHA=$(cut -d' ' -f1 "$M/predictions_manifest.sha256")
 say "stage 2 complete: manifest_Q sha256 $MSHA.  WAITING for $ROOT/ALLOW_SCORING_Q (coordinator: commit a copy of the manifest, then write manifest_sha256=$MSHA, commit=<that commit> and manifest_copy=<repo path of the copy> into it)"
 # stage 3 — wait for the coordinator's gate file
@@ -139,5 +139,5 @@ say "stage 3: $(basename "$AL") present ($(grep -v '^manifest_sha256=' "$AL" | t
 # stage 4 — score (CPU, waits): the only phase-Q job that opens the sealed labels; scored once
 [ -f "$ROOT/results_Q/r7_50_results.json" ] && { say "done already: $ROOT/results_Q/r7_50_results.json exists (scored once; a re-verification is a manual step with a new out dir)"; exit 0; }
 subwait --job-name=r7_50_score_Q $CPUJ slurm/r7_50_q_cpu.sbatch score "$ROOT"
-[ -f "$ROOT/results_Q/r7_50_results.json" ] || { say "STOP: score job $ID ended without results_Q/r7_50_results.json"; exit 1; }
+soon "$ROOT/results_Q/r7_50_results.json" || { say "STOP: score job $ID ended without results_Q/r7_50_results.json"; exit 1; }
 say "done: $ROOT/results_Q/r7_50_results.json and .md"
