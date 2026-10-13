@@ -39,3 +39,8 @@ execution_note_e2a_2: >
   2026-10-13 13:42 UTC, coordinator: the E2 teacher driver (PID 2990304) submits up to CAP 27 and so held my normal-QOS job count at the cap,
   which blocked main-route submissions (R7-50 phase Q's score job; D1-FULL's evaluation units next).  It was paused (SIGSTOP; its queued
   bundles keep running) and is resumed (SIGCONT) once the main-route submissions are in; no unit, rule or ordering inside E2a changes.
+execution_note_e2a_3: >
+  2026-10-13 13:46 UTC, coordinator: the manual pause of note e2a_2 is replaced by slurm/backfill_guard.sh (PID 3034512), which emulates a
+  submission cap of 20 for the backfill submitters (this E2 teacher driver and the two E1 feeders): every 30 s it pauses them (SIGSTOP) while
+  my normal-QOS job count is >= 20 and resumes them (SIGCONT) below it, so main-route drivers (CAP 27) always keep headroom.  Queued and
+  running jobs are untouched; ordering only.
