@@ -281,6 +281,67 @@ def cmd_train(a):
     return 0
 
 
+class RankImages:
+    """GenAI-Rank candidates read straight from DALLE_3.zip / SDXL_Base.zip (member names as in genai_rank_inputs.jsonl)."""
+
+    def __init__(self, root="/projects/EEG-foundation-model/yinghao/data/genai_rank"):
+        self.root = root; self._z = {}; self._pid = None
+
+    def __call__(self, image_id):
+        import io
+        import zipfile
+        from PIL import Image
+        if self._pid != os.getpid():
+            self._z, self._pid = {}, os.getpid()
+        g = image_id.split("/")[0]; z = self._z.get(g) or self._z.setdefault(g, zipfile.ZipFile(f"{self.root}/{g}.zip"))
+        return Image.open(io.BytesIO(z.read(image_id))).convert("RGB")
+
+
+def cmd_export_rank(a):
+    """Selected checkpoint, eval mode -> per GenAI-Rank candidate: O, the parser elements' logits, E = mean prior-corrected probability over the
+    prompt's parsed elements (decomposition_failed -> E None; the deployment score then falls back to O, flagged).  No human score is read."""
+    import torch
+    from transformers import BertTokenizerFast
+    unit = Path(a.unit_dir); log = json.loads((unit / "log.json").read_text()); device = "cuda" if torch.cuda.is_available() else "cpu"; prior = log["prior_fit_spanned"]
+    VC.stage_workdir(VC.BIG_OUT / "work"); tok = BertTokenizerFast.from_pretrained(str(VC.BERT_DIR)); L = log["model"]["max_txt_len"]
+    cands = VC.read_jsonl(a.inputs); cache = {}
+    for r in VC.read_jsonl(a.parser_cache):
+        if "prompt" in r:
+            cache[r["prompt"]] = r
+    model, _ = build_model(L, log["seed"], device); ck = torch.load(unit / "best.pt", map_location="cpu", weights_only=False); model.load_state_dict(ck["model"], strict=False)
+    VC.import_lavis()
+    from lavis.processors.blip_processors import BlipImageEvalProcessor
+    proc = BlipImageEvalProcessor(image_size=364); images = RankImages(); rows = []
+    for c in cands:
+        pr = cache.get(c["prompt"]); enc = tok(c["prompt"], return_offsets_mapping=True); ids = enc["input_ids"]
+        if len(ids) > L:
+            raise SystemExit(f"external prompt longer than max_txt_len ({len(ids)} > {L}): {c['prompt_id']}")
+        els = [] if pr is None or pr["status"] != "ok" else [{"element_id": f"{c['prompt_id']}::{e['id']}", "y": 0.0, "tok": VC.token_spans(enc["offset_mapping"], e["spans"])[:MAX_SPAN_TOKENS],
+                                                             "polarity": e["polarity"]} for e in pr["elements"]]
+        els = [e for e in els if e["tok"]]
+        rows.append({"image_id": c["image_id"], "prompt_id": c["prompt_id"], "prompt": c["prompt"], "ids": ids, "overall": 0.0, "w": 1.0, "elements": els,
+                     "generator_id": c["generator_id"], "candidate_index": c["candidate_index"], "parser_status": "missing" if pr is None else pr["status"]})
+    data = ElementData.__new__(ElementData); data.rows = rows; bt = Batcher(data, images, proc); out = []
+    model.eval()
+    with torch.no_grad(), torch.cuda.amp.autocast(enabled=device == "cuda"):
+        for s in range(0, len(rows), 32):
+            idx = list(range(s, min(s + 32, len(rows)))); b = bt(idx); O, z_tok, _ = forward(model, b, device)
+            z = VC.pool_logits(z_tok, b["owner"].to(device), b["tok_idx"].to(device), b["tok_mask"].to(device)).float().cpu().numpy() if len(b["owner"]) else np.zeros(0)
+            per = defaultdict(list)
+            for k in range(len(z)):
+                per[int(b["owner"][k])].append(float(z[k]))
+            for j, ridx in enumerate(idx):
+                r = rows[ridx]; zs = per.get(j, []); ps = VC.natural_probability(zs, prior).tolist() if zs else []
+                out.append({"prompt_id": r["prompt_id"], "generator_id": r["generator_id"], "image_id": r["image_id"], "candidate_index": r["candidate_index"],
+                            "O": float(O[j]), "E": (float(np.mean(ps)) if ps else None), "element_z": zs, "n_elements": len(zs),
+                            "decomposition_failed": not ps, "parser_status": r["parser_status"]})
+    dst = unit / "pred" / "genai_rank.jsonl"; dst.parent.mkdir(exist_ok=True)
+    with open(dst, "w") as fh:
+        for o in out:
+            fh.write(json.dumps(o) + "\n")
+    print(f"[v7_train] export-rank {unit.name}: {len(out)} candidates, decomposition_failed {sum(o['decomposition_failed'] for o in out)}", flush=True); return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     t = sub.add_parser("train"); t.add_argument("--arm", choices=sorted(VC.ARMS), required=True); t.add_argument("--lr", type=float, required=True)
@@ -289,8 +350,10 @@ def main(argv=None):
     t.add_argument("--eval-n", type=int, default=None)
     x = sub.add_parser("export"); x.add_argument("--unit-dir", required=True); x.add_argument("--data-dir", default=str(VC.DATA_OUT))
     x.add_argument("--roles", nargs="+", default=["CAL_SELECT", "CAL_PROB", "DEV"])
+    xr = sub.add_parser("export-rank"); xr.add_argument("--unit-dir", required=True); xr.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
+    xr.add_argument("--parser-cache", default=str(VC.BIG_OUT / "parser" / "genai_bench_prompts_cache.jsonl"))
     a = ap.parse_args(argv)
-    return cmd_train(a) if a.cmd == "train" else cmd_export(a)
+    return {"train": cmd_train, "export": cmd_export, "export-rank": cmd_export_rank}[a.cmd](a)
 
 
 if __name__ == "__main__":
