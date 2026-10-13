@@ -351,7 +351,7 @@ def main(argv=None):
     x = sub.add_parser("export"); x.add_argument("--unit-dir", required=True); x.add_argument("--data-dir", default=str(VC.DATA_OUT))
     x.add_argument("--roles", nargs="+", default=["CAL_SELECT", "CAL_PROB", "DEV"])
     xr = sub.add_parser("export-rank"); xr.add_argument("--unit-dir", required=True); xr.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
-    xr.add_argument("--parser-cache", default=str(VC.BIG_OUT / "parser" / "genai_bench_prompts_cache_v2.jsonl"))
+    xr.add_argument("--parser-cache", default=str(VC.BIG_OUT / "parser" / "genai_prompts_cache_v3.jsonl"))
     a = ap.parse_args(argv)
     return {"train": cmd_train, "export": cmd_export, "export-rank": cmd_export_rank}[a.cmd](a)
 

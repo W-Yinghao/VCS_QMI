@@ -67,6 +67,8 @@ case "$what" in
        (cd $R && $E/bin/python -I /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_native_launch.py eval.py --data_file $U/evalset_$set.json \
           --save_path $U/native_eval_$set.json --model_path "$ck" --dataset_dir $L/images/) || { rc=8; break; }
      done;;
+  m-rank) unit="$1"                         # GenAI-Rank export of a finished M unit (O, parser-element logits, E; no human score read)
+     $PY scripts/v7/v7_train.py export-rank --unit-dir $BIG/units/$unit --parser-cache $BIG/parser/genai_prompts_cache_v3.jsonl; rc=$?;;
   parse) out="$1"; shift                   # prompt-only parser cache (Qwen2.5-VL-7B text-only, vl_baselines env); args: <cache.jsonl> <prompts.jsonl ...>
      VLPY="/projects/EEG-foundation-model/yinghao/envs/vl_baselines/bin/python -I"; $VLPY scripts/v7/v7_parser.py run --prompts "$@" --out "$out" --batch 16; rc=$?;;
   *) echo "usage: smoke-m <arm> | smoke-n0 | m <arm> <lr> <seed> <unit> | n0 <seed> <unit> | parse <cache> <prompts...>"; rc=2;;

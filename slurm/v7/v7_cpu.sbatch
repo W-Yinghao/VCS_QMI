@@ -26,6 +26,8 @@ case "$what" in
            fi;;
   rank-inputs) $PY scripts/v7/v7_genai.py rank-inputs --out $O/data; rc=$?;;
   seal-rank) $PY scripts/v7/v7_genai.py seal-rank --out $O/data --approved-by "$1"; rc=$?;;    # owner-approved sealed split of human_rating.json
+  parser-revalidate) PC=/projects/EEG-foundation-model/yinghao/outputs_v7/parser                # v3 post-processing on the cached raw outputs (no model run)
+     /projects/EEG-foundation-model/yinghao/envs/vl_baselines/bin/python -I scripts/v7/v7_parser.py revalidate --in $PC/genai_bench_prompts_cache_v2.jsonl --out $PC/genai_prompts_cache_v3.jsonl; rc=$?;;
   *) echo "usage: tests | genai-prompts | audit | n0-prep | rank-inputs"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
