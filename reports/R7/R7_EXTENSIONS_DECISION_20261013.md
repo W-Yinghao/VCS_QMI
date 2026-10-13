@@ -1,4 +1,4 @@
-# r7 extensions decided 2026-10-13 ~11:45 UTC (coordinator) — before any R7-40c result was read
+# r7 extensions decided 2026-10-13 11:39:56 UTC (coordinator; commit dbf628d) — before any R7-40c result existed (result files written 11:40:44 UTC)
 
 Context: the owner asked "没有别的要提交的实验了吗" (are there no other experiments to submit?).  R7-40c generation completed at 11:37 UTC;
 its score job (1037387) was running and no R7-40c result file had been opened when this note was committed.  The pre-registered queue
