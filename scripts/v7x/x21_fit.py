@@ -137,7 +137,7 @@ def neural_fit(F: Feats, method, lr, seed, out: Path, epochs=EPOCHS):
             if not torch.isfinite(loss):
                 nonfinite += 1; opt.zero_grad(); continue
             opt.zero_grad(); loss.backward()
-            gn += float(torch.sqrt(sum(p.grad.square().sum() for p in model.parameters() if p.grad is not None))); opt.step(); tl += float(loss); steps += 1
+            gn += float(torch.sqrt(sum(p.grad.detach().square().sum() for p in model.parameters() if p.grad is not None))); opt.step(); tl += float(loss.detach()); steps += 1
         model.eval(); f_cs = predict(model, F.r["CAL_SELECT"]["t"]); f_cp = predict(model, F.r["CAL_PROB"]["t"])
         ok = np.all(np.isfinite(f_cs)) and np.all(np.isfinite(f_cp))
         if ok:

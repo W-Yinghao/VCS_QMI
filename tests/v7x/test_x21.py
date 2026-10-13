@@ -15,12 +15,13 @@ import x21_fit as X  # noqa: E402
 import x_estimators as XE  # noqa: E402
 
 
-def make_x20(tmp: Path, n=(1200, 300, 300, 200), seed=0, dim=768, rank=True):
-    """P: N(+0.15, I), Q: N(-0.15, I) in every coordinate (true log ratio 0.3 sum(x)); soft votes y on a 0.25 grid from the true posterior."""
+def make_x20(tmp: Path, n=(1200, 300, 300, 200), seed=0, dim=768, rank=True, shift=0.15):
+    """P: N(+shift, I), Q: N(-shift, I) in every coordinate (true log ratio 4 shift sum(x)); soft votes y on a 0.25 grid from the true posterior.
+    shift 0.15 is nearly separable (class means 8.3 sd apart: KL near infinite, where NWJ's E_P f term is unbounded); 0.05 overlaps (2.8 sd)."""
     rng = np.random.default_rng(seed); parts = []
     for role, m in zip(("FIT", "CAL_SELECT", "CAL_PROB", "DEV"), n):
-        cls = rng.random(m) < 0.55; x = (rng.normal(size=(m, dim)) + np.where(cls, 0.15, -0.15)[:, None]).astype(np.float32)
-        post = 1 / (1 + np.exp(-0.3 * x.sum(1).astype(np.float64))); y = np.round(post * 4) / 4
+        cls = rng.random(m) < 0.55; x = (rng.normal(size=(m, dim)) + np.where(cls, shift, -shift)[:, None]).astype(np.float32)
+        post = 1 / (1 + np.exp(-4 * shift * x.sum(1).astype(np.float64))); y = np.round(post * 4) / 4
         np.save(tmp / f"feats_{role}.npy", x); rows = []
         for k in range(m):
             r = {"element_id": f"{role}{k}", "image_id": f"{role}img{k // 3}", "prompt_id": f"{role}p{k // 6}", "w_img": 1.0, "n_el": 3, "n_tok": 2, "z0": 0.0}
@@ -54,7 +55,7 @@ def test_label_guard(tmp_path):
 
 @pytest.mark.parametrize("method", X.NEURAL)
 def test_neural_fit_beats_prior(tmp_path, monkeypatch, method):
-    make_x20(tmp_path); monkeypatch.setattr(X, "BATCH", 128); F = load(tmp_path)
+    make_x20(tmp_path, shift=0.05); monkeypatch.setattr(X, "BATCH", 128); F = load(tmp_path)
     rec = X.neural_fit(F, method, 1e-3, 0, tmp_path / "out", epochs=8)
     base = F.brier("CAL_SELECT", np.full(len(F.r["CAL_SELECT"]["idx"]), F.prior))
     assert rec["selected_cal_select_brier"] < base and rec["nonfinite_steps"] == 0
