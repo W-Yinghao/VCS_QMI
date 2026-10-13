@@ -5,7 +5,7 @@
 #SBATCH --mem=96G
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # V7X GPU jobs (reports/V7/V7X_*): env envs/v7_fga (torch 2.9 cu128 -> RTX6000PRO / H100 / L40S).  Positional arguments only.
-#   x20-smoke                 X20 extractor on 64 images of FIT and CAL_SELECT (code check + invariant + timing; no result is used)
+#   x20-smoke                 X20 extractor on 64 images of each role (code check + invariant + timing; no result is used)
 #   x20                       X20 common features: FIT / CAL_SELECT / CAL_PROB / DEV
 #   x20-rank                  X20 common features of the GenAI-Rank candidates (parser v3 elements)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
@@ -15,7 +15,7 @@ echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=c
 echo "code: $(cat scripts/v7x/*.py tests/v7x/*.py slurm/v7x/*.sbatch 2>/dev/null | sha256sum | cut -c1-16) (V7X scripts, tests, wrappers); v1 code: $(cat scripts/v7/*.py tests/v7/*.py slurm/v7/*.sbatch | sha256sum | cut -c1-16)"
 what="$1"; shift
 case "$what" in
-  x20-smoke) $PY scripts/v7x/x20_features.py extract --out $BIG/x20_smoke --roles FIT CAL_SELECT --limit 64; rc=$?;;
+  x20-smoke) $PY scripts/v7x/x20_features.py extract --out $BIG/x20_smoke --roles FIT CAL_SELECT CAL_PROB DEV --limit 64; rc=$?;;
   x20) $PY scripts/v7x/x20_features.py extract --out $BIG/x20; rc=$?;;
   x20-rank) $PY scripts/v7x/x20_features.py extract-rank --out $BIG/x20; rc=$?;;
   *) echo "unknown mode $what"; rc=2;;
