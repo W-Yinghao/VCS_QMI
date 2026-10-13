@@ -1,0 +1,45 @@
+# V7-03 protocol — FROZEN 2026-10-13 ~23:10 UTC, before any tuning or formal unit runs and before any DEV / external label is read.
+# Filled from the V7-01 audit (CPU job 1038599), the GPU smokes (jobs 1038647-1038649, 1038691) and the owner's decision on the GenAI-Rank prompts.  It adopts configs/V7_MASTER_PROTOCOL.yaml of the package (proposed defaults) except where
+# a line below says otherwise.  Nothing in it has been run on natural data except the audit.
+version: V7
+handoff: v1
+code: "branch v7/t2i-alignment, scripts/v7/*.py, slurm/v7/*.sbatch; every job prints the sha256 of the V7 scripts, tests and wrappers"
+data:
+  source: "EvalMuse public TRAIN (HF DY-Evalab/EvalMuse @ fd2087b): train_list.json + the 6-part image archive; test.json closed (no labels published)"
+  rules: >
+    scripts/v7/v7_data.py: element votes valid only as 0 / 1 (other codes -> unknown); y = mean of valid votes; image flags with -1 = no answer;
+    meaningless prompt = flag fraction > 0.5 among answers (element task excluded); bad decomposition = split_confidence fraction > 0.5 (elements
+    excluded as truth); attribute_confidence kept image-level only.  Spans: exact_word -> space_hyphen -> inflection -> unmatched (every occurrence).
+    Components: prompt_id, normalized text, token-set Jaccard >= 0.9 (>= 4 tokens), identical image sha256, dHash distance <= 4; GenAI-Bench prompt
+    overlap -> EXCLUDED_OVERLAP.  Split seed 17071: FIT 80 / CAL 10 / DEV 10 % of images by components; CAL -> CAL_SELECT / CAL_PROB halves.
+  counts: "images FIT 26,177 / CAL_SELECT 1,653 / CAL_PROB 1,630 / DEV 3,257 (EXCLUDED_OVERLAP 0); main elements 101,987 / 6,411 / 7,249 / 12,016; FIT pi 0.5712 (spanned 0.5713); N0 native mapping keeps 26,177 / 26,177 FIT records"
+  dev_name: "EvalMuse public-train prompt-disjoint holdout (not the official EvalMuse test)"
+training:
+  init: "BLIP-2 COCO: eva_vit_g.pth then blip2_finetune_coco.pth (MD5 c483374f..., 0dc9921f...); ViT frozen; mask head random (torch seed = unit seed)"
+  arms:
+    N0_native_l1: "EvalMuse@45c8bb4 train.py + fga_blip2.yaml unmodified except absolute paths and run.seed; FIT records through the native process_train.py / element2mask.py; selection = last epoch (the task has no evaluation)"
+    M0_semantic_l1: "shared interface; element term |sigmoid(z) - y|"
+    M1_semantic_logistic: "shared interface; balanced soft BCE with the FIT prior"
+    M2_semantic_vcs: "shared interface; (1 - J) / 4 = R_M / 4"
+  shared_interface: >
+    scripts/v7/v7_train.py: BLIP eval processor 364 (full-frame resize, no crop / flip); raw prompt, uncased BERT, max_txt_len 128 (FIT coverage:
+    max 85 tokens, 0 over 128; a longer prompt is an error); element logit = mean of span-token Bernoulli logits (itm class 1 minus class 0); loss = 1.0 overall L1
+    (1-5 vote mean, image weights) + 0.1 element term (element weights w_img / n_elements, normalizer = the step's weight sum) + 0.1 mask L1
+    (content tokens of images with elements); sampling D = prompt -> image -> element uniform via image weights N_img / (N_prompts n_img(prompt));
+    prior pi = FIT main elements with a span, the same D.
+  optimizer: "the native groups (get_optimizer_params wd 0.05), AdamW betas (0.9, 0.999), LinearWarmupCosineLRScheduler (100 steps from 1e-8, per-epoch cosine to 0), AMP fp16 + GradScaler, batch 14, 5 epochs, drop_last, data order seeded by (seed, epoch) and shared across arms"
+  selection: "M arms: epoch with the lowest natural element Brier on CAL_SELECT (prior-corrected, prompt -> image -> element macro); native criteria logged per epoch (secondary); N0: last epoch"
+  tuning: "M0 / M1 / M2 x lr {5e-6, 1e-5, 2e-5} at tuning seed 17 (9 units, full FIT, 5 epochs); per arm the lr whose selected epoch has the lowest CAL_SELECT natural Brier; tie -> the lower lr"
+  formal: "N0 seeds 0, 1, 2 at lr 1e-5 (native); M0 / M1 / M2 seeds 0, 1, 2 at the arm's tuned lr: 12 units; every seed is run and reported"
+  hardware_and_timing: "smokes on L40S: M step 0.40-0.45 s (batch 14), peak 8.3 GB; N0 0.63 s / step incl. first-step overhead, peak 8.5 GB, checkpoints 5.6 GB each (5 per unit). Projected: M unit ~1.4 h (5 epochs + CAL_SELECT evals + export), N0 unit ~2 h (incl. native eval). Any of RTX6000PRO / H100 / L40S (env cu128); --time 5 h (M), 6 h (N0); GPU type recorded per unit"
+readout:
+  primary: "E = mean prior-corrected element probability (EvalMuse: the human elements; external prompts: the prompt-only parser's elements)"
+  secondary: "O (native 1-5 overall), CAL_PROB-calibrated E (Platt on z), H_alpha = alpha (O - 1) / 4 + (1 - alpha) E with alpha in {0, .25, .5, .75, 1} chosen on CAL_SELECT by within-prompt pairwise accuracy against the overall human score (multi-image prompts)"
+  parser: "scripts/v7/v7_parser.py (Qwen2.5-VL-7B @ cc594898, text only, package template verbatim, greedy); raw outputs cached before any image score; post-processing v3 (top-level arrays; model span kept only if word-aligned and its words lie in order inside the element text, else re-derived from the text, else dropped); decomposition_failed -> O for every method, flagged"
+evaluation:
+  table_a: "scripts/v7/v7_score.py table-a: DEV natural Brier (primary output prior-corrected; raw and CAL_PROB-Platt secondary), NLL, majority accuracy, prompt-macro AUROC, ECE; primary M2 - M1 per seed, prompt-cluster paired bootstrap 5,000 (seed 2718)"
+  table_c: "scripts/v7/v7_score.py rank on sealed labels: GenAI-Rank DALLE_3 / SDXL_Base, candidates 01-09 by file index; N in {1, 3, 9}; official N3 groups and first-index ties; sensitivity: 84 subsets, tie expectation"
+  primary_family: "M2-E vs M1-E, vs released FGA-BLIP2 overall (B0), vs VQAScore CLIP-FlanT5-XXL t2v-metrics 3.0 (B1); N9; each generator: 6 contrasts; seed-paired per-prompt differences averaged over seeds; prompt-cluster bootstrap shared across generators (5,000, seed 2718); Holm"
+  label_access: "no DEV or external label is read before all 12 formal units and every export exist; GenAI labels only through the scorer with --allow-scoring after the owner's approval"
+open_for_owner:
+  - "none open.  GenAI-Rank prompt text: owner-approved sealed split done (reports/V7/V7_OWNER_DECISIONS.md; ratings sealed 0400, unread); scoring needs a separate approval after the freeze"
