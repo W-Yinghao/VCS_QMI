@@ -384,12 +384,33 @@ def official_generate(host, prompt, image, max_new_tokens):
             [int(x) for x in new[0].tolist()])
 
 
+PROBE_WH = ((500, 375), (320, 240), (1600, 1200), (2400, 900))   # synthetic sizes whose grids differ between frozen and checkpoint bounds
+
+
+def check_processor(proc, min_pixels, max_pixels, text):
+    """Effective pixel bounds of the loaded processor (execution note 40c_1).  transformers 4.57.6 keeps the checkpoint's preprocessor_config
+    values (3136 / 12845056) in image_processor.size and applies the bounds given to AutoProcessor, stored as image_processor.min_pixels /
+    max_pixels, at call time; so the check reads those attributes and runs the run path's own processor call on synthetic images, whose
+    grids must equal smart_resize under the frozen bounds.  Returns the probe list; any difference stops the unit."""
+    from PIL import Image
+    ip = proc.image_processor; probe = []
+    for w, h in PROBE_WH:
+        thw = proc(text=[text], images=[Image.new("RGB", (w, h))], return_tensors="pt")["image_grid_thw"][0]
+        thw = [int(x) for x in (thw.tolist() if hasattr(thw, "tolist") else thw)]
+        probe.append({"wh": [w, h], "grid": [thw[1] // MERGE, thw[2] // MERGE],
+                      "expected": [x // FACTOR for x in smart_resize(h, w, min_pixels=min_pixels, max_pixels=max_pixels)]})
+    got = (getattr(ip, "min_pixels", None), getattr(ip, "max_pixels", None), ip.patch_size, ip.merge_size)
+    if got != (min_pixels, max_pixels, PATCH, MERGE) or any(p["grid"] != p["expected"] for p in probe):
+        raise SystemExit(f"processor settings differ from the R7-20 / R7-40 bounds: min / max pixels, patch, merge {got}; synthetic grids {probe}")
+    return probe
+
+
 def load_host(out):
-    """The Qwen host with the frozen R7-20 / R7-40 pixel bounds checked (one load per job)."""
+    """The Qwen host with the frozen R7-20 / R7-40 pixel bounds checked on the processor's effective behaviour (one load per job)."""
     import r7_d1_40_host as QH
-    host = QH.QwenPrefill(Path(out)); ip = host.proc.image_processor
-    if (ip.size["shortest_edge"], ip.size["longest_edge"], ip.patch_size, ip.merge_size) != (QH.MIN_PIXELS, QH.MAX_PIXELS, PATCH, MERGE):
-        raise SystemExit(f"processor settings differ from the R7-20 / R7-40 bounds: {ip.size} patch {ip.patch_size} merge {ip.merge_size}")
+    host = QH.QwenPrefill(Path(out))
+    probe = check_processor(host.proc, QH.MIN_PIXELS, QH.MAX_PIXELS, host.chat_text("Describe the image.", True))
+    print(f"[r7_d1_40c] processor bounds {QH.MIN_PIXELS} / {QH.MAX_PIXELS} applied: synthetic grids {[tuple(p['grid']) for p in probe]}", flush=True)
     return host
 
 

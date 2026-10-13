@@ -801,5 +801,32 @@ class DriverDryRun(unittest.TestCase):
             self.assertEqual(p.returncode, 0, log); self.assertEqual(errs, ""); self.assertEqual(sum("timing_bundle report" in c for c in calls), 1)
 
 
+class ProcessorBounds(unittest.TestCase):
+    """Execution note 40c_1: the load-time check reads the processor's effective bounds (min_pixels / max_pixels attributes and the grids its
+    call produces), not image_processor.size, which transformers 4.57.6 leaves at the checkpoint's values."""
+
+    class IP:
+        def __init__(self, lo, hi):
+            self.size = {"shortest_edge": 3136, "longest_edge": 12845056}
+            self.min_pixels, self.max_pixels, self.patch_size, self.merge_size = lo, hi, 14, 2
+
+    class Proc:
+        def __init__(self, lo, hi):
+            self.image_processor = ProcessorBounds.IP(lo, hi)
+
+        def __call__(self, text, images, return_tensors):
+            w, h = images[0].size
+            hb, wb = RN.smart_resize(h, w, min_pixels=self.image_processor.min_pixels, max_pixels=self.image_processor.max_pixels)
+            return {"image_grid_thw": torch.tensor([[1, hb // 14, wb // 14]])}
+
+    def test_frozen_bounds_applied_pass(self):
+        probe = RN.check_processor(self.Proc(256 * 28 * 28, 1280 * 28 * 28), 256 * 28 * 28, 1280 * 28 * 28, "t")
+        self.assertEqual([p["grid"] for p in probe], [[14, 19], [14, 19], [30, 41], [21, 58]])     # measured on the real processor (job 1036829)
+
+    def test_checkpoint_bounds_stop(self):
+        with self.assertRaises(SystemExit):
+            RN.check_processor(self.Proc(3136, 12845056), 256 * 28 * 28, 1280 * 28 * 28, "t")
+
+
 if __name__ == "__main__":
     unittest.main()

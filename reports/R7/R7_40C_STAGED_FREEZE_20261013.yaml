@@ -14,3 +14,22 @@ decisions_summary:
   scoring: "the coordinator scores after the driver's done line; the cross-host side-by-side only after the D1-30 readout"
 launch: "QUALITY_PARTITION=L40S ROWS=core BSTAR=report DEV=1 TIMING=1 nohup setsid bash slurm/r7_d1_40c_submit.sh (gates: this freeze key; R7-40b complete)"
 budget: "about 14 GPU-h on L40S + one nodesumo01 timing bundle (about 2–3.5 h, 8 h limit)"
+execution_note_40c_1: >
+  2026-10-13 06:26–06:55 UTC, coordinator: the first nine quality shards (gqa_dev 0–5, textvqa_val 0–2; node52 and node57) stopped at load
+  time on the processor guard of scripts/r7_d1_40c_run.py::load_host ("processor settings differ from the R7-20 / R7-40 bounds:
+  {'shortest_edge': 3136, 'longest_edge': 12845056}"), before their first item; no answer file was written.  Cause: the guard, added at the
+  implementation commit a203672 after the GPU smoke (211687d) and so never exercised before, compared image_processor.size with the frozen
+  bounds; in transformers 4.57.6 that attribute keeps the checkpoint's preprocessor_config values, while the bounds passed to AutoProcessor are
+  stored as image_processor.min_pixels / max_pixels (200704 / 1003520) and applied at call time.  Evidence: (1) job 1036829 — the processor
+  loaded exactly as the R7-40 host loads it gives the frozen-bound grids for synthetic 500×375, 320×240, 1600×1200 and 2400×900 images
+  (14×19, 14×19, 30×41, 21×58; the checkpoint bounds would give 13×18, 9×11, 43×57, 32×86); (2) job 1036817 — all 47,949 R7-40a teacher
+  records (grids taken from the processor's image_grid_thw) equal smart_resize under the frozen bounds, including the 40,781 records where the
+  frozen and checkpoint bounds differ, so R7-20 / R7-40a / R7-40b ran with the frozen bounds.  Fix: load_host calls check_processor — the
+  min_pixels / max_pixels attributes, and the run path's own processor call on the four synthetic sizes, must reproduce the frozen smart_resize
+  grids; any difference still stops the unit (tests: ProcessorBounds, 2 cases; 29 tests pass in all three environments, job 1036832).
+  Code hash of the R7-40c scripts, tests and wrappers: 193ebd71003b8306 -> 8d299cd10f7ee99a (the difference is this guard and its tests).
+  Housekeeping: the driver was paused (SIGSTOP) and the 9 pending 40c GPU jobs were cancelled — including the DEV-teacher jobs b012 / b013,
+  which run the frozen R7-40a code and were not affected (an over-broad name pattern; the driver resubmits them); node52 was excluded for 40c
+  jobs during the diagnosis and is re-admitted.  The running timing bundle 1036770 does not pass through this guard and continues on the earlier
+  code.  No analysis, row, set, budget or rule changes.  Diagnostics: scripts/r7_qwen_proc_check.py, r7_qwen_grid_audit.py,
+  r7_qwen_proc_functional.py (synthetic images and GQA train image headers only).
