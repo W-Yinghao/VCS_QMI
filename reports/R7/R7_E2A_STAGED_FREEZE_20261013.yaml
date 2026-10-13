@@ -44,3 +44,10 @@ execution_note_e2a_3: >
   submission cap of 20 for the backfill submitters (this E2 teacher driver and the two E1 feeders): every 30 s it pauses them (SIGSTOP) while
   my normal-QOS job count is >= 20 and resumes them (SIGCONT) below it, so main-route drivers (CAP 27) always keep headroom.  Queued and
   running jobs are untouched; ordering only.
+execution_note_e2a_4: >
+  2026-10-13 14:40 UTC, coordinator: my normal-QOS cap (27) was held by jobs that cannot start soon — 13 pending E2 teacher bundles on L40S
+  and main-route D1-FULL units on H100 / L40S, all behind higher-priority users (my fair-share factor is near zero) — while the RTX PRO 6000
+  cards sat idle and the only RTX-runnable work (the E2 cache, MMTok units) could not be submitted.  Pending bundles f004–f009 and f011–f013
+  (9) and earlier f014 were cancelled before starting; f000–f003 stay queued to claim L40S.  The teacher driver resubmits each cancelled bundle
+  once (its RETRY 1 / 2; one retry is left for a genuine failure), one per 600 s, under the backfill guard.  No record, rule or design changes.
+  Also cancelled: the day-long pending node51 probe (job 1036741; node51 stays excluded; resubmittable when the owner wants it).
