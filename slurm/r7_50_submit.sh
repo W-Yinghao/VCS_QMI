@@ -119,6 +119,11 @@ else
   [ -f "$I/lines.txt" ] || subwait --job-name=r7_50_iprep_$PHASE $CPUJ slurm/r7_50_cpu.sbatch integrity-prepare "$ROOT" "$PHASE" "${IARGS[@]}"
   nfswait "$I/lines.txt" || { say "STOP: $I/lines.txt missing"; exit 1; }
   run_lines "$I/lines.txt" "integrity"
+  if [ "$PHASE" = F ]; then   # note r7_50_9: the integrity units run early; the comparison waits for D1-FULL's reference predictions (F2)
+    for i in 0 1 2 3 4 5; do gate "$F_INTEGRITY_REF/gqa_dev/done_shard${i}of6.json"; done
+    for i in 0 1; do gate "$F_INTEGRITY_REF/chartqa_val/done_shard${i}of2.json"; done
+    say "D1-FULL reference predictions complete (gqa_dev 6 / chartqa_val 2 shard markers)"
+  fi
   waitcap; out=$(sbatch --parsable --wait --job-name=r7_50_icmp_$PHASE $CPUJ slurm/r7_50_cpu.sbatch integrity-compare "$ROOT" "$PHASE"); rc=$?
   for i in $(seq 1 24); do [ -f "$I/integrity.json" ] && break; sleep 5; done   # NFS (note r7_50_7)
   "$PY" -I -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get("pass") is True else 1)' "$I/integrity.json" 2>/dev/null || { say "STOP: full-scale integrity gate FAILED (job ${out%%;*}, exit $rc; see $I/integrity.json); no test file opened, nothing generated"; exit 1; }

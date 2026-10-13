@@ -394,3 +394,11 @@ execution_note_r7_50_8: >
   Tests: 17 / 17 (job 1038219; the phase-F timing stop case now runs phase L first and checks that the stop comes after generation and before
   any manifest or label).  The phase-F launcher (slurm/after_d1full_phaseF.sh) now triggers on D1-FULL's 6 gqa_dev + 2 chartqa_val shard
   markers instead of D1-FULL's done line.  No unit, row or analysis changes.
+execution_note_r7_50_9: >
+  2026-10-13 18:50 UTC, coordinator (owner: submit early to shorten GPU waiting; dependency-pending jobs accrue no age on this cluster —
+  PriorityFlags lacks ACCRUE_ALWAYS): phase F is launched now, while D1-FULL's chartqa_val shard 1 (the last reference shard) still waits for
+  an H100.  Phase F's integrity UNITS need only the frozen inputs and the D1-FULL selectors (gate 1 passes: lr_choice, PCA, 9 units with
+  dynamic taus, phase L's sealed inputs), so they run first; a new gate makes the integrity COMPARISON wait for all 8 reference shard markers
+  (D1-FULL gqa_dev 6 / chartqa_val 2, decision F2), so no comparison ever runs against an incomplete reference; generation still follows a
+  passed gate, and the timing gate stays before the manifest (r7_50_8).  Tests 17 / 17 (job 1038225; the stub writes the reference markers).
+  The marker-triggered launcher (slurm/after_d1full_phaseF.sh) was stopped before it fired.

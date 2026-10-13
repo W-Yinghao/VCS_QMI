@@ -576,6 +576,10 @@ class DriverDryRun(unittest.TestCase):
                  R750_ROOT=str(t / "root"), D1_ROOT=str(d1), D30_LOG=str(t / "d30.log"), SUBMIT_LOG=str(t / "drv.log"), PROTOCOL=str(t / "proto.yaml"),
                  POLL="1", WAIT_H="1", WAIT_SCORE_H="1", RETRIES="2", STUB_ALLOW="good", F_LR_CHOICE=str(t / "full_sel" / "lr_choice.json"),
                  F_SELECTORS=str(t / "full_sel"), F_PCA=str(t / "full_sel" / "pca.pt"), F_INTEGRITY_REF=str(t / "fref"), F_TIMING_DIR=str(t / "ftiming"))
+        for tb, n in (("gqa_dev", 6), ("chartqa_val", 2)):                          # D1-FULL's reference shard markers (note r7_50_9)
+            (t / "fref" / tb).mkdir(parents=True, exist_ok=True)
+            for i in range(n):
+                (t / "fref" / tb / f"done_shard{i}of{n}.json").write_text(json.dumps({"env": {"gpu": "NVIDIA L40S"}}))
         for tb in ("gqa_dev", "chartqa_val"):
             (t / "ftiming" / tb).mkdir(parents=True, exist_ok=True); (t / "ftiming" / tb / f"timing_{tb}.json").write_text("{}")
         e.update({k: str(v) for k, v in kw.items()})
