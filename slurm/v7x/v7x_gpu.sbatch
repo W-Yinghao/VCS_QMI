@@ -8,6 +8,11 @@
 #   x20-smoke                 X20 extractor on 64 images of each role (code check + invariant + timing; no result is used)
 #   x20                       X20 common features: FIT / CAL_SELECT / CAL_PROB / DEV
 #   x20-rank                  X20 common features of the GenAI-Rank candidates (parser v3 elements)
+#   x21                       X21: all common-feature fits (tuning -> lr -> formal seeds, kernels, A0) on $BIG/x20
+#   tifa-qg [limit]           B4T question generation + filter for the 800 GenAI-Rank prompts (env v7_tifa)
+#   tifa-score <k/n> [limit]  B4T TIFA scores, shard k of n (env v7_tifa; images staged node-local)
+#   dsg-gen <k/n> [limit]     B4D DSG generation with Qwen2.5-32B-Instruct, shard k of n (env v7x_llm; >= 80 GB GPU)
+#   dsg-score <k/n> [limit]   B4D DSG scores with mPLUG-large, shard k of n (env v7_tifa)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7_fga; PY="$E/bin/python -I"; BIG=/projects/EEG-foundation-model/yinghao/outputs_v7
 export TORCH_HOME=/projects/EEG-foundation-model/yinghao/models/torch_home HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
@@ -18,6 +23,17 @@ case "$what" in
   x20-smoke) $PY scripts/v7x/x20_features.py extract --out $BIG/x20_smoke --roles FIT CAL_SELECT CAL_PROB DEV --limit 64; rc=$?;;
   x20) $PY scripts/v7x/x20_features.py extract --out $BIG/x20; rc=$?;;
   x20-rank) $PY scripts/v7x/x20_features.py extract-rank --out $BIG/x20; rc=$?;;
+  x21) $PY scripts/v7x/x21_fit.py all --x20 $BIG/x20 --out $BIG/x21; rc=$?;;
+  tifa-qg|tifa-score|dsg-score)
+     T=/projects/EEG-foundation-model/yinghao/envs/v7_tifa/bin/python; X=$BIG/x30; mkdir -p $X; export HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7x MODELSCOPE_CACHE=$X/modelscope_cache
+     export V7X_LOCAL=/tmp/v7x_${SLURM_JOB_ID}; mkdir -p $V7X_LOCAL; trap "rm -rf $V7X_LOCAL" EXIT; D=/home/infres/yinwang/CS_QMI/outputs/V7/data
+     case "$what" in
+       tifa-qg) $T -I scripts/v7x/x30_tifa.py qg --prompts $D/genai_rank_prompts.jsonl --out $X/tifa_qa.jsonl --limit ${1:-0}; rc=$?;;
+       tifa-score) $T -I scripts/v7x/x30_tifa.py score --qa $X/tifa_qa.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/tifa_scores_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
+       dsg-score) $T -I scripts/v7x/x30_dsg.py score --dsg $X/dsg_gen_*.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/dsg_scores_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
+     esac;;
+  dsg-gen) L=/projects/EEG-foundation-model/yinghao/envs/v7x_llm/bin/python; X=$BIG/x30; mkdir -p $X
+     $L -I scripts/v7x/x30_dsg.py gen --prompts /home/infres/yinwang/CS_QMI/outputs/V7/data/genai_rank_prompts.jsonl --out $X/dsg_gen_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
   *) echo "unknown mode $what"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
