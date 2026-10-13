@@ -33,3 +33,11 @@ execution_note_40c_1: >
   jobs during the diagnosis and is re-admitted.  The running timing bundle 1036770 does not pass through this guard and continues on the earlier
   code.  No analysis, row, set, budget or rule changes.  Diagnostics: scripts/r7_qwen_proc_check.py, r7_qwen_grid_audit.py,
   r7_qwen_proc_functional.py (synthetic images and GQA train image headers only).
+execution_note_40c_2: >
+  2026-10-13 07:01 UTC, coordinator: after the 40c_1 fix the first driver (PID 2013349) would have resubmitted the 17 stopped or cancelled
+  units one at a time — its per-unit NFS wait (SOON_S = 600 s) runs sequentially, about 3 hours in all — and gqa_dev shard 0 was on its last
+  retry.  The driver was stopped by PID and relaunched (PID 2591343) with the frozen launch line except TIMING=0: the planner then omits only
+  the timing-bundle line (--no-timing), so the running bundle 1036770 (submitted by the first driver at 05:11:40 UTC with the frozen command
+  line) is not submitted a second time; every other unit was submitted again with fresh retry counters (stage 0 re-ran and passed).  The
+  coordinator supervises the bundle (one resubmission of its frozen line if it fails, noted here) and runs the score step only when both the
+  driver's done line and timing/timing_bundle.done.json exist.  No unit, row, rule or analysis changes.
