@@ -25,3 +25,12 @@ decisions:
   E2-14_readout: "scripts/r7_e2_score.py (the frozen R7-40c scorer + the claim table + a descriptive scale contrast); needs all three keys; never overwrites"
 launch: "ROWS=selectors PCA_BASIS=fitfull nohup setsid bash slurm/r7_e2_submit.sh rest (cache once data_ready.json exists; selectors after the
   teacher completeness; evaluation on L40S), under slurm/backfill_guard.sh"
+execution_note_e2_1: >
+  2026-10-13 ~15:50 UTC, coordinator (owner decisions: RTX PRO 6000 cards are hard to get — longer jobs while keeping 8 GPUs busy; L40S per-unit
+  jobs grouped): the frozen rest path runs as a GROUPED driver, packaging only — slurm/e2_rest_grouped.sh (74cc92f8e726133b…) with slurm/e2_unit_group.sbatch
+  (ebd2db553adc2cd7…); tests/test_e2_rest_grouped.py 7 / 7 in three envs (jobs 1037951–53).  Same gates, CPU steps, frozen planner calls and lines files,
+  reuse rule and done line; each unit runs its frozen per-unit wrapper with its frozen arguments.  Groups: selectors 3 units per job on
+  RTX6000PRO,H100 (--time 12 h; stage 1 and stage 2 two jobs each, the frozen choose step between), quality shards per benchmark on L40S
+  (--time 10 / 16 / 4.5 h); a group is complete only when all its unit markers exist and is resubmitted at most twice; CAP 20.  Disclosed
+  trade-off: about 8–9 h of selector wall-clock instead of about 3 h if 6 cards were free at once.  Switch-over: the frozen rest driver
+  (PID 3072061) had submitted only the cache (job 1037803, running); it was stopped and the grouped driver adopts the cache job by name.
