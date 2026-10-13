@@ -20,7 +20,7 @@ def unit(path):
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--selectors", required=True); ap.add_argument("--out-prefix", required=True); a = ap.parse_args()
     S = Path(a.selectors); choice = json.loads((S / "lr_choice.json").read_text())
-    U = {p.stem: unit(p) for p in sorted(S.glob("*.json")) if not p.stem.startswith("lr_choice")}
+    U = {p.stem: unit(p) for p in sorted(S.glob("*.json")) if not p.stem.startswith("lr_choice") and not p.name.endswith(".done.json")}
     fmt = lambda x: "—" if x is None else (f"{x:.4f}" if isinstance(x, float) else str(x))
     L = ["# r7 D1-20 — CAL-only readout (DEV sealed until D1-30)", "",
          "Every number is from CAL (2,000 images; 95,868 question × mask pairs); the frozen selection rule (max CAL Spearman between the",
