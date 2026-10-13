@@ -613,6 +613,17 @@ class DriverDryRun(unittest.TestCase):
         with tempfile.TemporaryDirectory() as t:
             t = Path(t); rc, log, calls = self.drive(t, PHASE="Q"); self.assertEqual(rc, 1); self.assertIn("phase Q", log); self.assertEqual(calls, "")
 
+    def test_phase_F_timing_gated_before_manifest(self):
+        """Execution note r7_50_8: D1-FULL's timing is gated just before phase F's manifest (it is needed by the manifest and the scorer), so
+        the integrity gate and the 8 generation units run first; a missing timing run stops before any manifest or label is touched."""
+        with tempfile.TemporaryDirectory() as t:
+            t = Path(t); rc, log, _ = self.drive(t)                                        # phase L first (builds the sealed inputs)
+            self.assertEqual(rc, 0, log); (t / "drv.log").unlink(); (t / "state" / "calls").unlink()
+            rc, log, calls = self.drive(t, PHASE="F", F_TIMING_DIR="/nonexistent", WAIT_H="0")
+            self.assertEqual(rc, 1, log); self.assertIn("STOP", log); self.assertIn("timing_gqa_dev.json missing", log)
+            self.assertIn("integrity gate passed", log); self.assertIn("generation F complete (8 units)", log)
+            self.assertNotIn("r7_50_cpu.sbatch manifest", calls); self.assertNotIn("r7_50_cpu.sbatch score", calls)
+
     def test_stops(self):
         cases = [(dict(PROTOCOL="/nonexistent.yaml"), "not a frozen R7-50 protocol", ""),
                  (dict(R750_DRYRUN="0"), "not committed", ""),
@@ -625,8 +636,7 @@ class DriverDryRun(unittest.TestCase):
                  (dict(STUB_ALLOW="bad"), "does not carry manifest_sha256", "manifest"),
                  (dict(STUB_ALLOW="none", WAIT_SCORE_H="0"), "ALLOW_SCORING_L after 0 h", "manifest"),
                  (dict(PHASE="F", F_LR_CHOICE=""), "phase F needs F_LR_CHOICE", ""),
-                 (dict(PHASE="F", F_INTEGRITY_REF="none"), "F_INTEGRITY_REF=none is not allowed", ""),
-                 (dict(PHASE="F", F_TIMING_DIR="/nonexistent", WAIT_H="0"), "timing_gqa_dev.json missing", "")]
+                 (dict(PHASE="F", F_INTEGRITY_REF="none"), "F_INTEGRITY_REF=none is not allowed", "")]
         for kw, msg, last in cases:
             with tempfile.TemporaryDirectory() as t:
                 t = Path(t); rc, log, calls = self.drive(t, **kw)

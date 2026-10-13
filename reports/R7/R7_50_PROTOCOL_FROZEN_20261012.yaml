@@ -385,3 +385,12 @@ execution_note_r7_50_7: >
   F_INTEGRITY_REF (D1-FULL's D1-30-style DEV / val predictions, decision F2) and F_TIMING_DIR (D1-FULL's own timing run, decision F3) set to
   the D1-FULL outputs; everything else follows the frozen phase-F design (integrity gate before any generation; manifest committed before
   ALLOW_SCORING_F; one scoring run).
+execution_note_r7_50_8: >
+  2026-10-13 18:45 UTC, coordinator, before phase F (as note r7_50_1 did for phase L): D1-FULL's timing run is needed by phase F's manifest
+  (which hashes it) and scorer, not by its integrity gate or generation, so the phase-F timing gate moves from gate 1 to just before the
+  manifest; the integrity gate (references: D1-FULL's gqa_dev / chartqa_val evaluation predictions, decision F2) and the 8 generation units can
+  start as soon as those predictions are complete, while the nodesumo01 timing bundle runs.  Also: a short NFS wait (nfswait, up to 120 s)
+  after every blocking CPU job before its output files are checked (integrity-prepare, configs, manifest, score), as in the phase-Q driver.
+  Tests: 17 / 17 (job 1038219; the phase-F timing stop case now runs phase L first and checks that the stop comes after generation and before
+  any manifest or label).  The phase-F launcher (slurm/after_d1full_phaseF.sh) now triggers on D1-FULL's 6 gqa_dev + 2 chartqa_val shard
+  markers instead of D1-FULL's done line.  No unit, row or analysis changes.

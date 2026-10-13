@@ -43,6 +43,7 @@ gone() { local out rc; out=$(squeue -h -j "$1" -o %T 2>&1); rc=$?          # lef
   if [ $rc -eq 0 ]; then [ -z "$out" ]; return; fi; [[ "$out" == *"Invalid job id"* ]]; }   # any other squeue error counts as still queued
 gate() { local n=0 l; l=$(lim "$WAIT_H"); until [ -f "$1" ]; do
     sleep "$POLL"; n=$((n + 1)); [ "$n" -ge "$l" ] && { say "STOP: $1 missing after $WAIT_H h"; exit 1; }; done; }
+nfswait() { local i; for i in $(seq 1 24); do [ -f "$1" ] && return 0; sleep 5; done; return 1; }   # note r7_50_8: NFS visibility after a CPU job
 gatedyn() { local n=0 l; l=$(lim "$WAIT_H"); until grep -q '"dynamic"' "$1" 2>/dev/null; do   # unit log rewritten with the CAL taus
     sleep "$POLL"; n=$((n + 1)); [ "$n" -ge "$l" ] && { say "STOP: no dynamic taus in $1 after $WAIT_H h"; exit 1; }; done; }
 gatelog() { local n=0 l; l=$(lim "$WAIT_H"); until grep -q "$2" "$1" 2>/dev/null; do
@@ -103,7 +104,6 @@ if [ "$PHASE" = L ]; then
 else
   for v in F_LR_CHOICE F_SELECTORS F_PCA F_INTEGRITY_REF F_TIMING_DIR; do [ -n "${!v}" ] || { say "STOP: phase F needs $v"; exit 1; }; done
   [ "$F_INTEGRITY_REF" != none ] || { say "STOP: F_INTEGRITY_REF=none is not allowed (coordinator decision F2)"; exit 1; }
-  for b in gqa_dev chartqa_val; do gate "$F_TIMING_DIR/$b/timing_$b.json"; done
   gate "$F_LR_CHOICE"; gate "$F_PCA"
   UNITS=$("$PY" -I scripts/r7_50_test.py units --lr-choice "$F_LR_CHOICE") || { say "STOP: D1-FULL unit list"; exit 1; }
   for u in $UNITS; do gate "$F_SELECTORS/$u.pt"; gatedyn "$F_SELECTORS/$u.json"; done
@@ -117,7 +117,7 @@ if "$PY" -I -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get(
   say "integrity gate already passed ($I/integrity.json)"
 else
   [ -f "$I/lines.txt" ] || subwait --job-name=r7_50_iprep_$PHASE $CPUJ slurm/r7_50_cpu.sbatch integrity-prepare "$ROOT" "$PHASE" "${IARGS[@]}"
-  [ -f "$I/lines.txt" ] || { say "STOP: $I/lines.txt missing"; exit 1; }
+  nfswait "$I/lines.txt" || { say "STOP: $I/lines.txt missing"; exit 1; }
   run_lines "$I/lines.txt" "integrity"
   waitcap; out=$(sbatch --parsable --wait --job-name=r7_50_icmp_$PHASE $CPUJ slurm/r7_50_cpu.sbatch integrity-compare "$ROOT" "$PHASE"); rc=$?
   for i in $(seq 1 24); do [ -f "$I/integrity.json" ] && break; sleep 5; done   # NFS (note r7_50_7)
@@ -132,15 +132,18 @@ elif [ ! -f "$ROOT/lines_$PHASE.txt" ]; then
   else subwait --job-name=r7_50_configs_F $CPUJ slurm/r7_50_cpu.sbatch configs "$ROOT" F "$F_LR_CHOICE" "$F_SELECTORS" "$F_PCA"; fi
 fi
 grep -q '"ok": true' "$ROOT/sealed/inputs/build_summary.json" 2>/dev/null || { say "STOP: no ok build summary"; exit 1; }
-[ -f "$ROOT/lines_$PHASE.txt" ] || { say "STOP: $ROOT/lines_$PHASE.txt missing"; exit 1; }
+nfswait "$ROOT/lines_$PHASE.txt" || { say "STOP: $ROOT/lines_$PHASE.txt missing"; exit 1; }
 say "stage 0 complete: sealed inputs, configs_$PHASE, $(grep -vc '^#' "$ROOT/lines_$PHASE.txt") unit lines"
 # stage 1 — generation
 run_lines "$ROOT/lines_$PHASE.txt" "generation $PHASE"
 # stage 2 — manifest (CPU, waits)
 M=$ROOT/manifest_$PHASE
+if [ "$PHASE" = F ]; then   # note r7_50_8: D1-FULL's timing is needed by the manifest and the scorer, not by integrity or generation
+  for b in gqa_dev chartqa_val; do gate "$F_TIMING_DIR/$b/timing_$b.json"; done; say "D1-FULL timing present (gqa_dev / chartqa_val)"
+fi
 XT=""; [ "$PHASE" = F ] && XT=$F_TIMING_DIR
 [ -f "$M/predictions_manifest.sha256" ] || subwait --job-name=r7_50_manifest_$PHASE $CPUJ slurm/r7_50_cpu.sbatch manifest "$ROOT" "$PHASE" $XT
-[ -f "$M/predictions_manifest.json" ] && [ -f "$M/predictions_manifest.sha256" ] || { say "STOP: manifest_$PHASE missing"; exit 1; }
+nfswait "$M/predictions_manifest.json" && nfswait "$M/predictions_manifest.sha256" || { say "STOP: manifest_$PHASE missing"; exit 1; }
 MSHA=$(cut -d' ' -f1 "$M/predictions_manifest.sha256")
 say "stage 2 complete: manifest_$PHASE sha256 $MSHA.  WAITING for $ROOT/ALLOW_SCORING_$PHASE (coordinator: commit a copy of the manifest, then write manifest_sha256=$MSHA, commit=<that commit> and manifest_copy=<repo path of the copy> into it)"
 # stage 3 — wait for the coordinator's gate file
@@ -155,5 +158,5 @@ if [ "$PHASE" = L ]; then   # execution note r7_50_1: the profiling-workload tim
   say "profiling-workload timing present (D1-30 gqa_dev / chartqa_val)"
 fi
 subwait --job-name=r7_50_score_$PHASE $CPUJ slurm/r7_50_cpu.sbatch score "$ROOT" "$PHASE" $XT
-[ -f "$ROOT/results_$PHASE/r7_50_results.json" ] || { say "STOP: score job $ID ended without results_$PHASE/r7_50_results.json"; exit 1; }
+nfswait "$ROOT/results_$PHASE/r7_50_results.json" || { say "STOP: score job $ID ended without results_$PHASE/r7_50_results.json"; exit 1; }
 say "done: $ROOT/results_$PHASE/r7_50_results.json and .md"
