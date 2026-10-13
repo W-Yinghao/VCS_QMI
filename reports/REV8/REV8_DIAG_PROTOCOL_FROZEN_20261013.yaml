@@ -1,0 +1,93 @@
+# REV8 diagnostics: pre-registered before any diagnostic number is computed.  Unit tests and a code-check smoke (CAL subset for B / C) may run
+# first; no smoke number is reported.  Code: scripts/rev8_diag.py, tests/test_rev8_diag.py, slurm/rev8_diag.sbatch (every job prints their hash).
+rev8_diag:
+  go_ahead: >
+    Owner, 2026-10-13 ~21:19 UTC ("跑"): run the three critic-only diagnostics proposed in the coordinator's assessment of an external code
+    review (r8, received 2026-10-13; the review package is not part of this repository).  Read-only: no host call, no DEV or official-test read,
+    no frozen file edited, no frozen unit re-selected or re-trained.  Results are descriptive; any follow-up training is a separate owner decision.
+  facts_before_this_protocol: >
+    Established by the coordinator on 2026-10-13 before this protocol was written.
+    (1) Phase B of the frozen selectors (scripts/r7_d1_selectors.py train; scripts/r7_d1_40_selectors.py train40) freezes the estimator's
+    parameters but never switches the model to eval mode, so dropout (p 0.1) is active in every critic forward phase B uses, including the full
+    pass whose tokens feed the gate.  The same trainers produced the D1-FULL units and will produce the E2 units.
+    (2) The logged soft_hard_gap compares the relaxed mask WITH Gumbel noise against the deterministic hard top-k, so it mixes noise and relaxation.
+    (3) The frozen CAL selection score is one Spearman over all CAL (question, mask) pairs: 3 mechanisms x 4 budgets per question, pooled.
+    (4) A tie audit of the CAL teacher records (CPU job 1038267; outputs/REVIEW_R8/check/tie_audit.json) found 4 (LLaVA) and 14 (Qwen) of 95,868
+    h values in tie blocks; the ordinal tie-breaking of the frozen Spearman can move any CAL Spearman(r, h) with tie-free r by at most 1.17e-7 /
+    3.20e-7, below the smallest frozen selection margin (8e-5).  So the frozen Spearman is used unchanged for the guard; every new rank statistic
+    below uses average ranks.
+    (5) The logged soft_hard_gap at the smallest budget, seed-0 units: at phase-A learning rate 1e-4 every objective's |gap| is <= 0.003 on all
+    three scales; at 3e-4 the gaps are 0.007-0.064 (one positive).  The gate's own learning rate is 3e-4 for every unit.  The frozen choices
+    are LLaVA 10k vcs 3e-4 / logistic 1e-4 / direct 1e-4; LLaVA FULL all 1e-4; Qwen 10k vcs 3e-4 / logistic 1e-4 / direct 3e-4.  Observed
+    before this protocol; B decomposes these gaps and does not establish a cause.
+  units:
+    llava10k:
+      host: llava
+      root: /home/infres/yinwang/CS_QMI/outputs/R7_D1
+      main: [vcs_lr0.0003_s0, vcs_lr0.0003_s1, vcs_lr0.0003_s2, logistic_lr0.0001_s0, logistic_lr0.0001_s1, logistic_lr0.0001_s2, direct_lr0.0001_s0, direct_lr0.0001_s1, direct_lr0.0001_s2]
+      lr_alt_seed0: [vcs_lr0.0001_s0, logistic_lr0.0003_s0, direct_lr0.0003_s0]
+    llavafull:
+      host: llava
+      root: /home/infres/yinwang/CS_QMI/outputs/R7_D1_FULL
+      main: [vcs_lr0.0001_s0, vcs_lr0.0001_s1, vcs_lr0.0001_s2, logistic_lr0.0001_s0, logistic_lr0.0001_s1, logistic_lr0.0001_s2, direct_lr0.0001_s0, direct_lr0.0001_s1, direct_lr0.0001_s2]
+      lr_alt_seed0: [vcs_lr0.0003_s0, logistic_lr0.0003_s0, direct_lr0.0003_s0]
+    qwen10k:
+      host: qwen
+      root: /home/infres/yinwang/CS_QMI/outputs/R7_D1/r7_40
+      main: [vcs_lr0.0003_s0, vcs_lr0.0003_s1, vcs_lr0.0003_s2, logistic_lr0.0001_s0, logistic_lr0.0001_s1, logistic_lr0.0001_s2, direct_lr0.0003_s0, direct_lr0.0003_s1, direct_lr0.0003_s2]
+      lr_alt_seed0: [vcs_lr0.0001_s0, logistic_lr0.0003_s0, direct_lr0.0001_s0]
+    e2: >
+      Not in this run.  The E2 (Qwen, FIT_FULL) units may be diagnosed with the same code once they exist, declared in an execution note first.
+  data: >
+    Every CAL question of each root (7,989 questions x 12 D1-10 masks; the LLaVA FULL units use the FULL cache's CAL features, the frozen
+    loader of each trainer).  No DEV, no official test, no FIT.
+  guard: >
+    Before B / C, each unit's eval-mode r (the frozen predict_r / predict_r40) must give the frozen pooled CAL Spearman(r, h) of the unit's log
+    (selected_cal_spearman) within 1e-4; otherwise the job stops (exit 3) and nothing of that unit is reported.
+  diagnostics:
+    A_R8_04: >
+      Eval-mode r for the 12 masks with the teacher's h and d.  Pooled Spearman (frozen ordinal = guard value; average ranks); within-budget
+      Spearman (3 mechanisms x questions); within (budget, mechanism) across questions; within question across its 12 masks; within (question,
+      budget) across the 3 mechanisms: pairwise direction accuracy (pairs with tied h excluded and counted; tied r scores 0.5), top-1 hit rate,
+      regret h[argmin r] - min h against the expected random choice, always-random / grid / qsim and the teacher's d choice (reference only: it
+      uses the host's outputs); within (question, mechanism) across budgets: pairwise accuracy.  Ties in r are broken by mechanism order.
+    B_R8_02: >
+      The gate's own masks at each budget, critic in eval mode; one Gumbel draw xi per (question, budget) shared by HN and SN at both
+      temperatures: HD = hard top-k(g), HN = hard top-k(g + xi), SD = soft(g), SN = soft(g + xi) (= the frozen relaxed top-k; equality tested
+      bit for bit), soft cells at tau_end 0.1 (main) and tau_start 1.0 (secondary); risk = the frozen readout.  relax_det = SD - HD,
+      relax_noise = SN - HN, noise_hard = HN - HD, legacy = SN - HD; the legacy value is compared with the logged gap (different draws).  Mask
+      statistics of the soft masks: sum(m) - k, sum m(1 - m), #(m > 0.5) - k, the share of soft mass outside the matching hard set; Jaccard(HD, HN).
+    C_R8_01: >
+      R = 8 train-mode (dropout) draws, as phase B queries the critic.  Per draw: the full pass (its tokens -> the gate -> hard top-k, compared
+      with the eval-mode top-k by Jaccard per budget), the 12 masked passes with independent dropout (train-mode readout, and T for vcs / logistic),
+      and (C2) the phase-B loss itself: the soft gate mask from the train-mode tokens with a fresh Gumbel draw at tau_end.  Per budget: mean shift
+      of the train-mode readout against eval-mode r; the distortion ratio = mean over (question, budget) of the across-mechanism variance of
+      (train-mode mean - eval-mode r), less its Monte-Carlo part (mean of var/R), over the mean across-mechanism variance of eval-mode r; pairwise
+      ranking agreement of train-mode means with eval-mode r at R = 8 and R = 4 (two halves); var(T_A), var(T_B), the self-gap 2 var(T_B); the
+      C2 loss against B's eval-mode SN at tau_end.
+  rng: "B Gumbel: torch.Generator seeded 20261013; dropout: torch.manual_seed(20261014); C2 Gumbel: generator seeded 20261015; R = 8"
+  statistics: >
+    Image-grouped bootstrap over CAL images (2,000 replicates, seed 0) for means and ratios; Spearman values without intervals.  Main units: mean
+    and sd over seeds per (scale, objective).  Learning-rate comparison: seed 0 only, descriptive.  No hypothesis tests.
+  flags:
+    between_budget_fraction: 0.5
+    dominance_factor: 2.0
+    legacy_z: 4.0
+    distortion_ratio: 0.25
+    gate_jaccard: 0.8
+  flag_meaning: >
+    Descriptive markers fixed before the run, not tests.  R8_04_within_qk_not_better_than_chance: the 95 % interval of the within-(question,
+    budget) pairwise accuracy contains 0.5.  R8_04_pooled_mostly_between_budgets: the mean within-budget Spearman is below 0.5 x the pooled
+    average-rank Spearman.  R8_02_dominant: 'relaxation' if the budget-averaged |relax_det| >= 2 x |noise_hard| at tau_end, 'noise' if the reverse,
+    else 'mixed'.  R8_02_legacy_reproduced: |recomputed legacy - logged gap| <= 4 standard errors at every budget.  R8_01_dropout_material_for_ranking:
+    distortion ratio >= 0.25 at some budget.  R8_01_gate_inputs_perturbed: mean train-vs-eval gate top-k Jaccard < 0.8 at the 25 % budget.
+  interpretation_limits: >
+    Critic-only quantities; none measures host accuracy, and none says whether a factor causes the D1 shortfall: that needs a paired retraining
+    intervention, an owner decision.  The within-(question, budget) oracle uses the label (finite three-mask reference, not a Bayes optimum).
+  outputs: >
+    Per-unit arrays outputs/REVIEW_R8/diag/<scale>__<tag>.npz + .json (per-question arrays; not pushed).  Summary
+    reports/REV8/REV8_DIAG_RESULTS/rev8_diag_results.json (results-only commit, unedited), then a report with every number taken from it.
+  execution: >
+    Unit tests (CPU), a code-check smoke on CPU (guard on every CAL question for one LLaVA and one Qwen unit; B / C on 64 questions), then three
+    GPU jobs, one per root with its 12 units (RTX6000PRO / H100 / L40S, normal priority, --time 4 h), then the CPU summary.  A unit whose
+    arrays exist is skipped on a rerun.
