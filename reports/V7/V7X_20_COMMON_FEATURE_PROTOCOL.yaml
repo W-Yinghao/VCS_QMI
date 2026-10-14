@@ -1,11 +1,18 @@
-# V7X-20 / V7X-21 common-feature protocol (v2 package docs/10-12, configs/X21_FIT_UNITS.csv) — DRAFT 2026-10-14.
-# To be FROZEN after the X20 extraction smoke and the X21 timing smoke, before any X21 fit on the full FIT and before any DEV / external label.
+# V7X-20 / V7X-21 common-feature protocol (v2 package docs/10-12, configs/X21_FIT_UNITS.csv) — FROZEN 2026-10-14 ~00:00 UTC, after the X20 and
+# X21 CPU smokes (below) and before the full X20 extraction, any X21 fit on the full FIT, and any DEV / external label.
 # Scope: estimators compared on ONE fixed representation, the same P / Q and the same data roles.  It does not replace the full M0-M2 training
 # (that updates the representation); the two tables stay separate (docs/14).  Code: scripts/v7x/ (outside scripts/v7, so the v1 units' code
 # hash is unchanged), tests/v7x/, slurm/v7x/.
 version: V7X
 handoff: v2
-status: draft
+status: frozen
+smokes: >
+  X20 CPU smoke (job 1038773, 64 images per role, float32): FIT / CAL_SELECT / CAL_PROB / DEV 261 / 272 / 469 / 202 elements, z0 invariant max abs diff
+  <= 9.5e-7, 0 violations; DEV index without y.  X21 CPU smoke (job 1038811) on those features: every method's code path (tuning -> lr -> formal for
+  the four neural critics, the frozen DV normaliser, K-KDE-S with its edge extension, K-RULSIF, K-NYSTROM, A0); on 261 FIT elements the neural
+  batches were below the minimum batch (BATCH / 4) so no optimiser step ran there: the step code is covered by tests/v7x/test_x21.py (32 tests +
+  the package's 95 reference tests pass, job 1038782) and is first run on the real stack by the full X21 job.  The fp16 GPU invariant is checked
+  by the full X20 job (any violation -> exit 5, nothing is fitted).
 features:                                          # X20
   source_model: >
     the M arms' initialisation exactly (scripts/v7/v7_train.py build_model): FGA_Blip2 'coco' config, eva_vit_g.pth then blip2_finetune_coco.pth
@@ -19,7 +26,7 @@ features:                                          # X20
   stored_per_role: "feats.npy float32 [n, 768]; index.jsonl (element_id, image_id, prompt_id, role, D weight); z0 = itm-head element logit at init"
   label_rule: "y is written only into the FIT / CAL_SELECT / CAL_PROB fit inputs; DEV and external y are never loaded by the fit code"
   invariants:
-    - "z0 recomputed from the stored pooled feature (itm_head is linear) equals the pooled token logit of v7_train.forward at init (max abs diff <= 5e-3, fp16) on a 256-image check"
+    - "z0 recomputed from the stored pooled feature (itm_head is linear, fp32) equals the forward's pooled token logit (fp16 head output) on EVERY element: |diff| <= 2e-2 + 2e-3 |z0|; any violation stops the run"
     - "per role, the element_id list equals the M interface (v7_train.ElementData) in order"
     - "feature_manifest_hash = sha256 over (role, element_id order, float32 bytes); carried by every X21 result row; validate_shared_features() on every comparison"
   standardization: "FIT-only D-weighted mean / sd per dimension, applied to every method (kernels and neural); no per-method PCA in the main table"
