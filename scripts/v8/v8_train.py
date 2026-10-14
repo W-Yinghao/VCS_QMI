@@ -220,12 +220,63 @@ def cmd_train(a):
     return 0
 
 
+class CandRows(RatingData):
+    """External candidates (no labels): rows with a dummy histogram, read by Collate; ids from the same tokenizer and length rule."""
+
+    def __init__(self, cands: list[dict], tokenizer, max_len: int = MAX_TXT):
+        self.rows = []; cache = {}
+        for c in cands:
+            p = c["prompt"]
+            if p not in cache:
+                cache[p] = tokenizer(p)["input_ids"]
+            if len(cache[p]) > max_len:
+                raise SystemExit(f"external prompt longer than {max_len} tokens: {c['prompt_id']}")
+            self.rows.append({**c, "ids": cache[p], "hist": [0.2] * 5, "w": 1.0})
+
+
+def cmd_export(a):
+    """Selected checkpoint (best.pt), eval mode -> q / u / mu per image for the EvalMuse roles and, optionally, GenAI-Rank / GenAI-Bench candidates."""
+    import torch
+    from transformers import BertTokenizerFast
+    sys.path.insert(0, str(HERE.parent / "v7x"))
+    unit = Path(a.unit_dir); log = json.loads((unit / "log.json").read_text()); device = "cuda" if torch.cuda.is_available() else "cpu"; prior = log["prior_fit"]
+    VC.stage_workdir(VC.BIG_OUT / "work"); tok = BertTokenizerFast.from_pretrained(str(VC.BERT_DIR))
+    model, _ = build(log["seed"], device, log["fit_hist"]); ck = torch.load(unit / "best.pt", map_location="cpu", weights_only=False)
+    msg = model.load_state_dict(ck["model"], strict=False)
+    if [k for k in msg.missing_keys if not k.startswith("visual_encoder.")] or msg.unexpected_keys:
+        raise SystemExit(f"selected checkpoint does not match the model: {msg}")
+    VC.import_lavis()
+    from lavis.processors.blip_processors import BlipImageEvalProcessor
+    proc = BlipImageEvalProcessor(image_size=364); out = unit / "pred"; out.mkdir(exist_ok=True); res = {}
+    D, R = load_role_data(tok, roles=tuple(a.roles)); arch = VC.ArchiveImages()
+    for role in a.roles:
+        pred = predict(model, D[role], arch, proc, device, prior); res[role] = cal_metrics(pred, D[role], prior)
+        (out / f"images_{role}.jsonl").write_text("".join(json.dumps(p) + "\n" for p in pred))
+    ext = []
+    if a.rank_inputs:
+        from v7_train import RankImages
+        ext.append(("genai_rank", VC.read_jsonl(a.rank_inputs), RankImages()))
+    if a.bench_inputs:
+        from x30_m_bench import FileImages
+        ext.append(("genai_bench", VC.read_jsonl(a.bench_inputs), FileImages(a.bench_images)))
+    for tag, cands, imgs in ext:
+        rows = CandRows(cands, tok); pred = predict(model, rows, imgs, proc, device, prior); by = {c["image_id"]: c for c in cands}
+        (out / f"{tag}.jsonl").write_text("".join(json.dumps({"prompt_id": by[p["image_id"]]["prompt_id"], "generator_id": by[p["image_id"]].get("generator_id"),
+                                                              "image_id": p["image_id"], "candidate_index": by[p["image_id"]].get("candidate_index"),
+                                                              "score": p["mu"], "q": p["q"], "u": p["u"]}) + "\n" for p in pred))
+        res[tag] = {"n": len(pred)}
+    (out / "export.json").write_text(json.dumps({"unit": unit.name, "selected_epoch": ck["epoch"], "prior": prior, "roles": res}, indent=1)); return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     t = sub.add_parser("train"); t.add_argument("--arm", required=True, choices=sorted(C.ARMS)); t.add_argument("--lr", type=float, required=True)
     t.add_argument("--seed", type=int, required=True); t.add_argument("--unit-dir", required=True); t.add_argument("--workers", type=int, default=6)
     t.add_argument("--max-steps", type=int, default=0); t.add_argument("--eval-n", type=int, default=None)
-    a = ap.parse_args(argv); return {"train": cmd_train}[a.cmd](a)
+    x = sub.add_parser("export"); x.add_argument("--unit-dir", required=True); x.add_argument("--roles", nargs="+", default=["CAL_SELECT", "CAL_PROB", "DEV"])
+    x.add_argument("--rank-inputs", default=None); x.add_argument("--bench-inputs", default=None)
+    x.add_argument("--bench-images", default="/projects/EEG-foundation-model/yinghao/outputs_v7/genai_bench_images")
+    a = ap.parse_args(argv); return {"train": cmd_train, "export": cmd_export}[a.cmd](a)
 
 
 if __name__ == "__main__":
