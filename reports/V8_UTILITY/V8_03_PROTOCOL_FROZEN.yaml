@@ -1,9 +1,9 @@
-# V8-03 — utility-aligned CS: full protocol — DRAFT 2026-10-14 (to be frozen after the CPU gate and a GPU smoke, before any formal or tuning unit)
+# V8-03 — utility-aligned CS: full protocol — FROZEN 2026-10-14T23:21:07Z (after the CPU gate and the GPU smoke; before any tuning or formal unit and before V7's first GenAI-Rank label read)
 # Source: owner package VCS_V8_Utility_Aligned_CS_Server_v1_20261014 (sha256 54477a388933ca4d89f6e5d440e975f83e3781334d0c3b1eb0455701f2f3ed1d), docs/02-07,
 # configs/*.  Owner 2026-10-14: "先执行完V7再执行V8，但是现在就开始准备所需的代码" — no V8 GPU unit before V7 is complete.
-# Design dates relative to V7's terminal label read: the V8 package was unpacked and this design drafted BEFORE the first V7 GenAI-Rank label read
-# (V7C-04); the V7 read will happen before this file is frozen, so V8's GenAI-Rank comparison is named a "pre-specified reused benchmark
-# comparison" (package docs/06 §4) and an untouched confirmation source is registered before the first V8 result (below).
+# Exposure: frozen at 2026-10-14T23:21:07Z, BEFORE V7's first GenAI-Rank human-label read (V7C-04 had not run; the sealed file was unopened).  Per package
+# docs/06 §1 case 1, V8's GenAI-Rank evaluation is therefore a pre-specified follow-up comparison on the same benchmark (not an independent
+# dataset); an untouched confirmation source is registered below before the first V8 result.
 branch: v8/utility-aligned-cs
 dirs: {reports: reports/V8_UTILITY, outputs: /projects/EEG-foundation-model/yinghao/outputs_v8}
 keep_original_S_J: true
@@ -46,7 +46,7 @@ selection:
 units:
   tuning: "8 arms x 3 lr at seed 17 = 24 (configs/TUNING_UNITS.csv)"
   formal: "8 arms x seeds {0, 1, 2} at the arm's selected lr = 24 (configs/FIT_UNITS.csv); every seed is run, no seed-0 screen"
-  budget: "48 full units; per-unit time from the GPU smoke (V7 M units: ~1.4 h on L40S, same backbone and data volume) -> ~70 GPU-h; to be replaced by the smoke measurement"
+  budget: "48 full units; GPU smoke (job 1040556, L40S): 0.4 s per optimiser step, peak 7.8 GB -> ~2,100 grouped steps per epoch x 5 + CAL evals ~ 1.35 h per unit -> ~65 GPU-h; one-epoch timing job 1040557 confirms"
 kernel_bridges:
   features: "V7X-20 X20 features (768-d mean of the 32 query outputs of the same untrained BLIP-2; FIT-weighted standardisation); PCA64 / 256 as common sensitivities only"
   per_threshold: "P_k proportional to w y_k, Q_k to w (1 - y_k); KDE: T = tanh((log p - log q) / 2); RuLSIF alpha = 1/2: T = r - 1; Nystrom: squared regression of the balanced label"
@@ -58,6 +58,7 @@ evaluation:
   primary_external: "U-CS vs B0 FGA, B1 VQAScore, B4T TIFA, B4D DSG on GenAI-Rank DALLE_3 / SDXL_Base, N = 9, official first-index ties; 8 contrasts; prompt-cluster bootstrap 5,000 (seed 2718), Holm; external predictions reused unchanged from V7X-50 v2"
   same_conditions: "U-CS vs U-RPS, U-MSE, U-RANK, U-LIST on both generators (8, Holm); U-CS vs U-BCE (2, attribution); U-CE / U-L1 reported in full"
   distribution: "per-threshold natural Brier, normalised RPS, histogram log loss, mean-rating MSE / MAE on CAL_PROB and DEV (development)"
-  exposure: "GenAI-Rank: pre-specified reused benchmark comparison (V7 read first); confirmation source registered before the first V8 result: the GenAI-Bench prompts without a GenAI-Rank text match (list fixed from inputs only), labels sealed until then; TIFA160 / RichHF alignment as fallbacks if that source is unusable"
+  exposure: "GenAI-Rank: pre-specified follow-up comparison on the same benchmark (V8 frozen before V7's read); confirmation source registered now: the GenAI-Bench prompts without a GenAI-Rank text match (list fixed from inputs only; 850 by the V7 reuse step), labels sealed; TIFA160 / RichHF alignment as fallbacks if that source is exposed or unusable before the first V8 result"
 not_claimed: "a new functional, first use of ordinal / distribution scoring, a causal reading of histograms, uncertainty of the mean from the predicted spread, any GenAI-tuned choice"
-gate_before_freeze: "CPU tests (tests/v8: 24 pass; package reference tests 75 pass, 2026-10-14); a GPU smoke of every arm on the real stack (few steps + a CAL_SELECT eval) and the timing of one full epoch"
+gate_before_freeze: "CPU tests: tests/v8 24 / 24 and the package reference tests 75 / 75 (job 1040540).  GPU smoke (job 1040556, L40S node57, commit f7718b2): all 8 arms, 20 steps x 5 epochs + CAL_SELECT eval on 64 images, exit 0; ranking terms active in U-RANK / U-LIST (2 subgroups, 26 pairs per step); identical head init across arms (bias = log FIT histogram); 186,314,048 trainable parameters; peak 7.8 GB; the export of U-CS scored the full CAL_SELECT (1,653 images).  Smoke CAL numbers are not results (100 steps, 64 images)."
+decisions_at_freeze: "frozen 2026-10-14T23:21:07Z (main session).  Tuning first: 24 units grouped 6 per job (4 jobs, run one after the other inside a job, resumable), nice 300 so every pending V7 / REV9 / E2 job keeps priority (owner: V7 first, GPUs never idle); formal units only after all 24 tuning units, with the lr chosen by the rule above.  The one-epoch timing job is a measurement only."
