@@ -10,6 +10,7 @@
 #   tests                     pytest tests/v7x (+ the v2 package reference tests on our copies)
 #   x20-smoke-cpu             X20 extractor on 64 images of each role on CPU (float32 code-path check; the GPU run checks fp16)
 #   x21-smoke-cpu             X21 'all' on the X20 smoke features, 2 epochs (code path of every method; no result is used)
+#   tifa-smoke-cpu            B4T code path on CPU: question generation + filter for 1 prompt, TIFA score of 2 candidates (no result is used)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7_fga; PY="$E/bin/python -I"
 echo "host=$(hostname) start=$(date -u +%FT%TZ) commit=$(git rev-parse --short HEAD) dirty=$(git status --porcelain scripts/v7x tests/v7x slurm/v7x | wc -l)"
@@ -18,6 +19,11 @@ what="$1"; shift
 case "$what" in
   x10) $PY scripts/v7x/x10_legacy_inventory.py --p85 /home/infres/yinwang/CS_QMI/outputs/P85_estim_benchmark --out "$1"; rc=$?;;
   x21-smoke-cpu) export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; $PY scripts/v7x/x21_fit.py all --x20 /projects/EEG-foundation-model/yinghao/outputs_v7/x20_smoke_cpu --out /projects/EEG-foundation-model/yinghao/outputs_v7/x21_smoke_cpu --epochs 2; rc=$?;;
+  tifa-smoke-cpu) T=/projects/EEG-foundation-model/yinghao/envs/v7_tifa/bin/python; X=/projects/EEG-foundation-model/yinghao/outputs_v7/x30_smoke_cpu; mkdir -p $X
+     export HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7x HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 MODELSCOPE_CACHE=$X/modelscope_cache V7X_LOCAL=/tmp/v7x_$SLURM_JOB_ID OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+     mkdir -p $V7X_LOCAL; trap "rm -rf $V7X_LOCAL" EXIT; D=/home/infres/yinwang/CS_QMI/outputs/V7/data
+     $T -I scripts/v7x/x30_tifa.py qg --prompts $D/genai_rank_prompts.jsonl --out $X/tifa_qa.jsonl --limit 1 && \
+     $T -I scripts/v7x/x30_tifa.py score --qa $X/tifa_qa.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/tifa_scores.jsonl --limit 2; rc=$?;;
   tests) export V7X_REF_DIR=/home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
      $PY -m pytest -q -p no:cacheprovider tests/v7x; rc=$?
      echo "--- package reference tests (owner copy, read only; run from a scratch copy)"; T=$(mktemp -d /tmp/v7xref_XXXX); cp -r /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/configs /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/schemas $T/ && chmod -R u+w $T
