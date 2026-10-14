@@ -19,17 +19,19 @@ TAGS = ("vcs_lr0.0003", "logistic_lr0.0001", "direct_lr0.0001"); BENCHES = ("gqa
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--out", required=True); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--out", required=True); ap.add_argument("--d1", default=str(D1)); ap.add_argument("--rv", default=str(RV))
+    ap.add_argument("--tags", nargs="+", default=list(TAGS)); a = ap.parse_args()
+    d1, rv, tags = Path(a.d1), Path(a.rv), tuple(a.tags)
     if Path(a.out).exists():
         raise SystemExit(f"{a.out} exists")
     res = {"guard": {}, "gaps": {}, "benches": {}, "primary": {}, "integrity": {}}
-    for t in TAGS:
-        g = json.loads((RV / "selectors" / f"{t}_s0_I0.json").read_text())["rev9"]; res["guard"][t] = {**g, "pass": g["max_abs_diff_estimator_vs_frozen"] == 0 and g["max_abs_diff_gate_vs_frozen"] <= 1e-3}
+    for t in tags:
+        g = json.loads((rv / "selectors" / f"{t}_s0_I0.json").read_text())["rev9"]; res["guard"][t] = {**g, "pass": g["max_abs_diff_estimator_vs_frozen"] == 0 and g["max_abs_diff_gate_vs_frozen"] <= 1e-3}
         for s in (0, 1, 2):
-            fz = json.loads((D1 / "selectors" / f"{t}_s{s}.json").read_text()).get("soft_hard_gap")
-            res["gaps"][f"{t}_s{s}"] = {"frozen": fz, **{iv: json.loads((RV / "selectors" / f"{t}_s{s}_{iv}.json").read_text()).get("soft_hard_gap") for iv in IVS}}
+            fz = json.loads((d1 / "selectors" / f"{t}_s{s}.json").read_text()).get("soft_hard_gap")
+            res["gaps"][f"{t}_s{s}"] = {"frozen": fz, **{iv: json.loads((rv / "selectors" / f"{t}_s{s}_{iv}.json").read_text()).get("soft_hard_gap") for iv in IVS}}
     for b in BENCHES:
-        items = RUN.load_items(D1 / "d1_30" / "sets", b, "0/1"); boot = SC.Boot([it["image_id"] for it in items], reps=2000, seed=0); qids = [it["qid"] for it in items]
+        items = RUN.load_items(Path("/home/infres/yinwang/CS_QMI/outputs/R7_D1") / "d1_30" / "sets", b, "0/1"); boot = SC.Boot([it["image_id"] for it in items], reps=2000, seed=0); qids = [it["qid"] for it in items]
         def acc(pdir, cfg):
             recs, n = SC.load_config(pdir / b, cfg); res["integrity"][f"{pdir.name}:{b}:{cfg}"] = {k: v for k, v in n.items() if k != "files"}
             sc = SC.item_scores(b, items, {q: r["pred"] for q, r in recs.items()})
@@ -37,10 +39,10 @@ def main():
                 raise SystemExit(f"{b} {cfg}: {len(sc)} of {len(items)} items scored")
             return np.array([sc[q] for q in qids], float)
         bench = {}
-        for t in TAGS:
+        for t in tags:
             for k in SC.BUDGETS:
-                fr = {s: acc(D1 / "d1_30" / "pred", f"sel:{t}_s{s}:{k}") for s in (0, 1, 2)}
-                iv_acc = {iv: {s: acc(RV / "d1_30" / "pred", f"sel:{t}_s{s}_{iv}:{k}") for s in (0, 1, 2)} for iv in IVS}
+                fr = {s: acc(d1 / "d1_30" / "pred", f"sel:{t}_s{s}:{k}") for s in (0, 1, 2)}
+                iv_acc = {iv: {s: acc(rv / "d1_30" / "pred", f"sel:{t}_s{s}_{iv}:{k}") for s in (0, 1, 2)} for iv in IVS}
                 row = {"frozen": [float(fr[s].mean() * 100) for s in (0, 1, 2)]}
                 for iv in IVS:
                     row[iv] = [float(iv_acc[iv][s].mean() * 100) for s in (0, 1, 2)]
@@ -50,12 +52,12 @@ def main():
                 row["I2-I1"] = {"delta": float(d.mean()), "ci95": SC.ci(bs), "p": SC.boot_p(bs)}
                 bench[f"{t}@{k}"] = row
         res["benches"][b] = bench
-    for t in TAGS:
+    for t in tags:
         keys = [(b, f"{t}@{k}", iv) for b in BENCHES for k in SC.BUDGETS for iv in IVS]
         ph = SC.holm([res["benches"][b][c][f"{iv}-frozen"]["p"] for b, c, iv in keys])
         res["primary"][t] = [{"bench": b, "cell": c, "contrast": f"{iv}-frozen", **res["benches"][b][c][f"{iv}-frozen"], "p_holm": float(h)} for (b, c, iv), h in zip(keys, ph)]
     Path(a.out).write_text(json.dumps(res, indent=1))
-    for t in TAGS:
+    for t in tags:
         for r in res["primary"][t]:
             print(f"{r['bench']:12s} {r['cell']:24s} {r['contrast']:10s} {r['delta']:+.2f} [{r['ci95'][0]:+.2f}, {r['ci95'][1]:+.2f}] p_holm {r['p_holm']:.3f}")
     print("guard:", {t: g["pass"] for t, g in res["guard"].items()})
