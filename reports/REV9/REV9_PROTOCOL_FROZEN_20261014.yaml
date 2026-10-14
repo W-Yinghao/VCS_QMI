@@ -1,0 +1,28 @@
+# REV9 — paired phase-B interventions on the frozen D1 selectors.  FROZEN 2026-10-14 before any REV9 run (owner go-ahead below).
+rev9:
+  go_ahead: >
+    Owner, 2026-10-14 ("1和2都做，GPU别空着"), answering the coordinator's list after REV8 (reports/REV8/REV8_DIAG_REPORT_20261014.md): item 1 =
+    "a paired retraining (e.g. phase B in eval mode, or hard-mask evaluation during gate training) would test whether REV8's candidate
+    contributors cause the D1 shortfall".  Frozen REV8 limits: REV8 is critic-only; causation needs this paired intervention.
+  question: >
+    Do the two phase-B mechanisms REV8 measured change what the D1 selectors deliver?  (R8-01) dropout perturbs the gate's inputs during phase B
+    (train-vs-eval top-k Jaccard 0.62-0.67 for VCS); (R8-02) the logged soft-hard gap is relaxation, material at phase-A lr 3e-4.
+  units: >
+    LLaVA 10k (outputs/R7_D1) frozen units at their CAL-chosen learning rates: vcs_lr0.0003, logistic_lr0.0001, direct_lr0.0001 x seeds 0-2
+    (9 units).  Qwen / FULL scales are not in this round.
+  design: >
+    Each new unit starts from the frozen unit's end-of-phase-A state (<tag>.resume.pt: estimator, optimiser, RNG), so phase B sees the same
+    estimator, question batches, budgets and Gumbel draws; only the phase-B loss changes (scripts/rev9_phaseb.py; frozen modules imported, not
+    edited).  I0 = unmodified rerun (guard, seed 0 of each objective: 3 units); I1 = critic in eval mode in phase B; I2 = I1 + straight-through hard
+    top-k (forward = deployed hard top-k of the gate logits, gradient = the frozen relaxed top-k).  18 intervention units.
+  guard: "I0: estimator identical to the frozen unit (max abs diff 0) and gate within 1e-3 (GPU nondeterminism); a failed guard stops the readout of that objective"
+  evaluation: >
+    The frozen D1-30 evaluator (scripts/r7_d1_30_run.py, LLaVA-1.5-7B host, SparseVLM env, H100 / L40S) on GQA DEV, TextVQA val and ChartQA val at
+    the fixed budgets 72 / 144 / 288 / 432 (12.5 / 25 / 50 / 75 %), selector rows only; the frozen units' D1-30 predictions are the paired baseline.
+    No latency matching (same architecture and budget -> same cost); no dynamic rows; no official test.
+  primary: >
+    Per objective and budget, accuracy(I1) - accuracy(frozen) and accuracy(I2) - accuracy(frozen) on each benchmark, mean over seeds of the
+    per-seed paired differences; image-grouped paired bootstrap 2,000 (seed 0); Holm over the 2 interventions x 4 budgets x 3 benchmarks within
+    each objective.  Secondary: the REV8 critic diagnostics (soft-hard gap, gate Jaccard) re-read on the new units; I2 - I1.
+  reading_limits: "LLaVA 10k only; a positive effect is a mechanism finding for this scale, not a claim that the selector beats SparseVLM or the grid"
+  outputs: "outputs/REV9/selectors (units), outputs/REV9/d1_30/pred; results-only commit to reports/REV9/REV9_RESULTS/, then a report"
