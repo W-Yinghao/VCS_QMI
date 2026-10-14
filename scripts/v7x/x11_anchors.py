@@ -230,7 +230,8 @@ def hsic_perm(X, Y, rng):
 # --------------------------------------------------------------------------------------------------------------------------------------- cli
 def cmd_est(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); cells = ANCHORS[a.anchor]
-    idx = [int(i) for i in a.cells.split(",")] if a.cells else range(len(cells)); f = open(out / f"est_{a.anchor}.jsonl", "a")
+    idx = [int(i) for i in a.cells.split(",")] if a.cells else range(len(cells))
+    f = open(out / (f"est_{a.anchor}_c{a.cells.replace(',', '-')}.jsonl" if a.cells else f"est_{a.anchor}.jsonl"), "a")     # one writer per file
     for ci in idx:
         c = cells[ci]; tr = truths(a.anchor, c, np.random.default_rng([7, ci, 999]))
         f.write(json.dumps({"anchor": a.anchor, "cell": c, "truth": tr}) + "\n"); f.flush()

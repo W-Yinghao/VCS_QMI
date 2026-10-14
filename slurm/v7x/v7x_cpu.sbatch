@@ -11,6 +11,8 @@
 #   x20-smoke-cpu             X20 extractor on 64 images of each role on CPU (float32 code-path check; the GPU run checks fp16)
 #   x21-smoke-cpu             X21 'all' on the X20 smoke features, 2 epochs (code path of every method; no result is used)
 #   tifa-smoke-cpu            B4T code path on CPU: question generation + filter for 1 prompt, TIFA score of 2 candidates (no result is used)
+#   x11-est <anchor> <cell>   X11 estimation panel of one anchor cell (10 replicates x N 256 / 4096)
+#   x11-tests <anchor>        X11 MMD / HSIC level and power (200 replicates)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7_fga; PY="$E/bin/python -I"
 echo "host=$(hostname) start=$(date -u +%FT%TZ) commit=$(git rev-parse --short HEAD) dirty=$(git status --porcelain scripts/v7x tests/v7x slurm/v7x | wc -l)"
@@ -24,6 +26,8 @@ case "$what" in
      mkdir -p $V7X_LOCAL; trap "rm -rf $V7X_LOCAL" EXIT; D=/home/infres/yinwang/CS_QMI/outputs/V7/data
      $T -I scripts/v7x/x30_tifa.py qg --prompts $D/genai_rank_prompts.jsonl --out $X/tifa_qa.jsonl --limit 1 && \
      $T -I scripts/v7x/x30_tifa.py score --qa $X/tifa_qa.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/tifa_scores.jsonl --limit 2; rc=$?;;
+  x11-est) export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; $PY scripts/v7x/x11_anchors.py est --anchor $1 --cells $2 --out /home/infres/yinwang/CS_QMI/outputs/V7/x11; rc=$?;;
+  x11-tests) export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; $PY scripts/v7x/x11_anchors.py tests --anchor $1 --out /home/infres/yinwang/CS_QMI/outputs/V7/x11; rc=$?;;
   tests) export V7X_REF_DIR=/home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
      $PY -m pytest -q -p no:cacheprovider tests/v7x; rc=$?
      echo "--- package reference tests (owner copy, read only; run from a scratch copy)"; T=$(mktemp -d /tmp/v7xref_XXXX); cp -r /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/configs /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/schemas $T/ && chmod -R u+w $T

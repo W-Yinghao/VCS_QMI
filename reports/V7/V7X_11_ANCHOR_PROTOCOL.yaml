@@ -1,8 +1,10 @@
-# V7X-11 / V7X-12 controlled anchors (v2 package docs/10 §2 'new analytic anchors', docs/11, docs/12) — DRAFT 2026-10-14; frozen before any anchor run.
+# V7X-11 / V7X-12 controlled anchors (v2 package docs/10 §2 'new analytic anchors', docs/11, docs/12) — FROZEN 2026-10-14 ~00:10 UTC, before any anchor run
+# (tests/v7x/test_x11_anchors.py: log ratios vs scipy, closed truths vs Monte-Carlo, a tiny end-to-end run; 44 V7X tests pass, job 1038828).
 # Purpose: fill the gaps of V7X_10 (classical CS-KDE truth / SE / bandwidth edge; kernel same-target rows at grid edges; uLSIF / LSMI never run;
 # MMD / HSIC never on controlled generators; no trained estimator at independence).  Synthetic data only; no human label is involved.
 version: V7X
-status: draft
+status: frozen
+jobs: "one CPU job per anchor cell (est) and per anchor (tests); outputs/V7/x11/est_<anchor>_c<cell>.jsonl, tests_<anchor>.jsonl (one writer per file)"
 code: "scripts/v7x/x11_anchors.py (generators, truths, estimators from scripts/v7x/x_estimators.py), tests/v7x/test_x11_anchors.py"
 anchors:
   A1_gauss_shift: {P: "N(delta e1, I_d)", Q: "N(0, I_d)", d: [2, 20], delta: [0.0, 0.5, 2.0], note: "delta 0 = the null"}
