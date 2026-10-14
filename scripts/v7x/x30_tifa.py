@@ -1,9 +1,9 @@
 """V7X-30 B4T: TIFA on the GenAI-Rank pool through its released local route (github.com/Yushi-Hu/tifa @ 8e37050, read-only, imported by path).
 Questions: tifa-benchmark/llama2_tifa_question_generation via get_llama2_question_and_answers (TIFA's settings: greedy beam 5, max_length 512);
 filter: filter_question_and_answers with UnifiedQA v2 T5-large; VQA: VQAModel('mplug-large') (ModelScope mPLUG, local copy of the hub id at v1.0.0)
-with TIFA's SBERT free-form -> choice mapping; score: tifa_score_single.  Scoped import: promptcap and lavis.models (top-level imports of
-tifascore/vqa_models.py used only by the PromptCap / BLIP-2 routes) are stubbed; the mplug-large registry entry points to the local copy; no
-TIFA file is edited.  A prompt whose filter keeps no question gets score 0 for every candidate (all tie -> first index), flagged.
+with TIFA's SBERT free-form -> choice mapping; score: tifa_score_single.  Scoped import (scripts/v7x/x_stubs.py): promptcap and lavis.models
+(top-level imports of tifascore/vqa_models.py for the PromptCap / BLIP-2 routes) and fairseq (ModelScope's OFA speech preprocessor) are stubbed;
+the mplug-large registry entry points to the local copy; no TIFA file is edited.  A prompt whose filter keeps no question gets score 0 for every candidate (all tie -> first index), flagged.
     qg --prompts P --out Q.jsonl [--limit N]                             questions per prompt (resumable cache)
     score --qa Q.jsonl --inputs I --out S.jsonl [--shard k/n] [--limit N] TIFA score per candidate (images staged node-local; no human score read)"""
 from __future__ import annotations
