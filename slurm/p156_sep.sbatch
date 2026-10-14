@@ -13,7 +13,8 @@ source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
 : "${MODE:?}"; : "${OUT:?}"
 banner "P156 $MODE seed=${SEED:-NA} blocks=${BLOCKS:-all} -> $OUT"
 case "$MODE" in
-  run)    : "${SEED:?}"; "$PYTHON" scripts/p156_sep.py run --seed "$SEED" --out "$OUT" ${BLOCKS:+--blocks $BLOCKS}; rc=$? ;;
+  run)    : "${SEED:?}"; rc=0                                    # SEED may be a "+"-separated list (e.g. 100+101): seeds run in order
+          for s in ${SEED//+/ }; do "$PYTHON" scripts/p156_sep.py run --seed "$s" --out "$OUT" ${BLOCKS:+--blocks $BLOCKS} || rc=1; done ;;
   repro)  "$PYTHON" scripts/p156_sep.py repro --out "$OUT"; rc=$? ;;
   timing) "$PYTHON" scripts/p156_sep.py timing --out "$OUT"; rc=$? ;;
   gpugate) "$PYTHON" scripts/p156_sep.py timing --out "$OUT/timing"; r1=$?; "$PYTHON" scripts/p156_sep.py repro --out "$OUT/repro"; r2=$?

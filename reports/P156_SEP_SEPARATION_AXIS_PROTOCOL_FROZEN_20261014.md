@@ -1,6 +1,6 @@
-# Pre-registration — P156 (SEP-1): P134 extended into a separation-axis experiment — where on the same posterior the quadratic and the logistic scoring rule separate — DRAFT rev. 2, 2026-10-14
+# Pre-registration — P156 (SEP-1): P134 extended into a separation-axis experiment — where on the same posterior the quadratic and the logistic scoring rule separate — FROZEN 2026-10-14T16:16:27Z
 
-Status: **DRAFT rev. 2.**  The owner confirmed the rev. 1 defaults on 2026-10-14 ("确认，按默认值写代码跑测试和smoke").  Code, CPU gate and smoke are done; the GPU timing smoke is queued.  It is frozen once timing is in.  The owner asked for it on 2026-10-14 ("把P134扩展成分离轴实验，先写协议").  Nothing below has been run.
+Status: **FROZEN 2026-10-14T16:16:27Z** (main session), after the CPU gate, the smoke and the GPU timing / reproduction smoke, and before any full unit.  The owner confirmed the rev. 1 defaults on 2026-10-14 ("确认，按默认值写代码跑测试和smoke").  The owner asked for it on 2026-10-14 ("把P134扩展成分离轴实验，先写协议").  Nothing below has been run.
 
 The freeze comes after the CPU gate and a GPU timing smoke, and before any full unit. Freezing means renaming the file to `*_FROZEN_*`, adding the freeze time and a "Decisions at the freeze" section.
 
@@ -223,9 +223,16 @@ The unit of inference is the seed (8 paired values). Intervals are paired 95 % t
 - Smoke cells, two per block, ran for A, E, C, D, D′, B and B2.
 - The aggregate ran on the smoke cells.
 
-**GPU gate, job 1040236 (queued).**
-- Timing on two full cells: (d 64, I 8, ε 0.3, four arms, five lrs) and (16 384 / 8 000).
-- The P134 reproduction cell. Reference values: P134 clean seed 0 selected VCS at lr 5e-4, update 300, posterior MSE 0.09502, and JS at lr 1e-4, update 1000, 0.09024.
+**GPU gate, job 1040236 (L40S node39; exit 0).**
+- **Reproduction (QC).** The P134 clean cell, seed 0, P85 grid:
+  - JS chose lr 1e-4 at update 1000, posterior MSE 0.09024, identical to P134 to 5 decimals.
+  - VCS chose lr 5e-4 at update 300, 0.09496 vs P134's 0.09502. The difference of 6e-5 is GPU non-determinism (L40S here, RTX6000PRO in P134).
+  - Both choices are the same as P134's.
+- **Timing.**
+  - (d 64, I 8, ε 0.3, four arms × five lrs): 72 s, i.e. 3.5 s per fit.
+  - (d 20, I 4, ε 0.3, N 16 384 / 8 000 updates, two arms × five lrs): 130 s, i.e. 12.9 s per fit.
+  - Written to `outputs/P156_TIMING/` and not reused.
+- **Disclosure.** That job's log and the JSONs print the selected lr, the selected update and the read-outs of its two timing cells; they were seen before the freeze. The full runs recompute every cell under its own block name. The timing cells use the "T" block and are never aggregated.
 
 ## 8. Cost, priority, decisions
 **Cost estimate,** to be replaced by the timing smoke. P134's figure was ≈ 4.3 s per fit at d 20, N 4 096 and 2 000 updates on RTX6000PRO; the small classes are faster.
@@ -237,7 +244,7 @@ The unit of inference is the seed (8 paired values). Intervals are paired 95 % t
 | C | 14 × 10, at 1–4× the updates | ≈ 0.5 h |
 | D + D′ | 19 × 10 | ≈ 0.25 h |
 
-Block B2 (rev. 2) adds ≈ 0.35 h per seed. That is **≈ 3.6 GPU-h per seed and ≈ 29 GPU-h for 8 seeds**: one resumable job per seed of about 3.5 h, so short work stays grouped. Partitions RTX6000PRO, H100 and L40S, with node51 and node60 excluded. No image data, no official test set, no SSL training.
+Block B2 (rev. 2) adds ≈ 0.35 h per seed. That was the estimate: **≈ 3.6 GPU-h per seed and ≈ 29 GPU-h for 8 seeds** (the timing smoke gives ≈ 3 GPU-h per seed on L40S, ≈ 24 GPU-h in all): one resumable job per seed of about 3.5 h, so short work stays grouped. Partitions RTX6000PRO, H100 and L40S, with node51 and node60 excluded. No image data, no official test set, no SSL training.
 
 **Decisions.** The review's recommendations are listed below; the owner confirms them at the freeze.
 1. γ arms: **all four** (γ 0, ½, 1, 2). The review's reason is to see the trend and whether γ = 2 beats γ = 1.
@@ -245,3 +252,9 @@ Block B2 (rev. 2) adds ≈ 0.35 h per seed. That is **≈ 3.6 GPU-h per seed and
 3. ε: **up to 0.3,** with no 0.4. Adding 0.4 is a trigger-based extension, because its amplification is 3.27.
 4. S-matched controls: **at ε 0.1 and 0.3,** with the saturation fields in every cell.
 5. Priority: the review says "Table C first, this unit second, add. 7 stays paused". Both of those are already complete: VL1-22 Table C was reported on 2026-10-10 and VL3 addendum 7 on 2026-10-11. The proposal is therefore to run P156 on free GPU slots after the current V7X, REV9 and P155 jobs. **The owner confirms which "Table C" is meant.**
+
+## Decisions at the freeze (main session, 2026-10-14T16:16:27Z)
+1. **Defaults as confirmed by the owner (2026-10-14):** four γ arms, 8 seeds (100–107), ε up to 0.3, S-matched controls at ε 0.1 and 0.3, and saturation fields in every cell.
+2. **Block B2 (rev. 2)**, the saturation-matched controls at ε 0.3, is included as a secondary contrast; the primary family is unchanged. The owner was informed on 2026-10-14. B2 cells run last in every seed, so an owner objection can remove them by an addendum before any B2 cell runs.
+3. **Submission:** 4 jobs of 2 seeds each — `SEED=100+101`, `102+103`, `104+105`, `106+107` — as one job per seed would push the normal-QOS count past 27. Each job is about 6 h, with `--time=12:00:00`. Partitions RTX6000PRO, H100 and L40S, with node51 and node60 excluded. Nice 100, so the V7X and REV9 groups already pending start first; the owner asked for this unit after them.
+4. **Aggregation:** `scripts/p156_aggregate.py --dir outputs/P156_sep --out reports/P156_SEP_results/p156_aggregate` once all 8 seeds are in. Results-only commit first, then the report. Any lr-edge addendum (§3) is frozen before the aggregate is computed.
