@@ -1,6 +1,6 @@
-# Pre-registration — P156 (SEP-1): P134 extended into a separation-axis experiment — where on the same posterior the quadratic and the logistic scoring rule separate — DRAFT rev. 1, 2026-10-14
+# Pre-registration — P156 (SEP-1): P134 extended into a separation-axis experiment — where on the same posterior the quadratic and the logistic scoring rule separate — DRAFT rev. 2, 2026-10-14
 
-Status: **DRAFT rev. 1 for the owner's review.**  The owner asked for it on 2026-10-14 ("把P134扩展成分离轴实验，先写协议").  Nothing below has been run.
+Status: **DRAFT rev. 2.**  The owner confirmed the rev. 1 defaults on 2026-10-14 ("确认，按默认值写代码跑测试和smoke").  Code, CPU gate and smoke are done; the GPU timing smoke is queued.  It is frozen once timing is in.  The owner asked for it on 2026-10-14 ("把P134扩展成分离轴实验，先写协议").  Nothing below has been run.
 
 The freeze comes after the CPU gate and a GPU timing smoke, and before any full unit. Freezing means renaming the file to `*_FROZEN_*`, adding the freeze time and a "Decisions at the freeze" section.
 
@@ -12,6 +12,15 @@ The freeze comes after the CPU gate and a GPU timing smoke, and before any full 
 - **Four outcomes are pre-written,** each with the sentence the paper may then use.
 - **Pooled primary tests,** with per-cell Holm tests as secondary.
 - **Predictions and falsifiers written out (§6).**
+
+**rev. 2 (2026-10-14, after the CPU gate).** The block-B matching table (`reports/P156_S_MATCHING.md`, written before any block-B cell) shows that S-matching leaves the saturated mass unmatched by about a factor of 2, in opposite directions:
+- At ε = 0.3 the contaminated law is **more** saturated than its S-matched clean Gaussian: 0.175 vs 0.091 at d 20, I 4, all of it on one side.
+- At ε = 0.1 it is **less** saturated: 0.244 vs 0.362.
+
+The S-matched contrast P2 therefore cannot by itself separate "contamination-specific" from "a different saturation profile at equal S". So rev. 2 adds:
+- **Block B2:** a clean Gaussian whose ρ″ matches the contaminated law's saturated mass P_M(|η| > 0.95), at ε = 0.3, for 12 cells per seed and all four arms.
+- **Secondary pooled test P2-sat,** plus per-cell Holm tests. The primary family is unchanged.
+- **The interpretive rule in §6:** O2 is called contamination-specific only if P2-sat has the same sign; otherwise it is "not separable from the saturation profile".
 
 One recommendation was checked and **not** adopted: dropping most false-negative cells under product negatives as an exact mirror of the independent type. §1 T4 gives the check. The posterior map is a mirror, but the two laws are not.
 
@@ -103,6 +112,7 @@ For every arm and cell the record says whether the chosen lr is at a grid edge, 
 | **E** (capacity) | cos-2, quad-3, MLP-8 | (a) | 0, 0.1, 0.3 | 20, 64 | 4, 8 | 4 096 / 2 000 | γ 0, ½, 1, 2 | 36 |
 | C (budget / convergence) | MLP-256 | (a) | 0, 0.1, 0.2, 0.3 at (d 20, I 4); 0, 0.3 at (d 64, I 8) | — | — | 4 096 / 8 000; 16 384 / 2 000; 16 384 / 8 000 at (20, 4); 4 096 / 8 000 at (64, 8) | γ 0, 1 | 14 |
 | D (secondary types) | MLP-256 | outlier, heavy (P134 laws rescaled to d) | 0.1, 0.2, 0.3 | 20, 64 | 4 | 4 096 / 2 000 | γ 0, 1 | 12 |
+| **B2** (saturation-matched clean controls, rev. 2) | MLP-256 | none: a clean Gaussian whose ρ″ gives sat95(ρ″) = sat95_ε of the matched A cell | matched to 0.3 | 20, 64 | from sat95_ε | 4 096 / 2 000 | γ 0, ½, 1, 2 | 12 |
 | D′ (negatives derived from positives) | MLP-256 | (a) and (b), cyclic8 negatives; in (b) each cyclic negative is replaced with probability ε by a fresh conditional draw y ~ P(y∣x_anchor) | 0, 0.1, 0.2, 0.3 | 20 | 4 | 4 096 / 2 000 | γ 0, 1 | 7 |
 
 **S-matching.** ρ′ solves S_clean(ρ′; d) = S_ε by bisection on a 200 000-pair Monte Carlo of S_clean. The matching table, with Monte Carlo standard errors, is committed before block B runs.
@@ -132,7 +142,7 @@ The unit of inference is the seed (8 paired values). Intervals are paired 95 % t
 
 **Primary family: three pooled tests, Holm over 3.** Each is the per-seed mean over its cells, then a t test over the 8 seeds.
 - **P1 — Does contamination narrow the gap?** G_c = Δe_c(0.3) − Δe_c(0), over the 12 A cells: 2 types × (d, I) ∈ {20, 64} × {2, 4, 8}.
-- **P2 — Is the narrowing contamination-specific?** H_c = Δe_c(0.3) − Δe_c(S-matched to 0.3), over the same 12 cells.
+- **P2 — Is the narrowing contamination-specific?** H_c = Δe_c(0.3) − Δe_c(S-matched to 0.3), over the same 12 cells.  (Secondary companion, rev. 2: **P2-sat**, the same with the saturation-matched B2 cell; pooled and per cell.)
 - **P3 — Do the restricted classes reverse the ordering?** Δe at ε = 0 over the 8 restricted cells: cos-2 and MLP-8 × {20, 64} × {4, 8}.
 
 **Secondary, per cell, Holm within each list.**
@@ -154,7 +164,7 @@ The unit of inference is the seed (8 paired values). Intervals are paired 95 % t
 | outcome | pattern | permitted sentence |
 |---|---|---|
 | **O1 saturation region** | P1 < 0; P2 n.s.; contaminated cells on the clean cells' Δe-vs-saturation line | "The logistic rule's advantage over the quadratic rule grows with target saturation; contamination narrows it only by de-saturating the target." |
-| **O2 contamination-specific** | P1 < 0 and P2 < 0 | "Beyond its effect on the dependence level and saturation, mixture contamination narrows (or reverses) the logistic advantage"; reported with the clean-target diagnostic and the mechanism left open |
+| **O2 contamination-specific** | P1 < 0 and P2 < 0, and P2-sat < 0 (rev. 2; if P2-sat disagrees: "not separable from the saturation profile") | "Beyond its effect on the dependence level and saturation, mixture contamination narrows (or reverses) the logistic advantage"; reported with the clean-target diagnostic and the mechanism left open |
 | **O3 no region** | P1 n.s. and P3 n.s. | "In this design no region was found where the quadratic rule estimates the posterior more accurately than matched logistic." |
 | **O4 misspecification region** | P3 < 0 (VCS more accurate), with or without O1 | "When the critic class cannot represent the posterior, the quadratic (Brier) rule is the more accurate posterior estimator — the L² projection property of the Brier score, which VCS inherits; it is not a property of the CS divergence." |
 
@@ -202,6 +212,21 @@ The unit of inference is the seed (8 paired values). Intervals are paired 95 % t
 
 **GPU timing.** Two full cells, not reused: (d 64, I 8, ε 0.3, all four arms) and (16 384 / 8 000). Written to `outputs/P156_TIMING/`.
 
+## 7b. Gate record (filled from the jobs)
+**Code.** `src/vcs_estim/sep.py`, `src/vcs_estim/sep_agg.py`, `scripts/p156_sep.py`, `scripts/p156_aggregate.py`, `slurm/p156_sep.sbatch`, `slurm/p156_cpu.sbatch` and `tests/test_p156.py`. P85 and P134 modules are untouched.
+
+**CPU gate, job 1040214 (first run).** 77 of 78 passed; the matching table, the smoke cells and the toy aggregate ran. The one failure was the S-matching test's tolerance, not the code. It compared a fresh re-estimate with the target using two Monte Carlo errors and omitted the third: the error of the bisection's own sample, which ρ′ inherits. A production-size check (n 200 000, three fresh draws in each of three rows) put every re-estimate within about 1.5 three-source s.e. of S_ε, so the matching is accurate to about 0.001 in S. The test now uses n 200 000 and the full error budget.
+
+**CPU gate, job 1040227 (rev. 2 code).**
+- **80 of 80** tests passed: `tests/test_p156.py` (23 test functions, parametrised) plus the P134 suite.
+- The matching table, with the S- and saturation-matched columns, was committed with this revision.
+- Smoke cells, two per block, ran for A, E, C, D, D′, B and B2.
+- The aggregate ran on the smoke cells.
+
+**GPU gate, job 1040236 (queued).**
+- Timing on two full cells: (d 64, I 8, ε 0.3, four arms, five lrs) and (16 384 / 8 000).
+- The P134 reproduction cell. Reference values: P134 clean seed 0 selected VCS at lr 5e-4, update 300, posterior MSE 0.09502, and JS at lr 1e-4, update 1000, 0.09024.
+
 ## 8. Cost, priority, decisions
 **Cost estimate,** to be replaced by the timing smoke. P134's figure was ≈ 4.3 s per fit at d 20, N 4 096 and 2 000 updates on RTX6000PRO; the small classes are faster.
 
@@ -212,7 +237,7 @@ The unit of inference is the seed (8 paired values). Intervals are paired 95 % t
 | C | 14 × 10, at 1–4× the updates | ≈ 0.5 h |
 | D + D′ | 19 × 10 | ≈ 0.25 h |
 
-That is **≈ 3.3 GPU-h per seed and ≈ 26 GPU-h for 8 seeds**: one resumable job per seed of about 3.5 h, so short work stays grouped. Partitions RTX6000PRO, H100 and L40S, with node51 and node60 excluded. No image data, no official test set, no SSL training.
+Block B2 (rev. 2) adds ≈ 0.35 h per seed. That is **≈ 3.6 GPU-h per seed and ≈ 29 GPU-h for 8 seeds**: one resumable job per seed of about 3.5 h, so short work stays grouped. Partitions RTX6000PRO, H100 and L40S, with node51 and node60 excluded. No image data, no official test set, no SSL training.
 
 **Decisions.** The review's recommendations are listed below; the owner confirms them at the freeze.
 1. γ arms: **all four** (γ 0, ½, 1, 2). The review's reason is to see the trend and whether γ = 2 beats γ = 1.
