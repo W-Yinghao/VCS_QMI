@@ -9,6 +9,8 @@
 #   x20                       X20 common features: FIT / CAL_SELECT / CAL_PROB / DEV
 #   x20-rank                  X20 common features of the GenAI-Rank candidates (parser v3 elements)
 #   x21                       X21: all common-feature fits (tuning -> lr -> formal seeds, kernels, A0) on $BIG/x20
+#   x20-n0 | x21-n0           X20 / X21 sensitivity S2: features from the FIT-only N0 seed-0 checkpoint (native L1 objective) -> $BIG/x20_n0s0, $BIG/x21_n0s0
+#   clip-rank | clip-dev      SANITY CLIPScore ViT-L/14-336 on GenAI-Rank / EvalMuse DEV (env v7x_llm)
 #   x21-pca <K>               X21 shared sensitivity: the same fits on FIT-only PCA-K features (every method alike) -> $BIG/x21_pca<K>
 #   tifa-qg [limit]           B4T question generation + filter for the 800 GenAI-Rank prompts (env v7_tifa)
 #   tifa-score <k/n> [limit]  B4T TIFA scores, shard k of n (env v7_tifa; images staged node-local)
@@ -32,6 +34,11 @@ case "$what" in
   x20) $PY scripts/v7x/x20_features.py extract --out $BIG/x20; rc=$?;;
   x20-rank) $PY scripts/v7x/x20_features.py extract-rank --out $BIG/x20; rc=$?;;
   x21) $PY scripts/v7x/x21_fit.py all --x20 $BIG/x20 --out $BIG/x21; rc=$?;;
+  x20-n0) CK=$BIG/units/V7-FIT-N0_native_l1-s0/20261014010/checkpoint_4.pth
+     $PY scripts/v7x/x20_features.py extract --out $BIG/x20_n0s0 --init-checkpoint $CK && $PY scripts/v7x/x20_features.py extract-rank --out $BIG/x20_n0s0 --init-checkpoint $CK; rc=$?;;
+  x21-n0) $PY scripts/v7x/x21_fit.py all --x20 $BIG/x20_n0s0 --out $BIG/x21_n0s0; rc=$?;;
+  clip-rank) /projects/EEG-foundation-model/yinghao/envs/v7x_llm/bin/python -I scripts/v7x/x30_clipscore.py rank --inputs /home/infres/yinwang/CS_QMI/outputs/V7/data/genai_rank_inputs.jsonl --out $BIG/x30/sanity_clipscore.jsonl; rc=$?;;
+  clip-dev) mkdir -p $BIG/x30_dev; /projects/EEG-foundation-model/yinghao/envs/v7x_llm/bin/python -I scripts/v7x/x30_clipscore.py rank --inputs /home/infres/yinwang/CS_QMI/outputs/V7/data/evalmuse_dev_inputs.jsonl --image-root $BIG/x30/evalmuse_dev_images --out $BIG/x30_dev/sanity_clipscore.jsonl; rc=$?;;
   x21-pca) $PY scripts/v7x/x21_fit.py all --x20 $BIG/x20 --out $BIG/x21_pca$1 --pca $1; rc=$?;;
   tifa-qg|tifa-score|dsg-score)
      T=/projects/EEG-foundation-model/yinghao/envs/v7_tifa/bin/python; X=$BIG/x30; mkdir -p $X; export HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7x MODELSCOPE_CACHE=$X/modelscope_cache

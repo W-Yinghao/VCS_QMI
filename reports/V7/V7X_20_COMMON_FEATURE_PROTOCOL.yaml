@@ -69,3 +69,9 @@ evaluation:
   stats: "prompt-cluster bootstrap 5,000 (seed 2718); seed SD and per-seed signs; deterministic kernels are not replicated over seeds"
   rows: "every result row: panel, method_id, native_target_id, readout_target_id, pq_id, feature_manifest_hash, data_split_hash, reference_measure, sample_role, units, status (EXTERNAL_RESULT_SCHEMA; validate_result / validate_shared_features)"
 budget_estimate: "X20 ~0.5-1 GPU-h; X21 neural 24 fits of a few minutes; kernels 125 configurations (5 KDE + 60 RuLSIF + 60 Nystrom) mostly matrix products on one GPU; measured in the timing smoke before the freeze"
+# ---- dated additions (each written before the run it governs) --------------------------------------------------------------------------------
+sensitivity_S1_shared_pca_20261014: "the same X21 'all' on FIT-only D-weighted PCA-64 and PCA-256 features (every method alike; explained variance recorded); reported apart from the main table"
+sensitivity_S2_trained_representation_20261014: >
+  docs/14 'same strong representation' check, pre-declared before it runs: features from the N0 seed-0 checkpoint (FGA native L1 objective, trained
+  on FIT only, last epoch as frozen; independent of the VCS objective; not chosen by any result), same pooling / roles / grids / selection; X21 'all'
+  -> x21_n0s0.  A representation-sensitivity row, not the main table; the main common representation stays the untrained init.

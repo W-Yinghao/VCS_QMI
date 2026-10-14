@@ -98,6 +98,12 @@ def setup(a):
     from transformers import BertTokenizerFast
     device = "cuda" if torch.cuda.is_available() else "cpu"; VC.stage_workdir(VC.BIG_OUT / "work")
     tok = BertTokenizerFast.from_pretrained(str(VC.BERT_DIR)); model, info = VT.build_model(128, 0, device)
+    if getattr(a, "init_checkpoint", None):                                   # sensitivity S2: a FIT-only reference model (not the VCS objective)
+        ck = torch.load(a.init_checkpoint, map_location="cpu", weights_only=False); sd = ck.get("model", ck); msg = model.load_state_dict(sd, strict=False)
+        bad = [k for k in msg.missing_keys if not k.startswith("visual_encoder.")]
+        if bad or msg.unexpected_keys:
+            raise SystemExit(f"checkpoint does not match the model: missing {bad[:5]}, unexpected {list(msg.unexpected_keys)[:5]}")
+        info = {**info, "init_checkpoint": a.init_checkpoint, "loaded_tensors": len(sd), "missing_visual_encoder": len(msg.missing_keys)}
     VC.import_lavis()
     from lavis.processors.blip_processors import BlipImageEvalProcessor
     return device, tok, model, info, BlipImageEvalProcessor(image_size=364)
@@ -149,9 +155,10 @@ def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     x = sub.add_parser("extract"); x.add_argument("--out", required=True); x.add_argument("--roles", nargs="+", default=["FIT", "CAL_SELECT", "CAL_PROB", "DEV"])
     x.add_argument("--data-dir", default=str(VC.DATA_OUT)); x.add_argument("--limit", type=int, default=None); x.add_argument("--workers", type=int, default=8)
+    x.add_argument("--init-checkpoint", default=None)
     r = sub.add_parser("extract-rank"); r.add_argument("--out", required=True); r.add_argument("--inputs", default=str(VC.DATA_OUT / "genai_rank_inputs.jsonl"))
     r.add_argument("--parser-cache", default=str(VC.BIG_OUT / "parser" / "genai_prompts_cache_v3.jsonl")); r.add_argument("--limit", type=int, default=None)
-    r.add_argument("--workers", type=int, default=8)
+    r.add_argument("--workers", type=int, default=8); r.add_argument("--init-checkpoint", default=None)
     a = ap.parse_args(argv)
     return {"extract": cmd_extract, "extract-rank": cmd_extract_rank}[a.cmd](a)
 
