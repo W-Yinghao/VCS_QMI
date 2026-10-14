@@ -3,7 +3,7 @@ Questions: tifa-benchmark/llama2_tifa_question_generation via get_llama2_questio
 filter: filter_question_and_answers with UnifiedQA v2 T5-large; VQA: VQAModel('mplug-large') (ModelScope mPLUG, local copy of the hub id at v1.0.0)
 with TIFA's SBERT free-form -> choice mapping; score: tifa_score_single.  Scoped import (scripts/v7x/x_stubs.py): promptcap and lavis.models
 (top-level imports of tifascore/vqa_models.py for the PromptCap / BLIP-2 routes) and fairseq (ModelScope's OFA speech preprocessor) are stubbed;
-the mplug-large registry entry points to the local copy; no TIFA file is edited.  A prompt whose filter keeps no question gets score 0 for every candidate (all tie -> first index), flagged.
+the mplug-large registry entry points to the local copy; no TIFA file is edited.  A generation TIFA's own parser rejects is stored raw with its error and keeps no question.  A prompt whose filter keeps no question gets score 0 for every candidate (all tie -> first index), flagged.
     qg --prompts P --out Q.jsonl [--limit N]                             questions per prompt (resumable cache)
     score --qa Q.jsonl --inputs I --out S.jsonl [--shard k/n] [--limit N] TIFA score per candidate (images staged node-local; no human score read)"""
 from __future__ import annotations
@@ -43,8 +43,12 @@ def cmd_qg(a):
     pipe = T.get_llama2_pipeline(str(QG)); qa_model = T.UnifiedQAModel(str(UQA)); t0 = time.time()
     with open(out, "a") as fh:
         for k, p in enumerate(prompts):
-            raw = T.get_llama2_question_and_answers(pipe, p["prompt"]); kept = T.filter_question_and_answers(qa_model, raw)
-            fh.write(json.dumps({"prompt_id": p["prompt_id"], "prompt": p["prompt"], "qas_generated": raw, "qas": kept}) + "\n"); fh.flush()
+            try:
+                raw = T.get_llama2_question_and_answers(pipe, p["prompt"]); kept = T.filter_question_and_answers(qa_model, raw); err = None
+            except (IndexError, ValueError) as e:                              # TIFA's parse_resp on a malformed generation (e.g. 'About x' without '(type)')
+                from tifascore import question_gen_llama2 as QG
+                raw, kept, err = {"raw_completion": QG.llama2_completion(pipe, p["prompt"])}, [], f"{type(e).__name__}: {e}"
+            fh.write(json.dumps({"prompt_id": p["prompt_id"], "prompt": p["prompt"], "qas_generated": raw, "qas": kept, "parse_error": err}) + "\n"); fh.flush()
             if k % 25 == 0:
                 print(f"[tifa] qg {k + 1}/{len(prompts)} ({time.time() - t0:.0f}s): {len(raw)} generated, {len(kept)} kept", flush=True)
     return 0
