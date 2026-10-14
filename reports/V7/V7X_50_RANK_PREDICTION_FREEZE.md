@@ -1,3 +1,5 @@
+> **SUPERSEDED (2026-10-14, before any GenAI-Rank label was read) by `V7X_50_RANK_PREDICTION_FREEZE_v2.md`.**  v1 tie-filled the M-arm E readouts on the 16 decomposition-failed pools; the frozen deployment rule (`scripts/v7/v7_parser.py`, `scripts/v7/v7_train.py`) falls back to O there, as the V7 supplement v3 closeout package (docs/03 §4) pointed out.  v2 applies the frozen rule; X21 rows follow their own 'no score' rule with a separately named neutral-fill sensitivity.  v1 files are kept for the record and are never scored.
+
 # V7X-50 — GenAI-Rank prediction freeze (2026-10-14T20:25:55Z, label-free)
 
 Universe: `genai_rank_inputs.jsonl` (n = 14400, sha256 `514b9368fd5dffb5…`).  `human_rating.json` was not opened.  All files valid: **True**.  Converted files and `methods.json` (sha256 `d1f598d560a51c6d…`) in `/projects/EEG-foundation-model/yinghao/outputs_v7/x50_rank_freeze_v1`.

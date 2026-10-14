@@ -22,7 +22,8 @@ SEEDS = (0, 1, 2)
 
 
 def M(arm, field):
-    return [(U / f"V7-FIT-{arm}-s{s}" / "pred" / "genai_rank.jsonl", "jsonl", field) for s in SEEDS]
+    f = "E|O" if field == "E" else field                     # frozen deployment rule: E undefined (decomposition_failed) -> O, flagged
+    return [(U / f"V7-FIT-{arm}-s{s}" / "pred" / "genai_rank.jsonl", "jsonl", f) for s in SEEDS]
 
 
 # name -> (family, [one source list per seed]); a source list may hold several shards (concatenated)
@@ -45,9 +46,13 @@ METHODS = {
     "CLIPScore_sanity": ("secondary (sanity row)", [[(X30 / "sanity_clipscore.jsonl", "jsonl", "score")]]),
 }
 for meth in ("N-VCS-F", "N-BCE-F", "N-DV", "N-NWJ"):
-    METHODS[f"X21_{meth}_E"] = ("secondary (V7X-20 common features)", [[(B / "x21" / "formal" / f"{meth}_s{s}" / "genai_rank.jsonl", "jsonl", "E")] for s in SEEDS])
+    src = [[(B / "x21" / "formal" / f"{meth}_s{s}" / "genai_rank.jsonl", "jsonl", "E")] for s in SEEDS]
+    METHODS[f"X21_{meth}_E"] = ("secondary (V7X-20 common features; parsed pools only: X21 'no score' rule)", [[(p, k, "E!skip") for p, k, _ in x] for x in src])
+    METHODS[f"X21_{meth}_E_neutralfill"] = ("secondary sensitivity (full denominator, neutral tie fill, first-index)", src)
 for k in ("K-KDE-S", "K-NYSTROM", "K-RULSIF"):
-    METHODS[f"X21_{k}_E"] = ("secondary (V7X-20 common features)", [[(B / "x21" / "kernels" / k / "genai_rank.jsonl", "jsonl", "E")]])
+    src = [[(B / "x21" / "kernels" / k / "genai_rank.jsonl", "jsonl", "E")]]
+    METHODS[f"X21_{k}_E"] = ("secondary (V7X-20 common features; parsed pools only: X21 'no score' rule)", [[(p, kk, "E!skip") for p, kk, _ in x] for x in src])
+    METHODS[f"X21_{k}_E_neutralfill"] = ("secondary sensitivity (full denominator, neutral tie fill, first-index)", src)
 
 
 def sha(p: Path) -> str:
@@ -61,7 +66,9 @@ def sha(p: Path) -> str:
 TIE_FILL = 0.0      # a method's undefined score: every candidate of the prompt gets the same value -> the official first-index rule picks candidate 0
 
 
-def read_source(path: Path, kind: str, field: str, fills: list | None = None, flagged: list | None = None) -> list[dict]:
+def read_source(path: Path, kind: str, field: str, fills: list | None = None, flagged: list | None = None, fallbacks: list | None = None) -> list[dict]:
+    """field 'E|O': E, with the frozen O fallback where E is undefined; 'E!skip': E, rows with undefined E dropped (X21 'no score');
+    any other field: undefined values of a flagged failure are tie-filled (TIE_FILL)."""
     if kind == "native":
         rows = json.loads(path.read_text())
         return [{"prompt_id": str(r["prompt_id"]), "generator_id": r["generator_id"], "image_id": r["img_path"], "candidate_index": int(r["candidate_index"]),
@@ -71,9 +78,17 @@ def read_source(path: Path, kind: str, field: str, fills: list | None = None, fl
         r = json.loads(line)
         if "header" in r:
             continue
-        v = r[field]
+        base = field.split("|")[0].split("!")[0]; v = r[base]
         if flagged is not None and (r.get("decomposition_failed") or r.get("no_questions")):
             flagged.append((r["generator_id"], str(r["prompt_id"])))
+        if v is None and field == "E|O":
+            if not r.get("decomposition_failed"):
+                raise SystemExit(f"{path}: E undefined without decomposition_failed at {r['image_id']}")
+            v = r["O"]
+            if fallbacks is not None:
+                fallbacks.append((r["generator_id"], str(r["prompt_id"])))
+        if v is None and field == "E!skip":
+            continue
         if v is None:                      # only a flagged method failure may be tie-filled; anything else stops the freeze
             if not (r.get("decomposition_failed") or r.get("no_questions")):
                 raise SystemExit(f"{path}: undefined {field} without a failure flag at {r['prompt_id']} / {r['image_id']}")
@@ -110,10 +125,15 @@ def main() -> int:
     for name, (family, seeds) in METHODS.items():
         files, recs = [], []
         for si, srcs in enumerate(seeds):
-            rows, fills, flagged = [], [], []
+            rows, fills, flagged, fallbacks = [], [], [], []
+            skip = any(fd == "E!skip" for _, _, fd in srcs)
             for path, kind, field in srcs:
-                rows += read_source(path, kind, field, fills, flagged)
-            v = validate(rows, universe); all_ok &= v["ok"]
+                rows += read_source(path, kind, field, fills, flagged, fallbacks)
+            uni = universe
+            if skip:                                   # parsed-pools universe: the failed pools are absent from this method by its own rule
+                failed = set(flagged); uni = {k: c for k, c in universe.items() if (k[1], k[0]) not in failed}
+            v = validate(rows, uni); all_ok &= v["ok"]; v["universe_rows"] = len(uni)
+            v["O_fallback_pools"] = sorted(set(fallbacks)); v["n_O_fallback_pools"] = len(set(fallbacks))
             pools = {}
             for r in rows:
                 pools.setdefault((r["generator_id"], r["prompt_id"]), set()).add(r["score"])
@@ -131,9 +151,12 @@ def main() -> int:
     man["methods_json"] = {"file": str(out / "methods.json"), "sha256": sha(out / "methods.json")}; man["all_valid"] = all_ok
     tied_any = sorted({tuple(k) for m in man["methods"].values() for r in m["files"] for k in r["validation"]["flagged_failure_pools"]
                        if m["family"].startswith(("v2_external_primary", "v2_attribution"))})
-    man["undefined_score_rule"] = ("a method's undefined score (flagged failure: E with decomposition_failed, or no questions) is filled with one constant "
-                                   "for all 9 candidates of that pool, so the official first-index tie rule selects candidate 0 - the same convention TIFA / "
-                                   "DSG / PN-VQA already use for their own failures; fixed before any GenAI-Rank label is read")
+    man["undefined_score_rule"] = ("v2 (2026-10-14, before any GenAI-Rank label is read; corrects v1): M-arm E readouts follow the FROZEN deployment rule "
+                                   "of scripts/v7/v7_parser.py / v7_train.py - decomposition_failed -> E undefined -> the score falls back to O (flagged); "
+                                   "external systems keep their own outputs (TIFA / DSG / PN-VQA no-question prompts tie under their own scores; official "
+                                   "first-index rule); X21 fixed-feature fits follow their protocol's 'no score' (main X21 rows on the parsed pools only, "
+                                   "scored against labels filtered to the same pools) and a separately named neutral-fill full-denominator sensitivity "
+                                   "(_neutralfill: one constant for all 9 candidates -> first index).  v1 had tie-filled the M arms, contradicting the frozen rule.")
     man["natural_ties_note"] = ("all-tied pools (a method's 9 scores equal) are counted per file; coarse scores (TIFA / DSG answer fractions) tie naturally; "
                                 "the official first-index rule applies, and the frozen scorer's 'official/mean' tie-expectation sensitivity covers them")
     man["sensitivity_common_defined_subset"] = {"rule": "rescore the primary and attribution families without the pools where any of their methods has a "
@@ -155,9 +178,9 @@ def main() -> int:
     L += ["", f"Undefined-score rule: {man['undefined_score_rule']}.", "",
           f"Pre-declared sensitivity: the primary and attribution families rescored without the {man['sensitivity_common_defined_subset']['n_excluded']} "
           "pools where any of their methods has a flagged failure (list in the JSON).  " + man["natural_ties_note"] + ".", "",
-          "| method | tie-filled pools | flagged-failure pools | all-tied pools (natural + filled; per seed file) |", "|---|---|---|---|"]
+          "| method | tie-filled / O-fallback pools | flagged-failure pools | all-tied pools (natural + filled; per seed file) |", "|---|---|---|---|"]
     for name, m in man["methods"].items():
-        L.append(f"| {name} | {', '.join(str(r['validation']['n_tie_filled_pools']) for r in m['files'])} | "
+        L.append(f"| {name} | {', '.join(str(r['validation']['n_tie_filled_pools']) + '/' + str(r['validation']['n_O_fallback_pools']) for r in m['files'])} | "
                  f"{', '.join(str(r['validation']['n_flagged_failure_pools']) for r in m['files'])} | {', '.join(str(r['validation']['n_all_tied_pools']) for r in m['files'])} |")
     L += ["", "Scoring (only after the owner's separate approval; frozen scorer, new output path, `--allow-scoring`):", ""]
     L += [f"- {k}: `{v}`" for k, v in man["scoring_commands_after_owner_approval"].items()]
