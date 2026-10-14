@@ -18,6 +18,8 @@ import v7_score as VS  # noqa: E402
 
 def convert(fit: Path, dst: Path, labels):
     log = json.loads((fit / "log.json").read_text()); dst.mkdir(parents=True, exist_ok=True); (dst / "pred").mkdir(exist_ok=True)
+    if "prior" not in log:                                                     # a kernel's native-CV row: the parent fit's FIT prior
+        log["prior"] = json.loads((fit.parent / "log.json").read_text())["prior"]; log["method"] = fit.parent.name + "-nativeCV"
     for role in ("CAL_PROB", "DEV"):
         with open(dst / "pred" / f"elements_{role}.jsonl", "w") as fh:
             for r in VC.read_jsonl(fit / f"pred_{role}.jsonl"):
