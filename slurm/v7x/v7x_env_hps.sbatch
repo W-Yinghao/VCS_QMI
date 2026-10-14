@@ -11,7 +11,7 @@ set -eo pipefail; export PYTHONNOUSERSITE=1 PIP_NO_CACHE_DIR=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7x_hps; CONDA=/home/infres/yinwang/anaconda3/bin/conda
 [ -x $E/bin/python ] || $CONDA create -y -q -p $E python=3.10
 $E/bin/pip install -q torch==2.9.0 torchvision==0.24.0 --index-url https://download.pytorch.org/whl/cu128
-$E/bin/pip install -q "transformers==4.45.2" "accelerate>=0.30" "peft>=0.8,<0.14" "trl==0.11.4" fire "omegaconf>=2.3" "datasets<3" safetensors einops qwen-vl-utils timm "numpy<2" opencv-python-headless pyyaml tqdm Pillow matplotlib pandas requests
+$E/bin/pip install -q "transformers==4.45.2" "accelerate>=0.30" "peft>=0.8,<0.14" "trl==0.11.4" fire "omegaconf>=2.3" "datasets<3" safetensors einops qwen-vl-utils timm "numpy<2" opencv-python-headless pyyaml tqdm Pillow matplotlib pandas requests tensorboard
 $E/bin/pip install -q --no-deps hpsv3==1.0.0
 $E/bin/pip check || echo "pip check reported conflicts (recorded above)"
 $E/bin/python -I -c "import torch, transformers, hpsv3; from hpsv3 import HPSv3RewardInferencer; print('torch', torch.__version__, 'transformers', transformers.__version__)"
