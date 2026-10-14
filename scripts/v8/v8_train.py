@@ -178,17 +178,17 @@ def cmd_train(a):
     VC.import_lavis()
     from lavis.processors.blip_processors import BlipImageEvalProcessor
     proc = BlipImageEvalProcessor(image_size=364); images = VC.ArchiveImages(); opt = optimizer(model, a.lr)
-    scaler = torch.cuda.amp.GradScaler(enabled=device == "cuda"); plans = [C.batch_manifest(fit.prompt_images, a.seed, e) for e in range(EPOCHS)]
-    total = sum(len(p) for p in plans) if not a.max_steps else a.max_steps * EPOCHS; step, start, best = 0, 0, (math.inf, None)
-    log = {"arm": a.arm, "loss": kind, "lr": a.lr, "seed": a.seed, "prior_fit": prior, "fit_hist": fit_hist.tolist(), "model": info, "epochs": EPOCHS,
-           "weight_decay": WD, "warmup": WARMUP, "total_steps": total, "n_fit": len(fit), "n_cal_select": len(cal), "epochs_log": [], "smoke": bool(a.max_steps),
+    E = a.epochs; scaler = torch.cuda.amp.GradScaler(enabled=device == "cuda"); plans = [C.batch_manifest(fit.prompt_images, a.seed, e) for e in range(E)]
+    total = sum(len(p) for p in plans) if not a.max_steps else a.max_steps * E; step, start, best = 0, 0, (math.inf, None)
+    log = {"arm": a.arm, "loss": kind, "lr": a.lr, "seed": a.seed, "prior_fit": prior, "fit_hist": fit_hist.tolist(), "model": info, "epochs": E,
+           "weight_decay": WD, "warmup": WARMUP, "total_steps": total, "n_fit": len(fit), "n_cal_select": len(cal), "epochs_log": [], "smoke": bool(a.max_steps) or E != EPOCHS,
            "batch_plan_sha256": [__import__("hashlib").sha256(json.dumps(p).encode()).hexdigest() for p in plans]}
     resume = unit / "resume.pt"
     if resume.exists():
         ck = torch.load(resume, map_location="cpu", weights_only=False); model.load_state_dict(ck["model"], strict=False); opt.load_state_dict(ck["opt"])
         scaler.load_state_dict(ck["scaler"]); start, best, log, step = ck["epoch"] + 1, tuple(ck["best"]), ck["log"], ck["step"]; log.setdefault("resumed_at", []).append(start)
     col = Collate(fit, images, proc); pt = torch.tensor(prior)
-    for epoch in range(start, EPOCHS):
+    for epoch in range(start, E):
         loader = DataLoader(plans[epoch], batch_size=None, shuffle=False, collate_fn=col, num_workers=a.workers, persistent_workers=False,
                             prefetch_factor=4 if a.workers else None)
         set_train(model); t0 = time.time(); agg = Counter(); n_steps = 0; seen = 0
@@ -215,7 +215,7 @@ def cmd_train(a):
         os.replace(unit / "resume.tmp", resume)
     log.update({"selected_epoch": best[1], "selected_cal_select_mse": best[0], "seconds": time.time() - t_start, "gpu": torch.cuda.get_device_name(0) if device == "cuda" else "cpu"})
     (unit / "log.json").write_text(json.dumps(log, indent=1))
-    if not a.max_steps:
+    if not a.max_steps and E == EPOCHS:
         (unit / "done.json").write_text(json.dumps({"unit": unit.name, "selected_epoch": best[1], "cal_select_mse": best[0], "gpu": log["gpu"]}, indent=1))
     return 0
 
@@ -273,6 +273,7 @@ def main(argv=None):
     t = sub.add_parser("train"); t.add_argument("--arm", required=True, choices=sorted(C.ARMS)); t.add_argument("--lr", type=float, required=True)
     t.add_argument("--seed", type=int, required=True); t.add_argument("--unit-dir", required=True); t.add_argument("--workers", type=int, default=6)
     t.add_argument("--max-steps", type=int, default=0); t.add_argument("--eval-n", type=int, default=None)
+    t.add_argument("--epochs", type=int, default=EPOCHS, help="smoke / timing only; a formal or tuning unit always runs 5")
     x = sub.add_parser("export"); x.add_argument("--unit-dir", required=True); x.add_argument("--roles", nargs="+", default=["CAL_SELECT", "CAL_PROB", "DEV"])
     x.add_argument("--rank-inputs", default=None); x.add_argument("--bench-inputs", default=None)
     x.add_argument("--bench-images", default="/projects/EEG-foundation-model/yinghao/outputs_v7/genai_bench_images")
