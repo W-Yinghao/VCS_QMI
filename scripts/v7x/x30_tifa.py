@@ -24,11 +24,7 @@ RANK = Path("/projects/EEG-foundation-model/yinghao/data/genai_rank")
 
 
 def import_tifa():
-    def unavailable(*a, **k):
-        raise RuntimeError("stubbed for the mplug-large route (not used)")
-    pc = types.ModuleType("promptcap"); pc.PromptCap_VQA = unavailable; sys.modules.setdefault("promptcap", pc)
-    lv = types.ModuleType("lavis"); lvm = types.ModuleType("lavis.models"); lvm.load_model_and_preprocess = unavailable; lv.models = lvm
-    sys.modules.setdefault("lavis", lv); sys.modules.setdefault("lavis.models", lvm)
+    sys.path.insert(0, str(Path(__file__).resolve().parent)); import x_stubs; x_stubs.install(tifa=True)     # fairseq / promptcap / lavis stubs
     sys.path.insert(0, str(TIFA_ROOT))
     import tifascore
     from tifascore import vqa_models as VM

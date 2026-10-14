@@ -67,6 +67,7 @@ def cmd_gen(a):
 
 
 def cmd_score(a):
+    sys.path.insert(0, str(Path(__file__).resolve().parent)); import x_stubs; x_stubs.install()        # fairseq stub (ModelScope's OFA speech path)
     sys.path.insert(0, str(DSG_ROOT))
     from dsg.vqa_utils import MPLUG as DSG_MPLUG, calc_vqa_score
     gen = {}
