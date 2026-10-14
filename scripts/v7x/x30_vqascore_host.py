@@ -1,7 +1,7 @@
 """V7X-30 B2: VQAScore with the same modern host as the V7 parser (Qwen2.5-VL-7B-Instruct @ cc594898, local copy) through t2v-metrics 3.0's own
 Qwen2VLModel.forward (first-token softmax probability of 'Yes' after the chat generation prompt), with B1's templates ('Does this figure show "{}"?
 Please answer yes or no.' / 'Yes') so that only the host changes.  Scoped import as B1 (package __init__ files skipped); registry entry
-'qwen2.5-vl-7b' attention 'sdpa' instead of 'flash_attention_2' (flash-attn is not installed; same attention, another kernel); decord (video only)
+'qwen2.5-vl-7b' attention 'sdpa' instead of 'flash_attention_2' and its processor path the local copy (flash-attn is not installed; same attention, another kernel); decord (video only)
 stubbed if its wheel does not load.  Host-upgrade effect only; not a VQAScore reproduction.
     rank --inputs I --out F [--shard k/n] [--limit N]"""
 from __future__ import annotations
@@ -32,6 +32,7 @@ def import_qwen():
             m = types.ModuleType(name); m.__path__ = [str(root / sub) if sub else str(root)]; m.__package__ = name; sys.modules[name] = m
     Q = importlib.import_module("t2v_metrics.models.vqascore_models.qwen2vl_model")
     Q.QWEN2_VL_MODELS["qwen2.5-vl-7b"]["model"]["attn_implementation"] = "sdpa"
+    Q.QWEN2_VL_MODELS["qwen2.5-vl-7b"]["tokenizer"]["path"] = str(HOST)                    # processor from the same local copy (offline)
     return Q, root
 
 
