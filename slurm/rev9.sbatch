@@ -18,6 +18,7 @@ case "$what" in
   eval) E=/projects/EEG-foundation-model/yinghao/envs/sparsevlm; export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf
         $E/bin/python scripts/r7_d1_30_run.py --sets-dir $D1/d1_30/sets --bench "$1" --configs-file $RV/configs/configs_$1.txt --shard "$2" --out $RV/d1_30/pred \
           --selectors-dir $RV/selectors --pca $D1/cache/pca.pt; rc=$?;;
+  score) mkdir -p /home/infres/yinwang/CS_QMI/outputs/REV9/results; "$PYTHON" scripts/rev9_score.py --out /home/infres/yinwang/CS_QMI/outputs/REV9/results/rev9_results.json; rc=$?;;
   *) echo "unknown mode $what"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
