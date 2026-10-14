@@ -41,3 +41,8 @@ execution_note_1_20261014: >
   on vcs_lr0.0003_s0 into outputs/REV9_SMOKE_resume first and continues to the frozen 'phaseb' mode only if the frozen guard holds
   (estimator diff 0, gate within 1e-3); evaluations 1040360-63 (afterok).  REV9-FULL (rev9f_phaseb 1039944, which imports the same wrapper)
   is held back with Nice 800 until that guard passes.
+execution_note_2_20261014: >
+  Packaging only: the 8 pending evaluation jobs (REV9 1040360-63, REV9-FULL 1039945-48) were replaced by 4 paired jobs running the same frozen
+  modes one after the other (gqa_dev 0/2 + 1/2; textvqa_val 0/1 + chartqa_val 0/1; 'eval' for REV9 after 1040359, 'eval-full' for REV9-FULL after
+  1039944; H100 / L40S, --time 23:00:00): jobs 1040484-87.  Reason: the pending placeholders kept the normal-QOS count above the R7-E2 driver's
+  submission cap (20) while two of my GPU slots were idle.  No configuration, shard or evaluator changes.
