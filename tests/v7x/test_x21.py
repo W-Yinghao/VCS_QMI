@@ -99,3 +99,11 @@ def test_nystrom_block_equals_numpy():
     K = torch.exp(-0.5 * X.sqd(Ct, Ct).double() / h ** 2); eps = 1e-6 * float(K.diagonal().mean()); vals, vecs = torch.linalg.eigh(K + eps * torch.eye(30, dtype=torch.float64))
     ours = (torch.exp(-0.5 * X.sqd(xt, Ct).double() / h ** 2) @ ((vecs / torch.sqrt(vals)) @ vecs.T)).numpy()
     assert np.allclose(ours, ref, atol=1e-4)
+
+
+def test_shared_pca_option(tmp_path, monkeypatch):
+    make_x20(tmp_path, shift=0.05); monkeypatch.setattr(X, "BATCH", 128); F = X.Feats(tmp_path, "cpu", pca=8); F.x20 = tmp_path
+    assert all(v["t"].shape[1] == 8 for v in F.r.values()) and 0 < F.pca_explained <= 1
+    rec = X.neural_fit(F, "N-VCS-F", 1e-3, 0, tmp_path / "pca", epochs=3)
+    assert rec["n_params"] == 8 * X.HIDDEN + X.HIDDEN + X.HIDDEN * X.HIDDEN + X.HIDDEN + X.HIDDEN + 1
+    assert json.loads((tmp_path / "pca" / "log.json").read_text())["pca"] == 8

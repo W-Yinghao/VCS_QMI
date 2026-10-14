@@ -59,7 +59,7 @@ def test_samples_have_the_declared_law():
 def test_end_to_end_tiny(tmp_path, monkeypatch):
     monkeypatch.setattr(A, "N_EVAL", 512); monkeypatch.setattr(A, "N_TRUTH", 20000); monkeypatch.setattr(A, "PERMS", 20)
     assert A.main(["est", "--anchor", "A1", "--out", str(tmp_path), "--reps", "1", "--sizes", "128", "--cells", "2"]) == 0
-    lines = [json.loads(l) for l in (tmp_path / "est_A1.jsonl").read_text().splitlines()]
+    lines = [json.loads(l) for l in (tmp_path / "est_A1_c2.jsonl").read_text().splitlines()]
     assert "truth" in lines[0] and lines[1]["K-KDE-S"]["posterior_mse"] >= 0 and "native_KL" in lines[1]["N-DV"]
     assert {r["variant"] for r in lines[1]["K-CS-NATIVE"]} >= {"mult1.0", "scott", "silverman"}
     monkeypatch.setattr(A, "TEST_N", 64)
