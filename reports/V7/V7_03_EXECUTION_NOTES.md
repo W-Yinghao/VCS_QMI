@@ -11,3 +11,11 @@ prints its hash):
   monitor reports only a job's last line, `exit=... end=...`);
 - the DEV numbers of Table A come only from `v7_score.py table-a` reading `elements_DEV.jsonl` after that point;
 - N0 is not affected (the native `eval.py` writes predictions only).
+
+## n2 — 2026-10-14 ~00:20 UTC: how the amendment-v2 families are scored (before any GenAI-Rank label or prediction of the family exists)
+`scripts/v7/v7_score.py rank` takes the family from `--comparators` and applies Holm over it; the code is not changed.  After the owner's scoring
+approval and once every prediction file is in the manifest:
+- primary (amendment v2): `--ours M2_E --comparators B0_FGA_released_O B1_VQAScore B4T_TIFA B4D_DSG` -> 8 contrasts (4 x 2 generators), Holm over 8;
+- attribution: `--ours M2_E --comparators M1_E` -> 2 contrasts, Holm over 2, written to its own output file;
+- v1-registered family (reported in full, not primary): `--comparators M1_E B0_FGA_released_O B1_VQAScore`, its own output file.
+The scorer never overwrites an output, so each family is one new file; the three invocations read the same sealed labels once each.
