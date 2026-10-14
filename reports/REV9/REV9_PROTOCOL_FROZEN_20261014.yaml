@@ -31,3 +31,13 @@ addendum_full_20261014: >
   the 9 frozen D1-FULL units (outputs/R7_D1_FULL: vcs / logistic / direct, all at their CAL-chosen lr 1e-4, seeds 0-2; I0 on seed 0 of each).
   Same I0 / I1 / I2, same guard, same frozen D1-30 evaluator and fixed budgets on GQA DEV / TextVQA val / ChartQA val with the D1-FULL PCA, the
   frozen D1-FULL units' D1-30 predictions as the paired baseline; its own Holm family per objective; outputs/REV9_FULL.
+execution_note_1_20261014: >
+  Job 1039622 (rev9_phaseb) failed at the start of every unit with "RNG state must be a torch.ByteTensor": the frozen resume path
+  (scripts/r7_d1_selectors.py train) loads <tag>.resume.pt with map_location = the training device, which moves the saved RNG ByteTensors onto
+  the GPU, and the RNG setters need CPU ByteTensors (the frozen D1 runs never resumed on a GPU, so the path was untested there).  Fix in the
+  REV9 wrapper only (scripts/rev9_phaseb.py, _set_rng_state_cpu): the tensors are moved back to the CPU unchanged before the frozen setter runs,
+  so the restored RNG state is bit-identical and the pairing is kept; the frozen D1 module is not edited.  No unit had trained (each failed at
+  the load), so nothing was read.  Resubmission: slurm/rev9_phaseb_gated.sbatch (job 1040359; same partition / time as 1039622) runs the I0 guard
+  on vcs_lr0.0003_s0 into outputs/REV9_SMOKE_resume first and continues to the frozen 'phaseb' mode only if the frozen guard holds
+  (estimator diff 0, gate within 1e-3); evaluations 1040360-63 (afterok).  REV9-FULL (rev9f_phaseb 1039944, which imports the same wrapper)
+  is held back with Nice 800 until that guard passes.

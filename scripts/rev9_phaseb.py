@@ -18,6 +18,22 @@ import r7_d1_selectors as SEL  # noqa: E402
 import r7_d1_train as TR  # noqa: E402
 
 ORIG_GATE_LOSS = SEL.gate_loss; ORIG_RELAXED = SEL.relaxed_topk
+ORIG_SET_RNG = SEL._set_rng_state
+
+
+def _set_rng_state_cpu(st, rng, gen):
+    """REV9 execution note 1 (2026-10-14): the frozen resume path loads <tag>.resume.pt with map_location = the training device, which moves the
+    saved RNG ByteTensors to the GPU; torch.set_rng_state / Generator.set_state / cuda.set_rng_state_all need CPU ByteTensors (job 1039622 failed
+    with 'RNG state must be a torch.ByteTensor' for all 9 units).  The tensors are moved back to the CPU unchanged, so the restored RNG state is
+    bit-identical to the saved one and the pairing with the frozen unit is kept."""
+    import torch
+    st = dict(st); st["torch"] = st["torch"].to("cpu", torch.uint8); st["gen"] = st["gen"].to("cpu", torch.uint8)
+    if "cuda" in st:
+        st["cuda"] = [t.to("cpu", torch.uint8) for t in st["cuda"]]
+    return ORIG_SET_RNG(st, rng, gen)
+
+
+SEL._set_rng_state = _set_rng_state_cpu
 
 
 def gate_loss_I1(model, batch, k, tau, gen=None):
