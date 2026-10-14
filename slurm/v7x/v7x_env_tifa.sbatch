@@ -12,7 +12,7 @@ E=/projects/EEG-foundation-model/yinghao/envs/v7_tifa; CONDA=/home/infres/yinwan
 [ -x $E/bin/python ] || $CONDA create -y -q -p $E python=3.10
 $E/bin/pip install -q torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu124
 $E/bin/pip install -q "transformers==4.40.2" "accelerate==0.30.1" sentencepiece protobuf "numpy<2" pandas scipy tqdm Pillow word2number "openai>=1.0" \
-   "modelscope==1.20.1" timm opencv-python-headless addict simplejson sortedcontainers oss2 "datasets<3" rapidfuzz einops ftfy regex
+   "modelscope==1.20.1" timm opencv-python-headless addict simplejson sortedcontainers oss2 "datasets<3" rapidfuzz einops ftfy regex "setuptools<70"
 $E/bin/pip check || echo "pip check reported conflicts (recorded above)"
-$E/bin/python -I -c "import torch, transformers, modelscope; print('torch', torch.__version__, 'transformers', transformers.__version__, 'modelscope', modelscope.__version__)"
+$E/bin/python -I -c "import pkg_resources, torch, transformers, modelscope; from modelscope.pipelines import pipeline; print('torch', torch.__version__, 'transformers', transformers.__version__, 'modelscope', modelscope.__version__)"
 $E/bin/pip freeze > /home/infres/yinwang/CS_QMI/outputs/V7/env_v7_tifa_freeze.txt; echo "exit=0 end=$(date -u +%FT%TZ)"
