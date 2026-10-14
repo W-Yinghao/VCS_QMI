@@ -64,3 +64,39 @@ PN-VQA: 800 x (1 + n_elements) LLM calls + ~144k Qwen2-VL-7B forward passes (pos
 - **PN-VQA:** Listings 1 and 2 reconstructed from the arXiv HTML (whitespace normalised; only the two examples each listing shows); answers parsed
   from "A: yes|no"; an element without a parsed question is dropped, counted.
 - **B2:** t2v-metrics' Qwen2VLModel with attention 'sdpa' (flash-attn not installed) and B1's templates.
+
+## Optional: native question generation through the OpenAI API — design for the owner's necessity review (NOT run; 2026-10-14)
+Owner, 2026-10-14: no API for now; write the design down so its necessity can be judged.  Nothing below has been run, and no prompt has been sent.
+
+**What it would add.**  Extra rows next to the frozen local rows, never replacing them: B4T-API (TIFA's paper route: gpt-3.5-turbo question
+generation, then the same UnifiedQA filter / mPLUG-large VQA / SBERT mapping), B4D-API (DSG's three prompts on an OpenAI model in place of
+PaLM 2 / the retired gpt-3.5-turbo-16k-0613; same mPLUG-large VQA and dependency rule), B3-API (PN-VQA Listings 1-2 on gpt-4o in place of the
+unspecified GPT-4; same Qwen2-VL-7B scoring).  The v2 primary family (amendment v2) keeps the local B4T / B4D rows; making an API row primary
+would need a new dated freeze before any GenAI-Rank label is read.
+
+**Why it might be needed.**  DSG is a primary comparator and its local run substitutes the generator LLM (a reproduction adaptation); a reader
+may ask whether the substitution weakens it.  TIFA's local route is the authors' released generator (official), so its need is lower; PN-VQA is
+secondary.
+
+**Label-free facts so far (GenAI-Rank, 800 prompts).**  DSG local (Qwen2.5-32B-Instruct): 7 parse errors (0.9 %; those prompts score 0 for all
+candidates), no prompt without questions, 5.97 questions per prompt (median 6); DSG's released PaLM 2 annotations on DSG-1k average 7.72 (median
+7) on a different, longer prompt set, so the counts are not directly comparable.  PN-VQA local: 5.23 elements per prompt, 4,185 / 4,185 questions
+parsed.  TIFA local: running (its parser rejected some generations; counted in the output).
+
+**Design if run.**
+- Prompt sets: GenAI-Rank 800, GenAI-Bench 1,600 (750 shared with Rank, reused by text), EvalMuse DEV 307 -> about 2,000 unique prompts.
+- Calls: TIFA 1 per prompt; DSG 3 per prompt (tuples -> dependencies -> questions); PN-VQA 1 + one per element (~6) per prompt.
+- Settings: temperature 0, the methods' own prompts verbatim, max tokens as their code (TIFA 700, DSG 500); responses cached with the request
+  hash, model name and date; failures logged, never silently retried with a different prompt.
+- Rough cost (to be checked against current prices before any run): TIFA a few USD; DSG about 15-50 USD on a gpt-3.5-class model; PN-VQA about 25
+  USD on gpt-4o (a few hundred on the original gpt-4).  GPU: the existing VQA / scoring steps on the new questions (about the same as the local runs).
+- Data leaving the cluster: only public benchmark prompt texts (no labels, no images).  Key: a 0600 file outside the (public) repository, read
+  through OPENAI_API_KEY, never logged or committed.
+- Reporting: API row vs local row of each method (selection agreement, score correlation, and, after the scoring approval, the same human-score
+  endpoint), as a robustness analysis of the adaptation, not as a new primary claim.
+
+**Necessity criteria (decided before any GenAI-Rank label is read).**  Recommended first: two label-free fidelity pilots on local GPU, no API —
+(a) the local DSG generator on the DSG-1k prompts against DSG's released PaLM 2 questions (question count, tuple / question overlap, dependency
+structure); (b) the local TIFA generator on the TIFA v1.0 captions against TIFA's released GPT-3 questions.  If the local outputs match the
+released ones closely, the API rows add little; if they depart materially (a threshold fixed before the pilots run), the API rows become the
+natural robustness check.  Cost: about 2-4 GPU-h, no labels involved (the released question files are method outputs, not human ratings).

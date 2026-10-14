@@ -59,6 +59,8 @@ X20 ~0.5-1 GPU-h (one job); X21 24 small MLP fits + 125 kernel configurations in
 ## 7. For the owner (only what the data and the existing approvals cannot settle)
 1. **Paid APIs for the native question-generation routes** (TIFA GPT-3.5, DSG GPT-3.5 / PaLM 2, PN-VQA GPT-4).  Default without approval: TIFA's
    released local LLaMA-2 generator (an official route), DSG and PN-VQA with a local LLM (Qwen2.5-32B-Instruct), labelled as adaptations.
+   2026-10-14: the owner chose no API for now; the design and the necessity criteria are in V7X_30, section "Optional: native question generation
+   through the OpenAI API" (label-free fidelity pilots recommended first).
 2. **GenAI-Rank scoring approval** after every prediction of the v2 primary family is in the manifest (unchanged from v1).
 3. **Optional extra terminal sets**: GenAI-Bench ratings (local, unread) would need a read approval; TIFA160 and RichHF are not downloaded and
    would need a download decision and a later read approval.
