@@ -46,3 +46,13 @@ execution_note_2_20261014: >
   modes one after the other (gqa_dev 0/2 + 1/2; textvqa_val 0/1 + chartqa_val 0/1; 'eval' for REV9 after 1040359, 'eval-full' for REV9-FULL after
   1039944; H100 / L40S, --time 23:00:00): jobs 1040484-87.  Reason: the pending placeholders kept the normal-QOS count above the R7-E2 driver's
   submission cap (20) while two of my GPU slots were idle.  No configuration, shard or evaluator changes.
+execution_note_3_20261014: >
+  Guards (before any evaluation readout).  REV9 (job 1040359): I0 exact for vcs / logistic / direct (estimator and gate diff 0).  REV9-FULL (job
+  1039944): I0 exact for vcs and logistic; direct_lr0.0001_s0 FAILS (estimator diff 0, gate diff 2.114 > 1e-3).  Cause, from the frozen
+  completion records: that frozen D1-FULL unit is the only one of the 9 trained on an NVIDIA H100 NVL (the other 8, and every REV9 / REV9-FULL
+  rerun, on RTX PRO 6000); the direct objective's gate training amplifies the cross-hardware floating-point difference (final gate loss -0.0263
+  frozen vs -0.0274 rerun).  The frozen rule applies: the PRIMARY REV9-FULL readout of the direct objective is stopped.  Labelled SECONDARY
+  check (not part of the frozen family): rerun direct_lr0.0001_s0 I0 / I1 / I2 on H100 into outputs/REV9_FULL_H100 (job 1040704, gated on its own
+  I0 guard), then the frozen D1-30 evaluator on its I1 / I2 units (job 1040705, 8 configs per benchmark, same runner as eval-full).  If the H100
+  guard passes, the direct objective is reported as a secondary, hardware-matched reading with this note; if it fails, it is reported as not
+  readable.  Seeds 1 and 2 of every objective are hardware-matched (RTX PRO 6000 for frozen and rerun units).
