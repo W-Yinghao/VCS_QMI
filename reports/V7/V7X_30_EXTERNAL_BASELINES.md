@@ -40,3 +40,27 @@ M2-E against B0, B1, B4T, B4D on DALLE_3 and SDXL_Base (N = 9): 8 contrasts, Hol
 TIFA: ~800 prompts of question generation (LLaMA-2-7B) + ~115k mPLUG-large VQA calls; DSG: 800 x 3 LLM calls (Qwen2.5-32B) + ~115k VQA calls;
 PN-VQA: 800 x (1 + n_elements) LLM calls + ~144k Qwen2-VL-7B forward passes (positive + negative); B2 / B5: 14,400 forward passes each.  Roughly
 2-5 GPU-h per method on L40S / H100; downloads ~120 GB (within the 1.2 TB guard: 1.9 TB free on 2026-10-14).
+
+## Implementation record (2026-10-14; deviations from each method's native setup, written before any score exists)
+- **Code trees:** github.com/Yushi-Hu/tifa @ 8e37050f and github.com/j-min/DSG @ 7330119a, read-only under `third_party/`, imported by path; no file
+  edited.  The human-rating files those repos ship (TIFA `human_annotations/`, DSG `dsg/data/tifa160-likert-anns.csv`) were moved unopened to
+  `third_party/closed/` (sha256 in `SHA256SUMS_v7x_20261014.txt`); DSG's in-context annotations (`tifa160-dev-anns.csv`, `dsg-1k-anns.csv`) stay
+  (method inputs, not ratings).
+- **Weights** (data_fetch group v7x, published sha256 verified): TIFA generator `tifa-benchmark/llama2_tifa_question_generation` @ 353b3dd, UnifiedQA
+  v2 T5-large @ 1d3b8e1, SBERT all-mpnet-base-v2 @ e8c3b32 (served offline through `hf_cache_v7x` for TIFA's hard-coded id), mPLUG-large
+  (ModelScope `damo/mplug_visual-question-answering_coco_large_en`, tag v1.0.0; weights identical to master), Qwen2.5-32B-Instruct, Qwen2-VL-7B-Instruct,
+  HPSv3.
+- **Environments:** `envs/v7_tifa` (torch 2.5.1 cu124, transformers 4.40.2, ModelScope 1.20.1, setuptools < 70 for ModelScope's pkg_resources,
+  decord / librosa / soundfile / torchaudio 2.5.1 / zhconv / unicodedata2 for ModelScope's multi_modal imports) and `envs/v7x_llm` (torch 2.9.0
+  cu128, transformers 4.57.6; t2v-metrics 3.0 without its pins).
+- **Scoped imports** (`scripts/v7x/x_stubs.py`; every stub raises if called): promptcap and lavis.models (TIFA's PromptCap / BLIP-2 routes);
+  fairseq: TIFA's requirements list it, but fairseq 0.12.2 does not install (its `omegaconf<2.1` pin resolves only to wheels whose metadata current
+  pip rejects), so every fairseq.* import is served by a permissive stub.  It is reached only through ModelScope's OFA package, which its
+  multi_modal module loads next to mPLUG's preprocessor; the mPLUG model code imports nothing from fairseq.
+- **TIFA:** the registry entry 'mplug-large' points to the local copy of the same hub id; a prompt whose UnifiedQA filter keeps no question scores
+  0 for every candidate (all tie -> first index), counted.
+- **DSG:** generate_fn = Qwen2.5-32B-Instruct, the prompt as one user message (as DSG's openai_completion), greedy, 500 new tokens; parse errors are
+  recorded; a dependency on a question id outside the parsed question set imposes no constraint (DSG's own code would raise there), counted.
+- **PN-VQA:** Listings 1 and 2 reconstructed from the arXiv HTML (whitespace normalised; only the two examples each listing shows); answers parsed
+  from "A: yes|no"; an element without a parsed question is dropped, counted.
+- **B2:** t2v-metrics' Qwen2VLModel with attention 'sdpa' (flash-attn not installed) and B1's templates.
