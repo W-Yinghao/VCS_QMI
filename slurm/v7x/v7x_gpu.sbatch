@@ -9,6 +9,8 @@
 #   x20                       X20 common features: FIT / CAL_SELECT / CAL_PROB / DEV
 #   x20-rank                  X20 common features of the GenAI-Rank candidates (parser v3 elements)
 #   x21                       X21: all common-feature fits (tuning -> lr -> formal seeds, kernels, A0) on $BIG/x20
+#   bench-<m> ...             GenAI-Bench (extra external set; labels unread): bench-m | bench-native <ckpt> <tag> | bench-b1 | bench-b2 | bench-hpsv3 |
+#                             bench-clip | bench-tifa-qg | bench-tifa-score k/n | bench-dsg-gen k/n | bench-dsg-score k/n | bench-pnvqa-gen k/n | bench-pnvqa-score k/n
 #   x20-n0 | x21-n0           X20 / X21 sensitivity S2: features from the FIT-only N0 seed-0 checkpoint (native L1 objective) -> $BIG/x20_n0s0, $BIG/x21_n0s0
 #   clip-rank | clip-dev      SANITY CLIPScore ViT-L/14-336 on GenAI-Rank / EvalMuse DEV (env v7x_llm)
 #   x21-pca <K>               X21 shared sensitivity: the same fits on FIT-only PCA-K features (every method alike) -> $BIG/x21_pca<K>
@@ -74,6 +76,28 @@ case "$what" in
           (cd $B1W && PATH=/projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin:$PATH HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7 /projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin/python -I \
              /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_vqascore.py rank --inputs $IN --images $IMG --out $X/b1_vqascore_clipflant5xxl.jsonl --batch 16); rc=$?;;
        *) echo "unknown dev mode $what"; rc=2;;
+     esac;;
+  bench-*) X=$BIG/x30_bench; mkdir -p $X; D=/home/infres/yinwang/CS_QMI/outputs/V7/data; IN=$D/genai_bench_inputs.jsonl; PR=$D/genai_bench_prompts.jsonl; IMG=$BIG/genai_bench_images
+     T=/projects/EEG-foundation-model/yinghao/envs/v7_tifa/bin/python; L=/projects/EEG-foundation-model/yinghao/envs/v7x_llm/bin/python; H=/projects/EEG-foundation-model/yinghao/envs/v7x_hps/bin/python
+     export HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7x MODELSCOPE_CACHE=$X/modelscope_cache V7X_LOCAL=/tmp/v7x_${SLURM_JOB_ID}; mkdir -p $V7X_LOCAL; trap "rm -rf $V7X_LOCAL" EXIT
+     case "$what" in
+       bench-m) $PY scripts/v7x/x30_m_bench.py export --units $(ls -d $BIG/units/V7-FIT-M*) --inputs $IN --images $IMG --tag genai_bench; rc=$?;;
+       bench-native) ck="$1"; tag="$2"; U=$X/native_$tag; mkdir -p $U; R=$BIG/n0/run_eval_bench_$tag; mkdir -p $R; ln -sfn /projects/EEG-foundation-model/yinghao/models/bert-base-uncased $R/bert-base-uncased
+          $PY scripts/v7/v7_native.py evalset-rank --inputs $IN --out $U/evalset_bench.json && (cd $R && $E/bin/python -I /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_native_launch.py eval.py \
+             --data_file $U/evalset_bench.json --save_path $U/native_eval_bench.json --model_path "$ck" --dataset_dir $IMG/); rc=$?;;
+       bench-b1) B1W=$BIG/b1_work; mkdir -p $B1W; ln -sfn /projects/EEG-foundation-model/yinghao/models/hf_cache_v7/hub $B1W/hf_cache
+          (cd $B1W && PATH=/projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin:$PATH HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7 /projects/EEG-foundation-model/yinghao/envs/v7_vqascore/bin/python -I \
+             /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7/v7_vqascore.py rank --inputs $IN --images $IMG --out $X/b1_vqascore_clipflant5xxl.jsonl --batch 16); rc=$?;;
+       bench-b2) $L -I scripts/v7x/x30_vqascore_host.py rank --inputs $IN --image-root $IMG --out $X/b2_vqascore_qwen25vl7b.jsonl; rc=$?;;
+       bench-hpsv3) $H -I scripts/v7x/x30_hpsv3.py rank --inputs $IN --image-root $IMG --out $X/b5_hpsv3.jsonl; rc=$?;;
+       bench-clip) $L -I scripts/v7x/x30_clipscore.py rank --inputs $IN --image-root $IMG --out $X/sanity_clipscore.jsonl; rc=$?;;
+       bench-tifa-qg) $T -I scripts/v7x/x30_tifa.py qg --prompts $PR --out $X/tifa_qa.jsonl; rc=$?;;
+       bench-tifa-score) $T -I scripts/v7x/x30_tifa.py score --qa $X/tifa_qa.jsonl --inputs $IN --image-root $IMG --out $X/tifa_scores_${1/\//of}.jsonl --shard $1; rc=$?;;
+       bench-dsg-gen) $L -I scripts/v7x/x30_dsg.py gen --prompts $PR --out $X/dsg_gen_${1/\//of}.jsonl --shard $1; rc=$?;;
+       bench-dsg-score) $T -I scripts/v7x/x30_dsg.py score --dsg $X/dsg_gen_*.jsonl --inputs $IN --image-root $IMG --out $X/dsg_scores_${1/\//of}.jsonl --shard $1; rc=$?;;
+       bench-pnvqa-gen) $L -I scripts/v7x/x30_pnvqa.py gen --prompts $PR --elements own --out $X/pnvqa_gen_own_${1/\//of}.jsonl --shard $1; rc=$?;;
+       bench-pnvqa-score) $L -I scripts/v7x/x30_pnvqa.py score --gen $X/pnvqa_gen_own_*.jsonl --inputs $IN --image-root $IMG --out $X/pnvqa_scores_own_${1/\//of}.jsonl --shard $1; rc=$?;;
+       *) echo "unknown bench mode $what"; rc=2;;
      esac;;
   *) echo "unknown mode $what"; rc=2;;
 esac

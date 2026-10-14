@@ -8,6 +8,7 @@
 # V7X CPU jobs (reports/V7/V7X_*): positional arguments only.
 #   x10 <out.json>            legacy controlled-data inventory recompute (raw P85 JSONs, read only)
 #   dev-inputs                EvalMuse DEV inputs / prompts / element names (label-free) + staged DEV images for the secondary table
+#   bench-inputs | bench-reuse GenAI-Bench label-free inputs / images; pre-fill DSG and PN-VQA generation caches from GenAI-Rank (same prompt text)
 #   tests                     pytest tests/v7x (+ the v2 package reference tests on our copies)
 #   x20-smoke-cpu             X20 extractor on 64 images of each role on CPU (float32 code-path check; the GPU run checks fp16)
 #   x21-smoke-cpu             X21 'all' on the X20 smoke features, 2 epochs (code path of every method; no result is used)
@@ -35,6 +36,10 @@ case "$what" in
        if [ "$an" = tests ]; then $PY scripts/v7x/x11_anchors.py tests --anchor $c --out /home/infres/yinwang/CS_QMI/outputs/V7/x11 || rc=$?
        else $PY scripts/v7x/x11_anchors.py est --anchor $an --cells $c --out /home/infres/yinwang/CS_QMI/outputs/V7/x11 || rc=$?; fi; done;;
   dev-inputs) $PY scripts/v7x/x30_dev_inputs.py --images /projects/EEG-foundation-model/yinghao/outputs_v7/x30/evalmuse_dev_images; rc=$?;;
+  bench-inputs) $PY scripts/v7x/x30_bench_inputs.py inputs --images /projects/EEG-foundation-model/yinghao/outputs_v7/genai_bench_images; rc=$?;;
+  bench-reuse) X=/projects/EEG-foundation-model/yinghao/outputs_v7; mkdir -p $X/x30_bench
+     $PY scripts/v7x/x30_bench_inputs.py reuse --rank-gen $X/x30/dsg_gen_*.jsonl --out-prefix $X/x30_bench/dsg_gen --shards 2 && \
+     $PY scripts/v7x/x30_bench_inputs.py reuse --rank-gen $X/x30/pnvqa_gen_own_*.jsonl --out-prefix $X/x30_bench/pnvqa_gen_own --shards 2; rc=$?;;
   tests) export V7X_REF_DIR=/home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
      $PY -m pytest -q -p no:cacheprovider tests/v7x; rc=$?
      echo "--- package reference tests (owner copy, read only; run from a scratch copy)"; T=$(mktemp -d /tmp/v7xref_XXXX); cp -r /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/configs /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/schemas $T/ && chmod -R u+w $T
