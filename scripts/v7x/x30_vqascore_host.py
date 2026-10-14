@@ -39,7 +39,7 @@ def import_qwen():
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("rank"); r.add_argument("--inputs", required=True); r.add_argument("--out", required=True); r.add_argument("--shard", default="0/1"); r.add_argument("--limit", type=int, default=0)
-    a = ap.parse_args(argv)
+    r.add_argument("--image-root", default=None); a = ap.parse_args(argv)
     import torch
     Q, root = import_qwen(); k, n = (int(x) for x in a.shard.split("/"))
     rows = [json.loads(l) for i, l in enumerate(open(a.inputs)) if l.strip() and i % n == k][: a.limit or None]
@@ -51,9 +51,12 @@ def main(argv=None):
             fh.write(json.dumps({"header": {"method": "B2 VQAScore, Qwen2.5-VL-7B host", "t2v_metrics": "3.0 (" + str(root) + ")", "torch": torch.__version__,
                                             "gpu": torch.cuda.get_device_name(0), "question_template": Q_TMPL, "answer_template": A_TMPL, "attention": "sdpa", "load_s": time.time() - t0}}) + "\n")
         for i, c in enumerate(todo):
-            g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / c["image_id"]
-            if not p.exists():
-                p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))
+            if a.image_root:
+                p = Path(a.image_root) / c["image_id"]
+            else:
+                g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / c["image_id"]
+                if not p.exists():
+                    p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))
             v = float(model.forward([str(p)], [c["prompt"]], question_template=Q_TMPL, answer_template=A_TMPL)[0])
             fh.write(json.dumps({"prompt_id": c["prompt_id"], "generator_id": c["generator_id"], "image_id": c["image_id"], "candidate_index": c["candidate_index"], "score": v}) + "\n")
             if i % 500 == 0:

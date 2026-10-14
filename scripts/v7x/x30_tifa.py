@@ -63,7 +63,8 @@ def cmd_score(a):
     T, VM = import_tifa(); qa = {r["prompt_id"]: r for r in read_jsonl(a.qa)}; cands = read_jsonl(a.inputs)
     k, n = (int(x) for x in a.shard.split("/")); cands = [c for i, c in enumerate(cands) if i % n == k][: a.limit or None]
     out = Path(a.out); done = {r["image_id"] for r in read_jsonl(out)} if out.exists() else set(); cands = [c for c in cands if c["image_id"] not in done]
-    paths = stage(cands, Path(os.environ.get("V7X_LOCAL", "/tmp")) / "v7x_tifa_images"); vqa = T.VQAModel("mplug-large"); t0 = time.time()
+    paths = ({c["image_id"]: str(Path(a.image_root) / c["image_id"]) for c in cands} if a.image_root else stage(cands, Path(os.environ.get("V7X_LOCAL", "/tmp")) / "v7x_tifa_images"))
+    vqa = T.VQAModel("mplug-large"); t0 = time.time()
     with open(out, "a") as fh:
         for i, c in enumerate(cands):
             q = qa.get(c["prompt_id"])
@@ -84,7 +85,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("qg"); g.add_argument("--prompts", required=True); g.add_argument("--out", required=True); g.add_argument("--limit", type=int, default=0)
     s = sub.add_parser("score"); s.add_argument("--qa", required=True); s.add_argument("--inputs", required=True); s.add_argument("--out", required=True)
-    s.add_argument("--shard", default="0/1"); s.add_argument("--limit", type=int, default=0)
+    s.add_argument("--shard", default="0/1"); s.add_argument("--limit", type=int, default=0); s.add_argument("--image-root", default=None)
     a = ap.parse_args(argv)
     return {"qg": cmd_qg, "score": cmd_score}[a.cmd](a)
 

@@ -86,9 +86,12 @@ def cmd_score(a):
             if not qs:
                 rec = {"score": 0.0, "score_without_dependency": 0.0, "no_questions": True}
             else:
-                g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / c["image_id"]
-                if not p.exists():
-                    p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))
+                if a.image_root:
+                    p = Path(a.image_root) / c["image_id"]
+                else:
+                    g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / c["image_id"]
+                    if not p.exists():
+                        p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))
                 ans = {q: vqa.vqa(str(p), v) for q, v in qs.items()}
                 deps = {q: [d for d in deps.get(q, [0]) if d == 0 or d in ans] or [0] for q in ans}     # parents outside the question set: no constraint
                 s = calc_vqa_score(ans, deps)
@@ -105,7 +108,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("gen"); g.add_argument("--prompts", required=True); g.add_argument("--out", required=True); g.add_argument("--shard", default="0/1"); g.add_argument("--limit", type=int, default=0)
     s = sub.add_parser("score"); s.add_argument("--dsg", nargs="+", required=True); s.add_argument("--inputs", required=True); s.add_argument("--out", required=True)
-    s.add_argument("--shard", default="0/1"); s.add_argument("--limit", type=int, default=0)
+    s.add_argument("--shard", default="0/1"); s.add_argument("--limit", type=int, default=0); s.add_argument("--image-root", default=None)
     a = ap.parse_args(argv)
     return {"gen": cmd_gen, "score": cmd_score}[a.cmd](a)
 

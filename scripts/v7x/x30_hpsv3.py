@@ -16,7 +16,7 @@ MODELS = Path("/projects/EEG-foundation-model/yinghao/models"); RANK = Path("/pr
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("rank"); r.add_argument("--inputs", required=True); r.add_argument("--out", required=True); r.add_argument("--shard", default="0/1"); r.add_argument("--limit", type=int, default=0)
-    a = ap.parse_args(argv)
+    r.add_argument("--image-root", default=None); a = ap.parse_args(argv)
     import torch
     import yaml
     import hpsv3
@@ -34,6 +34,8 @@ def main(argv=None):
         for s in range(0, len(todo), 8):
             chunk = todo[s:s + 8]; paths = []
             for c in chunk:
+                if a.image_root:
+                    paths.append(str(Path(a.image_root) / c["image_id"])); continue
                 g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / "img" / c["image_id"]
                 if not p.exists():
                     p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))

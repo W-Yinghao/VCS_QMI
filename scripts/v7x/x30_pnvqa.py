@@ -75,10 +75,18 @@ def cmd_gen(a):
     k, n = (int(x) for x in a.shard.split("/")); prompts = [p for i, p in enumerate(read_jsonl(a.prompts)) if i % n == k][: a.limit or None]
     out = Path(a.out); done = {r["prompt_id"] for r in read_jsonl(out)} if out.exists() else set(); prompts = [p for p in prompts if p["prompt_id"] not in done]
     parser = {r["prompt"]: r for r in read_jsonl(a.parser_cache) if "prompt" in r} if a.elements == "parser" else {}
+    annotated = {}
+    if a.elements == "evalmuse":                                              # EvalMuse's own element names 'name (type)' per prompt (no votes read)
+        for e in read_jsonl(a.elements_file):
+            lst = annotated.setdefault(e["prompt_id"], [])
+            if e["text"] not in lst:
+                lst.append(e["text"])
     llm = LocalLLM(LLM); t0 = time.time()
     with open(out, "a") as fh:
         for i, p in enumerate(prompts):
-            if a.elements == "parser":
+            if a.elements == "evalmuse":
+                els = annotated.get(p["prompt_id"], []); raw_split = None
+            elif a.elements == "parser":
                 pr = parser.get(p["prompt"]); els = [e["text"] for e in pr["elements"]] if pr and pr.get("status") == "ok" else []; raw_split = None
             else:
                 raw_split = llm(SPLIT.format(prompt=p["prompt"])); els = first_list(raw_split) or []
@@ -132,9 +140,12 @@ def cmd_score(a):
             if not qas:
                 rec = {"score": 0.0, "no_questions": True, "elements": []}
             else:
-                g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / c["image_id"]
-                if not p.exists():
-                    p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))
+                if a.image_root:
+                    p = Path(a.image_root) / c["image_id"]
+                else:
+                    g = c["image_id"].split("/")[0]; z = zs.get(g) or zs.setdefault(g, zipfile.ZipFile(RANK / f"{g}.zip")); p = local / c["image_id"]
+                    if not p.exists():
+                        p.parent.mkdir(parents=True, exist_ok=True); p.write_bytes(z.read(c["image_id"]))
                 texts = []
                 for q in qas:
                     other = "no" if q["answer"] == "yes" else "yes"
@@ -150,10 +161,11 @@ def cmd_score(a):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
-    g = sub.add_parser("gen"); g.add_argument("--prompts", required=True); g.add_argument("--out", required=True); g.add_argument("--elements", choices=["own", "parser"], default="own")
+    g = sub.add_parser("gen"); g.add_argument("--prompts", required=True); g.add_argument("--out", required=True); g.add_argument("--elements", choices=["own", "parser", "evalmuse"], default="own")
+    g.add_argument("--elements-file", default="/home/infres/yinwang/CS_QMI/outputs/V7/data/evalmuse_dev_elements.jsonl")
     g.add_argument("--parser-cache", default="/projects/EEG-foundation-model/yinghao/outputs_v7/parser/genai_prompts_cache_v3.jsonl"); g.add_argument("--shard", default="0/1"); g.add_argument("--limit", type=int, default=0)
     s = sub.add_parser("score"); s.add_argument("--gen", nargs="+", required=True); s.add_argument("--inputs", required=True); s.add_argument("--out", required=True)
-    s.add_argument("--shard", default="0/1"); s.add_argument("--limit", type=int, default=0)
+    s.add_argument("--shard", default="0/1"); s.add_argument("--limit", type=int, default=0); s.add_argument("--image-root", default=None)
     a = ap.parse_args(argv)
     return {"gen": cmd_gen, "score": cmd_score}[a.cmd](a)
 
