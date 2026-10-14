@@ -13,6 +13,7 @@
 #   tifa-smoke-cpu            B4T code path on CPU: question generation + filter for 1 prompt, TIFA score of 2 candidates (no result is used)
 #   x11-est <anchor> <cell>   X11 estimation panel of one anchor cell (10 replicates x N 256 / 4096)
 #   x11-tests <anchor>        X11 MMD / HSIC level and power (200 replicates)
+#   x11-group <A:c> [<A:c> ...] [tests:<A> ...]   several X11 cells / test panels in one job, in order (one writer per output file)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7_fga; PY="$E/bin/python -I"
 echo "host=$(hostname) start=$(date -u +%FT%TZ) commit=$(git rev-parse --short HEAD) dirty=$(git status --porcelain scripts/v7x tests/v7x slurm/v7x | wc -l)"
@@ -28,6 +29,10 @@ case "$what" in
      $T -I scripts/v7x/x30_tifa.py score --qa $X/tifa_qa.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/tifa_scores.jsonl --limit 2; rc=$?;;
   x11-est) export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; $PY scripts/v7x/x11_anchors.py est --anchor $1 --cells $2 --out /home/infres/yinwang/CS_QMI/outputs/V7/x11; rc=$?;;
   x11-tests) export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; $PY scripts/v7x/x11_anchors.py tests --anchor $1 --out /home/infres/yinwang/CS_QMI/outputs/V7/x11; rc=$?;;
+  x11-group) export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK; rc=0
+     for u in "$@"; do an=${u%%:*}; c=${u#*:}
+       if [ "$an" = tests ]; then $PY scripts/v7x/x11_anchors.py tests --anchor $c --out /home/infres/yinwang/CS_QMI/outputs/V7/x11 || rc=$?
+       else $PY scripts/v7x/x11_anchors.py est --anchor $an --cells $c --out /home/infres/yinwang/CS_QMI/outputs/V7/x11 || rc=$?; fi; done;;
   tests) export V7X_REF_DIR=/home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
      $PY -m pytest -q -p no:cacheprovider tests/v7x; rc=$?
      echo "--- package reference tests (owner copy, read only; run from a scratch copy)"; T=$(mktemp -d /tmp/v7xref_XXXX); cp -r /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/reference /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/configs /home/infres/yinwang/CS_QMI/outputs/V7/package_ref_v2/schemas $T/ && chmod -R u+w $T
