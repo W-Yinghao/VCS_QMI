@@ -34,7 +34,7 @@ GRID_SEED, H0_SAMPLE, ALPHA = 17071, 4096, 0.5
 class Feats:
     """X20 features standardised with FIT-only D-weighted moments; D weights w = w_img / n_el; y only for the labelled roles."""
 
-    def __init__(self, x20: Path, device, roles=LABELLED + UNLABELLED):
+    def __init__(self, x20: Path, device, roles=LABELLED + UNLABELLED, pca=0):
         import torch
         self.dev, self.r = device, {}; man = json.loads((x20 / "manifest.json").read_text()); self.parts = {p["tag"]: p for p in man["parts"]}
         mr = x20 / "manifest_rank.json"
@@ -52,7 +52,18 @@ class Feats:
             self.r[role] = {"x": x, "w": w, "y": y, "idx": idx}
         f = self.r["FIT"]; wn = f["w"] / f["w"].sum(); self.mu = wn @ f["x"]; self.sd = np.sqrt(wn @ (f["x"] - self.mu) ** 2) + 1e-6
         for v in self.r.values():
-            v["z"] = (v["x"] - self.mu) / self.sd; v["t"] = torch.tensor(v["z"], dtype=torch.float32, device=device); del v["x"]
+            v["z"] = (v["x"] - self.mu) / self.sd; del v["x"]
+        self.pca = pca
+        if pca:                                                                # shared sensitivity (V7X_20): FIT-only D-weighted PCA, every method alike
+            Z = f["z"]; C = (Z * wn[:, None]).T @ Z; vals, vecs = np.linalg.eigh(C); P = vecs[:, ::-1][:, :pca]
+            self.pca_explained = float(vals[::-1][:pca].sum() / vals.sum())
+            for v in self.r.values():
+                v["z"] = v["z"] @ P
+            s2 = np.sqrt(wn @ f["z"] ** 2) + 1e-6
+            for v in self.r.values():
+                v["z"] = v["z"] / s2
+        for v in self.r.values():
+            v["t"] = torch.tensor(v["z"], dtype=torch.float32, device=device)
         self.prior = float(wn @ f["y"])
         self.manifest_hash = hashlib.sha256("|".join(f"{k}:{self.parts[k]['sha256']}" for k in sorted(self.parts)).encode()).hexdigest()
 
@@ -69,11 +80,11 @@ def p_nat(ell, prior):
 
 
 # ----------------------------------------------------------------------------------------------------------------------------- neural
-def make_mlp(seed):
+def make_mlp(seed, d_in=768):
     import torch
     import torch.nn as nn
     torch.manual_seed(seed)
-    return nn.Sequential(nn.Linear(768, HIDDEN), nn.ReLU(), nn.Linear(HIDDEN, HIDDEN), nn.ReLU(), nn.Linear(HIDDEN, 1))
+    return nn.Sequential(nn.Linear(d_in, HIDDEN), nn.ReLU(), nn.Linear(HIDDEN, HIDDEN), nn.ReLU(), nn.Linear(HIDDEN, 1))
 
 
 def neural_loss(method, f, y, w, prior):
@@ -124,7 +135,7 @@ def neural_fit(F: Feats, method, lr, seed, out: Path, epochs=EPOCHS):
     import torch
     t0 = time.time(); fit = F.r["FIT"]; dev = F.dev; X = fit["t"]; n = len(X)
     y = torch.tensor(fit["y"], dtype=torch.float32, device=dev); w = torch.tensor(fit["w"], dtype=torch.float32, device=dev)
-    model = make_mlp(seed).to(dev); opt = torch.optim.Adam(model.parameters(), lr=lr); g = torch.Generator().manual_seed(seed)
+    model = make_mlp(seed, X.shape[1]).to(dev); opt = torch.optim.Adam(model.parameters(), lr=lr); g = torch.Generator().manual_seed(seed)
     n_params = sum(p.numel() for p in model.parameters()); best = (math.inf, None, None); log = []; nonfinite = 0
     wp_cs, wq_cs = F.masses("CAL_SELECT")
     for ep in range(epochs):
@@ -325,7 +336,8 @@ def write_preds(F: Feats, out: Path, method, ell_by_role, raw_by_role, rec):
                 fh.write(json.dumps(o) + "\n")
         if role == "GENAI_RANK":
             write_rank(F, out, ell, pn)
-    rec = {**rec, "feature_manifest_hash": F.manifest_hash, "pq_id": "evalmuse_element_softvote_v1", "standardization": "FIT-only D-weighted"}
+    rec = {**rec, "feature_manifest_hash": F.manifest_hash, "pq_id": "evalmuse_element_softvote_v1", "standardization": "FIT-only D-weighted",
+           "pca": F.pca, "pca_explained": getattr(F, "pca_explained", None)}
     (out / "log.json").write_text(json.dumps(rec, indent=1, default=float))
 
 
@@ -345,7 +357,7 @@ def write_rank(F: Feats, out: Path, ell, pn):
 # --------------------------------------------------------------------------------------------------------------------------------- cli
 def load(a):
     import torch
-    dev = "cuda" if torch.cuda.is_available() else "cpu"; F = Feats(Path(a.x20), dev); F.x20 = Path(a.x20)
+    dev = "cuda" if torch.cuda.is_available() else "cpu"; F = Feats(Path(a.x20), dev, pca=a.pca); F.x20 = Path(a.x20)
     print(f"[x21] features {sorted(F.r)}; FIT prior {F.prior:.5f}; manifest {F.manifest_hash[:16]}; device {dev}", flush=True); return F
 
 
@@ -370,7 +382,7 @@ def cmd_all(a):
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("neural", "kernel", "cs-native", "all"):
-        p = sub.add_parser(name); p.add_argument("--x20", default=str(VC.BIG_OUT / "x20")); p.add_argument("--out", required=True); p.add_argument("--epochs", type=int, default=EPOCHS)
+        p = sub.add_parser(name); p.add_argument("--x20", default=str(VC.BIG_OUT / "x20")); p.add_argument("--out", required=True); p.add_argument("--epochs", type=int, default=EPOCHS); p.add_argument("--pca", type=int, default=0)
         if name == "neural":
             p.add_argument("--method", choices=NEURAL, required=True); p.add_argument("--lr", type=float, required=True); p.add_argument("--seed", type=int, required=True)
         if name == "kernel":

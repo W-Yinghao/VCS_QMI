@@ -9,6 +9,7 @@
 #   x20                       X20 common features: FIT / CAL_SELECT / CAL_PROB / DEV
 #   x20-rank                  X20 common features of the GenAI-Rank candidates (parser v3 elements)
 #   x21                       X21: all common-feature fits (tuning -> lr -> formal seeds, kernels, A0) on $BIG/x20
+#   x21-pca <K>               X21 shared sensitivity: the same fits on FIT-only PCA-K features (every method alike) -> $BIG/x21_pca<K>
 #   tifa-qg [limit]           B4T question generation + filter for the 800 GenAI-Rank prompts (env v7_tifa)
 #   tifa-score <k/n> [limit]  B4T TIFA scores, shard k of n (env v7_tifa; images staged node-local)
 #   dsg-gen <k/n> [limit]     B4D DSG generation with Qwen2.5-32B-Instruct, shard k of n (env v7x_llm; >= 80 GB GPU)
@@ -31,6 +32,7 @@ case "$what" in
   x20) $PY scripts/v7x/x20_features.py extract --out $BIG/x20; rc=$?;;
   x20-rank) $PY scripts/v7x/x20_features.py extract-rank --out $BIG/x20; rc=$?;;
   x21) $PY scripts/v7x/x21_fit.py all --x20 $BIG/x20 --out $BIG/x21; rc=$?;;
+  x21-pca) $PY scripts/v7x/x21_fit.py all --x20 $BIG/x20 --out $BIG/x21_pca$1 --pca $1; rc=$?;;
   tifa-qg|tifa-score|dsg-score)
      T=/projects/EEG-foundation-model/yinghao/envs/v7_tifa/bin/python; X=$BIG/x30; mkdir -p $X; export HF_HOME=/projects/EEG-foundation-model/yinghao/models/hf_cache_v7x MODELSCOPE_CACHE=$X/modelscope_cache
      export V7X_LOCAL=/tmp/v7x_${SLURM_JOB_ID}; mkdir -p $V7X_LOCAL; trap "rm -rf $V7X_LOCAL" EXIT; D=/home/infres/yinwang/CS_QMI/outputs/V7/data
