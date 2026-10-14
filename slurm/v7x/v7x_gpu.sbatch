@@ -13,6 +13,7 @@
 #   tifa-score <k/n> [limit]  B4T TIFA scores, shard k of n (env v7_tifa; images staged node-local)
 #   dsg-gen <k/n> [limit]     B4D DSG generation with Qwen2.5-32B-Instruct, shard k of n (env v7x_llm; >= 80 GB GPU)
 #   dsg-score <k/n> [limit]   B4D DSG scores with mPLUG-large, shard k of n (env v7_tifa)
+#   b2-rank <k/n> [limit]     B2 VQAScore on the Qwen2.5-VL-7B host (t2v-metrics code, B1 templates), shard k of n (env v7x_llm)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v7; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 E=/projects/EEG-foundation-model/yinghao/envs/v7_fga; PY="$E/bin/python -I"; BIG=/projects/EEG-foundation-model/yinghao/outputs_v7
 export TORCH_HOME=/projects/EEG-foundation-model/yinghao/models/torch_home HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
@@ -32,6 +33,8 @@ case "$what" in
        tifa-score) $T -I scripts/v7x/x30_tifa.py score --qa $X/tifa_qa.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/tifa_scores_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
        dsg-score) $T -I scripts/v7x/x30_dsg.py score --dsg $X/dsg_gen_*.jsonl --inputs $D/genai_rank_inputs.jsonl --out $X/dsg_scores_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
      esac;;
+  b2-rank) L=/projects/EEG-foundation-model/yinghao/envs/v7x_llm/bin/python; X=$BIG/x30; mkdir -p $X; export V7X_LOCAL=/tmp/v7x_${SLURM_JOB_ID}; mkdir -p $V7X_LOCAL; trap "rm -rf $V7X_LOCAL" EXIT
+     $L -I scripts/v7x/x30_vqascore_host.py rank --inputs /home/infres/yinwang/CS_QMI/outputs/V7/data/genai_rank_inputs.jsonl --out $X/b2_vqascore_qwen25vl7b_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
   dsg-gen) L=/projects/EEG-foundation-model/yinghao/envs/v7x_llm/bin/python; X=$BIG/x30; mkdir -p $X
      $L -I scripts/v7x/x30_dsg.py gen --prompts /home/infres/yinwang/CS_QMI/outputs/V7/data/genai_rank_prompts.jsonl --out $X/dsg_gen_${1/\//of}.jsonl --shard $1 --limit ${2:-0}; rc=$?;;
   *) echo "unknown mode $what"; rc=2;;
