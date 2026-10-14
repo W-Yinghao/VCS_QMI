@@ -256,3 +256,15 @@ V7 是迄今匹配最严的自然数据实验（同接口、同初始化、同�
 | R7 D1 | `reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml`、`R7_D1_FULL_STAGED_FREEZE_20261012.yaml`、`R7_50_PROTOCOL_FROZEN_20261012.yaml` | `reports/R7/R7_D1_30_RESULTS.json`、`R7_D1_FULL_results/`、`R7_50_results_{L,Q,F}/` | D1-30 / D1-FULL / 40c / E1 / R7-50 L,Q,F 报告 |
 | REV8 / REV9 | `reports/REV8/REV8_DIAG_PROTOCOL_FROZEN_20261013.yaml`、`reports/REV9/REV9_PROTOCOL_FROZEN_20261014.yaml` | `reports/REV8/REV8_DIAG_RESULTS/` | `reports/REV8/REV8_DIAG_REPORT_20261014.md`；REV9 运行中 |
 | V7 / V7X（分支 v7/t2i-alignment） | `reports/V7/V7_03_PROTOCOL_FROZEN.yaml`、`V7_03_AMENDMENT_V2_20261014.yaml`、`V7X_20_*`、`V7X_11_*` | `reports/V7/V7_TABLE_A_results/`、`V7X_X21_results/`、`V7X_X11_results/` | `reports/V7/V7X_00_INTAKE_DELTA.md`、`V7X_10_EVIDENCE_COVERAGE.csv`、`V7X_30_EXTERNAL_BASELINES.md` |
+
+---
+
+## Update 2026-10-14 (after publication of this map): P155, official test of A-P3
+Owner, 2026-10-14: A-P3 is the final recipe; test it.  `reports/P155_AP3_OFFICIAL_TEST_REPORT_20261014.md` (pre-stated contrasts, frozen in `78085a9`):
+- **A-P3 − SimCLR (SimCLR recipe at VCS's view / epoch budget), official CIFAR-10 test, linear: +0.63 [+0.36, +0.90], 5 / 5 seeds → "ahead".**
+  A-P3 88.83 ± 0.10 vs SimCLR 88.20 ± 0.13.  kNN: −0.32 [−0.94, +0.30], no detectable difference.
+- A-P3 − JS-AP3 (matched JS, same recipe): linear −0.07 [−0.57, +0.43]; kNN −0.38 [−0.78, +0.02] (n = 3); no detectable difference.  The lead
+  belongs to the recipe, not to the quadratic loss.
+- §3's sentence "R4_02 §6.1: no v3–v7 recipe was ever confirmed on held-out data" no longer holds for A-P3.  §3's interpretation now reads:
+  with the final recipe, a CS-type objective leads SimCLR at equal view / epoch budget on the linear probe (not on kNN); matched JS on the same
+  recipe is level with it.
