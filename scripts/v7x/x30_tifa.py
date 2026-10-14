@@ -46,8 +46,8 @@ def cmd_qg(a):
             try:
                 raw = T.get_llama2_question_and_answers(pipe, p["prompt"]); kept = T.filter_question_and_answers(qa_model, raw); err = None
             except (IndexError, ValueError) as e:                              # TIFA's parse_resp on a malformed generation (e.g. 'About x' without '(type)')
-                from tifascore import question_gen_llama2 as QG
-                raw, kept, err = {"raw_completion": QG.llama2_completion(pipe, p["prompt"])}, [], f"{type(e).__name__}: {e}"
+                from tifascore import question_gen_llama2 as QGM
+                raw, kept, err = {"raw_completion": QGM.llama2_completion(pipe, p["prompt"])}, [], f"{type(e).__name__}: {e}"
             fh.write(json.dumps({"prompt_id": p["prompt_id"], "prompt": p["prompt"], "qas_generated": raw, "qas": kept, "parse_error": err}) + "\n"); fh.flush()
             if k % 25 == 0:
                 print(f"[tifa] qg {k + 1}/{len(prompts)} ({time.time() - t0:.0f}s): {len(raw)} generated, {len(kept)} kept", flush=True)
