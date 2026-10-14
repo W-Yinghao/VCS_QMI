@@ -81,7 +81,8 @@ secondary.
 **Label-free facts so far (GenAI-Rank, 800 prompts).**  DSG local (Qwen2.5-32B-Instruct): 7 parse errors (0.9 %; those prompts score 0 for all
 candidates), no prompt without questions, 5.97 questions per prompt (median 6); DSG's released PaLM 2 annotations on DSG-1k average 7.72 (median
 7) on a different, longer prompt set, so the counts are not directly comparable.  PN-VQA local: 5.23 elements per prompt, 4,185 / 4,185 questions
-parsed.  TIFA local: running (its parser rejected some generations; counted in the output).
+parsed.  TIFA local (released LLaMA-2 generator, 2026-10-14, job 1039687): 31 / 800 parse errors (3.9 %), 8.04 questions generated per prompt
+(median 8), 5.66 kept after the UnifiedQA filter (median 6; 73 % kept), 33 prompts (4.1 %) with no kept question (their candidates tie).
 
 **Design if run.**
 - Prompt sets: GenAI-Rank 800, GenAI-Bench 1,600 (750 shared with Rank, reused by text), EvalMuse DEV 307 -> about 2,000 unique prompts.
