@@ -134,7 +134,8 @@ execution_note_draft_1: >
   other steps / epochs or holding checkpoints without train.json (G1's guards).  The G1 jobs' root (outputs_v9/reg) and the r6 roots are never written.
 execution_note_freeze_20261015: >
   Launch: the 10 grouped jobs 1042138–1042147 were submitted by the G2 fork at 2026-10-15T18:37:40Z (nice 400, commit 16b6383) on the coordinator's go;
-  while pending, their exclude list was set to node51,node60 (cluster policy; the sbatch header excludes node51).  EPFL terms: the owner cleared every
+  an attempt to add node60 to the pending jobs' exclude list was refused by the scheduler (scontrol: "Update of this parameter is not supported:
+  ExcludeNodeList"), so the jobs run with the sbatch header's exclusion (node51 only), exactly as G1's jobs did.  EPFL terms: the owner cleared every
   dataset already on the server on 2026-10-15 ("所有的数据，只要是现在有了的，我们就有权限。你不需要再纠结，直接开始相关实验"), so the EPFL-usage item
   of G1's not_run list / OWNER_DECISIONS D5 is closed as an owner decision, not as a verification of licence terms (the archive ships no licence text;
   recorded under data.source).  Resumable: every unit skips when its result exists; the mixing guards refuse foreign or interrupted runs.
