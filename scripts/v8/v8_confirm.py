@@ -361,14 +361,271 @@ def cmd_tifa160_inputs(a) -> int:
     return 0 if len(rows) == 800 and not bad else 1
 
 
+# TIFA160 predictions (job v8_tifa160.sbatch) and sealed labels.  Paths only; nothing under CLOSED is opened by any command except tifa160-run.
+TIFA160_EXTERNAL = {"B0_FGA_released_O": TIFA160_DIR / "native_B0_released" / "native_eval_tifa160.json",
+                    "B1_VQAScore": TIFA160_DIR / "b1_vqascore_clipflant5xxl.jsonl",
+                    "B4T_TIFA": TIFA160_DIR / "tifa_scores_0of1.jsonl",
+                    "B4D_DSG": TIFA160_DIR / "dsg_scores_0of1.jsonl"}
+TIFA160_EXPOSED = {"B4D_DSG": "in-context: the local DSG route's question examples came from DSG's tifa160-dev-anns.csv (human-written tuples for these 160 prompts)"}
+CLOSED = Path("/projects/EEG-foundation-model/yinghao/third_party/closed")
+TIFA160_LABELS = {"tifa_2rater": CLOSED / "tifa@8e37050" / "human_annotations" / "human_annotations.json",
+                  "dsg_5rater": CLOSED / "DSG@7330119" / "tifa160-likert-anns.csv"}
+TIFA160_SUMS = CLOSED / "SHA256SUMS_v7x_20261014.txt"
+TIFA160_FAMILIES = {"tifa_primary": ("U-CS", list(TIFA160_EXTERNAL)), "tifa_attribution": ("U-CS", ["U-BCE"]),
+                    "tifa_same_data_descriptive": ("U-CS", ["U-RPS", "U-CE", "U-MSE", "U-L1", "U-RANK", "U-LIST"])}
+
+
+def load_v8_tifa160(arm: str, seed: int, units: Path = UNITS) -> dict:
+    p = unit_dir(arm, seed, units) / "pred" / "tifa160.jsonl"
+    return {r["image_id"]: float(r["score"]) for r in read_jsonl(p)}
+
+
+def pearson(a, b) -> float:
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    if a.std() == 0 or b.std() == 0:
+        return float("nan")
+    return float(np.corrcoef(a, b)[0, 1])
+
+
+def kendall_tau_b(a, b) -> float:
+    """Kendall tau-b (ties handled) — O(n^2), fine for 800 images."""
+    a, b = np.asarray(a, float), np.asarray(b, float); n = len(a)
+    da = np.sign(a[:, None] - a[None, :]); db = np.sign(b[:, None] - b[None, :]); iu = np.triu_indices(n, 1)
+    da, db = da[iu], db[iu]; conc = float(np.sum((da * db) > 0)); disc = float(np.sum((da * db) < 0))
+    ta = float(np.sum(da == 0)); tb = float(np.sum(db == 0)); n0 = len(da)
+    den = math.sqrt((n0 - ta) * (n0 - tb))
+    return float("nan") if den == 0 else (conc - disc) / den
+
+
+CORR = {"spearman": spearman, "pearson": pearson, "kendall_tau_b": kendall_tau_b}
+
+
+def read_tifa160_dsg(path: Path, image_of: dict) -> dict:
+    """DSG's tifa160-likert-anns.csv (schema from the PUBLIC dsg/data_utils.py: item_id, source_id, t2i_model, worker_id, answer): mean Likert per
+    (source_id = TIFA text id, t2i_model -> file tag) over its raters.  image_of[(text id, tag)] -> image_id.  Opened by tifa160-run only."""
+    import csv
+    acc = defaultdict(list); raters = defaultdict(set)
+    for r in csv.DictReader(open(path)):
+        tag = DSG_T2I_TO_TAG.get(r["t2i_model"])
+        key = (r["source_id"], tag)
+        if tag is None or key not in image_of:
+            continue
+        acc[image_of[key]].append(float(r["answer"])); raters[image_of[key]].add(r["worker_id"])
+    return {"human": {im: float(np.mean(v)) for im, v in acc.items()}, "n_raters": {im: len(raters[im]) for im in acc}}
+
+
+def read_tifa160_tifa(path: Path, image_of: dict) -> dict:
+    """TIFA's human_annotations.json — structure NOT known before the read (the folder README is sealed).  Tolerant parse: a dict keyed by image file
+    name / stem / '<id>_<model>' with a number, a list of numbers or a dict holding scores; or a list of records.  Everything unrecognised is
+    counted and reported; the detected layout is written to the result.  Opened by tifa160-run only."""
+    raw = json.load(open(path)); stem_of = {}
+    for (tid, tag), im in image_of.items():
+        stem_of[f"{tid}_{tag}"] = im; stem_of[f"{tid}_{tag}.jpg"] = im; stem_of[im] = im; stem_of[im.split("/")[-1]] = im
+    human, layout, unknown = {}, None, 0
+
+    def score_of(v):
+        if isinstance(v, (int, float)):
+            return float(v)
+        if isinstance(v, list) and v and all(isinstance(x, (int, float)) for x in v):
+            return float(np.mean(v))
+        if isinstance(v, dict):
+            for k in ("human_score", "score", "likert", "likert_scores", "scores", "human_scores", "mean"):
+                if k in v:
+                    return score_of(v[k])
+        return None
+
+    if isinstance(raw, dict):
+        layout = "dict"
+        for k, v in raw.items():
+            im = stem_of.get(str(k)) or stem_of.get(str(k).split("/")[-1])
+            if im is None and isinstance(v, dict):                      # id -> model -> scores
+                for k2, v2 in v.items():
+                    im2 = stem_of.get(f"{k}_{k2}") or stem_of.get(str(k2)); s = score_of(v2)
+                    if im2 is not None and s is not None:
+                        human[im2] = s; layout = "dict[id][model]"
+                    else:
+                        unknown += 1
+                continue
+            s = score_of(v)
+            if im is not None and s is not None:
+                human[im] = s
+            else:
+                unknown += 1
+    elif isinstance(raw, list):
+        layout = "list"
+        for r in raw:
+            if not isinstance(r, dict):
+                unknown += 1; continue
+            key = r.get("image") or r.get("img_path") or r.get("image_id") or r.get("file") or r.get("filename")
+            im = stem_of.get(str(key)) if key is not None else None
+            if im is None and r.get("text_id") is not None and r.get("model") is not None:
+                im = stem_of.get(f"{r['text_id']}_{r['model']}")
+            s = score_of(r)
+            if im is not None and s is not None:
+                human[im] = s
+            else:
+                unknown += 1
+    return {"human": human, "layout": layout, "unparsed_entries": unknown}
+
+
+def tifa160_inventory(do_hash: bool = False, units: Path = UNITS) -> dict:
+    cands = read_jsonl(TIFA160_INPUTS) if TIFA160_INPUTS.exists() else []
+    images = [c["image_id"] for c in cands]
+    inv = {"inputs": {"file": str(TIFA160_INPUTS), "rows": len(cands), "prompts": len({c["prompt_id"] for c in cands}), "sha256": sha(TIFA160_INPUTS) if do_hash and cands else None},
+           "methods": {}, "missing_units": [], "external_files": {}, "exposed": TIFA160_EXPOSED, "sealed": {}}
+    for arm in ARMS:
+        for s in SEEDS:
+            p = unit_dir(arm, s, units) / "pred" / "tifa160.jsonl"
+            if not p.exists():
+                inv["missing_units"].append(f"{arm}-s{s}"); continue
+            pred = load_v8_tifa160(arm, s, units); miss = [im for im in images if im not in pred]
+            inv["methods"][f"{arm}-s{s}"] = {"file": str(p), "rows": len(pred), "missing_images": len(miss), "sha256": sha(p) if do_hash else None}
+    for name, path in TIFA160_EXTERNAL.items():
+        if not path.exists():
+            inv["external_files"][name] = {"file": str(path), "present": False, "exposed": name in TIFA160_EXPOSED}; continue
+        pred = load_external(name, path); miss = [im for im in images if im not in pred]
+        inv["external_files"][name] = {"file": str(path), "present": True, "rows": len(pred), "missing_images": len(miss), "sha256": sha(path) if do_hash else None, "exposed": name in TIFA160_EXPOSED}
+    sums = {}
+    if TIFA160_SUMS.exists():
+        for line in TIFA160_SUMS.read_text().splitlines():
+            parts = line.split()
+            if len(parts) >= 2:
+                sums[parts[-1]] = parts[0]
+    for name, path in TIFA160_LABELS.items():                             # bytes hashed only (the seal); never parsed here
+        rec = {"file": str(path), "present": path.exists(), "bytes": path.stat().st_size if path.exists() else None, "sha256": sha(path) if (do_hash and path.exists()) else None}
+        reg = [h for f, h in sums.items() if f.endswith(path.name) and path.parent.name in f]
+        rec["seal_registered"] = reg[0] if reg else None; rec["seal_matches"] = (rec["sha256"] == reg[0]) if (reg and rec["sha256"]) else None
+        inv["sealed"][name] = rec
+    present_ext = [n for n, e in inv["external_files"].items() if e.get("present")]
+    inv["ready_for_run"] = (len(cands) == 800 and not inv["missing_units"] and all(m["missing_images"] == 0 for m in inv["methods"].values())
+                            and all(inv["external_files"][n]["missing_images"] == 0 for n in present_ext) and inv["sealed"]["dsg_5rater"]["present"])
+    inv["external_present"] = present_ext
+    return inv
+
+
+def cmd_tifa160_dry_run(a) -> int:
+    inv = tifa160_inventory(do_hash=a.hash); inv["utc"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    out = Path(a.out); out.mkdir(parents=True, exist_ok=True); (out / "tifa160_dry_run.json").write_text(json.dumps(inv, indent=1))
+    print(f"[tifa160-dry-run] inputs {inv['inputs']['rows']} rows / {inv['inputs']['prompts']} prompts; units present {len(inv['methods'])} / 24, missing {inv['missing_units']}; "
+          f"external present {inv['external_present']} (absent: {[n for n in TIFA160_EXTERNAL if n not in inv['external_present']]}); sealed present "
+          f"{[n for n, s in inv['sealed'].items() if s['present']]}; ready_for_run={inv['ready_for_run']}")
+    return 0 if inv["ready_for_run"] else 1
+
+
+def tifa160_contrasts(images: list, prompt_of: dict, methods: dict, human: dict, ours: str, comps: list, reps: int = BOOT, seed: int = BOOT_SEED) -> dict:
+    """Δ of each correlation (ours − comp) with a bootstrap over the 160 text inputs (all five images of a prompt move together)."""
+    prompts = sorted({prompt_of[im] for im in images}); idx = {p: np.array([i for i, im in enumerate(images) if prompt_of[im] == p]) for p in prompts}
+    h = np.array([human[im] for im in images]); m = {k: np.array([methods[k][im] for im in images]) for k in [ours] + comps}
+    rng = np.random.default_rng(seed); draws = [rng.integers(0, len(prompts), len(prompts)) for _ in range(reps)]
+    out = {}
+    for comp in comps:
+        out[comp] = {}
+        for cname, fn in CORR.items():
+            pt = fn(m[ours], h) - fn(m[comp], h); bs = np.empty(reps)
+            for r, dr in enumerate(draws):
+                sel = np.concatenate([idx[prompts[i]] for i in dr]); bs[r] = fn(m[ours][sel], h[sel]) - fn(m[comp][sel], h[sel])
+            bs = bs[~np.isnan(bs)]
+            out[comp][cname] = {"delta": float(pt), "ci95": [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))], "p": boot_p(bs),
+                                "value_ours": fn(m[ours], h), "value_comp": fn(m[comp], h), "exposed": comp in TIFA160_EXPOSED}
+    return out
+
+
+def add_holm_corr(fam: dict) -> dict:
+    for cname in CORR:
+        keys = [c for c in fam if cname in fam[c]]
+        if keys:
+            for c, adj in zip(keys, holm([fam[c][cname]["p"] for c in keys])):
+                fam[c][cname]["p_holm"] = float(adj)
+    return fam
+
+
+def cmd_tifa160_run(a) -> int:
+    if not a.allow_scoring:
+        raise SystemExit("tifa160-run needs --allow-scoring")
+    if not REQUEST.exists() or "TIFA160 CONFIRMED" not in REQUEST.read_text():
+        raise SystemExit(f"refusing: {REQUEST} missing or without the line 'TIFA160 CONFIRMED' (main session, after the owner's TIFA160 approval)")
+    out = Path(a.out)
+    if (out / "tifa160_confirm.json").exists():
+        raise SystemExit(f"refusing: {out / 'tifa160_confirm.json'} exists")
+    inv = tifa160_inventory(do_hash=True)
+    if not inv["ready_for_run"]:
+        raise SystemExit("refusing: TIFA160 inventory not ready (see tifa160-dry-run)")
+    cands = read_jsonl(TIFA160_INPUTS); prompt_of = {c["image_id"]: c["prompt_id"] for c in cands}; gen_of = {c["image_id"]: c["generator_id"] for c in cands}
+    image_of = {(c["prompt_id"], c["generator_id"]): c["image_id"] for c in cands}
+    methods = {}
+    for arm in ARMS:
+        per = {s: load_v8_tifa160(arm, s) for s in SEEDS}; methods[arm] = seed_mean(list(per.values()))
+        for s in SEEDS:
+            methods[f"{arm}-s{s}"] = per[s]
+    comps_present = []
+    for name, path in TIFA160_EXTERNAL.items():
+        if path.exists():
+            methods[name] = load_external(name, path); comps_present.append(name)
+    dsg = read_tifa160_dsg(TIFA160_LABELS["dsg_5rater"], image_of)                                   # the TIFA160 label read (DSG 5-rater)
+    tifa = read_tifa160_tifa(TIFA160_LABELS["tifa_2rater"], image_of) if TIFA160_LABELS["tifa_2rater"].exists() else {"human": {}, "layout": None, "unparsed_entries": None}
+    res = {"utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "inventory": inv, "boot": {"reps": BOOT, "seed": BOOT_SEED, "unit": "text input (160)"},
+           "labels": {"dsg_5rater": {"images_with_rating": len(dsg["human"]), "raters_per_image": sorted(set(dsg["n_raters"].values()))},
+                      "tifa_2rater": {"images_with_rating": len(tifa["human"]), "layout_detected": tifa["layout"], "unparsed_entries": tifa["unparsed_entries"]}},
+           "comparators_present": comps_present, "comparators_absent": [n for n in TIFA160_EXTERNAL if n not in comps_present], "exposed": TIFA160_EXPOSED, "readouts": {}}
+    for lab, H in (("dsg_5rater", dsg["human"]), ("tifa_2rater", tifa["human"])):
+        if not H:
+            res["readouts"][lab] = {"note": "no usable ratings parsed"}; continue
+        images = sorted(set.intersection(*(set(m) for m in methods.values())) & set(H)); gens = sorted(set(gen_of[im] for im in images))
+        h = np.array([H[im] for im in images])
+        levels = {k: {cn: fn(np.array([methods[k][im] for im in images]), h) for cn, fn in CORR.items()} for k in methods}
+        per_gen = {k: {g: spearman(np.array([methods[k][im] for im in images if gen_of[im] == g]), np.array([H[im] for im in images if gen_of[im] == g])) for g in gens} for k in methods if "-s" not in k}
+        fams = {}
+        for fam, (ours, comps) in TIFA160_FAMILIES.items():
+            comps_here = [c for c in comps if c in methods]
+            if not comps_here:
+                continue
+            fam_res = tifa160_contrasts(images, prompt_of, methods, H, ours, comps_here)
+            fams[fam] = add_holm_corr(fam_res) if fam != "tifa_same_data_descriptive" else fam_res
+        res["readouts"][lab] = {"n_images": len(images), "n_prompts": len({prompt_of[im] for im in images}), "levels": levels, "spearman_per_generator": per_gen, "families": fams}
+    out.mkdir(parents=True, exist_ok=True); (out / "tifa160_confirm.json").write_text(json.dumps(res, indent=1)); (out / "tifa160_confirm.md").write_text(tifa160_markdown(res))
+    print(f"-> {out / 'tifa160_confirm.md'}")
+    return 0
+
+
+def tifa160_markdown(res: dict) -> str:
+    L = [f"# V8-05 §B — TIFA160 secondary external evaluation (generated from tifa160_confirm.json, {res['utc']})", "",
+         f"Secondary evaluation added 2026-10-15 (not the registered confirmation source).  Labels: DSG 5-rater mean ({res['labels']['dsg_5rater']['images_with_rating']} images rated; "
+         f"raters per image {res['labels']['dsg_5rater']['raters_per_image']}) and TIFA 2-rater mean ({res['labels']['tifa_2rater']['images_with_rating']} images parsed; layout "
+         f"{res['labels']['tifa_2rater']['layout_detected']}; unparsed {res['labels']['tifa_2rater']['unparsed_entries']}).  Bootstrap: {res['boot']['reps']} resamples over the 160 text inputs, "
+         f"seed {res['boot']['seed']}.  Comparators present: {res['comparators_present']}; absent: {res['comparators_absent']}; exposed: {list(res['exposed'])}.  Intervals only — no claim language.", ""]
+    for lab, R in res["readouts"].items():
+        L += [f"## labels = {lab}", ""]
+        if "note" in R:
+            L += [R["note"], ""]; continue
+        L += [f"Images {R['n_images']} over {R['n_prompts']} text inputs.", ""]
+        for fam, F in R["families"].items():
+            L += [f"### {fam}", "", "| contrast | correlation | Δ [95 %] | p | p Holm | ours / comp | exposed |", "|---|---|---|---|---|---|---|"]
+            for comp, C_ in F.items():
+                for cn, c in C_.items():
+                    L.append(f"| U-CS − {comp} | {cn} | {_fmt(c)} | {c['p']:.4f} | {c.get('p_holm', float('nan')):.4f} | {c['value_ours']:.3f} / {c['value_comp']:.3f} | {'yes' if c['exposed'] else ''} |")
+            L.append("")
+        gens = sorted(next(iter(R["spearman_per_generator"].values())).keys()) if R["spearman_per_generator"] else []
+        L += ["### Levels (Spearman / Pearson / Kendall tau-b; Spearman per generator)", "", "| method | Spearman | Pearson | Kendall | " + " | ".join(gens) + " |", "|---|---|---|---|" + "---|" * len(gens)]
+        for k, v in R["levels"].items():
+            if "-s" in k and k.split("-s")[-1].isdigit():
+                continue
+            pg = R["spearman_per_generator"].get(k, {})
+            L.append(f"| {k} | {v['spearman']:.3f} | {v['pearson']:.3f} | {v['kendall_tau_b']:.3f} | " + " | ".join(f"{pg.get(g, float('nan')):.3f}" for g in gens) + " |")
+        L.append("")
+    return "\n".join(L) + "\n"
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("prompt-list"); p.add_argument("--out", default=None)
     d = sub.add_parser("dry-run"); d.add_argument("--out", required=True); d.add_argument("--hash", action="store_true")
     r = sub.add_parser("run"); r.add_argument("--out", required=True); r.add_argument("--allow-scoring", action="store_true")
     t = sub.add_parser("tifa160-inputs"); t.add_argument("--images", required=True); t.add_argument("--out", required=True)
+    td = sub.add_parser("tifa160-dry-run"); td.add_argument("--out", required=True); td.add_argument("--hash", action="store_true")
+    tr = sub.add_parser("tifa160-run"); tr.add_argument("--out", required=True); tr.add_argument("--allow-scoring", action="store_true")
     a = ap.parse_args(argv)
-    return {"prompt-list": cmd_prompt_list, "dry-run": cmd_dry_run, "run": cmd_run, "tifa160-inputs": cmd_tifa160_inputs}[a.cmd](a)
+    return {"prompt-list": cmd_prompt_list, "dry-run": cmd_dry_run, "run": cmd_run, "tifa160-inputs": cmd_tifa160_inputs,
+            "tifa160-dry-run": cmd_tifa160_dry_run, "tifa160-run": cmd_tifa160_run}[a.cmd](a)
 
 
 if __name__ == "__main__":
