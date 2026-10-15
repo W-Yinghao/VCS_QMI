@@ -30,3 +30,10 @@ guarantees an application advantage; N2 can only be judged on complete training 
 2. 「批准读取 TIFA160 标签，作为冻结 V8 模型的次级外部评价。」
 Scope as approved: one read each; frozen V8 models and selection rule unchanged (all seeds); V7 does not use either; the reads happen only after the
 confirmation protocol (`V8_05`) is frozen and its dry-run passes; results reported in full whatever their sign; no tuning feedback from them.
+
+## Owner decision (2026-10-15, later, verbatim)
+「所有的数据，只要是现在有了的，我们就有权限。你不需要再纠结，直接开始相关实验」 — every dataset already on the server is cleared for use; no further
+usage-basis deliberation; start the related experiments.  Consequences applied: EPFL RGB-NIR cleared → V9-G2 may be prepared and run; NCR
+precomputed features / Flickr30K / COCO cleared for the N2 block (no attestation step); TIFA160 images (being fetched) cleared for the approved
+secondary read; BF-SHG closed test stays unread until the G1 confirmation trigger.  The data register keeps recording sources and terms as facts,
+without blocking work.
