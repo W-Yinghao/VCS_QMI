@@ -47,8 +47,9 @@ readings_fixed_now:
   - H1 is read on the main comparison only: VCS-moment vs BBSE / calibrated EM / kernel methods at equal reference budget; "affine-invariant moment estimates coincide" is the expected null for vcs_moment vs bce_moment vs bbse_soft (same T up to scale), and is reported as such, not as a tie to be broken
   - N1 is not a gate on N2 (§04.7): N2 proceeds on definitional correctness, computable weights and no label leakage, whatever the N1 ranking
 not_claimed: natural clean-posterior recovery; end-to-end VL robustness; anything about Flickr30K / NCR data (not yet audited); any SGR-teacher statement; novelty of the moment / BBSE / EM / posterior-weight formulas (prior art listed in the package literature review)
-cost_measured_in_smoke:                  # login-node smoke, 8 threads; the CPU gate re-measures (its /usr/bin/time lines)
-  exact: 0.46 s per repeat at n 128 (fit panel + batch, no Adam); n 2048 to be measured by the gate → 4 designs × 4 ρ × 3 n × 200 repeats ≈ 9 600 repeats; submission as 4 CPU jobs (one design each), resumable
-  image: panel fit 0.4 s (no Adam) / ≈ 7 s with Adam per seed; ≈ 0.1 s per batch at n 128 (n 2048 to be measured) → 3 seeds × 12 cells × 30 batches ≈ 1 080 batches: one CPU job
+cost_measured_in_gate:                   # CPU gate job 1041669 (8 threads, nodecpu; tests 114 passed / 2 skipped; smoke outputs in outputs_v9/n1/smoke_1041669, not results)
+  exact: 0.46 s per repeat at n 128, 4.0 s at n 2048 (fit panel + batch incl. the capped kernel MPE) → per design 4 ρ × 200 repeats × (0.46 + ~1.2 + 4.0) s ≈ 1.3 h; 4 designs as 4 CPU jobs (`exact <design>`), resumable per cell
+  image: panel fit 3.7 s per seed (with the Adam sensitivity); 0.1 s per batch at n 128, 1.25 s at n 2048 → 3 seeds × 4 ρ × 30 batches × 3 sizes ≈ 11 min in one CPU job (`image 901,902,903`)
+  total: ≈ 5.5 CPU-h; no GPU
 submission_after_freeze: sbatch slurm/v9/n1.sbatch exact clear | moderate | weak | shift (4 jobs) ; sbatch slurm/v9/n1.sbatch image 901,902,903 ; then aggregate → results-only commit → report (reports/V9/V9_N1_RESULTS/)
 status: draft
