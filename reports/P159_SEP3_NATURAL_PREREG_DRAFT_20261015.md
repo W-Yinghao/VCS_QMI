@@ -82,17 +82,26 @@ Nothing about SSL training, VL fine-tuning or any downstream accuracy; nothing a
 feature sources and the two contamination constructions; no novelty (Buja, Stuetzle & Shen 2005; the L² projection of the Brier score; the noisy-label
 literature of P156 §6).
 
-## Gate (to be filled from the gate job before the freeze)
-- CPU/GPU gate job: `sbatch --job-name=p159_gate slurm/p159_sep3.sbatch gate` → `reports/P159_GATE/`: tests (`tests/test_p159.py` + `tests/test_p157.py`),
-  `--smoke` run of one seed's 40 cells (N 256, 40 updates, EVAL 512; outputs/P159_smoke, not used), smoke aggregate, and one timed full-size cell per
-  source (outputs/P159_timing: seed 300, first cell = clean, N 4 096 cos-2 — its result is recomputed in the formal run; disclosed).
-- Local run before the gate: 10 / 10 tests on the login node (CPU).
+## Gate record (code-path evidence, not results)
+- **Gate 1 (job 1041362, RTX PRO 6000, commit a7cb545): FAILED** — tests 17 / 17 passed, but every COCO cell stopped on the EVAL-disjointness assertion (it
+  compared positional indices across the three P49 pools instead of image ids; fixed in 5074f30: positional check only for the shared CIFAR pool, image-id
+  check for COCO), and the CIFAR timing cell was saturated (J 0.9995 both arms, lr at the top edge) → the view change to blur_s1 described above.
+- **Gate 2 (job 1041364, RTX PRO 6000 node58, commit 5074f30, code c8a7154cda89b756): PASS** — `reports/P159_GATE/`: tests `tests/test_p159.py` +
+  `tests/test_p157.py` **17 / 17**; `--smoke` run of seed 300's 40 cells (N 256, 40 updates, EVAL 512) **40 / 40** written, 0 failed; smoke aggregate runs
+  (single seed → "not computable", as designed); timed full-size cells (seed 300, clean, N 4 096, cos-2): **COCO 15 s** (selected lr 1.0 / updates 1100 (JS),
+  1400 (VCS); J_eval 0.934 / 0.933) and **CIFAR (blur_s1) 15 s** (lr 0.3 / 1000, 600; J_eval 0.876 / 0.877).  Outputs of the smoke and timing runs
+  (outputs/P159_smoke, outputs/P159_timing) are not used; the formal run recomputes the timing cells (seed 300 is a formal seed — disclosed, as P157 did).
+  The smoke / timing readouts were looked at only to confirm the code path and the non-degeneracy of the CIFAR view; no rule, cell or threshold changed after
+  them except the view change recorded above.
+- Observation for the limitation rule: the COCO cos-2 critic selects the top of the lr grid (1.0) in the timing cell; the share over the formal cells is
+  reported per source × class × arm, and > 50 % is written as a limitation (no extension), as pre-registered.
 
 ## Cost and submission
-Measured in the gate (seconds per full cell per source).  Expected from P157 (23 s per cell at d 64 / N 16 384 on L40S): ≈ 20–40 s per cell → 40 cells ≈
-15–30 min per seed; 8 seeds ≈ 2–4 GPU-h.  Submission as **2 jobs of 4 seeds each** (`run 300+301+302+303`, `run 304+305+306+307`; --time 03:00:00), not 8
-short jobs (owner 2026-10-14: merge short GPU jobs); partitions RTX6000PRO / H100 / L40S excluding node51, node60; nice 400 so every V8 / REV10 job starts
-first.  Aggregation: `scripts/p159_aggregate.py --dir outputs/P159_sep3 --out reports/P159_SEP3_results/p159_aggregate`; results-only commit, then the report.
+Measured: **15 s per full cell at N 4 096 on RTX PRO 6000** (both sources; N 16 384 / 8 192 cells expected at ≤ 2× that: the trainer's cost is per update,
+only the SELECT / EVAL forwards grow) → ≈ 40 cells × ≈ 20 s ≈ 15 min per seed; 8 seeds ≈ **2 GPU-h**.  Submission as **2 jobs of 4 seeds each**
+(`sbatch --nice=400 slurm/p159_sep3.sbatch run 300+301+302+303` and `… run 304+305+306+307`; --time 03:00:00 = ≥ 3× margin), not 8 short jobs
+(owner 2026-10-14: merge short GPU jobs); partitions RTX6000PRO / H100 / L40S excluding node51, node60; nice 400 so every V8 / REV10 job starts first.
+Aggregation: `scripts/p159_aggregate.py --dir outputs/P159_sep3 --out reports/P159_SEP3_results/p159_aggregate` (CPU); results-only commit, then the report.
 
 ## Delivery (v5 §8 fields)
 ```yaml
