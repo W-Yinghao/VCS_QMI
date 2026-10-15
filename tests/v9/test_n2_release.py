@@ -68,7 +68,14 @@ class FakeCluster:
     def submit(self, name, group_file, formal):
         assert self.normal_count() < self.cap, "submitted at or above the cap"
         jid = str(self.next_id); self.next_id += 1; self.queue.append(jid)
-        self.submitted.append({"job": jid, "name": name, "group_file": str(group_file), "formal": formal, "lines": Path(group_file).read_text().splitlines()})
+        self.submitted.append({"job": jid, "name": name, "group_file": str(group_file), "formal": formal, "lines": Path(group_file).read_text().splitlines(), "official": False})
+        self.max_seen = max(self.max_seen, self.normal_count())
+        return jid, ""
+
+    def submit_official(self, name, r, kind, sbatch_args):
+        assert self.normal_count() < self.cap, "submitted at or above the cap"
+        jid = str(self.next_id); self.next_id += 1; self.queue.append(jid)
+        self.submitted.append({"job": jid, "name": name, "official": True, "kind": kind, "lines": [R.group_line(r)], "args": sbatch_args})
         self.max_seen = max(self.max_seen, self.normal_count())
         return jid, ""
 
@@ -85,6 +92,8 @@ class FakeCluster:
                     continue
                 d = R.unit_dir(self.out, r); d.mkdir(parents=True, exist_ok=True)
                 (d / "done.json").write_text(json.dumps({"best": {"rsum": self.rsum_fn(r), "epoch": 3}}))
+                if sub["official"] and sub["kind"] == "formal":
+                    (d / "result.json").write_text("{}")
             (self.logs / f"x_{jid}.out").write_text("exit=0\n" if jid not in fail else "exit=1\n")
         self.queue = self.queue[k:]
 
@@ -109,11 +118,11 @@ def _orch(fc, out, units, logs, per_job=2):
                           precheck_record_dir=None)
 
 
-@pytest.mark.parametrize("scenario", ["merged_same", "merged_differs"])
+@pytest.mark.parametrize("scenario", ["merged_same", "merged_differs", "with_wave2"])
 def test_simulated_release(tmp_path, scenario):
-    if scenario == "merged_same":                               # seed 917 merges the six arms at rho 0 like seeds 901 / 903
+    if scenario in ("merged_same", "with_wave2"):               # seed 917 merges the six arms at rho 0 like seeds 901 / 903
         g0 = [sorted(ARMS), ["PlainFilter"]]
-        sel_fn = {("VCS_Weight", 0.4): 0.5, ("BCE_Weight", 0.4): 2.0}
+        sel_fn = {("VCS_Weight", 0.4): 0.5, ("BCE_Weight", 0.4): 2.0, ("NCR_A", 0.4): 2.0}
     else:                                                       # seed 917 keeps Nystrom separate at rho 0 and it selects 0.5 -> formal s901 / s903 merged runs split
         g0 = [sorted(set(ARMS) - {"Nystrom_Weight"}), ["Nystrom_Weight"], ["PlainFilter"]]
         sel_fn = {("Nystrom_Weight", 0.0): 0.5, ("Unweighted_A", 0.4): 2.0}
@@ -127,7 +136,11 @@ def test_simulated_release(tmp_path, scenario):
 
     fc = FakeCluster(logs, out, base=22, cap=27, rsum_fn=rsum)
     o = _orch(fc, out, units, logs)
-    for it in range(400):
+    if scenario != "with_wave2":
+        (units / "wave2_disabled.json").write_text("{}")
+    for it in range(600):
+        if scenario == "with_wave2" and it == 12:               # enabled while wave-1 formal runs are being released
+            (units / "wave2_enabled.json").write_text(json.dumps({"sbatch_args": ["--partition=RTX6000PRO,H100"], "reason": "test"}))
         o.step()
         if o.st["done"]:
             break
@@ -138,10 +151,18 @@ def test_simulated_release(tmp_path, scenario):
         fc.finish(k=1)
     assert o.st["done"] and o.st["gate"] == "pass", o.st
     assert fc.max_seen <= 27
-    names = [s["name"] for s in fc.submitted]
+    names = [s["name"] for s in fc.submitted if not s["official"]]
     first_formal = min(i for i, n in enumerate(names) if n.startswith("v9n2_f"))
     assert all(n.startswith("v9n2_t") for n in names[:first_formal]) and not any(n.startswith("v9n2_t") for n in names[first_formal:])
     assert all(len(ln.split()) == 6 for s in fc.submitted for ln in s["lines"])
+    if scenario == "with_wave2":
+        off = [s for s in fc.submitted if s["official"]]
+        assert len([s for s in off if s["kind"] == "tuning"]) == 12 and all(len(s["lines"]) == 1 and s["args"] == ["--partition=RTX6000PRO,H100"] for s in off)
+        i_last_off_tuning = max(i for i, s in enumerate(fc.submitted) if s["official"] and s["kind"] == "tuning")
+        i_first_off_formal = min(i for i, s in enumerate(fc.submitted) if s["official"] and s["kind"] != "tuning")
+        assert i_last_off_tuning < i_first_off_formal                     # tuning before formal within wave 2 as well
+        off_formal = [r for j in o.st["jobs"] if j["kind"] == "formal" and j["family"] == "official" for r in j["runs"]]
+        assert sorted({(r["method"], r["rho"], r["seed"]) for r in off_formal}) == sorted({(m, rho, s) for m in ("NCR_A", "L2RM_A") for rho in (0.4, 0.0) for s in (901, 902, 903)})
     sel = R.selection(out, o.st["tuning_runs"])
     formal = [j for j in o.st["jobs"] if j["kind"] == "formal"]
     covered = {}
@@ -161,7 +182,7 @@ def test_simulated_release(tmp_path, scenario):
     got = sorted((r["rho"], r["seed"], m) for j in o.st["jobs"] if j["kind"] == "rerun" for r in j["runs"] for m in r["members"])
     assert want == got and want, (want, got)
     ev = [json.loads(ln)["event"] for ln in (units / "launch_ledger.jsonl").read_text().splitlines()]
-    assert {"gate_passed", "tuning_planned", "contingency_computed", "finished"} <= set(ev)
+    assert {"gate_passed", "tuning_planned", "contingency", "finished"} <= set(ev)
     if scenario == "merged_differs":
         assert any(r["members"] == ["Nystrom_Weight"] and r["rho"] == 0.0 and r["lr_mult"] == 0.5 for j in o.st["jobs"] if j["kind"] in ("formal", "rerun") for r in j["runs"])
 
@@ -195,3 +216,20 @@ def test_run_unit_refuses_members_outside_the_coefficient_group(tmp_path):
     with pytest.raises(Exception) as ei:                        # valid attribution passes the check and fails later only on the dummy inputs
         run_unit(None, None, tmp_path, "f30k", 0.0, "BCE_Weight", 901, members=["VCS_Weight", "BCE_Weight"])
     assert "coefficient group" not in str(ei.value)
+
+
+def test_v1_state_migrates(tmp_path):
+    """an orchestrator state written before the wave-2 extension (tuning queue of group-file strings) loads and keeps working."""
+    out, units, logs = _layout(tmp_path, {0.4: [[m] for m in ARMS], 0.0: [sorted(ARMS)]})
+    fc = FakeCluster(logs, out, base=26, cap=27, rsum_fn=lambda r: 400.0)
+    o = _orch(fc, out, units, logs)
+    o.step()                                                    # gate + plan; one tuning job (26 -> 27)
+    st = json.loads(o.state_path.read_text())
+    st["tuning_queue"] = [q["group_file"] for q in st["tuning_queue"]]
+    for k in ("x1_processed", "wave2", "resubmit_queue"):
+        st.pop(k, None)
+    o.state_path.write_text(json.dumps(st))
+    o2 = _orch(fc, out, units, logs)
+    assert all(isinstance(q, dict) and q["family"] == "sgr" for q in o2.st["tuning_queue"]) and o2.st["wave2"] is None
+    fc.finish(k=1); o2.step()
+    assert len(fc.submitted) == 2

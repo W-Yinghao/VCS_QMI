@@ -15,7 +15,11 @@ nice 400 comes from slurm/v9/n2_unit.sbatch):
              (one run only when coefficients AND lr are identical).
   3. rerun   once every (method, rho) selection is complete: x1 formal runs whose members select a multiplier other than 1 are re-run at
              it (contingency); the x1 run stays attributed to the members that selected 1 and is reported as a sensitivity row otherwise.
-A job that left the queue with runs lacking done.json is resubmitted once (units resume from last.pt and skip when done); a second failure is
+  wave 2  NCR_A / L2RM_A (patched official code, slurm/v9/n2_official.sbatch, ONE run per job: NCR has no co-training resume) join the same
+             queues once reports/V9/V9_N2_units/wave2_enabled.json exists (written after the official smoke passed and fork A's timings landed):
+             their seed-917 tuning runs go to the tuning queue (ahead of any formal run not yet submitted), their formal runs to the formal list
+             under the same selected / x1 rule.  The contingency is computed per run as soon as its members' selections are complete.
+A job that left the queue with runs lacking done.json (official formal: result.json too) is resubmitted once (units resume from last.pt and skip when done); a second failure is
 logged as given_up for a human.  Ledger (append-only, no results): reports/V9/V9_N2_units/launch_ledger.jsonl; state + status:
 slurm_logs/v9_n2_release_{state,status}.json; job ids for slurm/v9/n2_watch.sh: slurm_logs/v9_n2_feed_ids.txt.
 
@@ -39,6 +43,8 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 MULTS = (0.5, 1.0, 2.0)
 ARMS = ("Unweighted_A", "VCS_Weight", "BCE_Weight", "RuLSIF_Weight", "Nystrom_Weight", "RankMass")
+OFFICIAL = {"NCR_A": "ncr", "L2RM_A": "l2rm"}
+ORDER = ARMS + tuple(OFFICIAL)
 SGR_EXPORT = ("ALL,V9_SGR_PY=/projects/EEG-foundation-model/yinghao/envs/v9_sgr/bin/python,"
               "DATA_ROOT=/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data,"
               "VOCAB=/projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3/vocab,"
@@ -59,6 +65,17 @@ def rkey(r: dict) -> tuple:
 
 def unit_dir(out: Path, r: dict) -> Path:
     return Path(out) / r["dataset"] / f"rho{float(r['rho']):g}" / f"s{int(r['seed'])}" / f"unit_{r['method']}_lr{float(r['lr_mult']):g}"
+
+
+def family(r: dict) -> str:
+    return "official" if r["method"] in OFFICIAL else "sgr"
+
+
+def run_complete(out: Path, r: dict, kind: str) -> bool:
+    """sgr: done.json; official tuning: done.json (dev best); official formal / rerun: done.json and result.json (official test collect)."""
+    if run_done(out, r) is None:
+        return False
+    return not (family(r) == "official" and kind in ("formal", "rerun")) or (unit_dir(out, r) / "result.json").exists()
 
 
 def run_done(out: Path, r: dict) -> dict | None:
@@ -105,30 +122,32 @@ def split_by_selection(r: dict, sel: dict) -> list:
     return [dict(r, method=sorted(ms)[0], lr_mult=float(mu), members=sorted(ms), fixed=True) for mu, ms in sorted(by.items())]
 
 
-def next_formal_job(pending: list, sel: dict, per_job: int):
-    """-> (job_runs, case, consumed_indices, leftover_fixed_runs); one job = runs of a single (rho, members) key."""
+def next_formal_job(pending: list, sel: dict, per_job):
+    """-> (job_runs, case, consumed_indices, leftover_fixed_runs); one job = runs of a single (rho, members) key; per_job: int or run -> int."""
+    pj = per_job if callable(per_job) else (lambda _r: per_job)
     fixed = [j for j, q in enumerate(pending) if q.get("fixed")]
     if fixed:
         k0 = rkey(pending[fixed[0]])
-        same = [j for j in fixed if rkey(pending[j]) == k0][:per_job]
+        same = [j for j in fixed if rkey(pending[j]) == k0][:pj(pending[fixed[0]])]
         return [pending[j] for j in same], "selected", same, []
     for i, r in enumerate(pending):
         if complete_for(r, sel):
+            n = pj(r)
             parts = split_by_selection(r, sel)
-            if len(parts) >= per_job:
-                return parts[:per_job], "selected", [i], parts[per_job:]
+            if len(parts) >= n:
+                return parts[:n], "selected", [i], parts[n:]
             job, used = list(parts), [i]
             for j, q in enumerate(pending):
                 if j != i and rkey(q) == rkey(r) and complete_for(q, sel):
                     qp = split_by_selection(q, sel)
-                    if len(job) + len(qp) <= per_job:
+                    if len(job) + len(qp) <= n:
                         job += qp
                         used.append(j)
-                    if len(job) >= per_job:
+                    if len(job) >= n:
                         break
             return job, "selected", used, []
     k0 = rkey(pending[0])
-    same = [j for j, q in enumerate(pending) if rkey(q) == k0][:per_job]
+    same = [j for j, q in enumerate(pending) if rkey(q) == k0][:pj(pending[0])]
     return [dict(pending[j], lr_mult=1.0) for j in same], "x1_contingency", same, []
 
 
@@ -139,15 +158,21 @@ def contingency_runs(x1_runs: list, sel: dict) -> list:
     return out
 
 
-def chunk_by_key(runs: list, per_job: int) -> list:
+def chunk_by_key(runs: list, per_job) -> list:
+    pj = per_job if callable(per_job) else (lambda _r: per_job)
     groups: dict = {}
     for r in runs:
         groups.setdefault((rkey(r), float(r["lr_mult"])), []).append(r)
     jobs = []
     for _, rs in groups.items():
         rs = sorted(rs, key=lambda q: int(q["seed"]))
-        jobs += [rs[k:k + per_job] for k in range(0, len(rs), per_job)]
+        n = pj(rs[0])
+        jobs += [rs[k:k + n] for k in range(0, len(rs), n)]
     return jobs
+
+
+def order_key(r: dict) -> tuple:
+    return (not r.get("fixed"), -float(r["rho"]), ORDER.index(r["method"]) if r["method"] in ORDER else 99, tuple(r["members"]), int(r["seed"]))
 
 
 def group_line(r: dict) -> str:
@@ -195,6 +220,13 @@ class Cluster:
         jid = r.stdout.strip().split(";")[0]
         return (jid if r.returncode == 0 and jid.isdigit() else None), (r.stderr or r.stdout)[-400:]
 
+    def submit_official(self, name: str, r: dict, kind: str, sbatch_args: list):
+        cmd = ["sbatch", "--parsable", f"--job-name={name}", *sbatch_args, str(REPO / "slurm/v9/n2_official.sbatch"), "unit", OFFICIAL[r["method"]], r["dataset"],
+               f"{float(r['rho']):g}", str(int(r["seed"])), f"{float(r['lr_mult']):g}", "tuning" if kind == "tuning" else "formal"]
+        res = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO)
+        jid = res.stdout.strip().split(";")[0]
+        return (jid if res.returncode == 0 and jid.isdigit() else None), (res.stderr or res.stdout)[-400:]
+
     def log_of(self, job: str):
         c = sorted(self.logs.glob(f"*_{job}.out"))
         return c[0] if c else None
@@ -221,7 +253,12 @@ class Orchestrator:
     # -- persistence
     def _load(self) -> dict:
         if self.state_path.exists():
-            return json.loads(self.state_path.read_text())
+            st = json.loads(self.state_path.read_text())
+            st["tuning_queue"] = [q if isinstance(q, dict) else {"family": "sgr", "group_file": q} for q in st["tuning_queue"]]   # v1 state: group-file strings
+            st.setdefault("x1_processed", []); st.setdefault("wave2", None); st.setdefault("resubmit_queue", [])
+            for j in st["jobs"]:
+                j.setdefault("family", family(j["runs"][0]))
+            return st
         plan = json.loads((self.units / "formal_units.json").read_text())
         lookup = {(float(r["rho"]), int(r["seed"]), r["method"]): sorted(r["members"]) for r in plan["runs"]}
         gate_runs = parse_group_file(self.gate_group, lambda r: lookup[(r["rho"], r["seed"], r["method"])])
@@ -229,8 +266,9 @@ class Orchestrator:
         pending = [dict(plain(r), lr_mult=1.0) for r in plan["runs"] if (float(r["rho"]), int(r["seed"]), r["method"]) not in gate_keys]
         pending.sort(key=lambda r: (-float(r["rho"]), ARMS.index(r["method"]), tuple(r["members"]), int(r["seed"])))
         st = {"created": utc(), "gate": "wait", "tuning_planned": False, "tuning_runs": [], "tuning_queue": [], "formal_pending": pending,
-              "contingency_computed": False, "rerun_queue": [], "jobs": [], "counters": {"t": 0, "f": 1, "r": 0}, "done": False, "blocked": ""}
-        st["jobs"].append({"job": self.gate_job, "name": "v9n2_f01", "kind": "formal", "case": "x1_contingency", "attempt": 1, "status": "queued",
+              "contingency_computed": False, "rerun_queue": [], "jobs": [], "counters": {"t": 0, "f": 1, "r": 0}, "done": False, "blocked": "",
+              "x1_processed": [], "wave2": None, "resubmit_queue": []}
+        st["jobs"].append({"job": self.gate_job, "name": "v9n2_f01", "kind": "formal", "case": "x1_contingency", "attempt": 1, "status": "queued", "family": "sgr",
                            "group_file": str(self.gate_group), "runs": [plain(r) for r in gate_runs], "submitted_utc": "",
                            "note": "gate group submitted before any seed-917 tuning existed (frozen contingency applies)"})
         return st
@@ -242,7 +280,7 @@ class Orchestrator:
         jobs = self.st["jobs"]
         status = {"utc": utc(), "gate": self.st["gate"], "tuning_planned": self.st["tuning_planned"], "tuning_queue": len(self.st["tuning_queue"]),
                   "formal_pending_runs": len(self.st["formal_pending"]), "rerun_queue": len(self.st["rerun_queue"]),
-                  "contingency_computed": self.st["contingency_computed"], "blocked": self.st["blocked"], "done": self.st["done"],
+                  "x1_runs_processed": len(self.st["x1_processed"]), "wave2_loaded": self.st["wave2"] is not None, "blocked": self.st["blocked"], "done": self.st["done"],
                   "jobs": {s: sum(1 for j in jobs if j["status"] == s) for s in sorted({j["status"] for j in jobs})},
                   "cases": {c: sum(1 for j in jobs if j["case"] == c) for c in sorted({j["case"] for j in jobs})}}
         self.status_path.write_text(json.dumps(status, indent=1))
@@ -304,8 +342,8 @@ class Orchestrator:
             self.event("tuning_plan_failed", stdout=r.stdout[-1500:], stderr=r.stderr[-1500:])
             return "fail"
         plan = json.loads((self.units / "tuning_units.json").read_text())
-        self.st["tuning_runs"] = [plain(x) for x in plan["runs"]]
-        self.st["tuning_queue"] = [str(g) for g in sorted(self.units.glob("tuning_g*.txt"))]
+        self.st["tuning_runs"] = [plain(x) for x in plan["runs"]] + self.st["tuning_runs"]                 # wave-2 runs (if already loaded) stay
+        self.st["tuning_queue"] = [{"family": "sgr", "group_file": str(g)} for g in sorted(self.units.glob("tuning_g*.txt"))] + self.st["tuning_queue"]
         self.st["tuning_planned"] = True
         copied = []
         if self.precheck_record_dir is not None:
@@ -315,25 +353,25 @@ class Orchestrator:
                     if src.exists():
                         shutil.copy2(src, self.precheck_record_dir / src.name)
                         copied.append(src.name)
-        self.event("tuning_planned", precheck_job=self.tp_job, n_runs=plan["n_runs"], n_arm_rows=plan["n_arm_rows_covered"], groups=self.st["tuning_queue"],
+        self.event("tuning_planned", precheck_job=self.tp_job, n_runs=plan["n_runs"], n_arm_rows=plan["n_arm_rows_covered"], groups=[q.get("group_file") for q in self.st["tuning_queue"]],
                    planner_stdout=r.stdout.strip()[-1500:], precheck_tables_copied=copied)
         return "ok"
 
     # -- job bookkeeping
-    def runs_done(self, runs: list) -> bool:
-        return all(run_done(self.out, r) is not None for r in runs)
+    def runs_done(self, runs: list, kind: str) -> bool:
+        return all(run_complete(self.out, r, kind) for r in runs)
 
     def refresh(self, mine: set) -> None:
         for j in list(self.st["jobs"]):
             if j["status"] != "queued" or j["job"] in mine:
                 continue
-            if self.runs_done(j["runs"]):
+            if self.runs_done(j["runs"], j["kind"]):
                 j["status"] = "ok"
                 j["ended_utc"] = utc()
                 self.event("ended_ok", job=j["job"], name=j["name"], kind=j["kind"])
                 continue
             j["ended_utc"] = utc()
-            missing = [plain(r) for r in j["runs"] if run_done(self.out, r) is None]
+            missing = [plain(r) for r in j["runs"] if not run_complete(self.out, r, j["kind"])]
             if j["attempt"] >= 2:
                 j["status"] = "given_up"
                 self.event("given_up", job=j["job"], name=j["name"], missing=missing)
@@ -343,22 +381,64 @@ class Orchestrator:
                                                              "group_file": j["group_file"], "runs": j["runs"], "attempt": j["attempt"] + 1})
             self.event("incomplete", job=j["job"], name=j["name"], missing=missing)
 
+    def per_job_of(self, r: dict) -> int:
+        return 1 if family(r) == "official" else self.per_job
+
     def _submit(self, name: str, kind: str, case: str, gfile: Path, runs: list, attempt: int = 1, **extra) -> bool:
         n = self.cluster.normal_count()
         if n is None or n >= self.cap:
             return False
-        jid, msg = self.cluster.submit(name, gfile, formal=kind in ("formal", "rerun"))
+        if family(runs[0]) == "official":
+            assert len(runs) == 1, "official baselines: one run per job"
+            jid, msg = self.cluster.submit_official(name, runs[0], kind, (self.st.get("wave2") or {}).get("sbatch_args", []))
+        else:
+            jid, msg = self.cluster.submit(name, gfile, formal=kind in ("formal", "rerun"))
         if jid is None:
             self.event("submit_failed", name=name, group_file=str(gfile), message=msg)
             return False
         rec = {"job": jid, "name": name, "kind": kind, "case": case, "attempt": attempt, "status": "queued", "group_file": str(gfile),
-               "runs": [plain(r) for r in runs], "submitted_utc": utc(), "commit": self.commit(), "normal_count_before": n, **extra}
+               "runs": [plain(r) for r in runs], "family": family(runs[0]), "submitted_utc": utc(), "commit": self.commit(), "normal_count_before": n, **extra}
         self.st["jobs"].append(rec)
         with open(self.ids, "a") as fh:
             fh.write(f"{jid} {name}\n")
         self.event("submitted", **{k: v for k, v in rec.items() if k != "status"})
         self.save()
         return True
+
+    def maybe_load_wave2(self) -> None:
+        f = self.units / "wave2_enabled.json"
+        if self.st["wave2"] is not None or not f.exists():
+            return
+        cfg = json.loads(f.read_text())
+        meths, rhos = cfg.get("methods", list(OFFICIAL)), [float(x) for x in cfg.get("rhos", [0.4, 0.0])]
+        tseed, fseeds = int(cfg.get("tuning_seed", self.tuning_seed)), [int(x) for x in cfg.get("formal_seeds", [901, 902, 903])]
+        mk = lambda m, rho, seed, mu: {"dataset": self.dataset, "rho": rho, "seed": seed, "method": m, "lr_mult": mu, "members": [m]}
+        tuning = [mk(m, rho, tseed, mu) for rho in sorted(rhos, reverse=True) for mu in (1.0, 0.5, 2.0) for m in meths]
+        formal = [mk(m, rho, s, 1.0) for rho in rhos for m in meths for s in fseeds]
+        self.st["tuning_runs"] += tuning
+        self.st["tuning_queue"] += [{"family": "official", "run": r} for r in tuning]
+        self.st["formal_pending"] = sorted(self.st["formal_pending"] + formal, key=order_key)
+        self.st["wave2"] = {"loaded_utc": utc(), "config": cfg, "sbatch_args": cfg.get("sbatch_args", []), "n_tuning": len(tuning), "n_formal": len(formal)}
+        self.event("wave2_loaded", config=cfg, n_tuning=len(tuning), n_formal=len(formal))
+
+    def process_contingency(self, sel: dict) -> None:
+        """x1 formal runs whose members' selections are complete: queue the members that selected another multiplier (frozen contingency)."""
+        done = set(self.st["x1_processed"])
+        new = []
+        for j in self.st["jobs"]:
+            if j["kind"] != "formal" or not j["case"].endswith("x1_contingency"):
+                continue
+            for r in j["runs"]:
+                ident = json.dumps(plain(r), sort_keys=True)
+                if ident in done or not complete_for(r, sel):
+                    continue
+                parts = [q for q in split_by_selection(r, sel) if q["lr_mult"] != 1.0]
+                new += parts
+                done.add(ident)
+                self.event("contingency", run=plain(r), reruns=[plain(q) for q in parts], selection=sel_json(sel, {(m, float(r["rho"])) for m in r["members"]}))
+        self.st["x1_processed"] = sorted(done)
+        if new:
+            self.st["rerun_queue"] += [[plain(q) for q in grp] for grp in chunk_by_key(new, self.per_job_of)]
 
     def tuning_complete(self, sel: dict) -> bool:
         need = {(m, float(r["rho"])) for r in self.st["tuning_runs"] for m in r["members"]}
@@ -381,18 +461,26 @@ class Orchestrator:
                         j["status"] = "resubmitted"
                 continue
             if self.st["tuning_queue"]:
-                g = Path(self.st["tuning_queue"][0])
+                item = self.st["tuning_queue"][0]
                 self.st["counters"]["t"] += 1
                 name = f"v9n2_t{self.st['counters']['t']:02d}"
-                if not self._submit(name, "tuning", "tuning", g, parse_group_file(g)):
+                if item["family"] == "sgr":
+                    g = Path(item["group_file"])
+                    runs = parse_group_file(g)
+                else:
+                    runs = [item["run"]]
+                    g = self.release_dir / f"{name}.txt"
+                    g.write_text(group_line(item["run"]) + "\n")
+                if not self._submit(name, "tuning", "tuning", g, runs):
                     self.st["counters"]["t"] -= 1
                     return
                 self.st["tuning_queue"].pop(0)
                 continue
             sel = selection(self.out, self.st["tuning_runs"])
+            self.process_contingency(sel)
             if self.st["formal_pending"]:
                 pend = self.st["formal_pending"]
-                job, case, used, leftover = next_formal_job(pend, sel, self.per_job)
+                job, case, used, leftover = next_formal_job(pend, sel, self.per_job_of)
                 self.st["counters"]["f"] += 1
                 name = f"v9n2_f{self.st['counters']['f']:02d}"
                 gfile = self.release_dir / f"{name}.txt"
@@ -405,20 +493,6 @@ class Orchestrator:
                     self.st["counters"]["f"] -= 1
                     return
                 self.st["formal_pending"] = leftover + [q for k, q in enumerate(pend) if k not in used]
-                continue
-            if not self.st["contingency_computed"]:
-                if not self.tuning_complete(sel):
-                    return
-                x1 = {}
-                for j in self.st["jobs"]:
-                    if j["kind"] == "formal" and j["case"].endswith("x1_contingency"):
-                        for r in j["runs"]:
-                            x1[json.dumps(plain(r), sort_keys=True)] = plain(r)
-                reruns = contingency_runs(list(x1.values()), sel)
-                self.st["rerun_queue"] = [[plain(r) for r in grp] for grp in chunk_by_key(reruns, self.per_job)]
-                self.st["contingency_computed"] = True
-                self.event("contingency_computed", n_x1_runs=len(x1), n_reruns=len(reruns), selection=sel_json(sel),
-                           reruns=[plain(r) for r in reruns])
                 continue
             if self.st["rerun_queue"]:
                 grp = self.st["rerun_queue"][0]
@@ -436,8 +510,10 @@ class Orchestrator:
 
     def finished(self) -> bool:
         st = self.st
-        if not (st["gate"] == "pass" and st["tuning_planned"] and not st["tuning_queue"] and not st["formal_pending"] and st["contingency_computed"]
-                and not st["rerun_queue"] and not st.get("resubmit_queue")):
+        wave2_settled = st["wave2"] is not None or (self.units / "wave2_disabled.json").exists()
+        x1 = {json.dumps(plain(r), sort_keys=True) for j in st["jobs"] if j["kind"] == "formal" and j["case"].endswith("x1_contingency") for r in j["runs"]}
+        if not (st["gate"] == "pass" and st["tuning_planned"] and wave2_settled and not st["tuning_queue"] and not st["formal_pending"]
+                and x1 <= set(st["x1_processed"]) and not st["rerun_queue"] and not st.get("resubmit_queue")):
             return False
         return all(j["status"] in ("ok", "given_up", "resubmitted") for j in st["jobs"])
 
@@ -467,11 +543,11 @@ class Orchestrator:
                 self.event("abort", reason=f"seed-917 shared stage (job {self.tp_job}) did not end with exit=0 or its plan failed")
                 self.save()
                 return "abort"
+        self.maybe_load_wave2()
         if st["gate"] == "pass" and st["tuning_planned"]:
             self.submit_ready()
-            sel = selection(self.out, st["tuning_runs"])
             blocked = [j["name"] for j in st["jobs"] if j["status"] == "given_up" and j["kind"] == "tuning"]
-            msg = f"tuning jobs given up: {blocked}; the contingency cannot be computed — a human decides" if blocked and not self.tuning_complete(sel) else ""
+            msg = f"tuning jobs given up: {blocked}; selections of their (method, rho) cannot complete — a human decides" if blocked else ""
             if msg and msg != st["blocked"]:
                 self.event("blocked", reason=msg)
             st["blocked"] = msg
