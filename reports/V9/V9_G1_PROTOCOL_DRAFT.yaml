@@ -86,3 +86,8 @@ gate_record: >
   job 1041905 (separate root outputs_v9/reg_timing: CoMIR + kernel code-path smokes; one real VCS unit end-to-end with 3 perturbations per image;
   numbers below).  Smoke numbers are code checks and are not read.
 disclosure_at_draft: "the fork read REG-P1 / P2 / P3 protocols and the REG-P2 result timings (not the P2 DEV contrasts beyond the headline success rates printed by the timing read: MI 0.74, NMI 0.76, kernel 0.42, VCS 0.92, logistic 0.93, InfoNCE 0.97, CoMIR 0.91 at < 42 px); no G1 number exists"
+execution_note_draft_1: >
+  The CPU gate's smoke units had been written under the formal unit root (outputs_v9/reg/units/<unit>/run with 200-step checkpoints); they were
+  moved to outputs_v9/reg/smoke/units/ before any formal run, the CLI now keeps smoke units under <root>/smoke, and `run` refuses to register a
+  unit whose existing run was made with other steps / epochs or that holds checkpoints without train.json (no silent mixing of a smoke or an
+  interrupted run with a formal one).  The formal unit root is empty at the freeze.

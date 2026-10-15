@@ -26,7 +26,10 @@ def parse_unit(uid):
 
 
 def cmd_run(a):
-    method, frac, eps, seed = parse_unit(a.unit); u = G.ensure_layout(a.unit, method, seed)
+    method, frac, eps, seed = parse_unit(a.unit)
+    if a.smoke:                                                                   # smoke units live under <root>/smoke/units: never inside a formal unit root
+        G.V9_ROOT = G.V9_ROOT / "smoke"
+    u = G.ensure_layout(a.unit, method, seed)
     if a.smoke:                                                                   # smoke roots: REG-P1's smoke cache / manifest, REG-P2 perturbations generated into the unit's smoke root
         p1s, p2s = u / "p1" / "smoke", u / "p2" / "smoke"; (p1s / "runs").mkdir(parents=True, exist_ok=True); p2s.mkdir(parents=True, exist_ok=True)
         for link, target in ((p1s / "cache", G.P1_ROOT / "smoke" / "cache"), (p1s / "manifest_smoke.json", G.P1_ROOT / "smoke" / "manifest_smoke.json"), (p1s / "runs" / f"{method}_s{seed}", u / "run")):
@@ -39,10 +42,22 @@ def cmd_run(a):
         print(f"[skip] {a.unit}: {res} exists"); return 0
     p1 = (u / "p1" / "smoke") if a.smoke else (u / "p1"); run = u / "run"
     if method == "comir":
-        if not (run / "comir.json").exists() or a.force:
+        meta = run / "comir.json"; want = {"epochs": (2 if a.smoke else (a.comir_epochs or 23))}
+        if meta.exists() and not a.force:
+            have = {"epochs": json.load(open(meta)).get("epochs")}
+            if have != want:
+                raise SystemExit(f"{a.unit}: existing run has {have}, this call wants {want} — refusing to mix (use --force after moving the old run away)")
+        else:
             G.cmd_comir(a.unit, frac, eps, seed, smoke=a.smoke, p1_root=p1, comir_epochs=a.comir_epochs)
     elif method != "kernel":
-        if not (run / "train.json").exists() or a.force:
+        meta = run / "train.json"; want = {"steps": 200 if a.smoke else a.steps}
+        if meta.exists() and not a.force:
+            have = {"steps": json.load(open(meta)).get("steps")}
+            if have != want:
+                raise SystemExit(f"{a.unit}: existing run has {have}, this call wants {want} — refusing to mix (use --force after moving the old run away)")
+        else:
+            if any(run.glob("ckpt_*.pt")):
+                raise SystemExit(f"{a.unit}: checkpoints without train.json in {run} (interrupted run) — move them away before training")
             G.cmd_train(a.unit, method, frac, eps, seed, steps=a.steps, smoke=a.smoke, p1_root=p1)
     rc = G.cmd_register(a.unit, method, seed, smoke=a.smoke, n_pert=a.n_pert, frac=frac, eps=eps)
     print(f"[done] {a.unit} -> {res}"); return rc
