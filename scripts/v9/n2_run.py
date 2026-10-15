@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from v9.n2.fixtures import make_fixture  # noqa: E402
 from v9.n2.pipeline import run_precheck, run_unit  # noqa: E402
 from v9.n2.strict import run_strict_check  # noqa: E402
-from v9.n2.teacher import HostConfig  # noqa: E402
+from v9.n2.teacher import HostConfig, load_host_lock  # noqa: E402
 
 
 def fixture_dataset(seed: int, n_images: int = 60):
@@ -65,13 +65,11 @@ def cmd_precheck(a):
         ds, test, tr = fixture_dataset(a.seed, 80); cfg = HostConfig(vocab_size=tr["vocab"], img_dim=tr["img_dim"], word_dim=16, embed_size=32, sim_dim=16, num_region=tr["n_region"], batch_size=16, teacher_epochs=8, lr_update=100, learning_rate=2e-3)
         rec = run_precheck(ds, cfg, out, "fixture", a.rho, a.seed, a.device, critic_steps=120, anchor_fraction=0.5, min_sizes={k: 1 for k in ("teacher_warmup", "critic_fit", "critic_select", "reference_moments")})
     else:
-        import yaml
         from v9.n2.data import eval_arrays, load_precomp, load_vocab
         name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); cache = Path(a.out_root) / "token_cache"
         tr = load_precomp(Path(a.data_root) / name, "train", w2i, cache_dir=cache)
         ds = dict(tr); ds["dev_images"], ds["dev_captions"] = None, None            # the precheck trains no student: dev is not loaded
-        lock = yaml.safe_load(Path(a.host_lock).read_text()) if a.host_lock and Path(a.host_lock).exists() else None
-        cfg = HostConfig.from_host_lock(len(w2i), (lock or {}).get("training", lock) if lock else None)
+        cfg = load_host_lock(a.host_lock, name, len(w2i)); print("host config:", {k: v for k, v in cfg.__dict__.items() if k != "vocab_size"})
         d = Path(a.data_root) / name; files = {k: str(d / f"{k}.txt") for k in ("train_ids", "dev_ids", "test_ids", "dev_caps", "test_caps")}
         rec = run_precheck(ds, cfg, out, a.dataset, a.rho, a.seed, a.device, split_files=files)
     print(json.dumps({"formal_block_allowed": rec["formal_block_allowed"], "refusal_reason": rec["refusal_reason"], "auroc": rec["teacher_separability"]["auroc"], "merged": rec["loss_coefficients"]["merged"], "groups": rec["loss_coefficients"]["groups"]}, indent=1)); return 0
@@ -82,15 +80,13 @@ def cmd_strict(a):
 
 
 def cmd_unit(a):
-    import yaml
     from v9.n2.data import eval_arrays, load_precomp, load_vocab
     name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); cache = Path(a.out_root) / "token_cache"
     tr = load_precomp(Path(a.data_root) / name, "train", w2i, cache_dir=cache); dev = load_precomp(Path(a.data_root) / name, "dev", w2i, cache_dir=cache)
     ds = dict(tr); ds["dev_images"], ds["dev_captions"] = eval_arrays(dev)
     if a.dataset == "coco":                                    # NCR: dev is the first 1000 images of the 5K dev file
         ds["dev_images"], ds["dev_captions"] = ds["dev_images"][:1000], ds["dev_captions"][:5000]
-    lock = yaml.safe_load(Path(a.host_lock).read_text()) if a.host_lock and Path(a.host_lock).exists() else None
-    cfg = HostConfig.from_host_lock(len(w2i), (lock or {}).get("host", lock))
+    cfg = load_host_lock(a.host_lock, name, len(w2i)); print("host config:", {k: v for k, v in cfg.__dict__.items() if k != "vocab_size"})
     test = None
     if a.test:
         split = "testall" if a.dataset == "coco" else "test"; te = load_precomp(Path(a.data_root) / name, split, w2i); test = dict(zip(("images", "captions"), eval_arrays(te)))

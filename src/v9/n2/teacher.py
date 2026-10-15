@@ -52,6 +52,64 @@ class HostConfig:
         return cls(vocab_size=vocab_size, to_verify=tv, **kw)
 
 
+def load_host_lock(path, data_name: str, vocab_size: int) -> HostConfig:
+    """HostConfig from fork A's reports/V9/HOST_LOCK.yaml for one data name (f30k_precomp / coco_precomp).  The file is YAML when it parses; otherwise
+    (or for the prose-valued keys) the numeric fields are read by regex, so a transient edit never kills a job.  Fields that are missing or marked
+    TO_VERIFY / PENDING are listed in `to_verify` (a formal unit refuses; a precheck / smoke runs with the code-reading defaults)."""
+    import re
+    text = Path(path).read_text() if path and Path(path).exists() else ""
+    lock = None
+    try:
+        import yaml
+        lock = yaml.safe_load(text) if text else None
+    except Exception:
+        lock = None
+    kw, tv = {}, []
+    def num(x):
+        try:
+            return float(x) if "." in str(x) or "e" in str(x).lower() else int(x)
+        except Exception:
+            return None
+    tr = (lock or {}).get("training") if isinstance(lock, dict) else None
+    tr = tr if isinstance(tr, dict) else {}
+    # per-data-name schedule
+    for key, field in (("native_epochs", "num_epochs"), ("lr_update", "lr_update")):
+        v = tr.get(key)
+        if isinstance(v, dict) and data_name in v and num(v[data_name]) is not None:
+            kw[field] = num(v[data_name])
+        else:
+            m = re.search(rf"^\s*{key}:\s*\{{[^}}]*{re.escape(data_name)}:\s*([0-9]+)", text, re.M)
+            if m:
+                kw[field] = int(m.group(1))
+            else:
+                tv.append(field)
+    for key, field in (("batch_size", "batch_size"), ("native_margin", "margin"), ("teacher_epochs", "teacher_epochs")):
+        v = tr.get(key) if key != "teacher_epochs" else (lock or {}).get("teacher_epochs") if isinstance(lock, dict) else None
+        if num(v) is not None:
+            kw[field] = num(v)
+        else:
+            m = re.search(rf"^\s*{key}:\s*([0-9.]+)", text, re.M)
+            if m:
+                kw[field] = num(m.group(1))
+            else:
+                tv.append(field)
+    for key in ("img_dim", "word_dim", "embed_size", "sim_dim", "sgr_step"):               # the model block is prose-valued: "img_dim: 2048; word_dim: 300; ..."
+        m = re.search(rf"\b{key}:\s*([0-9]+)", text)
+        if m:
+            kw[key] = int(m.group(1))
+        else:
+            tv.append(key)
+    for key, pat in (("learning_rate", r"lr=([0-9.e-]+)"), ("grad_clip", r"grad_clip\s*([0-9.]+)")):
+        m = re.search(pat, text)
+        if m:
+            kw[key] = float(m.group(1))
+        else:
+            tv.append(key)
+    if re.search(r"TO_VERIFY|PENDING", text) and not tv:
+        tv.append("file_has_pending_fields")
+    return HostConfig(vocab_size=vocab_size, to_verify=tv, **kw)
+
+
 def build_host(cfg: HostConfig) -> SGRHost:
     return SGRHost(cfg.vocab_size, cfg.img_dim, cfg.word_dim, cfg.embed_size, cfg.sim_dim, cfg.num_layers, cfg.bi_gru, cfg.num_region, cfg.sgr_step)
 
