@@ -66,3 +66,10 @@ execution_note_5_20261015: >
   frozen TextVQA scorer (r7_vl_common.textvqa_scorer, the m4c evaluator) imports it, so job 1041003 stopped at its first TextVQA item before
   any statistic.  The unchanged rev9_score.py was rerun in the SparseVLM environment that every R7 / D1-30 scorer uses (job 1041005, REV9;
   job 1041006, REV9-FULL primary).  rev9.sbatch itself is not edited while REV9-FULL evaluation job 1040487 reads it.
+execution_note_6_20261015: >
+  Secondary readout of the direct objective (note 3).  The H100 rerun (job 1040704) passed its I0 guard (estimator diff 0, gate diff 0); its
+  evaluation (job 1040705, 8 configs per benchmark) is running.  The frozen scorer pairs seeds 0, 1, 2, but the secondary re-ran seed 0 only, so
+  the readout uses `scripts/rev9_score_secondary.py`: the same computation (same scorer functions, image-grouped bootstrap 2,000 seed 0, Holm over
+  the 24 contrasts) restricted to seed 0, with the restriction and the "secondary" label written into its output.  CPU job chained after 1040705
+  (afterok), SparseVLM environment (note 5), output outputs/REV9_FULL_H100/results/rev9_full_h100_direct_secondary.json.  This remains a
+  hardware-matched secondary reading of one seed; the primary REV9-FULL readout of the direct objective stays stopped.
