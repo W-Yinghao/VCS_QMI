@@ -175,7 +175,8 @@ def distribution_metrics(pred: list[dict], recs: dict, prompt_of: dict | None = 
         full = np.concatenate([np.ones((len(ids), 1)), U, np.zeros((len(ids), 1))], 1); Q = full[:, :-1] - full[:, 1:]
     brier_k = Y * (1 - U) ** 2 + (1 - Y) * U ** 2; wn = w / w.sum()
     monotone = bool(np.all(np.diff(U, axis=1) <= 1e-9)) and bool(np.all(Q >= -1e-9))
-    logloss = float((wn * (-(H * np.log(np.clip(Q, EPS, 1))).sum(1)).sum())) if monotone else None
+    per_image_ll = -(H * np.log(np.clip(Q, EPS, 1))).sum(axis=1)                      # - sum_h hist_h log q_h per image
+    logloss = float(np.dot(wn, per_image_ll)) if monotone else None
     per_p = defaultdict(list)
     for p, m, h in zip(pid, mu, mean_h):
         per_p[p].append((m, h))
@@ -190,7 +191,7 @@ def fit_temperature(pred: list[dict], recs: dict, grid=np.exp(np.linspace(math.l
     by = {p["image_id"]: p for p in pred}; ids = sorted(recs); Z = np.array([by[i]["logits"] for i in ids], float); H = np.array([recs[i]["hist"] for i in ids]); w = np.array([recs[i]["w"] for i in ids]); w = w / w.sum()
     best = None
     for T in grid:
-        ll = float((w * (-(H * np.log(np.clip(_softmax(Z / T), EPS, 1))).sum(1))).sum())
+        ll = float(np.dot(w, -(H * np.log(np.clip(_softmax(Z / T), EPS, 1))).sum(axis=1)))
         if best is None or ll < best[1] - 1e-12:
             best = (float(T), ll)
     return best[0]
