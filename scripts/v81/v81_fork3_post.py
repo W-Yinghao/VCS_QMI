@@ -27,6 +27,26 @@ MD_DEFAULT = REPO / "reports" / "V8_1_DIAGNOSTICS" / "V81_05_INPUT_GRADIENT_CHEC
 ARMS = ["U-CS", "U-BCE", "U-RPS", "U-CE", "U-MSE", "U-L1", "U-RANK", "U-LIST"]
 
 
+def job_info(ids: list) -> list:
+    """host / gpu / start / end / exit from the SLURM log header and footer of each job (read-only)."""
+    import glob, re
+    out = []
+    for j in ids:
+        fs = sorted(glob.glob(f"/home/infres/yinwang/CS_QMI/slurm_logs/*_{j}.out"))
+        if not fs:
+            out.append({"job": j, "log": None}); continue
+        txt = Path(fs[-1]).read_text(errors="replace"); head = txt.splitlines()[0] if txt else ""
+        get = lambda pat, t: (re.search(pat, t).group(1) if re.search(pat, t) else None)
+        st, en = get(r"start=(\S+)", head), get(r"exit=\d+ end=(\S+)", txt)
+        hours = None
+        if st and en:
+            from datetime import datetime
+            hours = (datetime.strptime(en, "%Y-%m-%dT%H:%M:%SZ") - datetime.strptime(st, "%Y-%m-%dT%H:%M:%SZ")).total_seconds() / 3600
+        out.append({"job": j, "log": fs[-1], "name": Path(fs[-1]).name.rsplit("_", 1)[0], "host": get(r"host=(\S+)", head), "gpu": get(r"gpu=([^,]+)", head),
+                    "start": st, "end": en, "exit": get(r"exit=(\d+) end=", txt), "hours": hours})
+    return out
+
+
 def load_core():
     spec = importlib.util.spec_from_file_location("v81core", REPO / "v8_1" / "package_v81_20261015" / "reference" / "core.py"); m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
 
@@ -57,9 +77,24 @@ def table(cols: list, rows: list) -> str:
 
 
 # ------------------------------------------------------------------------------------------------------------------------ checkpoint inference
+UNITS_V8 = Path("/projects/EEG-foundation-model/yinghao/outputs_v8/units")
+
+
+def vs_log(e: dict) -> dict | None:
+    """Re-inferred CAL_SELECT metrics minus the training-time log values of the same epoch (read-only on log.json)."""
+    if e["kind"] not in ("best", "resume"):
+        return None
+    L = json.loads((UNITS_V8 / e["unit"].split("/")[-1] / "log.json").read_text()); ep = L["epochs_log"][e["epoch"]]
+    if ep["epoch"] != e["epoch"]:
+        raise SystemExit(f"log epoch order mismatch for {e['unit']}")
+    m = e["roles"]["CAL_SELECT"]["metrics"]; c = ep["cal_select"]
+    return {k: m[k] - c[k] for k in ("mean_mse_prompt_macro", "rps_micro", "ce_micro", "within_prompt_pairwise_acc_macro") if c.get(k) is not None and m.get(k) is not None}
+
+
 def checkpoint_inference(S: dict, validate) -> tuple[list, dict]:
     rows = []; inv = {}
     for tag, e in S["entries"].items():
+        dl = vs_log(e)
         for role in ("FIT_AUDIT", "CAL_SELECT"):
             r = e["roles"][role]; m = r["metrics"]; vs = r.get("vs_frozen_export") or {}
             rows.append({"tag": tag, "method": e["method"], "seed": e["seed"], "checkpoint_id": e["checkpoint_id"], "kind": e["kind"], "epoch": e.get("epoch"), "role": role, "n": r["n"],
@@ -67,6 +102,7 @@ def checkpoint_inference(S: dict, validate) -> tuple[list, dict]:
                          "spearman_pooled": m["spearman_pooled"], "spearman_prompt_macro": m["spearman_prompt_macro"], "mu_mean": m["mu_mean"], "mu_std": m["mu_std"],
                          "within_prompt_mu_std": m["within_prompt_mu_std_mean"], "within_prompt_human_std": m["within_prompt_human_std_mean"], "between_prompt_mu_std": m["between_prompt_mu_std"],
                          "vs_export_max_abs_dmu": vs.get("max_abs_dmu"), "vs_export_mean_abs_dmu": vs.get("mean_abs_dmu"), "vs_export_applies": vs.get("applies"),
+                         "vs_export_gpu": vs.get("export_gpu"), **({f"vs_log_d_{k}": v for k, v in dl.items()} if (dl and role == "CAL_SELECT") else {}),
                          "best_epoch": e.get("best_epoch"), "resume_epoch": e.get("resume_epoch"), "best_equals_resume_epoch": e.get("best_equals_resume_epoch"),
                          "best_resume_max_abs_param_diff": e.get("best_resume_max_abs_param_diff"), "ckpt_sha256": e.get("sha256"), "ckpt_bytes": e.get("bytes"),
                          "rows_file": r["rows"], "rows_sha256": r["rows_sha256"]})
@@ -75,7 +111,8 @@ def checkpoint_inference(S: dict, validate) -> tuple[list, dict]:
                 if hashlib.sha256(Path(r["rows"]).read_bytes()).hexdigest() != r["rows_sha256"]:
                     raise SystemExit(f"rows sha256 mismatch for {tag} {role}")
         if e["kind"] in ("best", "resume"):
-            inv.setdefault(e["unit"].split("/")[-1], {}).update({e["kind"]: {"epoch": e["epoch"], "sha256": e["sha256"], "bytes": e["bytes"], "step": e.get("step"), "best_field": e.get("ckpt_best_field")},
+            inv.setdefault(e["unit"].split("/")[-1], {}).update({e["kind"]: {"epoch": e["epoch"], "sha256": e["sha256"], "bytes": e["bytes"], "step": e.get("step"), "best_field": e.get("ckpt_best_field"),
+                                                                            "cal_select_vs_log": dl},
                                                               "log_selected_epoch": e["log_selected_epoch"], "best_equals_resume_epoch": e.get("best_equals_resume_epoch"),
                                                               "best_resume_max_abs_param_diff": e.get("best_resume_max_abs_param_diff")})
     return rows, inv
@@ -135,13 +172,61 @@ def gradient_checks(S: dict) -> list:
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------- markdown
-def markdown(T: dict, CI: list, AT: dict, INV: dict, IC: list, GC: list, src: Path, env: dict, validated: bool) -> str:
+def param_section(PA: dict) -> list:
+    """Section 5 of the markdown from results/param_audit.json (facts only)."""
+    L = []; A = L.append; units = PA["units"]
+    A("## 5. Parameter-level audit (checkpoints vs RECONSTRUCTED_INIT; CPU job, read-only)\n")
+    A("`results/param_audit.{json,csv}` (`scripts/v81/v81_fork3_param_audit.py`).  For each seed V8's `build(seed)` is rebuilt on CPU; the trainable set and the AdamW grouping are "
+      "rebuilt with V8's own rule and checked against the optimiser state's tensor counts and shapes.  rel = ‖θ − θ_init‖₂ / ‖θ_init‖₂ over the group.  "
+      "AdamW steps = the per-tensor `step` counter in `resume.pt`; global iterations = the trainer's batch counter; their difference = optimiser steps skipped by the fp16 GradScaler.  "
+      f"{PA['note_vit']}.\n")
+    gm = PA["init_meta"]; s0 = gm[sorted(gm)[0]]
+    A(f"Trainable set rebuilt: {s0['n_trainable_tensors']} tensors / {s0['n_trainable_params']:,} parameters ({s0['n_decay_tensors']} with weight decay, {s0['n_no_decay_tensors']} without); "
+      f"ViT parameters {s0['n_vit_params']:,}, any requires_grad: {s0['vit_requires_grad_any']}.  Trainable groups (tensor counts): "
+      + ", ".join(f"{k} {v}" for k, v in PA["trainable_groups"].items() if not k.startswith("qf.L")) + f"; per-layer Q-former groups {sum(v for k, v in PA['trainable_groups'].items() if k.startswith('qf.L'))} tensors.\n")
+    order = sorted(units, key=lambda u: (ARMS.index(units[u]["arm"]), units[u]["seed"]))
+    rows = []
+    for u in order:
+        r = units[u]; b = r["best"]["vs_init"]; o = r["resume"]["optimizer"]; fz = b.get("frozen_all", {"n_identical": 0, "n_tensors": 0, "max_abs_delta": 0.0})
+        rv = lambda k: g(b[k]["rel_change"], 3) if k in b and b[k]["rel_change"] is not None else "—"
+        rows.append([r["arm"], r["seed"], g(r["lr"], 2), r["best"]["epoch"], rv("trainable_all"), rv("head"), rv("ln_vision"), rv("query_tokens"), rv("qf.embeddings"), rv("qformer_self_attn_all"),
+                     rv("qformer_cross_attn_all"), rv("qformer_ffn_query_all"), rv("qformer_ffn_text_all"), rv("qf.cls_head"), f"{fz['n_identical']}/{fz['n_tensors']}",
+                     ", ".join(f"{k} {v}" for k, v in o["never_stepped_groups"].items()) or "0", f"{o['adamw_step_max']:.0f}/{o['global_iterations']}", o["skipped_by_gradscaler"],
+                     g(o["gradscaler"].get("scale"), 4), g(r["resume_vs_best"]["trainable_all"]["rel_change"], 3) if r["resume_vs_best"]["trainable_all"]["rel_change"] else "0"])
+    A(table(["arm", "seed", "lr", "best epoch", "rel all trainable", "rel head", "rel ln_vision", "rel query tokens", "rel Q-former embeddings", "rel self-attn", "rel cross-attn", "rel query FFN",
+             "rel text FFN", "rel LM head", "frozen tensors identical", "never-stepped tensors (groups)", "AdamW steps / iterations", "skipped steps", "final loss scale", "resume vs best rel"], rows))
+    layers = sorted({k.split(".")[1] for u in units for k in units[u]["best"]["vs_init"] if k.startswith("qf.L") and k.endswith("cross_attn")})
+    if layers:
+        A("\nCross-attention relative change per Q-former layer (best.pt vs RECONSTRUCTED_INIT; seed mean, per-seed values in the csv):\n")
+        rows = []
+        for arm in ARMS:
+            us = [u for u in order if units[u]["arm"] == arm]
+            if not us:
+                continue
+            rows.append([arm] + [g(mean_or_none([units[u]["best"]["vs_init"].get(f"qf.{l}.cross_attn", {}).get("rel_change") for u in us]), 3) for l in layers]
+                        + [g(mean_or_none([units[u]["best"]["vs_init"].get(f"qf.{l}.self_attn", {}).get("rel_change") for u in us]), 3) for l in ("L00", "L11")])
+        A(table(["arm"] + [f"{l} cross" for l in layers] + ["L00 self", "L11 self"], rows))
+    ns = [(u, units[u]["resume"]["optimizer"]["never_stepped_groups"]) for u in order]
+    groups_ns = sorted({k for _, d in ns for k in d})
+    if groups_ns:
+        ident = []
+        for k in groups_ns:
+            vals = [(units[u]["best"]["vs_init"].get(k, {}).get("n_identical"), units[u]["best"]["vs_init"].get(k, {}).get("n_tensors")) for u in order]
+            ident.append(f"{k}: identical to the reconstruction in {sum(1 for a, b in vals if a is not None and a == b)}/{len(vals)} units")
+        A("\nNever-stepped trainable tensors (no AdamW state: no gradient path in `forward_logits`) — " + "; ".join(ident) + ".\n")
+    return L
+
+
+def markdown(T: dict, CI: list, AT: dict, INV: dict, IC: list, GC: list, src: Path, env: dict, validated: bool, PA: dict | None = None, J: list | None = None) -> str:
     L = []; A = L.append
     A(f"# V81_05 — input / gradient checks and checkpoint-level inference (V8.1 fork 3, {time.strftime('%Y-%m-%d', time.gmtime())})\n")
     A("Facts only (FULL_PLAN_CN §04 D05 checkpoint level, D06; §03 §3–5; §07 §3).  Every number below is read from `results/{checkpoint_inference,input_checks,gradient_checks}.json`, "
       f"which `scripts/v81/v81_fork3_post.py` writes from the GPU summaries under `{src}`.  No V8 artefact was modified; no GenAI-Rank / GenAI-Bench / TIFA160 label or prediction was read; "
       "the only labels used are the FIT-AUDIT and CAL_SELECT development labels (package roles allowed for labelled diagnostics).  Seed policy: per seed, then the metric mean (no prediction ensemble).\n")
     A("## 0. Environment, standard-batch timing, inference budget\n")
+    if J:
+        A("GPU jobs: " + "; ".join(f"{j['job']} `{j.get('name')}` on {j.get('host')} ({j.get('gpu')}), {j.get('start')} → {j.get('end')}, exit {j.get('exit')}, {j['hours']:.2f} GPU-h" if j.get("hours") is not None else f"{j['job']} (log not found)" for j in J)
+          + f" — total {sum(j['hours'] or 0 for j in J):.2f} GPU-h of the 6 GPU-h cap.\n")
     if T:
         fm, vo, qf = T["full_model"], T["vit_only"], T["qformer_head_only"]; est = T["estimates_s"]
         A(f"GPU `{T['env']['gpu']}` on {T['env']['host']}, torch {T['env']['torch']}, CUDA {T['env']['cuda']}, numpy {T['env']['numpy']}, python {T['env']['python']}; "
@@ -161,14 +246,27 @@ def markdown(T: dict, CI: list, AT: dict, INV: dict, IC: list, GC: list, src: Pa
       "`best == resume` means the selected epoch is the last one, in which case the two files hold the same trainable weights (max |Δparam| shown).\n")
     inv_rows = []
     for name in sorted(INV, key=lambda n: (ARMS.index(n.split("-")[2]) if n.split("-")[2] in ARMS else 99, n)):
-        v = INV[name]; inv_rows.append([name, v["best"]["epoch"], v["resume"]["epoch"], v["log_selected_epoch"], "yes" if v["best_equals_resume_epoch"] else "no",
-                                        g(v["best_resume_max_abs_param_diff"], 3) if v["best_equals_resume_epoch"] else "—", v["best"]["sha256"][:12], v["resume"]["sha256"][:12]])
-    A(table(["unit", "best epoch", "resume epoch", "log selected", "best == resume", "max abs Δparam", "best sha256", "resume sha256"], inv_rows))
+        v = INV[name]; bf = v["resume"].get("best_field") or [None, None]
+        dlb, dlr = (v["best"].get("cal_select_vs_log") or {}), (v["resume"].get("cal_select_vs_log") or {})
+        inv_rows.append([name, v["best"]["epoch"], v["resume"]["epoch"], v["log_selected_epoch"], f"e{bf[1]} / {f(bf[0], 4)}", "yes" if v["best_equals_resume_epoch"] else "no",
+                         g(v["best_resume_max_abs_param_diff"], 3) if v["best_equals_resume_epoch"] else "—",
+                         f"{dlb.get('mean_mse_prompt_macro', float('nan')):+.5f} / {dlr.get('mean_mse_prompt_macro', float('nan')):+.5f}", v["best"]["sha256"][:12], v["resume"]["sha256"][:12]])
+    A(table(["unit", "best epoch", "resume epoch", "log selected", "resume.pt best field (epoch / MSE)", "best == resume", "max abs Δparam", "CAL_SELECT MSE re-inferred − log (best / resume)", "best sha256", "resume sha256"], inv_rows))
+    dl_all = [abs(r[k]) for r in CI for k in r if k.startswith("vs_log_d_mean_mse") and r[k] is not None]
+    dl_other = {k: max(abs(r[k]) for r in CI if r.get(k) is not None) for k in ("vs_log_d_rps_micro", "vs_log_d_ce_micro", "vs_log_d_within_prompt_pairwise_acc_macro") if any(r.get(k) is not None for r in CI)}
+    if dl_all:
+        A(f"\nRe-inferred CAL_SELECT metrics vs the training-time log of the same epoch over the {len(dl_all)} checkpoints: max abs Δ mean-rating MSE {max(dl_all):.5f}, "
+          + ", ".join(f"{k.replace('vs_log_d_', '')} {v:.5f}" for k, v in dl_other.items()) + ".\n")
     A("\n## 2. Checkpoint-level inference (eval mode, FIT-AUDIT and CAL_SELECT)\n")
     A("Rows in the package schema per (unit, checkpoint, role) under `outputs_v81/fork3/infer/rows/` (paths + sha256 in `checkpoint_inference.csv`"
       + (", every file re-validated with the package reference validator in labelled mode" if validated else "") + ").  RECONSTRUCTED_INIT = V8's `build(seed)` with no training "
       "(BLIP-2 COCO weights, seeded head, FIT log-histogram bias; shared by the eight arms at a seed; not claimed bit-identical to the formal start).  "
       "The forward path caches the frozen EVA ViT-g output once per image; its agreement with the frozen CAL_SELECT export of each unit's `best.pt` is the `vs export` column (max |Δμ| over the 1,653 images).\n")
+    ex = [r for r in CI if r["role"] == "CAL_SELECT" and r["kind"] == "best" and r.get("vs_export_max_abs_dmu") is not None]
+    if ex:
+        top = max(ex, key=lambda r: r["vs_export_max_abs_dmu"])
+        A(f"Agreement with the frozen exports (best.pt, CAL_SELECT, {len(ex)} units, each exported on its training GPU; re-inference on {env.get('gpu')}): max abs Δμ {top['vs_export_max_abs_dmu']:.4f} "
+          f"({top['tag'].split('__')[0]}, exported on {top.get('vs_export_gpu')}); per-unit mean abs Δμ {min(r['vs_export_mean_abs_dmu'] for r in ex):.5f}–{max(r['vs_export_mean_abs_dmu'] for r in ex):.5f}.\n")
     for role in ("FIT_AUDIT", "CAL_SELECT"):
         A(f"### 2.{1 if role == 'FIT_AUDIT' else 2} {role} — seed means (per-seed values in `checkpoint_inference.csv`)\n")
         rows = []
@@ -177,10 +275,10 @@ def markdown(T: dict, CI: list, AT: dict, INV: dict, IC: list, GC: list, src: Pa
                 a = AT.get(f"{role}|{method}|{kind}")
                 if not a:
                     continue
-                rows.append([method if kind != "init" else "RECONSTRUCTED_INIT (all arms)", kind, "/".join(str(e) for e in a["epochs"]), f(a["mse_prompt_macro"]["mean"], 4), f(a["pairwise_acc_macro"]["mean"]),
+                rows.append([method if kind != "init" else "RECONSTRUCTED_INIT (all arms)", kind, "/".join("—" if e is None else str(e) for e in a["epochs"]), f(a["mse_prompt_macro"]["mean"], 4), f(a["pairwise_acc_macro"]["mean"]),
                              f(a["spearman_pooled"]["mean"]), f(a["spearman_prompt_macro"]["mean"]), f(a["rps_micro"]["mean"], 4), f(a["ce_micro"]["mean"], 4), f(a["within_prompt_mu_std"]["mean"]), f(a["mu_std"]["mean"]),
                              g(a["vs_export_max_abs_dmu"]["mean"], 2) if kind == "best" and role == "CAL_SELECT" else "—"])
-        A(table(["method", "ckpt", "epochs (s0/s1/s2)", "mean-rating MSE (prompt macro)", "pairwise acc", "Spearman pooled", "Spearman prompt macro", "RPS", "CE", "within-prompt μ sd", "μ sd", "vs export max|Δμ|"], rows))
+        A(table(["method", "ckpt", "epochs (s0/s1/s2)", "mean-rating MSE (prompt macro)", "pairwise acc", "Spearman pooled", "Spearman prompt macro", "RPS", "CE", "within-prompt μ sd", "μ sd", "vs export max abs Δμ (seed mean of unit max)"], rows))
         A("")
     A("## 3. D06 input interventions on FIT-AUDIT (best.pt of the 24 units; RECONSTRUCTED_INIT per seed)\n")
     A("Conditions (same eval path, same preprocessing and tokenisation): **normal** pairs; **permuted** = every image moved to a different prompt by one fixed seeded derangement "
@@ -197,7 +295,7 @@ def markdown(T: dict, CI: list, AT: dict, INV: dict, IC: list, GC: list, src: Pa
                         f(r["perm_abs_dmu_mean"]), f(r["perm_abs_dmu_p90"]), f(r["perm_frac_abs_dmu_lt_0.05"], 2), f(r["perm_q_l1_mean"]), f(r["perm_rho_text_following"], 2), f(r["perm_rho_image_following"], 2),
                         f(r["rot_spearman_dmu_vs_dhuman"], 2), f(r["rot_sign_agreement"], 2), f(r["grey_mu_mean"], 2), f(r["grey_dmu_vs_prompt_mean"], 2), f(r["grey_frac_ge_prompt_max"], 2)])
         return out
-    cols = ["method", "seed", "normal ρ pooled", "normal pairwise", "within-prompt μ sd", "between-prompt μ sd", "perm mean|Δμ|", "perm p90|Δμ|", "perm frac|Δμ|<.05", "perm q L1", "ρ(text)", "ρ(image)",
+    cols = ["method", "seed", "normal ρ pooled", "normal pairwise", "within-prompt μ sd", "between-prompt μ sd", "perm mean abs Δμ", "perm p90 abs Δμ", "perm frac abs Δμ < .05", "perm q L1", "ρ(text)", "ρ(image)",
             "rot ρ(Δμ, Δhuman)", "rot sign agr.", "grey μ", "grey μ − prompt mean", "grey ≥ prompt max"]
     A("### 3.1 Per unit\n"); A(table(cols, ic_rows(lambda r: True)))
     byarm = defaultdict(list)
@@ -224,38 +322,48 @@ def markdown(T: dict, CI: list, AT: dict, INV: dict, IC: list, GC: list, src: Pa
     A("First 20 batches of `v8_core.batch_manifest(FIT, seed, epoch 0)` (hash checked against each unit's `log.json`), eval mode (dropout off), autocast fp16 forward as in training, "
       "fp32 losses from the unchanged `v8_core.batch_loss`, unscaled autograd (no GradScaler, no optimiser step).  Point term = the normalised mean-rating MSE (for U-RANK / U-LIST) or the CS loss; "
       "ranking term = the λ-weighted RankNet / ListNet part (total − point).  Norms are L2 over the group's parameters; cos = cosine between the point and ranking gradients; "
-      "`rank/point` = norm ratio.  μ saturation = fraction of μ within 0.05 of 1 or 5.\n")
+      "‖g‖ and cos are means over the 20 batches; `rank/point` = the median over batches of the per-batch norm ratio.  μ saturation = fraction of μ within 0.05 of 1 or 5.\n")
     rows = []
     for r in sorted(GC, key=lambda r: (["U-RANK", "U-LIST", "U-CS"].index(r["arm"]), r["seed"], r["checkpoint"])):
-        rows.append([r["arm"], r["seed"], r["checkpoint"] + ("" if r["epoch"] is None else f" (e{r['epoch']})"), g(r["head_point_norm"]), g(r["head_rank_norm"]), f(r["head_cos_point_rank"], 2), g(r["head_rank_over_point"], 2),
-                     g(r["qformer_point_norm"]), g(r["qformer_rank_norm"]), f(r["qformer_cos_point_rank"], 2), g(r["qformer_rank_over_point"], 2), g(r["ln_vision_point_norm"]), g(r["query_tokens_point_norm"]),
+        rows.append([r["arm"], r["seed"], r["checkpoint"] + ("" if r["epoch"] is None else f" (e{r['epoch']})"), g(r["head_point_norm"]), g(r["head_rank_norm"]), f(r["head_cos_point_rank"], 2), f(r["head_rank_over_point_median"], 2),
+                     g(r["qformer_point_norm"]), g(r["qformer_rank_norm"]), f(r["qformer_cos_point_rank"], 2), f(r["qformer_rank_over_point_median"], 2), g(r["ln_vision_point_norm"]), g(r["query_tokens_point_norm"]),
                      f(r["point_loss"], 4), f(r["ranking_loss"], 4), f(r["ranking_pairs"], 1), f(r["ranking_subgroups"], 1), f(r["mu_saturated_frac"], 3), f(r["mu_within_batch_std"], 3), r["nonfinite_batches"], "yes" if r["plan_matches_unit_log"] else "NO"])
-    A(table(["arm", "seed", "ckpt", "head ‖g_point‖", "head ‖g_rank‖", "head cos", "head rank/point", "Q-former ‖g_point‖", "Q-former ‖g_rank‖", "Q-former cos", "Q-former rank/point", "ln_vision ‖g_point‖",
+    A(table(["arm", "seed", "ckpt", "head ‖g_point‖", "head ‖g_rank‖", "head cos", "head rank/point (median)", "Q-former ‖g_point‖", "Q-former ‖g_rank‖", "Q-former cos", "Q-former rank/point (median)", "ln_vision ‖g_point‖",
              "query ‖g_point‖", "point loss", "ranking loss", "pairs / batch", "subgroups / batch", "μ saturated", "μ sd in batch", "non-finite batches", "plan hash ok"], rows))
-    A("\n## 5. Not done / limits\n")
-    A("- No per-epoch checkpoint exists for any unit (only `best.pt` and the final `resume.pt`), so the checkpoint-level selection analysis of D05 is limited to these two states per unit; "
-      "no training was re-run to recover the trajectory (`not_saved`).\n- RECONSTRUCTED_INIT is a reconstruction from the same recipe and seed, labelled as such; bitwise identity with the formal units' start is not claimed.\n"
-      "- The gradient checks run in eval mode without the GradScaler; the training step used train mode (Q-former dropout) and fp16 loss scaling.  The checks describe gradient magnitude and direction, not the realised update.\n"
-      "- The within-prompt \"rotation\" condition is derived from the normal predictions (the same prompt with another of its own candidates), not a separate forward pass.\n"
-      "- No interpretation is written here; the phase report (V81_08) reads these facts together with D00–D05 and D07.\n")
+    if PA:
+        L.extend(param_section(PA))
+    A("\n## 6. Not done / limits\n")
+    lim = ["No per-epoch checkpoint exists for any unit (only `best.pt` and the final `resume.pt`), so the checkpoint-level selection analysis of D05 is limited to these two states per unit; "
+           "no training was re-run to recover the trajectory (`not_saved`).",
+           ("RECONSTRUCTED_INIT is a reconstruction from the same recipe and seed, labelled as such; §5 reports where it can be checked against the checkpoints (frozen and never-stepped tensors); "
+            "the trained tensors' starting values cannot be checked." if PA else
+            "RECONSTRUCTED_INIT is a reconstruction from the same recipe and seed, labelled as such; bitwise identity with the formal units' start is not claimed."),
+           "The gradient checks run in eval mode without the GradScaler; the training step used train mode (Q-former dropout) and fp16 loss scaling.  They describe gradient magnitude and direction, "
+           + ("not the realised update (§5 gives the realised parameter movement)." if PA else "not the realised update."),
+           "The within-prompt \"rotation\" condition is derived from the normal predictions (the same prompt with another of its own candidates), not a separate forward pass.",
+           "FIT-AUDIT is a training-set audit sample (every image was seen in every epoch); its metrics describe fit, not generalisation.",
+           "No interpretation is written here; the phase report (V81_08) reads these facts together with D00–D05 and D07."]
+    A("".join(f"- {x}\n" for x in lim))
     return "\n".join(L)
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(); ap.add_argument("--src", default=str(SRC_DEFAULT)); ap.add_argument("--results", default=str(RESULTS_DEFAULT)); ap.add_argument("--md", default=str(MD_DEFAULT))
-    ap.add_argument("--no-validate", action="store_true"); a = ap.parse_args(argv); src = Path(a.src); res = Path(a.results); res.mkdir(parents=True, exist_ok=True)
+    ap.add_argument("--no-validate", action="store_true"); ap.add_argument("--jobs", default="1042190,1042191", help="GPU job ids whose log headers give host / GPU / wall time")
+    a = ap.parse_args(argv); src = Path(a.src); res = Path(a.results); res.mkdir(parents=True, exist_ok=True)
     core = None if a.no_validate else load_core(); validate = None if core is None else core.validate_rows
     T = json.loads((src / "timing" / "timing.json").read_text()) if (src / "timing" / "timing.json").exists() else None
     SI = json.loads((src / "infer" / "summary.json").read_text()); SX = json.loads((src / "interventions" / "summary.json").read_text()); SG = json.loads((src / "gradcheck" / "summary.json").read_text())
     env = SI.get("env", {}); CI, INV = checkpoint_inference(SI, validate); AT = arm_tables(CI); IC = input_checks(SX); GC = gradient_checks(SG)
     done = {s: (src / s / "done.json").exists() for s in ("infer", "interventions", "gradcheck")}
-    out_ci = {"source": str(src), "env": env, "fit_audit": SI.get("fit_audit"), "stages_done": done, "timing": T, "inventory": INV, "rows": CI, "arm_tables": AT, "rows_validated_with_package_core": validate is not None}
+    J = job_info([x for x in a.jobs.split(",") if x]); out_ci = {"source": str(src), "env": env, "jobs": J, "fit_audit": SI.get("fit_audit"), "stages_done": done, "timing": T, "inventory": INV, "rows": CI, "arm_tables": AT, "rows_validated_with_package_core": validate is not None}
     write_json = lambda p, o: p.write_text(json.dumps(o, indent=1, allow_nan=False))
-    write_json(res / "checkpoint_inference.json", out_ci); write_csv(res / "checkpoint_inference.csv", CI, list(CI[0].keys()))
+    write_json(res / "checkpoint_inference.json", out_ci); write_csv(res / "checkpoint_inference.csv", CI, list(dict.fromkeys(k for r in CI for k in r)))
     write_json(res / "input_checks.json", {"source": str(src), "env": SX.get("env"), "fit_audit": SX.get("fit_audit"), "permutation_seed": SX.get("permutation_seed"), "grey_rgb": SX.get("grey_rgb"),
                                            "grad_rows": SX.get("grad_rows"), "rows": IC}); write_csv(res / "input_checks.csv", IC, list(IC[0].keys()))
     write_json(res / "gradient_checks.json", {"source": str(src), "env": SG.get("env"), "mode": SG.get("mode"), "n_batches": SG.get("n_batches"), "rows": GC}); write_csv(res / "gradient_checks.csv", GC, list(GC[0].keys()))
-    md = markdown(T, CI, AT, INV, IC, GC, src, env, validate is not None); Path(a.md).parent.mkdir(parents=True, exist_ok=True); Path(a.md).write_text(md)
+    pa_path = res / "param_audit.json"; PA = json.loads(pa_path.read_text()) if pa_path.exists() else None
+    md = markdown(T, CI, AT, INV, IC, GC, src, env, validate is not None, PA, J); Path(a.md).parent.mkdir(parents=True, exist_ok=True); Path(a.md).write_text(md)
     print(f"[fork3 post] {len(CI)} inference rows, {len(IC)} intervention entries, {len(GC)} gradient-check entries; stages done {done}; -> {res}, {a.md}")
     return 0
 
