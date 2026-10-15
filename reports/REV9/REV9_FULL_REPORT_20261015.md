@@ -95,5 +95,36 @@ Prediction-file integrity: 216 files, 0 dropped / blank / duplicate lines.
 
 ## 3. Limits
 - D1-FULL only, 3 seeds per objective, DEV / val benchmarks, fixed budgets.
-- Direct is not read here; it awaits the H100 secondary.
+- Direct is not part of the primary readout (note 3); its hardware-matched single-seed secondary reading is §4.
 - The cross-scale comparison with REV9 is descriptive.
+
+## 4. Secondary reading — the direct objective from the H100 rerun (execution notes 3 and 6; one seed; not part of the frozen family)
+Source: `REV9_FULL_H100_RESULTS/rev9_full_h100_direct_secondary.json` (results-only commit 9637b5b; scorer `scripts/rev9_score_secondary.py` = the
+frozen computation restricted to seed 0; job 1041304 after eval 1040705; I0 guard on H100: estimator diff 0, gate diff 0 → the frozen D1-FULL
+`direct_lr0.0001_s0` unit and all three rerun units are hardware-matched).  Table generated from the JSON (`primary["direct_lr0.0001"]`); Holm over
+the 24 contrasts of this objective; paired per-item differences, image-grouped bootstrap 2,000 (seed 0).
+
+| bench | budget | I1 − frozen (eval-mode critic) | p_Holm | I2 − frozen (straight-through hard top-k) | p_Holm |
+|---|---|---|---|---|---|
+| gqa_dev | 72 | +0.28 [+0.01, +0.54] | 0.480 | +2.13 [+1.49, +2.76] | 0.024 |
+| gqa_dev | 144 | +0.33 [+0.05, +0.56] | 0.260 | +2.04 [+1.40, +2.71] | 0.024 |
+| gqa_dev | 288 | −0.05 [−0.24, +0.14] | 1.000 | +1.15 [+0.56, +1.69] | 0.024 |
+| gqa_dev | 432 | +0.01 [−0.11, +0.15] | 1.000 | +0.18 [−0.23, +0.59] | 1.000 |
+| textvqa_val | 72 | +0.22 [−0.02, +0.45] | 0.690 | +7.66 [+6.72, +8.59] | 0.024 |
+| textvqa_val | 144 | +0.27 [+0.01, +0.56] | 0.480 | +11.69 [+10.64, +12.78] | 0.024 |
+| textvqa_val | 288 | −0.02 [−0.29, +0.25] | 1.000 | +10.56 [+9.50, +11.59] | 0.024 |
+| textvqa_val | 432 | −0.21 [−0.43, +0.02] | 0.738 | +5.43 [+4.65, +6.25] | 0.024 |
+| chartqa_val | 72 | −0.26 [−0.57, +0.05] | 1.000 | +2.50 [+1.42, +3.62] | 0.024 |
+| chartqa_val | 144 | +0.10 [−0.16, +0.40] | 1.000 | +3.12 [+1.97, +4.33] | 0.024 |
+| chartqa_val | 288 | +0.21 [−0.10, +0.53] | 1.000 | +1.67 [+0.62, +2.80] | 0.024 |
+| chartqa_val | 432 | −0.05 [−0.26, +0.10] | 1.000 | +0.99 [+0.21, +1.77] | 0.168 |
+
+- **I1 (eval-mode critic): no effect** — 0 / 12 contrasts significant, |Δ| ≤ 0.33.
+- **I2 (straight-through hard top-k): positive in 10 / 12 contrasts (Holm 0.024), largest on TextVQA** (+7.7 / +11.7 / +10.6 / +5.4 at budgets 72 / 144 /
+  288 / 432: frozen 17.97 / 20.65 / 30.42 / 40.26 → 25.63 / 32.34 / 40.98 / 45.69), +1.2 to +2.1 on GQA below budget 432, +1.7 to +3.1 on ChartQA below
+  432; at budget 432 the gain is small or not significant.
+- This is the opposite sign to the FULL-scale VCS and logistic selectors (§1: hard top-k hurts them in 7 / 12 and 8 / 12 cells) and differs from the direct
+  objective at 10k (REV9 report: no effect).  The frozen direct unit's soft–hard gaps are ≈ 4e-5 (its soft scores are already nearly hard); the I2 units'
+  gaps are 6e-4 to 1e-4.  All of this is one seed on one hardware class and is **descriptive**: it carries no claim and enters the D1 closeout only as the
+  secondary reading it was pre-labelled to be (note 3).  A seeded, pre-registered unit would be needed before any statement about the direct objective's
+  phase-B mechanism.
