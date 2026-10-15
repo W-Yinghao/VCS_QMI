@@ -17,7 +17,7 @@ roles:
   anchor_partition: {teacher: 0.4, critic_fit: 0.3, critic_select: 0.15, reference_moments: 0.15}
   split_unit: image_or_physical_specimen
   U_injection_labels_visible_to_trainer: false
-  anchor_counts_integer:          # largest-remainder allocation of round(0.1 * N_train_images); Flickr30K train = 29,000 images verified from train_ims.npy / train_ids.txt (2026-10-15); COCO count TO_VERIFY after the full extraction
+  anchor_counts_integer:          # largest-remainder allocation of round(0.1 * N_train_images); Flickr30K train = 29,000 images verified from train_ims.npy / train_ids.txt (2026-10-15); COCO train = 113,287 images verified from train_ims.npy (2026-10-15)
     flickr30k: {train_images: 29000, anchors: 2900, teacher: 1160, critic_fit: 870, critic_select: 435, reference_moments: 435, U_images: 26100, captions_per_image: 5}
     coco:      {train_images: 113287, anchors: 11329, teacher: 4532, critic_fit: 3399, critic_select: 1699, reference_moments: 1699, U_images: 101958, captions_per_image: 5}
 nr:
@@ -40,7 +40,7 @@ nr:
   n1_repeats_finite: 200
   n1_repeats_image: 30
   n1_image_source_exploration: "/home/infres/yinwang/CS_QMI/outputs/P49_precheck_A (COCO train2017 CLIP ViT-B/32 laion2b features; SRC-FIT 20,000 / SRC-CAL 5,000 / SRC-EVAL 5,000 images, 5 captions each; already observed by P49/P57/P71/P79/P159 — exploration only, not a new confirmation)"
-  n1_image_source_formal: "Flickr30K precomp roles locked from ncr_precomp after extraction (PENDING)"
+  n1_image_source_formal: "Flickr30K precomp (ncr_precomp/NCR-data/data/f30k_precomp, extracted and verified 2026-10-15); roles drawn image-level inside train by fork B's protocol"
 reg:
   first_dataset: BF-SHG                       # /projects/EEG-foundation-model/yinghao/data/bf_shg_4550300 (train / validation1 / validation2; test.zip sealed under closed/)
   conditional_second_dataset: EPFL_RGB_NIR    # /projects/EEG-foundation-model/yinghao/data/epfl_rgb_nir; terms unresolved -> no new training (package §06 §2)
