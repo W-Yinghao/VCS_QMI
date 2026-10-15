@@ -268,6 +268,39 @@ def cmd_export(a):
     (out / "export.json").write_text(json.dumps({"unit": unit.name, "selected_epoch": ck["epoch"], "prior": prior, "roles": res}, indent=1)); return 0
 
 
+def cmd_features(a):
+    """Table C inputs: the UNTRAINED model (V7's frozen BLIP-2 COCO construction, no V8 training) -> the 768-d mean of the 32 query outputs per
+    image (exactly the V8 head's input) for FIT / CAL_SELECT / CAL_PROB / DEV and the GenAI-Rank candidates; float32 npy + an index jsonl per role."""
+    import hashlib
+    import torch
+    from transformers import BertTokenizerFast
+    device = "cuda" if torch.cuda.is_available() else "cpu"; VC.stage_workdir(VC.BIG_OUT / "work"); tok = BertTokenizerFast.from_pretrained(str(VC.BERT_DIR))
+    from v7_train import build_model
+    model, info = build_model(MAX_TXT, 0, device); model.eval(); out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    VC.import_lavis()
+    from lavis.processors.blip_processors import BlipImageEvalProcessor
+    proc = BlipImageEvalProcessor(image_size=364); D, R = load_role_data(tok, roles=("FIT", "CAL_SELECT", "CAL_PROB", "DEV")); arch = VC.ArchiveImages(); jobs = [(r, D[r], arch) for r in D]
+    if a.rank_inputs:
+        from v7_train import RankImages
+        jobs.append(("GENAI_RANK", CandRows(VC.read_jsonl(a.rank_inputs), tok), RankImages()))
+    man = {"model": info, "pooling": "mean of the 32 query outputs (V8 head input)", "parts": []}
+    for role, data, imgs in jobs:
+        col = Collate(data, imgs, proc); feats = []
+        with torch.no_grad():
+            for s0 in range(0, len(data), 32):
+                b = col(list(range(s0, min(s0 + 32, len(data))))); image = b["image"].to(device); ids, att = b["ids"].to(device), b["att"].to(device)
+                with torch.cuda.amp.autocast(enabled=device == "cuda"):
+                    emb = model.ln_vision(model.visual_encoder(image)); ia = torch.ones(emb.shape[:-1], dtype=torch.long, device=device)
+                    q = model.query_tokens.expand(emb.shape[0], -1, -1); qa = torch.ones(q.shape[:-1], dtype=torch.long, device=device)
+                    o = model.Qformer.bert(ids, query_embeds=q, attention_mask=torch.cat([qa, att], 1), encoder_hidden_states=emb, encoder_attention_mask=ia, return_dict=True)
+                feats.append(o.last_hidden_state[:, :q.shape[1]].float().mean(1).cpu().numpy())
+        X = np.concatenate(feats).astype(np.float32); np.save(out / f"feats_{role}.npy", X)
+        keep = ("image_id", "prompt_id", "generator_id", "candidate_index", "hist", "tail", "mean", "w", "n")
+        (out / f"index_{role}.jsonl").write_text("".join(json.dumps({k: r[k] for k in keep if k in r and not (role == "GENAI_RANK" and k in ("hist", "tail", "mean"))}) + "\n" for r in data.rows))
+        man["parts"].append({"tag": role, "n": len(X), "sha256": hashlib.sha256(X.tobytes()).hexdigest()}); print(f"[v8 features] {role}: {X.shape}", flush=True)
+    (out / "manifest.json").write_text(json.dumps(man, indent=1)); return 0
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     t = sub.add_parser("train"); t.add_argument("--arm", required=True, choices=sorted(C.ARMS)); t.add_argument("--lr", type=float, required=True)
@@ -277,7 +310,8 @@ def main(argv=None):
     x = sub.add_parser("export"); x.add_argument("--unit-dir", required=True); x.add_argument("--roles", nargs="+", default=["CAL_SELECT", "CAL_PROB", "DEV"])
     x.add_argument("--rank-inputs", default=None); x.add_argument("--bench-inputs", default=None)
     x.add_argument("--bench-images", default="/projects/EEG-foundation-model/yinghao/outputs_v7/genai_bench_images")
-    a = ap.parse_args(argv); return {"train": cmd_train, "export": cmd_export}[a.cmd](a)
+    f = sub.add_parser("features"); f.add_argument("--out", required=True); f.add_argument("--rank-inputs", default=None)
+    a = ap.parse_args(argv); return {"train": cmd_train, "export": cmd_export, "features": cmd_features}[a.cmd](a)
 
 
 if __name__ == "__main__":

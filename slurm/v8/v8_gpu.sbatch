@@ -9,6 +9,7 @@
 # V8 GPU jobs (reports/V8_UTILITY).  env envs/v7_fga.  Positional arguments only.
 #   smoke         every arm: 20 steps x 5 epochs + CAL_SELECT eval on 64 images (outputs_v8/smoke/<arm>), then one arm's export on CAL_SELECT
 #   epoch-timing  U-CS, one full FIT epoch + the full CAL_SELECT eval (outputs_v8/timing)
+#   features      Table C inputs: untrained-model 768-d pooled query features per image (outputs_v8/features)
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v8; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 PY="/projects/EEG-foundation-model/yinghao/envs/v7_fga/bin/python -I"; O=/projects/EEG-foundation-model/yinghao/outputs_v8
 export TORCH_HOME=/projects/EEG-foundation-model/yinghao/models/torch_home HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
@@ -19,6 +20,7 @@ case "$what" in
            $PY scripts/v8/v8_train.py train --arm $arm --lr 1e-5 --seed 0 --unit-dir $O/smoke/$arm --max-steps 20 --eval-n 64 --workers 6 || rc=1; done
          $PY scripts/v8/v8_train.py export --unit-dir $O/smoke/U-CS --roles CAL_SELECT || rc=1;;
   epoch-timing) $PY scripts/v8/v8_train.py train --arm U-CS --lr 1e-5 --seed 0 --unit-dir $O/timing/U-CS --epochs 1 --workers 8; rc=$?;;
+  features) $PY scripts/v8/v8_train.py features --out $O/features --rank-inputs /home/infres/yinwang/CS_QMI/outputs/V7/data/genai_rank_inputs.jsonl; rc=$?;;
   *) echo "usage: smoke | epoch-timing"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc
