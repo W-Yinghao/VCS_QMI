@@ -11,19 +11,19 @@ question: >
 owner_decisions_20261015: {first_block: flickr30k_only, coco: later_separate_decision, ncr_l2rm: "via the minimal patches on the official clones (v9/patches)", tuning: "<= 48 single-seed units, seed 917, lr x {0.5, 1, 2}"}
 parallel_to_v8: {protected_branch: v8/utility-aligned-cs, cancel_existing_jobs: false, output_root: /projects/EEG-foundation-model/yinghao/outputs_v9/n2}
 host:
-  model: SGRAF single-model SGR path — vendored src/v9/n2/sgr_host.py for the V9 weighted student (equivalence test against the official NCR model.py); the official scripts for NCR+A / L2RM+A
-  hyperparameters: reports/V9/HOST_LOCK.yaml (fork A, FILLED_FROM_CODE_PENDING_DATA_CHECKS); any TO_VERIFY field blocks a formal unit (train.py refuses with formal=True)
+  model: "SGRAF single-model SGR path — vendored src/v9/n2/sgr_host.py for the V9 weighted student (equivalence test against the official NCR model.py); the official scripts for NCR+A / L2RM+A"
+  hyperparameters: "reports/V9/HOST_LOCK.yaml (fork A, FILLED_FROM_CODE_PENDING_DATA_CHECKS); any TO_VERIFY field blocks a formal unit (train.py refuses with formal=True)"
   values_f30k: {batch_size: 128, learning_rate: 2e-4, grad_clip: 2.0, margin: 0.2, native_epochs: 40, lr_update: 30, optimizer: Adam, ncr_warmup: 5, l2rm: {epochs: 35, lr_update: 15, reg: 0.01, warmup: 5}}
-  student_loss: max-violation hinge per anchor (row + column), SGRAF default
-  teacher: same host, 5 full epochs on A-teacher-warmup only, warm-up loss (mean hinge, NCR/L2RM 'warmup'), frozen; score s = SGR similarity of the pair in eval mode
+  student_loss: "max-violation hinge per anchor (row + column), SGRAF default"
+  teacher: "same host, 5 full epochs on A-teacher-warmup only, warm-up loss (mean hinge, NCR/L2RM 'warmup'), frozen; score s = SGR similarity of the pair in eval mode"
 data:
-  dataset: flickr30k (f30k_precomp: train 29,000 images / 145,000 captions, dev 1,014 images (first 1,000 used by the host), test 1,000 images / 5,000 captions; SCAN vocab 8,481)
-  files: /projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/f30k_precomp (fork A's DATA_AUDIT.csv; sha256 there); vocab SGRAF_py3/vocab/f30k_precomp_vocab.json; official noise index L2RM/noise_index/f30k_precomp_0.4.npy (A-table + degradation check only)
-  roles: anchor 10 % of training images drawn before noise (seed = formal seed), split 40/30/15/15 by image (teacher_warmup / critic_fit / critic_select / reference_moments); U = the rest; captions follow images; isolation from dev / test = separate official split files (precheck §4 records hashes and id disjointness when id files exist)
-  noise: mechanism mismatch injected into U pairs at design rho in {0, 0.4}, donors from U only (A clean); the official DECL/RCL index is NOT used for the B table; manifest with design_rho, realized_rho, mapping sha256; labels sealed in eval_only/
-  Q_for_critic: within-role re-pairing (cyclic shift, same-image rejected) — a conditional Q, stated in every table
+  dataset: "flickr30k (f30k_precomp: train 29,000 images / 145,000 captions, dev 1,014 images (first 1,000 used by the host), test 1,000 images / 5,000 captions; SCAN vocab 8,481)"
+  files: "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/f30k_precomp (fork A's DATA_AUDIT.csv; sha256 there); vocab SGRAF_py3/vocab/f30k_precomp_vocab.json; official noise index L2RM/noise_index/f30k_precomp_0.4.npy (A-table + degradation check only)"
+  roles: "anchor 10 % of training images drawn before noise (seed = formal seed), split 40/30/15/15 by image (teacher_warmup / critic_fit / critic_select / reference_moments); U = the rest; captions follow images; isolation from dev / test = separate official split files (precheck §4 records hashes and id disjointness when id files exist)"
+  noise: "mechanism mismatch injected into U pairs at design rho in {0, 0.4}, donors from U only (A clean); the official DECL/RCL index is NOT used for the B table; manifest with design_rho, realized_rho, mapping sha256; labels sealed in eval_only/"
+  Q_for_critic: "within-role re-pairing (cyclic shift, same-image rejected) — a conditional Q, stated in every table"
 weights:
-  interface: s -> T (critic fitted on A-critic-fit, selected on A-critic-select by the common J) -> a, b on A-reference-moments -> rho_hat = (a - c)/(a - b) on the estimation part of U (80 % of U images, unlabeled, transductive) -> w = clean posterior (rho_hat) for ALL U pairs, locked file (sha256), detached, fixed before training
+  interface: "s -> T (critic fitted on A-critic-fit, selected on A-critic-select by the common J) -> a, b on A-reference-moments -> rho_hat = (a - c)/(a - b) on the estimation part of U (80 % of U images, unlabeled, transductive) -> w = clean posterior (rho_hat) for ALL U pairs, locked file (sha256), detached, fixed before training"
   rho_interval: "reported on the INDEPENDENT batch (the held-out 20 % of U images, by image, seeded): point estimate, status and the package's Hoeffding inversion on image-level cluster means; the interval on the estimation batch is diagnostic only" # §05.3 step 3
   methods:
     N0_Unweighted_A: {w: 1}
@@ -35,24 +35,24 @@ weights:
     N6_Nystrom_Weight: {src/v9/quant.fit_nystrom}
     N7_RankMass: {top-k by raw teacher score with N3's training-side total mass (fractional tail); reads only the mass}
     non_main_row_PlainFilter: {raw score >= 5th percentile of SELECT true pairs}
-  rho_strategy: estimated (deployable); oracle-rho rows only as diagnostics
-  identification: a - b at numerical tolerance -> weights 1 and the unit flagged 'unidentified'
+  rho_strategy: "estimated (deployable); oracle-rho rows only as diagnostics"
+  identification: "a - b at numerical tolerance -> weights 1 and the unit flagged 'unidentified'"
 training_objective: "L = (sum_A ell_i + sum_U w_i ell_i) / (n_A + sum_U w_i); minibatch mean(v_i ell_i) / mean_v_full_pool (fixed before training); w never in logits; low-w pairs stay in the negative pool; unnormalised U risk logged"
 precheck_gate:   # pre-registered gate BEFORE any formal unit (owner 2026-10-15); `n2_run.py precheck`; one table per (dataset, rho, seed): precheck/precheck_<dataset>_rho<rho>_s<seed>.{json,md}
-  teacher_separability: {on: A-critic-select clean (P) vs within-role re-paired (Q), report: [quantiles q5/q25/q50/q75/q95, AUROC, histogram overlap coefficient, share of P below the Q median], refuse_if: "AUROC > 0.999 (nothing to weight) or AUROC < 0.55 (teacher uninformative)", thresholds_in_code: src/v9/n2/precheck.py AUROC_MAX / AUROC_MIN}
+  teacher_separability: {scores_on: A-critic-select clean (P) vs within-role re-paired (Q), report: [quantiles q5/q25/q50/q75/q95, AUROC, histogram overlap coefficient, share of P below the Q median], refuse_if: "AUROC > 0.999 (nothing to weight) or AUROC < 0.55 (teacher uninformative)", thresholds_in_code: src/v9/n2/precheck.py AUROC_MAX / AUROC_MIN}
   weights: {per_method: [quantiles, ESS, total mass, share at 0, share at 1], pairwise: [mean |w_i - w_j|, Spearman rank correlation, share identical to 1e-6, max |w_i - w_j|]}
   loss_coefficients: {definition: "c_i = v_i / mean_v_full over the pool (anchors v = 1, U weights)", merge_rule: "two methods are implementation-identical ONLY if c equal to 1e-12 on every pool row AND data order / RNG state derive from the same seed (trainer: seed_everything(seed), epoch permutation rng([seed, 9020, epoch]); recorded) — then the duplicate is not trained twice and the result carries the provenance; otherwise both run"}
   roles: {report: [counts, hashes, which stage used each role, dev/test isolation]}
   decision: formal_block_allowed = not degenerate; a refused cell stops the whole block for that (dataset, rho, seed) and is reported as "degenerate problem", not re-tuned into allowance
 degradation_check:   # launch condition for N1 / N2 (owner 2026-10-15): with the anchor intervention OFF and the official noise index the patched scripts reproduce the native path
-  tool: scripts/v9/n2_degradation.py (patched vs native copies of the clones): same t2i index, same clean labels, same items, same eval-mode loss on a fixed mini-batch, same selected indices with the anchor block skipped
-  fixture: part of tests/v9/test_n2_ext.py (CPU); real_data: run under the v9_sgr / v9_l2rm envs on f30k_precomp with L2RM/noise_index/f30k_precomp_0.4.npy before the first N1 / N2 unit; L2RM's BMM itself needs pomegranate (v9_l2rm)
+  tool: "scripts/v9/n2_degradation.py (patched vs native copies of the clones): same t2i index, same clean labels, same items, same eval-mode loss on a fixed mini-batch, same selected indices with the anchor block skipped"
+  fixture: "part of tests/v9/test_n2_ext.py (CPU); real_data: run under the v9_sgr / v9_l2rm envs on f30k_precomp with L2RM/noise_index/f30k_precomp_0.4.npy before the first N1 / N2 unit; L2RM's BMM itself needs pomegranate (v9_l2rm)"
 units:
-  formal_block: configs/NR_FORMAL_UNITS.csv rows with dataset == flickr30k — 8 methods x rho {0, 0.4} x seeds {901, 902, 903} = 48; shared per (rho, seed): roles, noise draw, teacher (6 teachers)
-  tuning: seed 917, lr multipliers {0.5, 1, 2} per method x rho = <= 48 single-seed units; the multiplier per (method, rho) is chosen on the official dev rSum of seed 917 and frozen before the formal seeds
-  grouping: V9-runner units of one (rho, seed) cell grouped per GPU job (slurm/v9/n2_unit.sbatch group, resumable, skip-when-done); NCR+A / L2RM+A via scripts/v9/n2_official.py (export -> launch in fork A's env -> collect into the same unit-dir layout)
-  coco: not in this block (separate decision after the Flickr block and its measured cost)
-selection: {critic_and_rho: reference roles only; checkpoint: official dev rSum (ties -> earlier epoch; NCR / L2RM: their official best_rsum); test: never used for any choice}
+  formal_block: "configs/NR_FORMAL_UNITS.csv rows with dataset == flickr30k — 8 methods x rho {0, 0.4} x seeds {901, 902, 903} = 48; shared per (rho, seed): roles, noise draw, teacher (6 teachers)"
+  tuning: "seed 917, lr multipliers {0.5, 1, 2} per method x rho = <= 48 single-seed units; the multiplier per (method, rho) is chosen on the official dev rSum of seed 917 and frozen before the formal seeds"
+  grouping: "V9-runner units of one (rho, seed) cell grouped per GPU job (slurm/v9/n2_unit.sbatch group, resumable, skip-when-done); NCR+A / L2RM+A via scripts/v9/n2_official.py (export -> launch in fork A's env -> collect into the same unit-dir layout)"
+  coco: "not in this block (separate decision after the Flickr block and its measured cost)"
+selection: "{critic_and_rho: reference roles only; checkpoint: official dev rSum (ties -> earlier epoch; NCR / L2RM: their official best_rsum); test: never used for any choice}"
 evaluation: {metrics: R@1/5/10 both directions, rSum, mR; flickr 1K test; ties: fixed id order primary + random-tie sensitivity (V9 runner); official evaluator for NCR+A / L2RM+A (numpy argsort ties, two-model average for NCR) with the difference stated}
 primary_families_holm:
   systems: [VCS_Weight vs NCR_A at rho 0.4, VCS_Weight vs L2RM_A at rho 0.4]                 # 2 contrasts (Flickr block), Holm
@@ -62,4 +62,4 @@ primary_families_holm:
 statistics: {unit: test image (captions follow), bootstrap 2000 paired over query images with the gallery fixed, per-seed values shown, no non-inferiority relabelling}
 not_claimed: [SOTA vs anchor-free leaderboards (trust-assisted), unbiased recovery of the full in-batch loss (identity only for losses measurable on the critic's input — strict check §05.5 beside), raw-image end-to-end training, ESC/ASL/ReCon unless their code runs (fork A's EXTERNAL_FIDELITY), semantic correctness of P (P/Q are pairing mechanisms), anything about COCO]
 gate_before_freeze: {cpu: "tests/v9/test_n2.py + test_n2_ext.py + fixture smoke (slurm/v9/n2_unit.sbatch gate)", real_data: [precheck on f30k rho 0.4 seed 901 (allowed), degradation check (pass), one-epoch timing (fork A)], host_lock: no TO_VERIFY}
-cost: PENDING (fork A's grouped timing job fills V9_01 §4; the block is submitted only after the owner confirms the total)
+cost: "PENDING (fork A's grouped timing job fills V9_01 §4; the block is submitted only after the owner confirms the total)"

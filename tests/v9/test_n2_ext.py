@@ -87,3 +87,15 @@ def test_degradation_check_fixture(tmp_path):
     r = subprocess.run([sys.executable, str(ROOT / "scripts/v9/n2_degradation.py"), "--ncr", n, "--l2rm", l, "--out", str(tmp_path / "d.json")], capture_output=True, text=True, timeout=600)
     assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-2000:]
     d = json.loads((tmp_path / "d.json").read_text()); assert d["pass"] and d["ncr"]["fixed_batch_eval_loss_equal"] and d["l2rm"]["split_labeled_equal"]
+
+
+@pytest.mark.parametrize("rel", ["reports/V9/HOST_LOCK.yaml", "reports/V9/V9_N2_PROTOCOL_DRAFT.yaml", "reports/V9/V9_N2_PROTOCOL_FROZEN*.yaml"])
+def test_n2_yaml_files_parse(rel):
+    """HOST_LOCK and the N2 protocol must be loadable YAML (precheck 1042125 died on a HOST_LOCK ScannerError).  The frozen G1 / N1 protocols are text-only and hashed: not covered."""
+    import glob
+    import yaml
+    files = sorted(glob.glob(str(ROOT / rel)))
+    if not files:
+        pytest.skip(f"{rel}: not present yet")
+    for f in files:
+        d = yaml.safe_load(Path(f).read_text()); assert isinstance(d, dict) and d, f
