@@ -114,3 +114,38 @@ class KernelFit(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RunGuards(unittest.TestCase):
+    """scripts/v9/reg_g1.py run: smoke units live under <root>/smoke; a formal run refuses a run dir made with other steps / epochs or orphan checkpoints."""
+
+    def _args(self, unit, smoke=False, force=False):
+        import argparse
+        return argparse.Namespace(unit=unit, smoke=smoke, force=force, steps=3000, n_pert=2, comir_epochs=0)
+
+    def test_refuses_to_mix_smoke_run_with_formal(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "v9")); import reg_g1 as CLI
+        uid = G.unit_id("vcs", 0.25, 0.2, 902); u = G.ensure_layout(uid, "vcs", 902); (u / "run").mkdir(exist_ok=True)
+        json.dump({"steps": 200}, open(u / "run" / "train.json", "w"))
+        with self.assertRaises(SystemExit) as cm:
+            CLI.cmd_run(self._args(uid))
+        self.assertIn("refusing to mix", str(cm.exception))
+        os.remove(u / "run" / "train.json"); (u / "run" / "ckpt_00050.pt").write_bytes(b"x")
+        with self.assertRaises(SystemExit) as cm:
+            CLI.cmd_run(self._args(uid))
+        self.assertIn("checkpoints without train.json", str(cm.exception))
+
+    def test_smoke_root_is_separate(self):
+        """A smoke call redirects the unit root to <root>/smoke before any layout or training (training itself is stubbed out here)."""
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "v9")); import reg_g1 as CLI
+        root0, train0, seen = G.V9_ROOT, G.cmd_train, {}
+
+        def stub(*a, **k):
+            seen["root"] = G.V9_ROOT; raise RuntimeError("stop-before-training")
+        G.cmd_train = stub
+        try:
+            with self.assertRaises(RuntimeError):
+                CLI.cmd_run(self._args(G.unit_id("vcs", 1.0, 0.0, 903), smoke=True))
+        finally:
+            G.cmd_train = train0; G.V9_ROOT = root0
+        self.assertEqual(seen["root"], root0 / "smoke"); self.assertFalse((root0 / "units" / G.unit_id("vcs", 1.0, 0.0, 903)).exists())
