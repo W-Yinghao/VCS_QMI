@@ -56,7 +56,7 @@ def main():
          "the DEV column comes from G1's `V9_G1_results/g1_results.json`.  Package format: [已知证据] / [本轮结果] / [解释] / [未验证假设].", "",
          "## [已知证据] (V9-G1 development validation, report 0c8616a)",
          "- G1 trained and CAL-selected every predictor on REG-P1's FIT / CAL cores and read the 32 DEV cores, which r6 had also read; its DEV numbers are development validation.",
-         "- Primary family on DEV (success < 42 px, Holm over 4): " + "; ".join(f"{k.split('|')[0].replace('vcs_minus_', 'VCS − ').replace('mi', 'MI').replace('comir', 'CoMIR')} "
+         "- Primary family on DEV (success < 42 px, Holm over 4): " + "; ".join(f"VCS − {NAME[k.split('|')[0].replace('vcs_minus_', '')]} "
                                                                              f"({k.split('|')[1]}) {100 * c['mean']:+.1f} pp, detected {c['detected']}" for k, c in D["primary"].items()) + ".",
          "- The test predictors are exactly those G1 selected on CAL (chosen checkpoints, CoMIR weights, kernel multipliers); MI / NMI are recomputed on the test.", "",
          "## [本轮结果] (134 sealed test cores × 10 rigid perturbations, read once)", "",
