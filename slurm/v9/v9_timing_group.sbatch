@@ -15,7 +15,7 @@
 #   (d) teacher: native SGR on a 1,160-image subset of train for 5 epochs                (envs/v9_sgr; subset = first 1,160 train images in file order, timing only)
 # Outputs under outputs_v9/timing only; nothing is selected from these runs; the test evaluations here are host-protocol timing checks, not reported numbers.
 ROOT=/projects/EEG-foundation-model/yinghao; C=$ROOT/code_v9; DATA=${DATA:-$ROOT/data/ncr_precomp/NCR-data/data}; VOCAB=${VOCAB:-$ROOT/data/ncr_precomp/NCR-data/vocab}
-NOISE=$C/L2RM/noise_index/f30k_precomp_0.4.npy; O=$ROOT/outputs_v9/timing/group_${SLURM_JOB_ID}; mkdir -p $O; export PYTHONNOUSERSITE=1
+NOISE=$C/L2RM/noise_index/f30k_precomp_0.4.npy; O=$ROOT/outputs_v9/timing/group_${SLURM_JOB_ID}; mkdir -p $O; export PYTHONNOUSERSITE=1 TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1
 echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1) start=$(date -u +%FT%TZ) sgraf=$(git -C $C/SGRAF_py3 rev-parse --short HEAD) ncr=$(git -C $C/2021-NeurIPS-NCR rev-parse --short HEAD) l2rm=$(git -C $C/L2RM rev-parse --short HEAD) data=$DATA vocab=$VOCAB"
 [ -f $VOCAB/f30k_precomp_vocab.json ] || VOCAB=$C/SGRAF_py3/vocab
 t() { echo "[$(date -u +%FT%TZ)] $*"; }
