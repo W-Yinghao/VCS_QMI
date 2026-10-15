@@ -337,16 +337,23 @@ def cmd_tifa160_inputs(a) -> int:
     import csv
     ids = sorted({r["item_id"] for r in csv.DictReader(open(DSG_DEV))})
     cap = {x["id"]: x["caption"] for x in json.load(open(TIFA_TEXT))}
-    imgs = sorted(p for p in Path(a.images).rglob("*") if p.suffix.lower() in (".png", ".jpg", ".jpeg"))
+    imgs = sorted(p for p in Path(a.images).rglob("*") if p.suffix.lower() in (".png", ".jpg", ".jpeg") and "__MACOSX" not in p.parts)
+    # VERIFIED 2026-10-15 on the official release tifa_annotated_images.zip (sha256 6a1e283a…): annotated_images/<text id>_<model>.jpg, 160 ids x the
+    # five models below = 800 files; text ids contain underscores (coco_100240, partiprompt_153, ...), so the match is exact: stem == id + "_" + model.
     rows = []
-    for tid in ids:
-        for p in imgs:
-            if tid in p.stem:
-                rows.append({"prompt_id": tid, "generator_id": p.stem.replace(tid, "").strip("_-") or p.parent.name, "image_id": str(p.relative_to(a.images)), "candidate_index": 0, "prompt": cap[tid]})
+    for p in imgs:
+        hit = [t for t in ids if p.stem.startswith(t + "_") and p.stem[len(t) + 1:] in TIFA160_MODELS]
+        if len(hit) != 1:
+            raise SystemExit(f"{p.name}: file name does not map to exactly one (text id, model): {hit}")
+        tid = hit[0]; model = p.stem[len(tid) + 1:]
+        rows.append({"prompt_id": tid, "generator_id": model, "image_id": str(p.relative_to(a.images)), "candidate_index": TIFA160_MODELS.index(model), "prompt": cap[tid]})
+    rows.sort(key=lambda r: (r["prompt_id"], r["candidate_index"]))
+    per = {t: sorted(r["generator_id"] for r in rows if r["prompt_id"] == t) for t in ids}
+    bad = [t for t in ids if per[t] != sorted(TIFA160_MODELS)]
     Path(a.out).parent.mkdir(parents=True, exist_ok=True)
     Path(a.out).write_text("".join(json.dumps(r) + "\n" for r in rows))
-    print(f"TIFA160 inputs: {len(ids)} prompts, {len(rows)} images matched (expected 800) -> {a.out}")
-    return 0 if len(rows) == 800 else 1
+    print(f"TIFA160 inputs: {len(ids)} prompts, {len(rows)} images (expected 800), ids without all 5 models: {len(bad)} -> {a.out}")
+    return 0 if len(rows) == 800 and not bad else 1
 
 
 def main(argv=None):
