@@ -21,7 +21,7 @@ for spec in "f30k_0 f30k_precomp test 0" "f30k_0.2 f30k_precomp test 0" "f30k_0.
   $E/bin/python - "$ck" "$DATA" "$VOCAB" "$2" "$3" "$4" > $out.tmp 2>&1 <<'PY'
 import sys; sys.argv, (ck, data, vocab, name, split, fold5) = sys.argv[:1], sys.argv[1:7]
 import evaluation as EV  # NCR/evaluation.py (unchanged)
-EV.evalrank(ck, data_path=data, split=split, fold5=(fold5 == "1"))  # prints rsum / R@K as the official script does
+EV.evalrank(ck, data_path=data, vocab_path=vocab, split=split, fold5=(fold5 == "1"))  # prints rsum / R@K as the official script does
 PY
   r=$?; mv $out.tmp $out; echo "[done] rc=$r $(grep -i -E 'rsum|Average|r1|R@' $out | tail -4 | tr '\n' ' ')"; [ $r -eq 0 ] || rc=1
 done
