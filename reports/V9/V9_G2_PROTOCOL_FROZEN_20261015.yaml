@@ -151,3 +151,9 @@ execution_note_3_20261015: >
   The three deferred groups were resubmitted by the main session at about 2026-10-15T18:50Z with --nice=400, lines verbatim from
   slurm/v9/reg_g2_feed_deferred.txt (options before the script, nothing appended): 1042152 v9g2_comir_f1, 1042153 v9g2_kernel_f0.25, 1042154 v9g2_kernel_f1
   (recorded in reports/V9/V9_JOB_IDS.json).  All 10 groups are therefore live: 1042138–1042144 and 1042152–1042154; the aggregate waits for all 52 unit results.
+execution_note_4_20261015: >
+  Attribution: 1042152–1042154 were submitted by the main session (scontrol SubmitTime 2026-10-15T18:42:34Z); the G2 fork's only submissions are the gate
+  1042084, the timing job 1042085 and the 10 feed lines 1042138–1042147 at 18:37Z.  At 18:46Z the main session announced it had cancelled 1042152–1042154
+  before start because the owner's total queue was at the 30-job cap again; at 18:47Z they were still PENDING with no log file (no unit of theirs started).
+  Rule from the main session: the fork submits nothing further except the single CPU aggregate once all 52 unit results exist; the three groups are
+  reissued by the main session alone.  No unit, rule or configuration changed.
