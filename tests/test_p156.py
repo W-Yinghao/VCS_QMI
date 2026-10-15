@@ -270,3 +270,35 @@ def test_aggregate_known_effects(tmp_path):
 
 def test_holm():
     adj = sep_agg.holm([0.01, 0.04, 0.03]); assert adj == pytest.approx([0.03, 0.06, 0.06])
+
+
+# ---------------------------------------------------------------- addendum 1 (lr-edge extension)
+def test_addendum1_cells():
+    cs = sep.addendum1_cells(100)
+    assert len(cs) == 24 and {c["cls"] for c in cs} == {"cos2", "quad3"} and all(c["block"] == "E" and c["lrs"] == [sep.LR_EXT_PAR] for c in cs)
+    orig = {sep.cell_name(c) for c in sep.cells_for_seed(100)}
+    assert all(sep.cell_name(c).endswith("_lrext") and sep.cell_name(c)[:-6] in orig for c in cs)
+
+
+def test_merge_extension_equals_full_grid_run():
+    """Grid run + extension run, merged, must equal one run over the extended grid (per-lr training is seeded independently of the grid)."""
+    base = dict(block="E", cls="cos2", variant="product", ctype="independent", eps=0.1, d=20, I=4.0, N=256, U=200, arms=sep.ARMS_ALL, seed=100)
+    run = lambda lrs, **tag: sep.run_cell({**sep.cell(**base, lrs=lrs), **tag}, CPU, smoke=False)   # full role sizes; smoke would keep one lr only
+    full = run(list(sep.LRS_PAR) + [sep.LR_EXT_PAR]); orig = run(list(sep.LRS_PAR)); ext = run([sep.LR_EXT_PAR], tag="lrext")
+    assert ext["cell"]["name"] == orig["cell"]["name"] + "_lrext"
+    M = sep.merge_extension(orig, ext)
+    key = lambda r: (r["arm"], r["lr"])
+    a, b = sorted(full["rows"], key=key), sorted(M["rows"], key=key)
+    assert [key(r) for r in a] == [key(r) for r in b]
+    for x, y in zip(a, b):
+        assert x["readout"]["posterior_mse"] == y["readout"]["posterior_mse"] and x["selected"] == y["selected"]
+        assert x["selected_commonJ"] == y["selected_commonJ"] and x["lr_edge"] == y["lr_edge"]
+    assert M["cell"]["lrs_run"] == sorted(list(sep.LRS_PAR) + [sep.LR_EXT_PAR]) and M["cell"]["name"] == orig["cell"]["name"]
+
+
+def test_merge_extension_never_selects_a_diverged_point():
+    mk = lambda lr, risk, j: {"arm": "js", "lr": lr, "select": {"select_risk": risk, "commonJ_select": j}, "selected": False, "selected_commonJ": False}
+    orig = {"cell": {"name": "x"}, "truth": {}, "rows": [mk(0.03, 1.0, 0.2), mk(0.1, 0.9, 0.3)], "wall_seconds": 1.0}
+    ext = {"cell": {"name": "x_lrext"}, "truth": {}, "rows": [mk(0.3, float("nan"), float("nan"))], "wall_seconds": 1.0}
+    M = sep.merge_extension(orig, ext); sel = {r["lr"]: (r["selected"], r["selected_commonJ"], r["lr_edge"]) for r in M["rows"]}
+    assert sel == {0.03: (False, False, "low"), 0.1: (True, True, None), 0.3: (False, False, "high")}

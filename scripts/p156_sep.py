@@ -55,6 +55,8 @@ def main() -> int:
     q = sub.add_parser("repro"); q.add_argument("--out", required=True); q.add_argument("--cpu", action="store_true")
     m = sub.add_parser("match"); m.add_argument("--out", required=True); m.add_argument("--n", type=int, default=sep.MATCH_N)
     t = sub.add_parser("timing"); t.add_argument("--out", required=True); t.add_argument("--cpu", action="store_true")
+    x = sub.add_parser("addendum1"); x.add_argument("--out", required=True); x.add_argument("--seeds", default="100+101+102+103+104+105+106+107")
+    g = sub.add_parser("merge1"); g.add_argument("--src", required=True); g.add_argument("--ext", required=True); g.add_argument("--dst", required=True)
     u = sub.add_parser("units"); u.add_argument("--seed", type=int, default=100)
     a = ap.parse_args()
     if a.cmd == "units":
@@ -79,6 +81,24 @@ def main() -> int:
                      f"{x['sat95_matched']:.3f} ({x['sat95_P_side_matched']:.3f} / {x['sat95_Q_side_matched']:.3f}) | {x['rho_sat']:.5f} | {x['S_clean_at_rho_sat']:.4f} | "
                      f"{x['sat95_at_rho_sat']:.3f} |")
         Path(a.out + ".md").write_text("\n".join(L) + "\n"); print("\n".join(L)); return 0
+    if a.cmd == "addendum1":
+        cs = [c for sd in a.seeds.replace(",", "+").split("+") for c in sep.addendum1_cells(int(sd))]
+        print(f"[p156] addendum 1: {len(cs)} extension cells", flush=True); return run_list(cs, Path(a.out), _device(False), False)
+    if a.cmd == "merge1":
+        import shutil
+        src, extd, dst = Path(a.src), Path(a.ext), Path(a.dst); n_m = n_c = 0
+        want = {sep.cell_name(c) for sd in range(100, 108) for c in sep.addendum1_cells(sd)}
+        have = {f.stem for f in extd.glob("P156_*_lrext.json")}
+        if want - have:
+            print(f"[p156] merge1: {len(want - have)} extension cells missing, e.g. {sorted(want - have)[:3]}"); return 1
+        dst.mkdir(parents=True, exist_ok=False)
+        for f in sorted(src.glob("P156_*.json")):
+            ext = extd / (f.stem + "_lrext.json")
+            if ext.exists():
+                atomic_write_json(dst / f.name, sep.merge_extension(json.loads(f.read_text()), json.loads(ext.read_text()))); n_m += 1
+            else:
+                shutil.copy2(f, dst / f.name); n_c += 1
+        print(json.dumps({"merged": n_m, "copied": n_c})); return 0
     if a.cmd == "repro":
         return run_list([sep.reproduction_cell()], Path(a.out), _device(a.cpu), False)
     if a.cmd == "timing":

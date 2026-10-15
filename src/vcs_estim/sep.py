@@ -436,9 +436,10 @@ def cell(block, cls, variant, ctype, eps, d, I, N, U, arms, lrs, seed, match=Non
 
 
 def cell_name(c: dict) -> str:
+    t = f"_{c['tag']}" if c.get("tag") else ""
     m = (f"_m{c['match']['ctype'][:3]}{c['match']['eps']:g}" + ("sat" if c["match"].get("by") == "sat95" else "")) if c.get("match") else ""
     return (f"P156_{c['block']}_{c['cls']}_{c['variant']}_{c['ctype']}{m}_e{c['eps']:g}_d{c['d']}_I{c['I']:g}_N{c['N']}_U{c['updates']}"
-            f"_s{c['seed']}")
+            f"_s{c['seed']}{t}")
 
 
 def cells_for_seed(seed: int) -> list[dict]:
@@ -478,6 +479,34 @@ def cells_for_seed(seed: int) -> list[dict]:
             for I in IS:
                 C.append(cell("B2", "mlp256", "product", "matched", 0.0, d, I, 4096, 2000, ARMS_ALL, LRS_MLP, seed, match=(ct, 0.3, "sat95")))
     return C
+
+
+LR_EXT_PAR = 0.3                                                            # addendum 1: one point beyond the high edge of LRS_PAR
+
+
+def addendum1_cells(seed: int) -> list[dict]:
+    """Addendum 1 (edge rule, protocol §3): every block-E cos2 / quad3 cell of a seed, all four arms, at lr 0.3 only (tag 'lrext')."""
+    out = []
+    for c in cells_for_seed(seed):
+        if c["block"] == "E" and c["cls"] in ("cos2", "quad3"):
+            out.append({**c, "lrs": [LR_EXT_PAR], "tag": "lrext"})
+    return out
+
+
+def merge_extension(orig: dict, ext: dict) -> dict:
+    """Original cell + its lr-extension rows -> one cell whose selections are re-made over the extended grid (native risk primary,
+    common J sensitivity), with the lr-edge flags recomputed on the extended grid."""
+    rows = [dict(r) for r in orig["rows"]] + [dict(r) for r in ext["rows"]]; grid = sorted({r["lr"] for r in rows})
+    for arm in {r["arm"] for r in rows}:
+        g = [r for r in rows if r["arm"] == arm]
+        for r in g:
+            r["selected"] = False; r["selected_commonJ"] = False
+            r["lr_edge"] = "low" if r["lr"] == grid[0] else "high" if r["lr"] == grid[-1] else None
+        fin = lambda v, bad: v if math.isfinite(v) else bad                 # a diverged extension point is never selected (identical to run_cell when finite)
+        min(g, key=lambda r: fin(r["select"]["select_risk"], math.inf))["selected"] = True
+        max(g, key=lambda r: fin(r["select"]["commonJ_select"], -math.inf))["selected_commonJ"] = True
+    cellrec = {**orig["cell"], "lrs_run": grid, "addendum1_extension_file": ext["cell"]["name"]}
+    return {"cell": cellrec, "truth": orig["truth"], "rows": rows, "wall_seconds": orig["wall_seconds"] + ext["wall_seconds"]}
 
 
 def reproduction_cell() -> dict:

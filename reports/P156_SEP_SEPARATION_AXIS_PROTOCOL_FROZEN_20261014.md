@@ -258,3 +258,31 @@ Block B2 (rev. 2) adds ≈ 0.35 h per seed. That was the estimate: **≈ 3.6 GPU
 2. **Block B2 (rev. 2)**, the saturation-matched controls at ε 0.3, is included as a secondary contrast; the primary family is unchanged. The owner was informed on 2026-10-14. B2 cells run last in every seed, so an owner objection can remove them by an addendum before any B2 cell runs.
 3. **Submission:** 4 jobs of 2 seeds each — `SEED=100+101`, `102+103`, `104+105`, `106+107` — as one job per seed would push the normal-QOS count past 27. Each job is about 6 h, with `--time=12:00:00`. Partitions RTX6000PRO, H100 and L40S, with node51 and node60 excluded. Nice 100, so the V7X and REV9 groups already pending start first; the owner asked for this unit after them.
 4. **Aggregation:** `scripts/p156_aggregate.py --dir outputs/P156_sep --out reports/P156_SEP_results/p156_aggregate` once all 8 seeds are in. Results-only commit first, then the report. Any lr-edge addendum (§3) is frozen before the aggregate is computed.
+
+## Addendum 1 — learning-rate edge extension (frozen 2026-10-15T01:58:24Z, before any contrast is computed)
+**What was looked at.** With all 8 seeds complete (1 272 cells, 0 failed), only the QC fields of §3 were counted: the selected lr's edge flag, the not-converged flag and wall time. No readout, contrast or aggregate has been computed.
+
+**Trigger (§3 edge rule).** In block E every arm sits at an edge in more than half of the block's cells (js 149 / 288, b05 147 / 288, vcs 159 / 288, b2 178 / 288). The edge is the high end of the parametric grid (lr 0.1):
+
+| class | js | b05 | vcs | b2 |
+|---|---|---|---|---|
+| cos2 (high edge) | 62 / 96 | 61 / 96 | 66 / 96 | 75 / 96 |
+| quad3 (high edge) | 73 / 96 | 70 / 96 | 78 / 96 | 88 / 96 |
+| mlp8 (MLP grid; high edge 8e-3) | 14 / 96 | 16 / 96 | 15 / 96 | 15 / 96 |
+
+No other block triggers: the largest share elsewhere is js at the low edge in block A, 164 / 432.
+
+**Extension.**
+- One further point beyond the edge, lr 0.3 (the grid's half-decade step), for all four arms in every block-E cell whose grid has 0.1 as its edge: the 12 cos2 and 12 quad3 cells of each seed, 192 cells in all.
+- mlp8 cells use the MLP grid, whose edge they do not sit at, so they are not extended.
+- Per-lr training is seeded independently of the grid (`train_arm`), so a cell's rows at the original five lrs are unchanged; only the sixth row is new.
+- Code: `sep.addendum1_cells` (tag `lrext`) and `sep.merge_extension`. The merge re-makes both selections over the six-point grid (native risk primary, common J sensitivity) and recomputes the edge flags; a diverged extension row is never selected.
+- Test: `test_merge_extension_equals_full_grid_run` checks that a grid run plus an extension run, merged, equals one run over the six-point grid.
+
+**Aggregation (replaces item 4 of the decisions at the freeze).**
+- Run `p156_sep.py addendum1 --out outputs/P156_sep_lrext`, then `p156_sep.py merge1 --src outputs/P156_sep --ext outputs/P156_sep_lrext --dst outputs/P156_sep_add1`.
+- **Primary:** `p156_aggregate.py --dir outputs/P156_sep_add1 --out reports/P156_SEP_results/p156_aggregate`.
+- **Named sensitivity:** the original five-point grid, `--dir outputs/P156_sep --out reports/P156_SEP_results/p156_aggregate_grid5`.
+- Both go into the results-only commit before the report.
+
+**No second extension.** If lr 0.3 is again chosen in more than half of a class's cells, this is reported as a limitation of the restricted-class readings (block E, P3); the grid is not extended again.
