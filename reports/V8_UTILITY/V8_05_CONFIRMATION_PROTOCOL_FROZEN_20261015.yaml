@@ -68,3 +68,34 @@ gate_record: >
   B0 928a74eaf525, B1 a626a43fb7e3, B4T 37cf2d8eaba7, B4D c7f1c0d18e44), 12 parquet shards hashed (prefixes as listed under `seal`),
   ready_for_run=True; inventory file /projects/EEG-foundation-model/yinghao/outputs_v8/confirm_v1/gate_1042040/dry_run.json.  No rating column
   was opened.
+execution_note_B1_20261015: >
+  §B TIFA160 preparation (TIFA160 fork; owner approval of the TIFA160 read recorded on main, reports/OWNER_DECISIONS_20261015.md; §A untouched).
+  Images: the official release tifa_annotated_images.zip (TIFA README Google-Drive id 16y87Wg1mYwPhfZnLeBHi0HH4RiwD3a5K; 35,333,425 bytes, sha256
+  6a1e283a1e6bef5cf9b785ee449097c7a83e6e0918d7d9de4291ac30f494b231) downloaded 2026-10-15 to /projects/EEG-foundation-model/yinghao/data/tifa160/,
+  800 JPEGs extracted (annotated_images/<text id>_<model>.jpg; __MACOSX entries discarded; per-file sha256 in SHA256SUMS_images.txt; data card
+  reports/V8_UTILITY/TIFA160_DATA_CARD.md; manifest entry tifa160_images).  File-name -> (text id, model) mapping VERIFIED (not guessed): the 160
+  ids of DSG's public dsg/data/tifa160-dev-anns.csv x the five tags {mini_dalle, vq_diffusion, stable_diffusion_v1_1, stable_diffusion_v1_5,
+  stable_diffusion_v2_1} = 800 files, every id with all five; captions from tifa_v1.0_text_inputs.json.  Export inputs
+  outputs_v8/confirm_v1/tifa160/tifa160_inputs.jsonl (800 rows, sha256 2160cf9ce1d22b5c…; candidate_index = model order above).
+  Predictions: GPU jobs 1042056 (v8-export of the 24 formal units via scripts/v8/v8_export_tifa160.py -> <unit>/pred/tifa160.jsonl; b0-native =
+  released FGA-BLIP2 through its native harness) and 1042057 (b1 VQAScore CLIP-FlanT5-XXL; tifa-qg + tifa-score local route) submitted nice 400,
+  QUEUED behind the V9-G1 jobs on the GPU quota at the time of this note; B4D DSG (local route, EXPOSED through DSG's tifa160 in-context examples)
+  has prepared sbatch modes (dsg-gen needs a >= 80 GB GPU, dsg-score) but was NOT submitted within the 2 GPU-h budget — it is reported as absent
+  unless run later; paid-API routes not run.  Labels: both sealed files present and hashed (bytes only): DSG tifa160-likert-anns.csv
+  61c9ff41b9f9fc26…, TIFA human_annotations.json 1e41c66e78b7f1e7…, both equal to SHA256SUMS_v7x_20261014.txt; nothing opened.
+  Readout tooling (scripts/v8/v8_confirm.py): tifa160-dry-run (inventory + hashes, never calls a label reader — asserted by a test) and
+  tifa160-run --allow-scoring (refuses without the line 'TIFA160 CONFIRMED' in V8_05_CONFIRMATION_REQUEST.md and refuses to overwrite):
+  labels = DSG 5-rater mean per image (schema from the public dsg/data_utils.py: item_id, source_id, t2i_model, worker_id, answer) and, separately,
+  the TIFA 2-rater mean parsed from human_annotations.json by a tolerant parser (dict keyed by file name / stem / '<id>_<model>', dict[id][model],
+  or a list of records) that records the detected layout and the unparsed count — the TIFA file's structure is unknown before the read (its folder
+  README is sealed), so the DSG column is the one with a known schema; correlations Spearman (primary), Pearson, Kendall tau-b per method with
+  the rater mean over the 800 images, Spearman per generator descriptive; families tifa_primary U-CS vs B0 / B1 / B4T / B4D (Holm over the
+  comparators present; B4D flagged exposed), tifa_attribution U-CS vs U-BCE (Holm 2), other arms descriptive; bootstrap over the 160 text inputs
+  (5,000 resamples, seed 2718); intervals always, no claim language; ledger row with both sealed hashes written by the sbatch before the read.
+  Gate: CPU job 1042077 — tests/v8 52 / 52 (6 new: correlations vs scipy incl. tau-b, DSG csv parser on the public schema, TIFA json parser on
+  three layouts, bootstrap determinism + Holm, dry-run never opens labels, run refuses without 'TIFA160 CONFIRMED'); tifa160-dry-run --hash:
+  inputs 800 / 160, units 0 / 24 and external 0 / 4 present (predictions pending), seals matched, ready_for_run=False as expected.
+  Launch sequence for the read (main session): wait for jobs 1042056 / 1042057 -> `sbatch slurm/v8/v8_confirm.sbatch tifa160-dry-run <out> --hash`
+  (ready_for_run=True; B4D absent is allowed) -> add the line 'TIFA160 CONFIRMED <utc>' to V8_05_CONFIRMATION_REQUEST.md -> `sbatch
+  slurm/v8/v8_confirm.sbatch tifa160-run /projects/EEG-foundation-model/yinghao/outputs_v8/confirm_v1/tifa160/run_v1` -> results-only commit ->
+  report section (labelled "secondary external evaluation added 2026-10-15").
