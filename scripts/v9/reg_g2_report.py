@@ -63,7 +63,7 @@ def main():
                 c = C.get(f"{m}|frac{f}|eps{e}")
                 if not c:
                     L.append(f"| {NAME[m]} | {f} | {e} | — | missing | | | | | |"); continue
-                L.append(f"| {NAME[m]} | {f} | {e} | {c['n_fit_units']} | {pct(c['success42'])} | {pct(c['success9'])} | {c['dev_median_err']['mean']:.2f} | {sum(c['failures42'])} ({sum(c['failures42_energy'])}) | "
+                L.append(f"| {NAME[m]} | {f} | {e} | {'/'.join(str(x) for x in sorted(set(c['n_fit_units'])))} | {pct(c['success42'])} | {pct(c['success9'])} | {c['dev_median_err']['mean']:.2f} | {sum(c['failures42'])} ({sum(c['failures42_energy'])}) | "
                          f"{', '.join(str(x) for x in c.get('chosen_ckpt', [])) or '—'} | {', '.join(f'{x:.3f}' for x in c.get('realised_mismatch', []) if x is not None) or '—'} |")
     for m in ("mi", "nmi"):
         c = C.get(m)
