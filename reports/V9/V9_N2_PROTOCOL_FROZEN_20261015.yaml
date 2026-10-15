@@ -1,0 +1,119 @@
+# V9-N2 — trust-assisted noisy-correspondence retrieval on the SGR host: protocol DRAFT 2 (fork D, 2026-10-16; owner decisions 2026-10-15 applied).
+# Status: DRAFT.  The main session freezes it (rename *_FROZEN_*, freeze time) after: fork A's one-epoch timing fills the cost table, the precheck
+# gate has run on the real Flickr30K stage and allowed the block, and the degradation check has passed on real data.  No formal unit before that.
+# Package sources: docs/05 (all), docs/03 E-F, docs/07, docs/08 §2, configs/NR_FORMAL_UNITS.csv (flickr30k rows); HOST_LOCK.yaml (fork A).
+version: V9-N2-frozen-20261015
+question: >
+  With the same 10 % trusted anchor budget for every method, does fixing per-pair reliability weights from a bounded CS critic (VCS) on the common
+  teacher score improve full SGR retrieval on Flickr30K under 40 % mechanism mismatch over (i) the strongest noisy-correspondence routes given the
+  same anchors (NCR+A, L2RM+A) and (ii) the same weight interface fed by matched logistic, RuLSIF and Nystrom posteriors, and over a rank-only
+  mass-matched filter — and what does it cost on clean data (rho 0)?
+owner_decisions_20261015: {first_block: flickr30k_only, coco: later_separate_decision, ncr_l2rm: "via the minimal patches on the official clones (v9/patches)", tuning: "<= 48 single-seed units, seed 917, lr x {0.5, 1, 2}"}
+parallel_to_v8: {protected_branch: v8/utility-aligned-cs, cancel_existing_jobs: false, output_root: /projects/EEG-foundation-model/yinghao/outputs_v9/n2}
+host:
+  model: "SGRAF single-model SGR path — vendored src/v9/n2/sgr_host.py for the V9 weighted student (equivalence test against the official NCR model.py); the official scripts for NCR+A / L2RM+A"
+  hyperparameters: "reports/V9/HOST_LOCK.yaml (fork A, FILLED_FROM_CODE_PENDING_DATA_CHECKS); any TO_VERIFY field blocks a formal unit (train.py refuses with formal=True)"
+  values_f30k: {batch_size: 128, learning_rate: 2e-4, grad_clip: 2.0, margin: 0.2, native_epochs: 40, lr_update: 30, optimizer: Adam, ncr_warmup: 5, l2rm: {epochs: 35, lr_update: 15, reg: 0.01, warmup: 5}}
+  student_loss: "HOST_LOCK 57366c5 (fork A, timing job 1042033): SGRAF with hardest in-batch negatives from step 0 collapses under torch 2.9 (loss -> 2 x 128 x 0.2, dev R@1 0.1), so EVERY SGR-based row — the V9 weighted student, the teacher, the native SGR row, NCR+A's warm-up — runs NCR's warm-up loss (sum-violation / mean hinge over in-batch negatives, both directions) for 5 epochs before the max-violation hinge; the V9 student applies the reliability weights in both phases (train.py warmup_epochs, from HOST_LOCK); evaluators export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 (3deb194)"
+  host_lock_commit: 57366c5
+  teacher: "same host, 5 full epochs on A-teacher-warmup only, warm-up loss (mean hinge, NCR/L2RM 'warmup'), frozen; score s = SGR similarity of the pair in eval mode"
+data:
+  dataset: "flickr30k (f30k_precomp: train 29,000 images / 145,000 captions, dev 1,014 images (first 1,000 used by the host), test 1,000 images / 5,000 captions; SCAN vocab 8,481)"
+  files: "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/f30k_precomp (fork A's DATA_AUDIT.csv; sha256 there); vocab SGRAF_py3/vocab/f30k_precomp_vocab.json; official noise index L2RM/noise_index/f30k_precomp_0.4.npy (A-table + degradation check only)"
+  roles: "anchor 10 % of training images drawn before noise (seed = formal seed), split 40/30/15/15 by image (teacher_warmup / critic_fit / critic_select / reference_moments); U = the rest; captions follow images; isolation from dev / test = separate official split files (precheck §4 records hashes and id disjointness when id files exist)"
+  noise: "mechanism mismatch injected into U pairs at design rho in {0, 0.4}, donors from U only (A clean); the official DECL/RCL index is NOT used for the B table; manifest with design_rho, realized_rho, mapping sha256; labels sealed in eval_only/"
+  Q_for_critic: "within-role re-pairing (cyclic shift, same-image rejected) — a conditional Q, stated in every table"
+weights:
+  interface: "s -> T (critic fitted on A-critic-fit, selected on A-critic-select by the common J) -> a, b on A-reference-moments -> rho_hat = (a - c)/(a - b) on the estimation part of U (80 % of U images, unlabeled, transductive) -> w = clean posterior (rho_hat) for ALL U pairs, locked file (sha256), detached, fixed before training"
+  rho_interval: "reported on the INDEPENDENT batch (the held-out 20 % of U images, by image, seeded): point estimate, status and the package's Hoeffding inversion on image-level cluster means; the interval on the estimation batch is diagnostic only" # §05.3 step 3
+  methods:
+    N0_Unweighted_A: {w: 1}
+    N1_NCR_A: {official NCR code + v9/patches/ncr_anchor_assisted.diff (anchors labeled with prob 1 after the GMM split, both nets; V9 observed mapping; clean labels -1); official two-model averaged evaluation; row labelled "SGR x2 (NCR co-training)"}
+    N2_L2RM_A: {official L2RM code + v9/patches/l2rm_anchor_assisted.diff (anchors always in the correct set; rematching, cost net, queue untouched)}
+    N3_VCS_Weight: {critic: cos-2 tanh(a s + b), a = softplus, quadratic rule}
+    N4_BCE_Weight: {same class, matched logistic (attribution)}
+    N5_RuLSIF_Weight: {src/v9/quant.fit_rulsif (alpha 1/2), T = clip(r - 1)}
+    N6_Nystrom_Weight: {src/v9/quant.fit_nystrom}
+    N7_RankMass: {top-k by raw teacher score with N3's training-side total mass (fractional tail); reads only the mass}
+    non_main_row_PlainFilter: {raw score >= 5th percentile of SELECT true pairs}
+  rho_strategy: "estimated (deployable); oracle-rho rows only as diagnostics"
+  identification: "a - b at numerical tolerance -> weights 1 and the unit flagged 'unidentified'"
+training_objective: "L = (sum_A ell_i + sum_U w_i ell_i) / (n_A + sum_U w_i); minibatch mean(v_i ell_i) / mean_v_full_pool (fixed before training); w never in logits; low-w pairs stay in the negative pool; unnormalised U risk logged"
+precheck_gate:   # pre-registered gate BEFORE any formal unit (owner 2026-10-15); `n2_run.py precheck`; one table per (dataset, rho, seed): precheck/precheck_<dataset>_rho<rho>_s<seed>.{json,md}
+  teacher_separability: {scores_on: A-critic-select clean (P) vs within-role re-paired (Q), report: [quantiles q5/q25/q50/q75/q95, AUROC, histogram overlap coefficient, share of P below the Q median], refuse_if: "AUROC > 0.999 (nothing to weight) or AUROC < 0.55 (teacher uninformative)", thresholds_in_code: src/v9/n2/precheck.py AUROC_MAX / AUROC_MIN}
+  weights: {per_method: [quantiles, ESS, total mass, share at 0, share at 1], pairwise: [mean |w_i - w_j|, Spearman rank correlation, share identical to 1e-6, max |w_i - w_j|]}
+  loss_coefficients: {definition: "c_i = v_i / mean_v_full over the pool (anchors v = 1, U weights)", merge_rule: "two methods are implementation-identical ONLY if c equal to 1e-12 on every pool row AND data order / RNG state derive from the same seed (trainer: seed_everything(seed), epoch permutation rng([seed, 9020, epoch]); recorded) — then the duplicate is not trained twice and the result carries the provenance; otherwise both run"}
+  roles: {report: [counts, hashes, which stage used each role, dev/test isolation]}
+  decision: formal_block_allowed = not degenerate; a refused cell stops the whole block for that (dataset, rho, seed) and is reported as "degenerate problem", not re-tuned into allowance
+degradation_check:   # launch condition for N1 / N2 (owner 2026-10-15): with the anchor intervention OFF and the official noise index the patched scripts reproduce the native path
+  tool: "scripts/v9/n2_degradation.py (patched vs native copies of the clones): same t2i index, same clean labels, same items, same eval-mode loss on a fixed mini-batch, same selected indices with the anchor block skipped"
+  fixture: "part of tests/v9/test_n2_ext.py (CPU); real_data: run under the v9_sgr / v9_l2rm envs on f30k_precomp with L2RM/noise_index/f30k_precomp_0.4.npy before the first N1 / N2 unit; L2RM's BMM itself needs pomegranate (v9_l2rm)"
+units:
+  formal_block: "configs/NR_FORMAL_UNITS.csv rows with dataset == flickr30k — 8 methods x rho {0, 0.4} x seeds {901, 902, 903} = 48; shared per (rho, seed): roles, noise draw, teacher (6 teachers)"
+  tuning: "seed 917, lr multipliers {0.5, 1, 2} per method x rho = <= 48 single-seed units; the multiplier per (method, rho) is chosen on the official dev rSum of seed 917 and frozen before the formal seeds"
+  grouping: "V9-runner units of one (rho, seed) cell grouped per GPU job (slurm/v9/n2_unit.sbatch group, resumable, skip-when-done); NCR+A / L2RM+A via scripts/v9/n2_official.py (export -> launch in fork A's env -> collect into the same unit-dir layout)"
+  coco: "not in this block (separate decision after the Flickr block and its measured cost)"
+selection: "{critic_and_rho: reference roles only; checkpoint: official dev rSum (ties -> earlier epoch; NCR / L2RM: their official best_rsum); test: never used for any choice}"
+evaluation: {metrics: R@1/5/10 both directions, rSum, mR; flickr 1K test; ties: fixed id order primary + random-tie sensitivity (V9 runner); official evaluator for NCR+A / L2RM+A (numpy argsort ties, two-model average for NCR) with the difference stated}
+primary_families_holm:
+  systems: [VCS_Weight vs NCR_A at rho 0.4, VCS_Weight vs L2RM_A at rho 0.4]                 # 2 contrasts (Flickr block), Holm
+  traditional: [VCS_Weight vs RuLSIF_Weight, VCS_Weight vs Nystrom_Weight at rho 0.4]        # 2 contrasts, Holm
+  attribution: [VCS_Weight vs BCE_Weight at rho 0.4]                                           # 1 contrast
+  reported_in_full: [rho 0 absolute performance and the 0 -> 0.4 degradation of every method, RankMass, PlainFilter, Unweighted_A, the precheck tables]
+statistics: {unit: test image (captions follow), bootstrap 2000 paired over query images with the gallery fixed, per-seed values shown, no non-inferiority relabelling}
+not_claimed: [SOTA vs anchor-free leaderboards (trust-assisted), unbiased recovery of the full in-batch loss (identity only for losses measurable on the critic's input — strict check §05.5 beside), raw-image end-to-end training, ESC/ASL/ReCon unless their code runs (fork A's EXTERNAL_FIDELITY), semantic correctness of P (P/Q are pairing mechanisms), anything about COCO]
+gate_before_freeze: {cpu: "tests/v9/test_n2.py + test_n2_ext.py + fixture smoke (slurm/v9/n2_unit.sbatch gate)", real_data: [precheck on f30k rho 0.4 seed 901 (allowed), degradation check (pass), one-epoch timing (fork A)], host_lock: no TO_VERIFY}
+cost_note_at_draft_2: "PENDING (fork A's grouped timing job fills V9_01 §4; the block is submitted only after the owner confirms the total)"
+precheck_gate_record:   # RESULTS ONLY (no design change) — written by scripts/v9/n2_precheck_collect.py from the precheck of record
+  job: "1042133"
+  code_commit: "127dd18"
+  host: "node58 (RTX PRO 6000 Blackwell, 97.9 GB)"
+  dataset: "f30k"
+  tables: "reports/V9/V9_N2_precheck/precheck_<ds>_rho<rho>_s<seed>.{json,md}, PRECHECK_SUMMARY.{json,md}, teacher_log_*.json, vcs_weight_lock_*.json"
+  block_allowed: true
+  thresholds: "refuse if teacher AUROC (clean vs within-role re-paired, A-critic-select) > 0.999 or < 0.55"
+  merge_rule_applied: "methods whose loss coefficients are equal to 1e-12 on every pool row are ONE run per seed (data order and RNG derive from the seed only); at rho 0 the projected rho-hat is 0, so every posterior / mass weight is identically 1 and those arms coincide with Unweighted_A — the merged group is run once per seed and its result is reported for every member"
+  cells:
+    - {rho: 0.4, seed: 901, allowed: true, auroc: 0.8837, overlap: 0.3821, rho_hat_U_est: 0.3922 (point_estimate), rho_hat_independent: "0.409 [0.1946, 0.5842]", merged_into_one_run: [], teacher_seconds_per_epoch: 16.3, teacher_peak_gpu_mb: 9503, teacher_shared_from: "trained in this cell"}
+    - {rho: 0, seed: 901, allowed: true, auroc: 0.8837, overlap: 0.3821, rho_hat_U_est: 0.0 (outside_parameter_space), rho_hat_independent: "0.0 [0.0, 0.2076]", merged_into_one_run: ["BCE_Weight", "Nystrom_Weight", "RankMass", "RuLSIF_Weight", "Unweighted_A", "VCS_Weight"], teacher_seconds_per_epoch: 16.3, teacher_peak_gpu_mb: 9503, teacher_shared_from: "rho0.4"}
+    - {rho: 0.4, seed: 902, allowed: true, auroc: 0.9032, overlap: 0.348, rho_hat_U_est: 0.4052 (point_estimate), rho_hat_independent: "0.4087 [0.2273, 0.5613]", merged_into_one_run: [], teacher_seconds_per_epoch: 13.4, teacher_peak_gpu_mb: 9401, teacher_shared_from: "trained in this cell"}
+    - {rho: 0, seed: 902, allowed: true, auroc: 0.9032, overlap: 0.348, rho_hat_U_est: 0.0 (outside_parameter_space), rho_hat_independent: "0.0037 [0.0, 0.1884]", merged_into_one_run: ["BCE_Weight", "RankMass", "Unweighted_A", "VCS_Weight"], teacher_seconds_per_epoch: 13.4, teacher_peak_gpu_mb: 9401, teacher_shared_from: "rho0.4"}
+    - {rho: 0.4, seed: 903, allowed: true, auroc: 0.9112, overlap: 0.3278, rho_hat_U_est: 0.3708 (point_estimate), rho_hat_independent: "0.3692 [0.1846, 0.5246]", merged_into_one_run: [], teacher_seconds_per_epoch: 12.8, teacher_peak_gpu_mb: 9601, teacher_shared_from: "trained in this cell"}
+    - {rho: 0, seed: 903, allowed: true, auroc: 0.9112, overlap: 0.3278, rho_hat_U_est: 0.0 (outside_parameter_space), rho_hat_independent: "0.0 [0.0, 0.143]", merged_into_one_run: ["BCE_Weight", "Nystrom_Weight", "RankMass", "RuLSIF_Weight", "Unweighted_A", "VCS_Weight"], teacher_seconds_per_epoch: 12.8, teacher_peak_gpu_mb: 9601, teacher_shared_from: "rho0.4"}
+
+# ---- FROZEN 2026-10-15 (coordinator decisions after the precheck of record 1042133 passed in all six cells) ----
+frozen:
+  version: V9-N2-frozen-20261015
+  frozen_utc: "2026-10-15T19:05:45Z"
+  frozen_from: "V9_N2_PROTOCOL_DRAFT.yaml draft 2 at commit d436b08 (text above unchanged except version and the cost key renamed to cost_note_at_draft_2); the blocks below are the freeze additions"
+  decisions: "coordinator 2026-10-15: (1) rho-0 merge follows the pre-registered rule — the merged configuration is trained once per seed and the result is attributed to every member, PlainFilter separate, no bitwise-identical re-runs; rows sharing a run are ONE training, not independent replicates (stated in every report); (2) freeze now with the precheck record, the HOST_LOCK state and the measured costs; (3) two launch waves under the normal-QOS cap (<= 27): wave 1 = SGR-student formal + tuning units, wave 2 = NCR+A / L2RM+A after fork A posts their timings; (4) job ids in reports/V9/V9_JOB_IDS.json, results-only commit + aggregate + report when the units finish"
+host_lock_at_freeze:
+  host_lock_last_commit: "d436b08"
+  warmup_lock_commit: "57366c5 — SGRAF with hardest in-batch negatives from step 0 collapses under torch 2.9 (timing job 1042033: loss -> 2 x 128 x 0.2, dev R@1 0.1); every SGR-based row runs NCR's 5-epoch warm-up (sum-violation = mean hinge over in-batch negatives, both directions) before the max-violation phase"
+  student_recipe: "SGR single (vendored src/v9/n2/sgr_host.py = NCR model.py @60256ba): batch 128, Adam lr 2e-4 x multiplier, lr x0.1 at epoch 30, 40 epochs, grad_clip 2.0, margin 0.2; epochs 0-4 warm-up mean hinge, epochs 5-39 max-violation hinge (train.py warmup_epochs = 5 parsed from HOST_LOCK); reliability weights apply in both phases with the fixed-pool normaliser; dev rSum checkpoint every epoch (ties -> earlier epoch); seeds 901 / 902 / 903 (tuning 917)"
+  change_vs_draft_1: "the warm-up phase (commit 7f2d42c) — the only student-recipe change; written here before launch"
+  teacher_recipe: "same host, 5 epochs mean hinge on the A-teacher-warmup pairs only (4 % of the training pairs), one per (dataset, seed), shared across rho (clean anchors)"
+  pending_markers_in_host_lock: "measured_epoch_seconds / estimated_hours_from_measured_epoch (cost fields: filled by this block's measurements) and verified_coco (COCO is not in this block) — no recipe field is pending (src/v9/n2/teacher.py load_host_lock blocks a formal unit only on pending RECIPE values; tests/v9/test_n2_ext.py::test_host_lock_pending_markers_block_only_recipe_fields)"
+  evaluators: "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 for the official NCR / L2RM trainer and evaluator subprocesses (commit 3deb194 / 7f2d42c)"
+cost:
+  teacher_measured: "precheck 1042133 on node58 (RTX PRO 6000 Blackwell): 12.8-16.3 s/epoch on 5,800 anchor pairs (46 batches of 128), peak GPU memory 9.4-9.6 GB, 5 epochs = 64-82 s per seed; all six precheck cells = 18 min wall"
+  sgr_student_measured: "timing job 1042033 (fork A, SGR stage) on node60 (RTX PRO 6000 known ~2.2x slower than healthy RTX nodes): 1 epoch + dev validation = 1,266 s; native SGRAF step time 0.58-0.67 s per batch of 128 over 1,133 batches"
+  per_unit_estimate: "40 epochs x (≈ 306 s training at the node58 batch rate 0.27 s + dev validation ≈ 2-4 min) ≈ 5.5-7 h per run on RTX PRO 6000 / H100 / L40S (nodes 51 and 60 excluded); measured per-epoch seconds are logged in every unit's train_log.json and replace this estimate at aggregation"
+  wave1_estimate: "23 formal runs (after the merge) + <= 36 tuning runs (seed 917; its merge groups come from its own precheck) ≈ 47-59 runs x ≈ 6.2 h ≈ 290-370 GPU-h; 2 runs per GPU job (24 h partition limit, resumable, skip-when-done)"
+  wave2_estimate: "NCR_A / L2RM_A: 12 formal rows + tuning, timings from fork A's timing job (NCR stage pending at freeze)"
+  measured_total: PENDING_RESULTS
+merge_mapping:   # precheck of record (reports/V9/V9_N2_precheck/PRECHECK_SUMMARY.json), formal seeds; tuning seed 917 gets its own mapping from its precheck
+  rule: "loss coefficients equal to 1e-12 on every pool row (anchors v = 1, U weights) AND data order / RNG state derived from the seed only => one training, run under the first member (sorted), attributed to every member; the result JSON of the run carries `members`"
+  rho_0.4: "no merges in any seed (VCS vs BCE rank-identical but coefficients differ)"
+  cells:
+    - {rho: 0, seed: 901, run_as: BCE_Weight, members: ["BCE_Weight", "Nystrom_Weight", "RankMass", "RuLSIF_Weight", "Unweighted_A", "VCS_Weight"]}
+    - {rho: 0, seed: 902, run_as: BCE_Weight, members: ["BCE_Weight", "RankMass", "Unweighted_A", "VCS_Weight"]}
+    - {rho: 0, seed: 903, run_as: BCE_Weight, members: ["BCE_Weight", "Nystrom_Weight", "RankMass", "RuLSIF_Weight", "Unweighted_A", "VCS_Weight"]}
+units_after_merge:
+  formal_wave1: "reports/V9/V9_N2_units/formal_units.json: 23 runs covering 36 SGR-student arm rows (18 at rho 0.4, 5 at rho 0); group files formal_g01-g12.txt, feeder lines formal_feed.txt; FORMAL=1 (precheck gate re-checked by run_unit)"
+  tuning: "seed 917, lr multipliers {0.5, 1, 2} for every SGR-student arm x rho; shared stage + merge groups from `n2_precheck.sbatch` with SEEDS=917 (not a gate: the gate is the formal seeds' precheck), then reports/V9/V9_N2_units/tuning_units.json (<= 36 runs; 18 at rho 0.4 and 3-18 at rho 0 depending on its merge groups)"
+  tuning_rule: "the multiplier per (method, rho) is the one with the highest official dev rSum of seed 917 (ties -> 1); formal x1 runs are launched concurrently with the tuning: if seed 917 selects a multiplier other than 1 for a (method, rho), the formal seeds of that (method, rho) are re-run at the selected multiplier and the x1 runs are reported as a sensitivity row — the x1 formal runs never inform the choice; test split never used"
+  wave2: "NCR_A and L2RM_A (12 formal rows + their tuning rows) via scripts/v9/n2_official.py (export -> launch in fork A's envs -> collect) once fork A posts the NCR / L2RM timings into HOST_LOCK / V9_02"
+  plain_filter: "not a formal arm (NR_FORMAL_UNITS.csv); reported from the precheck weight tables only"
+  queue_rule: "normal-QOS count (`squeue -u $USER -h -o %q | grep -c normal`) <= 27 at every submission (slurm/v9/n2_feed.sh, CAP 27); nice 400; each job's log checked ~90 s after it starts"
+launch_record: "reports/V9/V9_JOB_IDS.json entries starting with 'V9-N2' (job ids, commit, group files); execution notes in reports/V9/V9_N2_ADAPTER_NOTES.md §13"

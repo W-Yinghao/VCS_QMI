@@ -5,7 +5,8 @@
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
-#SBATCH --time=12:00:00
+#SBATCH --time=23:59:00
+#SBATCH --nice=400
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # V9-N2 (package v1 docs/05).  Positional MODE:
 #   gate                      CPU-capable: tests/v9/test_n2.py + the fixture smoke (`n2_run.py smoke`) — code path only, never evidence

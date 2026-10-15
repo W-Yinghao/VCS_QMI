@@ -114,3 +114,14 @@ def test_student_warmup_phase_then_hard_negatives(tmp_path):
     dev = make_fixture(n_images=6, seed=9); st = WeightedStudent(cfg, obs, {r["pair_id"]: 1.0 for r in obs if r["role"] == "U"}, partial(collate_pairs, fx["images"], fx["captions"]), dev["images"], [dev["captions"][i] for i in range(30)], tmp_path / "u", 0)
     st.fit(); log = json.loads((tmp_path / "u" / "train_log.json").read_text())
     assert [e["phase"] for e in log["epochs"]] == ["warmup_mean_hinge", "warmup_mean_hinge", "max_violation"] and "57366c5" in json.loads((tmp_path / "u" / "run_manifest.json").read_text())["loss"]
+
+
+def test_host_lock_pending_markers_block_only_recipe_fields(tmp_path):
+    """Cost / other-dataset PENDING markers are notes; a PENDING recipe value (margin) blocks a formal unit."""
+    from v9.n2.teacher import load_host_lock
+    src = Path("reports/V9/HOST_LOCK.yaml").read_text()
+    cfg = load_host_lock("reports/V9/HOST_LOCK.yaml", "f30k_precomp", 8481)
+    assert cfg.to_verify == [] and cfg.warmup_epochs == 5 and cfg.num_epochs == 40 and cfg.margin == 0.2 and any("PENDING" in n for n in cfg.lock_notes)
+    bad = tmp_path / "lock.yaml"; bad.write_text(src.replace("native_margin: 0.2", "native_margin: TO_VERIFY"))
+    cfg2 = load_host_lock(bad, "f30k_precomp", 8481)
+    assert "margin" in cfg2.to_verify

@@ -15,7 +15,7 @@
 set -o pipefail; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v9; export PYTHONNOUSERSITE=1 PYTHONDONTWRITEBYTECODE=1
 PY=${V9_SGR_PY:-/projects/EEG-foundation-model/yinghao/envs/v9_sgr/bin/python}; OUT_ROOT=${OUT_ROOT:-/projects/EEG-foundation-model/yinghao/outputs_v9/n2}; mkdir -p "$OUT_ROOT"
 DATA_ROOT=${DATA_ROOT:-/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data}; VOCAB=${VOCAB:-/projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3/vocab}
-SEEDS=${SEEDS:-901 902 903}; RHOS=${RHOS:-0.4 0}
+SEEDS=${SEEDS:-901 902 903}; RHOS=${RHOS:-0.4 0}   # tuning seed: SEEDS=917 (shared stage + merge groups for the tuning units; not a gate)
 SNAP=$(mktemp -d /tmp/v9_n2_${SLURM_JOB_ID}_XXXX); trap "rm -rf $SNAP" EXIT; mkdir -p $SNAP/src/v9 $SNAP/scripts/v9 $SNAP/v9
 cp -r src/v9/n2 $SNAP/src/v9/; cp src/v9/*.py $SNAP/src/v9/; cp scripts/v9/n2_run.py $SNAP/scripts/v9/; cp -r v9/package_v9_20261016 $SNAP/v9/; export PYTHONPATH=$SNAP/src
 echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | head -1) start=$(date -u +%FT%TZ) commit=$(git rev-parse --short HEAD) code=$(cat $SNAP/src/v9/n2/*.py $SNAP/scripts/v9/n2_run.py | sha256sum | cut -c1-16) seeds='$SEEDS' rhos='$RHOS'"

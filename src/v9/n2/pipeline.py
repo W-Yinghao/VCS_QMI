@@ -122,6 +122,15 @@ def precheck_allows(out_root: Path, dataset: str, rho: float, seed: int) -> dict
     return rec
 
 
+def unit_members(out_root: Path, dataset: str, rho: float, seed: int, method: str) -> list:
+    """Members of the merged group that contains `method` in this cell's precheck (pre-registered merge rule); [method] when no precheck exists."""
+    p = out_root / dataset / f"rho{rho:g}" / f"s{seed}" / "precheck" / f"precheck_{dataset}_rho{rho:g}_s{seed}.json"
+    if not p.exists():
+        return [method]
+    groups = json.loads(p.read_text())["loss_coefficients"].get("groups", [])
+    return next((sorted(g) for g in groups if method in g), [method])
+
+
 def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float, method: str, seed: int, device: str = "cpu", epochs: int | None = None,
              lr_mult: float = 1.0, critic_steps: int = 400, formal: bool = False, anchor_fraction: float = 0.1, min_sizes=None, test: dict | None = None) -> dict:
     shared = prepare_shared(ds, cfg, out_root, dataset, rho, seed, device, anchor_fraction, min_sizes)
@@ -134,8 +143,11 @@ def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float
     unit_dir = out_root / dataset / f"rho{rho:g}" / f"s{seed}" / f"unit_{method}_lr{lr_mult:g}"
     student = WeightedStudent(cfg, shared["observed"], wres["w"], shared["collate"], ds["dev_images"], ds["dev_captions"], unit_dir, seed, lr_mult, device, wres["lock"], formal)
     done = student.fit(epochs)
-    result = {"unit": unit_dir.name, "dataset": dataset, "rho": rho, "method": method, "seed": seed, "noise_manifest": shared["noise_manifest"], "weights_record": wres["lock"]["record"],
-              "scores_hash": scores["hash"], "done": done, "precheck": None if precheck is None else {"formal_block_allowed": precheck["formal_block_allowed"], "merged": precheck["loss_coefficients"]["merged"].get(method)}}
+    members = unit_members(out_root, dataset, rho, seed, method)
+    result = {"unit": unit_dir.name, "dataset": dataset, "rho": rho, "method": method, "seed": seed, "lr_mult": lr_mult, "formal": formal, "noise_manifest": shared["noise_manifest"],
+              "weights_record": wres["lock"]["record"], "scores_hash": scores["hash"], "done": done,
+              "members": members, "members_note": "methods whose loss coefficients are identical to this run's (precheck merge rule): ONE training, reported for every member; not independent replicates" if len(members) > 1 else "no merge",
+              "precheck": None if precheck is None else {"formal_block_allowed": precheck["formal_block_allowed"], "merged": precheck["loss_coefficients"]["merged"].get(method)}}
     if test is not None:                                        # test evaluation: a separate, explicit step on the selected (best dev) checkpoint
         import torch
         from .teacher import build_host

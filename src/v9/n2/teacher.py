@@ -36,7 +36,8 @@ class HostConfig:
     batch_size: int = HOST_DEFAULTS["batch_size"]; lr_update: int = HOST_DEFAULTS["lr_update"]; num_epochs: int = HOST_DEFAULTS["num_epochs"]
     teacher_epochs: int = HOST_DEFAULTS["teacher_epochs"]
     warmup_epochs: int = 5                 # HOST_LOCK 57366c5: every SGR-based row runs NCR's warm-up (sum-violation / mean hinge) before hard negatives
-    to_verify: list = field(default_factory=list)      # HOST_LOCK fields still marked TO_VERIFY: block a formal run, not a smoke
+    to_verify: list = field(default_factory=list)      # HOST_LOCK RECIPE fields still marked TO_VERIFY / PENDING (or unreadable): block a formal run, not a smoke
+    lock_notes: list = field(default_factory=list)     # pending markers elsewhere in HOST_LOCK (cost fields, other datasets): recorded, not blocking
 
     @classmethod
     def from_host_lock(cls, vocab_size: int, lock: dict | None, **overrides):
@@ -114,9 +115,13 @@ def load_host_lock(path, data_name: str, vocab_size: int) -> HostConfig:
             kw[key] = float(m.group(1))
         else:
             tv.append(key)
-    if re.search(r"TO_VERIFY|PENDING", text) and not tv:
-        tv.append("file_has_pending_fields")
-    return HostConfig(vocab_size=vocab_size, to_verify=tv, **kw)
+    # pending markers block only when they sit in a recipe value this config reads; markers in cost fields or other datasets' rows are
+    # recorded as lock_notes (the frozen protocol states them) — a formal unit must not start on a recipe that is still TO_VERIFY
+    for key, val in list(kw.items()):
+        if isinstance(val, str) and re.search(r"TO_VERIFY|PENDING", val):
+            tv.append(key); kw.pop(key)
+    kw["lock_notes"] = [ln.strip()[:120] for ln in text.splitlines() if re.search(r"TO_VERIFY|PENDING", ln) and not ln.lstrip().startswith("#")]
+    return HostConfig(vocab_size=vocab_size, to_verify=sorted(set(tv)), **kw)
 
 
 def build_host(cfg: HostConfig) -> SGRHost:
