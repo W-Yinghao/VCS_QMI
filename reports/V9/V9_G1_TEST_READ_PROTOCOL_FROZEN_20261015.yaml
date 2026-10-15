@@ -94,3 +94,36 @@ ledger: 'reports/V9/V9_TEST_READ_LEDGER.csv: one row (archive and frozen-file ha
   ids, results commit)'
 disclosure_at_freeze: 'G1''s DEV results were known (report 0c8616a: VCS − MI detected at ε 0.2 for both fractions; VCS − CoMIR not detected under the both-intervals rule);
   every test-side file above is independent of test pixel values; no test number exists at the freeze'
+execution_note_1_pre_read:
+  when: '2026-10-15T23:35:52Z, before `prepare`: no test file has been decoded and nothing has been registered on the test'
+  fixture: 'job 1042290 (RTX PRO 6000 node61, commit f19865e): cache equal to REG-P1''s for the 3 DEV cores [''1B_B5'', ''1B_B9'', ''1B_D1'']; perturbations equal to REG-P2''s;
+    every guard refused (formal prepare on the fixture, fixture prepare on the test root, prepare twice, register twice); the test root was not created; the readings path produced
+    the 4 primary contrasts.  The frozen reproduction criterion (all 54 predictors within 0.5 px of their DEV records) FAILED: 45/54 within 0.5 px, 0 / 54 bitwise (/projects/EEG-foundation-model/yinghao/outputs_v9/reg_test_fixture/20261015T211818Z/fixture_report.json)'
+  diagnosis:
+  - 'same-device repeats (job 1042297, RTX PRO 6000 node61, diag.json; job 1042301, L40S node52, diag_l40s.json): MI, NMI, kernel and CoMIR repeat bitwise across runs and processes;
+    the critics do not (largest repeat difference 1.7608 px on RTX PRO 6000, 0.9817 px on L40S; 0 success flips at 42 px)'
+  - 'candidate causes checked and excluded: the perturbation θ / t at index 0 equal the records''; REG-P1''s cache (2026-10-11 23:39) predates the REG-P2 records (2026-10-12
+    02:15); the v9 copies of REG-P1 / REG-P2 equal main''s files at the record time; torch 2.9.0+cu128 was installed 2026-09-24, before every record; no TF32 / cuDNN / determinism
+    switch exists in any code path; MI''s energy at the true transform equals the record bitwise and every refitted kernel bandwidth equals G1''s recorded h'
+  - 'record GPU types from the job logs (configs/V9_G1_TEST_PREDICTOR_GPU.csv): 28 predictors on RTX PRO 6000 (critics only), 26 on L40S (8 critics, 12 CoMIR, 4 kernel rows,
+    MI r6reg2_reg_mi_1034898.out (node50, L40S), NMI r6reg2_reg_nmi_1034899.out (node50, L40S))'
+  - 'on the records'' GPU type (job 1042386, L40S node50, diag_l40s_all.json): all 18 deterministic predictors (12 CoMIR, 4 kernel rows, MI, NMI) reproduce their DEV records
+    bitwise (corner error, θ̂, t̂); the 8 L40S-record critics within 0.4957 px, 0 flips at 42 px, flips at 9 px: [''V9-G1-infonce-frac0.25-eps0-s902 core 1B_B9: 9.272 vs record
+    8.834 px'']'
+  - 'the 28 RTX-PRO-6000-record critics on RTX PRO 6000 (fixture 1042290): within 1.1795 px, 0 flips at 42 px, flips at 9 px: [''V9-G1-infonce-frac1-eps0.2-s901 core 1B_B9:
+    9.045 vs record 8.945 px'']'
+  finding: 'the fixture gaps are floating-point differences between GPU types (RTX PRO 6000 vs L40S), not a path difference: on each predictor''s record GPU type the test-read
+    path reproduces REG-P2 / G1 bitwise for every deterministic predictor, and within the critics'' own same-device repeat spread for the critics.  Across GPU types the search
+    of a deterministic method can land elsewhere: mostly in failed registrations (MI / NMI 185–254 px), but twice with a success flip at 42 px for the kernel (22.95 vs 306.92
+    px; 47.23 vs 30.16 px)'
+  fix:
+  - 'each predictor''s test registration runs on the GPU type of its DEV record (configs/V9_G1_TEST_PREDICTOR_GPU.csv, sha256 26a15aaa856ebd3f2acba4d9dc0d6ae9981932691d5f91f434da55dbe0afcd6e);
+    no job mixes types, so no majority pinning is needed.  3 jobs (slurm/v9/reg_g1_test_feed.txt): v9g1t_rtx (28 critics, partition RTX6000PRO), v9g1t_l40s_kernel (4 kernel
+    rows, L40S), v9g1t_l40s_rest (8 critics, 12 CoMIR, MI, NMI; L40S); node51 / node60 excluded; nice 300.  Each result records its device; the report checks it against the
+    pinned type'
+  - 'fixture criterion replaced before the read: deterministic predictors must reproduce bitwise on the record''s GPU type (18 / 18 shown); critics on the record''s GPU type:
+    corner-error difference <= 1.77 px (the largest same-device repeat difference observed, 1.7608 px) and 0 success flips at 42 px; a flip at 9 px is accepted only as a threshold
+    straddle within that bound (2 observed, listed above)'
+  - no code of the registration path changed; samples, perturbations, metrics, comparison families, predictors and thresholds are unchanged; no test file was used
+  consequence_for_the_reading: the test registrations are bitwise reproducible per GPU type for MI / NMI / kernel / CoMIR and reproducible to about 1–2 px for the critics (their
+    same-device repeat spread); the report states this
