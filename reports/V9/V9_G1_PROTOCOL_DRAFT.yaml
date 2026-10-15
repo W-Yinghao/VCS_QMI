@@ -64,7 +64,16 @@ not_run:
   - "MIND 2-D, point-set CS, non-rigid, new backbones, new data"
 budget:
   measured_reg_p2: "per registration on RTX PRO 6000 (REG-P2 results): critics 1.57 s, CoMIR 0.27 s, kernel 4.7 s, MI / NMI 0.83 s; critic run = 12 × 80 CAL + 320 DEV = 1 280 registrations ≈ 34 min; CoMIR run = 400 registrations ≈ 2 min; kernel 3 × 80 + 320 = 560 ≈ 44 min; critic training ≈ 1–2 min, CoMIR training ≈ 4 min"
-  estimate: "36 critic units × ≈ 36 min + 12 CoMIR units × ≈ 6 min + 4 kernel rows × ≈ 45 min ≈ 25 GPU-h on RTX PRO 6000 (× 1.5–2.3 on L40S); 8 grouped jobs: 4 × 9 critic units (≈ 5.5 h, --time 10 h), 2 × 6 CoMIR units (≈ 40 min), 2 × 2 kernel rows (≈ 1.5 h); nice per the main session; V8's running jobs untouched"
+  measured_g1: >
+    GPU timing job 1041905 (RTX PRO 6000 node58, commit 2000329, separate root outputs_v9/reg_timing; its unit is NOT reused): CoMIR smoke rc 0
+    (2 recipe epochs 10 s; 0.21 s / registration), kernel smoke rc 0 (2.19 s / registration); one real VCS unit (frac 0.25, ε 0.2, seed 901, 3 of the
+    10 perturbations per image): training 3 000 steps 48 s; CAL selection over 12 checkpoints + DEV = 384 registrations in 299 s = 0.78 s /
+    registration (DEV 0.77 s); unit 349 s end to end.  Its registration numbers are a code check and are not read.
+  estimate: >
+    critic unit = 1 280 registrations × 0.78 s + 1 min ≈ 18 min -> 36 units ≈ 11 GPU-h; CoMIR unit ≈ 4 min training + 400 × 0.21 s ≈ 6 min -> 12 units
+    ≈ 1.2 GPU-h; kernel row ≈ fit + 560 × 2.2 s ≈ 22 min -> 4 rows ≈ 1.5 GPU-h; total ≈ 14 GPU-h on RTX PRO 6000 (× 1.5–2.3 on L40S).  8 grouped jobs
+    (slurm/v9/reg_g1_feed.txt): 4 × 9 critic units ≈ 2.7 h each (--time 08:00:00), 2 × 6 CoMIR units ≈ 40 min (--time 02:00:00), 2 × 2 kernel rows
+    ≈ 45 min (--time 02:00:00); nice per the main session; V8's running jobs untouched; aggregate on CPU afterwards"
   gate: "CPU gate slurm/v9/reg_g1_gate_cpu.sbatch: tests/v9/test_reg.py + a smoke of every method on REG-P1's smoke cache (4 FIT / 2 CAL / 2 DEV cores, 200 steps, 2 perturbations) + the smoke aggregate; results below"
 code: "src/v9/reg/{r6_reg_pilot.py, r6_reg_p2.py, r6_reg_aggregate.py} (verbatim r6 copies at main 2d171a6, provenance headers), src/v9/reg/g1.py, src/v9/reg/g1_aggregate.py, scripts/v9/reg_g1.py, tests/v9/test_reg.py, slurm/v9/reg_g1.sbatch, slurm/v9/reg_g1_gate_cpu.sbatch, configs/V9_REG_UNITS.csv"
 gate_record: >

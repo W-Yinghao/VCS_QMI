@@ -19,12 +19,5 @@ for u in V9-G1-comir-frac0.25-eps0.2-s901 V9-G1-kernel-frac0.25-eps0.2-s901; do
   t0=$(date +%s); "$PYTHON" scripts/v9/reg_g1.py run --unit "$u" --smoke --n-pert 2; rc=$?; echo "[smoke-exit] $u rc=$rc $(( $(date +%s) - t0 )) s"; [ $rc -ne 0 ] && rc_all=$rc
 done
 t0=$(date +%s); "$PYTHON" scripts/v9/reg_g1.py run --unit V9-G1-vcs-frac0.25-eps0.2-s901 --n-pert 3; rc=$?; echo "[timing-exit] V9-G1-vcs-frac0.25-eps0.2-s901 n_pert=3 rc=$rc $(( $(date +%s) - t0 )) s"; [ $rc -ne 0 ] && rc_all=$rc
-"$PYTHON" - <<'PY'
-import json, glob
-r = json.load(open(glob.glob("/projects/EEG-foundation-model/yinghao/outputs_v9/reg_timing/units/V9-G1-vcs-frac0.25-eps0.2-s901/p2/results/vcs_s901.json")[0]); t = json.load(open("/projects/EEG-foundation-model/yinghao/outputs_v9/reg_timing/units/V9-G1-vcs-frac0.25-eps0.2-s901/run/train.json"))
-n_cal = sum(len(v) for k, v in r["cal"].items() if "#" not in k); n_dev = sum(len(v) for k, v in r["dev"].items() if "#" not in k)
-sel_secs = sum(x for x in [])  # placeholder
-print(f"[timing] train {t['seconds']:.0f} s ({t['steps']} steps, fit {len(t['fit'])} cores, realised mismatch {t['realised_mismatch_fraction']:.3f}); registration total {r['seconds_total']:.0f} s for 12 x {n_cal} CAL + {n_dev} DEV; DEV {r['dev_sec_per_registration']:.2f} s/reg; CAL/DEV success<42 {r['cal_success42']:.3f}/{r['dev_success42']:.3f}; peak {r['peak_gib']:.2f} GiB")
-per = r['seconds_total'] / (12 * n_cal + n_dev); print(f"[timing] mean s/registration over the selection + DEV = {per:.2f}; full unit (12 x 80 + 320 = 1280 regs) ~ {per * 1280 / 60:.0f} min + training {t['seconds'] / 60:.1f} min")
-PY
+# (timing numbers are read from the register / train log lines above)
 echo "exit=$rc_all end=$(date -u +%FT%TZ)"; exit $rc_all
