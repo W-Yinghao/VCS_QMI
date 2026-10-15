@@ -95,3 +95,10 @@ resmoke_after_cli_edit: >
   GPU re-smoke job 1041921 (RTX PRO 6000 node61, commit c129c64) of the CLI path edited after the gate: VCS smoke unit end-to-end under
   <root>/smoke (train, CAL selection, DEV; rc 0, 0.76 s / registration), the same call again skipped on the existing result (rc 0); the formal unit
   root outputs_v9/reg/units is empty (0 dirs); tests 17 / 17 (RunGuards added).  Code check only; no smoke number is read.
+execution_note_1_20261015: >
+  The first submission of the 8 grouped jobs (1041922-1041929) was cancelled within about a minute (a stray --parsable token had been passed as an
+  extra unit argument).  The four critic groups had already started their first unit (VCS seed 901 of each fraction x mismatch cell) and left
+  checkpoints without train.json; the clean resubmission (1041930-1041937) refused those four units by the mixing guard (rc 1) and continued with
+  the remaining 8 units of each group.  The four interrupted run directories were moved to <unit>/run_interrupted_firstbatch (kept, not read) and
+  the four units are re-run from scratch in one makeup job (1041939, same sbatch, skip-if-done).  No unit result, rule or configuration changed;
+  every unit is trained exactly once from its initial state.
