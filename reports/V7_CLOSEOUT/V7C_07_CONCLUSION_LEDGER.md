@@ -40,8 +40,8 @@ Every row comes from a committed result file; the report column says where.  Wor
 | item | status |
 |---|---|
 | Formal units, Table A, X11, X21 (+ sensitivities), GenAI-Rank freeze and scoring | complete |
-| DEV external secondary rows (B1 / TIFA / DSG on DEV) | waiting for an H100 (`v7x_grp_dev_A`); the DEV secondary table follows (descriptive; DEV is already exposed) |
-| GenAI-Bench DSG predictions | waiting for an H100 (`v7x_grp_bench_dsg`); labels sealed (V7C-06 decision) |
+| DEV external secondary rows (B1 / TIFA / DSG on DEV) | complete; DEV secondary table `V7C_DEV_SECONDARY_TABLE.md` (in distribution the EvalMuse-trained systems lead every external one; M1 = M2 at element level) |
+| GenAI-Bench DSG predictions | generation running (split by GPU type: jobs 1040993 / 1040994, scoring 1040995); labels sealed (V7C-06 decision) |
 | External generalisation | owner decision (V7C-06): GenAI-Bench is currently V8's confirmation source |
 | Kernel edge extensions | not run: post-hoc for GenAI-Rank; owner decision |
 | V8 | protocol frozen before this read; tuning running (`v8/utility-aligned-cs`) |
