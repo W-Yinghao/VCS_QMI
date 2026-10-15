@@ -67,5 +67,13 @@ budget:
   estimate: "36 critic units × ≈ 36 min + 12 CoMIR units × ≈ 6 min + 4 kernel rows × ≈ 45 min ≈ 25 GPU-h on RTX PRO 6000 (× 1.5–2.3 on L40S); 8 grouped jobs: 4 × 9 critic units (≈ 5.5 h, --time 10 h), 2 × 6 CoMIR units (≈ 40 min), 2 × 2 kernel rows (≈ 1.5 h); nice per the main session; V8's running jobs untouched"
   gate: "CPU gate slurm/v9/reg_g1_gate_cpu.sbatch: tests/v9/test_reg.py + a smoke of every method on REG-P1's smoke cache (4 FIT / 2 CAL / 2 DEV cores, 200 steps, 2 perturbations) + the smoke aggregate; results below"
 code: "src/v9/reg/{r6_reg_pilot.py, r6_reg_p2.py, r6_reg_aggregate.py} (verbatim r6 copies at main 2d171a6, provenance headers), src/v9/reg/g1.py, src/v9/reg/g1_aggregate.py, scripts/v9/reg_g1.py, tests/v9/test_reg.py, slurm/v9/reg_g1.sbatch, slurm/v9/reg_g1_gate_cpu.sbatch, configs/V9_REG_UNITS.csv"
-gate_record: "to be filled from the gate job"
+gate_record: >
+  CPU gate job 1041632 (nodecpu09, commit 7b32284): tests/v9/test_reg.py 15 / 15 OK; unit table written (52 rows: 48 trainable + 4 kernel; 0 reusable —
+  seeds differ from r6); MI / NMI reuse check passed (REG-P2 results present, 32 DEV images × 10 perturbations; perturbations sha ca59e51e…, manifest
+  sha b8a9e3e7…).  CPU smokes on REG-P1's smoke cache (4 FIT / 2 CAL / 2 DEV, 200 steps, 2 perturbations): VCS unit end-to-end rc 0 (train 83 s, 4
+  checkpoints selected on CAL, DEV registered; code check only), logistic unit end-to-end rc 0; the InfoNCE training path ran its steps (same train
+  function, same register path).  The CPU gate was cancelled at 2 h 19 min by the fork at the coordinator's request: the rigid registration costs
+  ≈ 190 s per registration on CPU (REG-P2's CPU smoke: 88 s), so the remaining CoMIR / kernel smokes and the cost measurement moved to the GPU timing
+  job 1041905 (separate root outputs_v9/reg_timing: CoMIR + kernel code-path smokes; one real VCS unit end-to-end with 3 perturbations per image;
+  numbers below).  Smoke numbers are code checks and are not read.
 disclosure_at_draft: "the fork read REG-P1 / P2 / P3 protocols and the REG-P2 result timings (not the P2 DEV contrasts beyond the headline success rates printed by the timing read: MI 0.74, NMI 0.76, kernel 0.42, VCS 0.92, logistic 0.93, InfoNCE 0.97, CoMIR 0.91 at < 42 px); no G1 number exists"
