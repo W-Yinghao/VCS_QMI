@@ -61,3 +61,8 @@ execution_note_4_20261015: >
   evaluation (1040485).  REV9-FULL primary: the frozen scorer with `--tags vcs_lr0.0001 logistic_lr0.0001` only (CPU job 1041004 after 1040487),
   same paths as `score-full`; Holm is per objective (24 contrasts each), so leaving the stopped direct objective out changes no vcs or logistic
   statistic.  The direct objective is scored only from the H100 secondary units (outputs/REV9_FULL_H100) once their guard has passed.
+execution_note_5_20261015: >
+  Interpreter fix for scoring.  The frozen `rev9.sbatch score` runs rev9_score.py in the main environment, which has no `llava` package; the
+  frozen TextVQA scorer (r7_vl_common.textvqa_scorer, the m4c evaluator) imports it, so job 1041003 stopped at its first TextVQA item before
+  any statistic.  The unchanged rev9_score.py was rerun in the SparseVLM environment that every R7 / D1-30 scorer uses (job 1041005, REV9;
+  job 1041006, REV9-FULL primary).  rev9.sbatch itself is not edited while REV9-FULL evaluation job 1040487 reads it.
