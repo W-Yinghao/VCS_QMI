@@ -1,0 +1,71 @@
+# V9-G1 — limited REG extension on BF/SHG: training-sample fraction × training-correspondence mismatch (package v9 docs/06, 08 §3, 09; configs/REG_UNITS.csv).
+# DRAFT by the V9 fork C (2026-10-16); the main session freezes it (status, freeze time, decisions) before any formal unit.  Nothing is launched.
+protocol_id: V9-G1
+status: draft
+route: V9 secondary line REG (package 02 §3: "小型并行辅线"); reuses r6 REG-P1 / REG-P2 (BF/SHG) verbatim
+go_ahead: "package v9 01 (V9-G1: prepare BF-SHG limited extension); owner's standing idle-GPU rule (2026-10-11); freeze + launch by the main session; V8 jobs untouched"
+question: >
+  With fewer aligned training images (25 % of REG-P1's FIT) or with 20 % of the positive training correspondences displaced, does the learned
+  local-relation energy trained with VCS still recover known rigid transforms as reliably as the per-image MI / NMI, the same-target kernel critic
+  and CoMIR representations under REG-P2's shared optimiser — and how does each method's success change from clean to mismatched supervision?
+  Not assumed: that a bounded objective is robust to noisy supervision (docs/06 §1).
+data:
+  source: BF/SHG TMA cores, Zenodo 4550300 (CC BY 4.0), train / validation1 / validation2 — REG-P1's cache (outputs/R6_REG, ×4 area-downsampled 512-px images, both input paths); the test split stays closed and untouched
+  roles: "REG-P1's: FIT 32 train cores, CAL 8 train cores, DEV 32 (validation1 + validation2); the core (image pair) is the physical specimen and the independent unit; slides 1B / 2B are the strata"
+  dev_exposure: "DEV was read by REG-P1 / REG-P2 (r6 reports); G1 results on it are development validation (docs/06 §2).  A confirmation on specimens not used in any design needs the closed test — not in this unit"
+  manifest_check: "every unit records REG-P1's per-file sha256 (manifest.json) in its state hash; MI / NMI reuse requires the perturbations.json and manifest.json hashes recorded at run time (g1.mi_nmi_reuse_check)"
+design:
+  fit_fraction:
+    values: [0.25, 1.0]
+    rule: "round(frac × 32) cores by stratified random sampling over the two slides (largest-remainder allocation; ties by slide name), seeded by the unit seed (g1.sample_fit); 0.25 -> 8 cores (5 + 3 or 4 + 4 by seed); patches are never the sampling unit; realised cores and counts written to train.json / comir.json"
+  train_mismatch:
+    values: [0.0, 0.2]
+    rule: >
+      exactly round(ε n) of the positive correspondences of every training step receive a displaced moving-side position drawn uniformly from the
+      admissible positions of the SAME training crop / image, rejecting positions closer than 2 patch radii to the true one (g1.mismatch_positions /
+      g1.displaced).  Patch radius: critics 15 px (descriptor receptive-field half-width -> exclusion 30 px within the 160-px crop interior),
+      kernel 4 px (9 × 9 patch -> 8 px, within Ω), CoMIR 64 px (half the 128-px crop -> 128 px: the displaced 182-px source crop never overlaps
+      the true one).  This Q is conditional on the image and crop — it is NOT an unconditional pixel product (docs/06 §3).
+    shared_across_methods: >
+      the three critic objectives consume one data RNG stream per seed in the same order (REG-P1's loop; the mismatch draws come before the
+      objective branch, test Mismatch.test_same_draws_for_every_objective), so vcs / logistic / infonce see identical displaced correspondences.
+      CoMIR's sampling unit is the crop; its mismatches are drawn from the same seed stream at the crop level (disclosed: same fraction and seed,
+      not the same positions).  The kernel fit draws its own displaced patch positions at the fitting positions (same fraction).
+    label_access: "no mismatch label enters any loss, model, selection or registration; only the realised fraction is logged (train.json realised_mismatch_fraction)"
+  methods:
+    trainable: [VCS critic, matched logistic (BCE) critic, InfoNCE critic, CoMIR (official DenseUNet, REG-P1 recipe)]
+    fitted_reference: "same-target RFF kernel critic (closed form on the sampled FIT, mismatch applied to its fitting pairs; bandwidth multiplier {0.5, 1, 2} on CAL) — one seed (901) per cell, descriptive row"
+    no_training: "MI and NMI (per-image, deterministic): REG-P2's DEV / CAL results are reused after the hash check (no FIT dependence); MIND: no 2-D adapter exists in r6 -> not run; classical point-set CS: not applicable to dense BF/SHG (docs/06 §4) -> not run"
+  training: "REG-P1's recipes unchanged (critics: AdamW 1e-3, 3 000 steps, 16 scenes × 128 positions on aligned 160-px crops, 12 checkpoints; CoMIR: 23 × 32 × 32 recipe, no checkpoint selection) — g1.cmd_train / g1.cmd_comir reproduce REG-P1's RNG consumption exactly at ε = 0"
+  registration: "REG-P2 verbatim (src/v9/reg/r6_reg_p2.py): rigid family θ ∈ ±30°, |t| <= 51 px, REG-P2's perturbations.json (10 per CAL / DEV image), disk support r = 129, shared grid + Adam optimiser, warp-then-encode for critics, encode-once for CoMIR, kernel warp-then-extract; identical padding (reflection) and visible-pixel handling for every method (inherited)"
+  selection: "REG-P2's lexicographic CAL rule over the unit's 12 checkpoints (success < 42, success < 9, lower median corner error, earliest) / kernel multiplier; CoMIR, MI, NMI none"
+  seeds: [901, 902, 903]
+  units: "4 trainable methods × 2 fractions × 2 mismatch levels × 3 seeds = 48 (configs/V9_REG_UNITS.csv) + 4 kernel rows (seed 901) + MI / NMI reused"
+  reuse: >
+    package rule "complete identity only": an r6 full-data clean unit is reusable when seed, FIT set (with data hashes), ε = 0, fraction 1 and the
+    recipe match (g1.r6_reusable).  r6 used seeds 0–2; the package fixes seeds 901–903 -> 0 of the 48 units reusable, 48 new (CSV column reuse =
+    none_seed_differs).  Owner option, not taken by default: map the frac 1 / ε 0 cell to the r6 seeds 0–2 and reuse the 12 r6 units (saves ≈ 9 GPU-h;
+    then the clean cell and the other cells would differ in seed set).
+metrics:
+  primary: "per unit (core), success rate at < 42 px of CoMIR's mean corner error (four corners of the central 834-px full-resolution patch), unit-macro over the 32 DEV cores (REG-P2 metric)"
+  secondary: "success < 9 px; median / p90 corner error; median rotation (°) and translation (px) error; failure count with energy-vs-search attribution (F at the estimate >= F at the truth = energy failure); s / registration; exact F profiles along θ and x for 5 DEV images (REG-P2 register writes them); success by translation stratum and |θ*| bin"
+  statistics: "mean ± sd over the 3 seeds; contrasts VCS − X paired by seed (seeded X) or VCS seed vs the deterministic X, 95 % t over seeds and a unit bootstrap (2 000 resamples, indices shared across contrasts; all 10 perturbations of a core stay in its group) with a two-sided bootstrap p"
+  primary_family: "VCS − MI and VCS − CoMIR at ε = 0.2, for fit fraction 0.25 and 1.0: 4 contrasts, Holm over 4; detected = seed-t interval and unit bootstrap interval both exclude 0 and Holm p < 0.05 (g1_aggregate.main)"
+  interaction: "per method and fraction, the seed-paired change of success < 42 px from ε 0 to 0.2 (descriptive, with intervals); VCS − X differences of those changes reported, not tested"
+  everything_else: "all VCS − X contrasts at every cell and both thresholds, reported in full; the fraction axis at ε = 0 is reported as the sample-size curve"
+wording_fixed:
+  - "interval containing 0 -> no detectable difference; above / below 0 -> VCS registers x more / fewer DEV cores"
+  - "VCS ≈ logistic ≈ InfoNCE -> a learned relational-energy class effect (owner wording 2026-10-12); never 'VCS-only' or 'the quadratic loss is robust'"
+  - "a stronger CoMIR / MI is reported as is; the baselines are never weakened"
+  - "DEV results are development validation (DEV seen by r6); no 'independent confirmation' wording"
+not_run:
+  - "EPFL RGB–NIR second modality: the licence basis is unresolved (OWNER_DECISIONS D5); no new EPFL training is prepared or started until the owner confirms the usage basis (package 01: 若EPFL使用依据未解决，不自动开启)"
+  - "test-time occlusion / partial overlap: a separate axis with its own protocol (docs/06 §7)"
+  - "MIND 2-D, point-set CS, non-rigid, new backbones, new data"
+budget:
+  measured_reg_p2: "per registration on RTX PRO 6000 (REG-P2 results): critics 1.57 s, CoMIR 0.27 s, kernel 4.7 s, MI / NMI 0.83 s; critic run = 12 × 80 CAL + 320 DEV = 1 280 registrations ≈ 34 min; CoMIR run = 400 registrations ≈ 2 min; kernel 3 × 80 + 320 = 560 ≈ 44 min; critic training ≈ 1–2 min, CoMIR training ≈ 4 min"
+  estimate: "36 critic units × ≈ 36 min + 12 CoMIR units × ≈ 6 min + 4 kernel rows × ≈ 45 min ≈ 25 GPU-h on RTX PRO 6000 (× 1.5–2.3 on L40S); 8 grouped jobs: 4 × 9 critic units (≈ 5.5 h, --time 10 h), 2 × 6 CoMIR units (≈ 40 min), 2 × 2 kernel rows (≈ 1.5 h); nice per the main session; V8's running jobs untouched"
+  gate: "CPU gate slurm/v9/reg_g1_gate_cpu.sbatch: tests/v9/test_reg.py + a smoke of every method on REG-P1's smoke cache (4 FIT / 2 CAL / 2 DEV cores, 200 steps, 2 perturbations) + the smoke aggregate; results below"
+code: "src/v9/reg/{r6_reg_pilot.py, r6_reg_p2.py, r6_reg_aggregate.py} (verbatim r6 copies at main 2d171a6, provenance headers), src/v9/reg/g1.py, src/v9/reg/g1_aggregate.py, scripts/v9/reg_g1.py, tests/v9/test_reg.py, slurm/v9/reg_g1.sbatch, slurm/v9/reg_g1_gate_cpu.sbatch, configs/V9_REG_UNITS.csv"
+gate_record: "to be filled from the gate job"
+disclosure_at_draft: "the fork read REG-P1 / P2 / P3 protocols and the REG-P2 result timings (not the P2 DEV contrasts beyond the headline success rates printed by the timing read: MI 0.74, NMI 0.76, kernel 0.42, VCS 0.92, logistic 0.93, InfoNCE 0.97, CoMIR 0.91 at < 42 px); no G1 number exists"
