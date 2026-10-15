@@ -233,3 +233,25 @@ def test_v1_state_migrates(tmp_path):
     assert all(isinstance(q, dict) and q["family"] == "sgr" for q in o2.st["tuning_queue"]) and o2.st["wave2"] is None
     fc.finish(k=1); o2.step()
     assert len(fc.submitted) == 2
+
+
+def test_wave2_methods_added_one_at_a_time(tmp_path):
+    """L2RM_A enabled first (its timing landed), NCR_A later: each method's 6 tuning runs are queued when it is listed, never twice."""
+    out, units, logs = _layout(tmp_path, {0.4: [[m] for m in ARMS], 0.0: [sorted(ARMS)]})
+    fc = FakeCluster(logs, out, base=0, cap=27, rsum_fn=lambda r: 400.0)
+    o = _orch(fc, out, units, logs)
+    (units / "wave2_enabled.json").write_text(json.dumps({"methods": ["L2RM_A"], "sbatch_args_by_method": {"L2RM_A": ["--partition=RTX6000PRO,H100,L40S"]}}))
+    o.step()
+    off = [s for s in fc.submitted if s["official"]]
+    assert len(off) == 6 and all("L2RM_A" in s["lines"][0] and s["args"] == ["--partition=RTX6000PRO,H100,L40S"] for s in off)
+    fc.finish(k=len(fc.queue))                                  # the queue drains (cap 27 reached in the first step)
+    (units / "wave2_enabled.json").write_text(json.dumps({"methods": ["L2RM_A", "NCR_A"], "sbatch_args_by_method": {"L2RM_A": ["--partition=RTX6000PRO,H100,L40S"], "NCR_A": ["--partition=RTX6000PRO,H100"]}}))
+    n_before = len(fc.submitted)
+    o.step(); o.step()
+    assert all("NCR_A" in s["lines"][0] for s in fc.submitted[n_before:n_before + 6])   # NCR_A tuning ahead of the formal runs still pending
+    off = [s for s in fc.submitted if s["official"]]
+    tun = [s for s in off if s["kind"] == "tuning"]
+    assert len([s for s in tun if "NCR_A" in s["lines"][0]]) == 6 and len([s for s in tun if "L2RM_A" in s["lines"][0]]) == 6
+    assert all(s["args"] == ["--partition=RTX6000PRO,H100"] for s in off if "NCR_A" in s["lines"][0])
+    n_off_formal = len([r for r in o.st["formal_pending"] if r["method"] in ("NCR_A", "L2RM_A")]) + len([r for j in o.st["jobs"] if j["kind"] == "formal" and j["family"] == "official" for r in j["runs"]])
+    assert o.st["wave2"]["methods_loaded"] == ["L2RM_A", "NCR_A"] and n_off_formal == 12

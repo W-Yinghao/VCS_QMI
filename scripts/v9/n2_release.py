@@ -280,7 +280,7 @@ class Orchestrator:
         jobs = self.st["jobs"]
         status = {"utc": utc(), "gate": self.st["gate"], "tuning_planned": self.st["tuning_planned"], "tuning_queue": len(self.st["tuning_queue"]),
                   "formal_pending_runs": len(self.st["formal_pending"]), "rerun_queue": len(self.st["rerun_queue"]),
-                  "x1_runs_processed": len(self.st["x1_processed"]), "wave2_loaded": self.st["wave2"] is not None, "blocked": self.st["blocked"], "done": self.st["done"],
+                  "x1_runs_processed": len(self.st["x1_processed"]), "wave2_loaded": (self.st["wave2"] or {}).get("methods_loaded", []), "blocked": self.st["blocked"], "done": self.st["done"],
                   "jobs": {s: sum(1 for j in jobs if j["status"] == s) for s in sorted({j["status"] for j in jobs})},
                   "cases": {c: sum(1 for j in jobs if j["case"] == c) for c in sorted({j["case"] for j in jobs})}}
         self.status_path.write_text(json.dumps(status, indent=1))
@@ -390,7 +390,7 @@ class Orchestrator:
             return False
         if family(runs[0]) == "official":
             assert len(runs) == 1, "official baselines: one run per job"
-            jid, msg = self.cluster.submit_official(name, runs[0], kind, (self.st.get("wave2") or {}).get("sbatch_args", []))
+            jid, msg = self.cluster.submit_official(name, runs[0], kind, ((self.st.get("wave2") or {}).get("sbatch_args") or {}).get(runs[0]["method"], []))
         else:
             jid, msg = self.cluster.submit(name, gfile, formal=kind in ("formal", "rerun"))
         if jid is None:
@@ -406,20 +406,39 @@ class Orchestrator:
         return True
 
     def maybe_load_wave2(self) -> None:
+        """wave2_enabled.json: {"methods": [...], "sbatch_args": [...], "sbatch_args_by_method": {...}, ...}; methods are added as they are listed
+        (L2RM_A can start before NCR_A); a method is loaded once."""
         f = self.units / "wave2_enabled.json"
-        if self.st["wave2"] is not None or not f.exists():
+        if not f.exists():
             return
-        cfg = json.loads(f.read_text())
-        meths, rhos = cfg.get("methods", list(OFFICIAL)), [float(x) for x in cfg.get("rhos", [0.4, 0.0])]
+        try:
+            cfg = json.loads(f.read_text())
+        except ValueError:
+            return                                               # being written: next cycle
+        w = self.st["wave2"]
+        if w is not None and "methods_loaded" not in w:          # first-format record (all methods at once)
+            w = {**w, "methods_loaded": list(OFFICIAL), "sbatch_args": {m: w.get("sbatch_args", []) for m in OFFICIAL}}
+        w = w or {"first_loaded_utc": utc(), "methods_loaded": [], "sbatch_args": {}, "n_tuning": 0, "n_formal": 0, "configs": []}
+        new = [m for m in cfg.get("methods", list(OFFICIAL)) if m in OFFICIAL and m not in w["methods_loaded"]]
+        if not new:
+            self.st["wave2"] = w
+            return
+        rhos = [float(x) for x in cfg.get("rhos", [0.4, 0.0])]
         tseed, fseeds = int(cfg.get("tuning_seed", self.tuning_seed)), [int(x) for x in cfg.get("formal_seeds", [901, 902, 903])]
         mk = lambda m, rho, seed, mu: {"dataset": self.dataset, "rho": rho, "seed": seed, "method": m, "lr_mult": mu, "members": [m]}
-        tuning = [mk(m, rho, tseed, mu) for rho in sorted(rhos, reverse=True) for mu in (1.0, 0.5, 2.0) for m in meths]
-        formal = [mk(m, rho, s, 1.0) for rho in rhos for m in meths for s in fseeds]
+        tuning = [mk(m, rho, tseed, mu) for rho in sorted(rhos, reverse=True) for mu in (1.0, 0.5, 2.0) for m in new]
+        formal = [mk(m, rho, sd, 1.0) for rho in rhos for m in new for sd in fseeds]
         self.st["tuning_runs"] += tuning
         self.st["tuning_queue"] += [{"family": "official", "run": r} for r in tuning]
         self.st["formal_pending"] = sorted(self.st["formal_pending"] + formal, key=order_key)
-        self.st["wave2"] = {"loaded_utc": utc(), "config": cfg, "sbatch_args": cfg.get("sbatch_args", []), "n_tuning": len(tuning), "n_formal": len(formal)}
-        self.event("wave2_loaded", config=cfg, n_tuning=len(tuning), n_formal=len(formal))
+        for m in new:
+            w["sbatch_args"][m] = cfg.get("sbatch_args_by_method", {}).get(m, cfg.get("sbatch_args", []))
+        w["methods_loaded"] += new
+        w["n_tuning"] += len(tuning)
+        w["n_formal"] += len(formal)
+        w["configs"] = w.get("configs", []) + [{"utc": utc(), "methods": new, "config": cfg}]
+        self.st["wave2"] = w
+        self.event("wave2_loaded", methods=new, config=cfg, n_tuning=len(tuning), n_formal=len(formal))
 
     def process_contingency(self, sel: dict) -> None:
         """x1 formal runs whose members' selections are complete: queue the members that selected another multiplier (frozen contingency)."""
@@ -510,7 +529,7 @@ class Orchestrator:
 
     def finished(self) -> bool:
         st = self.st
-        wave2_settled = st["wave2"] is not None or (self.units / "wave2_disabled.json").exists()
+        wave2_settled = set(OFFICIAL) <= set((st["wave2"] or {}).get("methods_loaded", [])) or (self.units / "wave2_disabled.json").exists()
         x1 = {json.dumps(plain(r), sort_keys=True) for j in st["jobs"] if j["kind"] == "formal" and j["case"].endswith("x1_contingency") for r in j["runs"]}
         if not (st["gate"] == "pass" and st["tuning_planned"] and wave2_settled and not st["tuning_queue"] and not st["formal_pending"]
                 and x1 <= set(st["x1_processed"]) and not st["rerun_queue"] and not st.get("resubmit_queue")):
