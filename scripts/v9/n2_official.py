@@ -18,7 +18,14 @@ import hashlib
 import json
 import re
 import shutil
+import os
 import subprocess
+
+
+def _host_env():
+    """HOST_LOCK 57366c5 / 3deb194: torch >= 2.6 loads checkpoints with weights_only=True by default, which rejects the pickled
+    argparse.Namespace in the official NCR / L2RM checkpoints; the host evaluators and trainers run with the documented override."""
+    return {**os.environ, "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD": "1"}
 import sys
 import time
 from pathlib import Path
@@ -111,7 +118,7 @@ def cmd_launch(a):
     if a.dry_run:
         return 0
     with open(unit / "official_train.log", "a") as log:
-        rc = subprocess.run(cmd, cwd=code, stdout=log, stderr=subprocess.STDOUT).returncode
+        rc = subprocess.run(cmd, cwd=code, stdout=log, stderr=subprocess.STDOUT, env=_host_env()).returncode
     (unit / "launch_manifest.json").write_text(json.dumps({**man, "rc": rc, "ended": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, indent=1)); return rc
 
 
@@ -136,7 +143,7 @@ def cmd_collect(a):
         script = f"import sys; sys.path.insert(0, 'NCR'); from evaluation import evalrank; evalrank({str(best[-1])!r}, data_path={data_root!r}, vocab_path={vocab!r}, split={split!r}, fold5={'True' if a.dataset == 'coco' and a.fold5 else 'False'})"
     else:
         script = f"from evaluation import evalrank; evalrank({str(best[-1])!r}, data_path={data_root!r}, split={split!r}, fold5={'True' if a.dataset == 'coco' and a.fold5 else 'False'})"
-    r = subprocess.run([str(env / "bin/python"), "-c", script], cwd=code, capture_output=True, text=True); (unit / "official_eval.log").write_text(r.stdout + r.stderr)
+    r = subprocess.run([str(env / "bin/python"), "-c", script], cwd=code, capture_output=True, text=True, env=_host_env()); (unit / "official_eval.log").write_text(r.stdout + r.stderr)
     if r.returncode != 0:
         raise RuntimeError("official evaluation failed; see official_eval.log")
     primary = _parse_recalls(r.stdout)

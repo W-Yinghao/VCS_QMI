@@ -14,7 +14,8 @@ host:
   model: "SGRAF single-model SGR path — vendored src/v9/n2/sgr_host.py for the V9 weighted student (equivalence test against the official NCR model.py); the official scripts for NCR+A / L2RM+A"
   hyperparameters: "reports/V9/HOST_LOCK.yaml (fork A, FILLED_FROM_CODE_PENDING_DATA_CHECKS); any TO_VERIFY field blocks a formal unit (train.py refuses with formal=True)"
   values_f30k: {batch_size: 128, learning_rate: 2e-4, grad_clip: 2.0, margin: 0.2, native_epochs: 40, lr_update: 30, optimizer: Adam, ncr_warmup: 5, l2rm: {epochs: 35, lr_update: 15, reg: 0.01, warmup: 5}}
-  student_loss: "max-violation hinge per anchor (row + column), SGRAF default"
+  student_loss: "HOST_LOCK 57366c5 (fork A, timing job 1042033): SGRAF with hardest in-batch negatives from step 0 collapses under torch 2.9 (loss -> 2 x 128 x 0.2, dev R@1 0.1), so EVERY SGR-based row — the V9 weighted student, the teacher, the native SGR row, NCR+A's warm-up — runs NCR's warm-up loss (sum-violation / mean hinge over in-batch negatives, both directions) for 5 epochs before the max-violation hinge; the V9 student applies the reliability weights in both phases (train.py warmup_epochs, from HOST_LOCK); evaluators export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 (3deb194)"
+  host_lock_commit: 57366c5
   teacher: "same host, 5 full epochs on A-teacher-warmup only, warm-up loss (mean hinge, NCR/L2RM 'warmup'), frozen; score s = SGR similarity of the pair in eval mode"
 data:
   dataset: "flickr30k (f30k_precomp: train 29,000 images / 145,000 captions, dev 1,014 images (first 1,000 used by the host), test 1,000 images / 5,000 captions; SCAN vocab 8,481)"

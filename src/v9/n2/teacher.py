@@ -35,6 +35,7 @@ class HostConfig:
     margin: float = HOST_DEFAULTS["margin"]; learning_rate: float = HOST_DEFAULTS["learning_rate"]; grad_clip: float = HOST_DEFAULTS["grad_clip"]
     batch_size: int = HOST_DEFAULTS["batch_size"]; lr_update: int = HOST_DEFAULTS["lr_update"]; num_epochs: int = HOST_DEFAULTS["num_epochs"]
     teacher_epochs: int = HOST_DEFAULTS["teacher_epochs"]
+    warmup_epochs: int = 5                 # HOST_LOCK 57366c5: every SGR-based row runs NCR's warm-up (sum-violation / mean hinge) before hard negatives
     to_verify: list = field(default_factory=list)      # HOST_LOCK fields still marked TO_VERIFY: block a formal run, not a smoke
 
     @classmethod
@@ -93,6 +94,14 @@ def load_host_lock(path, data_name: str, vocab_size: int) -> HostConfig:
                 kw[field] = num(m.group(1))
             else:
                 tv.append(field)
+    short = {"f30k_precomp": "f30k", "coco_precomp": "coco"}.get(data_name, data_name)
+    m = re.search(rf"warmup_epoch\s+{short}\s+([0-9]+)", text)                           # "NCR: warmup_epoch f30k 5 / coco 10" (HOST_LOCK training.warmup)
+    if m:
+        kw["warmup_epochs"] = int(m.group(1))
+    elif re.search(r"consequence_for_the_lock", text):
+        kw["warmup_epochs"] = 5                                                            # 57366c5: 5 warm-up epochs before the hard-negative phase
+    else:
+        tv.append("warmup_epochs")
     for key in ("img_dim", "word_dim", "embed_size", "sim_dim", "sgr_step"):               # the model block is prose-valued: "img_dim: 2048; word_dim: 300; ..."
         m = re.search(rf"\b{key}:\s*([0-9]+)", text)
         if m:

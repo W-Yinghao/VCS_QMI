@@ -21,6 +21,7 @@ PY=${V9_SGR_PY:-/home/infres/yinwang/CS_QMI/env/bin/python}; OUT_ROOT=${OUT_ROOT
 SNAP=$(mktemp -d /tmp/v9_n2_${SLURM_JOB_ID}_XXXX); trap "rm -rf $SNAP" EXIT; mkdir -p $SNAP/src/v9 $SNAP/scripts/v9 $SNAP/v9
 cp -r src/v9/n2 $SNAP/src/v9/; cp src/v9/*.py $SNAP/src/v9/; cp scripts/v9/n2_run.py $SNAP/scripts/v9/; cp -r v9/package_v9_20261016 $SNAP/v9/   # whole src/v9 (quant.py needs its reference_* siblings)
 export PYTHONPATH=$SNAP/src
+export TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1   # HOST_LOCK 57366c5 / 3deb194: official evaluators (torch >= 2.6 weights_only default)
 echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -1) start=$(date -u +%FT%TZ) commit=$(git rev-parse --short HEAD) code=$(cat $SNAP/src/v9/n2/*.py $SNAP/scripts/v9/n2_run.py | sha256sum | cut -c1-16) mode=$MODE args=$*"
 DEV=cuda; nvidia-smi >/dev/null 2>&1 || DEV=cpu
 case "$MODE" in

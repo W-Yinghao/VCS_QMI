@@ -99,3 +99,18 @@ def test_n2_yaml_files_parse(rel):
         pytest.skip(f"{rel}: not present yet")
     for f in files:
         d = yaml.safe_load(Path(f).read_text()); assert isinstance(d, dict) and d, f
+
+
+def test_student_warmup_phase_then_hard_negatives(tmp_path):
+    """HOST_LOCK 57366c5: the weighted student runs the warm-up (mean) hinge for warmup_epochs, then max-violation; both phases logged."""
+    from functools import partial
+    from v9.n2 import noise as NZ, roles as RL
+    from v9.n2.fixtures import collate_pairs, make_fixture
+    from v9.n2.teacher import HostConfig
+    from v9.n2.train import WeightedStudent
+    fx = make_fixture(n_images=24, seed=8); roles = RL.assign_roles([str(i) for i in range(24)], 8, 0.25, min_sizes={k: 1 for k in RL.ANCHOR_ROLES})
+    pairs = NZ.make_pair_table(fx["caption_image"], RL.role_of_image(roles)); obs, _, _ = NZ.inject_mismatch(pairs, 0.0, 8)
+    cfg = HostConfig(vocab_size=fx["vocab"], img_dim=fx["img_dim"], word_dim=8, embed_size=16, sim_dim=8, num_region=fx["n_region"], batch_size=8, num_epochs=3, warmup_epochs=2)
+    dev = make_fixture(n_images=6, seed=9); st = WeightedStudent(cfg, obs, {r["pair_id"]: 1.0 for r in obs if r["role"] == "U"}, partial(collate_pairs, fx["images"], fx["captions"]), dev["images"], [dev["captions"][i] for i in range(30)], tmp_path / "u", 0)
+    st.fit(); log = json.loads((tmp_path / "u" / "train_log.json").read_text())
+    assert [e["phase"] for e in log["epochs"]] == ["warmup_mean_hinge", "warmup_mean_hinge", "max_violation"] and "57366c5" in json.loads((tmp_path / "u" / "run_manifest.json").read_text())["loss"]

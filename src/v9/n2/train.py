@@ -60,7 +60,7 @@ class WeightedStudent:
         self.manifest = {"n_pool": len(pool_rows), "n_A": n_A, "n_U": int(self.is_u.sum()), "sum_w_U": float(v[self.is_u].sum()),
                          "mean_v_full_pool": self.mean_v_full, "ess_U": REF.effective_sample_size(v[self.is_u]) if self.is_u.any() else 0.0,
                          "weight_lock_sha256": (weight_lock or {}).get("sha256"), "seed": self.seed, "lr_mult": self.lr_mult,
-                         "cfg": asdict(cfg), "loss": "max_violation_hinge per anchor (row + column), fixed-pool normaliser", "formal": formal}
+                         "cfg": asdict(cfg), "loss": f"warm-up mean hinge for {cfg.warmup_epochs} epochs (HOST_LOCK 57366c5), then max-violation hinge per anchor (row + column); fixed-pool normaliser", "formal": formal}
         (self.out / "run_manifest.json").write_text(json.dumps(self.manifest, indent=1))
 
     # ---------------------------------------------------------------------------------------------------------------- checkpoints
@@ -91,7 +91,10 @@ class WeightedStudent:
             for idx in iterate_batches(len(self.rows), cfg.batch_size, rng):
                 ims, caps, lens = self.collate([self.rows[i] for i in idx]); v = torch.as_tensor(self.v[idx], dtype=torch.float32, device=self.device)
                 sims = host(ims.to(self.device), caps.to(self.device), lens)
-                er, ec = hinge_per_anchor(sims, cfg.margin, hard_negative=True); ell = er + ec
+                # HOST_LOCK 57366c5: SGRAF with hardest negatives from step 0 collapses under torch 2.9; every SGR row runs NCR's warm-up loss
+                # (mean over in-batch negatives, both directions) for the first `warmup_epochs`, then the max-violation hinge.  Weights apply in both phases.
+                hard = epoch >= cfg.warmup_epochs
+                er, ec = hinge_per_anchor(sims, cfg.margin, hard_negative=hard); ell = er + ec
                 loss = (v.detach() * ell).mean() / self.mean_v_full
                 opt.zero_grad(set_to_none=True); loss.backward()
                 if cfg.grad_clip > 0:
@@ -106,7 +109,8 @@ class WeightedStudent:
                     vb = self.v[idx]; log["steps"].append({"step": step, "epoch": epoch, "loss": float(loss), "u_risk_unnormalised": u_risk, "batch_mass": float(vb.sum()),
                                                             "batch_ess": REF.effective_sample_size(vb) if vb.sum() > 0 else 0.0, "lr": lr})
             val = self.validate(host)
-            rec = {"epoch": epoch, "lr": lr, "mean_loss": agg["loss"] / max(agg["n"], 1), "mean_u_risk_unnormalised": agg["u_risk"] / max(agg["u_n"], 1), "dev": val, "seconds": time.time() - t0}
+            rec = {"epoch": epoch, "lr": lr, "phase": "warmup_mean_hinge" if epoch < cfg.warmup_epochs else "max_violation", "mean_loss": agg["loss"] / max(agg["n"], 1),
+                   "mean_u_risk_unnormalised": agg["u_risk"] / max(agg["u_n"], 1), "dev": val, "seconds": time.time() - t0}
             log["epochs"].append(rec)
             if val["rsum"] > best["rsum"]:                       # ties keep the earlier epoch
                 best = {"rsum": val["rsum"], "epoch": epoch}; self._save(host, opt, epoch, best, log, name="best.pt")
