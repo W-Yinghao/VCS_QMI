@@ -1,4 +1,4 @@
-# V8-05 — confirmation read request (DRAFT by the V8-confirmation fork, 2026-10-15; NOT CONFIRMED — `v8_confirm.py run` refuses until the main session replaces this header with "CONFIRMED <utc>" after the owner's explicit approval)
+# V8-05 — confirmation read request — CONFIRMED 2026-10-15T17:31:20Z by the main session on the owner's explicit approval of 2026-10-15 (verbatim: 「批准读取 GenAI-Bench 850 条非 Rank 提示的人工标签，作为 V8 的一次确认评价（V7 不使用）。」); one read, frozen models and selection rule, all seeds, full reporting, no tuning feedback. (Drafted by the V8-confirmation fork; original header replaced.)
 
 **What would be read.** The `HumanRatings` column of the 12 GenAI-Bench parquet shards (`/projects/EEG-foundation-model/yinghao/data/genai_bench/data`,
 sha256 of each shard recorded by the dry-run; concatenated sha256 in the ledger row), restricted to the 850 prompts without a GenAI-Rank text match

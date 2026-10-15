@@ -2,7 +2,7 @@
 # DRAFT by the V8-confirmation fork, 2026-10-15.  The main session freezes it (rename to *_FROZEN_<date>.yaml) AFTER the owner's explicit go for
 # the label read and BEFORE `v8_confirm.py run`.  No rating column, sealed file or TIFA160 annotation is opened by anything in this draft; the
 # dry-run (gate) checks inputs, predictions and file bytes only.
-version: V8-05 draft 1
+version: V8-05 frozen 1
 branch: v8/utility-aligned-cs
 code: scripts/v8/v8_confirm.py (prompt-list | dry-run | run | tifa160-inputs), tests/v8/test_v8_confirm.py, slurm/v8/v8_confirm.sbatch (gate | dry-run | run)
 owner_go_required: "V8-05 request file `V8_05_CONFIRMATION_REQUEST.md` marked CONFIRMED by the main session after the owner's explicit approval of (a) the GenAI-Bench read; (b) separately, TIFA160"
@@ -59,7 +59,7 @@ tifa160:
   predictions_needed: "V8: the 24 formal units exported on the 800 images — `v8_train.py export --unit-dir U --bench-inputs <tifa160 inputs> --bench-images <image dir>` (same path as genai_bench; GPU ≈ minutes per unit).  External, via the V7X-30 pipelines in /home/infres/yinwang/CS_QMI/ssl_pilot_v7/scripts/v7x/: B1 VQAScore `x30_vqascore_host.py rank --inputs F --out O --image-root DIR`; B4T TIFA `x30_tifa.py qg --prompts P --out Q` then `score --qa Q --inputs F --out O --image-root DIR`; B4D DSG `x30_dsg.py gen --prompts P --out G` then `score --dsg G --inputs F --out O --image-root DIR` (exposed, see above); B0 FGA released `x30_m_bench.py export --units … --inputs F --images DIR --tag …` (native FGA harness); CLIPScore sanity `x30_clipscore.py rank`.  Paid-API routes: not run (owner 2026-10-14)"
   blocked_now: "no images on disk → no V8 export was run (the directive's ≤ 1 GPU-h was not spent); everything else (prompt ids, inputs builder, metric code path via the GenAI-Bench functions, sealed-file inventory) is ready"
 
-status: draft
+status: frozen 2026-10-15T17:31:20Z (main session; metrics, families, prompt list rule, readings unchanged from draft a95f01c; owner approval recorded in reports/OWNER_DECISIONS_20261015.md on main)
 gate_record: >
   CPU gate job 1042040 (2026-10-15, env v7_fga, commit 2825f6f): tests/v8 46 / 46 (8 new in test_v8_confirm.py: exact-text prompt rule, Spearman vs
   scipy with ties, pairwise definition incl. the 0.5 tie rule, missing rows dropped for every method, bootstrap determinism + Holm, dry-run never
