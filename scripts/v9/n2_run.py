@@ -90,7 +90,8 @@ def cmd_unit(a):
     test = None
     if a.test:
         split = "testall" if a.dataset == "coco" else "test"; te = load_precomp(Path(a.data_root) / name, split, w2i); test = dict(zip(("images", "captions"), eval_arrays(te)))
-    r = run_unit(ds, cfg, Path(a.out_root), a.dataset, a.rho, a.method, a.seed, a.device, lr_mult=a.lr_mult, formal=a.formal, test=test)
+    r = run_unit(ds, cfg, Path(a.out_root), a.dataset, a.rho, a.method, a.seed, a.device, lr_mult=a.lr_mult, formal=a.formal, test=test,
+                 members=[m for m in a.members.split(",") if m] or None)
     print(json.dumps({k: v for k, v in r.items() if k in ("unit", "done", "scores_hash")}, indent=1, default=str)); return 0
 
 
@@ -105,7 +106,8 @@ def main():
     u = sub.add_parser("unit")
     for k, kw in (("--dataset", {"required": True, "choices": ["f30k", "coco"]}), ("--rho", {"type": float, "required": True}), ("--method", {"required": True}), ("--seed", {"type": int, "required": True}),
                   ("--lr-mult", {"type": float, "default": 1.0}), ("--data-root", {"required": True}), ("--vocab", {"required": True}), ("--out-root", {"required": True}), ("--host-lock", {"default": "reports/V9/HOST_LOCK.yaml"}),
-                  ("--device", {"default": "cuda"}), ("--formal", {"action": "store_true"}), ("--test", {"action": "store_true"})):
+                  ("--device", {"default": "cuda"}), ("--formal", {"action": "store_true"}), ("--test", {"action": "store_true"}),
+                  ("--members", {"default": "", "help": "comma-separated methods this run is attributed to (merge rule); must lie in the precheck coefficient group"})):
         u.add_argument(k, **kw)
     a = ap.parse_args(); return {"smoke": cmd_smoke, "strict": cmd_strict, "unit": cmd_unit, "precheck": cmd_precheck}[a.cmd](a)
 

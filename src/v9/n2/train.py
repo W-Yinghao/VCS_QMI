@@ -112,6 +112,8 @@ class WeightedStudent:
             rec = {"epoch": epoch, "lr": lr, "phase": "warmup_mean_hinge" if epoch < cfg.warmup_epochs else "max_violation", "mean_loss": agg["loss"] / max(agg["n"], 1),
                    "mean_u_risk_unnormalised": agg["u_risk"] / max(agg["u_n"], 1), "dev": val, "seconds": time.time() - t0}
             log["epochs"].append(rec)
+            with open(self.out / "progress.jsonl", "a") as fh:                   # monitoring only (release gate / watcher); the checkpoint log is authoritative
+                fh.write(json.dumps({"epoch": epoch, "phase": rec["phase"], "mean_loss": rec["mean_loss"], "dev_rsum": val["rsum"], "seconds": rec["seconds"], "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}) + "\n")
             if val["rsum"] > best["rsum"]:                       # ties keep the earlier epoch
                 best = {"rsum": val["rsum"], "epoch": epoch}; self._save(host, opt, epoch, best, log, name="best.pt")
             self._save(host, opt, epoch, best, log, name="last.pt")

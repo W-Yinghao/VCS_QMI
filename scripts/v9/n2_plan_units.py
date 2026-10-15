@@ -19,13 +19,13 @@ SB = ("sbatch --parsable --job-name={name} --export=ALL,V9_SGR_PY=/projects/EEG-
       "OUT_ROOT=/projects/EEG-foundation-model/yinghao/outputs_v9/n2,HOST_LOCK=reports/V9/HOST_LOCK.yaml{formal} slurm/v9/n2_unit.sbatch group {gfile}")
 
 
-def groups_of(precheck_dir: Path, ds: str, rho: float, seed: int) -> list:
+def groups_of(precheck_dir: Path, ds: str, rho: float, seed: int, ignore_refusal: bool = False) -> list:
     cands = [precheck_dir / f"precheck_{ds}_rho{rho:g}_s{seed}.json", precheck_dir / f"rho{rho:g}" / f"s{seed}" / "precheck" / f"precheck_{ds}_rho{rho:g}_s{seed}.json"]
     p = next((c for c in cands if c.exists()), None)
     if p is None:
         raise SystemExit(f"no precheck for rho {rho} seed {seed} under {precheck_dir}")
     rec = json.loads(p.read_text())
-    if not rec["formal_block_allowed"]:
+    if not rec["formal_block_allowed"] and not ignore_refusal:            # the tuning seed's shared stage is not a gate: its verdict is recorded, not enforced
         raise SystemExit(f"precheck refused rho {rho} seed {seed}: {rec['refusal_reason']}")
     return [sorted(g) for g in rec["loss_coefficients"]["groups"]], p
 
@@ -37,7 +37,7 @@ def main() -> int:
     mults = a.lr_mults or ([1.0] if a.kind == "formal" else [0.5, 1.0, 2.0]); dest = Path(a.dest); dest.mkdir(parents=True, exist_ok=True); runs = []
     for seed in a.seeds:
         for rho in a.rhos:
-            groups, src = groups_of(Path(a.precheck_dir), a.dataset, rho, seed); seen = set()
+            groups, src = groups_of(Path(a.precheck_dir), a.dataset, rho, seed, ignore_refusal=a.kind == "tuning"); seen = set()
             for m in ARMS:
                 if m in seen:
                     continue
@@ -53,7 +53,7 @@ def main() -> int:
     feed = []
     for k in range(0, len(runs), a.per_job):
         chunk = runs[k:k + a.per_job]; gfile = dest / f"{a.kind}_g{k // a.per_job + 1:02d}.txt"
-        gfile.write_text("".join(f"{r['dataset']} {r['rho']:g} {r['method']} {r['seed']} {r['lr_mult']:g}\n" for r in chunk))
+        gfile.write_text("".join(f"{r['dataset']} {r['rho']:g} {r['method']} {r['seed']} {r['lr_mult']:g} {','.join(r['members'])}\n" for r in chunk))   # 6th column: members (merge rule)
         feed.append(SB.format(name=f"v9n2_{a.kind[0]}{k // a.per_job + 1:02d}", formal=",FORMAL=1" if a.kind == "formal" else "", gfile=gfile))
     (dest / f"{a.kind}_feed.txt").write_text("\n".join(feed) + "\n")
     print(f"{a.kind}: {len(runs)} runs covering {sum(len(r['members']) for r in runs)} arm rows -> {len(feed)} jobs ({a.per_job}/job); merged runs: "

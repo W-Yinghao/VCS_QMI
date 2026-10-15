@@ -132,7 +132,15 @@ def unit_members(out_root: Path, dataset: str, rho: float, seed: int, method: st
 
 
 def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float, method: str, seed: int, device: str = "cpu", epochs: int | None = None,
-             lr_mult: float = 1.0, critic_steps: int = 400, formal: bool = False, anchor_fraction: float = 0.1, min_sizes=None, test: dict | None = None) -> dict:
+             lr_mult: float = 1.0, critic_steps: int = 400, formal: bool = False, anchor_fraction: float = 0.1, min_sizes=None, test: dict | None = None,
+             members: list | None = None) -> dict:
+    group = unit_members(out_root, dataset, rho, seed, method)
+    if members is None:
+        members = group
+    else:                                                       # explicit attribution (release orchestrator): must lie inside the precheck coefficient group
+        members = sorted(set(members))
+        if method not in members or any(m not in group for m in members):
+            raise ValueError(f"members {members} are not all in the precheck coefficient group of {method} ({group}); one run cannot be attributed to them")
     shared = prepare_shared(ds, cfg, out_root, dataset, rho, seed, device, anchor_fraction, min_sizes)
     scores = compute_scores(shared, device, cfg.batch_size)
     precheck = precheck_allows(out_root, dataset, rho, seed) if formal else None
@@ -143,7 +151,6 @@ def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float
     unit_dir = out_root / dataset / f"rho{rho:g}" / f"s{seed}" / f"unit_{method}_lr{lr_mult:g}"
     student = WeightedStudent(cfg, shared["observed"], wres["w"], shared["collate"], ds["dev_images"], ds["dev_captions"], unit_dir, seed, lr_mult, device, wres["lock"], formal)
     done = student.fit(epochs)
-    members = unit_members(out_root, dataset, rho, seed, method)
     result = {"unit": unit_dir.name, "dataset": dataset, "rho": rho, "method": method, "seed": seed, "lr_mult": lr_mult, "formal": formal, "noise_manifest": shared["noise_manifest"],
               "weights_record": wres["lock"]["record"], "scores_hash": scores["hash"], "done": done,
               "members": members, "members_note": "methods whose loss coefficients are identical to this run's (precheck merge rule): ONE training, reported for every member; not independent replicates" if len(members) > 1 else "no merge",

@@ -33,8 +33,8 @@ case "$MODE" in
         $PY $SNAP/scripts/v9/n2_run.py unit --dataset $ds --rho $rho --method $m --seed $seed --lr-mult $lm --data-root $DATA_ROOT --vocab $VOCAB --out-root $OUT_ROOT \
             --host-lock ${HOST_LOCK:-reports/V9/HOST_LOCK.yaml} --device $DEV ${FORMAL:+--formal} ${TEST:+--test}; rc=$?;;
   group) : "${DATA_ROOT:?}" "${VOCAB:?}"; rc=0
-        while read -r ds rho m seed lm; do [ -z "$ds" ] && continue; echo "[unit] $(date -u +%FT%TZ) $ds rho=$rho $m s$seed lr$lm"
-          $PY $SNAP/scripts/v9/n2_run.py unit --dataset $ds --rho $rho --method $m --seed $seed --lr-mult ${lm:-1} --data-root $DATA_ROOT --vocab $VOCAB --out-root $OUT_ROOT \
+        while read -r ds rho m seed lm members; do [ -z "$ds" ] && continue; echo "[unit] $(date -u +%FT%TZ) $ds rho=$rho $m s$seed lr$lm members=${members:-$m}"
+          $PY $SNAP/scripts/v9/n2_run.py unit --dataset $ds --rho $rho --method $m --seed $seed --lr-mult ${lm:-1} ${members:+--members $members} --data-root $DATA_ROOT --vocab $VOCAB --out-root $OUT_ROOT \
               --host-lock ${HOST_LOCK:-reports/V9/HOST_LOCK.yaml} --device $DEV ${FORMAL:+--formal} ${TEST:+--test}; r=$?; echo "[unit-exit] rc=$r"; [ $r -ne 0 ] && rc=$r
         done < "$1";;
   *) echo "unknown mode $MODE"; rc=2;;
