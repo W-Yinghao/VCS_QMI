@@ -94,3 +94,9 @@ status: frozen 2026-10-15T09:41:28Z
 ## Decisions for the freeze (main session)
 1. CPU partition, normal QOS, one bundle job (GPU quota kept for the running VL / V8 chains).
 2. Conditions, rule and controls as drafted (named before any full run); the oracle values and gate numbers are inserted verbatim from the gate output.
+
+## Execution note 1 (2026-10-15, main session)
+Bundle job 1041319 exited 1 after 4 s without running any condition: `slurm/p158_bundle.sbatch` iterated over `${CONDS//,/ }` with CONDS unset
+(only the banner had the default), so the loop was empty and the aggregate found no condition files.  Fix: the default `CONDS=null,weak,moderate`
+(and REPEATS=5) is set before the loop; `bash -n` and a loop-expansion check pass.  No change to the runner, the aggregate, the rule or the
+conditions; resubmitted as the job recorded in `reports/job_ids.json` under "P158 bundle resubmission".

@@ -8,7 +8,7 @@
 # P158 full run in ONE job (sequential units: null, weak, moderate; finished condition files are skipped), then the aggregate.
 # Normal QOS only.  Override: CONDS (default null,weak,moderate), REPEATS (5), OUT (reports/P158/truth).
 source /home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh
-OUT=${OUT:-reports/P158/truth}; mkdir -p "$(dirname $OUT)"; banner "P158 bundle conds=${CONDS:-null,weak,moderate} repeats=${REPEATS:-5}"
+CONDS=${CONDS:-null,weak,moderate}; REPEATS=${REPEATS:-5}; OUT=${OUT:-reports/P158/truth}; mkdir -p "$(dirname $OUT)"; banner "P158 bundle conds=${CONDS} repeats=${REPEATS}"
 echo "commit=$(git rev-parse --short HEAD) code=$(cat scripts/p158_common.py scripts/p158_truth.py src/vcs_measure/nested_joint.py | sha256sum | cut -c1-16)"
 export CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
 rc_all=0
