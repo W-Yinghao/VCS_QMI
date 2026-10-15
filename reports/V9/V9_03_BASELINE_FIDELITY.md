@@ -41,5 +41,13 @@ Both NCR and L2RM read the SCAN precomp layout `<data_path>/<data_name>/{train,d
 - L2RM `models, data, evaluation, utils, vocab`: OK after adding `pot` (POT) and `prefetch_generator`; `main_L2RM.py` additionally imports `pomegranate` (`GeneralMixtureModel, TrueBetaDistribution`) — `pomegranate==0.14.8` fails to build in `v9_sgr` (python 3.10 / numpy 2: Cython error in `pomegranate/utils.pyx`); **resolved** in a second env `envs/v9_l2rm` (python 3.10, torch 2.9.0+cu128, numpy 1.26.4, Cython 0.29.37, setuptools, `git+https://github.com/rayleizhu/pomegranate` = 0.14.8 fork with `TrueBetaDistribution`, tensorboardX, POT, prefetch_generator): `import main_L2RM` OK (`slurm_logs/v9_env_l2rm.log`).  L2RM units run in `v9_l2rm`; every other host in `v9_sgr`.
 - ESC `model.py` raises `NameError: name 'net' is not defined` at import (line 816 inside `class SGRAF`, reached from line 591) in the released commit f1798b2 — the repository is not importable as released; a fix would be a local patch and must be disclosed.
 
+## 5c. Host finding from the timing job (1042033, node60, 2026-10-15)
+Native SGRAF_py3 `train.py` from scratch on clean Flickr30K precomp (hardest in-batch negative from the first step) **collapsed**: loss 51.49 → 51.2004
+(= 2 × 128 × margin 0.2: all pair scores equal), dev i2t/t2i R@1 0.1 / 0.1 after one epoch (`outputs_v9/timing/group_1042033/sgr_train.log`).  The NCR
+paper reports SGR's sensitivity and pre-trains SGR with the vanilla triplet loss (SGR*); NCR's own warm-up (`co_train.warmup`, `ContrastiveLoss(margin)` =
+sum-violation) is the locked warm-up for every SGR-based V9 row (HOST_LOCK `host_finding_20261015_timing_job_1042033`).  The native "SGRAF from scratch
+with max_violation" recipe is recorded as not trainable here (one measured attempt under torch 2.9.0+cu128; no claim about other versions).  The
+`torch.load` weights-only failure of the evaluators is handled by `TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1` (no code change).
+
 ## 6. What remains for this document
 NCR checkpoint evaluation numbers (Flickr 1K ×3, COCO 5K/1K ×3) and their gaps to the paper; one SGR native 40-epoch reproduction on Flickr (counts against the budget; after the owner's go); L2RM native rerun at 0.4 (after pomegranate / fallback decision).
