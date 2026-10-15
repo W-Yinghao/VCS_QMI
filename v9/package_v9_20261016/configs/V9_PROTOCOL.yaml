@@ -1,0 +1,90 @@
+version: V9-v1
+paths:
+  repo_root: SET_ON_SERVER
+  data_root: SET_ON_SERVER
+  output_root: SET_ON_SERVER_V9_ONLY
+parallel:
+  protected_branch: v8/utility-aligned-cs
+  cancel_existing_jobs: false
+  resource_reservation: MEASURE_AND_RECORD_ON_SERVER
+roles:
+  anchor_fraction: 0.1
+  anchor_partition:
+    teacher: 0.4
+    critic_fit: 0.3
+    critic_select: 0.15
+    reference_moments: 0.15
+  split_unit: image_or_physical_specimen
+  U_injection_labels_visible_to_trainer: false
+nr:
+  datasets:
+  - flickr30k
+  - coco
+  host: SGR single-model from audited official code
+  full_feature_pipeline_training: true
+  raw_visual_backbone_end_to_end: false
+  main_noise:
+  - 0.0
+  - 0.4
+  formal_seeds:
+  - 901
+  - 902
+  - 903
+  tuning_seed: 917
+  main_methods:
+  - Unweighted_A
+  - NCR_A
+  - L2RM_A
+  - VCS_Weight
+  - BCE_Weight
+  - RuLSIF_Weight
+  - Nystrom_Weight
+  - RankMass
+  main_critic: tanh(a*cos+b), a positive
+  weight_update: fixed_before_student_training
+  loss_scaling: dataset-global constant, not batch-specific
+  host_native_hyperparameters: REQUIRE_HOST_LOCK
+  n1_rho:
+  - 0.0
+  - 0.1
+  - 0.3
+  - 0.5
+  n1_batch_size:
+  - 128
+  - 512
+  - 2048
+  reference_corruption_primary: 0.0
+  additional_corruption: stress_only_not_theory_guaranteed
+  n1_repeats_finite: 200
+  n1_repeats_image: 30
+reg:
+  first_dataset: BF-SHG
+  conditional_second_dataset: EPFL_RGB_NIR
+  fit_fraction:
+  - 0.25
+  - 1.0
+  train_mismatch:
+  - 0.0
+  - 0.2
+  methods:
+  - VCS
+  - BCE
+  - InfoNCE
+  - CoMIR
+  seeds:
+  - 901
+  - 902
+  - 903
+  test_occlusion: separate_protocol_not_initial
+  reuse_matching_clean_checkpoints: true
+statistics:
+  alpha: 0.05
+  bootstrap_repetitions: 2000
+  primary_cluster: base image or physical specimen
+  nr_primary_family: VCS vs NCR_A/L2RM_A at rho=.4 for each dataset
+  no_seed_zero_selection: true
+  invalid_uncertainty_formula: fail_closed
+launch:
+  cpu_reference: ready
+  gpu_full_training: after adapters fidelity HOST_LOCK and measured budget
+  large_extensions: separate_decision
