@@ -88,7 +88,7 @@ def train_teacher(cfg: HostConfig, rows: list[dict], collate, out_dir: str | Pat
             opt.zero_grad(set_to_none=True); loss.backward()
             if cfg.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(host.parameters(), cfg.grad_clip)
-            opt.step(); tot += float(loss); nb += 1; step += 1
+            opt.step(); tot += float(loss.detach()); nb += 1; step += 1
         log["epochs"].append({"epoch": epoch, "mean_batch_loss": tot / max(nb, 1), "batches": nb, "seconds": time.time() - t0})
     host.eval()
     torch.save({"model": host.state_dict(), "cfg": asdict(cfg), "seed": seed, "epochs": cfg.teacher_epochs}, out / "teacher.pt")

@@ -1,0 +1,67 @@
+V9-N2 "NCR+A" (package docs/05 §1, §6: the official NCR route with the SAME trusted anchor budget).  Applies to the official NCR code
+(https://github.com/XLearning-SCU/2021-NeurIPS-NCR @ 60256ba, files NCR/data.py and NCR/co_train.py).  Two changes only:
+ (1) data.py: the training pairs come from the V9 OBSERVED mapping (noise.py; donors only from U, A clean) instead of the official noise index;
+     the file is a numpy array of observed image indices per caption (same shape and meaning as the official t2i_index), plus an anchor mask.
+     The clean labels `_labels` (used by NCR only for its printed statistics) are NOT available in the V9 setting and are set to -1 (unknown).
+ (2) co_train.py: after the GMM split, every anchor pair is forced into the labeled set with clean probability 1 (the anchor-supervised term
+     with weight 1), for both networks.  Nothing else changes: co-training, soft margin, the two-model averaged evaluation and the dev selection
+     are the official ones.  The U pairs are treated exactly as NCR treats its noisy training set.
+--- a/NCR/data.py
++++ b/NCR/data.py
+@@ -23,6 +23,8 @@
+         data_split,
+         noise_ratio=0,
+         noise_file="",
++        observed_index_file="",
++        anchor_mask_file="",
+         mode="",
+         pred=[],
+         probability=[],
+@@ -54,7 +56,16 @@
+         if data_split == "train":
+             split_idx = None
+             self._t2i_index = copy.deepcopy(self.t2i_index)
+-            if noise_ratio:
++            if observed_index_file:
++                # V9-N2: trust-assisted observed mapping (caption -> observed image); A pairs clean, donors from U only.
++                print("=> load V9 observed index from {}".format(observed_index_file))
++                self.t2i_index = np.load(observed_index_file)
++                assert len(self.t2i_index) == self.length
++                self.anchor_mask = np.load(anchor_mask_file).astype(bool)
++                assert len(self.anchor_mask) == self.length
++                # the original mapping is not exposed to the trainer in V9: clean labels unknown (-1)
++                self._t2i_index = None
++            elif noise_ratio:
+                 if os.path.exists(noise_file):
+                     print("=> load noisy index from {}".format(noise_file))
+                     self.t2i_index = np.load(noise_file)
+@@ -71,8 +82,11 @@
+                     print("=> save noisy index to {}".format(noise_file))
+ 
+             # save clean labels
+-            self._labels = np.ones((self.length), dtype="int")
+-            self._labels[self._t2i_index != self.t2i_index] = 0
++            if self._t2i_index is None:
++                self._labels = -np.ones((self.length), dtype="int")
++            else:
++                self._labels = np.ones((self.length), dtype="int")
++                self._labels[self._t2i_index != self.t2i_index] = 0
+ 
+             noise_label = np.ones_like(self._labels)
+             if self.mode == "labeled":
+--- a/NCR/co_train.py
++++ b/NCR/co_train.py
+@@ -128,6 +128,13 @@
+ 
+         pred_A = split_prob(prob_A, opt.p_threshold)
+         pred_B = split_prob(prob_B, opt.p_threshold)
++        # V9-N2 anchor-supervised term: trusted anchor pairs are always labeled with clean probability 1 (weight 1), both networks.
++        if getattr(opt, "anchor_mask_file", ""):
++            anchor = np.load(opt.anchor_mask_file).astype(bool)
++            prob_A[anchor] = 1.0
++            prob_B[anchor] = 1.0
++            pred_A[anchor] = True
++            pred_B[anchor] = True
+ 
+         print("\nModel A training ...")
+         # train model_A

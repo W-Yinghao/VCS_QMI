@@ -1,0 +1,52 @@
+# V9-N2 — trust-assisted noisy-correspondence retrieval on the SGR host: protocol DRAFT (fork D, 2026-10-16).
+# Status: DRAFT.  The main session freezes it (rename *_FROZEN_*, freeze time) after fork A's data audit, env, HOST_LOCK and the one-epoch
+# timing exist; no formal unit runs before that.  Package sources: docs/05 (all), docs/03 E-F, docs/07, docs/08 §2, configs/NR_FORMAL_UNITS.csv.
+version: V9-N2-draft-1
+question: >
+  With the same 10 % trusted anchor budget for every method, does fixing per-pair reliability weights from a bounded CS critic (VCS) on the common
+  teacher score improve full SGR retrieval under 40 % mechanism mismatch over (i) the strongest noisy-correspondence routes given the same anchors
+  (NCR+A, L2RM+A) and (ii) the same weight interface fed by matched logistic, RuLSIF and Nystrom posteriors, and over a rank-only mass-matched
+  filter — and what does it cost on clean data (rho 0)?
+parallel_to_v8: {protected_branch: v8/utility-aligned-cs, cancel_existing_jobs: false, output_root: /projects/EEG-foundation-model/yinghao/outputs_v9/n2}
+host:
+  model: SGRAF single-model SGR path (vendored src/v9/n2/sgr_host.py; equivalence test against the official NCR model.py)
+  hyperparameters: reports/V9/HOST_LOCK.yaml (fork A); TO_VERIFY fields block a formal unit (train.py refuses with formal=True)
+  code_reading_defaults: {batch_size: 128, learning_rate: 2e-4, grad_clip: 2.0, margin: 0.2, lr_update: TO_VERIFY (NCR 30 f30k / 10 coco; L2RM 15), num_epochs: TO_VERIFY (NCR 40 f30k / 20 coco; L2RM 35), optimizer: Adam}
+  student_loss: max-violation hinge per anchor (row + column), SGRAF default
+  teacher: same host, 5 full epochs on A-teacher-warmup only, warm-up loss (mean hinge, NCR/L2RM 'warmup'), frozen; score s = SGR similarity of the pair in eval mode
+data:
+  datasets: [flickr30k (f30k_precomp, official 1K test), coco (coco_precomp, 5K test main + 5x1K column)]
+  files: NCR release (SCAN precomp features + vocab) — fork A's DATA_AUDIT.csv; nothing read from test before the frozen protocol says so
+  roles: anchor 10 % of training images drawn before noise (seed = formal seed), split 40/30/15/15 by image (teacher_warmup / critic_fit / critic_select / reference_moments); U = the rest; captions follow images
+  noise: mechanism mismatch injected into U pairs at design rho in {0, 0.4}, donors from U only (A clean); official NCR index NOT used (A-table only); manifest: design_rho, realized_rho, mapping sha256, per-image flags; labels sealed in eval_only/
+  Q_for_critic: within-role re-pairing (cyclic shift, same-image rejected) — a conditional Q, not the unconditional product; stated in every table
+weights:
+  interface: s -> T (critic fitted on A-critic-fit, selected on A-critic-select by the common J) -> a, b on A-reference-moments -> rho_hat = (a - c)/(a - b) on the unlabeled U -> w = clean posterior (rho_hat), locked file with sha256, detached, fixed before student training
+  methods:
+    N0_Unweighted_A: {w: 1}
+    N1_NCR_A: {official NCR code + v9/patches/ncr_anchor_assisted.diff (anchors forced into the labeled set with prob 1); runs in fork A's env; two-model averaged evaluation as official}
+    N2_L2RM_A: {official L2RM code + v9/patches/l2rm_anchor_assisted.diff (anchors always in the correct set); rematching kept}
+    N3_VCS_Weight: {critic: cos-2 tanh(a s + b), a = softplus, quadratic rule}
+    N4_BCE_Weight: {same class, matched logistic (attribution)}
+    N5_RuLSIF_Weight: {src/v9/quant.fit_rulsif (alpha 1/2), T = clip(r - 1)}
+    N6_Nystrom_Weight: {src/v9/quant.fit_nystrom}
+    N7_RankMass: {top-k by raw teacher score with N3's training-side total mass (fractional tail); reads only the mass}
+    non_main_row_PlainFilter: {raw score >= 5th percentile of SELECT true pairs}
+  rho_strategy: estimated (deployable); oracle-rho rows only as diagnostics, never in the main table
+  identification: a - b at numerical tolerance -> weights 1 and the unit flagged 'unidentified' (no fake precision)
+training_objective: "L = (sum_A ell_i + sum_U w_i ell_i) / (n_A + sum_U w_i); minibatch mean(v_i ell_i) / mean_v_full_pool (fixed before training); w never in logits; low-w pairs stay in the negative pool; unnormalised U risk logged"
+units:
+  formal: configs/NR_FORMAL_UNITS.csv — 8 methods x 2 rho x 3 seeds {901, 902, 903} x 2 datasets = 96; shared per (dataset, rho, seed): roles, noise draw, teacher
+  tuning: seed 917, lr multipliers {0.5, 1, 2} per method (host native defaults otherwise); 96 single-seed tuning units max; the multiplier per method is chosen on the official dev rSum of seed 917 and frozen before the formal seeds
+  grouping: units of one (dataset, rho) cell grouped per GPU job (slurm/v9/n2_unit.sbatch group), resumable, skip-when-done
+selection: {critic_and_rho: reference roles only; checkpoint: official dev rSum (ties -> earlier epoch); test: never used for any choice}
+evaluation: {metrics: R@1/5/10 both directions, rSum, mR; coco 5K main + 5x1K column; flickr 1K; ties: fixed id order primary + random-tie sensitivity; evaluator cross-checked against the package reference}
+primary_families_holm:
+  systems: [VCS_Weight vs NCR_A at rho 0.4 (flickr), VCS_Weight vs L2RM_A at rho 0.4 (flickr), same two on coco]   # 4 contrasts, Holm
+  traditional: [VCS_Weight vs RuLSIF_Weight, VCS_Weight vs Nystrom_Weight, per dataset at rho 0.4]                    # 4 contrasts, Holm
+  attribution: [VCS_Weight vs BCE_Weight per dataset at rho 0.4]                                                    # 2 contrasts
+  reported_in_full: [rho 0 absolute performance and the 0 -> 0.4 degradation of every method, RankMass, PlainFilter, Unweighted_A]
+statistics: {unit: test image (captions follow), bootstrap 2000 paired over query images with the gallery fixed, per-seed values shown, no non-inferiority relabelling}
+not_claimed: [SOTA vs anchor-free leaderboards (this is trust-assisted), unbiased recovery of the full in-batch loss (identity holds only for losses measurable on the critic's input — strict check §05.5 reported beside), raw-image end-to-end training, ESC/ASL/ReCon unless their code runs (source-fidelity report otherwise), semantic correctness of P (P/Q are pairing mechanisms)]
+gate_before_freeze: {cpu: tests/v9/test_n2.py + fixture smoke (slurm/v9/n2_unit.sbatch gate), one_epoch_timing: fork A on the real data, host_lock: verified}
+cost: TO_MEASURE (fork A one-epoch timing); planning figure from the official code: NCR f30k 40 epochs ~ 1 GPU-day per unit on 2020 hardware (unverified)

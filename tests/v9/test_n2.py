@@ -174,3 +174,16 @@ def test_strict_interface_check():
     r = run_strict_check(n=3000, seed=1)
     assert r["z_only"]["rel_err_oracle"] < 0.05 and r["z_only"]["rel_err_fitted"] < 0.12 and abs(r["rho_hat"] - 0.4) < 0.06
     assert r["richer_student"]["rel_err"] > 0.05
+
+
+@pytest.mark.parametrize("repo,patch", [("NCR", "ncr_anchor_assisted.diff"), ("L2RM", "l2rm_anchor_assisted.diff")])
+def test_anchor_assisted_patches_apply(repo, patch):
+    """The NCR+A / L2RM+A patches apply cleanly to the official clones (read-only reference copies or fork A's code_v9)."""
+    import subprocess
+    for base in (f"/projects/EEG-foundation-model/yinghao/code_v9/{repo}", f"/tmp/claude-34987/-home-infres-yinwang-CS-QMI/3ef2737e-e5a7-4b67-9f0b-53c6d6caa16c/scratchpad/v9_code/{repo}"):
+        if Path(base, ".git").exists():
+            break
+    else:
+        pytest.skip("official clone not available")
+    r = subprocess.run(["git", "apply", "--check", str(ROOT / "v9" / "patches" / patch)], cwd=base, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr

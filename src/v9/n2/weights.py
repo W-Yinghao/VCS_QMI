@@ -94,7 +94,7 @@ def fit_scalar_critic(s_P, s_Q, s_P_sel, s_Q_sel, kind: str, lr_grid=(1e-2, 3e-2
             TPs, TQs = c.T(s_P_sel), c.T(s_Q_sel); j_sel = common_j(TPs, TQs)
             with torch.no_grad():
                 native_sel = float(REF_T.balanced_fit_loss(c.logit(torch.as_tensor(np.asarray(s_P_sel, dtype=np.float64))), c.logit(torch.as_tensor(np.asarray(s_Q_sel, dtype=np.float64))), kind=kind))
-            rec = {"lr": lr, "init": [a0, b0], "fit_loss": float(loss), "select_common_J": j_sel, "select_native": native_sel, **c.params()}
+            rec = {"lr": lr, "init": [a0, b0], "fit_loss": float(loss.detach()), "select_common_J": j_sel, "select_native": native_sel, **c.params()}
             grid.append(rec)
             if best is None or j_sel > best[0] + 1e-12:
                 best = (j_sel, c, rec)

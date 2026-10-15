@@ -1,0 +1,28 @@
+V9-N2 "L2RM+A" (package docs/05 §1, §6: the official L2RM route — OT / partial-OT rematching kept in full — with the SAME trusted anchor budget).
+Applies to the official L2RM code (https://github.com/hhc1997/L2RM @ a766c22, file main_L2RM.py; data.py receives the observed mapping exactly as
+in ncr_anchor_assisted.diff, since L2RM's PrecompDataset / PrecompDataset_split copy NCR's noise-index logic).  One change in main_L2RM.py: after
+the BMM split, anchor pairs are always in the "correct" loader (the anchor-supervised term with weight 1); the rematching of the noisy loader,
+the cost network, the queue and the Sym-KL loss are untouched.  The printed "acc" diagnostics use the official clean labels, which the V9
+setting does not expose to the trainer: they are skipped when labels are -1.
+--- a/main_L2RM.py
++++ b/main_L2RM.py
+@@ -80,9 +80,16 @@
+         #process of sims
+         prob = BMM_pred(loss_all)
+         pred = prob > 0.5
+-        correct_labels = labels_all[pred]
+-        print('Correct data acc:', sum(correct_labels) / len(correct_labels))
+-        print('Total data acc:', sum(labels_all == pred) / len(labels_all))
++        # V9-N2 anchor-supervised term: trusted anchor pairs always belong to the correct set (weight 1); U pairs follow L2RM's own split.
++        if getattr(opt, 'anchor_mask_file', ''):
++            anchor = np.load(opt.anchor_mask_file).astype(bool)
++            pred[anchor] = True
++        if np.all(labels_all >= 0):
++            correct_labels = labels_all[pred]
++            print('Correct data acc:', sum(correct_labels) / len(correct_labels))
++            print('Total data acc:', sum(labels_all == pred) / len(labels_all))
++        else:
++            print('Clean labels not exposed to the trainer (V9 observed mapping); split statistics skipped')
+     correct_trainloader, noisy_trainloader = get_loader_split(
+         captions_train,
+         images_train,

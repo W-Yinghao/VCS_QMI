@@ -33,8 +33,10 @@ def fixture_dataset(seed: int, n_images: int = 60):
 def cmd_smoke(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); t0 = time.time()
     ds, test, tr = fixture_dataset(a.seed, a.n_images)
+    # fixture-only host and roles: reduced dims, anchor fraction 0.5 (the formal protocol uses 0.1) and 8 teacher epochs so that the tiny teacher
+    # separates P from Q and the rho path is exercised in its identified branch; the formal values come from HOST_LOCK / the protocol.
     cfg = HostConfig(vocab_size=tr["vocab"], img_dim=tr["img_dim"], word_dim=16, embed_size=32, sim_dim=16, num_region=tr["n_region"], batch_size=16,
-                     num_epochs=a.epochs, teacher_epochs=2, lr_update=100, learning_rate=2e-3)
+                     num_epochs=a.epochs, teacher_epochs=8, lr_update=100, learning_rate=2e-3)
     methods = ["Unweighted_A", "VCS_Weight", "BCE_Weight", "RankMass", "PlainFilter"]
     try:
         import v9.quant  # noqa: F401
@@ -45,7 +47,8 @@ def cmd_smoke(a):
     for rho in (0.0, 0.4):
         for m in methods:
             try:
-                r = run_unit(ds, cfg, out, "fixture", rho, m, a.seed, a.device, epochs=a.epochs, critic_steps=120, min_sizes={k: 1 for k in ("teacher_warmup", "critic_fit", "critic_select", "reference_moments")}, test=test)
+                r = run_unit(ds, cfg, out, "fixture", rho, m, a.seed, a.device, epochs=a.epochs, critic_steps=120, anchor_fraction=0.5,
+                             min_sizes={k: 1 for k in ("teacher_warmup", "critic_fit", "critic_select", "reference_moments")}, test=test)
                 summary["units"][f"rho{rho:g}/{m}"] = {"best_dev_rsum": r["done"]["best"]["rsum"], "test_rsum": r["test"]["primary"]["rsum"], "realized_rho": r["noise_manifest"]["realized_rho"],
                                                        "rho_hat": r["weights_record"].get("rho_used"), "ess": r["weights_record"]["ess"], "mass": r["weights_record"]["total_mass"], "status": r["weights_record"].get("rho", {}).get("status")}
             except NotImplementedError as e:
@@ -78,7 +81,7 @@ def cmd_unit(a):
 
 def main():
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
-    s = sub.add_parser("smoke"); s.add_argument("--out", required=True); s.add_argument("--device", default="cpu"); s.add_argument("--epochs", type=int, default=2); s.add_argument("--seed", type=int, default=0); s.add_argument("--n-images", type=int, default=60)
+    s = sub.add_parser("smoke"); s.add_argument("--out", required=True); s.add_argument("--device", default="cpu"); s.add_argument("--epochs", type=int, default=2); s.add_argument("--seed", type=int, default=0); s.add_argument("--n-images", type=int, default=80)
     s = sub.add_parser("strict"); s.add_argument("--out", required=True); s.add_argument("--seed", type=int, default=0)
     u = sub.add_parser("unit")
     for k, kw in (("--dataset", {"required": True, "choices": ["f30k", "coco"]}), ("--rho", {"type": float, "required": True}), ("--method", {"required": True}), ("--seed", {"type": int, "required": True}),
