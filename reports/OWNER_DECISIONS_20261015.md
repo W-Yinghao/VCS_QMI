@@ -37,3 +37,14 @@ usage-basis deliberation; start the related experiments.  Consequences applied: 
 precomputed features / Flickr30K / COCO cleared for the N2 block (no attestation step); TIFA160 images (being fetched) cleared for the approved
 secondary read; BF-SHG closed test stays unread until the G1 confirmation trigger.  The data register keeps recording sources and terms as facts,
 without blocking work.
+
+## Owner pause and approvals (2026-10-15 evening, verbatim)
+- ~20:40 UTC: 「先暂停一下费token的agent吧，先维持监控」 — all token-using agents stopped; SLURM jobs, the N2 login-node release script and the
+  job monitor keep running.
+- ~20:55 UTC, in reply to the coordinator's list of GPU work that needs the owner's approval (V8.1 C1: 9 units, about 6–8 GPU-h estimated from
+  the V8 unit timings; G1 BF-SHG sealed test: one confirmation read, test-side files fixed and committed before the read): 「这俩都可以提交」.
+  Consequences: (1) V8.1 C1 is approved — code, smoke on the real stack and the measured budget still come first, then a frozen C1 protocol and
+  the 9 units (package docs/06 C1: U-CS / U-RPS / U-MSE × seeds 0–2, last 2 Q-former blocks + ln_vision + query tokens + head trainable, each
+  arm's originally selected lr, CAL_SELECT MSE selection; DEV readout; no V8-05 / GenAI / TIFA160 label).  (2) The G1 closed-test trigger of
+  decision note 1 (`reports/V9/V9_G1_PROTOCOL_FROZEN_20261015.yaml`, v9 branch) has its explicit go: one read, after the test samples,
+  perturbations, metrics, comparison families and prediction files are fixed and committed.  Everything else stays paused.
