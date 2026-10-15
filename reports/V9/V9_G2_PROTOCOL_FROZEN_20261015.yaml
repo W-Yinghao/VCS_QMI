@@ -158,3 +158,12 @@ execution_note_4_20261015: >
   Rule from the main session: the fork submits nothing further except the single CPU aggregate once all 52 unit results exist; the three groups are
   reissued by the main session alone.  No unit, rule or configuration changed.
 execution_note_5_20261015: "main session attempted to defer 1042152-1042154 for queue headroom at 18:44Z; refused (its permission layer); left running — they are the live replacements for 1042145-1042147, so all 10 groups are live (1042138-1042144, 1042152-1042154); execution_note_4's 'announced cancelled' is superseded by this line"
+execution_note_6_20261015: >
+  Placement only (no code, unit or rule change).  The main session set ExcNodeList=node51,node60 on the three pending groups 1042152–1042154 (accepted;
+  verified with scontrol at 2026-10-15T20:04:59Z); node60 is the throttled RTX PRO 6000 (~2.2x slower).  Running groups were left untouched (1042144 comir_f0.25 runs on
+  node60).  slurm/v9/reg_g2.sbatch now excludes node51,node60 for any resubmission (commit 6757d67; cluster policy — the header had mirrored G1's
+  node51-only exclusion).  Correction to execution_note_freeze: the fork's own update at launch was refused because it used the parameter name
+  ExcludeNodeList, which scontrol does not accept; ExcNodeList is accepted, so the refusal was not a scheduler limitation.  Measured at 2026-10-15T20:04:59Z: critic
+  unit 26–27 min on RTX PRO 6000 (0.74–0.78 s / registration) and 50.3 min on L40S (1.48 s / registration; vcs_f1 on node39), so a 6-unit critic group
+  needs about 5.0 h on L40S against its 06:00:00 limit.  Every group's header reports the same unit-code hash 99c942022c5164f3; the commit field differs
+  only because other forks committed to the branch between submissions.
