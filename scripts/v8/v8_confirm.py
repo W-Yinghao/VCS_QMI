@@ -51,6 +51,11 @@ BOOT, BOOT_SEED = 5000, 2718
 REQUEST = ROOT / "reports" / "V8_UTILITY" / "V8_05_CONFIRMATION_REQUEST.md"
 LEDGER = ROOT / "reports" / "V8_UTILITY" / "LABEL_ACCESS_LEDGER.csv"
 TIFA_TEXT = Path("/projects/EEG-foundation-model/yinghao/third_party/tifa@8e37050/tifa_v1.0/tifa_v1.0_text_inputs.json")
+TIFA160_MODELS = ("mini_dalle", "vq_diffusion", "stable_diffusion_v1_1", "stable_diffusion_v1_5", "stable_diffusion_v2_1")   # file-name tags of the official release (verified 2026-10-15)
+DSG_T2I_TO_TAG = {"mini-dalle": "mini_dalle", "vq-diffusion": "vq_diffusion", "sd1dot1": "stable_diffusion_v1_1", "sd1dot5": "stable_diffusion_v1_5", "sd2dot1": "stable_diffusion_v2_1"}   # DSG's t2i_model names (public dsg/data_utils.py)
+TIFA160_DIR = Path("/projects/EEG-foundation-model/yinghao/outputs_v8/confirm_v1/tifa160")
+TIFA160_IMAGES = Path("/projects/EEG-foundation-model/yinghao/data/tifa160/images")
+TIFA160_INPUTS = TIFA160_DIR / "tifa160_inputs.jsonl"
 DSG_DEV = Path("/projects/EEG-foundation-model/yinghao/third_party/DSG@7330119/dsg/data/tifa160-dev-anns.csv")
 
 
