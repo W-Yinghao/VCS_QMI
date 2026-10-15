@@ -1,0 +1,69 @@
+version: V8.1-server-v1
+date: '2026-10-15'
+type: diagnosis_then_conditional_revision
+baseline_v8: a87b2d53380783db0932b144dddcd368ac4a7b2d
+unchanged:
+- original S and J
+- V8 24 formal models
+- V8-03 selection
+- V8-05 confirmation
+- V9 scope
+start_now:
+- D00
+- D01
+- D02
+- D03
+- D04
+- D05
+- D06
+- D07
+- D08
+new_full_training_default: 0
+roles_allowed_for_labelled_reference_cli:
+- FIT_AUDIT
+- CAL_SELECT
+- CAL_PROB
+- DEV
+roles_disallowed_for_labelled_reference_cli:
+- GENAI_RANK
+- GENAI_BENCH_CONFIRM
+- TIFA160
+- TEST
+primary_diagnostics:
+  seed_policy: per_seed_then_metric_mean_not_prediction_ensemble
+  pool: prompt for EvalMuse; prompt x generator for Rank label-free
+  cluster: original connected component if available, else prompt
+  bootstrap_repetitions: 2000
+  bootstrap_seed: 2718
+  near_tie_tolerance_primary: 0.0
+  p_values: false
+fit_audit:
+  id_rule: sha256('v81-fit-audit-2718|'+prompt_id)
+  max_prompts: 128
+  max_images: 2048
+  keep_whole_prompt: true
+conditional_training:
+  approved: false
+  candidate: C1 partial Q-former
+  arms:
+  - U-CS
+  - U-RPS
+  - U-MSE
+  seeds:
+  - 0
+  - 1
+  - 2
+  new_units: 9
+  lr: reuse parent selected per-arm lr
+  paired_legacy_replays_max: 9
+  requires_measured_budget: true
+  no_automatic_lr_grid: true
+guards:
+  overwrite_source: false
+  cancel_v8_v9_jobs: false
+  paid_api: false
+  new_dataset: false
+  new_label_read: false
+  fork_v10: false
+delivery_v8: 580781f47cbe2249765bc36af05221f307a2b42c
+confirmation_status: completed_summary_read; not used for diagnostics design or tuning
