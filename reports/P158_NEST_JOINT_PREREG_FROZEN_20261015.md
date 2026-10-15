@@ -1,6 +1,6 @@
-# Pre-registration DRAFT — P158: nested increments with truth on the joint-vs-product chain (project map 2026-10-14 §11 B.2), 2026-10-15
+# Pre-registration — P158: nested increments with truth on the joint-vs-product chain (project map 2026-10-14 §11 B.2), 2026-10-15 — FROZEN 2026-10-15T09:41:28Z before the bundle job (main session)
 
-Status: DRAFT (P158 fork).  The main session freezes it (rename to `*_FROZEN_*`, freeze time in the title) before the bundle job.  Go-ahead
+Status: FROZEN 2026-10-15T09:41:28Z (main session; conditions, rule, controls and oracle values unchanged from the draft commit 109a7a4).  Go-ahead
 field: autonomous unit under the owner's idle-GPU authorisation of 2026-10-11 ("当你看到GPU有空位时，实验不需要我批准…你觉得有用的就自主提交") and the
 project map's next-step list (`reports/PROJECT_MAP_20261014.md` §11 B, item 2: "在 X11 的 A2 链上做有真值的嵌套压缩…报告 nested_exact 的 L² 可加性与
 JS 的 Bregman 增量并列"); no official data, no test-set read, CPU partition (normal QOS).  Sources: `reports/P118_V5_NEST_PREREG_FROZEN_20261003.md`
@@ -88,7 +88,7 @@ estimand: S (mixture, VCS) and G = 2 JSD (JS) of nested sets; L2 and Bregman inc
 evaluation_readout: common squared score and JS native score; increment error vs oracle; posterior MSE vs exact eta; r_BA / R_orth with paired bootstrap
 negatives: cyclic1 (one non-zero cyclic shift per draw)
 n_independent_units: 3 conditions × 5 repeats × n 3000 (FIT) + 3000 (EVAL)
-status: draft
+status: frozen 2026-10-15T09:41:28Z
 ```
 
 ## Decisions for the freeze (main session)
