@@ -24,3 +24,9 @@ sealed label or changes a frozen result.
 Execution priority adopted: V8 confirmation (after the go) → finish G1 / REV10 → Flickr-N2 budget filled and one complete block → everything else not
 expanded.  Research expectation corrected as the review states: the identities hold, but neither the proportion step (N1) nor P157's posterior result
 guarantees an application advantage; N2 can only be judged on complete training results.
+
+## Owner approvals (2026-10-15, verbatim)
+1. 「批准读取 GenAI-Bench 850 条非 Rank 提示的人工标签，作为 V8 的一次确认评价（V7 不使用）。」
+2. 「批准读取 TIFA160 标签，作为冻结 V8 模型的次级外部评价。」
+Scope as approved: one read each; frozen V8 models and selection rule unchanged (all seeds); V7 does not use either; the reads happen only after the
+confirmation protocol (`V8_05`) is frozen and its dry-run passes; results reported in full whatever their sign; no tuning feedback from them.
