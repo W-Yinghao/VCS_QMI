@@ -35,5 +35,11 @@ Both NCR and L2RM read the SCAN precomp layout `<data_path>/<data_name>/{train,d
 - **ReCon** (CVPR 2025): `qxzha/ReCon` 75c60f7 (2025-09-29) — README "The code is coming soon!"; repo has `data.py / eval.py / opt.py / utils.py / vocab.py / models/SGRAF.py`, **no training script** → not reproducible.
 - Found with public code on the same host (not in the package list): DECL (`QinYang79/DECL`, ACM MM 2022) and CREAM (`XLearning-SCU/2024-TIP-CREAM`, TIP 2024).  Owner decision whether to add them as external rows.
 
+## 5b. Import checks in `envs/v9_sgr` (2026-10-15)
+- SGRAF_py3 `opts, model, data, evaluation, vocab`: OK.
+- NCR `model, data, evaluation, utils, vocab`: OK after adding `matplotlib` to the env.
+- L2RM `models, data, evaluation, utils, vocab`: OK after adding `pot` (POT) and `prefetch_generator`; `main_L2RM.py` additionally imports `pomegranate` (`GeneralMixtureModel, TrueBetaDistribution`) — `pomegranate==0.14.8` fails to build on python 3.10 / numpy 2 (Cython error in `pomegranate/utils.pyx`); a second env `envs/v9_l2rm` (numpy 1.26, Cython 0.29) is being built to retry; result in `slurm_logs/v9_env_l2rm.log`.
+- ESC `model.py` raises `NameError: name 'net' is not defined` at import (line 816 inside `class SGRAF`, reached from line 591) in the released commit f1798b2 — the repository is not importable as released; a fix would be a local patch and must be disclosed.
+
 ## 6. What remains for this document
 NCR checkpoint evaluation numbers (Flickr 1K ×3, COCO 5K/1K ×3) and their gaps to the paper; one SGR native 40-epoch reproduction on Flickr (counts against the budget; after the owner's go); L2RM native rerun at 0.4 (after pomegranate / fallback decision).
