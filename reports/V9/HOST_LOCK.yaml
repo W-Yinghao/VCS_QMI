@@ -12,7 +12,9 @@ environment: /projects/EEG-foundation-model/yinghao/envs/v9_sgr   # python 3.10.
 features:
   source: "SCAN precomputed bottom-up-attention region features (NCR data release NCR-data.tar, 100,154,890,240 B); %s_ims.npy of shape (N_images, 36, 2048) float32 (SGRAF data.py: image tensor (36, 2048)); %s_caps.txt one caption per line, 5 per image"
   feature_shapes: {image: [36, 2048], caption: "variable-length token ids from %s_precomp_vocab.json (SGRAF/vocab; f30k_precomp_vocab.json, coco_precomp_vocab.json)"}
-  layout_on_disk: TO_VERIFY_AFTER_EXTRACTION   # expected <root>/f30k_precomp/{train,dev,test}_{ims.npy,caps.txt}; coco_precomp with train/dev/test/testall
+  layout_on_disk: "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/{data/{f30k_precomp,coco_precomp,cc152k_precomp}, vocab/{f30k,coco,cc152k}_precomp_vocab.json, noise_index/{f30k,coco}_precomp_{0.2,0.5}.npy} (tar listing 2026-10-15; 44 members)"
+  verified_f30k: "train_ims.npy (29000, 36, 2048) float32 (8,552,448,096 B), train_caps 145,000, train_ids 29,000; dev_ims (5070, 36, 2048) = 1,014 images x 5 captions; test_ims (5000, 36, 2048) = 1,000 images x 5 captions (verified 2026-10-15 after extraction)"
+  verified_coco: PENDING_FULL_EXTRACTION
 model (SGR single, SGRAF opts.py defaults):
   img_dim: 2048; word_dim: 300; embed_size: 1024; sim_dim: 256; num_layers_gru: 1; bi_gru: true; sgr_step: 3; module_name: SGR
   image_encoder: "Linear(2048 -> 1024) per region + l2norm (no_imgnorm=false)"
