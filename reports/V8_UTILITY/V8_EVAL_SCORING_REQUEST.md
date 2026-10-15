@@ -1,4 +1,4 @@
-# V8 evaluation — scoring request (DRAFT by the V8-eval fork, 2026-10-15; the main session confirms and commits it before the read)
+# V8 evaluation — scoring request (drafted by the V8-eval fork 2026-10-15; CONFIRMED 2026-10-15T15:20:34Z by the main session before the read: the 24 formal units are complete (done.json 24 / 24); the dry-run must report ready_for_run=True before `run`)
 
 **What is read.** The sealed GenAI-Rank human-rating file (`/projects/EEG-foundation-model/yinghao/data/genai_rank/closed/genai_rank_labels_sealed.jsonl`,
 sha256 `0eb955b4…` = the seal report), a second time after V7C-04 (2026-10-15).  Nothing else: GenAI-Bench, TIFA160, RichHF and EvalMuse test labels
