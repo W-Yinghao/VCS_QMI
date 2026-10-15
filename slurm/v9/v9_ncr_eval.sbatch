@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=v9_ncr_eval
 #SBATCH --partition=RTX6000PRO,H100,L40S
-#SBATCH --exclude=node51
+#SBATCH --exclude=node51,node60
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32G
