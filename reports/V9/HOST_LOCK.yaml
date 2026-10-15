@@ -8,7 +8,7 @@ upstream:
   l2rm: {repo: "https://github.com/hhc1997/L2RM", commit: a766c22, path: /projects/EEG-foundation-model/yinghao/code_v9/L2RM, licence: Apache-2.0 (README)}
 upstream_commit: a19d1a9   # the SGR host used for V9 timing and for the common student; NCR/L2RM wrap the same SGR modules (EncoderImage / EncoderText / EncoderSimilarity)
 code_path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3
-environment: /projects/EEG-foundation-model/yinghao/envs/v9_sgr   # python 3.10.x, torch 2.9.0+cu128, numpy<2.3, scikit-learn, nltk (punkt, punkt_tab), tensorboard_logger + protobuf 3.20.3; pomegranate (L2RM) TO_VERIFY
+environment: /projects/EEG-foundation-model/yinghao/envs/v9_sgr   # python 3.10.x, torch 2.9.0+cu128, numpy<2.3, scikit-learn, nltk (punkt, punkt_tab), tensorboard_logger + protobuf 3.20.3; L2RM runs in /projects/EEG-foundation-model/yinghao/envs/v9_l2rm (numpy 1.26.4 + rayleizhu pomegranate fork 0.14.8 + tensorboardX; main_L2RM imports OK)
 features:
   source: "SCAN precomputed bottom-up-attention region features (NCR data release NCR-data.tar, 100,154,890,240 B); %s_ims.npy of shape (N_images, 36, 2048) float32 (SGRAF data.py: image tensor (36, 2048)); %s_caps.txt one caption per line, 5 per image"
   feature_shapes: {image: [36, 2048], caption: "variable-length token ids from %s_precomp_vocab.json (SGRAF/vocab; f30k_precomp_vocab.json, coco_precomp_vocab.json)"}

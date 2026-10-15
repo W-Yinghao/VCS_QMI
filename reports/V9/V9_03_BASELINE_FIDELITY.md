@@ -38,7 +38,7 @@ Both NCR and L2RM read the SCAN precomp layout `<data_path>/<data_name>/{train,d
 ## 5b. Import checks in `envs/v9_sgr` (2026-10-15)
 - SGRAF_py3 `opts, model, data, evaluation, vocab`: OK.
 - NCR `model, data, evaluation, utils, vocab`: OK after adding `matplotlib` to the env.
-- L2RM `models, data, evaluation, utils, vocab`: OK after adding `pot` (POT) and `prefetch_generator`; `main_L2RM.py` additionally imports `pomegranate` (`GeneralMixtureModel, TrueBetaDistribution`) — `pomegranate==0.14.8` fails to build on python 3.10 / numpy 2 (Cython error in `pomegranate/utils.pyx`); a second env `envs/v9_l2rm` (numpy 1.26, Cython 0.29) is being built to retry; result in `slurm_logs/v9_env_l2rm.log`.
+- L2RM `models, data, evaluation, utils, vocab`: OK after adding `pot` (POT) and `prefetch_generator`; `main_L2RM.py` additionally imports `pomegranate` (`GeneralMixtureModel, TrueBetaDistribution`) — `pomegranate==0.14.8` fails to build in `v9_sgr` (python 3.10 / numpy 2: Cython error in `pomegranate/utils.pyx`); **resolved** in a second env `envs/v9_l2rm` (python 3.10, torch 2.9.0+cu128, numpy 1.26.4, Cython 0.29.37, setuptools, `git+https://github.com/rayleizhu/pomegranate` = 0.14.8 fork with `TrueBetaDistribution`, tensorboardX, POT, prefetch_generator): `import main_L2RM` OK (`slurm_logs/v9_env_l2rm.log`).  L2RM units run in `v9_l2rm`; every other host in `v9_sgr`.
 - ESC `model.py` raises `NameError: name 'net' is not defined` at import (line 816 inside `class SGRAF`, reached from line 591) in the released commit f1798b2 — the repository is not importable as released; a fix would be a local patch and must be disclosed.
 
 ## 6. What remains for this document
