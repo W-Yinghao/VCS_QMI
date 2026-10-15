@@ -64,3 +64,19 @@ statistics: {unit: test image (captions follow), bootstrap 2000 paired over quer
 not_claimed: [SOTA vs anchor-free leaderboards (trust-assisted), unbiased recovery of the full in-batch loss (identity only for losses measurable on the critic's input — strict check §05.5 beside), raw-image end-to-end training, ESC/ASL/ReCon unless their code runs (fork A's EXTERNAL_FIDELITY), semantic correctness of P (P/Q are pairing mechanisms), anything about COCO]
 gate_before_freeze: {cpu: "tests/v9/test_n2.py + test_n2_ext.py + fixture smoke (slurm/v9/n2_unit.sbatch gate)", real_data: [precheck on f30k rho 0.4 seed 901 (allowed), degradation check (pass), one-epoch timing (fork A)], host_lock: no TO_VERIFY}
 cost: "PENDING (fork A's grouped timing job fills V9_01 §4; the block is submitted only after the owner confirms the total)"
+precheck_gate_record:   # RESULTS ONLY (no design change) — written by scripts/v9/n2_precheck_collect.py from the precheck of record
+  job: "1042133"
+  code_commit: "127dd18"
+  host: "node58 (RTX PRO 6000 Blackwell, 97.9 GB)"
+  dataset: "f30k"
+  tables: "reports/V9/V9_N2_precheck/precheck_<ds>_rho<rho>_s<seed>.{json,md}, PRECHECK_SUMMARY.{json,md}, teacher_log_*.json, vcs_weight_lock_*.json"
+  block_allowed: true
+  thresholds: "refuse if teacher AUROC (clean vs within-role re-paired, A-critic-select) > 0.999 or < 0.55"
+  merge_rule_applied: "methods whose loss coefficients are equal to 1e-12 on every pool row are ONE run per seed (data order and RNG derive from the seed only); at rho 0 the projected rho-hat is 0, so every posterior / mass weight is identically 1 and those arms coincide with Unweighted_A — the merged group is run once per seed and its result is reported for every member"
+  cells:
+    - {rho: 0.4, seed: 901, allowed: true, auroc: 0.8837, overlap: 0.3821, rho_hat_U_est: 0.3922 (point_estimate), rho_hat_independent: "0.409 [0.1946, 0.5842]", merged_into_one_run: [], teacher_seconds_per_epoch: 16.3, teacher_peak_gpu_mb: 9503, teacher_shared_from: "trained in this cell"}
+    - {rho: 0, seed: 901, allowed: true, auroc: 0.8837, overlap: 0.3821, rho_hat_U_est: 0.0 (outside_parameter_space), rho_hat_independent: "0.0 [0.0, 0.2076]", merged_into_one_run: ["BCE_Weight", "Nystrom_Weight", "RankMass", "RuLSIF_Weight", "Unweighted_A", "VCS_Weight"], teacher_seconds_per_epoch: 16.3, teacher_peak_gpu_mb: 9503, teacher_shared_from: "rho0.4"}
+    - {rho: 0.4, seed: 902, allowed: true, auroc: 0.9032, overlap: 0.348, rho_hat_U_est: 0.4052 (point_estimate), rho_hat_independent: "0.4087 [0.2273, 0.5613]", merged_into_one_run: [], teacher_seconds_per_epoch: 13.4, teacher_peak_gpu_mb: 9401, teacher_shared_from: "trained in this cell"}
+    - {rho: 0, seed: 902, allowed: true, auroc: 0.9032, overlap: 0.348, rho_hat_U_est: 0.0 (outside_parameter_space), rho_hat_independent: "0.0037 [0.0, 0.1884]", merged_into_one_run: ["BCE_Weight", "RankMass", "Unweighted_A", "VCS_Weight"], teacher_seconds_per_epoch: 13.4, teacher_peak_gpu_mb: 9401, teacher_shared_from: "rho0.4"}
+    - {rho: 0.4, seed: 903, allowed: true, auroc: 0.9112, overlap: 0.3278, rho_hat_U_est: 0.3708 (point_estimate), rho_hat_independent: "0.3692 [0.1846, 0.5246]", merged_into_one_run: [], teacher_seconds_per_epoch: 12.8, teacher_peak_gpu_mb: 9601, teacher_shared_from: "trained in this cell"}
+    - {rho: 0, seed: 903, allowed: true, auroc: 0.9112, overlap: 0.3278, rho_hat_U_est: 0.0 (outside_parameter_space), rho_hat_independent: "0.0 [0.0, 0.143]", merged_into_one_run: ["BCE_Weight", "Nystrom_Weight", "RankMass", "RuLSIF_Weight", "Unweighted_A", "VCS_Weight"], teacher_seconds_per_epoch: 12.8, teacher_peak_gpu_mb: 9601, teacher_shared_from: "rho0.4"}

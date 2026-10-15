@@ -102,7 +102,7 @@ def main() -> int:
     for c in cells:
         L += [f"**rho {c['rho']:g}, seed {c['seed']}** (n_U pairs = {c["weights_per_method"]["VCS_Weight"]["n"]})", "", "| method | mean w | ESS | mass | at 0 | at 1 |", "|---|---|---|---|---|---|"]
         L += [f"| {m} | {v['mean']:.4f} | {v['ess']:.0f} | {v['total_mass']:.0f} | {v['share_at_0']:.4f} | {v['share_at_1']:.4f} |" for m, v in c["weights_per_method"].items()]
-        L += ["", "near-monotone pairs (Spearman > 0.99; NOT merged — coefficients differ): " + ("; ".join(f"{k}: mean|dw| {v['mean_abs_diff']}, rho_s {v['spearman']}, identical {v['share_identical_1e-6']}" for k, v in c["near_monotone_pairs"].items()) or "none"), ""]
+        L += ["", "near-monotone pairs (Spearman > 0.99): " + ("; ".join(f"{k}: mean|dw| {v['mean_abs_diff']}, rho_s {v['spearman']}, identical {v['share_identical_1e-6']}" + (" -> MERGED (one run)" if v['share_identical_1e-6'] >= 1.0 else " -> distinct runs") for k, v in c["near_monotone_pairs"].items()) or "none"), ""]
     L += ["## Reading", "",
           "- The teacher is one per (dataset, seed): the rho 0 cell reuses the rho 0.4 teacher (identical roles hashes, clean anchor pairs), so AUROC is identical across rho within a seed by construction.",
           "- AUROC far from both refusal thresholds in every cell: the teacher separates clean from re-paired anchor pairs but is not a label oracle.",
