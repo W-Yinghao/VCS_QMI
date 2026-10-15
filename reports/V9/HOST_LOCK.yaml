@@ -16,7 +16,7 @@ features:
   verified_f30k: "train_ims.npy (29000, 36, 2048) float32 (8,552,448,096 B), train_caps 145,000, train_ids 29,000; dev_ims (5070, 36, 2048) = 1,014 images x 5 captions; test_ims (5000, 36, 2048) = 1,000 images x 5 captions (verified 2026-10-15 after extraction)"
   verified_coco: PENDING_FULL_EXTRACTION
 model (SGR single, SGRAF opts.py defaults):
-  img_dim: 2048; word_dim: 300; embed_size: 1024; sim_dim: 256; num_layers_gru: 1; bi_gru: true; sgr_step: 3; module_name: SGR
+  opts: "img_dim: 2048; word_dim: 300; embed_size: 1024; sim_dim: 256; num_layers_gru: 1; bi_gru: true; sgr_step: 3; module_name: SGR"
   image_encoder: "Linear(2048 -> 1024) per region + l2norm (no_imgnorm=false)"
   text_encoder: "Embedding(vocab, 300) + bi-GRU(1024) averaged directions + l2norm"
   similarity: "EncoderSimilarity(SGR): SCAN attention (smooth 9) + VisualSA/TextSA global + GraphReasoning x sgr_step -> scalar similarity"
@@ -28,7 +28,7 @@ training (native SGR, train.py):
   loss: "ContrastiveLoss(margin=0.2, max_violation=True by default): hinge on the in-batch similarity matrix, hardest negative per row and per column (cost_s.max(1) + cost_im.max(0)), summed over the batch"
   native_margin: 0.2
   negative_mining: in_batch_hardest_negative_per_query   # 'max_violation' store_false flag => True by default
-  warmup: none in native SGR (NCR: warmup_epoch f30k 5 / coco 10 with the warm-up loss L_w; L2RM: warmup_epoch f30k 5 / coco 10)
+  warmup: "none in native SGR (NCR: warmup_epoch f30k 5 / coco 10 with the warm-up loss L_w; L2RM: warmup_epoch f30k 5 / coco 10)"
   validation: "every epoch (and every val_step=1000 iterations) on dev: 1,000 images for f30k; coco dev truncated to 5,000 images (data.py); rsum = r1+r5+r10 (i2t) + r1+r5+r10 (t2i)"
   checkpoint_selection: best_dev_rsum   # save_checkpoint(is_best) with best_rsum; the final model = model_best.pth.tar
   seeds: "not fixed by SGRAF train.py (no seed argument); NCR run.py and L2RM main_L2RM.py take --seed; V9 sets torch/numpy/random seeds 901/902/903 in its own wrapper (to be added)"
@@ -36,7 +36,8 @@ evaluation:
   evaluation_commit: a19d1a9   # SGRAF_py3/evaluation.py: evalrank(model_path, data_path, split, fold5); encode_data + shard_attn_scores(shard 100) + i2t/t2i; fold5=True averages five 1K folds of coco testall, fold5=False = coco 5K or flickr 1K
   flickr30k_gallery: "test split 1,000 images / 5,000 captions"
   coco_gallery: "testall 5,000 images (5K, primary) and 5 x 1K folds (secondary column)"
-  i2t_rule: "any of the 5 GT captions in top-K"; t2i_rule: "GT image in top-K"
+  i2t_rule: "any of the 5 GT captions in top-K"
+  t2i_rule: "GT image in top-K"
 noise_injection_conventions:
   ncr: "PrecompDataset(train): t2i_index per caption; noise_ratio fraction of captions re-pointed to a shuffled subset of image indices; saved/loaded from --noise_file (NCR generates its own index if the file is absent)"
   l2rm: "noise_index/{f30k,coco}_precomp_{0.2,0.4,0.6,0.8}.npy (DECL/RCL indices): t2i index per caption, f30k (145000,) int64 with 29000 unique images, coco (566435,) with 113287 unique"
