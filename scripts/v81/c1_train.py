@@ -279,12 +279,18 @@ def cmd_selftest(a):
     with torch.autocast("cuda", dtype=torch.float16, enabled=device == "cuda"):
         logits = forward_logits(model, b, device)
     loss, _, _ = C.batch_loss(logits.float(), b["hist"].to(device), b["w"].to(device), pt, kind, b["subgroup"], b["n_sub"]); loss.backward()
-    frozen_grad_none = all(p.grad is None for p in model.parameters() if not p.requires_grad); opt.step(); opt.zero_grad(set_to_none=True)
+    frozen_grad_none = all(p.grad is None for p in model.parameters() if not p.requires_grad)
+    gnorm = {n: (float(p.grad.detach().float().norm()) if p.grad is not None else None) for n, p in model.named_parameters() if p.requires_grad}
+    opt.step(); opt.zero_grad(set_to_none=True)
     after = {n: p.detach().cpu() for n, p in model.named_parameters()}; tr = {n for n, p in model.named_parameters() if p.requires_grad}
     fro_same = [n for n in before if n not in tr and torch.equal(before[n], after[n])]; tr_changed = [n for n in tr if not torch.equal(before[n], after[n])]
+    zero_grad = sorted(n for n, g in gnorm.items() if g == 0.0); unchanged = sorted(tr - set(tr_changed))
     res["one_step"] = {"loss": float(loss), "n_frozen": len(before) - len(tr), "n_frozen_bitwise_unchanged": len(fro_same), "n_trainable": len(tr), "n_trainable_changed": len(tr_changed),
-                       "trainable_unchanged": sorted(tr - set(tr_changed))[:10], "frozen_grads_none": frozen_grad_none}
-    res["one_step"]["pass"] = res["one_step"]["n_frozen_bitwise_unchanged"] == res["one_step"]["n_frozen"] and res["one_step"]["n_trainable_changed"] == len(tr) and frozen_grad_none
+                       "trainable_unchanged": unchanged, "trainable_zero_grad": zero_grad, "trainable_grad_none": sorted(n for n, g in gnorm.items() if g is None),
+                       "zero_grad_params": int(sum(dict(model.named_parameters())[n].numel() for n in zero_grad)), "frozen_grads_none": frozen_grad_none,
+                       "note": "a trainable tensor may stay unchanged only if its gradient is exactly zero (no path to the pooled query outputs; matrices still move by weight decay)"}
+    res["one_step"]["pass"] = (res["one_step"]["n_frozen_bitwise_unchanged"] == res["one_step"]["n_frozen"] and frozen_grad_none and not res["one_step"]["trainable_grad_none"]
+                               and set(unchanged) <= set(zero_grad))
     del before, after
     timing = {}
     for variant in ("V8", "C1"):
