@@ -16,16 +16,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
-import os
 import subprocess
-
-
-def _host_env():
-    """HOST_LOCK 57366c5 / 3deb194: torch >= 2.6 loads checkpoints with weights_only=True by default, which rejects the pickled
-    argparse.Namespace in the official NCR / L2RM checkpoints; the host evaluators and trainers run with the documented override."""
-    return {**os.environ, "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD": "1"}
 import sys
 import time
 from pathlib import Path
@@ -41,6 +35,13 @@ DEFAULT_PATHS = {"ncr": {"clone": "/projects/EEG-foundation-model/yinghao/code_v
                  "data_root": "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data", "vocab": "/projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3/vocab",
                  "noise_index": "/projects/EEG-foundation-model/yinghao/code_v9/L2RM/noise_index"}
 NAME = {"f30k": "f30k_precomp", "coco": "coco_precomp"}
+METHOD = {"ncr": "NCR_A", "l2rm": "L2RM_A"}
+
+
+def _host_env():
+    """HOST_LOCK 57366c5 / 3deb194: torch >= 2.6 loads checkpoints with weights_only=True by default, which rejects the pickled
+    argparse.Namespace in the official NCR / L2RM checkpoints; the host evaluators and trainers run with the documented override."""
+    return {**os.environ, "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD": "1"}
 
 
 def host_lock(path: str) -> dict:
@@ -98,7 +99,19 @@ def cmd_launch(a):
     else:
         epochs, lr_update = {"f30k": 35, "coco": 20}[a.dataset], 15
     warm = {"f30k": 5, "coco": 10}[a.dataset]
-    lr = 2e-4 * a.lr_mult; out_dir = unit / "official_out"; out_dir.mkdir(parents=True, exist_ok=True)
+    override = {k: v for k, v in (("epochs", a.num_epochs), ("warmup_epoch", a.warmup_epoch), ("lr_update", a.lr_update)) if v is not None}
+    epochs, warm, lr_update = override.get("epochs", epochs), override.get("warmup_epoch", warm), override.get("lr_update", lr_update)   # smoke only; recorded
+    lr = 2e-4 * a.lr_mult; out_dir = unit / "official_out"
+    if out_dir.exists() and any(out_dir.iterdir()):                       # an earlier attempt that did not finish: keep it aside, never mix its checkpoints in
+        prev = json.loads((unit / "launch_manifest.json").read_text()) if (unit / "launch_manifest.json").exists() else {}
+        if prev.get("rc") == 0 and not a.dry_run:
+            raise RuntimeError(f"{unit} already trained (rc 0); collect it instead of relaunching")
+        if not a.dry_run:
+            ts = time.strftime('%Y%m%dT%H%M%S', time.gmtime())
+            out_dir.rename(unit / f"official_out.failed_{ts}")
+            if (unit / "launch_manifest.json").exists():
+                shutil.copy(unit / "launch_manifest.json", unit / f"launch_manifest.failed_{ts}.json")
+    out_dir.mkdir(parents=True, exist_ok=True)
     data_root = a.data_root or DEFAULT_PATHS["data_root"]; vocab = a.vocab or DEFAULT_PATHS["vocab"]
     if a.anchor_off:
         noise_args = ["--noise_ratio", str(a.rho), "--noise_file", str(Path(a.noise_index or DEFAULT_PATHS["noise_index"]) / f"{name}_{a.rho}.npy")] if a.rho > 0 else ["--noise_ratio", "0"]
@@ -113,13 +126,39 @@ def cmd_launch(a):
         cmd = [str(env / "bin/python"), "-u", "main_L2RM.py", "--module_name", "SGR", "--gpu", "0", "--batch_size", "128", "--seed", str(a.seed), "--reg", "0.01", "--num_epochs", str(epochs), "--lr", f"{lr:g}", "--lr_cost", "2e-6",
                "--workers", str(a.workers), "--lr_update", str(lr_update), "--data_name", name, "--queue_length", "128", "--warmup_epoch", str(warm), "--data_path", data_root, "--vocab_path", vocab, "--output_dir", str(out_dir), *noise_args, *v9_args]
     man = {"baseline": a.baseline, "dataset": a.dataset, "seed": a.seed, "lr_mult": a.lr_mult, "anchor_off": a.anchor_off, "rho": a.rho, "cmd": cmd, "cwd": str(code), "env": str(env), "patch_sha256_16": phash,
-           "hyperparameters": {"epochs": epochs, "lr_update": lr_update, "warmup_epoch": warm, "lr": lr, "batch_size": 128}, "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+           "hyperparameters": {"epochs": epochs, "lr_update": lr_update, "warmup_epoch": warm, "lr": lr, "batch_size": 128}, "schedule_override": override or None,
+           "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     (unit / "launch_manifest.json").write_text(json.dumps(man, indent=1)); print(" ".join(cmd))
     if a.dry_run:
         return 0
     with open(unit / "official_train.log", "a") as log:
         rc = subprocess.run(cmd, cwd=code, stdout=log, stderr=subprocess.STDOUT, env=_host_env()).returncode
     (unit / "launch_manifest.json").write_text(json.dumps({**man, "rc": rc, "ended": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}, indent=1)); return rc
+
+
+def _dev_best(env: Path, code: Path, out_dir: Path) -> dict:
+    """best dev rSum and epoch stored by the official trainer in model_best.pth.tar (NCR: co-training epochs; L2RM: warm-up + main epochs)."""
+    best = sorted(out_dir.rglob("model_best.pth.tar"))
+    if not best:
+        raise FileNotFoundError("no model_best.pth.tar under " + str(out_dir))
+    script = ("import json, torch; ck = torch.load(%r, map_location='cpu', weights_only=False); "
+              "print('V9DEV ' + json.dumps({'best_rsum': float(ck['best_rsum']), 'epoch': int(ck['epoch'])}))" % str(best[-1]))
+    r = subprocess.run([str(env / "bin/python"), "-c", script], cwd=code, capture_output=True, text=True, env=_host_env())
+    line = [ln for ln in r.stdout.splitlines() if ln.startswith("V9DEV ")]
+    if r.returncode != 0 or not line:
+        raise RuntimeError("could not read best_rsum from " + str(best[-1]) + ": " + r.stderr[-800:])
+    d = json.loads(line[-1][6:]); d["checkpoint"] = str(best[-1])
+    return d
+
+
+def cmd_collect_dev(a):
+    """tuning units: dev only (selection of the multiplier); no test evaluation by this driver."""
+    unit = Path(a.unit); man = json.loads((unit / "launch_manifest.json").read_text())
+    if man.get("rc") != 0:
+        raise RuntimeError(f"official training did not finish with rc 0 (rc={man.get('rc')})")
+    dev = _dev_best(Path(man["env"]), unit / "code" / a.baseline, unit / "official_out")
+    done = {"best": {"rsum": dev["best_rsum"], "epoch": dev["epoch"]}, "official": True, "dev_only": True, "checkpoint": dev["checkpoint"], "method": METHOD[a.baseline]}
+    (unit / "done.json").write_text(json.dumps(done, indent=1)); print(json.dumps(done)); return 0
 
 
 def _parse_recalls(text: str) -> dict:
@@ -147,9 +186,12 @@ def cmd_collect(a):
     if r.returncode != 0:
         raise RuntimeError("official evaluation failed; see official_eval.log")
     primary = _parse_recalls(r.stdout)
+    dev = _dev_best(env, code, out_dir)
     result = {"unit": unit.name, "dataset": a.dataset, "method": {"ncr": "NCR_A", "l2rm": "L2RM_A"}[a.baseline] + ("_native" if man.get("anchor_off") else ""), "seed": man["seed"], "rho": man.get("rho"),
-              "test": {"primary": primary, "evaluator": f"official {a.baseline} evaluation.py (NCR: two-model averaged sims)", "checkpoint": str(best[-1])}, "launch_manifest": man, "done": {"best": "official best_rsum on dev", "rc": man.get("rc")}}
-    (unit / "result.json").write_text(json.dumps(result, indent=1)); (unit / "done.json").write_text(json.dumps({"best": result["done"], "official": True}, indent=1)); print(json.dumps(primary, indent=1)); return 0
+              "test": {"primary": primary, "evaluator": f"official {a.baseline} evaluation.py (NCR: two-model averaged sims)", "checkpoint": str(best[-1])}, "launch_manifest": man, "done": {"best": {"rsum": dev["best_rsum"], "epoch": dev["epoch"]}, "selection": "official best_rsum on dev", "rc": man.get("rc")}}
+    (unit / "result.json").write_text(json.dumps(result, indent=1))
+    (unit / "done.json").write_text(json.dumps({"best": {"rsum": dev["best_rsum"], "epoch": dev["epoch"]}, "official": True, "checkpoint": dev["checkpoint"], "method": METHOD[a.baseline]}, indent=1))
+    print(json.dumps(primary, indent=1)); return 0
 
 
 def main():
@@ -158,13 +200,17 @@ def main():
     l = sub.add_parser("launch")
     for k, kw in (("--baseline", {"required": True, "choices": ["ncr", "l2rm"]}), ("--unit", {"required": True}), ("--dataset", {"required": True, "choices": ["f30k", "coco"]}), ("--seed", {"type": int, "required": True}),
                   ("--lr-mult", {"type": float, "default": 1.0}), ("--rho", {"type": float, "default": 0.4}), ("--host-lock", {"default": str(ROOT / "reports/V9/HOST_LOCK.yaml")}), ("--data-root", {"default": ""}), ("--vocab", {"default": ""}),
-                  ("--noise-index", {"default": ""}), ("--workers", {"type": int, "default": 4}), ("--dry-run", {"action": "store_true"}), ("--anchor-off", {"action": "store_true"})):
+                  ("--noise-index", {"default": ""}), ("--workers", {"type": int, "default": 4}), ("--dry-run", {"action": "store_true"}), ("--anchor-off", {"action": "store_true"}),
+                  ("--num-epochs", {"type": int, "default": None, "help": "smoke only: override the main-phase epochs (recorded)"}),
+                  ("--warmup-epoch", {"type": int, "default": None, "help": "smoke only: override the warm-up epochs (recorded)"}),
+                  ("--lr-update", {"type": int, "default": None, "help": "smoke only: override the lr decay epoch (recorded)"})):
         l.add_argument(k, **kw)
     c = sub.add_parser("collect")
     for k, kw in (("--baseline", {"required": True, "choices": ["ncr", "l2rm"]}), ("--unit", {"required": True}), ("--dataset", {"required": True, "choices": ["f30k", "coco"]}), ("--host-lock", {"default": str(ROOT / "reports/V9/HOST_LOCK.yaml")}),
                   ("--data-root", {"default": ""}), ("--vocab", {"default": ""}), ("--fold5", {"action": "store_true"})):
         c.add_argument(k, **kw)
-    a = ap.parse_args(); return {"export": cmd_export, "launch": cmd_launch, "collect": cmd_collect}[a.cmd](a)
+    d = sub.add_parser("collect-dev"); d.add_argument("--baseline", required=True, choices=["ncr", "l2rm"]); d.add_argument("--unit", required=True)
+    a = ap.parse_args(); return {"export": cmd_export, "launch": cmd_launch, "collect": cmd_collect, "collect-dev": cmd_collect_dev}[a.cmd](a)
 
 
 if __name__ == "__main__":

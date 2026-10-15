@@ -147,7 +147,7 @@ diff -ruN a/data.py b/data.py
 diff -ruN a/main_L2RM.py b/main_L2RM.py
 --- a/main_L2RM.py
 +++ b/main_L2RM.py
-@@ -80,9 +80,16 @@
+@@ -80,9 +80,17 @@
          #process of sims
          prob = BMM_pred(loss_all)
          pred = prob > 0.5
@@ -158,6 +158,7 @@ diff -ruN a/main_L2RM.py b/main_L2RM.py
 +        if getattr(opt, 'anchor_mask_file', ''):
 +            anchor = np.load(opt.anchor_mask_file).astype(bool)
 +            pred[anchor] = True
++            print('[V9] anchor-supervised term: {} anchor pairs forced into the correct set ({} of {} selected)'.format(int(anchor.sum()), int(pred.sum()), len(pred)))
 +        if np.all(labels_all >= 0):
 +            correct_labels = labels_all[pred]
 +            print('Correct data acc:', sum(correct_labels) / len(correct_labels))
@@ -167,7 +168,7 @@ diff -ruN a/main_L2RM.py b/main_L2RM.py
      correct_trainloader, noisy_trainloader = get_loader_split(
          captions_train,
          images_train,
-@@ -91,6 +98,8 @@
+@@ -91,6 +99,8 @@
          opt.workers,
          noise_ratio=opt.noise_ratio,
          noise_file=opt.noise_file,
@@ -176,7 +177,7 @@ diff -ruN a/main_L2RM.py b/main_L2RM.py
          pred=pred
      )
      return correct_trainloader, noisy_trainloader
-@@ -283,6 +292,8 @@
+@@ -283,6 +293,8 @@
              opt.workers,
              noise_ratio=opt.noise_ratio,
              noise_file=opt.noise_file,
@@ -185,7 +186,7 @@ diff -ruN a/main_L2RM.py b/main_L2RM.py
          )
          for epoch in range(opt.warmup_epoch):
              print("[{}/{}] Warmup model".format(epoch + 1, opt.warmup_epoch))
-@@ -314,7 +325,9 @@
+@@ -314,7 +326,9 @@
          opt.batch_size,
          opt.workers,
          noise_ratio = opt.noise_ratio,

@@ -85,7 +85,8 @@ def patch_ncr(root: Path):
           "        pred_A = split_prob(prob_A, opt.p_threshold)\n        pred_B = split_prob(prob_B, opt.p_threshold)\n"
           "        # V9-N2 anchor-supervised term: trusted anchor pairs are always labeled with clean probability 1 (weight 1), both networks.\n"
           "        if getattr(opt, \"anchor_mask_file\", \"\"):\n            anchor = np.load(opt.anchor_mask_file).astype(bool)\n"
-          "            prob_A[anchor] = 1.0\n            prob_B[anchor] = 1.0\n            pred_A[anchor] = True\n            pred_B[anchor] = True\n")
+          "            prob_A[anchor] = 1.0\n            prob_B[anchor] = 1.0\n            pred_A[anchor] = True\n            pred_B[anchor] = True\n"
+          "            print(\"[V9] anchor-supervised term: {} anchor pairs forced clean in both networks (clean set A {} / B {} of {})\".format(int(anchor.sum()), int(pred_A.sum()), int(pred_B.sum()), len(pred_A)))\n")
     e.save()
 
 
@@ -112,6 +113,7 @@ def patch_l2rm(root: Path):
     e.sub("        pred = prob > 0.5\n        correct_labels = labels_all[pred]\n        print('Correct data acc:', sum(correct_labels) / len(correct_labels))\n        print('Total data acc:', sum(labels_all == pred) / len(labels_all))\n",
           "        pred = prob > 0.5\n        # V9-N2 anchor-supervised term: trusted anchor pairs always belong to the correct set (weight 1); U pairs follow L2RM's own split.\n"
           "        if getattr(opt, 'anchor_mask_file', ''):\n            anchor = np.load(opt.anchor_mask_file).astype(bool)\n            pred[anchor] = True\n"
+          "            print('[V9] anchor-supervised term: {} anchor pairs forced into the correct set ({} of {} selected)'.format(int(anchor.sum()), int(pred.sum()), len(pred)))\n"
           "        if np.all(labels_all >= 0):\n            correct_labels = labels_all[pred]\n            print('Correct data acc:', sum(correct_labels) / len(correct_labels))\n"
           "            print('Total data acc:', sum(labels_all == pred) / len(labels_all))\n        else:\n            print('Clean labels not exposed to the trainer (V9 observed mapping); split statistics skipped')\n")
     e.save()

@@ -16,7 +16,7 @@ diff -ruN a/NCR/co_train.py b/NCR/co_train.py
      )
      val_loader = get_loader(
          captions_dev, images_dev, "dev", opt.batch_size, opt.workers
-@@ -128,6 +130,13 @@
+@@ -128,6 +130,14 @@
  
          pred_A = split_prob(prob_A, opt.p_threshold)
          pred_B = split_prob(prob_B, opt.p_threshold)
@@ -27,10 +27,11 @@ diff -ruN a/NCR/co_train.py b/NCR/co_train.py
 +            prob_B[anchor] = 1.0
 +            pred_A[anchor] = True
 +            pred_B[anchor] = True
++            print("[V9] anchor-supervised term: {} anchor pairs forced clean in both networks (clean set A {} / B {} of {})".format(int(anchor.sum()), int(pred_A.sum()), int(pred_B.sum()), len(pred_A)))
  
          print("\nModel A training ...")
          # train model_A
-@@ -139,6 +148,8 @@
+@@ -139,6 +149,8 @@
              opt.workers,
              opt.noise_ratio,
              opt.noise_file,
@@ -39,7 +40,7 @@ diff -ruN a/NCR/co_train.py b/NCR/co_train.py
              pred=pred_B,
              prob=prob_B,
          )
-@@ -154,6 +165,8 @@
+@@ -154,6 +166,8 @@
              opt.workers,
              opt.noise_ratio,
              opt.noise_file,
