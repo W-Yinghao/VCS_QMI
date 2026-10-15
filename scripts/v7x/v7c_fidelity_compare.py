@@ -118,7 +118,9 @@ def main() -> int:
                            "per_prompt": rows}
     # ---------------- TIFA fidelity
     relt = {json.loads(l)["prompt_id"]: json.loads(l) for l in open(F / "tifa_v1_50_released.jsonl")}
-    loct = {json.loads(l)["prompt_id"]: json.loads(l) for l in open(F / "local_tifa_qa.jsonl")}
+    if not (F / "local_tifa_qa.jsonl").exists():                 # TIFA part not generated yet: reported as pending
+        relt = {}
+    loct = {json.loads(l)["prompt_id"]: json.loads(l) for l in open(F / "local_tifa_qa.jsonl")} if relt else {}
     trows = []
     for pid, R in relt.items():
         L = loct.get(pid) or {}; gen = L.get("qas_generated"); kept = L.get("qas") or []
@@ -131,7 +133,7 @@ def main() -> int:
         order = [("local", [q.get("question") for q in kept]), ("released", [q["question"] for q in R["qas"]])]; rng.shuffle(order)
         blind.append({"set": "TIFA v1.0", "prompt_id": pid, "prompt": R["prompt"], "A": " | ".join(map(str, order[0][1])), "B": " | ".join(map(str, order[1][1]))})
         key.append({"set": "TIFA v1.0", "prompt_id": pid, "A": order[0][0], "B": order[1][0]})
-    res["tifa_fidelity"] = {"n_prompts": len(relt), "parse_failed": sum(1 for r in trows if r["parse_failed"]), "generated": summ([r["n_generated"] for r in trows]),
+    res["tifa_fidelity"] = {"status": "pending" if not relt else "done", "n_prompts": len(relt), "parse_failed": sum(1 for r in trows if r["parse_failed"]), "generated": summ([r["n_generated"] for r in trows]),
                             "kept": summ([r["n_kept"] for r in trows]), "released": summ([r["n_released"] for r in trows]),
                             "no_kept_question": sum(1 for r in trows if r["n_kept"] == 0), "element_precision": summ([r["element_precision"] for r in trows]),
                             "element_recall": summ([r["element_recall"] for r in trows]),

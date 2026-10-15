@@ -1,3 +1,5 @@
+> **Superseded additively (2026-10-15, before any GenAI-Rank label read) by `V7X_50_RANK_PREDICTION_FREEZE_v3.md`.**  v3 adds the V7-03 secondary readouts H_alpha and the CAL_PROB-calibrated E for M0 / M1 / M2 (alpha and Platt fixed on CAL_SELECT / CAL_PROB by `scripts/v7x/v7c_readouts.py`); every v2 file is byte-identical in v3.
+
 # V7X-50 — GenAI-Rank prediction freeze (2026-10-14T20:32:02Z, label-free)
 
 Universe: `genai_rank_inputs.jsonl` (n = 14400, sha256 `514b9368fd5dffb5…`).  `human_rating.json` was not opened.  All files valid: **True**.  Converted files and `methods.json` (sha256 `33e5f43018b62da1…`) in `/projects/EEG-foundation-model/yinghao/outputs_v7/x50_rank_freeze_v2`.

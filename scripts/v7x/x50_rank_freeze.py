@@ -45,6 +45,11 @@ METHODS = {
     "B5_HPSv3": ("secondary", [[(X30 / "b5_hpsv3_0of1.jsonl", "jsonl", "score")]]),
     "CLIPScore_sanity": ("secondary (sanity row)", [[(X30 / "sanity_clipscore.jsonl", "jsonl", "score")]]),
 }
+SEC = B / "x50_secondary"                                   # V7-03 secondary readouts fixed before any label read (scripts/v7x/v7c_readouts.py)
+for arm, tag in (("M0_semantic_l1", "M0"), ("M1_semantic_logistic", "M1"), ("M2_semantic_vcs", "M2")):
+    for ro in ("H", "Ecal"):
+        METHODS[f"{tag}_{ro}"] = ("secondary (V7-03 secondary readout; alpha / Platt fixed on CAL_SELECT / CAL_PROB)",
+                                  [[(SEC / f"V7-FIT-{arm}-s{s}" / f"genai_rank_{ro}.jsonl", "jsonl", "score")] for s in SEEDS])
 for meth in ("N-VCS-F", "N-BCE-F", "N-DV", "N-NWJ"):
     src = [[(B / "x21" / "formal" / f"{meth}_s{s}" / "genai_rank.jsonl", "jsonl", "E")] for s in SEEDS]
     METHODS[f"X21_{meth}_E"] = ("secondary (V7X-20 common features; parsed pools only: X21 'no score' rule)", [[(p, k, "E!skip") for p, k, _ in x] for x in src])
