@@ -3,7 +3,7 @@
 #SBATCH --partition=CPU
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=24G
-#SBATCH --time=06:00:00
+#SBATCH --time=02:00:00
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # P158 full run in ONE job (sequential units: null, weak, moderate; finished condition files are skipped), then the aggregate.
 # Normal QOS only.  Override: CONDS (default null,weak,moderate), REPEATS (5), OUT (reports/P158/truth).

@@ -31,7 +31,10 @@ compare against their own truths?  A constant-zero critic makes every consistenc
   = 2 JSD on the kept set); per step the L² increment E_M (η_B − η_A)² and the Bregman increment 2 E_M KL(Ber(q*_B) ‖ Ber(q*_A)), with their gaps to
   S_B − S_A and G_B − G_A reported (population identities; the finite-sample gaps are O(1/√n) and zero exactly for B→M).
 - **Pre-named conditions (from the oracle only, before any fit; targets S_M ≈ 0.04 / 0.11 as in P118):** null ρ = 0 (all S = G = 0); weak ρ = 0.13;
-  moderate ρ = 0.22.  Oracle values (gate `reports/P158_GATE/oracle_values.txt`, 400 000 units): **[filled at the freeze from the gate output]**.
+  moderate ρ = 0.22.  Oracle values (gate job 1041310, `reports/P158_GATE/oracle_values.{txt,json}`, 400 000 P + 400 000 Q units):
+  **weak**: S_B = S_M = 0.04096 (MC se 6.7e-5), S_A = 0.02092; G_B = G_M = 0.04281, G_A = 0.02188; true M→A increment S 0.02004 (L² form 0.02008),
+  G 0.02093 (Bregman form 0.02075, se 4.0e-5).  **moderate**: S_B = S_M = 0.11144 (se 1.6e-4), S_A = 0.05848; G_B = G_M = 0.11823, G_A = 0.06108;
+  true M→A increment S 0.05296 (L² 0.05298), G 0.05715 (Bregman 0.05744, se 1.0e-4).  **null**: all S = G = 0 exactly.  B→M truth 0 in every condition.
 
 ## Fitting (per repeat; 5 repeats; n = 3 000 P units for FIT and 3 000 for EVAL, fresh draws; one cyclic shift per draw)
 - Objectives: VCS (−J) and matched JS (balanced logistic, softplus(−2f) on P + softplus(2f) on Q, same critic and selection).
@@ -63,13 +66,18 @@ P118's finding replicates in the joint-vs-product setting; neither → nested fi
 sampled Q term dominates); any other pattern reported as it lands.  No claim about natural data.
 
 ## Gate and smoke (code-path evidence, not results)
-- Local tests: 9 / 9 (`tests/test_p158.py`; incl. nested.py unchanged vs HEAD).  CPU gate job **[id filled by the fork's report]**: tests, `--smoke`
-  runner (n 400, 2 repeats, 30 steps, 50 000-unit oracle, all three conditions), aggregate on the smoke, oracle values, full-size timing (weak, 1 repeat).
+- CPU gate job 1041310 (nodecpu08, gate_rc 0; `reports/P158_GATE/`): **15 / 15 tests** (9 P158 + 6 P118, nested.py unchanged); `--smoke` runner end to
+  end for all three conditions (n 400, 2 repeats, 30 steps, 50 000-unit oracle; 42–50 s per condition) and the aggregate on it; oracle values above;
+  full-size timing below.  Smoke observation (code path, not a result): the zero control gives R_orth 0, B→M error 0 and M→A error = −(oracle
+  increment) as designed; when the nested B fit selects step 0 (residual g = 0) the B→M increment, its error and R_orth are **exactly 0 by
+  construction** (T_B ≡ T_M) — clause (2) is then met trivially, so the aggregate also reports the picked family and best step of every fit, and the
+  M→A clauses (1), (3), (4) carry the verdict.
 
 ## Cost
 One bundle job on the CPU partition (`slurm/p158_bundle.sbatch`: null, weak, moderate sequentially with skip-if-done, then the aggregate); per full repeat
-2 objectives × (3 + 2 sets) × 2 families × 300 full-batch steps on n 2 400 + 1 000-resample bootstraps — measured in the gate **[filled]**; expected
-≈ 1–3 min per repeat on 8 CPUs → ≈ 15–45 min total.  GPU not needed (disclosed: not measured on GPU).
+2 objectives × (3 + 2 sets) × 2 families × 300 full-batch steps on n 2 400 + 1 000-resample bootstraps: **measured 96 s wall (4 m 41 s CPU) per full
+repeat on 8 CPUs including the 400 000-unit oracle** (gate `truth_timing.txt`) → 3 conditions × 5 repeats ≈ 25–30 min; bundle `--time 02:00:00`.
+GPU not needed (disclosed: not measured on GPU).
 
 ## Delivery (v5 §8 fields)
 ```yaml
