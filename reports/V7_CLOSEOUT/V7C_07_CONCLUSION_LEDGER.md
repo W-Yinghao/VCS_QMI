@@ -41,7 +41,7 @@ Every row comes from a committed result file; the report column says where.  Wor
 |---|---|
 | Formal units, Table A, X11, X21 (+ sensitivities), GenAI-Rank freeze and scoring | complete |
 | DEV external secondary rows (B1 / TIFA / DSG on DEV) | complete; DEV secondary table `V7C_DEV_SECONDARY_TABLE.md` (in distribution the EvalMuse-trained systems lead every external one; M1 = M2 at element level) |
-| GenAI-Bench DSG predictions | generation running (split by GPU type: jobs 1040993 / 1040994, scoring 1040995); labels sealed (V7C-06 decision) |
+| GenAI-Bench DSG predictions | complete 2026-10-15 09:45 UTC (generation jobs 1040993 / 1040994, scoring 1040995 exit 0): `outputs_v7/x30_bench/dsg_scores_0of1.jsonl`, 9,600 rows / 9,600 unique image_ids; labels sealed (V7C-06 decision) |
 | External generalisation | owner decision (V7C-06): GenAI-Bench is currently V8's confirmation source |
 | Kernel edge extensions | not run: post-hoc for GenAI-Rank; owner decision |
 | V8 | protocol frozen before this read; tuning running (`v8/utility-aligned-cs`) |
