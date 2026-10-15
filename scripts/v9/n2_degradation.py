@@ -129,18 +129,20 @@ def check_l2rm(td: Path, lay: dict, noise_file: Path, seed: int = 0) -> dict:
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--ncr", required=True); ap.add_argument("--l2rm", required=True); ap.add_argument("--out", required=True)
-    ap.add_argument("--data-root", default=""); ap.add_argument("--noise-file", default=""); ap.add_argument("--vocab", default=""); ap.add_argument("--seed", type=int, default=0); a = ap.parse_args()
+    ap.add_argument("--data-root", default=""); ap.add_argument("--noise-file", default=""); ap.add_argument("--vocab", default=""); ap.add_argument("--seed", type=int, default=0); ap.add_argument("--only", default="", choices=["", "ncr", "l2rm"]); ap.add_argument("--cache-dir", default=""); a = ap.parse_args()
     patches = ROOT / "v9" / "patches"; res = {"ncr_clone": a.ncr, "l2rm_clone": a.l2rm, "data": "fixture" if not a.data_root else a.data_root}
     if a.data_root:
         from v9.n2.data import load_precomp, load_vocab
-        w2i = load_vocab(a.vocab); tr = load_precomp(a.data_root, "train", w2i); lay = {"captions": [tr["captions"][i] for i in range(len(tr["captions"]))], "images": tr["images"], "noise_index": np.load(a.noise_file), "vocab": len(w2i), "img_dim": 2048, "n_region": 36}
+        w2i = load_vocab(a.vocab); tr = load_precomp(a.data_root, "train", w2i, cache_dir=a.cache_dir or None); lay = {"captions": [tr["captions"][i] for i in range(len(tr["captions"]))], "images": tr["images"], "noise_index": np.load(a.noise_file), "vocab": len(w2i), "img_dim": 2048, "n_region": 36}
     else:
         lay = fixture_layout(seed=a.seed)
     with tempfile.TemporaryDirectory() as td0:
         nf = Path(td0, "noise.npy"); np.save(nf, lay["noise_index"])
-        td = _patched_copy(Path(a.ncr), patches / "ncr_anchor_assisted.diff"); res["ncr"] = check_ncr(td, lay, nf, a.seed); shutil.rmtree(td, ignore_errors=True)
-        td = _patched_copy(Path(a.l2rm), patches / "l2rm_anchor_assisted.diff"); res["l2rm"] = check_l2rm(td, lay, nf, a.seed); shutil.rmtree(td, ignore_errors=True)
-    res["pass"] = bool(res["ncr"]["native_path_identical"] and res["l2rm"]["native_path_identical"])
+        if a.only in ("", "ncr"):
+            td = _patched_copy(Path(a.ncr), patches / "ncr_anchor_assisted.diff"); res["ncr"] = check_ncr(td, lay, nf, a.seed); shutil.rmtree(td, ignore_errors=True)
+        if a.only in ("", "l2rm"):
+            td = _patched_copy(Path(a.l2rm), patches / "l2rm_anchor_assisted.diff"); res["l2rm"] = check_l2rm(td, lay, nf, a.seed); shutil.rmtree(td, ignore_errors=True)
+    res["pass"] = all(res[k]["native_path_identical"] for k in ("ncr", "l2rm") if k in res)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True); Path(a.out).write_text(json.dumps(res, indent=1)); print(json.dumps(res, indent=1))
     return 0 if res["pass"] else 1
 

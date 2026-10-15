@@ -113,11 +113,15 @@ def role_isolation(roles: dict, split_files: dict | None) -> dict:
                 ids[k] = [l.strip() for l in Path(p).read_text().splitlines() if l.strip()]
         role_imgs = set(i for r in ANCHOR_ROLES for i in roles["A"][r]) | set(roles["U"])
         if "train_ids" in ids:
-            train_set = set(ids["train_ids"]); mapped = set(ids["train_ids"][int(i)] if str(i).isdigit() and int(i) < len(ids["train_ids"]) else str(i) for i in role_imgs)
-            out["train_ids"] = {"n": len(train_set), "roles_within_train": bool(mapped <= train_set)}
+            train_set = set(ids["train_ids"]); per_split_indices = all(x.isdigit() for x in ids["train_ids"]) and set(int(x) for x in ids["train_ids"]) == set(range(len(ids["train_ids"])))
+            mapped = set(ids["train_ids"][int(i)] if str(i).isdigit() and int(i) < len(ids["train_ids"]) else str(i) for i in role_imgs)
+            out["train_ids"] = {"n": len(train_set), "roles_within_train": bool(mapped <= train_set), "ids_are_per_split_indices": per_split_indices}
             for k in ("dev_ids", "test_ids"):
                 if k in ids:
-                    out[k] = {"n": len(ids[k]), "overlap_with_roles": len(mapped & set(ids[k])), "disjoint": len(mapped & set(ids[k])) == 0}
+                    if per_split_indices:
+                        out[k] = {"n": len(ids[k]), "note": "per-split indices (0..n-1), not global image ids: no cross-split id comparison possible; isolation = separate official split files"}
+                    else:
+                        out[k] = {"n": len(ids[k]), "overlap_with_roles": len(mapped & set(ids[k])), "disjoint": len(mapped & set(ids[k])) == 0}
         for k in ("dev_caps", "test_caps"):
             p = split_files.get(k)
             if p and Path(p).exists():

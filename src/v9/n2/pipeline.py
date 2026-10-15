@@ -41,7 +41,20 @@ def prepare_shared(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho:
     observed = load_observed(base / f"{tag}.observed_pairs.json"); manifest = json.loads((base / f"{tag}.noise_manifest.json").read_text())
     collate = partial(collate_pairs, ds["images"], ds["captions"])
     if not (base / "teacher" / "teacher.pt").exists():
-        train_teacher(cfg, [r for r in observed if r["role"] == "teacher_warmup"], collate, base / "teacher", seed, device)
+        donor = None
+        for other in sorted((out_root / dataset).glob("rho*")):              # same (dataset, seed): A is clean, roles are seeded identically -> identical teacher
+            cand = other / f"s{seed}"
+            if cand != base and (cand / "teacher" / "teacher.pt").exists() and (cand / "roles.json").exists() and json.loads((cand / "roles.json").read_text())["hashes"] == roles["hashes"]:
+                donor = cand; break
+        if donor is not None:
+            import shutil
+            (base / "teacher").mkdir(exist_ok=True)
+            for f in ("teacher.pt", "teacher_log.json"):
+                shutil.copy(donor / "teacher" / f, base / "teacher" / f)
+            (base / "teacher" / "teacher_shared_from.json").write_text(json.dumps({"from": str(donor / "teacher" / "teacher.pt"), "sha256": hashlib.sha256((base / "teacher" / "teacher.pt").read_bytes()).hexdigest(),
+                                                                                    "reason": "identical roles hashes and clean anchor pairs: the teacher depends on (dataset, seed) only"}, indent=1))
+        else:
+            train_teacher(cfg, [r for r in observed if r["role"] == "teacher_warmup"], collate, base / "teacher", seed, device)
     return {"base": base, "roles": roles, "observed": observed, "noise_manifest": manifest, "collate": collate, "teacher": base / "teacher" / "teacher.pt"}
 
 

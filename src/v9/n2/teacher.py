@@ -89,8 +89,9 @@ def train_teacher(cfg: HostConfig, rows: list[dict], collate, out_dir: str | Pat
             if cfg.grad_clip > 0:
                 torch.nn.utils.clip_grad_norm_(host.parameters(), cfg.grad_clip)
             opt.step(); tot += float(loss.detach()); nb += 1; step += 1
-        log["epochs"].append({"epoch": epoch, "mean_batch_loss": tot / max(nb, 1), "batches": nb, "seconds": time.time() - t0})
-    host.eval()
+        log["epochs"].append({"epoch": epoch, "mean_batch_loss": tot / max(nb, 1), "batches": nb, "seconds": time.time() - t0,
+                              "peak_gpu_mem_mb": float(torch.cuda.max_memory_allocated() / 2**20) if torch.cuda.is_available() and str(device).startswith("cuda") else None})
+    host.eval(); log["seconds_total"] = time.time() - t0; log["seconds_per_epoch"] = log["seconds_total"] / max(cfg.teacher_epochs, 1); log["device"] = str(device)
     torch.save({"model": host.state_dict(), "cfg": asdict(cfg), "seed": seed, "epochs": cfg.teacher_epochs}, out / "teacher.pt")
     (out / "teacher_log.json").write_text(json.dumps(log, indent=1))
     return log

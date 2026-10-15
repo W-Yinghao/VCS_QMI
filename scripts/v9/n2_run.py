@@ -67,8 +67,9 @@ def cmd_precheck(a):
     else:
         import yaml
         from v9.n2.data import eval_arrays, load_precomp, load_vocab
-        name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); tr = load_precomp(Path(a.data_root) / name, "train", w2i)
-        ds = dict(tr); dev = load_precomp(Path(a.data_root) / name, "dev", w2i); ds["dev_images"], ds["dev_captions"] = eval_arrays(dev)
+        name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); cache = Path(a.out_root) / "token_cache"
+        tr = load_precomp(Path(a.data_root) / name, "train", w2i, cache_dir=cache)
+        ds = dict(tr); ds["dev_images"], ds["dev_captions"] = None, None            # the precheck trains no student: dev is not loaded
         lock = yaml.safe_load(Path(a.host_lock).read_text()) if a.host_lock and Path(a.host_lock).exists() else None
         cfg = HostConfig.from_host_lock(len(w2i), (lock or {}).get("training", lock) if lock else None)
         d = Path(a.data_root) / name; files = {k: str(d / f"{k}.txt") for k in ("train_ids", "dev_ids", "test_ids", "dev_caps", "test_caps")}
@@ -83,8 +84,8 @@ def cmd_strict(a):
 def cmd_unit(a):
     import yaml
     from v9.n2.data import eval_arrays, load_precomp, load_vocab
-    name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json")
-    tr = load_precomp(Path(a.data_root) / name, "train", w2i); dev = load_precomp(Path(a.data_root) / name, "dev", w2i)
+    name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); cache = Path(a.out_root) / "token_cache"
+    tr = load_precomp(Path(a.data_root) / name, "train", w2i, cache_dir=cache); dev = load_precomp(Path(a.data_root) / name, "dev", w2i, cache_dir=cache)
     ds = dict(tr); ds["dev_images"], ds["dev_captions"] = eval_arrays(dev)
     if a.dataset == "coco":                                    # NCR: dev is the first 1000 images of the 5K dev file
         ds["dev_images"], ds["dev_captions"] = ds["dev_images"][:1000], ds["dev_captions"][:5000]

@@ -25,7 +25,7 @@ def tokenize(caption: str, word2idx: dict) -> list[int]:
     return [word2idx["<start>"]] + [word2idx.get(t, unk) for t in tokens] + [word2idx["<end>"]]
 
 
-def load_precomp(data_dir: str | Path, split: str, word2idx: dict, cache: bool = True) -> dict:
+def load_precomp(data_dir: str | Path, split: str, word2idx: dict, cache: bool = True, cache_dir: str | Path | None = None) -> dict:
     """Returns {'images': (N, 36, 2048) float32 unique images, 'captions': {cid: tokens}, 'caption_image': {cid: image index}, 'hash': ...}."""
     d = Path(data_dir); ims = np.load(d / f"{split}_ims.npy"); caps_txt = (d / f"{split}_caps.txt").read_text().splitlines()
     im_div = 5 if ims.shape[0] != len(caps_txt) else 1
@@ -34,7 +34,8 @@ def load_precomp(data_dir: str | Path, split: str, word2idx: dict, cache: bool =
     if ims.shape[0] * 5 != len(caps_txt):
         raise ValueError(f"{split}: {ims.shape[0]} images vs {len(caps_txt)} captions (expected 5 per image)")
     vh = hashlib.sha256(json.dumps(sorted(word2idx.items())).encode()).hexdigest()[:16]
-    cpath = d / f"{split}_caps_tokens_{vh}.json"
+    cdir = Path(cache_dir) if cache_dir else d; cdir.mkdir(parents=True, exist_ok=True) if cache_dir else None
+    cpath = cdir / f"{d.name}_{split}_caps_tokens_{vh}.json"                   # the data directory is read-only for V9: caches go to cache_dir
     if cache and cpath.exists():
         tokens = json.loads(cpath.read_text())
     else:
