@@ -274,23 +274,58 @@ def cmd_selftest(a):
     from lavis.processors.blip_processors import BlipImageEvalProcessor
     proc = BlipImageEvalProcessor(image_size=364); images = VC.ArchiveImages(); col = Collate(fit, images, proc); plan = C.batch_manifest(fit.prompt_images, a.seed, 0)
     pt = torch.tensor(prior, device=device)
+    b = col(plan[0])
+
+    def grad_status(mask: str) -> dict:
+        """Backward on one real FIT batch (epoch-0 plan, first batch) with the given trainable mask; per trainable tensor: none / zero / nonzero / nonfinite."""
+        for n, p in model.named_parameters():
+            p.requires_grad_((n.startswith(("Qformer.", "ln_vision.", "v8_head.")) or n == "query_tokens") if mask == "V8" else False)
+            p.grad = None
+        if mask == "C1":
+            apply_c1_mask(model)
+        (T.set_train if mask == "V8" else set_train_c1)(model)
+        torch.manual_seed(0)
+        with torch.autocast("cuda", dtype=torch.float16, enabled=device == "cuda"):
+            logits = forward_logits(model, b, device)
+        loss, _, _ = C.batch_loss(logits.float(), b["hist"].to(device), b["w"].to(device), pt, kind, b["subgroup"], b["n_sub"]); loss.backward()
+        st = {}
+        for n, p in model.named_parameters():
+            if not p.requires_grad:
+                if p.grad is not None:
+                    st[n] = "FROZEN_WITH_GRAD"
+                continue
+            g = p.grad
+            st[n] = "none" if g is None else "nonfinite" if not torch.isfinite(g).all() else "zero" if not bool(g.ne(0).any()) else "nonzero"
+        return {"loss": float(loss), "status": st}
+
+    gv8 = grad_status("V8"); dead_v8 = sorted(n for n, v in gv8["status"].items() if v in ("none", "zero"))
+    gc1 = grad_status("C1"); dead_c1 = sorted(n for n, v in gc1["status"].items() if v in ("none", "zero"))
+    named = dict(model.named_parameters()); tr = {n for n, p in named.items() if p.requires_grad}
+    eff = int(sum(named[n].numel() for n in tr if n not in dead_c1))
+    res["gradient_path"] = {"batch": "FIT epoch-0 plan, first batch, seed %d" % a.seed, "c1_loss": gc1["loss"], "v8_loss": gv8["loss"],
+                            "c1_dead_tensors": {n: gc1["status"][n] for n in dead_c1}, "v8_dead_tensors": {n: gv8["status"][n] for n in dead_v8},
+                            "c1_dead_subset_of_v8_dead": set(dead_c1) <= set(dead_v8), "c1_dead_params": int(sum(named[n].numel() for n in dead_c1)),
+                            "n_effective_trainable_c1": eff, "c1_nonfinite": sorted(n for n, v in gc1["status"].items() if v == "nonfinite"),
+                            "v8_nonfinite": sorted(n for n, v in gv8["status"].items() if v == "nonfinite"),
+                            "frozen_with_grad_c1": sorted(n for n, v in gc1["status"].items() if v == "FROZEN_WITH_GRAD"),
+                            "c1_nonzero_tensors": sum(1 for v in gc1["status"].values() if v == "nonzero")}
+    # one optimiser step with the C1 mask (grads of the C1 pass are still on the parameters)
     before = {n: p.detach().cpu().clone() for n, p in model.named_parameters()}
-    opt = optimizer(model, 1e-4); b = col(plan[0])
-    with torch.autocast("cuda", dtype=torch.float16, enabled=device == "cuda"):
-        logits = forward_logits(model, b, device)
-    loss, _, _ = C.batch_loss(logits.float(), b["hist"].to(device), b["w"].to(device), pt, kind, b["subgroup"], b["n_sub"]); loss.backward()
-    frozen_grad_none = all(p.grad is None for p in model.parameters() if not p.requires_grad)
-    gnorm = {n: (float(p.grad.detach().float().norm()) if p.grad is not None else None) for n, p in model.named_parameters() if p.requires_grad}
-    opt.step(); opt.zero_grad(set_to_none=True)
-    after = {n: p.detach().cpu() for n, p in model.named_parameters()}; tr = {n for n, p in model.named_parameters() if p.requires_grad}
+    opt = optimizer(model, 1e-4); opt.step(); opt.zero_grad(set_to_none=True)
+    after = {n: p.detach().cpu() for n, p in model.named_parameters()}
     fro_same = [n for n in before if n not in tr and torch.equal(before[n], after[n])]; tr_changed = [n for n in tr if not torch.equal(before[n], after[n])]
-    zero_grad = sorted(n for n, g in gnorm.items() if g == 0.0); unchanged = sorted(tr - set(tr_changed))
-    res["one_step"] = {"loss": float(loss), "n_frozen": len(before) - len(tr), "n_frozen_bitwise_unchanged": len(fro_same), "n_trainable": len(tr), "n_trainable_changed": len(tr_changed),
-                       "trainable_unchanged": unchanged, "trainable_zero_grad": zero_grad, "trainable_grad_none": sorted(n for n, g in gnorm.items() if g is None),
-                       "zero_grad_params": int(sum(dict(model.named_parameters())[n].numel() for n in zero_grad)), "frozen_grads_none": frozen_grad_none,
-                       "note": "a trainable tensor may stay unchanged only if its gradient is exactly zero (no path to the pooled query outputs; matrices still move by weight decay)"}
-    res["one_step"]["pass"] = (res["one_step"]["n_frozen_bitwise_unchanged"] == res["one_step"]["n_frozen"] and frozen_grad_none and not res["one_step"]["trainable_grad_none"]
-                               and set(unchanged) <= set(zero_grad))
+    live = [n for n in tr if n not in dead_c1]
+    res["one_step"] = {"n_frozen": len(before) - len(tr), "n_frozen_bitwise_unchanged": len(fro_same), "n_trainable": len(tr), "n_trainable_changed": len(tr_changed),
+                       "live_all_changed": all(n in tr_changed for n in live), "dead_changed_by_weight_decay_only": sorted(n for n in dead_c1 if n in tr_changed),
+                       "dead_unchanged": sorted(n for n in dead_c1 if n not in tr_changed)}
+    gp = res["gradient_path"]
+    res["one_step"]["pass"] = (res["one_step"]["n_frozen_bitwise_unchanged"] == res["one_step"]["n_frozen"] and res["one_step"]["live_all_changed"]
+                               and not gp["c1_nonfinite"] and not gp["frozen_with_grad_c1"] and gp["c1_dead_subset_of_v8_dead"])
+    if a.inventory and Path(a.inventory).exists():                                    # record the dead tensors and the effective count in the inventory
+        inv = json.loads(Path(a.inventory).read_text())
+        inv.update({"dead_on_loss_path_c1": gp["c1_dead_tensors"], "dead_on_loss_path_v8": gp["v8_dead_tensors"], "n_effective_trainable_c1": eff,
+                    "dead_check": "gradient status on one real FIT batch (selftest, %s); dead = grad None or all-zero" % res["gpu"]})
+        Path(a.inventory).write_text(json.dumps(inv, indent=1))
     del before, after
     timing = {}
     for variant in ("V8", "C1"):
@@ -312,7 +347,7 @@ def cmd_selftest(a):
                            "n_timed": len(st), "peak_mem_gb": torch.cuda.max_memory_allocated() / 2 ** 30}
     res["timing_same_gpu"] = timing; res["steps_per_epoch"] = len(plan)
     Path(a.out).parent.mkdir(parents=True, exist_ok=True); Path(a.out).write_text(json.dumps(res, indent=1))
-    print(json.dumps({k: v for k, v in res.items() if k != "inventory"}, indent=1)); return 0 if res["one_step"]["pass"] else 1
+    print(json.dumps({k: v for k, v in res.items() if k != "inventory"}, indent=1)); return 0 if res["one_step"]["pass"] else 1  # noqa: E501
 
 
 def main(argv=None):
@@ -324,7 +359,7 @@ def main(argv=None):
     u = sub.add_parser("audit"); u.add_argument("--unit-dir", required=True)
     u.add_argument("--ids", default=str(HERE.parents[1] / "reports" / "V8_1_DIAGNOSTICS" / "results" / "fit_audit_ids.json"))
     s = sub.add_parser("selftest"); s.add_argument("--out", required=True); s.add_argument("--arm", default="U-CS"); s.add_argument("--seed", type=int, default=0)
-    s.add_argument("--n-warm", type=int, default=10); s.add_argument("--n-time", type=int, default=50)
+    s.add_argument("--n-warm", type=int, default=10); s.add_argument("--n-time", type=int, default=50); s.add_argument("--inventory", default=None)
     i = sub.add_parser("inventory"); i.add_argument("--out", required=True)
     a = ap.parse_args(argv)
     if a.cmd == "train":
