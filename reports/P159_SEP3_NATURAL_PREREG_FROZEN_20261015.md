@@ -1,6 +1,6 @@
-# Pre-registration DRAFT — P159 (SEP-3): the quadratic vs logistic rule in parametric critic classes under contamination, on frozen natural features (2026-10-15)
+# Pre-registration — P159 (SEP-3): the quadratic vs logistic rule in parametric critic classes under contamination, on frozen natural features (2026-10-15) — FROZEN 2026-10-15T10:16:18Z before any formal cell (main session)
 
-Status: DRAFT (P159 fork).  The main session freezes it (rename to `*_FROZEN_*`, freeze time in the title) before any formal cell.  Go-ahead field:
+Status: FROZEN 2026-10-15T10:16:18Z (main session; design, rule and cells unchanged from draft commit 4a29a29; the YAML sources line corrected to blur_s1 to match the body).  Go-ahead field:
 autonomous unit under the owner's idle-GPU authorisation of 2026-10-11 ("当你看到GPU有空位时，实验不需要我批准…你觉得有用的就自主提交"), following P157's
 CONFIRMED outcome (`P157_SEP2_REPORT_20261015.md`) whose protocol limits every statement to synthetic Gaussians — this unit asks whether the same
 comparison, on frozen natural features with no truth, shows the same direction on truth-free readouts.  No training of encoders, no image loading, no
@@ -107,11 +107,11 @@ Aggregation: `scripts/p159_aggregate.py --dir outputs/P159_sep3 --out reports/P1
 ```yaml
 experiment_family: measurement (frozen natural features; scoring-rule comparison; no truth)
 protocol_id: P159 (SEP-3)
-sources: coco_clip (P49 roles), cifar_ap3 (P150 cache, clean / blur_s0.5 h)
+sources: coco_clip (P49 roles), cifar_ap3 (P150 cache, clean / blur_s1 h)
 estimator: cos2 / quad3 critics, VCS (gamma 1) vs matched JS (gamma 0); P157 trainer, grid, budget, selections
 contamination: independent / false_negative at eps 0.1, 0.3 on FIT + SELECT; EVAL clean
 readouts: clean-EVAL common J (primary), AUROC (Q3), ECE, native risk; degradation ratios beside absolute effects
 negatives: cyclic1 (one non-zero cyclic shift per role per seed)
 n_independent_units: 8 seeds x 40 cells; EVAL 4096 pairs per draw
-status: draft
+status: frozen 2026-10-15T10:16:18Z
 ```
