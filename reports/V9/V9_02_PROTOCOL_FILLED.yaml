@@ -61,7 +61,19 @@ launch:
   cpu_reference: ready                  # package tests 69/69 in the main env (commit 185a335)
   gpu_full_training: after_adapters_fidelity_HOST_LOCK_and_measured_budget   # timing job PENDING (slurm/v9/v9_timing_sgr.sbatch)
   large_extensions: separate_decision
-budget_measured:
-  sgr_epoch_seconds_f30k: PENDING
-  sgr_epoch_gpu_memory_gb: PENDING
-  derived_hours: PENDING   # 96 formal (f30k 40 ep x 48 units, coco 20 ep x 48 units) + <= 96 tuning (3 lr multipliers x 8 methods x 2 datasets x 2 noise, seed 917) + 2 teachers x 2 noise x 2 datasets (5 ep) + NCR / L2RM native reproductions
+budget_measured:   # grouped timing job 1042033 (slurm/v9/v9_timing_group.sbatch); Flickr30K block only (owner 2026-10-15); COCO separate
+  job: 1042033
+  sgr_epoch_seconds: PENDING          # 1 epoch incl. per-epoch dev validation
+  sgr_test_eval_seconds: PENDING
+  sgr_gpu_memory_gb: PENDING
+  ncr_warmup_epoch_seconds: PENDING   # one warm-up epoch (two networks)
+  ncr_cotrain_epoch_seconds: PENDING  # one co-training epoch (GMM + two networks + dev validation)
+  l2rm_warmup_epoch_seconds: PENDING
+  l2rm_epoch_seconds: PENDING         # OT rematching + cost learner
+  teacher_5ep_seconds: PENDING        # SGR on the 1,160-image teacher role
+  weight_generation_seconds: FORK_B   # critic / kernel fits on the reference roles
+  flickr_block_hours:
+    formal_48: PENDING   # 36 SGR-student units x (40 ep + val + eval) + 6 NCR+A x (5 warm-up + 40 co-train) + 6 L2RM+A x (5 warm-up + 35) + 2 teachers + weights
+    tuning_le_48: PENDING
+    native_reproductions_3: PENDING
+    total: PENDING

@@ -1,5 +1,5 @@
 # V9 HOST_LOCK — filled from the real upstream code on the server (2026-10-15, fork A).  TO_VERIFY = not readable from code/README yet; nothing guessed.
-status: FILLED_FROM_CODE_PENDING_DATA_CHECKS
+status: LOCKED_RECIPES_FILLED_FROM_CODE (timing fields pending job 1042033)
 host: SGR_single
 upstream:
   sgraf_python3_branch: {repo: "https://github.com/Paranioar/SGRAF", branch: python3.6, commit: a19d1a9, path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3, licence: Apache-2.0 (README)}
@@ -46,3 +46,10 @@ extra_supervision_visible_to_all: true
 measured_epoch_seconds: PENDING_TIMING_JOB    # slurm/v9/v9_timing_sgr.sbatch after the precomp extraction
 estimated_hours_from_measured_epoch: PENDING
 owner_resource_authorization_reference: "owner 2026-10-15 (prepare V9 in parallel with V8: code + smoke; GPU for timing only). Full N2 training (96 formal + <= 96 tuning + teacher runs) needs the owner's budget confirmation (package §09 §2, §05 §7)"
+
+locked_recipes:   # owner 2026-10-15: resolve the NCR-vs-L2RM schedule difference by locking the SGR single-model recipe NCR uses for the native A table; L2RM keeps its own schedule for its row
+  common_student_B_table: "SGR single (SGRAF_py3 a19d1a9 modules): batch 128, Adam lr 2e-4, lr x0.1 at epoch 30, 40 epochs (Flickr30K), grad_clip 2.0, margin 0.2, hardest in-batch negative, dev-rSum checkpoint; seeds 901/902/903 fixed by V9's wrapper; weights fixed before training (V9 §05 §5 loss); teacher = the same recipe for 5 epochs on the teacher role"
+  native_A_table_NCR: "NCR run.py defaults for f30k_precomp (README): warm-up 5 epochs (L_w), then 40 co-training epochs of two SGR networks, lr 2e-4 with lr_update 30, batch 128, margin 0.2, soft margin m = 10, p_threshold 0.5, GMM per-sample loss; inference = average of A and B; noise index = DECL/RCL f30k_precomp_0.4.npy (L2RM/noise_index) so the A rows are comparable to the L2RM table"
+  native_A_table_L2RM: "L2RM train_f30k.sh (its own schedule, stated for its row only): module SGR, batch 128, seed 0 (V9 seeds 901-903), reg 0.01, 35 epochs, lr 2e-4, lr_cost 2e-6, lr_update 15, queue_length 128, warm-up 5, same DECL/RCL index"
+  NCR_A_and_L2RM_A_in_B_table: "the same native schedules with the 10 % clean anchors (weight 1) added; cost counted as 2 x SGR for NCR; written as NCR+A / L2RM+A"
+  coco: "not locked in this block (COCO is a separate later decision; native: 20 epochs, lr_update 10, NCR warm-up 10, L2RM reg 0.07)"
