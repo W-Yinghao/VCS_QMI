@@ -1,0 +1,42 @@
+# REV10 — is REV9's opposite response a property of the objective or of the phase-A learning rate?  FROZEN 2026-10-15 before any REV10 run.
+rev10:
+  go_ahead: >
+    Autonomous unit under the owner's standing rules: "when GPUs are free, judge necessity and submit useful experiments without asking"
+    (2026-10-11) and "注意监控GPU使用情况，不要让空着，也不要让没有排队的实验" (2026-10-14).  Two GPU slots were idle on 2026-10-15 with every ready job
+    H100-only or blocked by V8-03's tuning-first rule.  The owner is informed in the session report and can stop the unit at any stage.
+  question: >
+    REV9 (reports/REV9/REV9_REPORT_20261015.md §1): VCS units (phase-A estimator lr 3e-4) gain from straight-through hard top-k (I2, 9 / 12
+    Holm-positive) and not from the eval-mode critic (I1, 0 / 12); logistic units (lr 1e-4) gain from I1 (8 / 12) and lose with I2 (9 / 12
+    negative).  Each objective ran at its own CAL-chosen lr, and REV8 found the relaxation gap material at lr 3e-4.  Does the pattern follow
+    the objective or the learning rate?
+  cells: >
+    The two missing corners of objective {vcs, logistic} x phase-A lr {1e-4, 3e-4}: vcs_lr0.0001 and logistic_lr0.0003, seeds 0-2.  Seed 0 of
+    each exists (D1-20 lr sweep: outputs/R7_D1/selectors, trained by the frozen r7_d1_train.py; used read-only via symlinks).  Seeds 1 and 2
+    are trained now by the frozen r7_d1_train.py with the frozen D1-20 command (same teacher, manifests, cache; steps 20,000 + 5,000; the unit's
+    own CAL step selection) into outputs/REV10_D1/selectors (a directory whose data / teacher / cache are symlinks to outputs/R7_D1; the frozen
+    D1 directories are not written).  4 new trainings, on RTX PRO 6000 / H100 only (R7 selector rule).  Direct is not in this unit (REV9: no
+    response to either intervention).  The REV9 corners (vcs_lr0.0003, logistic_lr0.0001) are reused as reported, not rerun.
+  phase_b: >
+    scripts/rev9_phaseb.py unchanged (--d1 outputs/REV10_D1 --out outputs/REV10/selectors): I0 guard on seed 0 of each cell (estimator max abs
+    diff 0, gate within 1e-3; a failed guard stops that cell's readout), I1 and I2 on all 6 units.
+  evaluation: >
+    The frozen D1-30 evaluator (scripts/r7_d1_30_run.py, LLaVA-1.5-7B host, SparseVLM env, H100 / L40S) on GQA DEV, TextVQA val and ChartQA val
+    at budgets 72 / 144 / 288 / 432, selector rows only, for the 6 frozen units (their own paired baseline; the off-lr units have no D1-30 run)
+    and their I1 / I2 units.  Scoring: the frozen rev9_score.py (SparseVLM env) with --tags vcs_lr0.0001 logistic_lr0.0003.
+  primary: >
+    As REV9, per cell: I1 - frozen and I2 - frozen per benchmark and budget, mean over seeds of per-item paired differences, image-grouped
+    paired bootstrap 2,000 (seed 0), Holm over the 24 contrasts within the cell.
+  decision_rule: >
+    net(cell, I) = number of Holm-positive minus Holm-negative contrasts of the 12 for intervention I.  Pattern V (REV9 VCS): net(I2) >= +3 and
+    |net(I1)| <= 2.  Pattern L (REV9 logistic): net(I1) >= +3 and net(I2) <= -3.  OBJECTIVE-DRIVEN if vcs_lr0.0001 shows V and logistic_lr0.0003
+    shows L; LR-DRIVEN if vcs_lr0.0001 shows L and logistic_lr0.0003 shows V; otherwise MIXED (reported descriptively, no attribution).
+  secondary: >
+    The gate's soft - hard selection gap per cell (frozen / I1 / I2; lr-driven predicts that its size follows the lr); frozen - uniform grid
+    per cell (descriptive, frozen D1-30 grid rows); I2 - I1.
+  reading_limits: >
+    LLaVA 10k only; 3 seeds per cell, of which seed 0 comes from the earlier lr sweep; the off-lr units are not CAL-chosen (by construction).
+    A positive effect is a mechanism finding, not a claim against SparseVLM or the grid.
+  cost_priority: >
+    4 trainings x ~2-5 h (D1-20 timings 7,000-17,000 s on RTX PRO 6000), phase B ~2 h, evaluation ~3 x 2 h on L40S / H100.  nice 400: V8 formal
+    units (nice 300) and every V7 / REV9 job start first when slots free.
+  outputs: "outputs/REV10_D1 (new units), outputs/REV10 (interventions, predictions, results); results-only commit to reports/REV9/REV10_RESULTS/, then a report"
