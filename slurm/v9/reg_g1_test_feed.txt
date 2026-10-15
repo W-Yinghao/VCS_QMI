@@ -1,0 +1,14 @@
+# V9-G1 sealed-test read: grouped GPU jobs, submitted only after the fixture PASSES and `prepare` has finished (reports/V9/V9_G1_TEST_READ_PROTOCOL_FROZEN_20261015.yaml).
+# Options before the script name; nothing after the predictor list.  Estimates (RTX PRO 6000 / L40S): critic group 6 × ≈ 19 min ≈ 1.9 h / ≈ 3.6 h; CoMIR 12 × ≈ 6 min;
+# kernel group 2 × ≈ 50 min / ≈ 95 min; MI + NMI ≈ 40 min / ≈ 75 min.
+sbatch --job-name=v9g1t_vcs_f0.25 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-vcs-frac0.25-eps0-s901 V9-G1-vcs-frac0.25-eps0-s902 V9-G1-vcs-frac0.25-eps0-s903 V9-G1-vcs-frac0.25-eps0.2-s901 V9-G1-vcs-frac0.25-eps0.2-s902 V9-G1-vcs-frac0.25-eps0.2-s903
+sbatch --job-name=v9g1t_vcs_f1 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-vcs-frac1-eps0-s901 V9-G1-vcs-frac1-eps0-s902 V9-G1-vcs-frac1-eps0-s903 V9-G1-vcs-frac1-eps0.2-s901 V9-G1-vcs-frac1-eps0.2-s902 V9-G1-vcs-frac1-eps0.2-s903
+sbatch --job-name=v9g1t_logistic_f0.25 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-logistic-frac0.25-eps0-s901 V9-G1-logistic-frac0.25-eps0-s902 V9-G1-logistic-frac0.25-eps0-s903 V9-G1-logistic-frac0.25-eps0.2-s901 V9-G1-logistic-frac0.25-eps0.2-s902 V9-G1-logistic-frac0.25-eps0.2-s903
+sbatch --job-name=v9g1t_logistic_f1 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-logistic-frac1-eps0-s901 V9-G1-logistic-frac1-eps0-s902 V9-G1-logistic-frac1-eps0-s903 V9-G1-logistic-frac1-eps0.2-s901 V9-G1-logistic-frac1-eps0.2-s902 V9-G1-logistic-frac1-eps0.2-s903
+sbatch --job-name=v9g1t_infonce_f0.25 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-infonce-frac0.25-eps0-s901 V9-G1-infonce-frac0.25-eps0-s902 V9-G1-infonce-frac0.25-eps0-s903 V9-G1-infonce-frac0.25-eps0.2-s901 V9-G1-infonce-frac0.25-eps0.2-s902 V9-G1-infonce-frac0.25-eps0.2-s903
+sbatch --job-name=v9g1t_infonce_f1 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-infonce-frac1-eps0-s901 V9-G1-infonce-frac1-eps0-s902 V9-G1-infonce-frac1-eps0-s903 V9-G1-infonce-frac1-eps0.2-s901 V9-G1-infonce-frac1-eps0.2-s902 V9-G1-infonce-frac1-eps0.2-s903
+sbatch --job-name=v9g1t_comir --time=04:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-comir-frac0.25-eps0-s901 V9-G1-comir-frac0.25-eps0-s902 V9-G1-comir-frac0.25-eps0-s903 V9-G1-comir-frac0.25-eps0.2-s901 V9-G1-comir-frac0.25-eps0.2-s902 V9-G1-comir-frac0.25-eps0.2-s903 V9-G1-comir-frac1-eps0-s901 V9-G1-comir-frac1-eps0-s902 V9-G1-comir-frac1-eps0-s903 V9-G1-comir-frac1-eps0.2-s901 V9-G1-comir-frac1-eps0.2-s902 V9-G1-comir-frac1-eps0.2-s903
+sbatch --job-name=v9g1t_kernel_f0.25 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-kernel-frac0.25-eps0-s901 V9-G1-kernel-frac0.25-eps0.2-s901
+sbatch --job-name=v9g1t_kernel_f1 --time=06:00:00 slurm/v9/reg_g1_test.sbatch V9-G1-kernel-frac1-eps0-s901 V9-G1-kernel-frac1-eps0.2-s901
+sbatch --job-name=v9g1t_mi_nmi --time=02:30:00 slurm/v9/reg_g1_test.sbatch mi nmi
+# afterwards (CPU): sbatch slurm/v9/reg_g1_test_aggregate_cpu.sbatch

@@ -1,0 +1,96 @@
+# V9-G1 sealed-test confirmation read (one read).  Written with yaml.safe_dump; parsed back below.
+protocol_id: V9-G1-TEST
+status: frozen 2026-10-15T21:13:53Z by the G1-test fork, before any test image was preprocessed for registration (code, frozen files and this protocol committed together);
+  one read
+go_ahead: 'owner 2026-10-15 ~20:55 UTC 「这俩都可以提交」 in reply to ''G1 sealed test: one confirmation read; the test-side files are fixed and committed before the read'' (main reports/OWNER_DECISIONS_20261015.md,
+  commit df4ced4): the explicit go that decision note 1 of reports/V9/V9_G1_PROTOCOL_FROZEN_20261015.yaml requires'
+question: Do the G1 development-validation readings (VCS versus MI, CoMIR, the kernel critic and the matched critics, under 25 % / 100 % of the FIT cores and 0 % / 20 % displaced
+  training correspondences) hold on the 134 sealed BF/SHG test specimens, read once with every predictor exactly as G1 selected it on CAL?
+decision_note_conditions:
+  every_g1_method_and_seed_complete: 'true: 48 trainable units + 4 kernel rows (aggregate job 1042270, results commit 99008c4, report 0c8616a)'
+  cal_selection_complete: 'true: every critic unit''s chosen checkpoint and every kernel row''s multiplier are recorded in its G1 result (configs/V9_G1_TEST_PREDICTORS.csv)'
+  test_side_files_fixed_and_committed_before_the_read: this protocol + configs/V9_G1_TEST_CORES.csv (samples) + configs/V9_G1_TEST_PERTURBATIONS.json + configs/V9_G1_TEST_PREDICTORS.csv;
+    metrics and families below; all committed before `prepare`
+  no_only_if_vcs_wins_condition: 'none: the read happens whatever G1''s DEV readings were, and every number is reported whatever its sign'
+  test_does_not_serve_r6_selection: the test serves this confirmation only; no r6 or G1 selection, tuning, retraining or re-run uses it
+  one_read: prepare runs once (a prepared root is refused); each predictor's result is written once and never overwritten; after the read starts no code, rule, predictor or
+    threshold changes; a crashed job is re-run unchanged and recorded
+data:
+  archive: /projects/EEG-foundation-model/yinghao/data/bf_shg_4550300/closed/test.zip
+  sha256: 98f5eccdc0d6251643bacf39eda1c9847435508128521e3c6719952744820fd1
+  md5: caa9ae81837a41664ed7b61df81e96fa
+  bytes: 1152656423
+  verified: '2026-10-15 by the fork (sha256sum, md5sum, size; and again by `inventory`): equal to DATA_MANIFEST item bf_shg_test_closed (Zenodo 4550300 test.zip, CC BY 4.0)'
+  content: '134 BF / SHG core pairs: <core>_BF.tif (2048 × 2048 RGB, 8-bit) and <core>_SHG.tif (2048 × 2048, 8-bit), uncompressed classic TIFF (the format REG-P1''s reader
+    handles); slides 1B 81 / 2B 53; no core id shared with REG-P1''s 72 train / validation cores'
+  samples: 'all 134 cores; frozen list with the sha256 of every file: configs/V9_G1_TEST_CORES.csv'
+  unit: the core (TMA specimen) is the independent unit, as in G1
+  inventory_disclosure: before the freeze the fork read the archive's member list, the sha256 of each member's bytes and the TIFF header tags (size, samples, bits, compression);
+    no pixel value was decoded and nothing was registered
+preprocessing: 'REG-P1''s cmd_prepare verbatim (src/v9/reg/r6_reg_pilot.py, verbatim r6 copy): ×4 area downsampling of the 2048-px images to 512 px; BF luminance and SHG robust-normalised
+  (bf, shg); BF RGB and log1p SHG robust-normalised (bf_rgb_n, shg_log_n: the learned-method path); bf_rgb and shg_log kept.  Its core discovery and role assignment are pointed
+  in-process at the extracted test files (role TEST; g1_test.prepare).  Output root /projects/EEG-foundation-model/yinghao/outputs_v9/reg_test (separate from every other root).  Each
+  extracted file''s sha256 must equal the frozen list; the prepared manifest''s per-file sha256 is checked again'
+perturbations: 'REG-P2''s generator (REG-P1''s 10 translations per core, magnitude strata [0, 17) / [17, 34) / [34, 51] px by index with a uniform direction; θ uniform on [−30°,
+  30°]) with the new fixed seed tags ''V9-G1-TEST-20261015|P1'' / ''V9-G1-TEST-20261015|P2'' in place of ''R6-REG-P1'' / ''R6-REG-P2'' (g1_test.perturbations_tagged; with REG-P2''s
+  tags it reproduces REG-P2''s perturbations exactly: tests/v9/test_reg_g1_test.py).  134 × 10 written to configs/V9_G1_TEST_PERTURBATIONS.json and hashed before any registration'
+registration: 'REG-P2 verbatim (Inputs, register_images, RigidEnergy, optimise_rigid in src/v9/reg/r6_reg_p2.py): rigid family θ ∈ ±30°, |t| <= 51 px at 512 px; shared grid
+  + Adam (3 starts × 100 steps); disk support r = 129; reflection padding; warp-then-encode for critics, encode-once for CoMIR, warp-then-extract for the kernel, per-image
+  soft 64-bin MI / NMI; REG-P2''s per-registration position seeds; F profiles along θ and x for the first 5 test cores (sorted), as REG-P2''s DEV profiles'
+predictors:
+  table: 'configs/V9_G1_TEST_PREDICTORS.csv: 54 rows with the sha256 of each predictor file and of each G1 result; every file is re-hashed before its registration'
+  critics: '36 units (vcs / logistic / infonce × fraction 0.25 / 1 × mismatch 0 / 0.2 × seeds 901–903): only the checkpoint G1''s CAL rule chose (chosen_ckpt) is loaded'
+  comir: '12 units: the unit''s comir.pt (the CoMIR recipe selects nothing)'
+  kernel: '4 rows (seed 901 per cell): closed-form RFF kernel refitted by g1.fit_kernel_g1 on the unit''s FIT cores with its mismatch level and only its CAL-chosen bandwidth
+    multiplier (each fit starts a fresh rng, so it reproduces G1''s fit for that multiplier up to GPU arithmetic)'
+  mi_nmi: computed on the test (REG-P2's per-image energies; no training, no selection)
+  no_reselection: nothing is selected, tuned or trained on the test
+metrics:
+  primary: per core, success rate at < 42 px of CoMIR's mean corner error (four corners of the central 834-px full-resolution patch), core-macro over the 134 test cores (G1's
+    metric)
+  secondary: success < 9 px; median / p90 corner error; median rotation (°) and translation (px) error; failures with energy-vs-search attribution; s / registration; F profiles
+    for 5 test cores
+statistics: 'exactly G1''s: g1_aggregate.main verbatim over the test records (g1_test.aggregate passes the test records under the names it reads): mean ± sd over the 3 seeds;
+  contrasts VCS − X paired by seed (seeded X) or VCS seed vs the deterministic X; 95 % t over seeds and a core bootstrap (2 000 resamples, rng 20261016, indices shared across
+  contrasts) with a two-sided bootstrap p'
+primary_family: 'VCS − MI and VCS − CoMIR at ε = 0.2 for fit fraction 0.25 and 1.0, success < 42 px: 4 contrasts, Holm over 4; detected = seed-t interval and core-bootstrap
+  interval both exclude 0 and Holm p < 0.05'
+interaction: per method and fraction, the seed-paired change of success < 42 px from ε 0 to 0.2 (descriptive, with intervals)
+everything_else: 'all VCS − X contrasts at every cell and both thresholds, every cell, MI / NMI, the kernel rows: reported in full'
+wording_fixed:
+- interval containing 0 -> no detectable difference; above / below 0 -> VCS registers x more / fewer test cores
+- VCS ≈ logistic ≈ InfoNCE -> a learned relational-energy class effect (owner wording 2026-10-12); never 'VCS-only' or 'the quadratic loss is robust'
+- a stronger CoMIR / MI is reported as is; the baselines are never weakened
+- TEST = the one confirmation read on 134 specimens unused in any design, training or selection; DEV (G1) stays development validation; DEV and TEST are reported side by side,
+  never pooled
+- a primary contrast detected on DEV and on TEST with the same sign -> 'replicated on the sealed test'; detected on DEV but not on TEST -> 'not replicated on the sealed test';
+  detected on TEST only -> 'detected on the test only' (reported, not promoted); opposite signs -> 'reversed on the sealed test'
+not_run:
+- no re-selection, retraining or new unit; no other split; the test is not read a second time; EPFL (G2) has no sealed split and is untouched
+budget:
+  per_registration: 'G1-measured DEV on its GPU mix: critics 0.90–0.98 s, CoMIR 0.42 s, kernel 4.82 s, MI / NMI 0.83 s (REG-P2); RTX PRO 6000 (timing job 1041905): critics
+    0.78 s, CoMIR 0.21 s, kernel 2.19 s'
+  estimate: '1 340 registrations per predictor: critic ≈ 18–23 min, CoMIR ≈ 5–10 min, kernel row ≈ 50–110 min, MI / NMI ≈ 19 min each -> ≈ 16 GPU-h on RTX PRO 6000, up to ≈
+    23 GPU-h on G1''s GPU mix (more than the ''few GPU-h'' first quoted: the test has 134 cores, 4.2 × DEV''s 32)'
+  jobs: '1 fixture GPU job (≈ 15 min), 1 CPU prepare job, 10 grouped GPU jobs (slurm/v9/reg_g1_test_feed.txt: 6 critic groups of 6, 1 CoMIR group of 12, 2 kernel groups of
+    2, 1 MI + NMI group), 1 CPU aggregate; nice 300; RTX6000PRO,H100,L40S excluding node51,node60; normal-QOS count kept <= 27'
+guards:
+- formal steps refuse unless this protocol and the three frozen files are committed and unchanged against HEAD with the sha256 below (g1_test.require_frozen)
+- the archive must equal DATA_MANIFEST's sha256 / md5 / size; every extracted file must equal its frozen sha256; the prepared manifest is re-checked
+- the test root is prepared once; a predictor file must equal its frozen sha256; a result is written once (atomic rename) and never overwritten
+- the fixture never opens the sealed archive and never writes the test root (guards refused in tests and again in the fixture)
+execution_order: 'inventory / perturb / predictors (before this freeze) -> freeze commit -> fixture on 3 REG-P1 DEV cores (must PASS: cache equal to REG-P1, perturbations equal
+  to REG-P2, all 54 predictors reproduce their G1 / REG-P2 DEV records within 0.5 px, every guard refuses) -> prepare (THE READ STARTS; ledger read_utc) -> 10 grouped registration
+  jobs -> aggregate (CPU) -> results-only commit -> reports/V9/V9_G1_TEST_REPORT_<date>.md'
+frozen_files:
+  V9_G1_TEST_CORES.csv: 2d395c6ce203143d3ae9d89cb4eefea57efa368367ff89709c0fe95502766bdc
+  V9_G1_TEST_PERTURBATIONS.json: 9d9dfc68df6df54478c7fdac6a44043bd5267641737fc35fb971934db3c3a749
+  V9_G1_TEST_PREDICTORS.csv: cc40d2cb1ce75559760451984de4098c4d8d32190f76edb5b7f9d6405247b876
+code:
+  files: 'src/v9/reg/g1_test.py, scripts/v9/reg_g1_test.py, tests/v9/test_reg_g1_test.py, slurm/v9/reg_g1_test{,_fixture_gpu,_prepare_cpu,_aggregate_cpu}.sbatch, slurm/v9/reg_g1_test_feed.txt;
+    reused unchanged: src/v9/reg/{g1.py, g1_aggregate.py, r6_reg_pilot.py, r6_reg_p2.py, r6_reg_aggregate.py}'
+  code_hash_at_freeze: 642a169e5e1e11e9
+ledger: 'reports/V9/V9_TEST_READ_LEDGER.csv: one row (archive and frozen-file hashes, protocol commit, read_utc = start of `prepare`, prepare / registration / aggregate job
+  ids, results commit)'
+disclosure_at_freeze: 'G1''s DEV results were known (report 0c8616a: VCS − MI detected at ε 0.2 for both fractions; VCS − CoMIR not detected under the both-intervals rule);
+  every test-side file above is independent of test pixel values; no test number exists at the freeze'
