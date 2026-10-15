@@ -61,19 +61,33 @@ launch:
   cpu_reference: ready                  # package tests 69/69 in the main env (commit 185a335)
   gpu_full_training: after_adapters_fidelity_HOST_LOCK_and_measured_budget   # timing job PENDING (slurm/v9/v9_timing_sgr.sbatch)
   large_extensions: separate_decision
-budget_measured:   # grouped timing job 1042033 (slurm/v9/v9_timing_group.sbatch); Flickr30K block only (owner 2026-10-15); COCO separate
+budget_measured:   # grouped timing job 1042033 (slurm/v9/v9_timing_group.sbatch), node60 RTX PRO 6000 (a node measured ~2.2x slower than healthy RTX nodes on SSL, 2026-10-04 — numbers are node60 actuals, not rescaled); Flickr30K block only (owner 2026-10-15); COCO separate
   job: 1042033
-  sgr_epoch_seconds: PENDING          # 1 epoch incl. per-epoch dev validation
-  sgr_test_eval_seconds: PENDING
-  sgr_gpu_memory_gb: PENDING
-  ncr_warmup_epoch_seconds: PENDING   # one warm-up epoch (two networks)
-  ncr_cotrain_epoch_seconds: PENDING  # one co-training epoch (GMM + two networks + dev validation)
-  l2rm_warmup_epoch_seconds: PENDING
-  l2rm_epoch_seconds: PENDING         # OT rematching + cost learner
-  teacher_5ep_seconds: PENDING        # SGR on the 1,160-image teacher role
-  weight_generation_seconds: FORK_B   # critic / kernel fits on the reference roles
-  flickr_block_hours:
-    formal_48: PENDING   # 36 SGR-student units x (40 ep + val + eval) + 6 NCR+A x (5 warm-up + 40 co-train) + 6 L2RM+A x (5 warm-up + 35) + 2 teachers + weights
-    tuning_le_48: PENDING
-    native_reproductions_3: PENDING
-    total: PENDING
+  node: node60 (RTX PRO 6000 Blackwell, 96 GB)
+  sgr_step_seconds: 0.596             # mean of 113 logged steps (batch 128, 1,133 steps per Flickr30K epoch)
+  sgr_dev_validation_seconds: 74      # one SGRAF dev pass (1,014 images x 5,070 captions; shard_attn_scores 71-72 s); measured 73.8 s and 74.2 s
+  sgr_validations_per_epoch: "every epoch + every 1,000 iterations (SGRAF train.py val_step 1000) = 95 passes over 45 epochs"
+  sgr_startup_seconds: 438            # loading train_ims.npy (8.55 GB) from NFS + model init, measured stage start -> first step
+  sgr_epoch_seconds_incl_validation: "one epoch + 2 dev passes = 1,266 s measured (incl. 438 s startup)"
+  sgr_test_eval_seconds: "74 (proxy = one dev pass; the measured test evalrank failed on the torch >= 2.6 weights_only default, fixed since by TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1)"
+  sgr_gpu_memory_gb: "not captured (nvidia-smi ran after the process ended); fits easily in 96 GB"
+  ncr_warmup_step_seconds: "0.600 (network A) / 0.588 (network B)"
+  ncr_warmup_epoch_seconds_both_networks: 1346   # 1,133 x (0.600 + 0.588); stage incl. startup measured 1,381 s
+  ncr_gmm_loss_pass_seconds_per_network: 446     # 1,133 x 0.394 s; measured 454 s incl. GMM fit before the py3 iterator crash
+  ncr_cotrain_epoch_seconds: "PENDING job 1042195 (one co-training epoch from the saved warm-up; py3 iterator patch)"
+  l2rm_warmup_epoch_seconds: "774 measured (incl. startup and the fast L2RM validation, 21:00:37 -> 21:13:31 local); later warm-up epochs ~707 (1,133 x 0.622 s)"
+  l2rm_epoch_seconds: "1,166 (epoch 1, labeled split 82,563 captions) and 914 (epoch 2, labeled 60,263) measured from checkpoint mtimes; includes the split (per-sample loss pass), OT rematching + cost learner, validation"
+  l2rm_validation_note: "L2RM's evaluation computes similarities in 2.2 s vs 72 s for SGRAF's shard_attn_scores (same model family; different evaluation code)"
+  teacher_5ep_seconds: 535            # 5 epochs on 1,160 images = 5 x 99 s (27 s training + 72 s dev validation each) + 42 s startup
+  weight_generation_seconds: FORK_B   # critic / kernel fits on the reference roles (fork B gate)
+  per_unit_hours_node60:
+    sgr_student_unit: 10.54           # 5 warm-up + 40 epochs = 50,985 steps x 0.596 s + 95 dev passes x 74 s (18.5 % of the unit) + startup + test eval
+    l2rm_A_unit: "9.9-12.4"           # 5 warm-up + 35 rematching epochs at 914-1,166 s
+    ncr_A_unit: "PENDING (5 warm-up epochs = 6,730 s measured-rate + 40 co-training epochs from job 1042195)"
+    teacher: 0.15
+  flickr_block_hours_node60:
+    formal_48: "36 SGR-student units 379 GPU-h + 6 L2RM+A 59-74 GPU-h + 6 NCR+A PENDING + 2 teachers 0.3 GPU-h + weights (fork B)"
+    tuning_le_48: "same composition and per-unit costs as formal (6 SGR-student methods x 2 noise x 3 lr = 36, NCR+A 6, L2RM+A 6)"
+    native_reproductions_3: "NCR 1 + L2RM 1 + SGR (warm-up recipe) 1 at noise 0.4 = NCR unit + 9.9-12.4 h + 10.5 h"
+    total: "≈ 2 x (379 + 59-74 + 6 x NCR unit) GPU-h at node60 rates before NCR; healthy RTX / H100 nodes are expected to be faster — the first formal units' logs give the per-node actuals"
+  cost_lever_not_applied: "SGRAF validates every 1,000 iterations in addition to every epoch (18.5 % of an SGR unit); validating at epoch ends only would save ~50 passes x 74 s = ~1 h per unit — a protocol choice for the N2 owner of the recipe, not changed here"

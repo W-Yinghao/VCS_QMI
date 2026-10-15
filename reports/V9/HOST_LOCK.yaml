@@ -44,8 +44,8 @@ noise_injection_conventions:
   v9: "B-table U injection is V9's own generator (anchors A kept clean, donors only from U; design_rho / realized_rho recorded) — not the DECL/RCL index; A-table native reproduction uses the official indices"
 teacher_epochs: 5                      # package §05 §2: SGR path on the anchor teacher-warmup role only
 extra_supervision_visible_to_all: true
-measured_epoch_seconds: PENDING_TIMING_JOB    # slurm/v9/v9_timing_sgr.sbatch after the precomp extraction
-estimated_hours_from_measured_epoch: PENDING
+measured_epoch_seconds: "node60 (job 1042033): SGR step 0.596 s x 1,133 steps + 2 dev passes x 74 s = ~816 s per epoch after a 438 s startup; NCR warm-up 1,346 s per epoch (both networks); L2RM 914-1,166 s per rematching epoch; teacher 99 s per epoch on 1,160 images"
+estimated_hours_from_measured_epoch: "node60 per unit: SGR student 10.5 h; L2RM+A 9.9-12.4 h; NCR+A pending job 1042195; teacher 0.15 h (details in V9_02 budget_measured)"
 owner_resource_authorization_reference: "owner 2026-10-15 (prepare V9 in parallel with V8: code + smoke; GPU for timing only). Full N2 training (96 formal + <= 96 tuning + teacher runs) needs the owner's budget confirmation (package §09 §2, §05 §7)"
 
 locked_recipes:   # owner 2026-10-15: resolve the NCR-vs-L2RM schedule difference by locking the SGR single-model recipe NCR uses for the native A table; L2RM keeps its own schedule for its row
