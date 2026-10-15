@@ -99,7 +99,7 @@ def main() -> int:
     ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
     seeds = [int(x) for x in a.seeds.split(",")]; rhos = [float(x) for x in a.rhos.split(",")]; sizes = [int(x) for x in a.sizes.split(",")]; reps = a.repeats
     if a.smoke:
-        seeds, rhos, sizes, reps = seeds[:1], rhos[:2], [128], 2
+        seeds, rhos, sizes, reps = seeds[:1], rhos[:2], [128], (a.repeats if a.repeats != 30 else 2)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); C = load_cache()
     prov = {"cache": str(CACHE / "features" / "SRC-FIT.pt"), "sha256": sha256(CACHE / "features" / "SRC-FIT.pt"), "manifest_sha256": sha256(CACHE / "manifest.json"),
             "splits_sha256": sha256(CACHE / "splits.json"), "n_images": C["n"], "observed_before": "P49/P50/P57/P58/P71/P72/P79/P80/P159 (exploration, not a new confirmation)",

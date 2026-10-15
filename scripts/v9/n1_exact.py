@@ -131,7 +131,7 @@ def main() -> int:
     ap.add_argument("--seed", type=int, default=901); ap.add_argument("--smoke", action="store_true"); a = ap.parse_args()
     designs = a.designs.split(","); rhos = [float(x) for x in a.rhos.split(",")]; sizes = [int(x) for x in a.sizes.split(",")]; reps = a.repeats
     if a.smoke:
-        designs, rhos, sizes, reps = designs[:2], rhos[:2], [128], 3
+        designs, rhos, sizes, reps = designs[:2], rhos[:2], [128], (a.repeats if a.repeats != 200 else 3)
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); t_all = time.time()
     for design in designs:
         for rho in rhos:

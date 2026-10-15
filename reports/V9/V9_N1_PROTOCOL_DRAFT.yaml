@@ -34,7 +34,7 @@ methods:                                  # §04.4; all read the same scalar sco
   - kde_moment / kde_em (1-D Gaussian KDEs of s under P and Q; Silverman × {0.25, 0.5, 1, 2, 4})
   - rulsif_moment / rulsif_em (α = ½ relative density ratio on 100 Gaussian centres; σ × {0.5, 1, 2, 4} × λ ∈ {1e-3, 1e-2, 1e-1, 1}; T raw and clipped both stored)
   - nystrom_moment / nystrom_em (Nyström kernel ridge on the balanced ±1 label, 100 centres; σ × {0.5, 1, 2, 4} × λ ∈ {1e-4, 1e-3, 1e-2, 1e-1})
-  - kernel_mpe (P + R only; Ramaswamy et al. 2016 KM idea with a two-segment knee rule; pool capped at 512 per role; CONDITIONAL column with a different information budget)
+  - kernel_mpe (P + R only; Ramaswamy et al. 2016 KM idea: rho = 1 / λ* at the knee of d(λ) found by a hinge fit with a null growth slope; λ grid to 20; pool capped at 512 per role; CONDITIONAL column with a different information budget.  Known limitation from the smoke: the finite-sample hull distance has its own knee under the null, giving a floor of ≈ 0.2 at n ≈ 400 for rho = 0 — reported as is, never used for the main-table weights)
 weights: w = clean_posterior(T, ρ̂_clipped) of §03.D for every posterior-bearing method; ESS, ESS / n, mean w, |T| ≥ 1 - 1e-6 clip rate recorded; the oracle-ρ weights are a diagnostic only (not in the deployed table)
 interval: §03.C Hoeffding-union set (α 0.05) on the oracle η (Exact) and on the fitted VCS and BCE critics (fixed before the reference / batch draws), from cluster means with `role_disjointness` passing on real ids; `fixed_score_outside_eval` and `specified_mixture` are recorded caller assertions (False for the shift design)
 metrics:                                  # §04.6, §08.1

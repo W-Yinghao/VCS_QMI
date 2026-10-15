@@ -352,11 +352,13 @@ def fit_nystrom(sp, sq, sp_sel, sq_sel, n_centres=100, sig_mults=(0.5, 1.0, 2.0,
 
 
 def kernel_mpe(s_p: np.ndarray, s_r: np.ndarray, lambdas=None, sigma: float | None = None, fw_iters: int = 200, max_pool: int = 512, seed: int = 0) -> dict:
-    """Kernel mixture-proportion estimation from the KNOWN component P and the mixture R only (Ramaswamy et al. 2016, KM idea): for λ ≥ 1 the
-    RKHS distance d(λ) between λ μ_R − (λ − 1) μ_P and the convex hull of the sample feature maps is ≈ 0 while λ ≤ λ* = 1 / (1 − rho) and grows
-    beyond it.  λ* is read off the knee of d(λ) by a two-segment (flat, then linear) least-squares fit; rho = 1 − 1 / λ*.  Our implementation
-    (Frank–Wolfe on the simplex, 1-D Gaussian kernel, Silverman bandwidth of the pooled sample) — a conditional column with a different
-    information budget (no Q reference), not the authors' KM1 / KM2 thresholds."""
+    """Kernel mixture-proportion estimation from the KNOWN component P and the mixture R only (Ramaswamy et al. 2016, KM idea).  With
+    R = (1 − rho) P + rho Q, the signed measure λ R − (λ − 1) P = (1 − λ rho) P + λ rho Q stays a distribution exactly while λ ≤ λ* = 1 / rho, so the
+    RKHS distance d(λ) between λ μ_R − (λ − 1) μ_P and the convex hull of the sample feature maps is ≈ 0 (finite-sample floor) up to λ* and grows
+    beyond it; rho = 1 / λ*.  λ* is read off the knee of d(λ) by a two-segment (flat, then linear) least-squares fit on a λ grid up to 20 (rho ≥ 0.05);
+    a rise smaller than 3 floor standard deviations is reported as `no_rise_detected` with rho = 0.  Our implementation (Frank–Wolfe on the
+    simplex, 1-D Gaussian kernel, Silverman bandwidth of the pooled sample) is a conditional column with a different information budget (no Q
+    reference); it is not the authors' KM1 / KM2 thresholds."""
     s_p, s_r = np.asarray(s_p, float), np.asarray(s_r, float); rng = np.random.default_rng(seed); sub = {}
     for name, arr in (("P", s_p), ("R", s_r)):                      # cost cap: at most max_pool points per role (recorded)
         if len(arr) > max_pool:
@@ -366,7 +368,7 @@ def kernel_mpe(s_p: np.ndarray, s_r: np.ndarray, lambdas=None, sigma: float | No
         else:
             s_r = arr
     pool = np.concatenate([s_r, s_p]); sig = sigma or silverman(pool)
-    lambdas = np.asarray(lambdas if lambdas is not None else np.arange(1.0, 3.01, 0.1))
+    lambdas = np.asarray(lambdas if lambdas is not None else np.concatenate([np.arange(1.0, 3.0, 0.1), np.arange(3.0, 10.5, 0.5), [12.0, 15.0, 20.0]]))
     K = np.exp(-0.5 * ((pool[:, None] - pool[None, :]) / sig) ** 2); n_r, n_p = len(s_r), len(s_p)
     u_r = np.concatenate([np.full(n_r, 1 / n_r), np.zeros(n_p)]); u_p = np.concatenate([np.zeros(n_r), np.full(n_p, 1 / n_p)])
     d = []
@@ -375,14 +377,16 @@ def kernel_mpe(s_p: np.ndarray, s_r: np.ndarray, lambdas=None, sigma: float | No
         for t in range(fw_iters):                                   # minimise ||Φw − Φv||² over the simplex: gradient = 2K(w − v)
             g = K @ (w - v); i = int(np.argmin(g)); e = np.zeros_like(w); e[i] = 1.0; step = 2.0 / (t + 2); w = (1 - step) * w + step * e
         diff = w - v; d.append(float(np.sqrt(max(diff @ K @ diff, 0.0))))
-    d = np.array(d); best = None
-    for k in range(1, len(lambdas) - 1):                               # two-segment fit: d ≈ c0 on [0, k], then linear on [k, end]
-        c0 = d[:k + 1].mean(); x, y = lambdas[k:], d[k:]; A = np.vstack([x - x[0], np.ones_like(x)]).T; coef, *_ = np.linalg.lstsq(A, y, rcond=None)
-        sse = float(((d[:k + 1] - c0) ** 2).sum() + ((A @ coef - y) ** 2).sum())
+    d = np.array(d); X0 = np.vstack([np.ones_like(lambdas), lambdas - 1.0]).T                       # null model: finite-sample growth ∝ λ
+    c0, *_ = np.linalg.lstsq(X0, d, rcond=None); sse0 = float(((X0 @ c0 - d) ** 2).sum()); best = None
+    for k in range(2, len(lambdas) - 2):                                                         # hinge: + m1 (λ − λ*)_+ ; λ* on the grid
+        X = np.hstack([X0, np.maximum(lambdas - lambdas[k], 0.0)[:, None]]); coef, *_ = np.linalg.lstsq(X, d, rcond=None); sse = float(((X @ coef - d) ** 2).sum())
         if best is None or sse < best[0]:
-            best = (sse, k, float(coef[0]))
-    lam_star = float(lambdas[best[1]]); rho = 1 - 1 / lam_star
-    return {"rho_raw": rho, "rho_clipped": min(1.0, max(0.0, rho)), "status": "knee_estimate" if best[2] > 1e-6 else "no_rise_detected",
+            best = (sse, k, coef)
+    k, coef = best[1], best[2]; lam_star = float(lambdas[k]); m0, m1 = float(coef[1]), float(coef[2]); gain = (sse0 - best[0]) / max(sse0, 1e-30)
+    detected = m1 > max(2.0 * abs(m0), 1e-6) and gain > 0.5                                       # the post-knee slope must exceed the null growth clearly
+    rho = 1.0 / lam_star if detected else 0.0; rise, floor_sd = float(m1 * (lambdas[-1] - lam_star)), float(np.sqrt(sse0 / len(d)))
+    return {"rho_raw": rho, "rho_clipped": min(1.0, max(0.0, rho)), "status": "knee_estimate" if detected else "no_rise_detected", "rise": rise, "floor_sd": floor_sd, "null_slope": m0, "knee_slope": m1, "sse_gain": gain,
             "lambda_star": lam_star, "slope_after_knee": best[2], "d_curve": d.tolist(), "lambdas": lambdas.tolist(), "sigma": sig, "subsampled": sub,
             "n_used": {"P": int(len(s_p)), "R": int(len(s_r))}}
 
