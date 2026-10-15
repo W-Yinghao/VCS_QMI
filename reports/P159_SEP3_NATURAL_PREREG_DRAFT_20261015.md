@@ -21,12 +21,17 @@ contamination effect of the rule, not a property of the CS divergence (P157's fr
 | source | cache | units | x | y (P pair) | d | N FIT |
 |---|---|---|---|---|---|---|
 | `coco_clip` | `outputs/P49_precheck_A/features/SRC-{FIT,CAL,EVAL}.pt` (manifest + splits.json; frozen open_clip ViT-B/32 laion2b; roles disjoint by image) | FIT 20 000 / CAL 5 000 / EVAL 5 000 images, 5 captions each | image feature (512, raw, norm ≈ 10) | one caption of the same image, drawn per seed | 512 | {4 096, 16 384} |
-| `cifar_ap3` | `outputs/P150_features/P107_AP3_views4_800ep_seed1/features.pt` (manifest; frozen A-P3 encoder, P107 seed 1, 4v/800ep; 20 000 base images of the CIFAR-10 FIT split, versions clean / colour / blur; fp16 h) | 20 000 base images | h of the clean image (512, raw) | h of the **blur_s0.5** version of the same image | 512 | {4 096, 8 192} |
+| `cifar_ap3` | `outputs/P150_features/P107_AP3_views4_800ep_seed1/features.pt` (manifest; frozen A-P3 encoder, P107 seed 1, 4v/800ep; 20 000 base images of the CIFAR-10 FIT split, versions clean / colour / blur; fp16 h) | 20 000 base images | h of the clean image (512, raw) | h of the **blur_s1** version (1 px Gaussian blur) of the same image | 512 | {4 096, 8 192} |
 - Roles per draw (seed): FIT N, SELECT N / 4 (COCO from SRC-CAL; CIFAR from the pool), EVAL 4 096 (COCO from SRC-EVAL; CIFAR from the pool), **disjoint by image /
   base image** (asserted).  Q = product pairs by one non-zero cyclic shift of y inside the role (`cyclic1`; one shift per role per seed).
-- The CIFAR pair view was fixed from the cache manifest before any fit: blur_s0.5 keeps the information (its classifier accuracy 0.871 vs clean 0.877 on the
-  cache's EVAL part) while changing the view; colour_s0.05/0.1 are nearly identical to clean (cos ≈ 1) and blur_s1 loses it (0.63).  It is a nuisance view,
-  not an SSL augmentation pair — disclosed; there is no two-augmentation cache for A-P3 and the directive forbids new extraction.
+- **CIFAR pair view — disclosed change after the first gate (before any formal run).**  The draft first chose blur_s0.5 from the cache manifest's classifier
+  accuracies (0.871 vs clean 0.877).  The first gate's timing cell (seed 300, clean, N 4 096, cos-2; job 1041362) gave J = 0.9995 for both arms with the lr at
+  the top edge: the (clean, blur_s0.5) pair of the same image is almost identical through the frozen encoder (positive cos median 0.985) and perfectly
+  separable from product pairs (cos median 0.17), so every readout saturates and the comparison is empty.  A descriptive cosine check on 4 000 base images
+  (no fit, no EVAL readout; all seven versions × layers h / z / layer3) showed only blur_s1 gives overlapping pair laws on h (positive cos median 0.71,
+  q10 0.46; product median 0.17, q90 0.31; colour_s0.2 0.988; layer3 is dominated by a common component, product cos 0.77).  The pair is therefore
+  (h_clean, h_blur_s1) of the same base image: a nuisance view, not an SSL augmentation pair; there is no two-augmentation cache for A-P3 and the
+  directive forbids new extraction.  The blur_s0.5 timing cell is not used.
 - CIFAR N is {4 096, 8 192} (pool 20 000: 8 192 + 2 048 + 4 096), COCO {4 096, 16 384}; Q2's "larger N" is per source.
 - Only the P159 fork read the caches; no selection used EVAL.
 

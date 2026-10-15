@@ -6,9 +6,11 @@ Sources (existing caches only; no extraction, no official test split):
               SRC-CAL 5 000, SRC-EVAL 5 000, disjoint by image; 5 captions per image).  P pair = (img_i, txt_i[c_i]) with one caption per image
               drawn per seed; Q pair = (img_i, txt_{pi(i)}[c_{pi(i)}]) with pi one non-zero cyclic shift inside the role (named: cyclic1).
   cifar_ap3   frozen A-P3 encoder (P107 seed 1, 4v/800ep) h features of 20 000 base images of the CIFAR-10 FIT split in seven versions
-              (outputs/P150_features/P107_AP3_views4_800ep_seed1; fp16 h, 512-d).  P pair = (h_clean(i), h_blur0.5(i)) of the same base image;
-              Q pair = (h_clean(i), h_blur0.5(pi(i))), cyclic1.  Versions blur_s0.5 chosen from the cache manifest's classifier accuracies before
-              any fit (clean 0.877 / blur_s0.5 0.871 on its EVAL part: information kept, view changed); never from a fit.
+              (outputs/P150_features/P107_AP3_views4_800ep_seed1; fp16 h, 512-d).  P pair = (h_clean(i), h_blur1(i)) of the same base image;
+              Q pair = (h_clean(i), h_blur1(pi(i))), cyclic1.  View blur_s1 (1 px Gaussian blur) chosen after a descriptive cosine check on 4 000
+              base images (no fit): blur_s0.5 / colour versions are nearly identical to clean (positive cos >= 0.985, perfectly separable from the
+              product pairs: the gate's timing cell gave J 0.9995 for both arms), blur_s1 gives overlapping pair laws (positive cos median 0.71,
+              q10 0.46; product cos median 0.17, q90 0.31).  Disclosed as a post-gate, pre-formal-run design change in the prereg.
 Roles per seed (draw): FIT (N pairs), SELECT (N / 4, capped by the pool), EVAL (4 096, clean, disjoint by base image / COCO image).
 Contamination of FIT and SELECT only (the practitioner's data; EVAL is never contaminated), exactly round(eps n) pairs per role, indices recorded:
   independent     P_eps = (1 - eps) P + eps Q:  the y of eps n P pairs replaced by the y of another base unit of the same role (a product pair as a positive)
@@ -40,7 +42,7 @@ SRC = {
     "coco_clip": {"dir": OUT_ROOT / "P49_precheck_A", "files": {"FIT": "features/SRC-FIT.pt", "SELECT": "features/SRC-CAL.pt", "EVAL": "features/SRC-EVAL.pt"},
                   "manifests": ["manifest.json", "splits.json"], "d": 512, "NS": (4096, 16384)},
     "cifar_ap3": {"dir": OUT_ROOT / "P150_features/P107_AP3_views4_800ep_seed1", "files": {"ALL": "features.pt"}, "manifests": ["manifest.json"],
-                  "d": 512, "NS": (4096, 8192), "view_x": "clean", "view_y": "blur_s0.5", "layer": "h"},
+                  "d": 512, "NS": (4096, 8192), "view_x": "clean", "view_y": "blur_s1", "layer": "h"},
 }
 SOURCES = tuple(SRC)
 CLASSES, CTYPES, EPS = ("cos2", "quad3"), ("independent", "false_negative"), (0.1, 0.3)
@@ -125,10 +127,11 @@ def draw_roles(name: str, N: int, seed: int, eval_n: int = EVAL_N) -> tuple[dict
                          "parts": torch.bincount(blk["part"][idx], minlength=3).tolist(), "_idx": idx}
     else:
         raise ValueError(name)
-    ev = set(rec["EVAL"]["_idx"].tolist())
-    for role in ("FIT", "SELECT"):
-        assert not (set(rec[role]["_idx"].tolist()) & ev), "EVAL overlaps a fitting role"
-    if name == "coco_clip":                                                                     # disjoint by image across the P49 roles (asserted on ids)
+    if name == "cifar_ap3":                                                                    # one shared pool: positional disjointness
+        ev = set(rec["EVAL"]["_idx"].tolist())
+        for role in ("FIT", "SELECT"):
+            assert not (set(rec[role]["_idx"].tolist()) & ev), "EVAL overlaps a fitting role"
+    if name == "coco_clip":                                                                     # three P49 pools: disjoint by image id (asserted on ids)
         ids = {r: set(D[r]["ids"][rec[r]["_idx"]].tolist()) for r in ("FIT", "SELECT", "EVAL")}
         assert not (ids["EVAL"] & ids["FIT"]) and not (ids["EVAL"] & ids["SELECT"]), "EVAL image overlap"
     return roles, rec
