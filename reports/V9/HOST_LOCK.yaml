@@ -1,0 +1,46 @@
+# V9 HOST_LOCK — filled from the real upstream code on the server (2026-10-15, fork A).  TO_VERIFY = not readable from code/README yet; nothing guessed.
+status: FILLED_FROM_CODE_PENDING_DATA_CHECKS
+host: SGR_single
+upstream:
+  sgraf_python3_branch: {repo: "https://github.com/Paranioar/SGRAF", branch: python3.6, commit: a19d1a9, path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3, licence: Apache-2.0 (README)}
+  sgraf_main_py27: {commit: 50d0c6f, path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF, note: "python 2.7 branch; opts.py defaults identical to python3.6 (diffed); not used"}
+  ncr: {repo: "https://github.com/XLearning-SCU/2021-NeurIPS-NCR", commit: 60256ba, path: /projects/EEG-foundation-model/yinghao/code_v9/2021-NeurIPS-NCR, licence: "LICENSE file = MIT; README says Apache-2.0 (recorded as-is)"}
+  l2rm: {repo: "https://github.com/hhc1997/L2RM", commit: a766c22, path: /projects/EEG-foundation-model/yinghao/code_v9/L2RM, licence: Apache-2.0 (README)}
+upstream_commit: a19d1a9   # the SGR host used for V9 timing and for the common student; NCR/L2RM wrap the same SGR modules (EncoderImage / EncoderText / EncoderSimilarity)
+code_path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3
+environment: /projects/EEG-foundation-model/yinghao/envs/v9_sgr   # python 3.10.x, torch 2.9.0+cu128, numpy<2.3, scikit-learn, nltk (punkt, punkt_tab), tensorboard_logger + protobuf 3.20.3; pomegranate (L2RM) TO_VERIFY
+features:
+  source: "SCAN precomputed bottom-up-attention region features (NCR data release NCR-data.tar, 100,154,890,240 B); %s_ims.npy of shape (N_images, 36, 2048) float32 (SGRAF data.py: image tensor (36, 2048)); %s_caps.txt one caption per line, 5 per image"
+  feature_shapes: {image: [36, 2048], caption: "variable-length token ids from %s_precomp_vocab.json (SGRAF/vocab; f30k_precomp_vocab.json, coco_precomp_vocab.json)"}
+  layout_on_disk: TO_VERIFY_AFTER_EXTRACTION   # expected <root>/f30k_precomp/{train,dev,test}_{ims.npy,caps.txt}; coco_precomp with train/dev/test/testall
+model (SGR single, SGRAF opts.py defaults):
+  img_dim: 2048; word_dim: 300; embed_size: 1024; sim_dim: 256; num_layers_gru: 1; bi_gru: true; sgr_step: 3; module_name: SGR
+  image_encoder: "Linear(2048 -> 1024) per region + l2norm (no_imgnorm=false)"
+  text_encoder: "Embedding(vocab, 300) + bi-GRU(1024) averaged directions + l2norm"
+  similarity: "EncoderSimilarity(SGR): SCAN attention (smooth 9) + VisualSA/TextSA global + GraphReasoning x sgr_step -> scalar similarity"
+training (native SGR, train.py):
+  batch_size: 128
+  native_epochs: {f30k_precomp: 40, coco_precomp: 20}
+  lr_update: {f30k_precomp: 30, coco_precomp: 10}   # lr = 2e-4 * 0.1 ** (epoch // lr_update)
+  optimizer: "Adam(lr=2e-4) over txt_enc + img_enc + sim_enc; grad_clip 2.0 (clip_grad_norm_)"
+  loss: "ContrastiveLoss(margin=0.2, max_violation=True by default): hinge on the in-batch similarity matrix, hardest negative per row and per column (cost_s.max(1) + cost_im.max(0)), summed over the batch"
+  native_margin: 0.2
+  negative_mining: in_batch_hardest_negative_per_query   # 'max_violation' store_false flag => True by default
+  warmup: none in native SGR (NCR: warmup_epoch f30k 5 / coco 10 with the warm-up loss L_w; L2RM: warmup_epoch f30k 5 / coco 10)
+  validation: "every epoch (and every val_step=1000 iterations) on dev: 1,000 images for f30k; coco dev truncated to 5,000 images (data.py); rsum = r1+r5+r10 (i2t) + r1+r5+r10 (t2i)"
+  checkpoint_selection: best_dev_rsum   # save_checkpoint(is_best) with best_rsum; the final model = model_best.pth.tar
+  seeds: "not fixed by SGRAF train.py (no seed argument); NCR run.py and L2RM main_L2RM.py take --seed; V9 sets torch/numpy/random seeds 901/902/903 in its own wrapper (to be added)"
+evaluation:
+  evaluation_commit: a19d1a9   # SGRAF_py3/evaluation.py: evalrank(model_path, data_path, split, fold5); encode_data + shard_attn_scores(shard 100) + i2t/t2i; fold5=True averages five 1K folds of coco testall, fold5=False = coco 5K or flickr 1K
+  flickr30k_gallery: "test split 1,000 images / 5,000 captions"
+  coco_gallery: "testall 5,000 images (5K, primary) and 5 x 1K folds (secondary column)"
+  i2t_rule: "any of the 5 GT captions in top-K"; t2i_rule: "GT image in top-K"
+noise_injection_conventions:
+  ncr: "PrecompDataset(train): t2i_index per caption; noise_ratio fraction of captions re-pointed to a shuffled subset of image indices; saved/loaded from --noise_file (NCR generates its own index if the file is absent)"
+  l2rm: "noise_index/{f30k,coco}_precomp_{0.2,0.4,0.6,0.8}.npy (DECL/RCL indices): t2i index per caption, f30k (145000,) int64 with 29000 unique images, coco (566435,) with 113287 unique"
+  v9: "B-table U injection is V9's own generator (anchors A kept clean, donors only from U; design_rho / realized_rho recorded) — not the DECL/RCL index; A-table native reproduction uses the official indices"
+teacher_epochs: 5                      # package §05 §2: SGR path on the anchor teacher-warmup role only
+extra_supervision_visible_to_all: true
+measured_epoch_seconds: PENDING_TIMING_JOB    # slurm/v9/v9_timing_sgr.sbatch after the precomp extraction
+estimated_hours_from_measured_epoch: PENDING
+owner_resource_authorization_reference: "owner 2026-10-15 (prepare V9 in parallel with V8: code + smoke; GPU for timing only). Full N2 training (96 formal + <= 96 tuning + teacher runs) needs the owner's budget confirmation (package §09 §2, §05 §7)"

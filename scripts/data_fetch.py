@@ -49,6 +49,17 @@ def http(url, name, md5=None, sha256=None):
 
 # ---------------------------------------------------------------------------------------------------------------- items
 ITEMS = [
+    # ---- v9 (V9 package 2026-10-16; owner 2026-10-15: prepare V9 in parallel with V8; public releases, no login) ------------------------
+    {"id": "ncr_precomp", "group": "v9", "kind": "http", "dest": DATA / "ncr_precomp", "extract": True,
+     "licence": "NCR data release (SCAN precomputed BUTD region features for Flickr30K / MS-COCO / CC152K, vocab, noise indices); code Apache-2.0 / MIT; Flickr30K images held locally under Flickr terms, COCO CC BY 4.0; research use",
+     "auth": "owner 2026-10-15: prepare the V9 package (data audit); public release from the NCR authors' CDN",
+     "note": "100,154,890,240-byte tar fetched by scripts/v9/fetch_ncr_parallel.sh (8 byte-range streams) into zips/NCR-data.tar; data_fetch verifies (sha256 recorded) and extracts safely",
+     "files": [http("https://ncr-paper.cdn.bcebos.com/data/NCR-data.tar", "NCR-data.tar")]},
+    {"id": "ncr_models", "group": "v9", "kind": "http", "dest": MODELS / "ncr", "extract": False,
+     "licence": "NCR released checkpoints (authors' CDN); code MIT (repo LICENSE) / README says Apache-2.0; evaluation-only reproduction of the native A table",
+     "auth": "owner 2026-10-15: prepare the V9 package (baseline fidelity)",
+     "files": [http(f"https://ncr-paper.cdn.bcebos.com/models/ncr_{n}_model_best.pth.tar", f"ncr_{n}_model_best.pth.tar")
+               for n in ("f30k_0", "f30k_0.2", "f30k_0.5", "coco_0", "coco_0.2", "coco_0.5", "cc152k")]},
     # ---- r6 ------------------------------------------------------------------------------------------------------
     {"id": "zurich_summer", "group": "r6", "kind": "http", "dest": DATA / "zurich_summer_5914759", "extract": True, "licence": "CC BY 4.0",
      "files": [http("https://zenodo.org/api/records/5914759/files/Zurich_dataset_v1.0.zip/content", "Zurich_dataset_v1.0.zip", md5="c79a08ec33cb867d155931f5201e33a0")]},

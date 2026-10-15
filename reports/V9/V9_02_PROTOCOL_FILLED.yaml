@@ -1,0 +1,67 @@
+# V9_02 — configs/V9_PROTOCOL.yaml filled with the server values (fork A, 2026-10-15).  Unfilled measured fields are marked PENDING; nothing is frozen here.
+version: V9-v1
+paths:
+  repo_root: /home/infres/yinwang/CS_QMI/ssl_pilot_v9            # worktree of W-Yinghao/VCS_QMI, branch v9/reliable-correspondence (created from main 2d171a6)
+  data_root: /projects/EEG-foundation-model/yinghao/data           # ncr_precomp/ (V9), flickr30k/, coco/, bf_shg_4550300/, epfl_rgb_nir/ (existing)
+  models_root: /projects/EEG-foundation-model/yinghao/models        # ncr/ (released NCR checkpoints)
+  code_root: /projects/EEG-foundation-model/yinghao/code_v9         # SGRAF, SGRAF_py3, 2021-NeurIPS-NCR, L2RM, ESC, ReCon (official clones, commits in HOST_LOCK.yaml)
+  env: /projects/EEG-foundation-model/yinghao/envs/v9_sgr
+  output_root: /projects/EEG-foundation-model/yinghao/outputs_v9    # V9 only; outputs_v8 never written
+  reports: reports/V9
+parallel:
+  protected_branch: v8/utility-aligned-cs      # worktree /home/infres/yinwang/CS_QMI/ssl_pilot_v8 at a59c833 (intake); never modified by V9
+  cancel_existing_jobs: false
+  resource_reservation: "V8 formal units (8 GPU jobs) and the REV10 chain run under the shared 8-GPU quota; V9 jobs are submitted with --nice=400 and never cancel / requeue them (measured availability recorded at submission time)"
+roles:
+  anchor_fraction: 0.1
+  anchor_partition: {teacher: 0.4, critic_fit: 0.3, critic_select: 0.15, reference_moments: 0.15}
+  split_unit: image_or_physical_specimen
+  U_injection_labels_visible_to_trainer: false
+  anchor_counts_integer:          # largest-remainder allocation of round(0.1 * N_train_images); image counts from the SCAN/NCR precomp documentation, TO_VERIFY against train_ims.npy after extraction
+    flickr30k: {train_images: 29000, anchors: 2900, teacher: 1160, critic_fit: 870, critic_select: 435, reference_moments: 435, U_images: 26100, captions_per_image: 5}
+    coco:      {train_images: 113287, anchors: 11329, teacher: 4532, critic_fit: 3399, critic_select: 1699, reference_moments: 1699, U_images: 101958, captions_per_image: 5}
+nr:
+  datasets: [flickr30k, coco]
+  host: "SGR single model, SGRAF python3.6 branch a19d1a9 (HOST_LOCK.yaml); NCR / L2RM wrap the same modules"
+  full_feature_pipeline_training: true
+  raw_visual_backbone_end_to_end: false
+  main_noise: [0.0, 0.4]
+  formal_seeds: [901, 902, 903]
+  tuning_seed: 917
+  main_methods: [Unweighted_A, NCR_A, L2RM_A, VCS_Weight, BCE_Weight, RuLSIF_Weight, Nystrom_Weight, RankMass]
+  main_critic: "tanh(a*cos+b), a = softplus(a_raw) > 0"
+  weight_update: fixed_before_student_training
+  loss_scaling: "dataset-global constant: L = (sum_A ell_i + sum_U w_i ell_i) / (n_A + sum_U w_i), denominator fixed before training (package §05 §5)"
+  host_native_hyperparameters: "HOST_LOCK.yaml (batch 128, Adam 2e-4, decay x0.1 at lr_update, margin 0.2, hardest in-batch negative, f30k 40 ep / coco 20 ep)"
+  n1_rho: [0.0, 0.1, 0.3, 0.5]
+  n1_batch_size: [128, 512, 2048]
+  reference_corruption_primary: 0.0
+  additional_corruption: stress_only_not_theory_guaranteed
+  n1_repeats_finite: 200
+  n1_repeats_image: 30
+  n1_image_source_exploration: "/home/infres/yinwang/CS_QMI/outputs/P49_precheck_A (COCO train2017 CLIP ViT-B/32 laion2b features; SRC-FIT 20,000 / SRC-CAL 5,000 / SRC-EVAL 5,000 images, 5 captions each; already observed by P49/P57/P71/P79/P159 — exploration only, not a new confirmation)"
+  n1_image_source_formal: "Flickr30K precomp roles locked from ncr_precomp after extraction (PENDING)"
+reg:
+  first_dataset: BF-SHG                       # /projects/EEG-foundation-model/yinghao/data/bf_shg_4550300 (train / validation1 / validation2; test.zip sealed under closed/)
+  conditional_second_dataset: EPFL_RGB_NIR    # /projects/EEG-foundation-model/yinghao/data/epfl_rgb_nir; terms unresolved -> no new training (package §06 §2)
+  fit_fraction: [0.25, 1.0]
+  train_mismatch: [0.0, 0.2]
+  methods: [VCS, BCE, InfoNCE, CoMIR]
+  seeds: [901, 902, 903]
+  test_occlusion: separate_protocol_not_initial
+  reuse_matching_clean_checkpoints: true       # R6 REG-P1/P2 units (ssl_pilot reports/R6/R6_REG_P{1,2}_PROTOCOL_FROZEN_*.yaml; outputs under /home/infres/yinwang/CS_QMI/outputs/R6_*) only if data / code / seed hashes match — fork C decides per unit
+statistics:
+  alpha: 0.05
+  bootstrap_repetitions: 2000
+  primary_cluster: base image or physical specimen
+  nr_primary_family: "VCS vs NCR_A / L2RM_A at rho = 0.4 for each dataset (4 contrasts, Holm)"
+  no_seed_zero_selection: true
+  invalid_uncertainty_formula: fail_closed
+launch:
+  cpu_reference: ready                  # package tests 69/69 in the main env (commit 185a335)
+  gpu_full_training: after_adapters_fidelity_HOST_LOCK_and_measured_budget   # timing job PENDING (slurm/v9/v9_timing_sgr.sbatch)
+  large_extensions: separate_decision
+budget_measured:
+  sgr_epoch_seconds_f30k: PENDING
+  sgr_epoch_gpu_memory_gb: PENDING
+  derived_hours: PENDING   # 96 formal (f30k 40 ep x 48 units, coco 20 ep x 48 units) + <= 96 tuning (3 lr multipliers x 8 methods x 2 datasets x 2 noise, seed 917) + 2 teachers x 2 noise x 2 datasets (5 ep) + NCR / L2RM native reproductions
