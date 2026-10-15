@@ -1,0 +1,134 @@
+# V9-G2 — the V9-G1 limited extension on the second modality pair, EPFL RGB–NIR.  FROZEN 2026-10-15T18:37:18Z by the G2 fork on the coordinator's go (owner's standing rules: on-server data cleared, idle-GPU autonomous experiments).
+# Mirrors reports/V9/V9_G1_PROTOCOL_FROZEN_20261015.yaml: same two axes, same methods, same rule; data and registration = r6 REG-P3 verbatim.
+protocol_id: V9-G2
+status: "frozen 2026-10-15T18:37:18Z (G2 fork on the coordinator's go; design, units, rule unchanged from the draft commits d38fef4 / 8721c73; code commit 709e0cf; gate 1042084 rc 0; timing 1042085 rc 0; launch by the G2 fork right after this commit, 10 grouped jobs at nice 400)"
+freeze:
+  freeze_utc: "2026-10-15T18:37:18Z"
+  draft_commits: [d38fef4, 8721c73]
+  code_commit: 709e0cf
+  gate_job: 1042084
+  timing_job: 1042085
+  decision_at_freeze: "no reuse of r6 units (seeds differ); MI / NMI reused from REG-P3 after the hash check; 48 trainable units + 4 kernel rows run new"
+  measured_cost_table: |
+    | item (RTX PRO 6000, timing job 1042085) | measured |
+    |---|---|
+    | critic training, 3 000 steps | 88 s |
+    | critic registration | 0.77 s each (582 registrations in 454 s) |
+    | CoMIR / kernel registration | 0.21 s / 2.17 s each |
+    | critic unit (1 940 registrations) | ≈ 26.5 min -> 36 units ≈ 16 GPU-h |
+    | CoMIR unit / kernel row | ≈ 7 min / ≈ 40 min |
+    | total | ≈ 20 GPU-h; 10 grouped jobs (6 critic groups --time 06:00:00, 2 CoMIR 02:30:00, 2 kernel 03:00:00), nice 400 |
+route: V9 secondary line REG, second modality (package v9 docs/06 §2 "EPFL作为第二模态数据的条件扩展"); reuses r6 REG-P1 / REG-P2 / REG-P3 verbatim and V9-G1's training / axis code unmodified
+go_ahead: >
+  package v9 01 (EPFL extension conditional on the usage basis); owner 2026-10-15 "所有的数据，只要是现在有了的，我们就有权限。你不需要再纠结，直接开始相关实验"
+  (every dataset already on the server is cleared — this supersedes G1's not_run item "EPFL licence basis unresolved" / OWNER_DECISIONS D5; the source and
+  the absence of a licence text are recorded below as facts, not deliberated); owner's standing idle-GPU rule (2026-10-11); freeze + launch by the main session.
+question: >
+  On a second modality pair (RGB reference, NIR moving; natural outdoor / indoor scenes instead of tissue), with fewer aligned training scenes (25 % of
+  REG-P3's FIT units) or with 20 % of the positive training correspondences displaced, does the learned local-relation energy trained with VCS still
+  recover known rigid transforms as reliably as the per-image MI / NMI, the same-target kernel critic and CoMIR representations under REG-P2's shared
+  optimiser — and how does each method's success change from clean to mismatched supervision?  Same question as G1 on a second dataset; not assumed:
+  that a bounded objective is robust to noisy supervision (docs/06 §1), nor that G1's BF/SHG readings transfer.
+data:
+  source: >
+    EPFL RGB–NIR Scene dataset (nirscene1; Brown & Süsstrunk, CVPR 2011), 477 registered RGB / NIR pairs in 9 categories (country, field, forest, indoor,
+    mountain, oldbuilding, street, urban, water); on the server at /projects/EEG-foundation-model/yinghao/data/epfl_rgb_nir/nirscene1 (PROVENANCE.json:
+    archive sha256 7c465a23…, downloaded 2026-09-27, "no licence or terms text" shipped with the archive — recorded as a fact).
+  cache: >
+    r6 REG-P3's cache (outputs/R6_REG_P3, read-only): one 512-px centred native-resolution window per pair (down = 1; no downsampling), keys kept as
+    REG-P1's so the training code runs unchanged (bf = RGB luminance, bf_rgb_n = RGB, shg = shg_log_n = linear NIR, nir = raw NIR / 255; all but nir
+    robust-normalised per window).  REG-P3's exclusions kept: 33 scenes excluded for alignment (dataset's own registration failing REG-P3's check) and 24
+    for size -> 420 windows; near-duplicate scenes merged into one unit -> 411 units.  Nothing is re-prepared; every unit records REG-P3's per-pair
+    sha256 of the RGB and NIR files in its state hash (g2.state_hash_epfl).
+  roles: >
+    REG-P3's: per category 8 DEV units / 1 CAL unit / rest FIT -> DEV 72 units (74 windows), CAL 9 units (10 windows), FIT 330 units (336 windows).
+    The scene (physical image, near-duplicates merged) is the independent unit; the 9 categories are the strata.
+  moving_and_reference: "reference U = RGB; moving V = NIR — the raw NIR window is perturbed and then robust-normalised (REG-P3's Inputs3), so normalisation never sees the unperturbed image"
+  dev_exposure: "DEV was read by REG-P3 (r6 report R6_REG_P3_REPORT_20261012); G2 results on it are development validation (docs/06 §2).  No sealed split exists for EPFL; no confirmation claim is made from G2"
+  truth_caveat: "the dataset's own RGB–NIR registration is accurate to about 2 native px (REG-P3's check); the < 2.25 native px success is read with that caveat and is secondary"
+  manifest_check: "state hash per unit (pairs' sha256_rgb / sha256_nir of every FIT window, seed, fraction, ε, method, steps, size, down, dataset); MI / NMI reuse requires REG-P3's perturbations.json and manifest.json hashes at run time (g2.mi_nmi_reuse_check: perturbations 131fc797…, manifest 3ecf9fe8… at draft)"
+design:
+  fit_fraction:
+    values: [0.25, 1.0]
+    rule: >
+      round(frac × 330) FIT UNITS (scenes) by stratified random sampling over the 9 categories (largest-remainder allocation; ties by category name),
+      seeded by the unit seed (g2.sample_fit_units, rng sha256("V9-G2|fit|<seed>|<frac>")); 0.25 -> 82 units (Python round-half-even of 82.5; 83–84
+      windows by seed, since a merged unit brings all its windows); windows and patches are never the sampling unit; realised units, windows and counts
+      per category are written to train.json / comir.json and to the result.
+  train_mismatch:
+    values: [0.0, 0.2]
+    rule: >
+      V9-G1's generator unchanged (g1.mismatch_positions / g1.displaced, called by g1.cmd_train / g1.cmd_comir / g1.fit_kernel_g1): exactly round(ε n) of
+      the positive correspondences of every training step receive a displaced moving-side position drawn uniformly from the admissible positions of the
+      SAME training crop / image, rejecting positions closer than 2 patch radii to the true one.  Patch radius: critics 15 px (exclusion 30 px within the
+      160-px crop interior), kernel 4 px (8 px, within Ω), CoMIR 64 px (128 px: the displaced 182-px source crop never overlaps the true one).  Conditional
+      on the image and crop — NOT an unconditional pixel product (docs/06 §3).
+    shared_across_methods: "as G1: one data RNG stream per seed consumed identically by vcs / logistic / infonce (mismatch draws before the objective branch); CoMIR at the crop level from the same seed stream (same fraction and seed, not the same positions); the kernel fit draws its own displaced patch positions (same fraction)"
+    label_access: "no mismatch label enters any loss, model, selection or registration; only the realised fraction is logged (train.json realised_mismatch_fraction, copied into the result)"
+  methods:
+    trainable: [VCS critic, matched logistic (BCE) critic, InfoNCE critic, CoMIR (official DenseUNet, REG-P1 recipe as run by REG-P3)]
+    fitted_reference: "same-target RFF kernel critic (closed form on the sampled FIT units, mismatch applied to its fitting pairs; bandwidth multiplier {0.5, 1, 2} on CAL, REG-P3's path with P.fit_kernel replaced in-process by g1.fit_kernel_g1) — one seed (901) per cell, descriptive row"
+    no_training: "MI and NMI (per-image, soft 64-bin, deterministic): REG-P3's DEV / CAL results reused after the hash check (no FIT dependence); MIND / point-set CS: not run (as G1)"
+  training: "REG-P1's recipes unchanged, exactly as REG-P3 ran them on EPFL (critics: AdamW 1e-3, 3 000 steps, 16 scenes × 128 positions on aligned 160-px crops, 12 checkpoints; CoMIR: 23 × 32 × 32 recipe, no checkpoint selection) — g1.cmd_train / g1.cmd_comir on the EPFL cache through g2.activate (unit root, sampler, state hash, roots re-pointed in-process; g1.py byte-identical, test G1Untouched)"
+  registration: >
+    REG-P3 verbatim (src/v9/reg/r6_reg_p3.py register_one): REG-P2's rigid family θ ∈ ±30°, |t| <= 51 px in the 512-px frame, REG-P3's perturbations.json
+    (10 per CAL / DEV window, 84 windows), shared grid + Adam optimiser (3 starts refined by 100 steps), warp-then-encode for critics, encode-once for CoMIR,
+    kernel warp-then-extract; identical reflection padding and visible-pixel handling; energy profiles along θ and x for the first DEV window of 5
+    categories (REG-P3's profile_windows).
+  selection: "REG-P3's lexicographic CAL rule over the unit's 12 checkpoints with CAL registrations POOLED BY UNIT (success < 42, success < 9, lower median corner error, earliest) / kernel multiplier; CoMIR, MI, NMI none"
+  seeds: [901, 902, 903]
+  units: "4 trainable methods × 2 fractions × 2 mismatch levels × 3 seeds = 48 (configs/V9_REG_EPFL_UNITS.csv) + 4 kernel rows (seed 901) + MI / NMI reused; unit ids V9-G2-<method>-frac<f>-eps<ε>-s<seed>; roots outputs_v9/reg_epfl/units/<unit>/{run, p3/} (p3 = REG-P3 layout with read-only symlinks into outputs/R6_REG_P3)"
+  reuse: >
+    package rule "complete identity only" (g2.r6_reusable): an r6 REG-P3 full-data clean unit is reusable when seed, FIT set (with data hashes), ε = 0,
+    fraction 1 and the recipe match.  REG-P3 used seeds 0–2; the package fixes seeds 901–903 -> 0 of the 48 units reusable, 48 new (CSV column reuse =
+    none_seed_differs / not_applicable).  The r6 seed-mapping option (reuse the 12 REG-P3 frac 1 / ε 0 units under seeds 0–2, ≈ 5.5 GPU-h saved, clean cell
+    in a different seed set) is recorded and, as in G1, not taken.  MI / NMI: reused (hash check at run time).
+metrics:
+  primary: "per unit (scene), success rate at err_full < 42 (CoMIR's mean corner error in REG-P2-equivalent px = 4 × native px; i.e. < 10.5 native px), the unit's registrations = its windows × 10 perturbations; unit-macro over the 72 DEV units (REG-P3 metric dev_success42_unit)"
+  secondary: "success < 9 err_full (< 2.25 native px, truth caveat); median / p90 corner error; median rotation (°) and translation (px) error; failure count with energy-vs-search attribution (F at the estimate >= F at the truth = energy failure); s / registration; energy profiles for 5 DEV windows; window-macro summaries (REG-P2's) kept in the result files"
+  statistics: "mean ± sd over the 3 seeds; contrasts VCS − X paired by seed (seeded X) or VCS seed vs the deterministic X, 95 % t over seeds and a UNIT bootstrap (2 000 resamples, indices shared across contrasts; all windows × perturbations of a unit stay in its group) with a two-sided bootstrap p (g2_aggregate.contrast)"
+  primary_family: "VCS − MI and VCS − CoMIR at ε = 0.2, for fit fraction 0.25 and 1.0: 4 contrasts, Holm over 4; detected = seed-t interval and unit bootstrap interval both exclude 0 and Holm p < 0.05 (g2_aggregate.main)"
+  interaction: "per method and fraction, the seed-paired change of success < 10.5 native px from ε 0 to 0.2 (descriptive, with intervals); VCS − X differences of those changes reported, not tested"
+  ceiling_readout: "REG-P3's pre-registered rule, re-applied per G2: if every method's CAL unit success < 10.5 native px is >= 0.95, the < 2.25 native px success becomes the discriminating readout (with the truth caveat); otherwise < 10.5 stays primary.  Decided from CAL, before DEV is read (g2_aggregate reports both)"
+  everything_else: "all VCS − X contrasts at every cell and both thresholds, reported in full; the fraction axis at ε = 0 is the sample-size curve; per-category success reported descriptively (9 categories, no test)"
+wording_fixed:
+  - "interval containing 0 -> no detectable difference; above / below 0 -> VCS registers x more / fewer DEV scenes"
+  - "VCS ≈ logistic ≈ InfoNCE -> a learned relational-energy class effect (owner wording 2026-10-12); never 'VCS-only' or 'the quadratic loss is robust'"
+  - "a stronger CoMIR / MI is reported as is; the baselines are never weakened"
+  - "DEV results are development validation (DEV seen by r6 REG-P3); no 'independent confirmation' and no 'generalises across modalities' wording from G2 alone — G1 and G2 are two datasets, reported side by side"
+not_run:
+  - "a third dataset (REG-P3's Zurich preparation path exists in the verbatim copy; not prepared, not run)"
+  - "test-time occlusion / partial overlap: a separate axis with its own protocol (docs/06 §7)"
+  - "MIND 2-D, point-set CS, non-rigid, new backbones, new data; the BF-SHG closed test is not touched by G2"
+budget:
+  measured_reg_p3: "per registration on RTX PRO 6000 (REG-P3 results, r6): critics 0.77 s, CoMIR 0.21 s, kernel 2.2 s, MI / NMI 0.51 s; critic run = 12 × 10 CAL windows × 10 + 74 DEV × 10 = 1 940 registrations ≈ 25 min; CoMIR run = 100 + 740 = 840 ≈ 3 min; kernel 3 × 100 + 740 = 1 040 ≈ 38 min; critic training ≈ 1 min (G1 timing: 48 s for 3 000 steps, same crop recipe), CoMIR training ≈ 4 min (G1 timing)"
+  measured_g2: >
+    GPU timing job 1042085 (RTX PRO 6000 node59, commit 709e0cf, 18:14–18:25 UTC = 11 min of GPU in all; separate root outputs_v9/reg_epfl_timing; its
+    unit is NOT reused): code-path smokes on the REG-P3-shaped smoke root, 2 perturbations per window, all rc 0 — logistic 31 s (0.78 s / registration),
+    InfoNCE 22 s (0.77 s), CoMIR 18 s (2 recipe epochs; 0.21 s), kernel 31 s (2.17 s); one real VCS unit (frac 0.25 = 82 FIT units / 83 windows, ε 0.2
+    realised 0.203, seed 901, 3 of the 10 perturbations per window): training 3 000 steps 88 s (peak 1.2 GiB); CAL selection over 12 checkpoints on the 10
+    CAL windows + DEV 74 windows = 582 registrations in 454 s = 0.77 s / registration (peak 2.0 GiB); unit 547 s end to end.  Its registration numbers are
+    a code check and are not read.
+  estimate: >
+    from the measurement: critic unit = 88 s training + 1 940 registrations × 0.77 s ≈ 26.5 min -> 36 units ≈ 16 GPU-h; CoMIR unit ≈ 4 min training + 840 ×
+    0.21 s ≈ 7 min -> 12 units ≈ 1.4 GPU-h; kernel row ≈ fit + 1 040 × 2.2 s ≈ 40 min -> 4 rows ≈ 2.7 GPU-h; total ≈ 20 GPU-h on RTX PRO 6000 (× 1.5–2.3 on
+    L40S).  10 grouped jobs (slurm/v9/reg_g2_feed.txt): 6 × 6 critic units ≈ 2.7 h each (--time 06:00:00), 2 × 6 CoMIR units ≈ 45 min (--time 02:30:00),
+    2 × 2 kernel rows ≈ 80 min (--time 03:00:00); nice per the main session; G1's and V8's running jobs untouched; aggregate on CPU afterwards.
+  gate: "CPU gate slurm/v9/reg_g2_gate_cpu.sbatch (job 1042084): tests/v9/test_reg_g2.py (13) + tests/v9/test_reg.py (G1, 17, against a temporary root) + unit table + MI / NMI reuse check + ONE VCS smoke unit end to end on a REG-P3-shaped smoke root built from the existing cache (4 FIT / 2 CAL / 2 CAL-relabelled 'DEV' windows — no DEV window read; 200 steps, 1 perturbation per window; under outputs_v9/reg_epfl/smoke); the other methods' smokes in the GPU timing job (G1 lesson: a critic smoke with 2 perturbations took 68 min on CPU); records below"
+code: "src/v9/reg/r6_reg_p3.py (verbatim r6 copy at main 2d171a6, sha256 bf2b9f6b5048f256, provenance header), src/v9/reg/g2.py, src/v9/reg/g2_aggregate.py, scripts/v9/reg_g2.py, tests/v9/test_reg_g2.py, slurm/v9/reg_g2.sbatch, slurm/v9/reg_g2_gate_cpu.sbatch, slurm/v9/reg_g2_timing_gpu.sbatch, slurm/v9/reg_g2_feed.txt, configs/V9_REG_EPFL_UNITS.csv; G1's files unchanged (test G1Untouched: g1.py byte-identical, hooks restored, shared r6 module objects for the kernel patch)"
+gate_record: >
+  CPU gate job 1042084 (nodecpu04, commit 709e0cf, 18:14–18:34 UTC, rc 0): tests/v9/test_reg_g2.py 13 / 13 OK and tests/v9/test_reg.py (G1) 17 / 17 OK
+  against a temporary root; unit table written (52 rows: 48 trainable + 4 kernel; 0 reusable — seeds differ from r6); MI / NMI reuse check passed
+  (REG-P3 results present, 74 DEV windows × 10 perturbations; perturbations sha 131fc797…, manifest sha 3ecf9fe8…).  VCS smoke unit end to end on the
+  REG-P3-shaped smoke root (4 FIT / 2 CAL / 2 CAL-relabelled "DEV" windows, 200 steps, 1 perturbation per window) under outputs_v9/reg_epfl/smoke: train 35 s,
+  4 checkpoints selected on unit-pooled CAL, DEV registered, result written, rc 0 (1 196 s; 144 s / registration on CPU).  GPU timing job 1042085 (above):
+  logistic / InfoNCE / CoMIR / kernel smokes rc 0 and one real unit rc 0.  After both jobs: the formal unit root outputs_v9/reg_epfl/units does not exist,
+  G1's root (outputs_v9/reg) holds no V9-G2 entry, and no file under outputs/R6_REG_P3 was modified.  Smoke numbers are code checks and are not read.
+disclosure_at_draft: >
+  the fork read REG-P3's frozen protocol, report and tables while confirming the result layout: the r6 (seeds 0–2) DEV headline rows at < 10.5 native px
+  — vcs 99.3 ± 0.2, logistic 99.2 ± 0.3, infonce 99.4 ± 0.7, comir 96.2 ± 1.2, mi 93.8, nmi 94.0, kernel 87.8 — and that REG-P3's ceiling readout was not
+  triggered (CAL < 10.5 px: MI 70.0 %, NMI 72.2 %, kernel 88.9 %).  No G2 number exists; the smoke and timing numbers are code checks and are not read.
+execution_note_draft_1: >
+  Smoke units live under <root>/smoke/units and the smoke REG-P3 root under <root>/smoke/p3root (built by g2.make_smoke_root from REG-P3's cache via
+  symlinks; perturbations by REG-P3's cmd_perturb); the formal unit root outputs_v9/reg_epfl/units is empty at the draft.  `run` refuses a run dir made with
+  other steps / epochs or holding checkpoints without train.json (G1's guards).  The G1 jobs' root (outputs_v9/reg) and the r6 roots are never written.
