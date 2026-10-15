@@ -124,3 +124,49 @@ def test_point_and_ranking_terms_separate_as_in_v8_core():
         num = num + C.ranking_loss(o["mu"][idx], hbar[idx], "rank")
     (g_direct,) = torch.autograd.grad(num / 2, logits)
     assert torch.allclose(gr, g_direct, atol=1e-6) and parts["ranking_pairs"] == 6 and parts["ranking_subgroups"] == 2
+
+
+# ----------------------------------------------------------------------------------------------------------------- parameter audit (CPU)
+import v81_fork3_param_audit as PA  # noqa: E402
+
+
+def test_param_groups_names():
+    assert PA.group_of("v8_head.weight", True) == "head" and PA.group_of("ln_vision.bias", True) == "ln_vision" and PA.group_of("query_tokens", True) == "query_tokens"
+    assert PA.group_of("Qformer.bert.encoder.layer.3.crossattention.self.query.weight", True) == "qf.L03.cross_attn"
+    assert PA.group_of("Qformer.bert.encoder.layer.3.attention.output.dense.weight", True) == "qf.L03.self_attn"
+    assert PA.group_of("Qformer.bert.encoder.layer.11.output_query.dense.weight", True) == "qf.L11.ffn_query"
+    assert PA.group_of("Qformer.bert.encoder.layer.11.intermediate_query.dense.weight", True) == "qf.L11.ffn_query"
+    assert PA.group_of("Qformer.bert.encoder.layer.0.output.LayerNorm.weight", True) == "qf.L00.ffn_text"
+    assert PA.group_of("Qformer.bert.encoder.layer.0.intermediate.dense.bias", True) == "qf.L00.ffn_text"
+    assert PA.group_of("Qformer.cls.predictions.bias", True) == "qf.cls_head" and PA.group_of("Qformer.bert.embeddings.word_embeddings.weight", True) == "qf.embeddings"
+    assert PA.group_of("itm_head.weight", False) == "frozen:itm_head"
+    assert PA.keys_of("qf.L03.cross_attn") == ["qf.L03.cross_attn", "trainable_all", "qformer_all", "qformer_cross_attn_all"]
+    assert PA.keys_of("frozen:itm_head") == ["frozen:itm_head", "frozen_all"] and PA.keys_of("head") == ["head", "trainable_all"]
+
+
+def test_param_compare_identity_and_change():
+    import torch
+    ref = {"v8_head.weight": torch.ones(2, 3), "itm_head.weight": torch.full((2, 2), 2.0), "Qformer.bert.embeddings.position_ids": torch.arange(4)}
+    st = {"v8_head.weight": torch.ones(2, 3) * 1.5, "itm_head.weight": torch.full((2, 2), 2.0), "Qformer.bert.embeddings.position_ids": torch.arange(4)}
+    c = PA.compare(st, ref, {"v8_head.weight"})
+    assert abs(c["head"]["rel_change"] - 0.5) < 1e-12 and c["head"]["n_identical"] == 0 and abs(c["head"]["max_abs_delta"] - 0.5) < 1e-12
+    assert c["frozen_all"]["n_identical"] == c["frozen_all"]["n_tensors"] == 2 and c["frozen_all"]["max_abs_delta"] == 0.0
+    st["itm_head.weight"] = st["itm_head.weight"] + 1e-3
+    c2 = PA.compare(st, ref, {"v8_head.weight"}); assert c2["frozen_all"]["n_identical"] == 1 and c2["frozen_all"]["nonidentical_examples"] == ["itm_head.weight"]
+
+
+def test_optimizer_audit_maps_v8_groups_and_counts_skips():
+    import torch
+    m = torch.nn.ModuleDict({"a": torch.nn.Linear(3, 2), "b": torch.nn.Linear(2, 2), "unused": torch.nn.Linear(2, 1)})
+    named = [(f"{k}.{n}", p) for k, mod in m.items() for n, p in mod.named_parameters()]
+    decay = [n for n, p in named if p.ndim >= 2]; no_decay = [n for n, p in named if p.ndim < 2]
+    byname = dict(named); opt = torch.optim.AdamW([{"params": [byname[n] for n in decay], "weight_decay": 0.05}, {"params": [byname[n] for n in no_decay], "weight_decay": 0.0}], lr=1e-3)
+    for _ in range(3):                                                                    # 3 successful steps; "unused" never gets a gradient
+        opt.zero_grad(set_to_none=True); m["b"](m["a"](torch.randn(4, 3))).sum().backward(); opt.step()
+    ck = {"opt": opt.state_dict(), "step": 5, "scaler": {"scale": 1024.0, "_growth_tracker": 3}}
+    res = PA.optimizer_audit(ck, decay, no_decay, {n: tuple(p.shape) for n, p in named}, {n: "g" for n, _ in named})
+    assert res["global_iterations"] == 5 and res["adamw_step_max"] == 3 and res["skipped_by_gradscaler"] == 2
+    assert res["n_tensors_never_stepped"] == 2 and set(res["never_stepped_examples"]) == {"unused.weight", "unused.bias"}
+    assert res["param_groups"][0]["weight_decay"] == 0.05 and res["gradscaler"]["scale"] == 1024.0
+    with pytest.raises(SystemExit):
+        PA.optimizer_audit(ck, no_decay, decay, {n: tuple(p.shape) for n, p in named}, {n: "g" for n, _ in named})   # wrong grouping -> refused
