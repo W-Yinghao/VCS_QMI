@@ -1,7 +1,7 @@
 # V9-G2 — the V9-G1 limited extension on the second modality pair, EPFL RGB–NIR.  DRAFT by the G2 fork (2026-10-15) for the main session's freeze.
 # Mirrors reports/V9/V9_G1_PROTOCOL_FROZEN_20261015.yaml: same two axes, same methods, same rule; data and registration = r6 REG-P3 verbatim.
 protocol_id: V9-G2
-status: DRAFT 2026-10-15 (G2 fork, commit 709e0cf; gate job 1042084 and timing job 1042085 submitted — their records are appended below when they finish; nothing formal submitted; freeze by the main session)
+status: DRAFT 2026-10-15 (G2 fork, code commit 709e0cf; gate 1042084 rc 0 and timing 1042085 rc 0 recorded below; nothing formal submitted; freeze + launch by the main session)
 route: V9 secondary line REG, second modality (package v9 docs/06 §2 "EPFL作为第二模态数据的条件扩展"); reuses r6 REG-P1 / REG-P2 / REG-P3 verbatim and V9-G1's training / axis code unmodified
 go_ahead: >
   package v9 01 (EPFL extension conditional on the usage basis); owner 2026-10-15 "所有的数据，只要是现在有了的，我们就有权限。你不需要再纠结，直接开始相关实验"
@@ -86,15 +86,28 @@ not_run:
   - "MIND 2-D, point-set CS, non-rigid, new backbones, new data; the BF-SHG closed test is not touched by G2"
 budget:
   measured_reg_p3: "per registration on RTX PRO 6000 (REG-P3 results, r6): critics 0.77 s, CoMIR 0.21 s, kernel 2.2 s, MI / NMI 0.51 s; critic run = 12 × 10 CAL windows × 10 + 74 DEV × 10 = 1 940 registrations ≈ 25 min; CoMIR run = 100 + 740 = 840 ≈ 3 min; kernel 3 × 100 + 740 = 1 040 ≈ 38 min; critic training ≈ 1 min (G1 timing: 48 s for 3 000 steps, same crop recipe), CoMIR training ≈ 4 min (G1 timing)"
-  measured_g2: "TO BE FILLED from GPU timing job 1042085 (separate root outputs_v9/reg_epfl_timing, nice 400; its unit is NOT reused): logistic / InfoNCE / CoMIR / kernel code-path smokes, one real VCS unit (frac 0.25, ε 0.2, seed 901, 3 of the 10 perturbations per window) end to end"
+  measured_g2: >
+    GPU timing job 1042085 (RTX PRO 6000 node59, commit 709e0cf, 18:14–18:25 UTC = 11 min of GPU in all; separate root outputs_v9/reg_epfl_timing; its
+    unit is NOT reused): code-path smokes on the REG-P3-shaped smoke root, 2 perturbations per window, all rc 0 — logistic 31 s (0.78 s / registration),
+    InfoNCE 22 s (0.77 s), CoMIR 18 s (2 recipe epochs; 0.21 s), kernel 31 s (2.17 s); one real VCS unit (frac 0.25 = 82 FIT units / 83 windows, ε 0.2
+    realised 0.203, seed 901, 3 of the 10 perturbations per window): training 3 000 steps 88 s (peak 1.2 GiB); CAL selection over 12 checkpoints on the 10
+    CAL windows + DEV 74 windows = 582 registrations in 454 s = 0.77 s / registration (peak 2.0 GiB); unit 547 s end to end.  Its registration numbers are
+    a code check and are not read.
   estimate: >
-    pre-measurement, from REG-P3's costs: critic unit = 1 940 registrations × 0.77 s + 1 min ≈ 26 min -> 36 units ≈ 15.6 GPU-h; CoMIR unit ≈ 4 min
-    training + 840 × 0.21 s ≈ 7 min -> 12 units ≈ 1.4 GPU-h; kernel row ≈ fit + 1 040 × 2.2 s ≈ 40 min -> 4 rows ≈ 2.7 GPU-h; total ≈ 20 GPU-h on RTX PRO 6000
-    (× 1.5–2.3 on L40S).  10 grouped jobs (slurm/v9/reg_g2_feed.txt): 6 × 6 critic units ≈ 2.6 h each (--time 06:00:00), 2 × 6 CoMIR units ≈ 45 min
-    (--time 02:30:00), 2 × 2 kernel rows ≈ 80 min (--time 03:00:00); nice per the main session; G1's and V8's running jobs untouched; aggregate on CPU afterwards.
+    from the measurement: critic unit = 88 s training + 1 940 registrations × 0.77 s ≈ 26.5 min -> 36 units ≈ 16 GPU-h; CoMIR unit ≈ 4 min training + 840 ×
+    0.21 s ≈ 7 min -> 12 units ≈ 1.4 GPU-h; kernel row ≈ fit + 1 040 × 2.2 s ≈ 40 min -> 4 rows ≈ 2.7 GPU-h; total ≈ 20 GPU-h on RTX PRO 6000 (× 1.5–2.3 on
+    L40S).  10 grouped jobs (slurm/v9/reg_g2_feed.txt): 6 × 6 critic units ≈ 2.7 h each (--time 06:00:00), 2 × 6 CoMIR units ≈ 45 min (--time 02:30:00),
+    2 × 2 kernel rows ≈ 80 min (--time 03:00:00); nice per the main session; G1's and V8's running jobs untouched; aggregate on CPU afterwards.
   gate: "CPU gate slurm/v9/reg_g2_gate_cpu.sbatch (job 1042084): tests/v9/test_reg_g2.py (13) + tests/v9/test_reg.py (G1, 17, against a temporary root) + unit table + MI / NMI reuse check + ONE VCS smoke unit end to end on a REG-P3-shaped smoke root built from the existing cache (4 FIT / 2 CAL / 2 CAL-relabelled 'DEV' windows — no DEV window read; 200 steps, 1 perturbation per window; under outputs_v9/reg_epfl/smoke); the other methods' smokes in the GPU timing job (G1 lesson: a critic smoke with 2 perturbations took 68 min on CPU); records below"
 code: "src/v9/reg/r6_reg_p3.py (verbatim r6 copy at main 2d171a6, sha256 bf2b9f6b5048f256, provenance header), src/v9/reg/g2.py, src/v9/reg/g2_aggregate.py, scripts/v9/reg_g2.py, tests/v9/test_reg_g2.py, slurm/v9/reg_g2.sbatch, slurm/v9/reg_g2_gate_cpu.sbatch, slurm/v9/reg_g2_timing_gpu.sbatch, slurm/v9/reg_g2_feed.txt, configs/V9_REG_EPFL_UNITS.csv; G1's files unchanged (test G1Untouched: g1.py byte-identical, hooks restored, shared r6 module objects for the kernel patch)"
-gate_record: "TO BE FILLED from job 1042084"
+gate_record: >
+  CPU gate job 1042084 (nodecpu04, commit 709e0cf, 18:14–18:34 UTC, rc 0): tests/v9/test_reg_g2.py 13 / 13 OK and tests/v9/test_reg.py (G1) 17 / 17 OK
+  against a temporary root; unit table written (52 rows: 48 trainable + 4 kernel; 0 reusable — seeds differ from r6); MI / NMI reuse check passed
+  (REG-P3 results present, 74 DEV windows × 10 perturbations; perturbations sha 131fc797…, manifest sha 3ecf9fe8…).  VCS smoke unit end to end on the
+  REG-P3-shaped smoke root (4 FIT / 2 CAL / 2 CAL-relabelled "DEV" windows, 200 steps, 1 perturbation per window) under outputs_v9/reg_epfl/smoke: train 35 s,
+  4 checkpoints selected on unit-pooled CAL, DEV registered, result written, rc 0 (1 196 s; 144 s / registration on CPU).  GPU timing job 1042085 (above):
+  logistic / InfoNCE / CoMIR / kernel smokes rc 0 and one real unit rc 0.  After both jobs: the formal unit root outputs_v9/reg_epfl/units does not exist,
+  G1's root (outputs_v9/reg) holds no V9-G2 entry, and no file under outputs/R6_REG_P3 was modified.  Smoke numbers are code checks and are not read.
 disclosure_at_draft: >
   the fork read REG-P3's frozen protocol, report and tables while confirming the result layout: the r6 (seeds 0–2) DEV headline rows at < 10.5 native px
   — vcs 99.3 ± 0.2, logistic 99.2 ± 0.3, infonce 99.4 ± 0.7, comir 96.2 ± 1.2, mi 93.8, nmi 94.0, kernel 87.8 — and that REG-P3's ceiling readout was not
