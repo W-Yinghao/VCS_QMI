@@ -1,0 +1,55 @@
+{
+ "scope": "V8.1 D02 / D03 / D04a (CPU only, zero training, no GPU)",
+ "jobs": [
+  {
+   "job_id": 1042175,
+   "steps": "normalize, diagnose, d02, d03, d04a",
+   "node": "nodecpu04",
+   "exit": 0,
+   "note": "normalized rows and package diagnose JSON reused by every later job (skip-existing)"
+  },
+  {
+   "job_id": 1042223,
+   "steps": "d02, d03, d04a",
+   "exit": 0,
+   "note": "after the antisymmetric delta-matrix / lr formatting / export-vs-log fixes; superseded"
+  },
+  {
+   "job_id": 1042227,
+   "steps": "d02, d03, d04a",
+   "exit": 0,
+   "note": "added J readout, epoch-0 pattern, per-prompt U-CS rows; superseded"
+  },
+  {
+   "job_id": 1042229,
+   "steps": "d03",
+   "exit": 0,
+   "note": "exact sum(votes)/n human means; superseded"
+  },
+  {
+   "job_id": 1042239,
+   "steps": "d04a",
+   "exit": 0,
+   "note": "paired DEV contrasts with cluster bootstrap; superseded"
+  },
+  {
+   "job_id": 1042242,
+   "steps": "d02",
+   "exit": 0,
+   "note": "CAL_SELECT / CAL_PROB agreement; superseded"
+  },
+  {
+   "job_id": 1042243,
+   "steps": "normalize (skip), diagnose (skip), d02, d03, d04a",
+   "exit": 0,
+   "note": "FINAL: every d02_* / d03_* / d04a_* / distribution.csv file in results/ comes from this job"
+  }
+ ],
+ "script_hashes_at_final_run": "/projects/EEG-foundation-model/yinghao/outputs_v81/d02_d04a_final_script_hashes.txt",
+ "report_number_check": "scripts/v81/d02_d04a_report_numbers.py verify -> 0 unmatched in V81_02 / V81_03 / V81_04a",
+ "tests": "tests/v81/test_v81_d02_d04a.py (11 tests) pass; tests/v81 total 21 pass",
+ "post_run_changes": [
+  "scripts/v81/d02_d04a_report_numbers.py: verify skips headings / section references (no result affected)",
+  "scripts/v81/d02_agreement.py: per-prompt U-CS rows (label-derived deltas) now written to outputs_v81/diag/ instead of results/; the file produced by 1042243 was moved there unchanged"
+ ]
+}
