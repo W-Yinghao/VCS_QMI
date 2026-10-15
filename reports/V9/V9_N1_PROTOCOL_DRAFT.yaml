@@ -1,0 +1,54 @@
+# V9-N1 — proportion and reliability quantification (package §04, §08.1): DRAFT by the N1 fork, 2026-10-15.  The main session freezes it
+# (rename to V9_N1_PROTOCOL_FROZEN_<date>.yaml, freeze time in `status`) before the formal N1-Exact / N1-Image runs.  Smoke outputs of the
+# gate are code-path evidence only and are not results.  Nothing here reads a test split, V8 outputs or GenAI labels.
+version: V9-N1 draft 1
+branch: v9/reliable-correspondence
+package: v9/package_v9_20261016 (reference maths byte-identical in src/v9/reference_core.py; tests/v9/test_reference_identity.py)
+code:
+  module: src/v9/quant.py (every §04.4 method on one interface; §03.B moment identity; §03.D clean posterior via the package reference; §03.C set via `rho_confidence_set` only after `role_disjointness` on real ids + two recorded caller assertions)
+  runners: scripts/v9/n1_exact.py, scripts/v9/n1_image.py; aggregate scripts/v9/n1_aggregate.py (+ src/v9/svgplot.py: dependency-free SVG, matplotlib absent)
+  sbatch: slurm/v9/n1.sbatch (CPU partition; gate | exact <designs> | image <seeds> | aggregate; resumable, skip-if-done)
+  tests: tests/v9 (package 69 + reference identity + N1 tests)
+scenarios:
+  N1-Exact:
+    support: 9 points s_k = linspace(-1, 1, 9); masses p ∝ exp(κ s), q ∝ exp(-κ s); designs clear κ=2.5 (S 0.82), moderate κ=1.2, weak κ=0.3 (a - b small: weak identification); shift = moderate P/Q reference with the batch P component moved one support point up (N1-Stress: mixture assumption fails; no coverage claimed)
+    mixture: R = iid (1 - ρ) P + ρ Q with the component label recorded for the offline scorer only
+    grid: ρ ∈ {0, 0.1, 0.3, 0.5}; batch n ∈ {128, 512, 2048}; 200 independent repeats per cell (fresh fit / select / reference / batch draws); seed 901 stream
+    roles_per_repeat: critic-fit n+n, critic-select n/2+n/2, reference-moments n+n, batch n; every sample is its own independent cluster
+    controls_fixed_score: oracle η (exact); affine 2.5η - 0.4 and anti -η (identical estimates expected: |u| invariance, §03.B); constant (must return unidentified); noise (T independent of η per repeat)
+    truth: η, S, w* = clean_posterior(η, ρ) exact; oracle Brier / log loss of w* reported beside every method
+  N1-Image:
+    source: outputs/P49_precheck_A/features/SRC-FIT.pt (frozen open_clip ViT-B/32 laion2b features of 20 000 COCO train2017 images, 5 captions each; sha256 recorded per run) — ALREADY OBSERVED by P49/P50/P57/P58/P71/P72/P79/P80/P159: exploration and code continuity, not a new independent confirmation (§07.1)
+    common_teacher_score: cosine of the frozen CLIP pair — disclosed deviation: the §05 SGR teacher does not exist yet; the same single scalar score feeds every method (§04.2)
+    roles_per_seed: anchor A = 10 % of images (2 000), partitioned by image 40/30/15/15 → teacher-warmup 800 (unused: no teacher is trained), critic-fit 600, critic-select 300, reference-moments 300 = P-reference 100 / Q-anchor 100 / Q-donor 100 (disjoint units per cluster); U = 18 000
+    pairs: P = (image, one caption drawn per seed); Q fit/select = one non-zero cyclic shift inside the role (same-image rejection ⇒ conditional Q; fitting only); Q reference = (Q-anchor image, caption of a distinct Q-donor image)
+    batches: design ρ ∈ {0, 0.1, 0.3, 0.5}, n ∈ {128, 512, 2048}, 30 random batches of U images per cell; round(ρ n) images get the caption of a distinct donor U image outside the batch; injection labels only to the offline scorer; realised ρ = replaced fraction (target of the error metrics); repeats share the U pool and the fitted panel (dependent; "30" is not 30 datasets)
+    seeds: 901, 902, 903 (fresh role draws and fits); tuning seed 917 reserved (the lr / regularisation grids are fixed and selected on critic-select, so no separate tuning run is needed in N1 — recorded)
+    sensitivity: Adam-fitted scalar critics (lr grid {1e-2, 3e-2, 1e-1}, 500 steps) recorded per seed next to the multistart L-BFGS fits; common-feature critics (pooled vectors / low-rank bilinear / MLP) are NOT in this draft (scalar main panel only; a later addendum would pre-register them before any run)
+methods:                                  # §04.4; all read the same scalar score; selection of every hyper-parameter on critic-select by the common J (primary), native criterion kept as sensitivity in the fit records
+  - raw_moment (untrained score; proportion only, no posterior)
+  - vcs_moment (cos-2: T = tanh(a s + b), a = softplus(a_raw) > 0; 1 - J; multistart L-BFGS-B, 9 deterministic starts)
+  - bce_moment (same class, balanced log loss on the natural logit 2(a s + b))
+  - bbse_hard / bbse_soft (black box = the BCE probability; confusion / mean matrix from the reference roles; invertibility checked; soft ≡ bce_moment algebraically — recorded)
+  - em_uncal / em_ts / em_bcts / em_isotonic (label-shift EM on the uncalibrated / temperature / bias-corrected temperature / isotonic-calibrated BCE probability; calibrators fitted on critic-select = the same reference budget)
+  - kde_moment / kde_em (1-D Gaussian KDEs of s under P and Q; Silverman × {0.25, 0.5, 1, 2, 4})
+  - rulsif_moment / rulsif_em (α = ½ relative density ratio on 100 Gaussian centres; σ × {0.5, 1, 2, 4} × λ ∈ {1e-3, 1e-2, 1e-1, 1}; T raw and clipped both stored)
+  - nystrom_moment / nystrom_em (Nyström kernel ridge on the balanced ±1 label, 100 centres; σ × {0.5, 1, 2, 4} × λ ∈ {1e-4, 1e-3, 1e-2, 1e-1})
+  - kernel_mpe (P + R only; Ramaswamy et al. 2016 KM idea with a two-segment knee rule; pool capped at 512 per role; CONDITIONAL column with a different information budget)
+weights: w = clean_posterior(T, ρ̂_clipped) of §03.D for every posterior-bearing method; ESS, ESS / n, mean w, |T| ≥ 1 - 1e-6 clip rate recorded; the oracle-ρ weights are a diagnostic only (not in the deployed table)
+interval: §03.C Hoeffding-union set (α 0.05) on the oracle η (Exact) and on the fitted VCS and BCE critics (fixed before the reference / batch draws), from cluster means with `role_disjointness` passing on real ids; `fixed_score_outside_eval` and `specified_mixture` are recorded caller assertions (False for the shift design)
+metrics:                                  # §04.6, §08.1
+  proportion: rho_raw, rho_clipped, identification status, MAE / RMSE / bias vs the realised ρ, raw-outside-[0,1] count
+  interval: coverage, mean width of bounded sets, empty / full / bounded rates
+  posterior: Brier, log loss, AUROC of w against the component label (offline scorer), ESS fraction; J of each critic class as an auxiliary read-out
+  main_comparison: RMSE averaged over the four ρ values per source (N1-Exact: per design; N1-Image: per seed) and per n — no favourable-ρ selection; the two natural sources of §04.5 are COCO (this draft) and Flickr30K (not available yet: reported as missing, not substituted)
+  failure_handling: weak separation returns wide / full / empty sets and unidentified statuses, all reported; a non-empty set is not evidence of no shift; the shift design is read as assumption failure, never repaired by a narrower interval
+readings_fixed_now:
+  - H1 is read on the main comparison only: VCS-moment vs BBSE / calibrated EM / kernel methods at equal reference budget; "affine-invariant moment estimates coincide" is the expected null for vcs_moment vs bce_moment vs bbse_soft (same T up to scale), and is reported as such, not as a tie to be broken
+  - N1 is not a gate on N2 (§04.7): N2 proceeds on definitional correctness, computable weights and no label leakage, whatever the N1 ranking
+not_claimed: natural clean-posterior recovery; end-to-end VL robustness; anything about Flickr30K / NCR data (not yet audited); any SGR-teacher statement; novelty of the moment / BBSE / EM / posterior-weight formulas (prior art listed in the package literature review)
+cost_measured_in_smoke:                  # login-node smoke, 8 threads; the CPU gate re-measures (its /usr/bin/time lines)
+  exact: 0.46 s per repeat at n 128 (fit panel + batch, no Adam); n 2048 to be measured by the gate → 4 designs × 4 ρ × 3 n × 200 repeats ≈ 9 600 repeats; submission as 4 CPU jobs (one design each), resumable
+  image: panel fit 0.4 s (no Adam) / ≈ 7 s with Adam per seed; ≈ 0.1 s per batch at n 128 (n 2048 to be measured) → 3 seeds × 12 cells × 30 batches ≈ 1 080 batches: one CPU job
+submission_after_freeze: sbatch slurm/v9/n1.sbatch exact clear | moderate | weak | shift (4 jobs) ; sbatch slurm/v9/n1.sbatch image 901,902,903 ; then aggregate → results-only commit → report (reports/V9/V9_N1_RESULTS/)
+status: draft
