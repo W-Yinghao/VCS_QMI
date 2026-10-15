@@ -40,6 +40,8 @@ case "$what" in
        [ -f $REP/LABEL_ACCESS_LEDGER.csv ] || echo "dataset,prompt_set_hash,label_file_hash,first_access_utc,purpose,user_or_process,authorized_by,affected_model_versions,already_exposed,notes" > $REP/LABEL_ACCESS_LEDGER.csv
        echo "TIFA160 human annotations (DSG 5-rater tifa160-likert-anns.csv sha256 $DH; TIFA 2-rater human_annotations.json sha256 $TH; 800 images = 160 text inputs x 5 generators),$IH,$DH;$TH,$(date -u +%FT%TZ) (job $SLURM_JOB_ID; first read inside it),V8-05 section B secondary external evaluation (tifa_primary 4 contrasts Holm; tifa_attribution 2; same-data descriptive; three correlations with intervals; no claim),v8_confirm.py tifa160-run (frozen V8 units + local external routes),owner 2026-10-15 (TIFA160 read approved as a secondary external evaluation of the frozen V8 models; reports/OWNER_DECISIONS_20261015.md),V8 formal units 24 (frozen) + B0 released FGA + B1 VQAScore + B4T TIFA local (+ B4D DSG local if present: exposed in-context),B4D DSG route exposed to DSG tifa160 in-context examples; V8 / FGA / VQAScore / TIFA route unexposed,secondary evaluation added 2026-10-15 — not the registered confirmation source" >> $REP/LABEL_ACCESS_LEDGER.csv
        $PY scripts/v8/v8_confirm.py tifa160-run --allow-scoring --out "$OUT"; rc=$?;;
+  tifa160-smoke) OUT="$1"; shift; [ -n "$OUT" ] || { echo "tifa160-smoke needs OUT"; exit 2; }   # synthetic labels on the real predictions; no sealed file, no ledger
+       $PY scripts/v8/v8_tifa160_smoke.py --out "$OUT"; rc=$?;;
   *) echo "unknown mode $what"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc

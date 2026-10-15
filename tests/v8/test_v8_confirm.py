@@ -146,3 +146,81 @@ def test_tifa160_run_refuses_without_confirmed_line(tmp_path, monkeypatch):
     a = type("A", (), {"out": str(tmp_path / "o"), "allow_scoring": True})()
     with pytest.raises(SystemExit):
         C.cmd_tifa160_run(a)
+
+
+# ---- hardened readers / fast estimators (added before the TIFA160 read, 2026-10-15) --------------------------------------------------------
+def _img(tid, tag):
+    return f"annotated_images/{tid}_{tag}.jpg"
+
+
+def test_tifa160_fast_estimators_equal_reference():
+    rng = np.random.default_rng(11)
+    for _ in range(5):
+        a = rng.integers(1, 6, 300).astype(float); b = a + rng.normal(0, 1.2, 300); b[::7] = 2.0
+        assert abs(C.spearman_tifa(a, b) - C.spearman(a, b)) < 1e-12 and abs(C.kendall_tifa(a, b) - C.kendall_tau_b(a, b)) < 1e-12
+    assert np.isnan(C.kendall_tifa(np.ones(6), np.arange(6.0))) and np.isnan(C.spearman_tifa(np.ones(6), np.arange(6.0)))
+
+
+def test_tifa160_contrasts_equal_reference_loop():
+    """The restructured bootstrap (draws once, ours cached) gives exactly what the per-comparator reference loop gave."""
+    rng = np.random.default_rng(9); prompts = [f"p{i}" for i in range(15)]; gens = ["g1", "g2", "g3", "g4"]
+    images = [f"{g}/{p}.jpg" for p in prompts for g in gens]; prompt_of = {im: im.split("/")[1][:-4] for im in images}
+    human = {im: float(rng.integers(1, 6)) for im in images}
+    methods = {"U-CS": {im: human[im] + rng.normal(0, 1) for im in images}, "X": {im: rng.normal() for im in images}, "Y": {im: float(rng.integers(0, 3)) for im in images}}
+    got = C.tifa160_contrasts(images, prompt_of, methods, human, "U-CS", ["X", "Y"], reps=200, seed=4)
+    ps = sorted({prompt_of[im] for im in images}); idx = {p: np.array([i for i, im in enumerate(images) if prompt_of[im] == p]) for p in ps}
+    h = np.array([human[im] for im in images]); m = {k: np.array([methods[k][im] for im in images]) for k in methods}
+    rng2 = np.random.default_rng(4); draws = [rng2.integers(0, len(ps), len(ps)) for _ in range(200)]
+    ref_fn = {"spearman": C.spearman, "pearson": C.pearson, "kendall_tau_b": C.kendall_tau_b}
+    for comp in ("X", "Y"):
+        for cn, fn in ref_fn.items():
+            bs = np.array([fn(m["U-CS"][s], h[s]) - fn(m[comp][s], h[s]) for s in (np.concatenate([idx[ps[i]] for i in dr]) for dr in draws)]); bs = bs[~np.isnan(bs)]
+            g = got[comp][cn]
+            assert abs(g["delta"] - (fn(m["U-CS"], h) - fn(m[comp], h))) < 1e-12 and abs(g["p"] - C.boot_p(bs)) < 1e-12
+            assert abs(g["ci95"][0] - np.percentile(bs, 2.5)) < 1e-9 and abs(g["ci95"][1] - np.percentile(bs, 97.5)) < 1e-9
+
+
+def test_tifa160_dsg_reader_id_column_fallback_and_bad_answers(tmp_path):
+    image_of = {("coco_1", "mini_dalle"): _img("coco_1", "mini_dalle"), ("coco_1", "stable_diffusion_v2_1"): _img("coco_1", "stable_diffusion_v2_1")}
+    p = tmp_path / "a.csv"
+    p.write_text("item_id,source_id,t2i_model,worker_id,answer\ncoco_1,x,mini-dalle,w1,5\ncoco_1,x,mini-dalle,w2,N/A\ntifa160_0,coco_1,sd2dot1,w1,2\n"
+                 "tifa160_0,coco_1,sd2dot1,w2,3\ntifa160_9,coco_9,sd2dot1,w1,1\n")
+    r = C.read_tifa160_dsg(p, image_of)
+    assert r["human"] == {_img("coco_1", "mini_dalle"): 5.0, _img("coco_1", "stable_diffusion_v2_1"): 2.5}
+    c = r["meta"]["counts"]; assert c["answer_not_numeric"] == 1 and c["rows_unmatched"] == 1 and c["text_id_from_item_id"] == 1 and c["text_id_from_source_id"] == 2
+    assert r["meta"]["raters_per_image"] == {1: 1, 2: 1}
+
+
+def test_tifa160_tifa_reader_more_layouts(tmp_path):
+    ids = ["coco_1", "coco_12", "partiprompt_3"]; tags = list(C.TIFA160_MODELS)
+    image_of = {(t, g): _img(t, g) for t in ids for g in tags}
+
+    def run(obj):
+        p = tmp_path / f"x{abs(hash(json.dumps(obj, sort_keys=True))) % 10**8}.json"; p.write_text(json.dumps(obj)); return C.read_tifa160_tifa(p, image_of)
+    # (a) per-rater records, worker ids, metric fields alongside
+    recs = [{"image": "coco_12_vq_diffusion.jpg", "worker_id": "A1Z9", "score": 4}, {"image": "coco_12_vq_diffusion.jpg", "worker_id": "B7Q", "score": 1},
+            {"image": "coco_1_vq_diffusion.jpg", "worker_id": "A1Z9", "score": 3}]
+    r = run(recs); assert r["human"] == {_img("coco_12", "vq_diffusion"): 2.5, _img("coco_1", "vq_diffusion"): 3.0}   # no prefix confusion coco_1 / coco_12
+    assert r["meta"]["ratings_per_image"] == {1: 1, 2: 1}
+    # (b) file-name keys; raw list + avg + metrics + counts -> the raw list
+    r = run({"coco_1_stable_diffusion_v1_5.jpg": {"text": "a cat", "human_scores": [5, 2], "human_avg": 3.5, "tifa_score": 0.9, "clip_score": 0.3, "n_annotators": 2}})
+    assert r["human"] == {_img("coco_1", "stable_diffusion_v1_5"): 3.5} and "tier1:list:human_scores.[*]" in r["meta"]["rating_paths"]
+    # (c) id -> {text, images -> model alias -> annotations[{worker, rating}]}
+    r = run({"partiprompt_3": {"text": "a dog", "images": {"minDALL-E": {"annotations": [{"worker": "w1", "rating": 2}, {"worker": "w2", "rating": 4}]},
+                                                            "SD v2.1": {"annotations": [{"worker": "w1", "rating": 5}]}}}})
+    assert r["human"] == {_img("partiprompt_3", "mini_dalle"): 3.0, _img("partiprompt_3", "stable_diffusion_v2_1"): 5.0}
+    # (d) DSG-style stems; scores keyed by worker; (e) metric-only entry -> located, no rating
+    r = run({"coco_12_sd1dot1": {"scores": {"w1": 4, "w2": 3}}, "coco_1_sd1dot1": {"clip_score": 0.2}})
+    assert r["human"] == {_img("coco_12", "stable_diffusion_v1_1"): 3.5} and r["meta"]["images_without_rating"] == 1 and r["unparsed_entries"] == 1
+    # (f) list of records with id + model fields; bare per-image number under a wrapper key
+    r = run({"data": [{"id": "coco_1", "model": "stable_diffusion_v2_1", "human_score": 1}], "coco_12_mini_dalle": 4})
+    assert r["human"] == {_img("coco_1", "stable_diffusion_v2_1"): 1.0, _img("coco_12", "mini_dalle"): 4.0}
+    # structure summary never carries a value
+    def leaves(x):
+        if isinstance(x, dict):
+            for v in x.values():
+                yield from leaves(v)
+        else:
+            yield x
+    r = run(recs); s = r["meta"]["structure"]
+    assert all(isinstance(v, (str, int, type(None))) for v in leaves(s)) and "A1Z9" not in json.dumps(s) and "4" not in json.dumps(s).replace("list_len", "")

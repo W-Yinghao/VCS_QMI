@@ -397,75 +397,278 @@ def kendall_tau_b(a, b) -> float:
     return float("nan") if den == 0 else (conc - disc) / den
 
 
-CORR = {"spearman": spearman, "pearson": pearson, "kendall_tau_b": kendall_tau_b}
+try:                                                                       # identical estimators, faster (tests compare them with the reference code)
+    from scipy.stats import kendalltau as _sp_kendalltau, rankdata as _sp_rankdata
+except Exception:                                                          # pragma: no cover
+    _sp_kendalltau = _sp_rankdata = None
+
+
+def spearman_tifa(a, b) -> float:
+    if _sp_rankdata is None:
+        return spearman(a, b)
+    ra, rb = _sp_rankdata(np.asarray(a, float)), _sp_rankdata(np.asarray(b, float))
+    if ra.std() == 0 or rb.std() == 0:
+        return float("nan")
+    return float(np.corrcoef(ra, rb)[0, 1])
+
+
+def kendall_tifa(a, b) -> float:
+    if _sp_kendalltau is None:
+        return kendall_tau_b(a, b)
+    a, b = np.asarray(a, float), np.asarray(b, float)
+    if a.std() == 0 or b.std() == 0:
+        return float("nan")
+    return float(_sp_kendalltau(a, b).correlation)                         # scipy default = tau-b
+
+
+CORR = {"spearman": spearman_tifa, "pearson": pearson, "kendall_tau_b": kendall_tifa}
+
+# model-name aliases (normalised: lower case, alphanumerics only) -> official file tag
+_MODEL_ALIAS = {}
+for _tag, _al in {"mini_dalle": ("minidalle", "mindalle", "dallemini"),
+                  "vq_diffusion": ("vqdiffusion",),
+                  "stable_diffusion_v1_1": ("stablediffusionv11", "sd1dot1", "sdv11", "sd11", "stablediffusion11", "sdv1dot1", "stablediffusionv1dot1"),
+                  "stable_diffusion_v1_5": ("stablediffusionv15", "sd1dot5", "sdv15", "sd15", "stablediffusion15", "sdv1dot5", "stablediffusionv1dot5"),
+                  "stable_diffusion_v2_1": ("stablediffusionv21", "sd2dot1", "sdv21", "sd21", "stablediffusion21", "sdv2dot1", "stablediffusionv2dot1")}.items():
+    for _a in _al:
+        _MODEL_ALIAS[_a] = _tag
+del _tag, _al, _a
+
+
+def _norm(s) -> str:
+    import re
+    return re.sub(r"[^a-z0-9]", "", str(s).lower())
+
+
+def model_alias(s):
+    return _MODEL_ALIAS.get(_norm(s)) if s is not None else None
+
+
+def _tifa160_resolver(image_of: dict):
+    """String -> image_id for file names / stems / '<id>_<model>' with any model alias; ids longest-first (no prefix ambiguity)."""
+    ids = sorted({t for t, _ in image_of}, key=len, reverse=True); by = {}
+    for (tid, tag), im in image_of.items():
+        for k in (f"{tid}_{tag}", im, im.split("/")[-1]):
+            by[k] = im
+    exts = (".jpg", ".jpeg", ".png", ".webp")
+
+    def image_of_str(s):
+        if not isinstance(s, str):
+            return None
+        base = s.replace("\\", "/").split("/")[-1]
+        if base in by:
+            return by[base]
+        stem = base.rsplit(".", 1)[0] if base.lower().endswith(exts) else base
+        if stem in by:
+            return by[stem]
+        for tid in ids:
+            if len(stem) > len(tid) + 1 and stem.startswith(tid) and stem[len(tid)] in "_- /":
+                tag = model_alias(stem[len(tid) + 1:])
+                if tag is not None and (tid, tag) in image_of:
+                    return image_of[(tid, tag)]
+        return None
+    return image_of_str, set(ids)
 
 
 def read_tifa160_dsg(path: Path, image_of: dict) -> dict:
-    """DSG's tifa160-likert-anns.csv (schema from the PUBLIC dsg/data_utils.py: item_id, source_id, t2i_model, worker_id, answer): mean Likert per
-    (source_id = TIFA text id, t2i_model -> file tag) over its raters.  image_of[(text id, tag)] -> image_id.  Opened by tifa160-run only."""
+    """DSG's tifa160-likert-anns.csv.  Schema from the PUBLIC dsg/data_utils.py: item_id (DSG id, e.g. tifa160_63), source_id (TIFA text id),
+    t2i_model in {mini-dalle, vq-diffusion, sd1dot1, sd1dot5, sd2dot1}, worker_id, answer (1-5 Likert).  Mean over all rows of an image (as DSG's
+    load_human_likert_ann + np.mean).  The text-id column is whichever of source_id / item_id holds one of the 160 ids (counted); non-numeric answers
+    are skipped and counted.  Opened by tifa160-run only."""
     import csv
-    acc = defaultdict(list); raters = defaultdict(set)
-    for r in csv.DictReader(open(path)):
-        tag = DSG_T2I_TO_TAG.get(r["t2i_model"])
-        key = (r["source_id"], tag)
-        if tag is None or key not in image_of:
+    from collections import Counter
+    ids = {t for t, _ in image_of}; acc = defaultdict(list); raters = defaultdict(set); st = Counter()
+    with open(path, newline="") as f:
+        rd = csv.DictReader(f); cols = list(rd.fieldnames or [])
+        for r in rd:
+            st["rows"] += 1
+            tid = r.get("source_id") if r.get("source_id") in ids else (r.get("item_id") if r.get("item_id") in ids else None)
+            tag = DSG_T2I_TO_TAG.get(r.get("t2i_model")) or model_alias(r.get("t2i_model"))
+            if tid is None or tag is None or (tid, tag) not in image_of:
+                st["rows_unmatched"] += 1; continue
+            try:
+                v = float(r.get("answer"))
+            except (TypeError, ValueError):
+                st["answer_not_numeric"] += 1; continue
+            if not math.isfinite(v):
+                st["answer_not_numeric"] += 1; continue
+            im = image_of[(tid, tag)]; acc[im].append(v); raters[im].add(r.get("worker_id")); st["rows_used"] += 1
+            st["text_id_from_" + ("source_id" if r.get("source_id") == tid else "item_id")] += 1
+    vals = [x for v in acc.values() for x in v]
+    return {"human": {im: float(np.mean(v)) for im, v in acc.items()}, "n_raters": {im: len(raters[im]) for im in acc},
+            "meta": {"columns": cols, "counts": dict(st), "ratings_per_image": dict(sorted(Counter(len(v) for v in acc.values()).items())),
+                     "raters_per_image": dict(sorted(Counter(len(raters[im]) for im in acc).items())),
+                     "value_range": [min(vals), max(vals)] if vals else None}}
+
+
+_EXCL_TOK = {"tifa", "clip", "blip", "blip2", "bleu", "rouge", "meteor", "spice", "cider", "vqa", "caption", "captions", "text", "prompt", "question",
+             "questions", "id", "ids", "idx", "index", "num", "n", "count", "model", "models", "time", "seed", "width", "height", "len", "length",
+             "rank", "dsg", "auto", "automatic", "metric", "metrics", "pred", "prediction", "std", "var", "variance", "stdev", "sd", "agreement",
+             "kappa", "alpha", "confidence", "conf", "min", "max", "median", "bert", "bertscore", "clipscore", "tifascore", "vqascore", "pickscore",
+             "hps", "imagereward", "aesthetic", "fid", "is", "version", "year", "elapsed", "duration", "seconds", "timestamp"}
+_T1_TOK = {"human", "humans", "likert", "annotator", "annotators", "worker", "workers", "rater", "raters", "annotation", "annotations",
+           "judgment", "judgments", "judgement", "judgements"}
+_T2_TOK = {"score", "scores", "rating", "ratings", "avg", "average", "mean", "answer", "answers", "overall", "faithfulness"}
+_AVG_TOK = {"avg", "average", "mean"}
+
+
+def _key_tokens(k) -> set:
+    import re
+    s = re.sub(r"([a-z])([A-Z])", r"\1 \2", str(k))
+    return {t for t in re.split(r"[^a-z0-9]+", s.lower()) if t}
+
+
+def _path_tier(path: tuple):
+    toks = set()
+    for k in path:
+        if k != "[*]":
+            toks |= _key_tokens(k)
+    if toks & _EXCL_TOK:
+        return None
+    if toks & _T1_TOK:
+        return 1
+    if toks & _T2_TOK:
+        return 2
+    return 3 if not toks else 4
+
+
+def _numeric_leaves(node, path=()):
+    import re
+    if isinstance(node, bool) or node is None:
+        return
+    if isinstance(node, (int, float)):
+        if math.isfinite(float(node)):
+            yield path, float(node)
+    elif isinstance(node, str):
+        if re.fullmatch(r"\s*-?\d+(\.\d+)?\s*", node):
+            yield path, float(node)
+    elif isinstance(node, list):
+        for v in node:
+            yield from _numeric_leaves(v, path + ("[*]",))
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            yield from _numeric_leaves(v, path + (str(k),))
+
+
+def _rating_of(entry):
+    """Human rating values of one entry: the best tier present (1 human/likert/annotator… > 2 score/rating/avg… > 3 bare number(s) > 4 other
+    non-excluded numeric fields, used only when all lie in [0, 10]); within the tier one list path (raw ratings) wins, else one avg/mean path, else
+    all scalar paths of the tier.  Returns (values, rule) or (None, reason)."""
+    by = defaultdict(list)
+    for p, v in _numeric_leaves(entry):
+        by[p].append(v)
+    tiers = defaultdict(list)
+    for p in by:
+        t = _path_tier(p)
+        if t is not None:
+            tiers[t].append(p)
+    for t in (1, 2, 3, 4):
+        ps = sorted(tiers.get(t, []))
+        if not ps:
             continue
-        acc[image_of[key]].append(float(r["answer"])); raters[image_of[key]].add(r["worker_id"])
-    return {"human": {im: float(np.mean(v)) for im, v in acc.items()}, "n_raters": {im: len(raters[im]) for im in acc}}
+        if t == 4 and not all(0 <= v <= 10 for p in ps for v in by[p]):
+            return None, "tier4 values outside [0, 10]"
+        lists = [p for p in ps if p and p[-1] == "[*]"]
+        avgs = [p for p in ps if any(_key_tokens(k) & _AVG_TOK for k in p if k != "[*]")]
+        if len(lists) == 1:
+            use, how = lists, "list"
+        elif len(avgs) == 1:
+            use, how = avgs, "avg"
+        else:
+            use, how = ps, "all"
+        return [v for p in use for v in by[p]], f"tier{t}:{how}:" + " + ".join(".".join(p) or "<value>" for p in use)
+    return None, "no numeric rating field"
+
+
+def _json_shape(node, image_of_str, ids, depth=0):
+    """Structure only (types, sizes, masked key names) — never a value."""
+    import re
+    if depth > 4:
+        return "..."
+    if isinstance(node, dict):
+        def mask(k):
+            k = str(k)
+            if image_of_str(k):
+                return "<image>"
+            if k in ids:
+                return "<text_id>"
+            if model_alias(k):
+                return "<model>"
+            return k if re.fullmatch(r"[A-Za-z_][A-Za-z_ \-]{0,30}\d{0,2}", k) else "<key>"
+        ks = list(node)[:4]
+        return {"dict_len": len(node), "first_keys": {mask(k): _json_shape(node[k], image_of_str, ids, depth + 1) for k in ks}}
+    if isinstance(node, list):
+        return {"list_len": len(node), "item": _json_shape(node[0], image_of_str, ids, depth + 1) if node else None}
+    return type(node).__name__
 
 
 def read_tifa160_tifa(path: Path, image_of: dict) -> dict:
-    """TIFA's human_annotations.json — structure NOT known before the read (the folder README is sealed).  Tolerant parse: a dict keyed by image file
-    name / stem / '<id>_<model>' with a number, a list of numbers or a dict holding scores; or a list of records.  Everything unrecognised is
-    counted and reported; the detected layout is written to the result.  Opened by tifa160-run only."""
-    raw = json.load(open(path)); stem_of = {}
-    for (tid, tag), im in image_of.items():
-        stem_of[f"{tid}_{tag}"] = im; stem_of[f"{tid}_{tag}.jpg"] = im; stem_of[im] = im; stem_of[im.split("/")[-1]] = im
-    human, layout, unknown = {}, None, 0
+    """TIFA's human_annotations.json — layout NOT known before the read (the folder README is sealed; no public code parses it).  Layout-agnostic:
+    entries are located by (a) a key that names an image (file name / stem / '<id>_<model>' with any model alias), (b) a text-id key then a model
+    key, or (c) a record whose string fields name an image or a text id + a model (several records per image = per-rater rows, pooled); the rating
+    is chosen per entry by _rating_of (field-name tiers, metric fields excluded) and the chosen paths are counted.  The result records the layout,
+    the identification modes, the rating paths, ratings per image, the value range and a value-free structure summary.  Opened by tifa160-run only."""
+    from collections import Counter
+    raw = json.load(open(path)); image_of_str, ids = _tifa160_resolver(image_of)
+    entries = defaultdict(list); how = Counter(); unknown = [0]
 
-    def score_of(v):
-        if isinstance(v, (int, float)):
-            return float(v)
-        if isinstance(v, list) and v and all(isinstance(x, (int, float)) for x in v):
-            return float(np.mean(v))
-        if isinstance(v, dict):
-            for k in ("human_score", "score", "likert", "likert_scores", "scores", "human_scores", "mean"):
-                if k in v:
-                    return score_of(v[k])
-        return None
-
-    if isinstance(raw, dict):
-        layout = "dict"
-        for k, v in raw.items():
-            im = stem_of.get(str(k)) or stem_of.get(str(k).split("/")[-1])
-            if im is None and isinstance(v, dict):                      # id -> model -> scores
-                for k2, v2 in v.items():
-                    im2 = stem_of.get(f"{k}_{k2}") or stem_of.get(str(k2)); s = score_of(v2)
-                    if im2 is not None and s is not None:
-                        human[im2] = s; layout = "dict[id][model]"
+    def collect(node, tid=None, model=None, depth=0):
+        if depth > 8:
+            unknown[0] += 1; return
+        if isinstance(node, dict):
+            im = None; t, m = tid, model
+            for v in node.values():
+                if isinstance(v, str):
+                    im = im or image_of_str(v)
+                    if v in ids:
+                        t = v
+                    elif model_alias(v):
+                        m = model_alias(v)
+            if im is None and t is not None and m is not None and (t, m) in image_of and (t != tid or m != model):
+                im = image_of[(t, m)]; how["record:id+model"] += 1; entries[im].append(node); return
+            if im is not None:
+                how["record:image"] += 1; entries[im].append(node); return
+            for k, v in node.items():
+                ks = str(k); imk = image_of_str(ks)
+                if imk is not None:
+                    how["key:image"] += 1; entries[imk].append(v); continue
+                if ks in ids:
+                    collect(v, ks, m, depth + 1); continue
+                mk = model_alias(ks)
+                if mk is not None:
+                    if t is not None and (t, mk) in image_of:
+                        how["key:id>model"] += 1; entries[image_of[(t, mk)]].append(v)
                     else:
-                        unknown += 1
-                continue
-            s = score_of(v)
-            if im is not None and s is not None:
-                human[im] = s
-            else:
-                unknown += 1
-    elif isinstance(raw, list):
-        layout = "list"
-        for r in raw:
-            if not isinstance(r, dict):
-                unknown += 1; continue
-            key = r.get("image") or r.get("img_path") or r.get("image_id") or r.get("file") or r.get("filename")
-            im = stem_of.get(str(key)) if key is not None else None
-            if im is None and r.get("text_id") is not None and r.get("model") is not None:
-                im = stem_of.get(f"{r['text_id']}_{r['model']}")
-            s = score_of(r)
-            if im is not None and s is not None:
-                human[im] = s
-            else:
-                unknown += 1
-    return {"human": human, "layout": layout, "unparsed_entries": unknown}
+                        collect(v, t, mk, depth + 1)
+                    continue
+                if isinstance(v, (dict, list)):
+                    collect(v, t, m, depth + 1)
+                elif not isinstance(v, str):
+                    unknown[0] += 1
+        elif isinstance(node, list):
+            for v in node:
+                collect(v, tid, model, depth + 1)
+        elif not isinstance(node, str):
+            unknown[0] += 1
+
+    collect(raw)
+    human, paths, per_image, no_rating = {}, Counter(), Counter(), 0
+    for im, subs in entries.items():
+        vals = []
+        for s in subs:
+            v, rule = _rating_of(s); paths[rule] += 1
+            if v:
+                vals += v
+        if vals:
+            human[im] = float(np.mean(vals)); per_image[len(vals)] += 1
+        else:
+            no_rating += 1
+    layout = ("list" if isinstance(raw, list) else "dict[id][model]" if how.get("key:id>model") else "dict" if isinstance(raw, dict) else type(raw).__name__)
+    allv = list(human.values())
+    return {"human": human, "layout": layout, "unparsed_entries": unknown[0] + no_rating,
+            "meta": {"identified_by": dict(how), "rating_paths": dict(paths.most_common(8)), "n_rating_paths": len(paths),
+                     "images_located": len(entries), "images_without_rating": no_rating, "ratings_per_image": dict(sorted(per_image.items())),
+                     "image_mean_range": [min(allv), max(allv)] if allv else None, "structure": _json_shape(raw, image_of_str, ids)}}
 
 
 def tifa160_inventory(do_hash: bool = False, units: Path = UNITS) -> dict:
@@ -513,18 +716,22 @@ def cmd_tifa160_dry_run(a) -> int:
 
 
 def tifa160_contrasts(images: list, prompt_of: dict, methods: dict, human: dict, ours: str, comps: list, reps: int = BOOT, seed: int = BOOT_SEED) -> dict:
-    """Δ of each correlation (ours − comp) with a bootstrap over the 160 text inputs (all five images of a prompt move together)."""
-    prompts = sorted({prompt_of[im] for im in images}); idx = {p: np.array([i for i, im in enumerate(images) if prompt_of[im] == p]) for p in prompts}
+    """Δ of each correlation (ours − comp) with a bootstrap over the 160 text inputs (all five images of a prompt move together).  The resamples are
+    drawn once per call (same RNG sequence as before) and ours' bootstrap values are computed once and reused for every comparator."""
+    prompts = sorted({prompt_of[im] for im in images}); pos = defaultdict(list)
+    for i, im in enumerate(images):
+        pos[prompt_of[im]].append(i)
+    idx = {p: np.array(pos[p]) for p in prompts}
     h = np.array([human[im] for im in images]); m = {k: np.array([methods[k][im] for im in images]) for k in [ours] + comps}
     rng = np.random.default_rng(seed); draws = [rng.integers(0, len(prompts), len(prompts)) for _ in range(reps)]
+    sels = [np.concatenate([idx[prompts[i]] for i in dr]) for dr in draws]
+    b_ours = {cname: np.array([fn(m[ours][s], h[s]) for s in sels]) for cname, fn in CORR.items()}
     out = {}
     for comp in comps:
         out[comp] = {}
         for cname, fn in CORR.items():
-            pt = fn(m[ours], h) - fn(m[comp], h); bs = np.empty(reps)
-            for r, dr in enumerate(draws):
-                sel = np.concatenate([idx[prompts[i]] for i in dr]); bs[r] = fn(m[ours][sel], h[sel]) - fn(m[comp][sel], h[sel])
-            bs = bs[~np.isnan(bs)]
+            pt = fn(m[ours], h) - fn(m[comp], h)
+            bs = b_ours[cname] - np.array([fn(m[comp][s], h[s]) for s in sels]); bs = bs[~np.isnan(bs)]
             out[comp][cname] = {"delta": float(pt), "ci95": [float(np.percentile(bs, 2.5)), float(np.percentile(bs, 97.5))], "p": boot_p(bs),
                                 "value_ours": fn(m[ours], h), "value_comp": fn(m[comp], h), "exposed": comp in TIFA160_EXPOSED}
     return out
@@ -561,43 +768,67 @@ def cmd_tifa160_run(a) -> int:
     for name, path in TIFA160_EXTERNAL.items():
         if path.exists():
             methods[name] = load_external(name, path); comps_present.append(name)
-    dsg = read_tifa160_dsg(TIFA160_LABELS["dsg_5rater"], image_of)                                   # the TIFA160 label read (DSG 5-rater)
-    tifa = read_tifa160_tifa(TIFA160_LABELS["tifa_2rater"], image_of) if TIFA160_LABELS["tifa_2rater"].exists() else {"human": {}, "layout": None, "unparsed_entries": None}
+
+    def safe(fn, path):                                                                   # the one read must always leave a result file
+        try:
+            return fn(path, image_of)
+        except Exception as e:
+            return {"human": {}, "n_raters": {}, "layout": None, "unparsed_entries": None, "meta": {}, "error": f"{type(e).__name__}: {e}"}
+    tifa = (safe(read_tifa160_tifa, TIFA160_LABELS["tifa_2rater"]) if TIFA160_LABELS["tifa_2rater"].exists()     # the TIFA160 label read (both files)
+            else {"human": {}, "layout": None, "unparsed_entries": None, "meta": {}, "error": "file absent"})
+    dsg = safe(read_tifa160_dsg, TIFA160_LABELS["dsg_5rater"])
+    all_images = sorted(set.intersection(*(set(m) for m in methods.values())) & set(prompt_of))
     res = {"utc": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "inventory": inv, "boot": {"reps": BOOT, "seed": BOOT_SEED, "unit": "text input (160)"},
-           "labels": {"dsg_5rater": {"images_with_rating": len(dsg["human"]), "raters_per_image": sorted(set(dsg["n_raters"].values()))},
-                      "tifa_2rater": {"images_with_rating": len(tifa["human"]), "layout_detected": tifa["layout"], "unparsed_entries": tifa["unparsed_entries"]}},
+           "images_scored_by_every_method": len(all_images),
+           "labels": {"tifa_2rater": {"images_with_rating": len(tifa["human"]), "layout_detected": tifa.get("layout"), "unparsed_entries": tifa.get("unparsed_entries"),
+                                      "meta": tifa.get("meta", {}), "error": tifa.get("error")},
+                      "dsg_5rater": {"images_with_rating": len(dsg["human"]), "raters_per_image": sorted(set(dsg.get("n_raters", {}).values())),
+                                     "meta": dsg.get("meta", {}), "error": dsg.get("error")}},
            "comparators_present": comps_present, "comparators_absent": [n for n in TIFA160_EXTERNAL if n not in comps_present], "exposed": TIFA160_EXPOSED, "readouts": {}}
-    for lab, H in (("dsg_5rater", dsg["human"]), ("tifa_2rater", tifa["human"])):
+    for lab, H in (("tifa_2rater", tifa["human"]), ("dsg_5rater", dsg["human"])):
         if not H:
-            res["readouts"][lab] = {"note": "no usable ratings parsed"}; continue
-        images = sorted(set.intersection(*(set(m) for m in methods.values())) & set(H)); gens = sorted(set(gen_of[im] for im in images))
-        h = np.array([H[im] for im in images])
-        levels = {k: {cn: fn(np.array([methods[k][im] for im in images]), h) for cn, fn in CORR.items()} for k in methods}
-        per_gen = {k: {g: spearman(np.array([methods[k][im] for im in images if gen_of[im] == g]), np.array([H[im] for im in images if gen_of[im] == g])) for g in gens} for k in methods if "-s" not in k}
-        fams = {}
-        for fam, (ours, comps) in TIFA160_FAMILIES.items():
-            comps_here = [c for c in comps if c in methods]
-            if not comps_here:
-                continue
-            fam_res = tifa160_contrasts(images, prompt_of, methods, H, ours, comps_here)
-            fams[fam] = add_holm_corr(fam_res) if fam != "tifa_same_data_descriptive" else fam_res
-        res["readouts"][lab] = {"n_images": len(images), "n_prompts": len({prompt_of[im] for im in images}), "levels": levels, "spearman_per_generator": per_gen, "families": fams}
+            res["readouts"][lab] = {"note": "no usable ratings parsed" + (f" ({res['labels'][lab]['error']})" if res["labels"][lab].get("error") else "")}; continue
+        try:
+            res["readouts"][lab] = tifa160_readout(H, methods, prompt_of, gen_of, all_images)
+        except Exception as e:                                                              # keep the other label source and the parse record
+            res["readouts"][lab] = {"note": f"readout failed: {type(e).__name__}: {e}"}
     out.mkdir(parents=True, exist_ok=True); (out / "tifa160_confirm.json").write_text(json.dumps(res, indent=1)); (out / "tifa160_confirm.md").write_text(tifa160_markdown(res))
     print(f"-> {out / 'tifa160_confirm.md'}")
     return 0
 
 
+def tifa160_readout(H: dict, methods: dict, prompt_of: dict, gen_of: dict, all_images: list) -> dict:
+    images = [im for im in all_images if im in H]; gens = sorted(set(gen_of[im] for im in images))
+    h = np.array([H[im] for im in images])
+    levels = {k: {cn: fn(np.array([methods[k][im] for im in images]), h) for cn, fn in CORR.items()} for k in methods}
+    per_gen = {k: {g: spearman_tifa(np.array([methods[k][im] for im in images if gen_of[im] == g]), np.array([H[im] for im in images if gen_of[im] == g])) for g in gens} for k in methods if "-s" not in k}
+    fams = {}
+    for fam, (ours, comps) in TIFA160_FAMILIES.items():
+        comps_here = [c for c in comps if c in methods]
+        if not comps_here:
+            continue
+        fam_res = tifa160_contrasts(images, prompt_of, methods, H, ours, comps_here)
+        fams[fam] = add_holm_corr(fam_res) if fam != "tifa_same_data_descriptive" else fam_res
+    return {"n_images": len(images), "n_prompts": len({prompt_of[im] for im in images}), "n_dropped_no_rating": len(all_images) - len(images),
+            "levels": levels, "spearman_per_generator": per_gen, "families": fams}
+
+
 def tifa160_markdown(res: dict) -> str:
     L = [f"# V8-05 §B — TIFA160 secondary external evaluation (generated from tifa160_confirm.json, {res['utc']})", "",
-         f"Secondary evaluation added 2026-10-15 (not the registered confirmation source).  Labels: DSG 5-rater mean ({res['labels']['dsg_5rater']['images_with_rating']} images rated; "
-         f"raters per image {res['labels']['dsg_5rater']['raters_per_image']}) and TIFA 2-rater mean ({res['labels']['tifa_2rater']['images_with_rating']} images parsed; layout "
-         f"{res['labels']['tifa_2rater']['layout_detected']}; unparsed {res['labels']['tifa_2rater']['unparsed_entries']}).  Bootstrap: {res['boot']['reps']} resamples over the 160 text inputs, "
-         f"seed {res['boot']['seed']}.  Comparators present: {res['comparators_present']}; absent: {res['comparators_absent']}; exposed: {list(res['exposed'])}.  Intervals only — no claim language.", ""]
+         f"Secondary evaluation added 2026-10-15 (not the registered confirmation source).  Images scored by every method: {res['images_scored_by_every_method']}.  "
+         f"Bootstrap: {res['boot']['reps']} resamples over the 160 text inputs, seed {res['boot']['seed']}.  Comparators present: {res['comparators_present']}; absent: "
+         f"{res['comparators_absent']}; exposed: {list(res['exposed'])}.  Intervals only — no claim language.", ""]
+    t, d = res["labels"]["tifa_2rater"], res["labels"]["dsg_5rater"]; tm, dm = t.get("meta", {}), d.get("meta", {})
+    L += ["| label source | images with a rating | ratings per image (count of images) | parse record |", "|---|---|---|---|",
+          f"| TIFA 2-rater mean (human_annotations.json) | {t['images_with_rating']} | {tm.get('ratings_per_image')} | layout {t['layout_detected']}; located by "
+          f"{tm.get('identified_by')}; rating fields {tm.get('rating_paths')}; unparsed {t['unparsed_entries']}" + (f"; error {t['error']}" if t.get("error") else "") + " |",
+          f"| DSG 5-rater mean (tifa160-likert-anns.csv) | {d['images_with_rating']} | {dm.get('ratings_per_image')} | raters per image {dm.get('raters_per_image')}; "
+          f"row counts {dm.get('counts')}" + (f"; error {d['error']}" if d.get("error") else "") + " |", ""]
     for lab, R in res["readouts"].items():
         L += [f"## labels = {lab}", ""]
         if "note" in R:
             L += [R["note"], ""]; continue
-        L += [f"Images {R['n_images']} over {R['n_prompts']} text inputs.", ""]
+        L += [f"Images {R['n_images']} over {R['n_prompts']} text inputs (dropped without a rating: {R.get('n_dropped_no_rating')}).", ""]
         for fam, F in R["families"].items():
             L += [f"### {fam}", "", "| contrast | correlation | Δ [95 %] | p | p Holm | ours / comp | exposed |", "|---|---|---|---|---|---|---|"]
             for comp, C_ in F.items():
