@@ -23,7 +23,7 @@ for spec in "$@"; do
   $PY $SNAP/scripts/v81/c1_train.py train --arm $ARM --lr parent --seed $SEED --unit-dir $U; r=$?
   [ $r -eq 0 ] && [ -f $U/done.json ] || { echo "[unit-exit] $(basename $U) train rc=$r"; rc=1; continue; }
   if [ ! -f $U/pred/images_DEV.jsonl ]; then $PY $SNAP/scripts/v81/c1_train.py export --unit-dir $U --roles CAL_SELECT CAL_PROB DEV; r=$?; [ $r -ne 0 ] && { echo "[unit-exit] $(basename $U) export rc=$r"; rc=1; continue; }; fi
-  if [ ! -f $U/pred/fit_audit.json ]; then $PY $SNAP/scripts/v81/c1_train.py audit --unit-dir $U; r=$?; [ $r -ne 0 ] && { echo "[unit-exit] $(basename $U) audit rc=$r"; rc=1; continue; }; fi
+  if [ ! -f $U/pred/fit_audit.json ]; then $PY $SNAP/scripts/v81/c1_train.py audit --unit-dir $U --ids /home/infres/yinwang/CS_QMI/ssl_pilot_v81/reports/V8_1_DIAGNOSTICS/results/fit_audit_ids.json; r=$?; [ $r -ne 0 ] && { echo "[unit-exit] $(basename $U) audit rc=$r"; rc=1; continue; }; fi
   echo "[unit-exit] $(basename $U) rc=0 $(( $(date +%s) - t )) s $(date -u +%FT%TZ)"
 done
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc

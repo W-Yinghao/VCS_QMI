@@ -23,5 +23,5 @@ step selftest $PY $SNAP/scripts/v81/c1_train.py selftest --out $RES/c1_selftest.
 U=$O/V81-C1-U-CS-s0
 step train $PY $SNAP/scripts/v81/c1_train.py train --arm U-CS --lr parent --seed 0 --unit-dir $U --max-steps 40 --eval-n 64 --epochs 2 || { echo "exit=1 end=$(date -u +%FT%TZ)"; exit 1; }
 step export $PY $SNAP/scripts/v81/c1_train.py export --unit-dir $U --roles CAL_SELECT || { echo "exit=1 end=$(date -u +%FT%TZ)"; exit 1; }
-step audit $PY $SNAP/scripts/v81/c1_train.py audit --unit-dir $U || { echo "exit=1 end=$(date -u +%FT%TZ)"; exit 1; }
+step audit $PY $SNAP/scripts/v81/c1_train.py audit --unit-dir $U --ids /home/infres/yinwang/CS_QMI/ssl_pilot_v81/reports/V8_1_DIAGNOSTICS/results/fit_audit_ids.json || { echo "exit=1 end=$(date -u +%FT%TZ)"; exit 1; }
 ls -la $U $U/epochs $U/pred; echo "exit=0 end=$(date -u +%FT%TZ)"

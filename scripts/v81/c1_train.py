@@ -357,7 +357,7 @@ def main(argv=None):
     t.add_argument("--max-steps", type=int, default=0); t.add_argument("--eval-n", type=int, default=None); t.add_argument("--epochs", type=int, default=EPOCHS)
     x = sub.add_parser("export"); x.add_argument("--unit-dir", required=True); x.add_argument("--roles", nargs="+", default=["CAL_SELECT", "CAL_PROB", "DEV"])
     u = sub.add_parser("audit"); u.add_argument("--unit-dir", required=True)
-    u.add_argument("--ids", default=str(HERE.parents[1] / "reports" / "V8_1_DIAGNOSTICS" / "results" / "fit_audit_ids.json"))
+    u.add_argument("--ids", default="/home/infres/yinwang/CS_QMI/ssl_pilot_v81/reports/V8_1_DIAGNOSTICS/results/fit_audit_ids.json")   # absolute: jobs run a snapshot
     s = sub.add_parser("selftest"); s.add_argument("--out", required=True); s.add_argument("--arm", default="U-CS"); s.add_argument("--seed", type=int, default=0)
     s.add_argument("--n-warm", type=int, default=10); s.add_argument("--n-time", type=int, default=50); s.add_argument("--inventory", default=None)
     i = sub.add_parser("inventory"); i.add_argument("--out", required=True)
