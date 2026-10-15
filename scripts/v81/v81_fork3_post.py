@@ -185,6 +185,11 @@ def param_section(PA: dict) -> list:
       f"ViT parameters {s0['n_vit_params']:,}, any requires_grad: {s0['vit_requires_grad_any']}.  Trainable groups (tensor counts): "
       + ", ".join(f"{k} {v}" for k, v in PA["trainable_groups"].items() if not k.startswith("qf.L")) + f"; per-layer Q-former groups {sum(v for k, v in PA['trainable_groups'].items() if k.startswith('qf.L'))} tensors.\n")
     order = sorted(units, key=lambda u: (ARMS.index(units[u]["arm"]), units[u]["seed"]))
+    al = PA.get("tied_aliases") or {}
+    if al:
+        eq = [all(units[u][k].get("tied_alias_equals_target", {}).values()) for u in order for k in ("best", "resume")]
+        A("Tied state-dict aliases (one storage, two names; counted once, under the parameter): " + "; ".join(f"`{a}` = `{t}`" for a, t in al.items())
+          + f" — alias equal to its parameter in {sum(eq)}/{len(eq)} checkpoints.\n")
     rows = []
     for u in order:
         r = units[u]; b = r["best"]["vs_init"]; o = r["resume"]["optimizer"]; fz = b.get("frozen_all", {"n_identical": 0, "n_tensors": 0, "max_abs_delta": 0.0})

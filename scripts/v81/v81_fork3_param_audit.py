@@ -95,17 +95,18 @@ def keys_of(group: str) -> list:
     return out
 
 
-def compare(state: dict, ref: dict, trainable: set) -> dict:
-    """Group statistics of state - ref over the tensors of ref (float64 accumulation)."""
+def compare(state: dict, ref: dict, trainable: set, aliases: dict | None = None) -> dict:
+    """Group statistics of state - ref over the tensors of ref (float64 accumulation).  `aliases` = state-dict names that are tied views of a
+    parameter (e.g. the BERT LM decoder weight tied to the word embeddings): grouped as 'tied_alias', never as frozen or trainable."""
     import torch
-    acc = {}
+    acc = {}; aliases = aliases or {}
     for n, t0 in ref.items():
         if n not in state:
             continue
         t1 = state[n]
         if tuple(t1.shape) != tuple(t0.shape):
             raise SystemExit(f"shape mismatch for {n}: {tuple(t1.shape)} vs {tuple(t0.shape)}")
-        for key in keys_of(group_of(n, n in trainable)):
+        for key in (["tied_alias"] if n in aliases else keys_of(group_of(n, n in trainable))):
             a = acc.setdefault(key, {"n_params": 0, "n_tensors": 0, "n_identical": 0, "ss_ref": 0.0, "ss_delta": 0.0, "max_abs_delta": 0.0, "nonidentical_examples": []})
             same = bool(torch.equal(t0, t1)); a["n_params"] += t0.numel(); a["n_tensors"] += 1; a["n_identical"] += int(same)
             if t0.is_floating_point():
@@ -113,7 +114,7 @@ def compare(state: dict, ref: dict, trainable: set) -> dict:
                 a["max_abs_delta"] = max(a["max_abs_delta"], float(d.abs().max()) if d.numel() else 0.0)
             elif not same:
                 a["max_abs_delta"] = max(a["max_abs_delta"], float("inf"))
-            if not same and len(a["nonidentical_examples"]) < 3 and key.startswith("frozen"):
+            if not same and len(a["nonidentical_examples"]) < 3 and (key.startswith("frozen") or key == "tied_alias"):
                 a["nonidentical_examples"].append(n)
     for a in acc.values():
         a["norm_ref"] = math.sqrt(a["ss_ref"]); a["norm_delta"] = math.sqrt(a["ss_delta"]); a["rel_change"] = a["norm_delta"] / a["norm_ref"] if a["ss_ref"] > 0 else None
@@ -166,8 +167,10 @@ def main(argv=None):
         decay = [n for n, p in m.named_parameters() if p.requires_grad and p.ndim >= 2 and n != "query_tokens"]
         no_decay = [n for n, p in m.named_parameters() if p.requires_grad and not (p.ndim >= 2 and n != "query_tokens")]
         shapes = {n: tuple(p.shape) for n, p in m.named_parameters()}
-        inits[s] = {k: v.detach().clone() for k, v in T.trainable_state(m).items()}
-        meta[s] = {"trainable": trainable, "decay": decay, "no_decay": no_decay, "shapes": shapes,
+        ptr = {p.data_ptr(): n for n, p in m.named_parameters()}; st0 = T.trainable_state(m)          # CPU: .cpu() keeps the storage, so tied names share data_ptr
+        aliases = {k: ptr[v.data_ptr()] for k, v in st0.items() if v.data_ptr() in ptr and ptr[v.data_ptr()] != k}
+        inits[s] = {k: v.detach().clone() for k, v in st0.items()}
+        meta[s] = {"trainable": trainable, "decay": decay, "no_decay": no_decay, "shapes": shapes, "tied_aliases": aliases,
                    "n_trainable_params": int(sum(p.numel() for p in m.parameters() if p.requires_grad)),
                    "n_vit_params": int(sum(p.numel() for n, p in m.named_parameters() if n.startswith("visual_encoder."))),
                    "vit_requires_grad_any": bool(any(p.requires_grad for n, p in m.named_parameters() if n.startswith("visual_encoder."))),
@@ -176,10 +179,10 @@ def main(argv=None):
     tg = {n: group_of(n, True) for n in meta[seeds[0]]["trainable"]}
     out = {"env": {"host": platform.node(), "torch": torch.__version__, "numpy": np.__version__, "python": platform.python_version(), "utc_start": now()},
            "note_vit": "visual_encoder.* is never saved in a V8 checkpoint; every V8 load rebuilds it from the public BLIP-2 COCO weights (requires_grad False)",
-           "init_meta": {str(s): {k: v for k, v in meta[s].items() if k not in ("trainable", "decay", "no_decay", "shapes")} | {"n_trainable_tensors": len(meta[s]["trainable"]),
+           "init_meta": {str(s): {k: v for k, v in meta[s].items() if k not in ("trainable", "decay", "no_decay", "shapes", "tied_aliases")} | {"n_trainable_tensors": len(meta[s]["trainable"]),
                                                                                                                           "n_decay_tensors": len(meta[s]["decay"]), "n_no_decay_tensors": len(meta[s]["no_decay"])}
                          for s in seeds},
-           "trainable_groups": dict(sorted(Counter(tg.values()).items())), "units": {}}
+           "trainable_groups": dict(sorted(Counter(tg.values()).items())), "tied_aliases": meta[seeds[0]]["tied_aliases"], "units": {}}
     for u in units:
         t0 = time.time(); seed = int(u.rsplit("-s", 1)[1]); d = UNITS / u; L = json.loads((d / "log.json").read_text()); init = inits[seed]; M = meta[seed]; rec = {"seed": seed, "arm": L["arm"], "lr": L["lr"]}
         states = {}
@@ -187,12 +190,13 @@ def main(argv=None):
             ck = torch.load(d / f"{k}.pt", map_location="cpu", weights_only=False); st = ck["model"]
             missing = sorted(set(init) - set(st)); extra = sorted(set(st) - set(init))
             rec[k] = {"epoch": ck.get("epoch"), "n_tensors": len(st), "missing_vs_init": missing[:5], "n_missing_vs_init": len(missing), "extra_vs_init": extra[:5], "n_extra_vs_init": len(extra),
-                      "vs_init": compare(st, init, M["trainable"])}
+                      "vs_init": compare(st, init, M["trainable"], M["tied_aliases"]),
+                      "tied_alias_equals_target": {al: bool(torch.equal(st[al], st[tg_])) for al, tg_ in M["tied_aliases"].items() if al in st and tg_ in st}}
             if k == "resume":
                 rec[k].update({"global_step": ck.get("step"), "best_field": ck.get("best"), "resumed_at": (ck.get("log") or {}).get("resumed_at"),
                                "optimizer": optimizer_audit(ck, M["decay"], M["no_decay"], M["shapes"], tg)})
             states[k] = st; del ck
-        rec["resume_vs_best"] = compare(states["resume"], states["best"], M["trainable"]); rec["log_selected_epoch"] = L.get("selected_epoch"); rec["log_resumed_at"] = L.get("resumed_at")
+        rec["resume_vs_best"] = compare(states["resume"], states["best"], M["trainable"], M["tied_aliases"]); rec["log_selected_epoch"] = L.get("selected_epoch"); rec["log_resumed_at"] = L.get("resumed_at")
         rec["seconds"] = time.time() - t0; out["units"][u] = rec; del states
         o = rec["resume"]["optimizer"]; vb = rec["best"]["vs_init"]
         log(f"{u}: best e{rec['best']['epoch']} rel(trainable) {vb['trainable_all']['rel_change']:.3e} rel(cross) {vb['qformer_cross_attn_all']['rel_change']:.3e} "

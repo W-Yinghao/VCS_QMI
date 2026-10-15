@@ -153,6 +153,8 @@ def test_param_compare_identity_and_change():
     assert c["frozen_all"]["n_identical"] == c["frozen_all"]["n_tensors"] == 2 and c["frozen_all"]["max_abs_delta"] == 0.0
     st["itm_head.weight"] = st["itm_head.weight"] + 1e-3
     c2 = PA.compare(st, ref, {"v8_head.weight"}); assert c2["frozen_all"]["n_identical"] == 1 and c2["frozen_all"]["nonidentical_examples"] == ["itm_head.weight"]
+    c3 = PA.compare(st, ref, {"v8_head.weight"}, {"itm_head.weight": "v8_head.weight"})                 # a tied alias is grouped apart, never as frozen
+    assert c3["frozen_all"]["n_tensors"] == 1 and c3["tied_alias"]["n_tensors"] == 1 and c3["tied_alias"]["nonidentical_examples"] == ["itm_head.weight"]
 
 
 def test_optimizer_audit_maps_v8_groups_and_counts_skips():
