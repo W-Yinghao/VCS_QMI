@@ -61,33 +61,34 @@ launch:
   cpu_reference: ready                  # package tests 69/69 in the main env (commit 185a335)
   gpu_full_training: after_adapters_fidelity_HOST_LOCK_and_measured_budget   # timing job PENDING (slurm/v9/v9_timing_sgr.sbatch)
   large_extensions: separate_decision
-budget_measured:   # grouped timing job 1042033 (slurm/v9/v9_timing_group.sbatch), node60 RTX PRO 6000 (a node measured ~2.2x slower than healthy RTX nodes on SSL, 2026-10-04 — numbers are node60 actuals, not rescaled); Flickr30K block only (owner 2026-10-15); COCO separate
+budget_measured:   # timing job 1042033 ran on node60 = the THROTTLED RTX PRO 6000 (policy excludes it; my sbatch headers excluded only node51 — fixed in 6bd6297). Columns: node60 (throttled) actuals | healthy-node estimate = node60 / 2.2 (factor = the 2026-10-02 measurement 0.252 vs 0.116 s/step). The estimates are replaced by measured values when 1042195 runs on a healthy node; N2 production units exclude node60, so the budget uses the healthy-node column.  Flickr30K block only (owner 2026-10-15); COCO separate.
   job: 1042033
-  node: node60 (RTX PRO 6000 Blackwell, 96 GB)
-  sgr_step_seconds: 0.596             # mean of 113 logged steps (batch 128, 1,133 steps per Flickr30K epoch)
-  sgr_dev_validation_seconds: 74      # one SGRAF dev pass (1,014 images x 5,070 captions; shard_attn_scores 71-72 s); measured 73.8 s and 74.2 s
-  sgr_validations_per_epoch: "every epoch + every 1,000 iterations (SGRAF train.py val_step 1000) = 95 passes over 45 epochs"
-  sgr_startup_seconds: 438            # loading train_ims.npy (8.55 GB) from NFS + model init, measured stage start -> first step
-  sgr_epoch_seconds_incl_validation: "one epoch + 2 dev passes = 1,266 s measured (incl. 438 s startup)"
-  sgr_test_eval_seconds: "74 (proxy = one dev pass; the measured test evalrank failed on the torch >= 2.6 weights_only default, fixed since by TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1)"
+  node: "node60 (RTX PRO 6000 Blackwell, 96 GB; throttled)"
+  healthy_node_factor: "2.2 (2026-10-02: 0.252 vs 0.116 s/step on node60 vs a healthy RTX PRO 6000)"
+  sgr_step_seconds: {node60_throttled_actual: 0.596, healthy_estimate: 0.271}          # mean of 113 logged steps; batch 128; 1,133 steps per Flickr30K epoch
+  sgr_dev_validation_seconds: {node60_throttled_actual: 74, healthy_estimate: 33.6}      # one SGRAF dev pass (shard_attn_scores 71-72 s); measured 73.8 / 74.2 s
+  sgr_validations_per_epoch: "every epoch + every 1,000 iterations (SGRAF train.py val_step 1000; LOCKED, not changed) = 95 passes over 45 epochs"
+  sgr_startup_seconds: {node60_throttled_actual: 438, healthy_estimate: "not scaled (NFS load of the 8.55 GB features, not GPU-bound)"}
+  sgr_epoch_seconds_incl_validation: "node60 throttled actual: one epoch + 2 dev passes = 1,266 s incl. the 438 s startup"
+  sgr_test_eval_seconds: "74 node60 (proxy = one dev pass; the measured test evalrank failed on the torch >= 2.6 weights_only default, fixed by TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1)"
   sgr_gpu_memory_gb: "not captured (nvidia-smi ran after the process ended); fits easily in 96 GB"
-  ncr_warmup_step_seconds: "0.600 (network A) / 0.588 (network B)"
-  ncr_warmup_epoch_seconds_both_networks: 1346   # 1,133 x (0.600 + 0.588); stage incl. startup measured 1,381 s
-  ncr_gmm_loss_pass_seconds_per_network: 446     # 1,133 x 0.394 s; measured 454 s incl. GMM fit before the py3 iterator crash
-  ncr_cotrain_epoch_seconds: "PENDING job 1042195 (one co-training epoch from the saved warm-up; py3 iterator patch)"
-  l2rm_warmup_epoch_seconds: "774 measured (incl. startup and the fast L2RM validation, 21:00:37 -> 21:13:31 local); later warm-up epochs ~707 (1,133 x 0.622 s)"
-  l2rm_epoch_seconds: "1,166 (epoch 1, labeled split 82,563 captions) and 914 (epoch 2, labeled 60,263) measured from checkpoint mtimes; includes the split (per-sample loss pass), OT rematching + cost learner, validation"
+  ncr_warmup_step_seconds: "node60 throttled actual 0.600 (A) / 0.588 (B); healthy estimate 0.273 / 0.267"
+  ncr_warmup_epoch_seconds_both_networks: {node60_throttled_actual: 1346, healthy_estimate: 612}   # 1,133 x (0.600 + 0.588); stage incl. startup 1,381 s
+  ncr_gmm_loss_pass_seconds_per_network: {node60_throttled_actual: 446, healthy_estimate: 203}     # 1,133 x 0.394 s; 454 s incl. GMM before the py3 iterator crash
+  ncr_cotrain_epoch_seconds: "PENDING job 1042195 (one co-training epoch from the saved warm-up; py3 iterator patch; now excludes node51,node60 -> measured on a healthy node)"
+  l2rm_warmup_epoch_seconds: "node60 throttled actual 774 (incl. startup + fast L2RM validation), later warm-up epochs ~707 (1,133 x 0.622 s); healthy estimate 352 / 321"
+  l2rm_epoch_seconds: "node60 throttled actual 1,166 (epoch 1, labeled split 82,563 captions) and 914 (epoch 2, labeled 60,263), from checkpoint mtimes; healthy estimate 530 / 415"
   l2rm_validation_note: "L2RM's evaluation computes similarities in 2.2 s vs 72 s for SGRAF's shard_attn_scores (same model family; different evaluation code)"
-  teacher_5ep_seconds: 535            # 5 epochs on 1,160 images = 5 x 99 s (27 s training + 72 s dev validation each) + 42 s startup
+  teacher_5ep_seconds: {node60_throttled_actual: 535, healthy_estimate: 243}   # 5 x 99 s (27 s training + 72 s dev validation) + 42 s startup
   weight_generation_seconds: FORK_B   # critic / kernel fits on the reference roles (fork B gate)
-  per_unit_hours_node60:
-    sgr_student_unit: 10.54           # 5 warm-up + 40 epochs = 50,985 steps x 0.596 s + 95 dev passes x 74 s (18.5 % of the unit) + startup + test eval
-    l2rm_A_unit: "9.9-12.4"           # 5 warm-up + 35 rematching epochs at 914-1,166 s
-    ncr_A_unit: "PENDING (5 warm-up epochs = 6,730 s measured-rate + 40 co-training epochs from job 1042195)"
-    teacher: 0.15
-  flickr_block_hours_node60:
-    formal_48: "36 SGR-student units 379 GPU-h + 6 L2RM+A 59-74 GPU-h + 6 NCR+A PENDING + 2 teachers 0.3 GPU-h + weights (fork B)"
+  per_unit_hours:
+    sgr_student_unit: {node60_throttled_actual: 10.54, healthy_estimate: 4.79}   # 5 warm-up + 40 epochs = 50,985 steps + 95 dev passes + startup + test eval
+    l2rm_A_unit: {node60_throttled_actual: "9.91-12.36", healthy_estimate: "4.5-5.62"}
+    ncr_A_unit: "PENDING job 1042195 (5 warm-up epochs = 6,730 s node60 / ~3059 s healthy estimate + 40 co-training epochs measured on a healthy node)"
+    teacher: {node60_throttled_actual: 0.15, healthy_estimate: 0.07}
+  flickr_block_gpu_hours:   # budget uses the healthy-node column (N2 production units exclude node60)
+    formal_48: {node60_throttled_actual: "36 SGR-student 379 + 6 L2RM+A 59-74 + 6 NCR+A pending + 2 teachers 0.3", healthy_estimate: "36 SGR-student 172 + 6 L2RM+A 27-34 + 6 NCR+A pending + 2 teachers 0.1"}
     tuning_le_48: "same composition and per-unit costs as formal (6 SGR-student methods x 2 noise x 3 lr = 36, NCR+A 6, L2RM+A 6)"
-    native_reproductions_3: "NCR 1 + L2RM 1 + SGR (warm-up recipe) 1 at noise 0.4 = NCR unit + 9.9-12.4 h + 10.5 h"
-    total: "≈ 2 x (379 + 59-74 + 6 x NCR unit) GPU-h at node60 rates before NCR; healthy RTX / H100 nodes are expected to be faster — the first formal units' logs give the per-node actuals"
-  cost_lever_not_applied: "SGRAF validates every 1,000 iterations in addition to every epoch (18.5 % of an SGR unit); validating at epoch ends only would save ~50 passes x 74 s = ~1 h per unit — a protocol choice for the N2 owner of the recipe, not changed here"
+    native_reproductions_3: "NCR 1 + L2RM 1 + SGR (warm-up recipe) 1 at noise 0.4"
+    total: {node60_throttled_actual: "2 x (379 + 59-74 + 6 x NCR unit)", healthy_estimate: "2 x (172 + 27-34 + 6 x NCR unit) GPU-h; replaced by measured healthy-node values from 1042195 and the first production units"}
+  validation_cadence: "kept as locked (every epoch + every 1,000 iterations); it is 18.5 % of an SGR unit — reported, not changed after the freeze"

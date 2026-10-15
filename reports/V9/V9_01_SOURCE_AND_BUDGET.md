@@ -30,17 +30,17 @@ Per-method costs are **measured, not multiplied**: one grouped GPU job (`slurm/v
 
 | item (Flickr30K block) | units | per-unit cost (from the grouped timing job) | total |
 |---|---|---|---|
-| teacher (SGR on the teacher role, 5 epochs; shared by all B-table methods) | 2 (noise 0 / 0.4) × 1 | **535 s** measured (5 × 99 s: 27 s training + 72 s dev validation; 42 s startup) | 0.3 GPU-h |
+| teacher (SGR on the teacher role, 5 epochs; shared by all B-table methods) | 2 (noise 0 / 0.4) × 1 | node60 (throttled) actual 535 s (5 × 99 s: 27 s training + 72 s dev validation; 42 s startup) · healthy estimate ≈ 243 s | 0.3 · **≈ 0.1 GPU-h** |
 | weight generation (VCS / BCE / RuLSIF / Nyström / RankMass on the reference roles) | per weighted unit | fork B's measured fit time | fork B |
-| Unweighted+A, VCS-W, BCE-W, RuLSIF-W, Nyström-W, RankMass: SGR 5 warm-up + 40 epochs + dev val + final eval (locked recipe) | 6 methods × 2 noise × 3 seeds = 36 | **10.54 h**: 50,985 steps × 0.596 s + 95 dev passes × 74 s (18.5 %) + 438 s startup + eval | **379 GPU-h** |
+| Unweighted+A, VCS-W, BCE-W, RuLSIF-W, Nyström-W, RankMass: SGR 5 warm-up + 40 epochs + dev val + final eval (locked recipe) | 6 methods × 2 noise × 3 seeds = 36 | node60 (throttled) actual 10.54 h (50,985 steps × 0.596 s + 95 dev passes × 74 s + 438 s startup + eval) · healthy estimate 4.79 h | 379 · **≈ 172 GPU-h** |
 | NCR+A: warm-up 5 + 40 co-training epochs (2 networks) + eval | 2 × 3 = 6 | 5 × 1,346 s (both networks, 0.600 / 0.588 s/step) + 40 × co-training epoch (**pending job 1042195**; contains 2 × 446 s GMM loss passes) + eval | PENDING |
-| L2RM+A: warm-up 5 + 35 epochs (OT + cost learner) + eval | 2 × 3 = 6 | **9.9–12.4 h**: warm-up 774 s + 4 × 707 s; rematching epochs 1,166 s / 914 s measured (labeled split 82,563 / 60,263 captions) | **59–74 GPU-h** |
-| **formal total (48 units)** | 48 | — | 379 + 59–74 + 6 × NCR unit (pending) + 0.3 GPU-h |
+| L2RM+A: warm-up 5 + 35 epochs (OT + cost learner) + eval | 2 × 3 = 6 | node60 (throttled) actual 9.9–12.4 h (warm-up 774 s + 4 × 707 s; rematching epochs 1,166 s / 914 s, labeled split 82,563 / 60,263) · healthy estimate 4.5–5.6 h | 59–74 · **≈ 27–34 GPU-h** |
+| **formal total (48 units)** | 48 | — | node60: 379 + 59–74 + 6 × NCR + 0.3 · **healthy estimate: 172 + 27–34 + 6 × NCR (pending 1042195) + 0.1 GPU-h** |
 | tuning (3 lr multipliers × 8 methods × 2 noise, seed 917) | ≤ 48 | same per-method costs | ≈ formal |
 | native A-table reproductions (NCR, L2RM at 0.4; SGR clean) | 3 | native epochs | NCR unit + 9.9–12.4 h + 10.5 h |
 | released NCR checkpoints evaluation | 1 job | minutes | — |
 | **COCO block** (48 formal + ≤ 48 tuning; train 3.9 × Flickr per epoch, 20 native epochs) | — | measured separately before any COCO decision | **not in this block** |
-All measured on node60 (job 1042033; RTX PRO 6000 measured ~2.2× slower than healthy RTX nodes on SSL in 2026-10-04 — numbers are node60 actuals, not rescaled; the first formal units give per-node actuals).  SGR from scratch with the hardest negative collapsed in this environment (HOST_LOCK `host_finding_20261015_timing_job_1042033`), hence the 5-epoch sum-violation warm-up in the locked recipe.  Cost lever not applied: SGRAF's extra validation every 1,000 iterations is 18.5 % of an SGR unit.
+Measured on node60 (job 1042033) = the **throttled** RTX PRO 6000 that cluster policy excludes (my headers excluded only node51; fixed in 6bd6297).  Each cell gives the node60 (throttled) actual and a healthy-node estimate = node60 / 2.2 (factor = the 2026-10-02 measurement 0.252 vs 0.116 s/step); N2 production units exclude node60, so the budget uses the healthy-node estimate until 1042195 (now excluding node60) and the first production units give measured healthy-node values.  SGR from scratch with the hardest negative collapsed in this environment (HOST_LOCK `host_finding_20261015_timing_job_1042033`), hence the 5-epoch sum-violation warm-up in the locked recipe.  Validation cadence kept as locked (every epoch + every 1,000 iterations; 18.5 % of an SGR unit).
 Rule: the grouped timing job fills the per-unit column; the Flickr30K block is launched by the main session as soon as this table, HOST_LOCK and fork D's pre-check table are in (owner 2026-10-15); short per-unit jobs are grouped (owner 2026-10-13/14).
 
 ## 5. Anchor budget statement (labelled information every B-table method sees)
