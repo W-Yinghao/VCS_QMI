@@ -1,0 +1,14 @@
+# V9-G2 grouped GPU jobs (reports/V9/V9_G2_PROTOCOL_*.yaml) — submitted by the main session after the freeze; each line = one job running its units in sequence.
+# Options go BEFORE the script name; never append anything after the unit list (a trailing token becomes a fake unit id).  Critics: 6 units per job
+# (one objective x 3 seeds x 2 mismatch levels of one fraction, ~2.6 h RTX PRO 6000 at the REG-P3 cost); CoMIR: 6 per job; kernel: 2 rows per job.
+sbatch --job-name=v9g2_vcs_f0.25 --time=06:00:00 slurm/v9/reg_g2.sbatch V9-G2-vcs-frac0.25-eps0-s901 V9-G2-vcs-frac0.25-eps0-s902 V9-G2-vcs-frac0.25-eps0-s903 V9-G2-vcs-frac0.25-eps0.2-s901 V9-G2-vcs-frac0.25-eps0.2-s902 V9-G2-vcs-frac0.25-eps0.2-s903
+sbatch --job-name=v9g2_vcs_f1 --time=06:00:00 slurm/v9/reg_g2.sbatch V9-G2-vcs-frac1-eps0-s901 V9-G2-vcs-frac1-eps0-s902 V9-G2-vcs-frac1-eps0-s903 V9-G2-vcs-frac1-eps0.2-s901 V9-G2-vcs-frac1-eps0.2-s902 V9-G2-vcs-frac1-eps0.2-s903
+sbatch --job-name=v9g2_logistic_f0.25 --time=06:00:00 slurm/v9/reg_g2.sbatch V9-G2-logistic-frac0.25-eps0-s901 V9-G2-logistic-frac0.25-eps0-s902 V9-G2-logistic-frac0.25-eps0-s903 V9-G2-logistic-frac0.25-eps0.2-s901 V9-G2-logistic-frac0.25-eps0.2-s902 V9-G2-logistic-frac0.25-eps0.2-s903
+sbatch --job-name=v9g2_logistic_f1 --time=06:00:00 slurm/v9/reg_g2.sbatch V9-G2-logistic-frac1-eps0-s901 V9-G2-logistic-frac1-eps0-s902 V9-G2-logistic-frac1-eps0-s903 V9-G2-logistic-frac1-eps0.2-s901 V9-G2-logistic-frac1-eps0.2-s902 V9-G2-logistic-frac1-eps0.2-s903
+sbatch --job-name=v9g2_infonce_f0.25 --time=06:00:00 slurm/v9/reg_g2.sbatch V9-G2-infonce-frac0.25-eps0-s901 V9-G2-infonce-frac0.25-eps0-s902 V9-G2-infonce-frac0.25-eps0-s903 V9-G2-infonce-frac0.25-eps0.2-s901 V9-G2-infonce-frac0.25-eps0.2-s902 V9-G2-infonce-frac0.25-eps0.2-s903
+sbatch --job-name=v9g2_infonce_f1 --time=06:00:00 slurm/v9/reg_g2.sbatch V9-G2-infonce-frac1-eps0-s901 V9-G2-infonce-frac1-eps0-s902 V9-G2-infonce-frac1-eps0-s903 V9-G2-infonce-frac1-eps0.2-s901 V9-G2-infonce-frac1-eps0.2-s902 V9-G2-infonce-frac1-eps0.2-s903
+sbatch --job-name=v9g2_comir_f0.25 --time=02:30:00 slurm/v9/reg_g2.sbatch V9-G2-comir-frac0.25-eps0-s901 V9-G2-comir-frac0.25-eps0-s902 V9-G2-comir-frac0.25-eps0-s903 V9-G2-comir-frac0.25-eps0.2-s901 V9-G2-comir-frac0.25-eps0.2-s902 V9-G2-comir-frac0.25-eps0.2-s903
+sbatch --job-name=v9g2_comir_f1 --time=02:30:00 slurm/v9/reg_g2.sbatch V9-G2-comir-frac1-eps0-s901 V9-G2-comir-frac1-eps0-s902 V9-G2-comir-frac1-eps0-s903 V9-G2-comir-frac1-eps0.2-s901 V9-G2-comir-frac1-eps0.2-s902 V9-G2-comir-frac1-eps0.2-s903
+sbatch --job-name=v9g2_kernel_f0.25 --time=03:00:00 slurm/v9/reg_g2.sbatch V9-G2-kernel-frac0.25-eps0-s901 V9-G2-kernel-frac0.25-eps0.2-s901
+sbatch --job-name=v9g2_kernel_f1 --time=03:00:00 slurm/v9/reg_g2.sbatch V9-G2-kernel-frac1-eps0-s901 V9-G2-kernel-frac1-eps0.2-s901
+# after all 10 jobs: python scripts/v9/reg_g2.py aggregate --out reports/V9/V9_G2_results   (CPU)
