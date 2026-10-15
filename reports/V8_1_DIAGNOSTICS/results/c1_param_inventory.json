@@ -1,0 +1,9046 @@
+{
+ "variant": "V8.1-C1: last 2 Q-former BertLayer blocks + ln_vision + query_tokens + head trainable; rest of the Q-former frozen and eval",
+ "n_encoder_layers": 12,
+ "c1_block_indices": [
+  10,
+  11
+ ],
+ "c1_block_name_prefixes": [
+  "Qformer.bert.encoder.layer.10",
+  "Qformer.bert.encoder.layer.11"
+ ],
+ "c1_blocks_have_cross_attention": [
+  true,
+  false
+ ],
+ "n_trainable_c1": 27001861,
+ "n_trainable_v8": 186314048,
+ "v8_trainable_expected": 186314048,
+ "n_trainable_tensors_c1": 59,
+ "n_trainable_tensors_v8": 338,
+ "by_group": {
+  "c1_block": {
+   "tensors": 54,
+   "params": 26970624,
+   "trainable_c1": 26970624
+  },
+  "head": {
+   "tensors": 2,
+   "params": 3845,
+   "trainable_c1": 3845
+  },
+  "ln_vision": {
+   "tensors": 2,
+   "params": 2816,
+   "trainable_c1": 2816
+  },
+  "other_frozen": {
+   "tensors": 17,
+   "params": 634340,
+   "trainable_c1": 0
+  },
+  "qformer_frozen": {
+   "tensors": 279,
+   "params": 159312187,
+   "trainable_c1": 0
+  },
+  "query_tokens": {
+   "tensors": 1,
+   "params": 24576,
+   "trainable_c1": 24576
+  },
+  "vit": {
+   "tensors": 511,
+   "params": 986485888,
+   "trainable_c1": 0
+  }
+ },
+ "newly_frozen_vs_v8": 159312187,
+ "newly_trainable_vs_v8": 0,
+ "tensors": [
+  {
+   "name": "query_tokens",
+   "shape": [
+    1,
+    32,
+    768
+   ],
+   "numel": 24576,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "query_tokens"
+  },
+  {
+   "name": "temp",
+   "shape": [],
+   "numel": 1,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "visual_encoder.cls_token",
+   "shape": [
+    1,
+    1,
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.pos_embed",
+   "shape": [
+    1,
+    677,
+    1408
+   ],
+   "numel": 953216,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.patch_embed.proj.weight",
+   "shape": [
+    1408,
+    3,
+    14,
+    14
+   ],
+   "numel": 827904,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.patch_embed.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.0.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.1.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.2.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.3.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.4.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.5.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.6.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.7.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.8.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.9.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.10.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.11.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.12.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.13.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.14.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.15.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.16.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.17.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.18.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.19.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.20.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.21.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.22.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.23.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.24.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.25.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.26.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.27.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.28.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.29.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.30.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.31.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.32.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.33.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.34.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.35.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.36.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.37.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.norm1.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.norm1.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.attn.q_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.attn.v_bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.attn.qkv.weight",
+   "shape": [
+    4224,
+    1408
+   ],
+   "numel": 5947392,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.attn.proj.weight",
+   "shape": [
+    1408,
+    1408
+   ],
+   "numel": 1982464,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.attn.proj.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.norm2.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.norm2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.mlp.fc1.weight",
+   "shape": [
+    6144,
+    1408
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.mlp.fc1.bias",
+   "shape": [
+    6144
+   ],
+   "numel": 6144,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.mlp.fc2.weight",
+   "shape": [
+    1408,
+    6144
+   ],
+   "numel": 8650752,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "visual_encoder.blocks.38.mlp.fc2.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "vit"
+  },
+  {
+   "name": "ln_vision.weight",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "ln_vision"
+  },
+  {
+   "name": "ln_vision.bias",
+   "shape": [
+    1408
+   ],
+   "numel": 1408,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "ln_vision"
+  },
+  {
+   "name": "Qformer.bert.embeddings.word_embeddings.weight",
+   "shape": [
+    30523,
+    768
+   ],
+   "numel": 23441664,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.embeddings.position_embeddings.weight",
+   "shape": [
+    512,
+    768
+   ],
+   "numel": 393216,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.embeddings.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.embeddings.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.self.key.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.self.value.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.crossattention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.0.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.1.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.self.key.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.self.value.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.crossattention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.2.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.3.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.self.key.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.self.value.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.crossattention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.4.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.5.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.self.key.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.self.value.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.crossattention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.6.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.7.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.self.key.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.self.value.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.crossattention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.8.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.9.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.self.key.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.self.value.weight",
+   "shape": [
+    768,
+    1408
+   ],
+   "numel": 1081344,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.crossattention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.10.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.self.query.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.self.query.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.self.key.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.self.key.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.self.value.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.self.value.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.output.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.attention.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.intermediate.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.intermediate.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.intermediate_query.dense.weight",
+   "shape": [
+    3072,
+    768
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.intermediate_query.dense.bias",
+   "shape": [
+    3072
+   ],
+   "numel": 3072,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output_query.dense.weight",
+   "shape": [
+    768,
+    3072
+   ],
+   "numel": 2359296,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output_query.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output_query.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.bert.encoder.layer.11.output_query.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "c1_block"
+  },
+  {
+   "name": "Qformer.cls.predictions.bias",
+   "shape": [
+    30523
+   ],
+   "numel": 30523,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.cls.predictions.transform.dense.weight",
+   "shape": [
+    768,
+    768
+   ],
+   "numel": 589824,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.cls.predictions.transform.dense.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.cls.predictions.transform.LayerNorm.weight",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "Qformer.cls.predictions.transform.LayerNorm.bias",
+   "shape": [
+    768
+   ],
+   "numel": 768,
+   "trainable_c1": false,
+   "trainable_v8": true,
+   "group": "qformer_frozen"
+  },
+  {
+   "name": "vision_proj.weight",
+   "shape": [
+    256,
+    768
+   ],
+   "numel": 196608,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "vision_proj.bias",
+   "shape": [
+    256
+   ],
+   "numel": 256,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "text_proj.weight",
+   "shape": [
+    256,
+    768
+   ],
+   "numel": 196608,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "text_proj.bias",
+   "shape": [
+    256
+   ],
+   "numel": 256,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "itm_head.weight",
+   "shape": [
+    2,
+    768
+   ],
+   "numel": 1536,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "itm_head.bias",
+   "shape": [
+    2
+   ],
+   "numel": 2,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.0.weight",
+   "shape": [
+    256,
+    768
+   ],
+   "numel": 196608,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.0.bias",
+   "shape": [
+    256
+   ],
+   "numel": 256,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.2.weight",
+   "shape": [
+    128,
+    256
+   ],
+   "numel": 32768,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.2.bias",
+   "shape": [
+    128
+   ],
+   "numel": 128,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.4.weight",
+   "shape": [
+    64,
+    128
+   ],
+   "numel": 8192,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.4.bias",
+   "shape": [
+    64
+   ],
+   "numel": 64,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.6.weight",
+   "shape": [
+    16,
+    64
+   ],
+   "numel": 1024,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.6.bias",
+   "shape": [
+    16
+   ],
+   "numel": 16,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.8.weight",
+   "shape": [
+    1,
+    16
+   ],
+   "numel": 16,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "mask_proj.layers.8.bias",
+   "shape": [
+    1
+   ],
+   "numel": 1,
+   "trainable_c1": false,
+   "trainable_v8": false,
+   "group": "other_frozen"
+  },
+  {
+   "name": "v8_head.weight",
+   "shape": [
+    5,
+    768
+   ],
+   "numel": 3840,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "head"
+  },
+  {
+   "name": "v8_head.bias",
+   "shape": [
+    5
+   ],
+   "numel": 5,
+   "trainable_c1": true,
+   "trainable_v8": true,
+   "group": "head"
+  }
+ ],
+ "checks": {
+  "block_names_match_indices": true,
+  "c1_subset_of_v8": true,
+  "v8_total_matches_audit": true,
+  "vit_frozen": true
+ },
+ "dead_on_loss_path_c1": {
+  "Qformer.bert.encoder.layer.11.intermediate.dense.bias": "zero",
+  "Qformer.bert.encoder.layer.11.intermediate.dense.weight": "zero",
+  "Qformer.bert.encoder.layer.11.output.LayerNorm.bias": "zero",
+  "Qformer.bert.encoder.layer.11.output.LayerNorm.weight": "zero",
+  "Qformer.bert.encoder.layer.11.output.dense.bias": "zero",
+  "Qformer.bert.encoder.layer.11.output.dense.weight": "zero"
+ },
+ "dead_on_loss_path_v8": {
+  "Qformer.bert.encoder.layer.11.intermediate.dense.bias": "zero",
+  "Qformer.bert.encoder.layer.11.intermediate.dense.weight": "zero",
+  "Qformer.bert.encoder.layer.11.output.LayerNorm.bias": "zero",
+  "Qformer.bert.encoder.layer.11.output.LayerNorm.weight": "zero",
+  "Qformer.bert.encoder.layer.11.output.dense.bias": "zero",
+  "Qformer.bert.encoder.layer.11.output.dense.weight": "zero",
+  "Qformer.cls.predictions.bias": "none",
+  "Qformer.cls.predictions.transform.LayerNorm.bias": "none",
+  "Qformer.cls.predictions.transform.LayerNorm.weight": "none",
+  "Qformer.cls.predictions.transform.dense.bias": "none",
+  "Qformer.cls.predictions.transform.dense.weight": "none"
+ },
+ "n_effective_trainable_c1": 22277893,
+ "dead_check": "gradient status on one real FIT batch (selftest, NVIDIA RTX PRO 6000 Blackwell Server Edition); dead = grad None or all-zero"
+}

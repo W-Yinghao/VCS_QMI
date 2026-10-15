@@ -1,0 +1,216 @@
+version: V8.1
+approved: true
+candidate: C1 partial Q-former (FULL_PLAN_CN.md 06 C1)
+owner_decision_reference:
+  verbatim: 「这俩都可以提交」
+  context: 'owner reply 2026-10-15 ~20:55 UTC to ''V8.1 C1: 9 units, ~6-8 GPU-h; code, smoke and measured budget first'' (main reports/OWNER_DECISIONS_20261015.md,
+    commit df4ced4)'
+  commit: df4ced4
+supporting_diagnostics:
+- 'V81_02_DECISION_AGREEMENT.md / V81_03_SCALE_VS_SELECTION.md: the six scale arms make near-identical within-prompt decisions; the held-out within-prompt pair accuracy
+  is ~0.70 for every arm'
+- results/label_ceiling.json (development diagnostic, not pre-registered):
+    DEV:
+      ceiling_gaussian_all_pairs: 0.84
+      ceiling_gaussian_both_3vote: 0.854
+      estimator_bias_on_synthetic_3vote: -0.034
+      model_pair_accuracy_all_pairs:
+        U-CS: 0.704
+        U-RPS: 0.7
+        U-MSE: 0.701
+    CAL_SELECT:
+      ceiling_gaussian_all_pairs: 0.827
+      ceiling_gaussian_both_3vote: 0.838
+      estimator_bias_on_synthetic_3vote: -0.035
+      model_pair_accuracy_all_pairs:
+        U-CS: 0.71
+        U-RPS: 0.7
+        U-MSE: 0.703
+    CAL_PROB:
+      ceiling_gaussian_all_pairs: 0.845
+      ceiling_gaussian_both_3vote: 0.852
+      estimator_bias_on_synthetic_3vote: -0.033
+      model_pair_accuracy_all_pairs:
+        U-CS: 0.723
+        U-RPS: 0.721
+        U-MSE: 0.721
+- ? 'V81_05 / results/checkpoint_inference.json: FIT-AUDIT keeps improving from best to the final epoch while CAL_SELECT does not ([best, resume] seed means)'
+  : U-CS:
+      FIT_AUDIT:
+        mse_prompt_macro:
+        - 0.2118
+        - 0.1433
+        pairwise_acc_macro:
+        - 0.7917
+        - 0.8288
+      CAL_SELECT:
+        mse_prompt_macro:
+        - 0.4055
+        - 0.4219
+        pairwise_acc_macro:
+        - 0.7248
+        - 0.7194
+    U-RPS:
+      FIT_AUDIT:
+        mse_prompt_macro:
+        - 0.2071
+        - 0.158
+        pairwise_acc_macro:
+        - 0.783
+        - 0.8116
+      CAL_SELECT:
+        mse_prompt_macro:
+        - 0.4016
+        - 0.4081
+        pairwise_acc_macro:
+        - 0.7166
+        - 0.7148
+    U-MSE:
+      FIT_AUDIT:
+        mse_prompt_macro:
+        - 0.2141
+        - 0.1591
+        pairwise_acc_macro:
+        - 0.7791
+        - 0.8104
+      CAL_SELECT:
+        mse_prompt_macro:
+        - 0.4071
+        - 0.4183
+        pairwise_acc_macro:
+        - 0.7183
+        - 0.7163
+- 'results/d05_log_level.json: CAL_SELECT curves and training loss by epoch (seed means)':
+    U-CS:
+      pair_acc_by_epoch:
+      - 0.7198
+      - 0.7212
+      - 0.7252
+      - 0.72
+      - 0.7191
+      mse_by_epoch:
+      - 0.4194
+      - 0.4128
+      - 0.4068
+      - 0.4148
+      - 0.4218
+      train_loss_by_epoch:
+      - 0.169
+      - 0.14
+      - 0.128
+      - 0.1184
+      - 0.1134
+      selected_epochs:
+      - 2
+      - 0
+      - 2
+    U-RPS:
+      pair_acc_by_epoch:
+      - 0.7122
+      - 0.7183
+      - 0.7186
+      - 0.7156
+      - 0.715
+      mse_by_epoch:
+      - 0.4105
+      - 0.4055
+      - 0.4037
+      - 0.4068
+      - 0.4081
+      train_loss_by_epoch:
+      - 0.1208
+      - 0.1038
+      - 0.0976
+      - 0.0934
+      - 0.0914
+      selected_epochs:
+      - 2
+      - 0
+      - 4
+    U-MSE:
+      pair_acc_by_epoch:
+      - 0.713
+      - 0.7181
+      - 0.7178
+      - 0.7168
+      - 0.7159
+      mse_by_epoch:
+      - 0.4173
+      - 0.4093
+      - 0.4106
+      - 0.4153
+      - 0.4184
+      train_loss_by_epoch:
+      - 0.0307
+      - 0.0191
+      - 0.0153
+      - 0.0128
+      - 0.0117
+      selected_epochs:
+      - 2
+      - 0
+      - 2
+- 'V81_05 §5 (results/param_audit.json): the full-adaptation units moved 0.4-1.1 % (relative L2) from initialisation; AdamW applied 11,890-11,894 of 11,895 steps'
+- 'V81_05 §3: every trained arm responds to the image (cross-prompt permutation mean abs delta-mu 1.03-1.78 vs 0.14-0.26 at RECONSTRUCTED_INIT)'
+contradicting_evidence:
+- CAL_SELECT pair accuracy falls only slightly after its peak (seed-mean peak minus last epoch):
+    U-CS: 0.0061
+    U-RPS: 0.0036
+    U-MSE: 0.0022
+- C1 changes capacity (fewer trainable parameters), not only the adaptation scope; a difference is a fixed-recipe adaptation-scope effect, not an optimum over adaptation
+  schemes
+- DEV was already read by the V8.1 diagnostics D02-D04 (development exposure); the C1 DEV readout is a development comparison, not an independent test
+- No per-epoch V8 checkpoint exists; the FIT-AUDIT best-vs-resume contrast is the only checkpoint-level trajectory evidence
+one_factor_changed: 'trainable set: last 2 Q-former BertLayer blocks (resolved from the real encoder ModuleList) + ln_vision + query tokens + head; every other Q-former
+  parameter frozen and its modules in eval mode during training'
+baseline_units_reused:
+- V8-FIT-U-CS-s0
+- V8-FIT-U-CS-s1
+- V8-FIT-U-CS-s2
+- V8-FIT-U-RPS-s0
+- V8-FIT-U-RPS-s1
+- V8-FIT-U-RPS-s2
+- V8-FIT-U-MSE-s0
+- V8-FIT-U-MSE-s1
+- V8-FIT-U-MSE-s2
+new_units:
+- V81-C1-U-CS-s0
+- V81-C1-U-CS-s1
+- V81-C1-U-CS-s2
+- V81-C1-U-RPS-s0
+- V81-C1-U-RPS-s1
+- V81-C1-U-RPS-s2
+- V81-C1-U-MSE-s0
+- V81-C1-U-MSE-s1
+- V81-C1-U-MSE-s2
+measured_gpu_type: NVIDIA RTX PRO 6000 Blackwell Server Edition
+measured_unit_hours: 0.75
+total_training_and_export_hours: 6.8
+budget_detail:
+  measured_gpu: NVIDIA RTX PRO 6000 Blackwell Server Edition
+  smoke_job: '1042295'
+  selftest_job: '1042295'
+  steps_per_epoch: 2379
+  c1_s_per_step: 0.1237
+  v8_s_per_step_same_gpu: 0.1392
+  c1_over_v8_step_time: 0.888
+  c1_peak_mem_gb: 5.8
+  v8_peak_mem_gb: 7.5
+  cal_eval_s_per_epoch: 81.7
+  cal_eval_source: 'parent V8 units (U-CS on H100, U-RPS / U-MSE on L40S): none ran on this GPU type, so their mean (conservative)'
+  export_s_3_roles: 309
+  export_source: smoke export of CAL_SELECT (78 s, 1,653 images) scaled to 6,540 images
+  audit_s: 169
+  audit_source: audit check 1042300
+  model_builds_s: 360
+  unit_hours_on_measured_gpu: 0.75
+  nine_units_gpu_hours: 6.8
+  v8_unit_train_hours_same_gpu: null
+  note: other GPU types scale with their step time; the L40S V8 units trained ~2x slower per step than the RTX PRO 6000 / H100 ones (V8 formal logs)
+selection_data: CAL_SELECT
+new_test_label_access: false
+old_results_overwritten: false
+stop_rule: 'if the pre-registered primary rule does not return ''improves'', V8 is closed out: no distillation, residual, backbone or tuning rescue of this branch,
+  no further C variant without a new owner decision'
+written_utc: '2026-10-15T21:29:19Z'
+code_commit: a8d39eb

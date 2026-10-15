@@ -1,0 +1,169 @@
+{
+ "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+ "torch": "2.9.0+cu128",
+ "arm": "U-CS",
+ "seed": 0,
+ "inventory": {
+  "variant": "V8.1-C1: last 2 Q-former BertLayer blocks + ln_vision + query_tokens + head trainable; rest of the Q-former frozen and eval",
+  "n_encoder_layers": 12,
+  "c1_block_indices": [
+   10,
+   11
+  ],
+  "c1_block_name_prefixes": [
+   "Qformer.bert.encoder.layer.10",
+   "Qformer.bert.encoder.layer.11"
+  ],
+  "c1_blocks_have_cross_attention": [
+   true,
+   false
+  ],
+  "n_trainable_c1": 27001861,
+  "n_trainable_v8": 186314048,
+  "v8_trainable_expected": 186314048,
+  "n_trainable_tensors_c1": 59,
+  "n_trainable_tensors_v8": 338,
+  "by_group": {
+   "c1_block": {
+    "tensors": 54,
+    "params": 26970624,
+    "trainable_c1": 26970624
+   },
+   "head": {
+    "tensors": 2,
+    "params": 3845,
+    "trainable_c1": 3845
+   },
+   "ln_vision": {
+    "tensors": 2,
+    "params": 2816,
+    "trainable_c1": 2816
+   },
+   "other_frozen": {
+    "tensors": 17,
+    "params": 634340,
+    "trainable_c1": 0
+   },
+   "qformer_frozen": {
+    "tensors": 279,
+    "params": 159312187,
+    "trainable_c1": 0
+   },
+   "query_tokens": {
+    "tensors": 1,
+    "params": 24576,
+    "trainable_c1": 24576
+   },
+   "vit": {
+    "tensors": 511,
+    "params": 986485888,
+    "trainable_c1": 0
+   }
+  },
+  "newly_frozen_vs_v8": 159312187,
+  "newly_trainable_vs_v8": 0,
+  "checks": {
+   "block_names_match_indices": true,
+   "c1_subset_of_v8": true,
+   "v8_total_matches_audit": true,
+   "vit_frozen": true
+  }
+ },
+ "modes_during_training": {
+  "visual_encoder": false,
+  "Qformer_root": false,
+  "embeddings": false,
+  "encoder_layers": [
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   false,
+   true,
+   true
+  ],
+  "ln_vision": true,
+  "v8_head": true,
+  "dropout_in_c1_blocks_training": [
+   true
+  ],
+  "dropout_elsewhere_training": [
+   false
+  ],
+  "n_dropout_in_c1_blocks": 10,
+  "n_dropout_elsewhere": 51
+ },
+ "gradient_path": {
+  "batch": "FIT epoch-0 plan, first batch, seed 0",
+  "c1_loss": 0.2843322157859802,
+  "v8_loss": 0.28708216547966003,
+  "c1_dead_tensors": {
+   "Qformer.bert.encoder.layer.11.intermediate.dense.bias": "zero",
+   "Qformer.bert.encoder.layer.11.intermediate.dense.weight": "zero",
+   "Qformer.bert.encoder.layer.11.output.LayerNorm.bias": "zero",
+   "Qformer.bert.encoder.layer.11.output.LayerNorm.weight": "zero",
+   "Qformer.bert.encoder.layer.11.output.dense.bias": "zero",
+   "Qformer.bert.encoder.layer.11.output.dense.weight": "zero"
+  },
+  "v8_dead_tensors": {
+   "Qformer.bert.encoder.layer.11.intermediate.dense.bias": "zero",
+   "Qformer.bert.encoder.layer.11.intermediate.dense.weight": "zero",
+   "Qformer.bert.encoder.layer.11.output.LayerNorm.bias": "zero",
+   "Qformer.bert.encoder.layer.11.output.LayerNorm.weight": "zero",
+   "Qformer.bert.encoder.layer.11.output.dense.bias": "zero",
+   "Qformer.bert.encoder.layer.11.output.dense.weight": "zero",
+   "Qformer.cls.predictions.bias": "none",
+   "Qformer.cls.predictions.transform.LayerNorm.bias": "none",
+   "Qformer.cls.predictions.transform.LayerNorm.weight": "none",
+   "Qformer.cls.predictions.transform.dense.bias": "none",
+   "Qformer.cls.predictions.transform.dense.weight": "none"
+  },
+  "c1_dead_subset_of_v8_dead": true,
+  "c1_dead_params": 4723968,
+  "n_effective_trainable_c1": 22277893,
+  "c1_nonfinite": [],
+  "v8_nonfinite": [],
+  "frozen_with_grad_c1": [],
+  "c1_nonzero_tensors": 53
+ },
+ "one_step": {
+  "n_frozen": 807,
+  "n_frozen_bitwise_unchanged": 807,
+  "n_trainable": 59,
+  "n_trainable_changed": 55,
+  "live_all_changed": true,
+  "dead_changed_by_weight_decay_only": [
+   "Qformer.bert.encoder.layer.11.intermediate.dense.weight",
+   "Qformer.bert.encoder.layer.11.output.dense.weight"
+  ],
+  "dead_unchanged": [
+   "Qformer.bert.encoder.layer.11.intermediate.dense.bias",
+   "Qformer.bert.encoder.layer.11.output.LayerNorm.bias",
+   "Qformer.bert.encoder.layer.11.output.LayerNorm.weight",
+   "Qformer.bert.encoder.layer.11.output.dense.bias"
+  ],
+  "pass": true
+ },
+ "timing_same_gpu": {
+  "V8": {
+   "n_trainable": 186314048,
+   "s_per_step_mean": 0.1392384338378906,
+   "s_per_step_median": 0.13543236255645752,
+   "n_timed": 50,
+   "peak_mem_gb": 7.454004287719727
+  },
+  "C1": {
+   "n_trainable": 27001861,
+   "s_per_step_mean": 0.12366147994995118,
+   "s_per_step_median": 0.1194995641708374,
+   "n_timed": 50,
+   "peak_mem_gb": 5.8206024169921875
+  }
+ },
+ "steps_per_epoch": 2379
+}

@@ -1,0 +1,184 @@
+version: V8.1-C1
+status: FROZEN before any C1 formal unit was submitted
+frozen_utc: '2026-10-15T21:29:19Z'
+code_commit: a8d39eb
+owner_decision:
+  verbatim: 「这俩都可以提交」
+  context: 'owner reply 2026-10-15 ~20:55 UTC to ''V8.1 C1: 9 units, ~6-8 GPU-h; code, smoke and measured budget first'' (main reports/OWNER_DECISIONS_20261015.md,
+    commit df4ced4)'
+  commit: df4ced4
+package: v8_1/package_v81_20261015 FULL_PLAN_CN.md 06 C1; configs/CONDITIONAL_UNITS.csv (V81-C1-* x 9); request reports/V8_1_DIAGNOSTICS/V81_C1_REQUEST.yaml
+design:
+  one_factor_changed: 'trainable set: last 2 Q-former BertLayer blocks (resolved from the real encoder ModuleList) + ln_vision + query tokens + head; every other
+    Q-former parameter frozen and its modules in eval mode during training'
+  c1_blocks:
+    encoder_layers: 12
+    indices:
+    - 10
+    - 11
+    name_prefixes:
+    - Qformer.bert.encoder.layer.10
+    - Qformer.bert.encoder.layer.11
+    have_cross_attention:
+    - true
+    - false
+  trainable_parameters:
+    c1: 27001861
+    v8: 186314048
+    by_group:
+      c1_block:
+        tensors: 54
+        params: 26970624
+        trainable_c1: 26970624
+      head:
+        tensors: 2
+        params: 3845
+        trainable_c1: 3845
+      ln_vision:
+        tensors: 2
+        params: 2816
+        trainable_c1: 2816
+      other_frozen:
+        tensors: 17
+        params: 634340
+        trainable_c1: 0
+      qformer_frozen:
+        tensors: 279
+        params: 159312187
+        trainable_c1: 0
+      query_tokens:
+        tensors: 1
+        params: 24576
+        trainable_c1: 24576
+      vit:
+        tensors: 511
+        params: 986485888
+        trainable_c1: 0
+    c1_effective_on_loss_path: 22277893
+    c1_dead_on_loss_path:
+      Qformer.bert.encoder.layer.11.intermediate.dense.bias: zero
+      Qformer.bert.encoder.layer.11.intermediate.dense.weight: zero
+      Qformer.bert.encoder.layer.11.output.LayerNorm.bias: zero
+      Qformer.bert.encoder.layer.11.output.LayerNorm.weight: zero
+      Qformer.bert.encoder.layer.11.output.dense.bias: zero
+      Qformer.bert.encoder.layer.11.output.dense.weight: zero
+    v8_dead_on_loss_path:
+      Qformer.bert.encoder.layer.11.intermediate.dense.bias: zero
+      Qformer.bert.encoder.layer.11.intermediate.dense.weight: zero
+      Qformer.bert.encoder.layer.11.output.LayerNorm.bias: zero
+      Qformer.bert.encoder.layer.11.output.LayerNorm.weight: zero
+      Qformer.bert.encoder.layer.11.output.dense.bias: zero
+      Qformer.bert.encoder.layer.11.output.dense.weight: zero
+      Qformer.cls.predictions.bias: none
+      Qformer.cls.predictions.transform.LayerNorm.bias: none
+      Qformer.cls.predictions.transform.LayerNorm.weight: none
+      Qformer.cls.predictions.transform.dense.bias: none
+      Qformer.cls.predictions.transform.dense.weight: none
+    dead_check: gradient status on one real FIT batch (selftest, NVIDIA RTX PRO 6000 Blackwell Server Edition); dead = grad None or all-zero; the pooled readout uses
+      only the 32 query outputs, so the last block's text-path FFN has no path to the loss (same in V8)
+  modes_during_training: model.eval(); the two C1 blocks, ln_vision and the head .train(); verified on the real stack (results/c1_selftest.json modes_during_training)
+  unchanged_from_v8:
+  - FGA-BLIP2 COCO construction (V7 build_model), frozen EVA ViT-g in eval mode, 364 full-frame input, raw prompt <= 128 tokens
+  - 'v8_train.build(seed, FIT histogram): seeded head weight, FIT log-histogram bias'
+  - FIT role (26,177 images), v8_core.batch_manifest per (seed, epoch) — plan hashes logged and comparable with the V8 logs
+  - AdamW (0.9, 0.999), weight decay 0.05 on matrices (V8 rule applied to the C1 trainable set), 100-step warm-up from 1e-8 + cosine to 0 over 11,895 steps
+  - AMP fp16 forward + GradScaler, fp32 losses from v8_core (unchanged)
+  - 5 epochs; CAL_SELECT prompt-macro mean-rating MSE selection, ties -> earlier epoch
+  - best.pt / resume.pt as V8; export = v8_train.cmd_export (best.pt, eval mode)
+  arms_and_lr:
+    U-CS: 1.0e-05
+    U-RPS: 5.0e-06
+    U-MSE: 5.0e-06
+  lr_source: each arm's formal V8 unit log.json (the frozen lr rule's choice); identical across seeds
+  seeds:
+  - 0
+  - 1
+  - 2
+  units:
+  - V81-C1-U-CS-s0
+  - V81-C1-U-CS-s1
+  - V81-C1-U-CS-s2
+  - V81-C1-U-RPS-s0
+  - V81-C1-U-RPS-s1
+  - V81-C1-U-RPS-s2
+  - V81-C1-U-MSE-s0
+  - V81-C1-U-MSE-s1
+  - V81-C1-U-MSE-s2
+  paired_baselines:
+  - V8-FIT-U-CS-s0
+  - V8-FIT-U-CS-s1
+  - V8-FIT-U-CS-s2
+  - V8-FIT-U-RPS-s0
+  - V8-FIT-U-RPS-s1
+  - V8-FIT-U-RPS-s2
+  - V8-FIT-U-MSE-s0
+  - V8-FIT-U-MSE-s1
+  - V8-FIT-U-MSE-s2
+  code: scripts/v81/c1_train.py = V8 cmd_train + the 5 substitutions V8_TO_C1 (tests/v81/test_c1.py asserts source equality); smoke 1042295
+  extra_artifact: trainable tensors after every epoch (<unit>/epochs/epoch{e}.pt); never used for selection or for the primary readout
+compute:
+  partitions: RTX6000PRO,H100,L40S
+  exclude: node51,node60
+  nice: 300
+  jobs: 3 grouped jobs, one per arm (seeds 0, 1, 2 in sequence), slurm/v81/c1_group.sbatch
+  outputs: /projects/EEG-foundation-model/yinghao/outputs_v81/c1/units/V81-C1-<arm>-s<seed> (never outputs_v8)
+  budget:
+    measured_gpu: NVIDIA RTX PRO 6000 Blackwell Server Edition
+    smoke_job: '1042295'
+    selftest_job: '1042295'
+    steps_per_epoch: 2379
+    c1_s_per_step: 0.1237
+    v8_s_per_step_same_gpu: 0.1392
+    c1_over_v8_step_time: 0.888
+    c1_peak_mem_gb: 5.8
+    v8_peak_mem_gb: 7.5
+    cal_eval_s_per_epoch: 81.7
+    cal_eval_source: 'parent V8 units (U-CS on H100, U-RPS / U-MSE on L40S): none ran on this GPU type, so their mean (conservative)'
+    export_s_3_roles: 309
+    export_source: smoke export of CAL_SELECT (78 s, 1,653 images) scaled to 6,540 images
+    audit_s: 169
+    audit_source: audit check 1042300
+    model_builds_s: 360
+    unit_hours_on_measured_gpu: 0.75
+    nine_units_gpu_hours: 6.8
+    v8_unit_train_hours_same_gpu: null
+    note: other GPU types scale with their step time; the L40S V8 units trained ~2x slower per step than the RTX PRO 6000 / H100 ones (V8 formal logs)
+labels:
+  read:
+  - FIT (training)
+  - CAL_SELECT (epoch selection)
+  - DEV (primary readout)
+  - CAL_PROB (exported, descriptive)
+  - FIT-AUDIT (audit, descriptive)
+  never_read:
+  - V8-05 GenAI-Bench confirmation labels
+  - GenAI-Rank
+  - TIFA160
+  - EvalMuse test
+  exports:
+  - CAL_SELECT
+  - CAL_PROB
+  - DEV
+primary_readout:
+  data: DEV (3,257 images, 307 prompts), predictions from each unit's best.pt export (images_DEV.jsonl, raw mu)
+  contrast: C1 unit minus the original full-adaptation V8-FIT unit of the same arm and seed; seed mean of the three per-seed differences (no prediction ensemble)
+  metrics:
+    a_pair_accuracy: pooled within-prompt pair accuracy over all pairs whose exact human means differ (vote sums compared exactly), model ties 0.5
+    b_selected_human_mean: per prompt the image with the highest raw mu (ties -> lowest candidate index; candidates in lexical image-id order, as V81_02), its human
+      mean, averaged over prompts
+  uncertainty: prompt_group cluster bootstrap (V7 near-duplicate component), 2,000 replicates, seed 2718, one resample per replicate shared by all arms / seeds /
+    variants; percentile 95 % interval of the seed-mean difference
+  decision: improves = interval lower bound > 0 for at least 2 of the 3 arms on (a), or for at least 2 of the 3 arms on (b); otherwise 'does not improve'
+  code: 'scripts/v81/c1_analyze.py (self-check with V8 on both sides: every difference exactly 0, job 1042289)'
+secondary_readouts:
+- DEV pooled Spearman difference (same bootstrap)
+- prompt-macro mean-rating MSE and its decomposition (prompt bias^2 + within-prompt centred error)
+- RPS / CE
+- CAL_SELECT curves per epoch (logs)
+- FIT-AUDIT best vs resume (C1 audit vs V81_05 D05 rows)
+- 'cost: s/step, epoch times, peak memory, GPU type'
+stop_rule: 'if the pre-registered primary rule does not return ''improves'', V8 is closed out: no distillation, residual, backbone or tuning rescue of this branch,
+  no further C variant without a new owner decision'
+exposure: DEV was read by V8.1 D02-D04; the C1 DEV readout is a development comparison.  The V8-05 confirmation prompts are not used to choose or evaluate C1 and
+  do not become a C1 confirmation set.
+execution_notes: []
