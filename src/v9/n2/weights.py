@@ -168,7 +168,15 @@ def weights_for_method(method: str, s: dict, rho_strategy: str = "estimated", se
             T = _quant_fit({"RuLSIF_Weight": "rulsif", "Nystrom_Weight": "nystrom", "KDE_Weight": "kde"}[method], s["fit_P"], s["fit_Q"], s["sel_P"], s["sel_Q"], seed)
             rec["critic"] = {"class": method, "source": "v9.quant"}
         T_P_ref, T_Q_ref, T_U = T(s["ref_P"]), T(s["ref_Q"]), T(s["U"])
-        rho = estimate_rho(T_P_ref, T_Q_ref, T_U, s.get("ref_P_img"), s.get("ref_Q_img"), s.get("U_img"))
+        # protocol §05.3 step 3: the point estimate is transductive on the estimation part of U; the interval is reported on an INDEPENDENT batch
+        # (a held-out subset of U images that enters neither the point estimate nor the critic / reference roles); weights are computed for all U pairs.
+        est_mask = np.asarray(s.get("U_est_mask", np.ones(len(T_U), dtype=bool)), dtype=bool); ind_mask = ~est_mask
+        rho = estimate_rho(T_P_ref, T_Q_ref, T_U[est_mask], s.get("ref_P_img"), s.get("ref_Q_img"), [c for c, m in zip(s.get("U_img", []), est_mask) if m] if s.get("U_img") is not None else None)
+        rho["batch"] = "U_est (point estimate; interval on the same batch is diagnostic only)"
+        if ind_mask.any() and s.get("U_img") is not None:
+            ind = estimate_rho(T_P_ref, T_Q_ref, T_U[ind_mask], s.get("ref_P_img"), s.get("ref_Q_img"), [c for c, m in zip(s["U_img"], ind_mask) if m])
+            rho["independent_batch"] = {"n_pairs": int(ind_mask.sum()), "n_images": len(set(c for c, m in zip(s["U_img"], ind_mask) if m)), "c": ind["c"], "raw": ind["raw"], "projected": ind["projected"],
+                                        "status": ind["status"], "interval": ind.get("interval"), "n_clusters": ind.get("n_clusters")}
         rec["rho"] = rho
         if rho_strategy == "oracle":
             rho_used = float(s["rho_true"]); rec["rho_used"] = rho_used; rec["deployable"] = False

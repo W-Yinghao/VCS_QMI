@@ -15,6 +15,7 @@ import numpy as np
 from .eval import evaluate_split, similarity_matrix
 from .fixtures import collate_pairs
 from .noise import inject_mismatch, load_observed, make_pair_table, write_noise
+from .precheck import loss_coefficients, role_isolation, teacher_separability, weight_tables, write_precheck
 from .roles import assign_roles, role_of_image, write_roles
 from .teacher import HostConfig, load_teacher, score_pairs, train_teacher
 from .train import WeightedStudent
@@ -54,7 +55,10 @@ def compute_scores(shared: dict, device: str = "cpu", batch: int = 128) -> dict:
         s[f"{key}_P"], s[f"{key}_Q"] = score_pairs(host, P, shared["collate"], batch, device), score_pairs(host, Q, shared["collate"], batch, device)
         s[f"{key}_P_img"], s[f"{key}_Q_img"] = [r["observed_image_id"] for r in P], [r["q_of"] for r in Q]
     U = by_role["U"]; s["U"] = score_pairs(host, U, shared["collate"], batch, device); s["U_img"] = [r["observed_image_id"] for r in U]; s["U_pair_ids"] = [r["pair_id"] for r in U]
-    s["hash"] = _h({k: (np.asarray(v).round(8).tolist() if isinstance(v, np.ndarray) else v) for k, v in s.items() if k != "hash"})
+    # protocol §05.3 step 3: hold out 20 % of U images (by observed image, seeded) as the independent batch for the rho interval; the point estimate uses the rest
+    u_imgs = sorted(set(s["U_img"])); rng_u = np.random.default_rng([shared["roles"]["seed"], 9_031]); held = set(rng_u.choice(u_imgs, size=max(1, int(round(0.2 * len(u_imgs)))), replace=False).tolist()) if len(u_imgs) >= 5 else set()
+    s["U_est_mask"] = np.array([img not in held for img in s["U_img"]], dtype=bool); s["U_independent_images"] = sorted(held)
+    s["hash"] = _h({k: (np.asarray(v).astype(int).tolist() if isinstance(v, np.ndarray) and v.dtype == bool else np.asarray(v).round(8).tolist() if isinstance(v, np.ndarray) else v) for k, v in s.items() if k != "hash"})
     return s
 
 
@@ -73,10 +77,43 @@ def make_weights(shared: dict, scores: dict, method: str, seed: int, steps: int 
     return {"path": wpath, "lock": lock, "w": read_weight_lock(wpath)}
 
 
+WEIGHT_METHODS = ("Unweighted_A", "VCS_Weight", "BCE_Weight", "RuLSIF_Weight", "Nystrom_Weight", "RankMass", "PlainFilter")
+
+
+def run_precheck(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float, seed: int, device: str = "cpu", critic_steps: int = 400, anchor_fraction: float = 0.1,
+                 min_sizes=None, methods=WEIGHT_METHODS, split_files: dict | None = None) -> dict:
+    """The pre-registered gate (owner 2026-10-15): teacher separability on A-critic-select, every method's weights, loss coefficients, roles."""
+    shared = prepare_shared(ds, cfg, out_root, dataset, rho, seed, device, anchor_fraction, min_sizes); scores = compute_scores(shared, device, cfg.batch_size)
+    sep = teacher_separability(scores["sel_P"], scores["sel_Q"]); wmap = {}
+    n3 = None
+    for m in methods:
+        try:
+            if m == "RankMass":
+                n3 = n3 if n3 is not None else make_weights(shared, scores, "VCS_Weight", seed, critic_steps)["lock"]["record"]["total_mass"]
+            wmap[m] = make_weights(shared, scores, m, seed, critic_steps, n3_mass=n3)["w"]
+        except NotImplementedError as e:
+            wmap[m] = None; print(f"[precheck] {m}: {e}")
+    wmap = {m: w for m, w in wmap.items() if w is not None}
+    wt = weight_tables({m: np.array([w[p] for p in scores["U_pair_ids"]]) for m, w in wmap.items()})
+    coef = loss_coefficients(shared["observed"], wmap, seed); iso = role_isolation(shared["roles"], split_files)
+    return write_precheck(shared["base"] / "precheck", dataset, rho, seed, sep, wt, coef, iso, shared["noise_manifest"])
+
+
+def precheck_allows(out_root: Path, dataset: str, rho: float, seed: int) -> dict:
+    p = out_root / dataset / f"rho{rho:g}" / f"s{seed}" / "precheck" / f"precheck_{dataset}_rho{rho:g}_s{seed}.json"
+    if not p.exists():
+        raise ValueError(f"formal unit refused: no precheck at {p} (run `n2_run.py precheck` first; it is the pre-registered gate)")
+    rec = json.loads(p.read_text())
+    if not rec["formal_block_allowed"]:
+        raise ValueError(f"formal unit refused by the precheck: {rec['refusal_reason']}")
+    return rec
+
+
 def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float, method: str, seed: int, device: str = "cpu", epochs: int | None = None,
              lr_mult: float = 1.0, critic_steps: int = 400, formal: bool = False, anchor_fraction: float = 0.1, min_sizes=None, test: dict | None = None) -> dict:
     shared = prepare_shared(ds, cfg, out_root, dataset, rho, seed, device, anchor_fraction, min_sizes)
     scores = compute_scores(shared, device, cfg.batch_size)
+    precheck = precheck_allows(out_root, dataset, rho, seed) if formal else None
     n3 = None
     if method == "RankMass":
         n3 = make_weights(shared, scores, "VCS_Weight", seed, critic_steps)["lock"]["record"]["total_mass"]
@@ -85,7 +122,7 @@ def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float
     student = WeightedStudent(cfg, shared["observed"], wres["w"], shared["collate"], ds["dev_images"], ds["dev_captions"], unit_dir, seed, lr_mult, device, wres["lock"], formal)
     done = student.fit(epochs)
     result = {"unit": unit_dir.name, "dataset": dataset, "rho": rho, "method": method, "seed": seed, "noise_manifest": shared["noise_manifest"], "weights_record": wres["lock"]["record"],
-              "scores_hash": scores["hash"], "done": done}
+              "scores_hash": scores["hash"], "done": done, "precheck": None if precheck is None else {"formal_block_allowed": precheck["formal_block_allowed"], "merged": precheck["loss_coefficients"]["merged"].get(method)}}
     if test is not None:                                        # test evaluation: a separate, explicit step on the selected (best dev) checkpoint
         import torch
         from .teacher import build_host

@@ -22,7 +22,11 @@ EVAL_ONLY_SUFFIX = ".eval_only.json"
 def make_pair_table(caption_image: dict, roles_of_image: dict) -> list[dict]:
     """caption_image: {caption_id: image_id} (every caption is one pair).  Returns rows sorted by caption id with the image's role."""
     rows = []
-    for cap in sorted(caption_image, key=lambda c: (str(c))):
+    # official caption order (integer ids 0..N-1 are the official caption indices) when ids are integral, else lexicographic
+    def _key(c):
+        s = str(c)
+        return (0, int(s)) if s.lstrip("-").isdigit() else (1, s)
+    for cap in sorted(caption_image, key=_key):
         img = str(caption_image[cap])
         if img not in roles_of_image:
             raise ValueError(f"image {img} of caption {cap} has no role")

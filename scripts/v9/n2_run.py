@@ -18,7 +18,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from v9.n2.fixtures import make_fixture  # noqa: E402
-from v9.n2.pipeline import run_unit  # noqa: E402
+from v9.n2.pipeline import run_precheck, run_unit  # noqa: E402
 from v9.n2.strict import run_strict_check  # noqa: E402
 from v9.n2.teacher import HostConfig  # noqa: E402
 
@@ -58,6 +58,24 @@ def cmd_smoke(a):
     return 0
 
 
+def cmd_precheck(a):
+    """Pre-registered gate on real data: one table per (dataset, rho, seed).  --fixture runs it on the synthetic fixture (code path only)."""
+    out = Path(a.out_root); out.mkdir(parents=True, exist_ok=True)
+    if a.fixture:
+        ds, test, tr = fixture_dataset(a.seed, 80); cfg = HostConfig(vocab_size=tr["vocab"], img_dim=tr["img_dim"], word_dim=16, embed_size=32, sim_dim=16, num_region=tr["n_region"], batch_size=16, teacher_epochs=8, lr_update=100, learning_rate=2e-3)
+        rec = run_precheck(ds, cfg, out, "fixture", a.rho, a.seed, a.device, critic_steps=120, anchor_fraction=0.5, min_sizes={k: 1 for k in ("teacher_warmup", "critic_fit", "critic_select", "reference_moments")})
+    else:
+        import yaml
+        from v9.n2.data import eval_arrays, load_precomp, load_vocab
+        name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); tr = load_precomp(Path(a.data_root) / name, "train", w2i)
+        ds = dict(tr); dev = load_precomp(Path(a.data_root) / name, "dev", w2i); ds["dev_images"], ds["dev_captions"] = eval_arrays(dev)
+        lock = yaml.safe_load(Path(a.host_lock).read_text()) if a.host_lock and Path(a.host_lock).exists() else None
+        cfg = HostConfig.from_host_lock(len(w2i), (lock or {}).get("training", lock) if lock else None)
+        d = Path(a.data_root) / name; files = {k: str(d / f"{k}.txt") for k in ("train_ids", "dev_ids", "test_ids", "dev_caps", "test_caps")}
+        rec = run_precheck(ds, cfg, out, a.dataset, a.rho, a.seed, a.device, split_files=files)
+    print(json.dumps({"formal_block_allowed": rec["formal_block_allowed"], "refusal_reason": rec["refusal_reason"], "auroc": rec["teacher_separability"]["auroc"], "merged": rec["loss_coefficients"]["merged"], "groups": rec["loss_coefficients"]["groups"]}, indent=1)); return 0
+
+
 def cmd_strict(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); res = run_strict_check(seed=a.seed); (out / "strict_check.json").write_text(json.dumps(res, indent=1)); print(json.dumps(res, indent=1)); return 0
 
@@ -83,12 +101,16 @@ def main():
     ap = argparse.ArgumentParser(); sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("smoke"); s.add_argument("--out", required=True); s.add_argument("--device", default="cpu"); s.add_argument("--epochs", type=int, default=2); s.add_argument("--seed", type=int, default=0); s.add_argument("--n-images", type=int, default=80)
     s = sub.add_parser("strict"); s.add_argument("--out", required=True); s.add_argument("--seed", type=int, default=0)
+    pc = sub.add_parser("precheck")
+    for k, kw in (("--dataset", {"default": "f30k", "choices": ["f30k", "coco", "fixture"]}), ("--rho", {"type": float, "required": True}), ("--seed", {"type": int, "required": True}), ("--data-root", {"default": ""}), ("--vocab", {"default": ""}),
+                  ("--out-root", {"required": True}), ("--host-lock", {"default": "reports/V9/HOST_LOCK.yaml"}), ("--device", {"default": "cuda"}), ("--fixture", {"action": "store_true"})):
+        pc.add_argument(k, **kw)
     u = sub.add_parser("unit")
     for k, kw in (("--dataset", {"required": True, "choices": ["f30k", "coco"]}), ("--rho", {"type": float, "required": True}), ("--method", {"required": True}), ("--seed", {"type": int, "required": True}),
                   ("--lr-mult", {"type": float, "default": 1.0}), ("--data-root", {"required": True}), ("--vocab", {"required": True}), ("--out-root", {"required": True}), ("--host-lock", {"default": "reports/V9/HOST_LOCK.yaml"}),
                   ("--device", {"default": "cuda"}), ("--formal", {"action": "store_true"}), ("--test", {"action": "store_true"})):
         u.add_argument(k, **kw)
-    a = ap.parse_args(); return {"smoke": cmd_smoke, "strict": cmd_strict, "unit": cmd_unit}[a.cmd](a)
+    a = ap.parse_args(); return {"smoke": cmd_smoke, "strict": cmd_strict, "unit": cmd_unit, "precheck": cmd_precheck}[a.cmd](a)
 
 
 if __name__ == "__main__":

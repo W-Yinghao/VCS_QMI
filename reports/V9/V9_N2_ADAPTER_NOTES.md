@@ -66,28 +66,50 @@ Official semantics (captions 5i..5i+4 ↔ image i; I2T any-caption hit; T2I imag
 ties: fixed id order (stable argsort) primary + seeded random-tie sensitivity (the official code's `np.argsort` is unstable quicksort — a deviation we
 make explicit rather than inherit); cross-checked against the package `retrieval_recall` (test).  Dev = NCR's first 1 000 images of the dev file.
 
-## 8. N1 NCR+A and N2 L2RM+A — what is implemented and what is missing
-The official training loops (`co_train.main`, `main_L2RM.main`) are scripts with module-level option parsing, two-model co-training (NCR) and a cost
-network + image queue (L2RM); they cannot be driven as functions from `pipeline.py` without copying them.  Delivered instead: **exact patches**
-(`v9/patches/ncr_anchor_assisted.diff`, `l2rm_anchor_assisted.diff`) that (i) make the official loaders read the V9 observed mapping + anchor mask and
-(ii) force anchor pairs into the labeled / correct set with clean probability 1 — the anchor-supervised term with weight 1 — leaving co-training, soft
-margin, rematching, the cost network, the queue, the two-model averaged evaluation and dev selection exactly official.  `git apply --check` against the
-read-only clones is part of the gate.  Still missing for a formal N1 / N2 unit: fork A's env (`v9_sgr`: NCR needs scikit-learn, L2RM needs pomegranate
-for its Beta mixture), the data, a small CLI (`scripts/v9/n2_official.py`, to write) that exports the V9 mapping as the two numpy files the patches
-expect and launches the patched scripts with the HOST_LOCK hyper-parameters, and the warm-up convention (NCR: 5 / 10 warm-up epochs on all pairs —
-with the patch, the anchors are included like every other pair; this is the official behaviour and is recorded as such, not as "the V9 teacher").
-NCR's evaluation averages two models: its row is labelled "SGR ×2 (NCR co-training)" in every table (docs/05 §4: SGR and ensembles labelled separately).
+## 8. N1 NCR+A and N2 L2RM+A — patches, driver and degradation check (updated 2026-10-16 after the owner's decisions)
+The official training loops are scripts (module-level option parsing; NCR co-trains two SGRAF nets and evaluates their averaged similarities; L2RM
+adds a cost network, an image queue and OT rematching), so they are driven as patched scripts, not imported.  Delivered:
+- **Patches** `v9/patches/{ncr,l2rm}_anchor_assisted.diff`, generated reproducibly by `scripts/v9/n2_make_patches.py` from explicit string edits on
+  pristine copies (NCR @ 60256ba: run.py + data.py + co_train.py, 11 hunks; L2RM @ a766c22: opt.py + data.py + main_L2RM.py, 16 hunks, CRLF preserved).
+  Two new options `--observed_index_file` / `--anchor_mask_file`; loaders take the V9 observed mapping (clean labels set to −1, never exposed);
+  after the GMM (NCR) / BMM (L2RM) split every anchor pair is labeled clean with probability 1 (NCR, both nets) / forced into the correct set
+  (L2RM).  Everything else is official.  `git apply --check` passes on fork A's clones (`code_v9/2021-NeurIPS-NCR`, `code_v9/L2RM`) and on the
+  read-only reference clones (test `test_patches_apply_to_clones`).
+- **Driver** `scripts/v9/n2_official.py`: `export` writes `v9_observed_t2i.npy` (int64 per caption, official order) and `v9_anchor_mask.npy` (bool)
+  from the shared stage (asserts anchors clean), `launch` copies the official clone into `<unit>/code/<baseline>`, applies the patch (hash recorded),
+  and runs the official script in fork A's env (`envs/v9_sgr` for NCR, `envs/v9_l2rm` for L2RM) with the HOST_LOCK schedule (NCR f30k: 40 epochs,
+  lr_update 30, warm-up 5; L2RM: its train script, 35 / 15 / reg 0.01 / warm-up 5), lr × multiplier, `--noise_ratio 0` (the V9 mapping carries the
+  noise) — or `--anchor-off` for the native path with the official DECL/RCL index (A-table reproduction, degradation check on real data);
+  `collect` runs the official `evaluation.evalrank` on the official test split once and writes `result.json` / `done.json` in the V9 unit-dir layout
+  (`test.primary` with the same keys as the V9 evaluator; evaluator and tie rule named).  Dry runs verified on the fixture export.
+- **Degradation check** `scripts/v9/n2_degradation.py` (owner 2026-10-15): patched vs native copies, anchor intervention off, official noise index →
+  same t2i index, same clean labels, same items, same eval-mode loss on a fixed mini-batch through the untouched model, same selected indices with
+  the anchor block skipped.  Passes on the fixture (see the report / `tests/v9/test_n2_ext.py::test_degradation_check_fixture`); on real data it must run
+  under `v9_sgr` (nltk tokeniser) and `v9_l2rm` (pomegranate for the BMM) before the first N1 / N2 unit — a launch condition in the protocol.
+- Still needed before a formal N1 / N2 unit: fork A's one-epoch timing, the real-data degradation run, and the owner's budget confirmation.
+- NCR's final model is two SGR nets averaged at evaluation: its row is labelled "SGR ×2 (NCR co-training)" in every table.
 
 ## 9. Real-data loader (`data.py`) — unverified until fork A's data exists
 Reads the SCAN / NCR precomp layout (`<split>_ims.npy`, `<split>_caps.txt`, `<name>_vocab.json`), tokenises with nltk exactly as the official code, caches
 token ids with the vocab hash.  COCO 2014/2017 mapping, the `testall` 5K file and `dev` size are TO_VERIFY on the real files (DATA_AUDIT).
 
-## 10. Cost and units
+## 10. Precheck gate, independent-batch interval and the Flickr-only block (owner 2026-10-15)
+- `src/v9/n2/precheck.py` + `n2_run.py precheck`: one table per (dataset, rho, seed) — teacher clean-vs-re-paired score distributions on A-critic-select
+  (quantiles, AUROC, overlap; refuse the block if AUROC > 0.999 or < 0.55, thresholds in the protocol), every method's U-weight distribution (ESS, mass,
+  shares at 0 / 1), pairwise method differences (mean |Δw|, Spearman, share identical to 1e-6), the per-sample loss coefficients after the fixed-pool
+  normaliser with the merge rule (implementation-identical only if coefficients equal to 1e-12 on every row AND order / RNG derive from the same seed —
+  the trainer makes this provable by deriving both from the seed; otherwise both run), the anchor roles and their isolation from dev / test.
+  `run_unit(formal=True)` refuses without an allowing precheck file.
+- ρ̂ interval (§05.3 step 3): U images are split 80 / 20 by image (seeded); the point estimate uses the 80 % part (transductive), the interval is reported
+  on the held-out 20 % (`record.rho.independent_batch`), weights are computed for all U pairs.
+- Block: Flickr30K only (48 formal + ≤ 48 tuning); COCO is a later decision; protocol draft 2.
+
+## 11. Cost and units
 Not measured on real data.  Fixture smoke on CPU: see the gate log.  Formal plan: 96 units grouped by (dataset, rho) cell per GPU job, resumable; tuning
 seed 917 with lr multipliers {0.5, 1, 2}; one teacher per (dataset, rho, seed) shared by all eight methods.  The planning figure "NCR f30k 40 epochs" is
 from the official README (2020 hardware) and is not a budget until fork A's one-epoch timing exists.
 
-## 11. Owner items (not decided here)
+## 12. Owner items (not decided here)
 - Data download of the NCR release (precomp features + vocab, ~ tens of GB) and the Flickr30K / COCO licence basis for research use.
 - Whether NCR+A / L2RM+A run from the patched official scripts (recommended) or are re-implemented inside this adapter (not recommended: fidelity).
 - GPU share for V9 next to V8 (package: V8 keeps its reservation).
