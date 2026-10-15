@@ -67,7 +67,8 @@ def contrast(runs, frac, eps, other, thr, g, unit_of, n_boot=2000):
 
 
 def main(out: Path, smoke=False):
-    m = G.load_manifest(G.P3_ROOT, False) if not smoke else G.load_manifest(G.V9_ROOT / "p3root", True)       # smoke: the CLI has already redirected V9_ROOT to <root>/smoke; unit_of = G.window_unit(m)
+    m = G.load_manifest(G.P3_ROOT, False) if not smoke else G.load_manifest(G.V9_ROOT / "p3root", True)        # smoke: the CLI already redirected V9_ROOT to <root>/smoke
+    unit_of = G.window_unit(m)
     runs, missing, chk = load_runs(smoke); res = {"protocol": "reports/V9/V9_G2_PROTOCOL_*.yaml", "dataset": G.DATASET, "thresholds": G.THRESHOLDS_NATIVE, "mi_nmi_reuse": chk, "missing": missing,
                                                  "cells": {}, "contrasts": {}, "primary": {}, "interaction": {}, "ceiling_readout": {}}
     for mth in G.METHODS + ("kernel",):

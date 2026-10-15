@@ -139,3 +139,11 @@ execution_note_freeze_20261015: >
   dataset already on the server on 2026-10-15 ("所有的数据，只要是现在有了的，我们就有权限。你不需要再纠结，直接开始相关实验"), so the EPFL-usage item
   of G1's not_run list / OWNER_DECISIONS D5 is closed as an owner decision, not as a verification of licence terms (the archive ships no licence text;
   recorded under data.source).  Resumable: every unit skips when its result exists; the mixing guards refuse foreign or interrupted runs.
+execution_note_2_20261015: >
+  Queue cap: the 10 submissions brought the owner's total queue to the 30-job normal-QOS submit cap, so the main session cancelled the three youngest
+  PENDING groups at 2026-10-15T18:38:46Z before any of their units started — 1042145 v9g2_comir_f1, 1042146 v9g2_kernel_f0.25, 1042147 v9g2_kernel_f1
+  (their exact lines: slurm/v9/reg_g2_feed_deferred.txt); the main session resubmits them with --nice=400 once the owner total is <= 24 and the new ids
+  are appended to reports/V9/V9_JOB_IDS.json.  Live groups: 1042138–1042144 (1042138 started on node61 within a minute; no early exit at the 90-s check).
+  The aggregate is run only when all 52 unit results exist.  Analysis code after the freeze: g2_aggregate.main had a NameError (a comment had swallowed
+  the unit map assignment), found by the dry-run aggregate on the timing root and fixed in the commit after the launch; the unit code (g2.py, g1.py,
+  r6 copies — the sbatch header's code hash) is unchanged, and no design, unit or rule changed.
