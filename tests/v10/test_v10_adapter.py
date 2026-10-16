@@ -485,6 +485,41 @@ def test_qp_oracle_and_pair_features_match_the_package_head():
     assert sol.converged and orc["gap"] <= 1e-12 and abs(sol.f - orc["F"]) <= 1e-10
 
 
+@pytest.mark.parametrize("dn", ["float64", "float32"])
+def test_t01_real_batch_check_functions_run_on_synthetic_features(dn):
+    """Exercises the T01 real-batch check functions (moments vs dense, unequal n, Q modes, M1, MLP) end to end on synthetic
+    descriptors from tiny linear 'encoders' (4 scenes x 128 positions): no check group may raise; in fp64 with spread features
+    every required row must PASS.  (In fp32 the MLP dense rows may fail by rounding; only the absence of exceptions is asserted.)"""
+    dtype = getattr(torch, dn)
+    torch.manual_seed(11)
+    n_sc, n_pos = 4, 128
+    eU, eV = nn.Linear(16, 16).to(dtype), nn.Linear(16, 16).to(dtype)
+    cr = tiny_models(nn)[2].to(dtype)
+    head = A.MFHead(16, 16, 8, 8).to(dtype)
+    with torch.no_grad():
+        head.W.uniform_(-0.9, 0.9)
+    du, dv = eU(torch.randn(n_sc, n_pos, 16, dtype=dtype)), eV(torch.randn(n_sc, n_pos, 16, dtype=dtype))
+    Af, Bf = head.features(du.reshape(-1, 16), dv.reshape(-1, 16))
+
+    class HB:
+        perm = np.stack([np.random.default_rng(s).permutation(n_pos) for s in range(n_sc)])
+    ctx = {"hb": HB, "eU": eU, "eV": eV, "cr": cr, "head": head, "du": du, "dv": dv, "n_pos": n_pos, "n_sc": n_sc,
+           "wts": A.host_weights(n_sc), "Af": Af, "Bf": Bf, "scenes": A.mf_scenes(Af, Bf, n_sc, n_pos), "state": "synthetic",
+           "power": dn == "float64"}
+    rec = T01.Recorder("unit", "cpu")
+    for fn in (T01.real_moments_vs_dense, T01.real_unequal_n, T01.real_q_modes, T01.real_m1, T01.real_mlp):
+        with rec.group(fn.__name__):
+            fn(rec, ctx, torch.device("cpu"), dn)
+    res = rec.result()
+    assert not [r["name"] for r in res["checks"] if r["name"].endswith(":exception")], [r.get("error") for r in res["checks"] if "error" in r]
+    assert any(r["name"].startswith("M1_training_mode_returns_and_logs_gap") and r["status"] == "PASS" for r in res["checks"])
+    if dn == "float64":
+        assert res["status"] == "PASS", res["required_failures"]
+    else:
+        assert {r["name"] for r in res["checks"] if r["name"].startswith("MLP_dense_") and "float64_value" in r["name"]} == {
+            "MLP_dense_full_float32_grads_vs_float64_value_same_inputs", "MLP_dense_blocked_checkpointed_float32_grads_vs_float64_value_same_inputs"}
+
+
 def test_t02_train_labels_and_budget_provisional(tmp_path):
     labels = [T02.train_label(c) for c in T02.TRAIN_CONFIGS]
     assert len(set(labels)) == len(labels) and "MF_M1_K16_it30_capbound" in labels and "MF_M1_K16_it30_tol1e-04" in labels

@@ -163,6 +163,16 @@ def build_models_seeded(seed, device, dtype, K=K_SMOKE):
     return eU, eV, cr, head
 
 
+def per_tensor(names, xs, ys, dn: str) -> list:
+    """Per-tensor comparison summary (which tensor carries the worst error)."""
+    out = []
+    for n, x, y in zip(names, xs, ys):
+        c = A.compare(x, y, dn)
+        out.append({"tensor": n, "allclose": c["allclose"], "max_abs_err": c["max_abs_err"], "ref_max_abs": c["ref_max_abs"],
+                    "worst_err_over_bound": c["worst_err_over_bound"], "numel": c["numel"]})
+    return out
+
+
 def grads(out, inputs, retain=True):
     """Gradients of a scalar w.r.t. inputs; an input the output does not depend on gets an explicit zero tensor."""
     inputs = list(inputs)
@@ -705,7 +715,7 @@ def real_m1(rec: Recorder, c: dict, dev, dn: str):
                lambda: MF.profiled_objective(scenes, weights=wts, max_iterations=0, tolerance=1e-300), RuntimeError)
     pt = MF.profiled_objective(scenes, weights=wts, initial=W.detach(), tolerance=1e-4, max_iterations=10, require_converged=False)
     rec.expect(f"M1_training_mode_returns_and_logs_gap_{sfx}", math.isfinite(pt.solution.fw_gap) and pt.solution.iterations <= 10,
-               gap=pt.solution.fw_gap, iterations=pt.solution.iterations, converged=pt.solution.converged, status=pt.solution.status)
+               gap=pt.solution.fw_gap, iterations=pt.solution.iterations, converged=pt.solution.converged, solver_status=pt.solution.status)
 
 
 def real_mlp(rec: Recorder, c: dict, dev, dn: str):
@@ -725,8 +735,24 @@ def real_mlp(rec: Recorder, c: dict, dev, dn: str):
     rec.cmp_many(f"MLP_dense_equals_all_120_perm1_mean_grads_{dn}", grads(jp5, [du, dv] + crp), grads(jd5, [du, dv] + crp), dn)
     _, jfull = A.mlp_objective("MLP_dense", cr, du, dv)
     _, jblk = A.mlp_objective("MLP_dense", cr, du, dv, block=32, checkpoint=True)
+    names = ["du", "dv"] + [f"critic.{n}" for n, _ in cr.named_parameters()]
+    g_blk, g_full = grads(jblk, [du, dv] + crp), grads(jfull, [du, dv] + crp)
     rec.cmp(f"MLP_dense_blocked_checkpointed_vs_full_value_{dn}", jblk, jfull, dn)
-    rec.cmp_many(f"MLP_dense_blocked_checkpointed_vs_full_grads_{dn}", grads(jblk, [du, dv] + crp), grads(jfull, [du, dv] + crp), dn)
+    rec.cmp_many(f"MLP_dense_blocked_checkpointed_vs_full_grads_{dn}", g_blk, g_full, dn, per_tensor=per_tensor(names, g_blk, g_full, dn),
+                 n_pairs=int(du.shape[0] * du.shape[1] * dv.shape[1]))
+    if dn == "float32":
+        # characterisation only (non-gating; the gating row above is unchanged): each fp32 implementation against the fp64 value of
+        # the same objective at the same inputs and weights, per tensor - separates fp32 accumulation error from an implementation
+        # difference (the fp64 blocked-vs-full row above gates the implementation)
+        du64, dv64 = du.detach().double().requires_grad_(), dv.detach().double().requires_grad_()
+        cr64 = copy.deepcopy(cr).double()
+        _, j64 = A.mlp_objective("MLP_dense", cr64, du64, dv64)
+        g64 = grads(j64, [du64, dv64] + list(cr64.parameters()))
+        for label, g in (("full", g_full), ("blocked_checkpointed", g_blk)):
+            rec.cmp_many(f"MLP_dense_{label}_float32_grads_vs_float64_value_same_inputs", g, g64, "float32", required=False,
+                         per_tensor=per_tensor(names, g, g64, "float32"),
+                         note="diagnostic: fp32 accumulation error of the dense MLP critic (all n_sc x n x n pairs; P and Q means nearly "
+                              "cancel at init) against fp64 at the same fp32-rounded inputs and weights")
     _, j8same = A.mlp_objective("MLP_perm8", cr, du, dv, perms=perm[:, None].expand(-1, 8, -1).contiguous())
     rec.cmp(f"MLP_perm8_normalisation_equals_perm1_when_rows_repeat_{dn}", j8same, -ad_loss, dn)
 
