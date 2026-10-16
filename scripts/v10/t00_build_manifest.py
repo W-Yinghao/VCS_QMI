@@ -496,7 +496,7 @@ def events() -> list:
          "evidence": ["v10/package_v10_server_v1_20261016/docs/PROTOCOL_SOURCES_CN.md", "reports/R6/R6_DATA_NOTES.md"]},
         {"id": "EP-E1", "dataset": "EPFL_RGB_NIR", "when_utc": "2026-09-27/28", "stage": "P60 B-T2 pre-check (home copy)",
          "scope": "60 pairs (stratified, seed 20260927; 3-pair smoke subset; patch coarse-to-fine re-run on the same 60)",
-         "use": "pixels read (256-px centre square crop); closed-form J* / MI / NMI registration, no training; its outcome is disclosed by REG-P3 as a reason for choosing EPFL",
+         "use": "pixels read (square centre crop resized to 256 px, scripts/task_b_rgbnir.py); closed-form J* / MI / NMI registration, no training; its outcome is disclosed by REG-P3 as a reason for choosing EPFL",
          "evidence": ["reports/P60_TASK_B_RGBNIR_PREREG_FROZEN_20260927.md", "reports/P60_task_B_T2_rgbnir.json", "reports/P60_task_B_T2_rgbnir_patch_ctf.json"]},
         {"id": "EP-E2", "dataset": "EPFL_RGB_NIR", "when_utc": "2026-10-12", "stage": "R6 REG-P3 data audit + prepare + pilot",
          "scope": "all 477 pairs (alignment / size / near-duplicate checks); 420 windows cached", "use": "exclusions decided from pixels; FIT 336 windows training, CAL 10 selection, DEV 74 evaluation; DEV results reported",
@@ -637,7 +637,7 @@ Relations that metadata cannot resolve (recorded, not fixed):
 | BF–SHG core | 160-px training crops, disk support r = 129, the central 834-px full-resolution patch whose corners define the error | computed on the fly | crops / patches of one core never cross roles |
 | BF–SHG core | Zenodo 3874362 cropped release (834 × 834 crops, transformed test set) | not on this server | if ever added: children of the same cores, same groups and exposure, never mixed with the full-size release |
 | EPFL scene pair | R6 REG-P3 window cache `outputs/R6_REG_P3/cache/<category>_<id>.npz` | {E['cache_n']} | one centred 512 × 512 native window per kept pair; V9-G2 trained / registered on it |
-| EPFL scene pair | P60 256-px centre square crop | 60 (on the fly) | read from the home copy, 2026-09-27/28 |
+| EPFL scene pair | P60 square centre crop resized to 256 px | 60 (on the fly) | read from the home copy, 2026-09-27/28 |
 | EPFL release on `/projects` | the home copy `CS_QMI/data/rgb_nir` | {E['pairs']} pairs | same release, not independent data |
 
 ## 7. Phase-1 access rule
