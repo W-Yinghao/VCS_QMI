@@ -551,7 +551,9 @@ def render_notes(S: dict) -> str:
     pf = S["preflight"]
     pf_line = (f"`PREFLIGHT.json` status **{pf['status']}**, {pf['errors']} errors, {pf['warnings']} warnings; manifest sha256 recorded by the preflight "
                f"{'equals' if pf['manifest_sha256_match'] else 'DIFFERS FROM'} this manifest; current_commit {pf['current_commit']}, dirty tracked paths {pf['dirty_paths']}; "
-               f"included records by role: {pf['included']}; declared CONFIRM groups {pf['confirm_groups']}."
+               f"included records by role: {pf['included']}; declared independent groups {pf['independent_groups']}, declared CONFIRM groups {pf['confirm_groups']}.  "
+               f"Per the package README this status only says the inventory was written: it does not certify host-adapter fidelity, V9 completion or "
+               f"independent confirmation (preflight `does_not_certify`)."
                if pf.get("status") not in (None, "NOT_RUN") else "`PREFLIGHT.json`: NOT_RUN at the time this file was generated.")
     sp = B["slide_position_overlap"]
     ok = {c["id"]: c["status"] == "PASS" for c in S["checks"]}
