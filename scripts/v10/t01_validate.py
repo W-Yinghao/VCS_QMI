@@ -738,21 +738,27 @@ def real_mlp(rec: Recorder, c: dict, dev, dn: str):
     names = ["du", "dv"] + [f"critic.{n}" for n, _ in cr.named_parameters()]
     g_blk, g_full = grads(jblk, [du, dv] + crp), grads(jfull, [du, dv] + crp)
     rec.cmp(f"MLP_dense_blocked_checkpointed_vs_full_value_{dn}", jblk, jfull, dn)
-    rec.cmp_many(f"MLP_dense_blocked_checkpointed_vs_full_grads_{dn}", g_blk, g_full, dn, per_tensor=per_tensor(names, g_blk, g_full, dn),
-                 n_pairs=int(du.shape[0] * du.shape[1] * dv.shape[1]))
+    # Main-session decision 2026-10-17 (job 1043657 row: 2.94e-5 = 2.83 x the fp32 bound on critic.4.weight): in fp64 the
+    # blocked-vs-full comparison gates the implementation (agrees to ~3e-11 relative).  In fp32 both sides are fp32 implementations
+    # and the full-graph sum over all n_sc x n x n pairs is the less accurate one (2.9e-5 vs fp64, blocked 2.9e-7), so the fp32 gate is
+    # each fp32 implementation against the fp64 value of the same objective at the same fp32-rounded inputs and weights; the
+    # blocked/checkpointed path (the one used for training and timing) is required, the full-graph fp32 path and the fp32
+    # blocked-vs-full difference are reported as diagnostics.  The tolerance itself is unchanged (package fp32 atol 1e-5, rtol 1e-4).
+    rec.cmp_many(f"MLP_dense_blocked_checkpointed_vs_full_grads_{dn}", g_blk, g_full, dn, required=(dn == "float64"),
+                 per_tensor=per_tensor(names, g_blk, g_full, dn), n_pairs=int(du.shape[0] * du.shape[1] * dv.shape[1]),
+                 note=None if dn == "float64" else "diagnostic in fp32: both sides fp32; gated against fp64 in the next rows")
     if dn == "float32":
-        # characterisation only (non-gating; the gating row above is unchanged): each fp32 implementation against the fp64 value of
-        # the same objective at the same inputs and weights, per tensor - separates fp32 accumulation error from an implementation
-        # difference (the fp64 blocked-vs-full row above gates the implementation)
         du64, dv64 = du.detach().double().requires_grad_(), dv.detach().double().requires_grad_()
         cr64 = copy.deepcopy(cr).double()
         _, j64 = A.mlp_objective("MLP_dense", cr64, du64, dv64)
         g64 = grads(j64, [du64, dv64] + list(cr64.parameters()))
         for label, g in (("full", g_full), ("blocked_checkpointed", g_blk)):
-            rec.cmp_many(f"MLP_dense_{label}_float32_grads_vs_float64_value_same_inputs", g, g64, "float32", required=False,
-                         per_tensor=per_tensor(names, g, g64, "float32"),
-                         note="diagnostic: fp32 accumulation error of the dense MLP critic (all n_sc x n x n pairs; P and Q means nearly "
-                              "cancel at init) against fp64 at the same fp32-rounded inputs and weights")
+            rec.cmp_many(f"MLP_dense_{label}_float32_grads_vs_float64_value_same_inputs", g, g64, "float32",
+                         required=(label == "blocked_checkpointed"), per_tensor=per_tensor(names, g, g64, "float32"),
+                         note=("gate: the fp32 blocked/checkpointed implementation against fp64 at the same inputs and weights"
+                               if label == "blocked_checkpointed" else
+                               "diagnostic: fp32 accumulation error of the full-graph dense MLP critic (all n_sc x n x n pairs; P and Q "
+                               "means nearly cancel at init) against fp64 at the same fp32-rounded inputs and weights"))
     _, j8same = A.mlp_objective("MLP_perm8", cr, du, dv, perms=perm[:, None].expand(-1, 8, -1).contiguous())
     rec.cmp(f"MLP_perm8_normalisation_equals_perm1_when_rows_repeat_{dn}", j8same, -ad_loss, dn)
 
