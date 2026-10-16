@@ -74,13 +74,15 @@ def write_gate_record(protocol: Path, summ: dict, dest: Path) -> None:
 
 
 def merge_reading(cells) -> str:
-    """Data-driven merge bullet (2026-10-16 fix: the former fixed sentence said no arms merged, which the rho 0 cells contradict)."""
+    """Merge bullet written from the data only (2026-10-16: the former fixed sentence said no arms merged, which the rho 0 cells contradict)."""
     merged = [(c["rho"], c["seed"], [g for g in c["groups"] if len(g) > 1]) for c in cells if c["merged"]]
     if not merged:
         return "- No two methods have identical loss coefficients in any cell: every arm is a distinct run."
     parts = "; ".join(f"rho {r:g} s{s}: " + " | ".join("{" + ", ".join(g) + "}" for g in gs) for r, s, gs in merged)
-    return ("- Merged by the coefficient rule (one training per seed, reported for every member): " + parts +
-            ".  Every other arm is a distinct run; at rho 0.4 no arms merge (VCS and BCE share the critic logit and are rank-identical, but their weights differ).")
+    clean = sorted({(c["rho"], c["seed"]) for c in cells if not c["merged"]})
+    rest = ("; no merge in " + ", ".join(f"rho {r:g} s{s}" for r, s in clean)) if clean else ""
+    return "- Merged by the coefficient rule (one training per seed, reported for every member): " + parts + rest + "."
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--out-root", required=True); ap.add_argument("--dataset", default="f30k"); ap.add_argument("--rhos", nargs="+", type=float, default=[0.4, 0])
@@ -121,7 +123,7 @@ def main() -> int:
     L += ["## Reading", "",
           "- The teacher is one per (dataset, seed): the rho 0 cell reuses the rho 0.4 teacher (identical roles hashes, clean anchor pairs), so AUROC is identical across rho within a seed by construction.",
           "- AUROC far from both refusal thresholds in every cell: the teacher separates clean from re-paired anchor pairs but is not a label oracle.",
-          "- rho-hat on the independent batch (20 % of U images, by image) is the pre-registered interval; the U_est point estimate is what the weights use.",
+          "- rho-hat on the held-out 20 % of U images (split by image) is a held-out-image diagnostic interval, not an independent-sample guarantee (overlap audit 2026-10-16); the U_est point estimate is what the weights use.",
           merge_reading(cells),
           "- Teacher cost is the first real GPU number: 5 warm-up epochs on the A-teacher-warmup pairs (4 % of the training pairs)."]
     (dest / "PRECHECK_SUMMARY.md").write_text("\n".join(L) + "\n")

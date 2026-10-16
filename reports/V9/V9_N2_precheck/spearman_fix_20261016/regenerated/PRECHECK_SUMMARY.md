@@ -1,6 +1,6 @@
-# V9-N2 precheck gate record — f30k — block ALLOWED
+# V9-N2 precheck summary — f30k — REGENERATED 2026-10-16 with the tie-averaged Spearman (a rebuild, NOT the gate record; the record is reports/V9/V9_N2_precheck/PRECHECK_SUMMARY.md)
 
-Job 1042133, code commit 127dd18, host node58 (RTX PRO 6000 Blackwell); thresholds: refuse if AUROC > 0.999 or < 0.55 (teacher clean vs within-role re-paired on A-critic-select); merge rule: loss coefficients identical at 1e-12 AND same data order / RNG state.
+Job rebuild 2026-10-16 from the saved weights of precheck job 1042133 (not the gate record), code commit 480beff (tie-averaged Spearman; record code 127dd18), host login node, CPU (record: node58); thresholds: refuse if AUROC > 0.999 or < 0.55 (teacher clean vs within-role re-paired on A-critic-select); merge rule: loss coefficients identical at 1e-12 AND same data order / RNG state.
 
 | rho | seed | allowed | AUROC | overlap | P med | Q med | rho-hat (U_est) | rho-hat independent [95 % Hoeffding] | merges | teacher s/epoch | peak GPU MB | teacher shared |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -113,6 +113,6 @@ Spearman undefined (NA): BCE_Weight|Nystrom_Weight: constant_input, identical 1.
 
 - The teacher is one per (dataset, seed): the rho 0 cell reuses the rho 0.4 teacher (identical roles hashes, clean anchor pairs), so AUROC is identical across rho within a seed by construction.
 - AUROC far from both refusal thresholds in every cell: the teacher separates clean from re-paired anchor pairs but is not a label oracle.
-- rho-hat on the independent batch (20 % of U images, by image) is the pre-registered interval; the U_est point estimate is what the weights use.
-- Merged by the coefficient rule (one training per seed, reported for every member): rho 0 s901: {BCE_Weight, Nystrom_Weight, RankMass, RuLSIF_Weight, Unweighted_A, VCS_Weight}; rho 0 s902: {BCE_Weight, RankMass, Unweighted_A, VCS_Weight}; rho 0 s903: {BCE_Weight, Nystrom_Weight, RankMass, RuLSIF_Weight, Unweighted_A, VCS_Weight}.  Every other arm is a distinct run; at rho 0.4 no arms merge (VCS and BCE share the critic logit and are rank-identical, but their weights differ).
+- rho-hat on the held-out 20 % of U images (split by image) is a held-out-image diagnostic interval, not an independent-sample guarantee (overlap audit 2026-10-16); the U_est point estimate is what the weights use.
+- Merged by the coefficient rule (one training per seed, reported for every member): rho 0 s901: {BCE_Weight, Nystrom_Weight, RankMass, RuLSIF_Weight, Unweighted_A, VCS_Weight}; rho 0 s902: {BCE_Weight, RankMass, Unweighted_A, VCS_Weight}; rho 0 s903: {BCE_Weight, Nystrom_Weight, RankMass, RuLSIF_Weight, Unweighted_A, VCS_Weight}; no merge in rho 0.4 s901, rho 0.4 s902, rho 0.4 s903.
 - Teacher cost is the first real GPU number: 5 warm-up epochs on the A-teacher-warmup pairs (4 % of the training pairs).

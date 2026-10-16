@@ -75,6 +75,8 @@ Totals: 90 of 168 pair values are now NA (constant input); of the 78 defined val
 
 ## Which decisions could be affected
 
+Line numbers in this section refer to `src/v9/n2/precheck.py` at 127dd18 (the code of the precheck of record).  In the fixed file (480beff) the same lines are 25 (thresholds), 26 (tolerances), 99 (`degenerate`), 126 (merge rule), 170 (`formal_block_allowed`) and 111 (the pair-table call, now `spearman_with_reason`).
+
 - **Gate: none.** The formal block is refused only on teacher AUROC: `degenerate = AUROC > 0.999 or < 0.55` (`src/v9/n2/precheck.py:65`, thresholds `src/v9/n2/precheck.py:24`), `formal_block_allowed = not degenerate` (`src/v9/n2/precheck.py:136`), read by `precheck_allows` (`src/v9/n2/pipeline.py:120`) and the unit planner (`scripts/v9/n2_plan_units.py:28`).  No Spearman is involved.
 - **Merge rule: none.** Two methods are one run only if their loss coefficients agree to 1e-12 on every pool row (`src/v9/n2/precheck.py:92`, tolerance `src/v9/n2/precheck.py:25`); the groups are read by `unit_members` (`src/v9/n2/pipeline.py:130`) and the planner (`scripts/v9/n2_plan_units.py:30`).  No Spearman is involved.
 - **Callers.** `spearman(` is called at one place only, the pair table of `weight_tables` (`src/v9/n2/precheck.py:78`).  `src/v9/n2/pipeline.py`, `src/v9/n2/weights.py`, `scripts/v9/n2_run.py`, `scripts/v9/n2_release.py` contain 0 matches of 'spearman'.  The value is read only by the precheck markdown table, the JSON dump, the collector's near-monotone list and one test assertion (`tests/v9/test_n2_ext.py:38`, continuous data without ties).
@@ -97,5 +99,5 @@ The one failure is pre-existing and unrelated: test_host_lock_pending_markers_bl
 ## Files
 
 - `spearman_fix.json`: per cell and per method pair, the recorded value, the value reproduced by the original function (with an exact-match flag), the new value or null with its reason, the change, scipy's value, tie statistics per method and weight-file hashes, plus the decision evidence above.
-- `regenerated/precheck_f30k_rho*_s*.{json,md}`: the 8 precheck tables rebuilt with the fixed code from the saved weights (every non-Spearman block is copied from the record).  `regenerated/PRECHECK_SUMMARY.{json,md}`: the gate summary rebuilt from them by the fixed collector; its job / commit / host fields say so.
+- `regenerated/precheck_f30k_rho*_s*.{json,md}`: the 8 precheck tables rebuilt with the fixed code from the saved weights (every non-Spearman block is copied from the record).  `regenerated/PRECHECK_SUMMARY.{json,md}`: the summary rebuilt from them by the fixed collector — a rebuild, not the gate record: its heading, its `regenerated` / `note` JSON keys and its job / commit / host fields say so (correction 2026-10-16: the first rebuild in 4ac8725 had copied the gate record's title, job, commit and host).
 - The records in `reports/V9/V9_N2_precheck/` (precheck tables and `PRECHECK_SUMMARY.*`, the gate record of job 1042133) are left unchanged.
