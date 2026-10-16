@@ -167,3 +167,12 @@ execution_note_6_20261015: >
   unit 26–27 min on RTX PRO 6000 (0.74–0.78 s / registration) and 50.3 min on L40S (1.48 s / registration; vcs_f1 on node39), so a 6-unit critic group
   needs about 5.0 h on L40S against its 06:00:00 limit.  Every group's header reports the same unit-code hash 99c942022c5164f3; the commit field differs
   only because other forks committed to the branch between submissions.
+execution_note_7_20261016: >
+  Time limits; the G2 fork's estimate in execution_note_6 was wrong for node52.  Groups 1042142 (infonce f0.25) and 1042143 (infonce f1) ran on L40S
+  node52 at about 66 min per critic unit (for example s901 / s902 of 1042142 exited at 00:05 / 01:11 UTC), against the 50.3 min per unit measured on
+  node39 that execution_note_6 used for its "about 5.0 h per 6-unit group" estimate.  Both were cancelled by their 06:00:00 limit (2026-10-16 01:38 /
+  01:39 UTC) about 27 min into their sixth unit (V9-G2-infonce-frac0.25-eps0.2-s903, V9-G2-infonce-frac1-eps0.2-s903), after training had finished
+  (12 checkpoints, train.json with 3 000 steps) and before any result was written.  The main session resubmitted exactly those two units as job 1042476
+  (submitted 2026-10-16T01:40:34Z; same slurm/v9/reg_g2.sbatch, --time 03:00:00, nice 300, node51 / node60 excluded): the runner skips training on the matching
+  train.json and re-runs the registration from the start; nothing is retrained and no flag changed.  50 of 52 G2 results exist at this note; the G2
+  aggregate stays paused until the owner lifts the pause.
