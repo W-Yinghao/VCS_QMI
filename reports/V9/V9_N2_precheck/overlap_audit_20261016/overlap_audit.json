@@ -1,0 +1,2455 @@
+{
+ "meta": {
+  "script": "scripts/v9/n2_overlap_audit.py",
+  "generated_utc": "2026-10-16T01:17:18Z",
+  "python": "3.10.20",
+  "numpy": "2.2.6",
+  "out_root": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2",
+  "dataset": "f30k",
+  "rhos": [
+   0.4,
+   0.0
+  ],
+  "seeds": [
+   901,
+   902,
+   903,
+   917
+  ],
+  "pipeline_src": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src",
+  "code_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9",
+  "code_sha256": {
+   "src/v9/n2/pipeline.py": "ffe05231851a06ed5430febe0574d0d811738fd8947dbd5c708dd86360ef824b",
+   "src/v9/n2/weights.py": "25fe738bf167b7c6d697acfaeea5dc9fd56da2a0a26802f9123116bd87b75d3e",
+   "src/v9/n2/noise.py": "11f09e82b7629254003021227a787a40d5178ac6481da054d5a453c126ff97af",
+   "src/v9/n2/roles.py": "6948a7c8d1748910b868057baa845e66c05095ed118aa3759f22a9ff80a855a5",
+   "src/v9/n2/data.py": "c45342f55ebc53fa81fe7309fd3b4190142d509f8fe48e7b5a5cd8ac598e28e2"
+  },
+  "code_facts": {
+   "groups": "pipeline.py:72-73: held = rng([roles seed, 9031]).choice(sorted distinct observed U image ids, round(20 %), no replacement); U_est_mask = observed image not in held",
+   "two_calls": "weights.py:174 (estimation batch) and :177 (independent batch) pass the same T_P_ref, T_Q_ref, ref_P_img, ref_Q_img; the critic T is fitted once (critic_fit / critic_select) for both",
+   "pipeline_disjointness_units": "weights.py:135 builds units [f'P:{u}'], [f'Q:{u}'], [f'R:{u}'] from the cluster ids themselves, so REF.role_disjointness cannot see an image shared by two clusters",
+   "caption_source": "data.py:45: caption_image = {i: i // 5}; noise.py:33 row image_id = the caption's own image; noise.py:41-52 replaces the observed image of the selected U pairs by a permutation of those pairs' own images",
+   "q_rows": "weights.py:105-119 repair_within_role (donor = observed image of another row of the same role); pipeline.py:63-69 one rng for critic_fit, critic_select, reference_moments in that order"
+  },
+  "eval_only_opened": false,
+  "review_item": "U07",
+  "pipeline_src_sha256": {
+   "src/v9/n2/pipeline.py": "ffe05231851a06ed5430febe0574d0d811738fd8947dbd5c708dd86360ef824b",
+   "src/v9/n2/weights.py": "25fe738bf167b7c6d697acfaeea5dc9fd56da2a0a26802f9123116bd87b75d3e",
+   "src/v9/n2/noise.py": "11f09e82b7629254003021227a787a40d5178ac6481da054d5a453c126ff97af",
+   "src/v9/n2/roles.py": "6948a7c8d1748910b868057baa845e66c05095ed118aa3759f22a9ff80a855a5",
+   "src/v9/n2/data.py": "c45342f55ebc53fa81fe7309fd3b4190142d509f8fe48e7b5a5cd8ac598e28e2"
+  }
+ },
+ "cross_cell": {
+  "heldout_identical_across_rho": {
+   "901": true,
+   "902": true,
+   "903": true,
+   "917": true
+  }
+ },
+ "cells": {
+  "rho0.4/s901": {
+   "cell": "rho0.4/s901",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0.4/s901",
+   "dataset": "f30k",
+   "rho": 0.4,
+   "seed": 901,
+   "roles_seed": 901,
+   "inputs_sha256": {
+    "roles.json": "94fbf1fb2d83f9d749da5b71119ca93b34766868ac3139a6adcf16075b04f3ea",
+    "pairs.observed_pairs.json": "8caf97b2f60a265e678fed047535e686f2e204e5d71adaad541a35e0b40457f1",
+    "pairs.noise_manifest.json": "056842ba65fd5b893374aa4ccae717f4af08291de010e57827944c2a5e2ac2eb"
+   },
+   "noise_manifest": {
+    "design_rho": 0.4,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 52200,
+    "n_mismatched": 52199,
+    "realized_rho": 0.39999233716475097,
+    "images_with_any_mismatch": 24086,
+    "mapping_sha256": "783ae9337cd273174e77fe80e6aeec0843639d04fd2f318e927cfe6b7ae87063"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "bea34a4d02c937d787ca3b1f4137f2e88b27dd76c0bdad76f56e5ee39e88b4cf",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.09640206006805549,
+     "c_est_saved": 0.09640206006814576,
+     "abs_diff_c_est": 9.027500968983304e-14,
+     "c_ind_recomputed": 0.08270120929011136,
+     "c_ind_saved": 0.08270120929011011,
+     "abs_diff_c_ind": 1.2490009027033011e-15,
+     "raw_ind_recomputed": 0.4089713045608667,
+     "raw_ind_saved": 0.4089713045608683,
+     "abs_diff_raw_ind": 1.5543122344752192e-15,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.0806747581048755,
+     "c_est_saved": 0.08067475810497146,
+     "abs_diff_c_est": 9.596490269103697e-14,
+     "c_ind_recomputed": 0.06667255880525907,
+     "c_ind_saved": 0.06667255880527334,
+     "abs_diff_c_ind": 1.426636586643326e-14,
+     "raw_ind_recomputed": 0.4089372524692376,
+     "raw_ind_saved": 0.40893725246922047,
+     "abs_diff_raw_ind": 1.715294573045867e-14,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 41692
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 10507
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 8432,
+    "E<-H": 8432,
+    "H<-H": 2075,
+    "E<-E": 33260,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 16864,
+    "n_mismatched_total": 52199,
+    "cross_share_of_mismatched": 0.32307132320542536,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 11638,
+    "H_images_with_a_caption_in_E": 4475,
+    "E_images_with_a_caption_in_H": 7163,
+    "H_clusters_holding_an_E_caption": 4484,
+    "E_clusters_holding_an_H_caption": 7206,
+    "images_on_any_cross_link": 16137,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 60899,
+    "n_components": 3178,
+    "n_components_with_U_images": 2015,
+    "n_singleton_U_images": 2014,
+    "largest_component": {
+     "n_images": 24086,
+     "n_H_images": 4849,
+     "n_E_images": 19237,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 24245,
+     "n_U_pairs_E": 96185
+    },
+    "largest_component_with_U_images": {
+     "n_images": 24086,
+     "n_H_images": 4849,
+     "n_E_images": 19237,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 24245,
+     "n_U_pairs_E": 96185
+    },
+    "n_components_spanning_both_groups": 1,
+    "spanning_components": {
+     "n_H_images": 4849,
+     "n_E_images": 19237,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 24245,
+     "n_U_pairs_E": 96185
+    },
+    "H_images_in_a_component_with_another_H_image": 4849,
+    "n_components_with_2plus_H_images": 1
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 21052,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 19197
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 3394,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 3731
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 11638
+    }
+   },
+   "seconds": 4.55
+  },
+  "rho0.4/s902": {
+   "cell": "rho0.4/s902",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0.4/s902",
+   "dataset": "f30k",
+   "rho": 0.4,
+   "seed": 902,
+   "roles_seed": 902,
+   "inputs_sha256": {
+    "roles.json": "4539bb332fac0cb9695bb476e94aadf6642cb34e9ecc5974f46ec6565a4ad4b1",
+    "pairs.observed_pairs.json": "5e9ccdc930d209dcbb28fad1958e591617cde9e2c1ef12646fadc0e22b80fef3",
+    "pairs.noise_manifest.json": "b76653dcd935f8d6fc820c1746923a4f9ee262095a19fb7255546eccaf33582d"
+   },
+   "noise_manifest": {
+    "design_rho": 0.4,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 52200,
+    "n_mismatched": 52196,
+    "realized_rho": 0.39996934865900385,
+    "images_with_any_mismatch": 24052,
+    "mapping_sha256": "5bce6b176453c876be0fe611549df3b49b4fe2057d5d9ad99dbdf9560d3de6fb"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "30e06a12125eef01cf2c74d090697e2f8cdfbd9bf1d1a9167673a646878dc3f5",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.11365531275692002,
+     "c_est_saved": 0.11365531275704667,
+     "abs_diff_c_est": 1.2664869153411473e-13,
+     "c_ind_recomputed": 0.11037365417266781,
+     "c_ind_saved": 0.11037365417264242,
+     "abs_diff_c_ind": 2.5396351688300456e-14,
+     "raw_ind_recomputed": 0.4086667513151838,
+     "raw_ind_saved": 0.4086667513152106,
+     "abs_diff_raw_ind": 2.6756374893466273e-14,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.0940878125546831,
+     "c_est_saved": 0.0940878125548063,
+     "abs_diff_c_est": 1.2320700015777675e-13,
+     "c_ind_recomputed": 0.09067713907689139,
+     "c_ind_saved": 0.09067713907687552,
+     "abs_diff_c_ind": 1.5862311464331924e-14,
+     "raw_ind_recomputed": 0.40867264137473486,
+     "raw_ind_saved": 0.4086726413747516,
+     "abs_diff_raw_ind": 1.6764367671839864e-14,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 41804
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 10392
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 8332,
+    "E<-H": 8332,
+    "H<-H": 2060,
+    "E<-E": 33472,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 16664,
+    "n_mismatched_total": 52196,
+    "cross_share_of_mismatched": 0.3192581807035022,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 11513,
+    "H_images_with_a_caption_in_E": 4432,
+    "E_images_with_a_caption_in_H": 7081,
+    "H_clusters_holding_an_E_caption": 4433,
+    "E_clusters_holding_an_H_caption": 7074,
+    "images_on_any_cross_link": 15972,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 60896,
+    "n_components": 3212,
+    "n_components_with_U_images": 2049,
+    "n_singleton_U_images": 2048,
+    "largest_component": {
+     "n_images": 24052,
+     "n_H_images": 4775,
+     "n_E_images": 19277,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 23875,
+     "n_U_pairs_E": 96385
+    },
+    "largest_component_with_U_images": {
+     "n_images": 24052,
+     "n_H_images": 4775,
+     "n_E_images": 19277,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 23875,
+     "n_U_pairs_E": 96385
+    },
+    "n_components_spanning_both_groups": 1,
+    "spanning_components": {
+     "n_H_images": 4775,
+     "n_E_images": 19277,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 23875,
+     "n_U_pairs_E": 96385
+    },
+    "H_images_in_a_component_with_another_H_image": 4775,
+    "n_components_with_2plus_H_images": 1
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 20988,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 19230
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 3326,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 3632
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 11513
+    }
+   },
+   "seconds": 2.05
+  },
+  "rho0.4/s903": {
+   "cell": "rho0.4/s903",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0.4/s903",
+   "dataset": "f30k",
+   "rho": 0.4,
+   "seed": 903,
+   "roles_seed": 903,
+   "inputs_sha256": {
+    "roles.json": "67f6cd63f2ef22c7db54386cf9bcafdfd398075d5ccffcd59cdfbe11e3ad56bc",
+    "pairs.observed_pairs.json": "2e3eb188455bf3381c4066eba25e8c92df79b97ffb866460780693b34a1f8b91",
+    "pairs.noise_manifest.json": "e840d3a34f3582c1488c56f9c52bffce78292a4ed80f78c74cb040261f9ff7db"
+   },
+   "noise_manifest": {
+    "design_rho": 0.4,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 52200,
+    "n_mismatched": 52197,
+    "realized_rho": 0.39997701149425285,
+    "images_with_any_mismatch": 24089,
+    "mapping_sha256": "9a7cae760ecad377cedc6903ded6e1979505ccde77beb52fdccaa779a1fdc7b2"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "9bb2639922754f6f856033fecc910409541a0c9cb776e1d4feb87b67d786a0bd",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.11415400225017824,
+     "c_est_saved": 0.11415400225024797,
+     "abs_diff_c_est": 6.972200594645983e-14,
+     "c_ind_recomputed": 0.1157087804446532,
+     "c_ind_saved": 0.11570878044466303,
+     "abs_diff_c_ind": 9.825473767932635e-15,
+     "raw_ind_recomputed": 0.3692131923271209,
+     "raw_ind_saved": 0.36921319232711064,
+     "abs_diff_raw_ind": 1.0269562977782698e-14,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.10702990825809323,
+     "c_est_saved": 0.10702990825816318,
+     "abs_diff_c_est": 6.994405055138486e-14,
+     "c_ind_recomputed": 0.10856753600575242,
+     "c_ind_saved": 0.10856753600576331,
+     "abs_diff_c_ind": 1.0894063429134349e-14,
+     "raw_ind_recomputed": 0.36897695887381887,
+     "raw_ind_saved": 0.36897695887380744,
+     "abs_diff_raw_ind": 1.1435297153639112e-14,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 41747
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 10450
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 8371,
+    "E<-H": 8371,
+    "H<-H": 2079,
+    "E<-E": 33376,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 16742,
+    "n_mismatched_total": 52197,
+    "cross_share_of_mismatched": 0.3207464030499837,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 11592,
+    "H_images_with_a_caption_in_E": 4470,
+    "E_images_with_a_caption_in_H": 7122,
+    "H_clusters_holding_an_E_caption": 4484,
+    "E_clusters_holding_an_H_caption": 7113,
+    "images_on_any_cross_link": 16037,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 60897,
+    "n_components": 3175,
+    "n_components_with_U_images": 2012,
+    "n_singleton_U_images": 2011,
+    "largest_component": {
+     "n_images": 24089,
+     "n_H_images": 4838,
+     "n_E_images": 19251,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 24190,
+     "n_U_pairs_E": 96255
+    },
+    "largest_component_with_U_images": {
+     "n_images": 24089,
+     "n_H_images": 4838,
+     "n_E_images": 19251,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 24190,
+     "n_U_pairs_E": 96255
+    },
+    "n_components_spanning_both_groups": 1,
+    "spanning_components": {
+     "n_H_images": 4838,
+     "n_E_images": 19251,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 24190,
+     "n_U_pairs_E": 96255
+    },
+    "H_images_in_a_component_with_another_H_image": 4838,
+    "n_components_with_2plus_H_images": 1
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 21017,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 19193
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 3380,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 3719
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 11592
+    }
+   },
+   "seconds": 2.05
+  },
+  "rho0.4/s917": {
+   "cell": "rho0.4/s917",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0.4/s917",
+   "dataset": "f30k",
+   "rho": 0.4,
+   "seed": 917,
+   "roles_seed": 917,
+   "inputs_sha256": {
+    "roles.json": "b62cf534f6b63a68ef3bded280eaa4ae7df07e9d5f6c1a3e0074001bce7c9691",
+    "pairs.observed_pairs.json": "1d0941236aff6df2f0dfe35b44b6ead5884039b40699420d4a4795976042ffdd",
+    "pairs.noise_manifest.json": "099d6dfc093f08e5da4e7a51068fdb760666cbc6cf88b672890c3f9c3773890e"
+   },
+   "noise_manifest": {
+    "design_rho": 0.4,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 52200,
+    "n_mismatched": 52198,
+    "realized_rho": 0.3999846743295019,
+    "images_with_any_mismatch": 24015,
+    "mapping_sha256": "900041f60307b1f32d028f8bafc3090174cceeae2ea192e819394431711a1497"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "0a3dd6c27be86f0d8deb0fdd6aa5e16b8b85642de4ed16f4caef494d2902839a",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.10049932657839936,
+     "c_est_saved": 0.10049932657849661,
+     "abs_diff_c_est": 9.725553695716371e-14,
+     "c_ind_recomputed": 0.10187468363521444,
+     "c_ind_saved": 0.1018746836349999,
+     "abs_diff_c_ind": 2.145505995088115e-13,
+     "raw_ind_recomputed": 0.4102996374970938,
+     "raw_ind_saved": 0.410299637497313,
+     "abs_diff_raw_ind": 2.1921353621223716e-13,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.10364093922300623,
+     "c_est_saved": 0.10364093922310409,
+     "abs_diff_c_est": 9.786615962070755e-14,
+     "c_ind_recomputed": 0.10500973894443369,
+     "c_ind_saved": 0.10500973894422065,
+     "abs_diff_c_ind": 2.1303792063775973e-13,
+     "raw_ind_recomputed": 0.41027326647098167,
+     "raw_ind_saved": 0.41027326647119955,
+     "abs_diff_raw_ind": 2.1788126858268697e-13,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 41797
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 10401
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 8341,
+    "E<-H": 8341,
+    "H<-H": 2060,
+    "E<-E": 33456,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 16682,
+    "n_mismatched_total": 52198,
+    "cross_share_of_mismatched": 0.3195907889191157,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 11541,
+    "H_images_with_a_caption_in_E": 4450,
+    "E_images_with_a_caption_in_H": 7091,
+    "H_clusters_holding_an_E_caption": 4421,
+    "E_clusters_holding_an_H_caption": 7149,
+    "images_on_any_cross_link": 16053,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 60898,
+    "n_components": 3249,
+    "n_components_with_U_images": 2086,
+    "n_singleton_U_images": 2085,
+    "largest_component": {
+     "n_images": 24015,
+     "n_H_images": 4785,
+     "n_E_images": 19230,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 23925,
+     "n_U_pairs_E": 96150
+    },
+    "largest_component_with_U_images": {
+     "n_images": 24015,
+     "n_H_images": 4785,
+     "n_E_images": 19230,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 23925,
+     "n_U_pairs_E": 96150
+    },
+    "n_components_spanning_both_groups": 1,
+    "spanning_components": {
+     "n_H_images": 4785,
+     "n_E_images": 19230,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 23925,
+     "n_U_pairs_E": 96150
+    },
+    "H_images_in_a_component_with_another_H_image": 4785,
+    "n_components_with_2plus_H_images": 1
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 20993,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 19186
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 3349,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 3711
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 11541
+    }
+   },
+   "seconds": 1.98
+  },
+  "rho0/s901": {
+   "cell": "rho0/s901",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0/s901",
+   "dataset": "f30k",
+   "rho": 0.0,
+   "seed": 901,
+   "roles_seed": 901,
+   "inputs_sha256": {
+    "roles.json": "94fbf1fb2d83f9d749da5b71119ca93b34766868ac3139a6adcf16075b04f3ea",
+    "pairs.observed_pairs.json": "d24aded5c75f9f6e331f8d382f6cf6ea9a9c9716de7dbcb2e818bd837d1fa387",
+    "pairs.noise_manifest.json": "a5f1eb498e45b0332a192779739ff5a1156b1d2856131a332fd7a0775d07187b"
+   },
+   "noise_manifest": {
+    "design_rho": 0.0,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 0,
+    "n_mismatched": 0,
+    "realized_rho": 0.0,
+    "images_with_any_mismatch": 0,
+    "mapping_sha256": "3bdd4adc58fcb1b18fa2ea415adc85d7e8c87fcf3fea97c8c61191b6092c2cf4"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "bea34a4d02c937d787ca3b1f4137f2e88b27dd76c0bdad76f56e5ee39e88b4cf",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.4298151147641807,
+     "c_est_saved": 0.42981511476418943,
+     "abs_diff_c_est": 8.715250743307479e-15,
+     "c_ind_recomputed": 0.42143781749077786,
+     "c_ind_saved": 0.42143781749116305,
+     "abs_diff_c_ind": 3.8519187839369806e-13,
+     "raw_ind_recomputed": -0.0054078511724977045,
+     "raw_ind_saved": -0.005407851172968913,
+     "abs_diff_raw_ind": 4.71208141950008e-13,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.41982175384381437,
+     "c_est_saved": 0.41982175384382553,
+     "abs_diff_c_est": 1.1157741397482823e-14,
+     "c_ind_recomputed": 0.41118870869634633,
+     "c_ind_saved": 0.41118870869674445,
+     "abs_diff_c_ind": 3.9812597663058114e-13,
+     "raw_ind_recomputed": -0.0053084121627384176,
+     "raw_ind_saved": -0.005308412163217123,
+     "abs_diff_raw_ind": 4.787056168131798e-13,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 0
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 0
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 0,
+    "E<-H": 0,
+    "H<-H": 0,
+    "E<-E": 0,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 0,
+    "n_mismatched_total": 0,
+    "cross_share_of_mismatched": 0.0,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 0,
+    "H_images_with_a_caption_in_E": 0,
+    "E_images_with_a_caption_in_H": 0,
+    "H_clusters_holding_an_E_caption": 0,
+    "E_clusters_holding_an_H_caption": 0,
+    "images_on_any_cross_link": 0,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 8700,
+    "n_components": 27263,
+    "n_components_with_U_images": 26100,
+    "n_singleton_U_images": 26100,
+    "largest_component": {
+     "n_images": 870,
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 870,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "largest_component_with_U_images": {
+     "n_images": 1,
+     "n_H_images": 1,
+     "n_E_images": 0,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 5,
+     "n_U_pairs_E": 0
+    },
+    "n_components_spanning_both_groups": 0,
+    "spanning_components": {
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "H_images_in_a_component_with_another_H_image": 0,
+    "n_components_with_2plus_H_images": 0
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 0
+    }
+   },
+   "seconds": 1.9
+  },
+  "rho0/s902": {
+   "cell": "rho0/s902",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0/s902",
+   "dataset": "f30k",
+   "rho": 0.0,
+   "seed": 902,
+   "roles_seed": 902,
+   "inputs_sha256": {
+    "roles.json": "4539bb332fac0cb9695bb476e94aadf6642cb34e9ecc5974f46ec6565a4ad4b1",
+    "pairs.observed_pairs.json": "92a71f36672990f9ad6bd5ec05037248a0a13380be7dd448ed8d99a4a2ffa620",
+    "pairs.noise_manifest.json": "c27b063c1e7badec30e66b2336184b840314fdd2d6671e415387792a298063bf"
+   },
+   "noise_manifest": {
+    "design_rho": 0.0,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 0,
+    "n_mismatched": 0,
+    "realized_rho": 0.0,
+    "images_with_any_mismatch": 0,
+    "mapping_sha256": "3bdd4adc58fcb1b18fa2ea415adc85d7e8c87fcf3fea97c8c61191b6092c2cf4"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "30e06a12125eef01cf2c74d090697e2f8cdfbd9bf1d1a9167673a646878dc3f5",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.49922883476768,
+     "c_est_saved": 0.49922883476783725,
+     "abs_diff_c_est": 1.5726309143815342e-13,
+     "c_ind_recomputed": 0.4956517663118853,
+     "c_ind_saved": 0.4956517663122143,
+     "abs_diff_c_ind": 3.2901459334766514e-13,
+     "raw_ind_recomputed": 0.0036668737940801057,
+     "raw_ind_saved": 0.003666873793734249,
+     "abs_diff_raw_ind": 3.4585658989505497e-13,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.47822556603501704,
+     "c_est_saved": 0.47822556603516714,
+     "abs_diff_c_est": 1.5010215292932116e-13,
+     "c_ind_recomputed": 0.47465046459715343,
+     "c_ind_saved": 0.47465046459750543,
+     "abs_diff_c_ind": 3.519962099574059e-13,
+     "raw_ind_recomputed": 0.00359756310374408,
+     "raw_ind_saved": 0.0035975631033727394,
+     "abs_diff_raw_ind": 3.7134054511889225e-13,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 0
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 0
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 0,
+    "E<-H": 0,
+    "H<-H": 0,
+    "E<-E": 0,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 0,
+    "n_mismatched_total": 0,
+    "cross_share_of_mismatched": 0.0,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 0,
+    "H_images_with_a_caption_in_E": 0,
+    "E_images_with_a_caption_in_H": 0,
+    "H_clusters_holding_an_E_caption": 0,
+    "E_clusters_holding_an_H_caption": 0,
+    "images_on_any_cross_link": 0,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 8700,
+    "n_components": 27263,
+    "n_components_with_U_images": 26100,
+    "n_singleton_U_images": 26100,
+    "largest_component": {
+     "n_images": 870,
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 870,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "largest_component_with_U_images": {
+     "n_images": 1,
+     "n_H_images": 0,
+     "n_E_images": 1,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 5
+    },
+    "n_components_spanning_both_groups": 0,
+    "spanning_components": {
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "H_images_in_a_component_with_another_H_image": 0,
+    "n_components_with_2plus_H_images": 0
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 0
+    }
+   },
+   "seconds": 1.93
+  },
+  "rho0/s903": {
+   "cell": "rho0/s903",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0/s903",
+   "dataset": "f30k",
+   "rho": 0.0,
+   "seed": 903,
+   "roles_seed": 903,
+   "inputs_sha256": {
+    "roles.json": "67f6cd63f2ef22c7db54386cf9bcafdfd398075d5ccffcd59cdfbe11e3ad56bc",
+    "pairs.observed_pairs.json": "91ddcfb28f76a3480db43e26ee19affe9e2e94af28e3506579c225737280f4ac",
+    "pairs.noise_manifest.json": "941e4c77fc7b2d6d5c6339d1c610032945c4d0053405d79ed0e5157de4269208"
+   },
+   "noise_manifest": {
+    "design_rho": 0.0,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 0,
+    "n_mismatched": 0,
+    "realized_rho": 0.0,
+    "images_with_any_mismatch": 0,
+    "mapping_sha256": "3bdd4adc58fcb1b18fa2ea415adc85d7e8c87fcf3fea97c8c61191b6092c2cf4"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "9bb2639922754f6f856033fecc910409541a0c9cb776e1d4feb87b67d786a0bd",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.5192506756129157,
+     "c_est_saved": 0.5192506756131813,
+     "abs_diff_c_est": 2.6556534749033744e-13,
+     "c_ind_recomputed": 0.5108519589896737,
+     "c_ind_saved": 0.5108519589899623,
+     "abs_diff_c_ind": 2.885469641000782e-13,
+     "raw_ind_recomputed": -0.045235475067199125,
+     "raw_ind_saved": -0.045235475067501765,
+     "abs_diff_raw_ind": 3.0263985761891377e-13,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.5116728491722832,
+     "c_est_saved": 0.5116728491725518,
+     "abs_diff_c_est": 2.686739719592879e-13,
+     "c_ind_recomputed": 0.5032757478465033,
+     "c_ind_saved": 0.5032757478467932,
+     "abs_diff_c_ind": 2.8987923172962837e-13,
+     "raw_ind_recomputed": -0.04560548479665484,
+     "raw_ind_saved": -0.04560548479695932,
+     "abs_diff_raw_ind": 3.044786645034492e-13,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 0
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 0
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 0,
+    "E<-H": 0,
+    "H<-H": 0,
+    "E<-E": 0,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 0,
+    "n_mismatched_total": 0,
+    "cross_share_of_mismatched": 0.0,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 0,
+    "H_images_with_a_caption_in_E": 0,
+    "E_images_with_a_caption_in_H": 0,
+    "H_clusters_holding_an_E_caption": 0,
+    "E_clusters_holding_an_H_caption": 0,
+    "images_on_any_cross_link": 0,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 8700,
+    "n_components": 27263,
+    "n_components_with_U_images": 26100,
+    "n_singleton_U_images": 26100,
+    "largest_component": {
+     "n_images": 870,
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 870,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "largest_component_with_U_images": {
+     "n_images": 1,
+     "n_H_images": 0,
+     "n_E_images": 1,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 5
+    },
+    "n_components_spanning_both_groups": 0,
+    "spanning_components": {
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "H_images_in_a_component_with_another_H_image": 0,
+    "n_components_with_2plus_H_images": 0
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 0
+    }
+   },
+   "seconds": 1.95
+  },
+  "rho0/s917": {
+   "cell": "rho0/s917",
+   "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0/s917",
+   "dataset": "f30k",
+   "rho": 0.0,
+   "seed": 917,
+   "roles_seed": 917,
+   "inputs_sha256": {
+    "roles.json": "b62cf534f6b63a68ef3bded280eaa4ae7df07e9d5f6c1a3e0074001bce7c9691",
+    "pairs.observed_pairs.json": "3c7df964b357e4f2fa0b06c78cf841dc7b9f97c9b0fb4dc22daaf070e7b071dd",
+    "pairs.noise_manifest.json": "24693a580bd80b610533e39510964eff6991697914acdfdd8f41ad0960e7f3f0"
+   },
+   "noise_manifest": {
+    "design_rho": 0.0,
+    "n_pairs": 145000,
+    "n_U_pairs": 130500,
+    "n_selected": 0,
+    "n_mismatched": 0,
+    "realized_rho": 0.0,
+    "images_with_any_mismatch": 0,
+    "mapping_sha256": "3bdd4adc58fcb1b18fa2ea415adc85d7e8c87fcf3fea97c8c61191b6092c2cf4"
+   },
+   "roles_counts": {
+    "n_images": 29000,
+    "n_U_images": 26100,
+    "teacher_warmup": 1160,
+    "critic_fit": 870,
+    "critic_select": 435,
+    "reference_moments": 435
+   },
+   "checks": {
+    "observed_sha256_matches_manifest": true,
+    "mapping_sha256_matches_manifest": true,
+    "roles_hashes_recomputed": true,
+    "roles_seed_equals_cell_seed": true,
+    "row_role_equals_role_of_caption_source": true,
+    "anchor_rows_clean": true,
+    "U_observed_images_are_U_images": true,
+    "n_U_pairs_matches_manifest": true,
+    "n_mismatched_matches_manifest": true,
+    "images_with_any_mismatch_matches_manifest": true,
+    "every_U_image_observed_exactly_5_times": true,
+    "heldout_size_is_round_20pct": true,
+    "precheck_roles_hashes_equal": true,
+    "precheck_noise_manifest_equal": true
+   },
+   "all_input_checks_pass": true,
+   "heldout": {
+    "n_images": 5220,
+    "n_pairs": 26100,
+    "sha256_sorted_ids": "0a3dd6c27be86f0d8deb0fdd6aa5e16b8b85642de4ed16f4caef494d2902839a",
+    "saved_list_files": [],
+    "saved_list_note": "no file in the cell carries the held-out list (pipeline keeps U_independent_images in memory only)"
+   },
+   "saved_record_check": {
+    "VCS_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.49298726797915116,
+     "c_est_saved": 0.4929872679792231,
+     "abs_diff_c_est": 7.194245199571014e-14,
+     "c_ind_recomputed": 0.4919204959515039,
+     "c_ind_saved": 0.4919204959518136,
+     "abs_diff_c_ind": 3.096967127191874e-13,
+     "raw_ind_recomputed": 0.01180355288158917,
+     "raw_ind_saved": 0.011803552881272765,
+     "abs_diff_raw_ind": 3.1640488840078973e-13,
+     "c_match_1e-7": true
+    },
+    "BCE_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true,
+     "csv_sha256_matches_lock": true,
+     "csv_order_is_U_order": true,
+     "c_est_recomputed": 0.4956884405351209,
+     "c_est_saved": 0.49568844053519207,
+     "abs_diff_c_est": 7.116529587847253e-14,
+     "c_ind_recomputed": 0.49462787349225906,
+     "c_ind_saved": 0.4946278734925691,
+     "abs_diff_c_ind": 3.1002977962657496e-13,
+     "raw_ind_recomputed": 0.011792403443698767,
+     "raw_ind_saved": 0.011792403443381685,
+     "abs_diff_raw_ind": 3.170814305564207e-13,
+     "c_match_1e-7": true
+    },
+    "RuLSIF_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    },
+    "Nystrom_Weight": {
+     "saved_est_n_U": 104400,
+     "saved_ind_n_pairs": 26100,
+     "saved_ind_n_images": 5220,
+     "saved_n_clusters_est": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "saved_n_clusters_ind": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "counts_match": true
+    }
+   },
+   "pipeline_crosscheck": {
+    "status": "ran",
+    "module": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9/src/v9/n2/pipeline.py",
+    "heldout_equal": true,
+    "est_mask_equal": true,
+    "q_rows_equal": {
+     "critic_fit": true,
+     "critic_select": true,
+     "reference_moments": true
+    },
+    "all_equal": true
+   },
+   "reference_shared_by_both_calls": {
+    "P_rows": 2175,
+    "P_clusters_images": 435,
+    "Q_rows": 2175,
+    "Q_clusters_q_of": 2175,
+    "Q_distinct_donor_images": 435,
+    "used_by": "both estimate_rho calls (weights.py:174 estimation batch, :177 independent batch)"
+   },
+   "groups": {
+    "E": {
+     "n_pairs": 104400,
+     "n_images": 20880,
+     "n_mismatched_pairs": 0
+    },
+    "H": {
+     "n_pairs": 26100,
+     "n_images": 5220,
+     "n_mismatched_pairs": 0
+    },
+    "held_images_not_observed_in_U": 0
+   },
+   "caption_source_links": {
+    "H<-E": 0,
+    "E<-H": 0,
+    "H<-H": 0,
+    "E<-E": 0,
+    "source_outside_U_groups": 0,
+    "cross_group_total": 0,
+    "n_mismatched_total": 0,
+    "cross_share_of_mismatched": 0.0,
+    "notation": "X<-Y = pair observed with an image of group X whose caption comes from an image of group Y"
+   },
+   "images_in_both_groups": {
+    "total": 0,
+    "H_images_with_a_caption_in_E": 0,
+    "E_images_with_a_caption_in_H": 0,
+    "H_clusters_holding_an_E_caption": 0,
+    "E_clusters_holding_an_H_caption": 0,
+    "images_on_any_cross_link": 0,
+    "definition": "an image is in a group when it is the observed image or the caption-source image of one of that group's pairs"
+   },
+   "q_donors": {
+    "critic_fit": {
+     "n_rows": 4350,
+     "donor_in_same_role": 4350,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 870,
+     "n_receiving_images": 870
+    },
+    "critic_select": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    },
+    "reference_moments": {
+     "n_rows": 2175,
+     "donor_in_same_role": 2175,
+     "donor_in_other_anchor_role": 0,
+     "donor_in_U": 0,
+     "crossing_H_E": 0,
+     "receiver_outside_role": 0,
+     "self_donor": 0,
+     "n_distinct_donor_images": 435,
+     "n_receiving_images": 435
+    }
+   },
+   "graph": {
+    "n_nodes": 29000,
+    "n_link_edges": 8700,
+    "n_components": 27263,
+    "n_components_with_U_images": 26100,
+    "n_singleton_U_images": 26100,
+    "largest_component": {
+     "n_images": 870,
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 870,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "largest_component_with_U_images": {
+     "n_images": 1,
+     "n_H_images": 1,
+     "n_E_images": 0,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 5,
+     "n_U_pairs_E": 0
+    },
+    "n_components_spanning_both_groups": 0,
+    "spanning_components": {
+     "n_H_images": 0,
+     "n_E_images": 0,
+     "n_anchor_images": 0,
+     "n_U_pairs_H": 0,
+     "n_U_pairs_E": 0
+    },
+    "H_images_in_a_component_with_another_H_image": 0,
+    "n_components_with_2plus_H_images": 0
+   },
+   "provenance_units": {
+    "call_E": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 20880
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "call_H": {
+     "n_clusters": {
+      "P": 435,
+      "Q": 2175,
+      "R": 5220
+     },
+     "units_in_more_than_one_cluster": 435,
+     "clusters_sharing_a_unit": {
+      "P": 435,
+      "Q": 2175,
+      "R": 0
+     }
+    },
+    "shared_between_calls": {
+     "identical_P_clusters": 435,
+     "identical_Q_clusters": 2175,
+     "R_units_in_both_calls": 0
+    }
+   },
+   "seconds": 1.94
+  }
+ }
+}
