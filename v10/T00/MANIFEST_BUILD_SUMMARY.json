@@ -1,15 +1,19 @@
 {
  "stage": "V10 T00 data manifest + exposure record",
- "generated_utc": "2026-10-16T20:22:42Z",
+ "generated_utc": "2026-10-16T20:25:00Z",
  "host": "nodecpu10",
  "python": "3.12.12",
- "git_head": "97119bd976df9cd4e16b629f1bdb0734b5b2e066",
- "git_dirty_tracked_paths": [],
+ "git_head": "78e019f37a102a2c696fcf625d09ad15437ad857",
+ "git_dirty_tracked_paths": [
+  "M v10/T00/EXPOSURE_NOTES.md",
+  " M v10/T00/MANIFEST_BUILD_SUMMARY.json",
+  " M v10/T00/MANIFEST_SHA256.txt"
+ ],
  "builder": "scripts/v10/t00_build_manifest.py",
- "builder_sha256": "78aa2fc0c08d73a6fc2ac8e8d813470f37ec57344d89e4a673ce1ef383adb696",
+ "builder_sha256": "7070b3ff7a7250d6279f09913f855e0661703d0d094d1631db37b94cd588a658",
  "code_hash": {
-  "worktree": "78aa2fc0c08d73a6",
-  "head": "78aa2fc0c08d73a6",
+  "worktree": "7070b3ff7a7250d6",
+  "head": "7070b3ff7a7250d6",
   "equal": true
  },
  "data_root": "/projects/EEG-foundation-model/yinghao/data",
@@ -1559,7 +1563,7 @@
    "when_utc": "2026-09-27/28",
    "stage": "P60 B-T2 pre-check (home copy)",
    "scope": "60 pairs (stratified, seed 20260927; 3-pair smoke subset; patch coarse-to-fine re-run on the same 60)",
-   "use": "pixels read (256-px centre square crop); closed-form J* / MI / NMI registration, no training; its outcome is disclosed by REG-P3 as a reason for choosing EPFL",
+   "use": "pixels read (square centre crop resized to 256 px, scripts/task_b_rgbnir.py); closed-form J* / MI / NMI registration, no training; its outcome is disclosed by REG-P3 as a reason for choosing EPFL",
    "evidence": [
     {
      "file": "reports/P60_TASK_B_RGBNIR_PREREG_FROZEN_20260927.md",
@@ -1620,7 +1624,16 @@
   "reason": "every BF-SHG core (72 train/validation by R6/V9; 134 test by V9-G1's one confirmation read) and every EPFL pair (477 by R6 REG-P3's audit; 60 also by P60) has been read"
  },
  "preflight": {
-  "status": "NOT_RUN"
+  "status": "INVENTORY_WRITTEN_REQUIRES_HOST_REVIEW",
+  "errors": 0,
+  "warnings": 0,
+  "manifest_sha256": "cc309cece34b574b2a518b5775a1e30987ebd9015693cca1543d5610f13564f6",
+  "manifest_sha256_match": true,
+  "current_commit": "d8364a53c4ddb213cccb57e504c15e15e120b028",
+  "dirty_paths": 0,
+  "included": "BF_SHG CAL 8, BF_SHG DEV 32, BF_SHG FIT 32, EPFL_RGB_NIR CAL 10, EPFL_RGB_NIR DEV 74, EPFL_RGB_NIR FIT 336",
+  "confirm_groups": 0,
+  "independent_groups": 483
  },
  "checks": [
   {
@@ -2063,8 +2076,16 @@
    "id": "manifest.no_included_path_in_closed_or_v9_test",
    "status": "PASS",
    "detail": "phase 1: no included row points into the sealed archive directory or the V9-G1 test extraction"
+  },
+  {
+   "id": "preflight.recorded_this_manifest",
+   "status": "PASS",
+   "detail": {
+    "preflight": "cc309cece34b574b2a518b5775a1e30987ebd9015693cca1543d5610f13564f6",
+    "manifest": "cc309cece34b574b2a518b5775a1e30987ebd9015693cca1543d5610f13564f6"
+   }
   }
  ],
  "checks_failed": [],
- "checks_passed": 42
+ "checks_passed": 43
 }
