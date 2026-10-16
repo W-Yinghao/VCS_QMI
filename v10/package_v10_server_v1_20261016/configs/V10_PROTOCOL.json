@@ -1,0 +1,163 @@
+{
+  "version": "V10-server-handoff-v1",
+  "status": "designed_not_launched",
+  "target": "unchanged_collaborator_S_and_J",
+  "host_snapshot": "27117c9ae78d64d39a6548c40b00ff58f70cc4d4_is_historical_not_current_verified",
+  "registration": {
+    "datasets": [
+      "BF_SHG",
+      "EPFL_RGB_NIR"
+    ],
+    "dataset_activation": "BF_SHG_primary_EPFL_after_manifest_and_alignment_audit",
+    "split_policy": "preserve_existing_grouped_manifest_and_exposure_ledger",
+    "negative_reference": "within_scene",
+    "product_mode": "v",
+    "train_mismatch": 0.0,
+    "primary_fit_fraction": 1.0,
+    "sample_size_extension": [
+      0.25,
+      1.0
+    ],
+    "training_seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "tuning_seed": 1017,
+    "learned_methods": [
+      "MLP_VCS_perm1",
+      "MLP_VCS_perm8",
+      "MF_VCS_perm1",
+      "MF_VCS_M0",
+      "MF_VCS_M1",
+      "InfoNCE_host",
+      "CoMIR_native",
+      "RuLSIF_kernel"
+    ],
+    "nonlearned_methods": [
+      "MI_native",
+      "NMI_native",
+      "MIND_2D_adapted"
+    ],
+    "calibrated_extension_methods": [
+      "matched_BCE",
+      "learned_kernel_common_J",
+      "CS_KDE_pair_observation"
+    ],
+    "test_head_policy": "fixed_no_refitting_per_transform",
+    "geometry_order_shared_energy": "warp_then_encode",
+    "support_policy": "inherit_and_audit_host_rule_version_any_change_for_all_methods",
+    "method_overrides": {
+      "CoMIR_native": {
+        "geometry_order": "native_pipeline_encode_then_register",
+        "comparison_table": "native_systems"
+      },
+      "MI_native": {
+        "geometry_order": "native_pipeline",
+        "comparison_table": "native_systems"
+      },
+      "NMI_native": {
+        "geometry_order": "native_pipeline",
+        "comparison_table": "native_systems"
+      },
+      "MIND_2D_adapted": {
+        "geometry_order": "documented_2D_adaptation",
+        "comparison_table": "native_systems"
+      }
+    },
+    "search_policy": "shared_optimizer_table_plus_native_system_table",
+    "threshold_native_px": {
+      "BF_SHG": [
+        42.0,
+        9.0
+      ],
+      "EPFL_RGB_NIR": [
+        10.5,
+        2.25
+      ]
+    },
+    "threshold_source": "historical_R6_V9_protocol_verify_scale_on_server",
+    "confirm_policy": "never_read_physical_or_scene_groups_with_evidence_else_development"
+  },
+  "compute": {
+    "positions": [
+      128,
+      512,
+      2048,
+      8192
+    ],
+    "simplex_widths": [
+      8,
+      16,
+      32
+    ],
+    "methods": [
+      "permutation1",
+      "permutation8",
+      "dense",
+      "blocked_dense",
+      "moments"
+    ],
+    "mode": "v",
+    "seed": 10101,
+    "device": "measure_on_actual_server",
+    "dtype_primary": "float32",
+    "dtype_reference": "float64",
+    "timing_scope": "head_forward_backward_then_encoder_inclusive_then_full_registration",
+    "oom_policy": "record_and_continue_other_units_do_not_change_batch_silently"
+  },
+  "head": {
+    "width_candidates": [
+      8,
+      16,
+      32
+    ],
+    "default_width_for_interface_smoke": 16,
+    "softmax_temperature_primary": 1.0,
+    "feature_head_learning_rate_candidates": [
+      0.0001,
+      0.0003,
+      0.001
+    ],
+    "encoder_learning_rate": "inherit_host_then_equal_budget_CAL_search",
+    "M0_W_weight_decay": 0.0,
+    "M1_ridge_primary": 0.0,
+    "M1_ridge_sensitivity": [
+      1e-06,
+      0.0001
+    ],
+    "M1_max_iterations_candidates": [
+      10,
+      30,
+      100
+    ],
+    "M1_gap_absolute_target": 0.0001,
+    "M1_gap_required_reporting": true,
+    "M1_iteration_policy": "report_gap_when_cap_reached_not_claim_converged",
+    "M1_checkpoint_policy": "save_encoder_and_last_training_batch_W_as_indivisible_pair_select_pair_on_CAL",
+    "M1_gap_scope": "inner_pre_outer_batch_not_saved_checkpoint_or_all_FIT",
+    "M1_final_FIT_refit_primary": false,
+    "M1_optional_FIT_refit": "separate_variant_same_reference_pool_for_M0_cost_counted",
+    "M1_require_converged_training": false,
+    "M1_training_mode": "explicit_approximate_profiled_head_log_every_gap"
+  },
+  "statistics": {
+    "base_unit": "physical_specimen_if_known_else_core_or_scene_group",
+    "bootstrap_repetitions": 2000,
+    "bootstrap_seed": 10191,
+    "ci_scope": "groups_conditional_on_realized_training_seeds",
+    "seed_dispersion_reported_separately": true,
+    "failures_count_in_success_denominator": true,
+    "missing_jobs_are_incomplete_not_automatic_geometric_failures": true
+  },
+  "execution": {
+    "auto_submit": false,
+    "cancel_existing_jobs": false,
+    "reuse_unrelated_V9_results_as_V10": false,
+    "launch_grid_in_this_conversation": false,
+    "full_training_budget_seconds": null,
+    "budget_null_means": "server_measures_and_fills_from_existing_authorized_resources_before_grid",
+    "independent_confirmation_source": null,
+    "confirmation_null_means": "development_results_only_until_independence_verified"
+  }
+}
