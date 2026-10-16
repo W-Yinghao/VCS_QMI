@@ -1,0 +1,112 @@
+# V9 HOST_LOCK_MACHINE: the typed, machine-readable twin of reports/V9/HOST_LOCK.yaml (fork A's prose lock), review item U03.
+# Read it ONLY through src/v9/host_config.py::load_host_config(path, dataset, source_lock=reports/V9/HOST_LOCK.yaml): every field required,
+# exact types (floats with a decimal point, booleans true / false), ranges, closed name sets; unknown / missing / duplicate keys, YAML
+# anchors / aliases and a dataset that is not locked are errors; nothing is defaulted.
+# provenance: for every value, the HOST_LOCK.yaml section it was copied from (key path in the parsed file; an int is a list index), the
+# verbatim text there (quote; for a non-string section it is found in the raw text of the top-level block, comments included) and the part
+# of the quote that denotes the value (token).  verify_provenance() and tests/v9/test_host_config.py check every source against the
+# HOST_LOCK.yaml whose sha256 is recorded below, and check that f30k_precomp equals what the legacy loader v9.n2.teacher.load_host_lock
+# resolves from it.  The first source of each schedule value is the LOCKED recipe (locked_recipes / host_finding_...); the native-SGR
+# 'training' section the legacy loader reads follows as corroboration.
+# Scope: from the NEXT block onwards.  The running V9-N2 Flickr30K block keeps the legacy loader on HOST_LOCK.yaml.
+# When HOST_LOCK.yaml changes, re-derive this file and update derived_from (load_host_config(..., source_lock=...) refuses a stale one).
+schema_version: 1
+derived_from:
+  path: reports/V9/HOST_LOCK.yaml
+  sha256: "8be8ced9f6bc99b4748b4384658e42425d6adf186047d2246a9a25cfb0bcf8b5"
+  git_commit: "103d8f838849f487f6f2667a4110d2cc135c4931"   # last commit touching HOST_LOCK.yaml (2026-10-15); working tree identical at HEAD 25853ed
+datasets:
+  f30k_precomp:
+    status: locked
+    model:                            # SGR single (SGRAF_py3 a19d1a9 modules; V9 vendored copy src/v9/n2/sgr_host.py)
+      img_dim: 2048
+      word_dim: 300
+      embed_size: 1024
+      sim_dim: 256
+      num_layers: 1
+      bi_gru: true
+      num_region: 36
+      sgr_step: 3
+      module_name: SGR
+    schedule:                         # common student (B table) and teacher; epochs counted from 0, warm-up inside num_epochs
+      num_epochs: 40
+      lr_update: 30                   # lr(epoch) = learning_rate * lr_decay_factor ** (epoch // lr_update): x0.1 from epoch 30
+      lr_decay_factor: 0.1
+      batch_size: 128
+      optimizer: adam
+      learning_rate: 0.0002
+      margin: 0.2
+      grad_clip: 2.0
+      warmup_epochs: 5                # epochs 0-4 warmup_loss, epochs 5-39 main_loss (src/v9/n2/train.py: hard = epoch >= warmup_epochs)
+      warmup_loss: warmup_mean_hinge  # HOST_LOCK: sum-violation triplet loss; V9 code: mean over in-batch negatives, both directions
+      main_loss: max_violation_hinge  # hardest in-batch negative per row and per column
+      teacher_epochs: 5               # same recipe for 5 epochs, i.e. inside the warm-up phase (teacher.py: warm-up loss for every epoch)
+      checkpoint_selection: best_dev_rsum
+    provenance:
+      model.img_dim:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "img_dim: 2048", token: "2048"}
+      model.word_dim:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "word_dim: 300", token: "300"}
+      model.embed_size:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "embed_size: 1024", token: "1024"}
+      model.sim_dim:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "sim_dim: 256", token: "256"}
+      model.num_layers:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "num_layers_gru: 1", token: "1"}
+      model.bi_gru:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "bi_gru: true", token: "true"}
+      model.num_region:
+        - {section: [features, feature_shapes, image, 0], quote: "image: [36, 2048]", token: "36"}
+        - {section: [features, source], quote: "image tensor (36, 2048)", token: "36"}
+      model.sgr_step:
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "sgr_step: 3", token: "3"}
+      model.module_name:
+        - {section: [locked_recipes, common_student_B_table], quote: "SGR single (SGRAF_py3 a19d1a9 modules)", token: "SGR"}
+        - {section: ["model (SGR single, SGRAF opts.py defaults)", opts], quote: "module_name: SGR", token: "SGR"}
+        - {section: [host], quote: "SGR_single", token: "SGR"}
+      schedule.num_epochs:
+        - {section: [locked_recipes, common_student_B_table], quote: "40 epochs (Flickr30K)", token: "40"}
+        - {section: ["training (native SGR, train.py)", native_epochs, f30k_precomp], quote: "native_epochs: {f30k_precomp: 40, coco_precomp: 20}", token: "40"}
+      schedule.lr_update:
+        - {section: [locked_recipes, common_student_B_table], quote: "lr x0.1 at epoch 30", token: "30"}
+        - {section: ["training (native SGR, train.py)", lr_update, f30k_precomp], quote: "lr_update: {f30k_precomp: 30, coco_precomp: 10}", token: "30"}
+      schedule.lr_decay_factor:
+        - {section: [locked_recipes, common_student_B_table], quote: "lr x0.1 at epoch 30", token: "0.1"}
+        - {section: ["training (native SGR, train.py)", lr_update], quote: "lr = 2e-4 * 0.1 ** (epoch // lr_update)", token: "0.1"}
+      schedule.batch_size:
+        - {section: [locked_recipes, common_student_B_table], quote: "batch 128", token: "128"}
+        - {section: ["training (native SGR, train.py)", batch_size], quote: "batch_size: 128", token: "128"}
+      schedule.optimizer:
+        - {section: [locked_recipes, common_student_B_table], quote: "Adam lr 2e-4", token: "Adam"}
+        - {section: ["training (native SGR, train.py)", optimizer], quote: "Adam(lr=2e-4)", token: "Adam"}
+      schedule.learning_rate:
+        - {section: [locked_recipes, common_student_B_table], quote: "Adam lr 2e-4", token: "2e-4"}
+        - {section: ["training (native SGR, train.py)", optimizer], quote: "Adam(lr=2e-4)", token: "2e-4"}
+      schedule.margin:
+        - {section: [locked_recipes, common_student_B_table], quote: "margin 0.2", token: "0.2"}
+        - {section: ["training (native SGR, train.py)", native_margin], quote: "native_margin: 0.2", token: "0.2"}
+      schedule.grad_clip:
+        - {section: [locked_recipes, common_student_B_table], quote: "grad_clip 2.0", token: "2.0"}
+        - {section: ["training (native SGR, train.py)", optimizer], quote: "grad_clip 2.0 (clip_grad_norm_)", token: "2.0"}
+      schedule.warmup_epochs:
+        - {section: [host_finding_20261015_timing_job_1042033, consequence_for_the_lock], quote: "uses NCR's warm-up: 5 epochs with the sum-violation triplet loss", token: "5"}
+        - {section: ["training (native SGR, train.py)", warmup], quote: "NCR: warmup_epoch f30k 5", token: "5"}
+      schedule.warmup_loss:
+        - {section: [host_finding_20261015_timing_job_1042033, consequence_for_the_lock], quote: "5 epochs with the sum-violation triplet loss (NCR ContrastiveLoss, no max_violation) before the hard-negative phase", token: "sum-violation"}
+        - {section: ["training (native SGR, train.py)", warmup], quote: "with the warm-up loss L_w", token: "warm-up loss"}
+      schedule.main_loss:
+        - {section: [locked_recipes, common_student_B_table], quote: "hardest in-batch negative", token: "hardest in-batch negative"}
+        - {section: [host_finding_20261015_timing_job_1042033, consequence_for_the_lock], quote: "before the hard-negative phase", token: "hard-negative"}
+        - {section: ["training (native SGR, train.py)", loss], quote: "ContrastiveLoss(margin=0.2, max_violation=True by default)", token: "max_violation=True"}
+      schedule.teacher_epochs:
+        - {section: [locked_recipes, common_student_B_table], quote: "teacher = the same recipe for 5 epochs on the teacher role", token: "5"}
+        - {section: [teacher_epochs], quote: "teacher_epochs: 5", token: "5"}
+      schedule.checkpoint_selection:
+        - {section: [locked_recipes, common_student_B_table], quote: "dev-rSum checkpoint", token: "dev-rSum"}
+        - {section: ["training (native SGR, train.py)", checkpoint_selection], quote: "best_dev_rsum", token: "best_dev_rsum"}
+  coco_precomp:
+    status: not_locked                # no values: COCO is a separate later decision (load_host_config raises DatasetNotLocked)
+    reason: "HOST_LOCK.yaml locked_recipes.coco: not locked in this block (COCO is a separate later decision)"
+    provenance:
+      status:
+        - {section: [locked_recipes, coco], quote: "not locked in this block", token: "not locked"}
