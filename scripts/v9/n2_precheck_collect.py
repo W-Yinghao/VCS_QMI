@@ -23,7 +23,9 @@ def cell(out_root: Path, ds: str, rho: float, seed: int) -> dict:
     ts = pc["teacher_separability"]; rho_rec = vcs["rho"]; ib = rho_rec.get("independent_batch", {})
     per = {m: {k: round(v[k], 4) for k in ("mean", "ess", "total_mass", "share_at_0", "share_at_1", "n")} for m, v in pc["weights"]["per_method"].items()}
     close = {k: {"mean_abs_diff": round(v["mean_abs_diff"], 5), "spearman": round(v["spearman"], 6), "share_identical_1e-6": round(v["share_identical_1e-6"], 6)}
-             for k, v in pc["weights"]["pairwise"].items() if v["spearman"] > 0.99}
+             for k, v in pc["weights"]["pairwise"].items() if v["spearman"] is not None and v["spearman"] > 0.99}
+    undefined = {k: {"reason": v.get("spearman_reason") or "undefined", "share_identical_1e-6": round(v["share_identical_1e-6"], 6)}   # null Spearman (constant weights)
+                 for k, v in pc["weights"]["pairwise"].items() if v["spearman"] is None}
     return {"dataset": ds, "rho": rho, "seed": seed, "formal_block_allowed": pc["formal_block_allowed"], "refusal_reason": pc["refusal_reason"],
             "auroc": round(ts["auroc"], 4), "overlap_coefficient": round(ts["overlap_coefficient"], 4), "P_median": round(ts["P"]["q50"], 4), "Q_median": round(ts["Q"]["q50"], 4),
             "n_P": ts["n_P"], "n_Q": ts["n_Q"], "merged": pc["loss_coefficients"].get("merged", {}), "groups": pc["loss_coefficients"].get("groups", []),
@@ -32,7 +34,7 @@ def cell(out_root: Path, ds: str, rho: float, seed: int) -> dict:
                                     "upper": round(ib.get("interval", {}).get("upper", float("nan")), 4), "status": ib.get("interval", {}).get("status"), "n_pairs": ib.get("n_pairs")},
             "realized_rho": round(pc["noise_manifest"]["realized_rho"], 5), "n_A_mismatched": pc["noise_manifest"]["n_A_mismatched"],
             "roles_counts": pc["roles"]["counts"], "dev_test_disjoint": bool(pc["roles"]["dev_ids"]["disjoint"] and pc["roles"]["test_ids"]["disjoint"]),
-            "weights_per_method": per, "near_monotone_pairs": close,
+            "weights_per_method": per, "near_monotone_pairs": close, "spearman_undefined_pairs": undefined,
             "teacher": {"shared_from_rho": json.loads(shared.read_text())["from"].split("/")[-4] if shared.exists() else None, "n_pairs": tl["n_pairs"],
                         "epochs": len(tl["epochs"]), "seconds_per_epoch": round(tl["seconds_per_epoch"], 1), "seconds_total": round(tl["seconds_total"], 1),
                         "peak_gpu_mem_mb": tl["epochs"][-1].get("peak_gpu_mem_mb"), "first_last_mean_batch_loss": [round(tl["epochs"][0]["mean_batch_loss"], 3), round(tl["epochs"][-1]["mean_batch_loss"], 3)],
@@ -70,6 +72,16 @@ def write_gate_record(protocol: Path, summ: dict, dest: Path) -> None:
     yaml.safe_load(text); protocol.write_text(text)
 
 
+
+def merge_reading(cells) -> str:
+    """Data-driven merge bullet (2026-10-16 fix: the former fixed sentence said no arms merged, which the rho 0 cells contradict)."""
+    merged = [(c["rho"], c["seed"], [g for g in c["groups"] if len(g) > 1]) for c in cells if c["merged"]]
+    if not merged:
+        return "- No two methods have identical loss coefficients in any cell: every arm is a distinct run."
+    parts = "; ".join(f"rho {r:g} s{s}: " + " | ".join("{" + ", ".join(g) + "}" for g in gs) for r, s, gs in merged)
+    return ("- Merged by the coefficient rule (one training per seed, reported for every member): " + parts +
+            ".  Every other arm is a distinct run; at rho 0.4 no arms merge (VCS and BCE share the critic logit and are rank-identical, but their weights differ).")
+
 def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--out-root", required=True); ap.add_argument("--dataset", default="f30k"); ap.add_argument("--rhos", nargs="+", type=float, default=[0.4, 0])
     ap.add_argument("--seeds", nargs="+", type=int, default=[901, 902, 903]); ap.add_argument("--dest", required=True); ap.add_argument("--job", default=""); ap.add_argument("--commit", default="")
@@ -90,7 +102,7 @@ def main() -> int:
     (dest / "PRECHECK_SUMMARY.json").write_text(json.dumps(summ, indent=1))
     L = [f"# V9-N2 precheck gate record — {a.dataset} — block {'ALLOWED' if allowed else 'REFUSED'}", "",
          f"Job {a.job}, code commit {a.commit}, host {a.host}; thresholds: refuse if AUROC > 0.999 or < 0.55 (teacher clean vs within-role re-paired on A-critic-select); "
-         "merge rule: loss coefficients identical at 1e-12 AND same data order / RNG state (never satisfied by distinct weight maps).", "",
+         "merge rule: loss coefficients identical at 1e-12 AND same data order / RNG state.", "",
          "| rho | seed | allowed | AUROC | overlap | P med | Q med | rho-hat (U_est) | rho-hat independent [95 % Hoeffding] | merges | teacher s/epoch | peak GPU MB | teacher shared |",
          "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for c in cells:
@@ -103,11 +115,14 @@ def main() -> int:
         L += [f"**rho {c['rho']:g}, seed {c['seed']}** (n_U pairs = {c["weights_per_method"]["VCS_Weight"]["n"]})", "", "| method | mean w | ESS | mass | at 0 | at 1 |", "|---|---|---|---|---|---|"]
         L += [f"| {m} | {v['mean']:.4f} | {v['ess']:.0f} | {v['total_mass']:.0f} | {v['share_at_0']:.4f} | {v['share_at_1']:.4f} |" for m, v in c["weights_per_method"].items()]
         L += ["", "near-monotone pairs (Spearman > 0.99): " + ("; ".join(f"{k}: mean|dw| {v['mean_abs_diff']}, rho_s {v['spearman']}, identical {v['share_identical_1e-6']}" + (" -> MERGED (one run)" if v['share_identical_1e-6'] >= 1.0 else " -> distinct runs") for k, v in c["near_monotone_pairs"].items()) or "none"), ""]
+        if c["spearman_undefined_pairs"]:                        # U05: null Spearman (a constant weight vector) is listed, never compared with 0.99
+            L += ["Spearman undefined (NA): " + "; ".join(f"{k}: {v['reason']}, identical {v['share_identical_1e-6']}" + (" -> MERGED (one run)" if any(set(k.split("|")) <= set(g) for g in c["groups"]) else " -> distinct runs")
+                                                       for k, v in c["spearman_undefined_pairs"].items()), ""]
     L += ["## Reading", "",
           "- The teacher is one per (dataset, seed): the rho 0 cell reuses the rho 0.4 teacher (identical roles hashes, clean anchor pairs), so AUROC is identical across rho within a seed by construction.",
           "- AUROC far from both refusal thresholds in every cell: the teacher separates clean from re-paired anchor pairs but is not a label oracle.",
           "- rho-hat on the independent batch (20 % of U images, by image) is the pre-registered interval; the U_est point estimate is what the weights use.",
-          "- No two methods have identical loss coefficients: every arm of the Flickr block is a distinct run (VCS vs BCE share the critic logit and are rank-identical; their weights differ).",
+          merge_reading(cells),
           "- Teacher cost is the first real GPU number: 5 warm-up epochs on the A-teacher-warmup pairs (4 % of the training pairs)."]
     (dest / "PRECHECK_SUMMARY.md").write_text("\n".join(L) + "\n")
     if a.protocol:

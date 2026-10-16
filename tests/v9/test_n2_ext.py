@@ -121,7 +121,11 @@ def test_host_lock_pending_markers_block_only_recipe_fields(tmp_path):
     from v9.n2.teacher import load_host_lock
     src = Path("reports/V9/HOST_LOCK.yaml").read_text()
     cfg = load_host_lock("reports/V9/HOST_LOCK.yaml", "f30k_precomp", 8481)
-    assert cfg.to_verify == [] and cfg.warmup_epochs == 5 and cfg.num_epochs == 40 and cfg.margin == 0.2 and any("PENDING" in n for n in cfg.lock_notes)
+    assert cfg.to_verify == [] and cfg.warmup_epochs == 5 and cfg.num_epochs == 40 and cfg.margin == 0.2
+    # the real lock no longer carries PENDING markers (measured costs filled in 84fb6eb / 103d8f8), so the note path is exercised on a copy
+    noted = tmp_path / "lock_noted.yaml"; noted.write_text(src + "\nmeasured_epoch_seconds_example: PENDING_TIMING_JOB\n")
+    cfg1 = load_host_lock(noted, "f30k_precomp", 8481)
+    assert cfg1.to_verify == [] and any("PENDING" in n for n in cfg1.lock_notes)
     bad = tmp_path / "lock.yaml"; bad.write_text(src.replace("native_margin: 0.2", "native_margin: TO_VERIFY"))
     cfg2 = load_host_lock(bad, "f30k_precomp", 8481)
     assert "margin" in cfg2.to_verify

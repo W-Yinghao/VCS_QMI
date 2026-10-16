@@ -3,7 +3,8 @@
 1. teacher score distributions on A-critic-select, clean (P) vs re-paired (Q): quantiles, AUROC, overlap; the formal block is REFUSED when the
    problem is degenerate — AUROC > AUROC_MAX (nothing to weight) or < AUROC_MIN (teacher uninformative); thresholds live in the protocol;
 2. every weight method's final weight distribution on U (quantiles, ESS, total mass, shares at 0 / 1) and the pairwise differences between methods
-   (mean |w_i − w_j|, Spearman rank correlation, share of pairs with identical weights to 1e-6);
+   (mean |w_i − w_j|, Spearman rank correlation on tie-averaged ranks (null + a reason when a method's weights are constant), share of pairs with
+   identical weights to 1e-6);
 3. the per-sample loss coefficients after the fixed-pool normaliser (v_i / mean_v_full: anchors v = 1, U weights) — two methods are merged as
    "implementation-identical" ONLY if their coefficient vectors are equal to 1e-12 on every pool row AND their data order and RNG state are provably
    equal (same seed → the trainer derives both from the seed alone, which the manifest records), otherwise both run;
@@ -46,11 +47,44 @@ def overlap_coefficient(pos: np.ndarray, neg: np.ndarray, bins: int = 50) -> flo
     return float(np.minimum(hp / max(len(pos), 1), hq / max(len(neg), 1)).sum())
 
 
-def spearman(a: np.ndarray, b: np.ndarray) -> float:
-    ra = np.argsort(np.argsort(a, kind="mergesort")); rb = np.argsort(np.argsort(b, kind="mergesort"))
-    if ra.std() == 0 or rb.std() == 0:
-        return float("nan")
-    return float(np.corrcoef(ra, rb)[0, 1])
+SPEARMAN_NA_LABEL = {"constant_input": "constant", "fewer_than_2_values": "n < 2", "non_finite_input": "non-finite"}   # reason -> markdown "NA (label)"
+
+
+def _average_ranks(x: np.ndarray) -> np.ndarray:
+    """1-based ranks; tied values get the mean of the positions they occupy (= scipy.stats.rankdata(x, method='average'))."""
+    order = np.argsort(x, kind="mergesort"); xs = x[order]
+    starts = np.flatnonzero(np.r_[True, xs[1:] != xs[:-1]]); ends = np.r_[starts[1:], len(xs)]       # tie group k = sorted positions [starts[k], ends[k])
+    ranks = np.empty(len(x)); ranks[order] = np.repeat((starts + 1 + ends) / 2.0, ends - starts)
+    return ranks
+
+
+def spearman_with_reason(a: np.ndarray, b: np.ndarray) -> tuple[float | None, str]:
+    """Spearman rank correlation = Pearson correlation of tie-averaged ranks (as scipy.stats.spearmanr).  Returns (value, "") or, when it is undefined,
+    (None, reason) with reason 'constant_input' (either vector constant, e.g. Unweighted_A or every posterior weight at rho-hat 0),
+    'fewer_than_2_values' or 'non_finite_input'.  None, never NaN, so the precheck JSON stays valid."""
+    a, b = np.asarray(a, dtype=float).ravel(), np.asarray(b, dtype=float).ravel()
+    if len(a) != len(b):
+        raise ValueError(f"spearman: length mismatch {len(a)} vs {len(b)}")
+    if len(a) < 2:
+        return None, "fewer_than_2_values"
+    if not (np.isfinite(a).all() and np.isfinite(b).all()):
+        return None, "non_finite_input"
+    if a.min() == a.max() or b.min() == b.max():
+        return None, "constant_input"
+    return float(np.corrcoef(_average_ranks(a), _average_ranks(b))[0, 1]), ""
+
+
+def spearman(a: np.ndarray, b: np.ndarray) -> float | None:
+    """Tie-averaged Spearman rank correlation; None when undefined (the reason: `spearman_with_reason`)."""
+    return spearman_with_reason(a, b)[0]
+
+
+def _fmt_spearman(q: dict) -> str:
+    """Pair-table cell: the value to 3 decimals, or 'NA (constant)' / 'NA (<reason>)' when the rank correlation is undefined."""
+    if q.get("spearman") is None:
+        why = q.get("spearman_reason") or ""
+        return f"NA ({SPEARMAN_NA_LABEL.get(why, why or 'undefined')})"
+    return f"{q['spearman']:.3f}"
 
 
 def _q(x: np.ndarray) -> dict:
@@ -74,8 +108,8 @@ def weight_tables(weights_by_method: dict[str, np.ndarray]) -> dict:
     pair = {}
     for i, a in enumerate(names):
         for b in names[i + 1:]:
-            wa, wb = np.asarray(weights_by_method[a], float), np.asarray(weights_by_method[b], float)
-            pair[f"{a}|{b}"] = {"mean_abs_diff": float(np.mean(np.abs(wa - wb))), "spearman": spearman(wa, wb), "share_identical_1e-6": float(np.mean(np.abs(wa - wb) <= IDENTICAL_TOL)), "max_abs_diff": float(np.max(np.abs(wa - wb)))}
+            wa, wb = np.asarray(weights_by_method[a], float), np.asarray(weights_by_method[b], float); rho_s, why = spearman_with_reason(wa, wb)
+            pair[f"{a}|{b}"] = {"mean_abs_diff": float(np.mean(np.abs(wa - wb))), "spearman": rho_s, "spearman_reason": why, "share_identical_1e-6": float(np.mean(np.abs(wa - wb) <= IDENTICAL_TOL)), "max_abs_diff": float(np.max(np.abs(wa - wb)))}
     return {"per_method": per, "pairwise": pair}
 
 
@@ -145,7 +179,7 @@ def write_precheck(out_dir: str | Path, dataset: str, rho: float, seed: int, sep
         L.append(f"| {m} | {q['n']} | {q['q5']:.3f} | {q['q50']:.3f} | {q['q95']:.3f} | {q['mean']:.3f} | {q['ess']:.1f} | {q['total_mass']:.1f} | {q['share_at_0']:.3f} | {q['share_at_1']:.3f} |")
     L += ["", "| pair | mean abs diff | Spearman | share identical (1e-6) | max abs diff |", "|---|---|---|---|---|"]
     for k, q in wt["pairwise"].items():
-        L.append(f"| {k} | {q['mean_abs_diff']:.4f} | {q['spearman']:.3f} | {q['share_identical_1e-6']:.3f} | {q['max_abs_diff']:.4f} |")
+        L.append(f"| {k} | {q['mean_abs_diff']:.4f} | {_fmt_spearman(q)} | {q['share_identical_1e-6']:.3f} | {q['max_abs_diff']:.4f} |")
     L += ["", "## 3. Loss coefficients after the fixed-pool normaliser (c_i = v_i / mean_v_full over the pool)", "", "| method | n pool | mean | min | max | sha256 |", "|---|---|---|---|---|---|"]
     for m, q in coef["coefficients"].items():
         L.append(f"| {m} | {q['n_pool']} | {q['mean']:.6f} | {q['min']:.6f} | {q['max']:.6f} | {q['sha256']} |")
