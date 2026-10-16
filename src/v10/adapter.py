@@ -17,7 +17,12 @@ reference; fixed points allowed), locked scene weights 1/n_sc (the host's implic
 W in [-1, 1]^{K x K} projected after every optimiser step, AdamW weight decay 0 for W, no output tanh, ridge 0 by default.
   MF_perm1  sampled_permutation_terms with the host's own per-scene permutation of the step (perm1)
   MF_M0     objective_terms: exact V moments
-  MF_M1     profiled_objective on the SAME batch tensors; training uses require_converged=False and logs the gap per batch
+  MF_M1     profiled_objective on the SAME batch tensors; training uses require_converged=False and logs the gap per batch.
+            Degeneracy at the package start W = 0 (review 2026-10-17): the solver's first gap equals ||Delta||_1; a reviewer probe
+            found ||Delta||_1 = 3.2e-5 on the first T01 / T02 batch at host init (T01 records it), below the protocol's absolute
+            target 1e-4, so the head stops at iteration 0 with W = 0, the outer objective is identically 0 and its feature /
+            encoder gradient is exactly 0.  M1Config keeps the protocol value (owner
+            decision pending); T02 times M1 with M1_CAP_BINDING_TOLERANCE (the 10 / 30 / 100 iteration budget always binds).
   MF_dense  dense_objective_terms: exact dense reference (validation only)
 MLP (the host critic, T = tanh f), same P / Q, scene order and normalisation:
   MLP_perm1 host-identical (P.loss_fn 'vcs' on the host's permutation)
@@ -63,6 +68,10 @@ FORBIDDEN_PATH_PARTS = ("/closed/", "outputs_v9/reg_test", "test.zip", "/test/")
 DESC = 16                                     # host descriptor width (P.build_models desc=16)
 TOLERANCES = {"float64": (1e-10, 1e-8), "float32": (1e-5, 1e-4)}   # package V10_DESIGN 6.1: (atol, rtol)
 CODE_PATHS = ("src/v10", "scripts/v10")
+JOB_PIN_PATHS = ("src/v10", "scripts/v10", "slurm/v10")              # pinned at submission (slurm/v10/submit.sh: V10_EXPECT_CODE)
+DIRTY_PATHS = ("src/v10", "scripts/v10", "slurm/v10", "tests/v10", "src/v9/reg")   # = the dirty check of slurm/v10/v10_header.sh
+M1_PROTOCOL_TOLERANCE = 1e-4          # V10_PROTOCOL head.M1_gap_absolute_target (absolute FW gap)
+M1_CAP_BINDING_TOLERANCE = 1e-300     # far below any reachable gap: the solver always runs its whole iteration budget
 
 
 # ------------------------------------------------------------------------------------------------------------ host import
@@ -124,6 +133,16 @@ def code_hash(paths: Sequence[str] = CODE_PATHS) -> str:
     return hashlib.sha256(lines.encode()).hexdigest()[:16]
 
 
+def check_job_pin() -> dict:
+    """Jobs run the code pinned at submission: slurm/v10/submit.sh exports V10_EXPECT_CODE = code_hash(JOB_PIN_PATHS) and every V10
+    entry point calls this.  Refuses (SystemExit) when the pin is set and the tree's hash differs (code committed after submission);
+    an unset pin (interactive use, unit tests) is recorded as 'unset'."""
+    expected, actual = os.environ.get("V10_EXPECT_CODE"), code_hash(JOB_PIN_PATHS)
+    if expected and expected != actual:
+        raise SystemExit(f"[v10] REFUSED: code hash {actual} of {' '.join(JOB_PIN_PATHS)} != pinned {expected} (changed after submission)")
+    return {"expected": expected, "actual": actual, "status": "match" if expected else "unset"}
+
+
 def _safe(fn, default=None):
     try:
         return fn()
@@ -138,8 +157,10 @@ def environment(device=None) -> dict:
            "cudnn": _safe(torch.backends.cudnn.version), "device": str(device) if device else None,
            "slurm_job_id": os.environ.get("SLURM_JOB_ID"), "slurm_partition": os.environ.get("SLURM_JOB_PARTITION"),
            "slurm_nodelist": os.environ.get("SLURM_JOB_NODELIST"), "git_commit": git("rev-parse", "HEAD"),
-           "git_dirty_code": git("status", "--porcelain", "--", "src/v10", "scripts/v10", "slurm/v10", "tests/v10"),
+           "git_dirty_code": git("status", "--porcelain", "--", *DIRTY_PATHS),
            "code_hash_src_scripts_v10": code_hash(), "host_code_hash": host_code_hash(), "mf_vcs_sha256": sha256_file(MF.__file__),
+           "job_code_hash": code_hash(JOB_PIN_PATHS), "job_pin_expected": os.environ.get("V10_EXPECT_CODE"),
+           "submit_commit": os.environ.get("V10_SUBMIT_COMMIT"),
            "torch_threads": torch.get_num_threads(), "float32_matmul_precision": torch.get_float32_matmul_precision(),
            "cudnn_conv_fp32_precision": _safe(lambda: torch.backends.cudnn.conv.fp32_precision),
            "cuda_matmul_fp32_precision": _safe(lambda: torch.backends.cuda.matmul.fp32_precision),
@@ -240,6 +261,12 @@ class DataGuard:
                 raise PermissionError(f"{core}: path {text} is in a forbidden location")
         self.reads.append({"core": core, "role": r["role"], "purpose": purpose, "path": str(path), "utc": utc_now()})
         return path
+
+    def log_rule(self, core: str, allowed_roles: Iterable[str], purpose: str) -> None:
+        """A truth-related quantity derived from a frozen rule (no file read), e.g. Q.perturbations_p2(core): the same role gate as
+        check(), logged with kind 'rule' and no path."""
+        self.check(core, allowed_roles, purpose)
+        self.reads[-1].update({"kind": "rule", "path": None})
 
 
 def load_learned_inputs(guard: DataGuard, cores: Iterable[str], allowed_roles, purpose: str, device) -> dict:
@@ -386,9 +413,28 @@ def mf_scenes(A, B, n_sc: int, n_pos: int):
 @dataclass
 class M1Config:
     max_iterations: int = 30
-    tolerance: float = 1e-4            # V10_PROTOCOL head.M1_gap_absolute_target
+    tolerance: float = M1_PROTOCOL_TOLERANCE   # V10_PROTOCOL head.M1_gap_absolute_target (degenerate from W = 0 at host init: module doc)
     ridge: float = 0.0                 # V10_PROTOCOL head.M1_ridge_primary
     require_converged: bool = False    # training: explicit approximate profiled head, gap logged per batch
+
+
+@contextlib.contextmanager
+def count_head_hvp():
+    """Counts QuadraticHead._hvp calls (the package solver's Hessian-vector products) inside the block.  The class attribute is
+    wrapped for the duration of the block and restored afterwards; values are unchanged and src/v10/mf_vcs.py is not modified.
+    solve_box_head calls _hvp 1 (initial F) + (iterations + 1) (gaps) + 2 per non-final iteration + 1 per momentum restart,
+    so restarts = calls - 2 - 3 * iterations."""
+    orig = MF.QuadraticHead._hvp
+    counter = {"hvp": 0}
+
+    def counted(self, direction):
+        counter["hvp"] += 1
+        return orig(self, direction)
+    MF.QuadraticHead._hvp = counted
+    try:
+        yield counter
+    finally:
+        MF.QuadraticHead._hvp = orig
 
 
 MF_METHODS = ("MF_perm1", "MF_M0", "MF_M1", "MF_dense")
@@ -396,25 +442,34 @@ MLP_METHODS = ("MLP_perm1", "MLP_perm8", "MLP_dense")
 
 
 def mf_objective(method: str, scenes, W, weights, *, perm=None, m1: M1Config | None = None, ridge: float = 0.0,
-                 dense_chunk: int | None = None, dense_checkpoint: bool = False):
-    """(ObjectiveTerms, info).  perm: [n_sc, n_pos] int64 on the feature device, row s = the host permutation of scene s."""
+                 dense_chunk: int | None = None, dense_checkpoint: bool = False, check_w: bool = True, check_permutations: bool = True):
+    """(ObjectiveTerms, info).  perm: [n_sc, n_pos] int64 on the feature device, row s = the host permutation of scene s.
+    check_w / check_permutations=False only inside an already-validated training loop (package README section 3: no repair);
+    SceneBatch construction (finite, nonnegative, simplex rows) always validates; profiled_objective (M1) always checks W.
+    M1 info: solver gap / iterations / convergence, the gap at the initial W (= ||Delta||_1 when W = 0), HVP calls, momentum
+    restarts and the number of moment passes per batch (2: the QuadraticHead snapshot + the outer objective_terms)."""
     info: dict = {}
     if method == "MF_perm1":
         if perm is None:
             raise ValueError("MF_perm1 needs the host permutations")
-        terms = sampled_permutation_terms(scenes, W, weights=weights, permutations=[perm[s][None] for s in range(len(scenes))], ridge=ridge)
+        terms = sampled_permutation_terms(scenes, W, weights=weights, permutations=[perm[s][None] for s in range(len(scenes))], ridge=ridge,
+                                          check_w=check_w, check_permutations=check_permutations)
     elif method == "MF_M0":
-        terms = objective_terms(scenes, W, weights=weights, ridge=ridge)
+        terms = objective_terms(scenes, W, weights=weights, ridge=ridge, check_w=check_w)
     elif method == "MF_dense":
-        terms = dense_objective_terms(scenes, W, weights=weights, ridge=ridge, chunk_size=dense_chunk, checkpoint_blocks=dense_checkpoint)
+        terms = dense_objective_terms(scenes, W, weights=weights, ridge=ridge, chunk_size=dense_chunk, checkpoint_blocks=dense_checkpoint,
+                                      check_w=check_w)
     elif method == "MF_M1":
         m1 = m1 or M1Config()
-        prof = profiled_objective(scenes, weights=weights, ridge=m1.ridge, initial=W.detach(), tolerance=m1.tolerance,
-                                  max_iterations=m1.max_iterations, require_converged=m1.require_converged)
+        with count_head_hvp() as cnt:
+            prof = profiled_objective(scenes, weights=weights, ridge=m1.ridge, initial=W.detach(), tolerance=m1.tolerance,
+                                      max_iterations=m1.max_iterations, require_converged=m1.require_converged)
         terms, sol = prof.terms, prof.solution
         info = {"m1_gap": sol.fw_gap, "m1_iterations": sol.iterations, "m1_converged": sol.converged, "m1_status": sol.status,
                 "m1_tolerance": sol.tolerance, "m1_max_iterations": m1.max_iterations, "m1_ridge": m1.ridge,
-                "m1_require_converged": m1.require_converged, "m1_gap_scope": "inner_pre_outer_batch", "m1_W": sol.w}
+                "m1_require_converged": m1.require_converged, "m1_gap_scope": "inner_pre_outer_batch",
+                "m1_gap_initial": sol.history[0]["fw_gap"] if sol.history else None, "m1_hvp_calls": cnt["hvp"],
+                "m1_momentum_restarts": cnt["hvp"] - 2 - 3 * sol.iterations, "m1_moment_passes": 2, "m1_W": sol.w}
     else:
         raise ValueError(f"unknown MF method {method}")
     return terms, info
@@ -480,6 +535,7 @@ class TrainConfig:
     dense_checkpoint: bool = False
     dtype: str = "float32"
     w_init: str = "zeros"                # package default (SimplexBilinearCritic); "uniform" only for checks / timing
+    checks: str = "first_step"           # W-box / permutation re-checks: first step only (validated loop) or "every_step"
 
 
 class Trainer:
@@ -488,6 +544,9 @@ class Trainer:
     def __init__(self, cfg: TrainConfig, imgs: dict, fit: Sequence[str], device, *, build_models: Callable | None = None):
         if cfg.method not in ("MF_perm1", "MF_M0", "MF_M1") + MLP_METHODS:
             raise ValueError(f"unknown training method {cfg.method}")
+        if cfg.checks not in ("first_step", "every_step"):
+            raise ValueError(f"checks must be 'first_step' or 'every_step', got {cfg.checks}")
+        self.n_steps = 0
         self.cfg, self.device, self.dtype = cfg, torch.device(device), getattr(torch, cfg.dtype)
         torch.manual_seed(cfg.seed)                                      # host G L141
         eU, eV, cr = (build_models or P.build_models)(nn)                # host init order enc(3), enc(1), critic (P L153)
@@ -532,31 +591,43 @@ class Trainer:
                          if R > 1 else hb.perm[s][None] for s in range(hb.perm.shape[0])])
 
     # -- objective
-    def forward(self, hb: HostBatch, bu, bv) -> tuple[torch.Tensor, dict]:
+    def forward(self, hb: HostBatch, bu, bv, mark: Callable[[str], None] | None = None) -> tuple[torch.Tensor, dict]:
+        """mark(name), if given, is called after 'descriptors' (encoders + sampling), 'scenes' (MF: feature maps + partition /
+        SceneBatch validation) and 'objective'.  MF W-box / permutation checks run on the first step only unless
+        cfg.checks == 'every_step' (forward() outside step() always checks: n_steps stays 0)."""
         du, dv = batch_descriptors(self.eU, self.eV, bu, bv, hb.yx)
+        if mark:
+            mark("descriptors")
         perm = torch.as_tensor(hb.perm, device=self.device)
         n_sc, n_pos = hb.perm.shape
         if self.mf:
+            chk = self.cfg.checks == "every_step" or self.n_steps == 0
             A, B = self.head.features(du.reshape(-1, du.shape[-1]), dv.reshape(-1, dv.shape[-1]))
             scenes = mf_scenes(A, B, n_sc, n_pos)
-            terms, info = mf_objective(self.cfg.method, scenes, self.head.W, host_weights(n_sc), perm=perm, m1=self.cfg.m1)
-            return -terms.f, {"terms": terms, "info": info, "A": A, "B": B, "du": du, "dv": dv, "scenes": scenes, "perm": perm}
+            if mark:
+                mark("scenes")
+            terms, info = mf_objective(self.cfg.method, scenes, self.head.W, host_weights(n_sc), perm=perm, m1=self.cfg.m1,
+                                       check_w=chk, check_permutations=chk)
+            if mark:
+                mark("objective")
+            return -terms.f, {"terms": terms, "info": {**info, "checks_on": chk}, "A": A, "B": B, "du": du, "dv": dv, "scenes": scenes,
+                              "perm": perm}
         perms = None
         if self.cfg.method == "MLP_perm8":
             perms = torch.as_tensor(self.extra_perms(hb), device=self.device)
         loss, J = mlp_objective(self.cfg.method, self.critic, du, dv, perm=perm, perms=perms, block=self.cfg.dense_block,
                                 checkpoint=self.cfg.dense_checkpoint)
+        if mark:
+            mark("objective")
         return loss, {"J": J, "du": du, "dv": dv, "perm": perm, "perms": perms, "info": {}}
 
     def step(self, batch=None, *, keep=False, mark: Callable[[str], None] | None = None) -> dict:
         """One optimiser step on the next host batch (or on `batch`).  mark(name), if given, is called at the phase
-        boundaries 'batch', 'forward', 'backward', 'update' (T02 synchronized phase timing); None adds no overhead."""
+        boundaries 'batch', 'descriptors', ('scenes'), 'objective', 'backward', 'update' (T02 synchronized phase timing)."""
         hb, bu, bv = batch if batch is not None else self.draw()
         if mark:
             mark("batch")
-        loss, out = self.forward(hb, bu, bv)
-        if mark:
-            mark("forward")
+        loss, out = self.forward(hb, bu, bv, mark=mark)
         self.opt.zero_grad(set_to_none=True)
         loss.backward()
         if mark:
@@ -576,6 +647,7 @@ class Trainer:
             rec["J"] = float(out["terms"].j.detach())
         else:
             rec["J"] = float(out["J"].detach())
+        self.n_steps += 1
         if mark:
             mark("update")
         if keep:
@@ -774,11 +846,12 @@ def compare(x, y, dtype_name: str) -> dict:
     diff = (x - y).abs()
     bound = atol + rtol * y.abs()
     finite = bool(torch.isfinite(x).all() and torch.isfinite(y).all())
+    ref_max = float(y.abs().max()) if y.numel() else 0.0
     return {"allclose": bool(finite and (diff <= bound).all()), "max_abs_err": float(diff.max()) if diff.numel() else 0.0,
             "max_rel_err": float((diff / y.abs().clamp_min(1e-300)).max()) if diff.numel() else 0.0,
             "worst_err_over_bound": float((diff / bound).max()) if diff.numel() else 0.0,
-            "ref_max_abs": float(y.abs().max()) if y.numel() else 0.0, "numel": int(y.numel()), "atol": atol, "rtol": rtol,
-            "finite": finite}
+            "ref_max_abs": ref_max, "numel": int(y.numel()), "atol": atol, "rtol": rtol, "finite": finite,
+            "ref_over_atol": ref_max / atol}       # power: a reference at or below atol cannot reveal a wrong term (low power)
 
 
 def compare_many(xs: Sequence, ys: Sequence, dtype_name: str) -> dict:
@@ -786,4 +859,5 @@ def compare_many(xs: Sequence, ys: Sequence, dtype_name: str) -> dict:
     return {"allclose": all(p["allclose"] for p in parts), "max_abs_err": max(p["max_abs_err"] for p in parts),
             "max_rel_err": max(p["max_rel_err"] for p in parts), "worst_err_over_bound": max(p["worst_err_over_bound"] for p in parts),
             "ref_max_abs": max(p["ref_max_abs"] for p in parts), "numel": sum(p["numel"] for p in parts),
-            "atol": parts[0]["atol"], "rtol": parts[0]["rtol"], "finite": all(p["finite"] for p in parts), "n_tensors": len(parts)}
+            "atol": parts[0]["atol"], "rtol": parts[0]["rtol"], "finite": all(p["finite"] for p in parts), "n_tensors": len(parts),
+            "ref_over_atol_min": min(p["ref_over_atol"] for p in parts)}

@@ -330,7 +330,53 @@ def test_t01_merge_without_parts_is_not_run(tmp_path):
     tv = json.loads((tmp_path / "repo" / "TORCH_VALIDATION.json").read_text())
     gg = json.loads((tmp_path / "repo" / "GEOMETRY_GRADIENT_CHECK.json").read_text())
     assert tv["overall_status"] == "NOT_RUN" and gg["overall_status"] == "NOT_RUN" and tv["host_adapter_verified"] is False
-    assert set(tv["parts"]) == {"verify_torch_cpu", "verify_torch_cuda", "core_tol_cpu", "core_tol_cuda", "adapter_cpu", "adapter_cuda"}
+    assert set(tv["parts"]) == {"verify_torch_cpu", "verify_torch_cuda", "core_tol_cpu", "core_tol_cuda", "adapter_cpu", "adapter_cuda",
+                                "host_replay_cpu"}
+
+
+def _fake_part(name, dev, status="PASS", **prov_override):
+    prov = {"code_hash_src_scripts_v10": A.code_hash(), "host_code_hash": A.host_code_hash(), "mf_vcs_sha256": A.sha256_file(MF.__file__),
+            "git_dirty_code": "", "git_commit": "c0ffee", **prov_override}
+    return {"part": name, "device": dev, "status": status, "checks": [], "provenance": prov}
+
+
+def test_t01_merge_requires_same_code_identity_for_every_part(tmp_path):
+    class Args:
+        out_root = tmp_path
+        repo_out = tmp_path / "repo"
+    pdir = T01.parts_dir(tmp_path)
+    pdir.mkdir(parents=True)
+    for n, d in T01.EXPECTED_TORCH_PARTS + T01.EXPECTED_GEOMETRY_PARTS:
+        (pdir / f"{n}_{d}.json").write_text(json.dumps(_fake_part(n, d, git_commit=f"commit_{d}")))
+    T01.merge(Args)
+    tv = json.loads((tmp_path / "repo" / "TORCH_VALIDATION.json").read_text())
+    assert tv["overall_status"] == "PASS" and tv["host_adapter_verified"] is True and tv["provenance_mismatches"] == []   # commits may differ
+    (pdir / "adapter_cuda.json").write_text(json.dumps(_fake_part("adapter", "cuda", code_hash_src_scripts_v10="0123456789abcdef")))
+    (pdir / "geometry_cpu.json").write_text(json.dumps(_fake_part("geometry", "cpu", git_dirty_code=" M src/v10/adapter.py")))
+    T01.merge(Args)
+    tv = json.loads((tmp_path / "repo" / "TORCH_VALIDATION.json").read_text())
+    assert tv["overall_status"] == "PASS" and tv["host_adapter_verified"] is False
+    assert {(m["part"], tuple(m["fields"])) for m in tv["provenance_mismatches"]} == {("adapter_cuda", ("code_hash_src_scripts_v10",)),
+                                                                                       ("geometry_cpu", ("git_dirty_code",))}
+    (pdir / "core_tol_cpu.json").write_text(json.dumps(_fake_part("core_tol", "cpu", status="BLOCKED")))
+    T01.merge(Args)
+    tv = json.loads((tmp_path / "repo" / "TORCH_VALIDATION.json").read_text())
+    assert tv["overall_status"] == "BLOCKED" and tv["blocked_parts"] == ["core_tol_cpu"]
+
+
+def test_recorder_status_rules():
+    def status(*rows):
+        rec = T01.Recorder("unit", "cpu")
+        for name, st, req in rows:
+            rec.add(name, st, req)
+        return rec.result()["status"]
+    assert status(("a", "PASS", True), ("b", "FAIL", False)) == "PASS"
+    assert status(("a", "PASS", True), ("b", "BLOCKED", True)) == "BLOCKED"
+    assert status(("a", "FAIL", True), ("b", "BLOCKED", True)) == "FAIL"
+    assert status(("a", "PASS", True), ("b", "NOT_RUN", True)) == "BLOCKED"
+    assert status(("a", "NOT_RUN", False)) == "NOT_RUN"
+    with pytest.raises(ValueError):
+        status(("a", "OK", True))
 
 
 def test_t02_budget_without_timing_is_not_run_and_ledger_map_complete(tmp_path):
@@ -347,3 +393,117 @@ def test_python_code_hash_equals_job_header_pipeline():
     sh = subprocess.run("git ls-files src/v10 scripts/v10 | LC_ALL=C sort | xargs sha256sum | sha256sum | cut -c1-16", shell=True,
                         cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
     assert sh == A.code_hash()
+    pin = subprocess.run("git ls-files src/v10 scripts/v10 slurm/v10 | LC_ALL=C sort | xargs sha256sum | sha256sum | cut -c1-16", shell=True,
+                         cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
+    assert pin == A.code_hash(A.JOB_PIN_PATHS)
+
+
+def test_job_pin_refuses_a_changed_tree(monkeypatch):
+    monkeypatch.delenv("V10_EXPECT_CODE", raising=False)
+    assert A.check_job_pin()["status"] == "unset"
+    monkeypatch.setenv("V10_EXPECT_CODE", A.code_hash(A.JOB_PIN_PATHS))
+    assert A.check_job_pin()["status"] == "match"
+    monkeypatch.setenv("V10_EXPECT_CODE", "0000000000000000")
+    with pytest.raises(SystemExit):
+        A.check_job_pin()
+
+
+# ------------------------------------------------------------------------------------------------------------ M1 head, checks, QP oracle
+def near_uniform_scenes(spread, n_sc=2, n=32, k=8, seed=5):
+    g = torch.Generator().manual_seed(seed)
+    out = []
+    for s in range(n_sc):
+        a = (spread * torch.randn(n, k, generator=g, dtype=torch.float64)).softmax(-1)
+        b = (spread * torch.randn(n, k, generator=g, dtype=torch.float64)).softmax(-1)
+        out.append(MF.SceneBatch(a, b, "v", scene_id=str(s)))
+    return out
+
+
+def test_m1_counts_hvp_and_equals_package_call():
+    scenes = near_uniform_scenes(2.0)
+    W0 = torch.zeros(8, 8, dtype=torch.float64)
+    terms, info = A.mf_objective("MF_M1", scenes, W0, A.host_weights(2), m1=A.M1Config(tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7))
+    ref = MF.profiled_objective(scenes, weights=A.host_weights(2), initial=W0, tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7,
+                                require_converged=False)
+    assert info["m1_iterations"] == 7 and not info["m1_converged"] and info["m1_momentum_restarts"] >= 0
+    assert info["m1_hvp_calls"] == 2 + 3 * 7 + info["m1_momentum_restarts"] and info["m1_moment_passes"] == 2
+    assert torch.equal(info["m1_W"], ref.solution.w) and torch.equal(terms.f, ref.terms.f)
+    assert MF.QuadraticHead.__dict__["_hvp"].__module__ == MF.__name__            # the counting wrapper is removed
+    head = MF.QuadraticHead(scenes, weights=A.host_weights(2))
+    assert abs(info["m1_gap_initial"] - float(head.delta.abs().sum())) <= 1e-15    # gap at W = 0 is ||Delta||_1
+
+
+def test_m1_protocol_tolerance_is_degenerate_from_w0_when_delta_is_small():
+    """The review finding, reproduced on synthetic near-uniform features: ||Delta||_1 < 1e-4 -> the protocol M1 head stops at
+    iteration 0 with W = 0 (J = 0, no feature gradient); with a binding cap the head leaves 0."""
+    z = [torch.randn(32, 8, dtype=torch.float64, generator=torch.Generator().manual_seed(s)).mul(0.01).requires_grad_() for s in (1, 2)]
+    sc = [MF.SceneBatch(z[0].softmax(-1), z[1].softmax(-1), "v")]
+    W0 = torch.zeros(8, 8, dtype=torch.float64)
+    assert float(MF.QuadraticHead(sc, weights=[1.0]).delta.abs().sum()) < A.M1_PROTOCOL_TOLERANCE
+    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config())
+    assert info["m1_iterations"] == 0 and info["m1_converged"] and float(info["m1_W"].abs().max()) == 0.0 and float(terms.j.detach()) == 0.0
+    g = torch.autograd.grad(terms.f, z, allow_unused=True, retain_graph=True)
+    assert all(x is None or float(x.abs().max()) == 0.0 for x in g)
+    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config(tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30))
+    assert info["m1_iterations"] == 30 and float(info["m1_W"].abs().max()) > 0
+    assert max(float(x.abs().max()) for x in torch.autograd.grad(terms.f, z)) > 0
+
+
+def test_trainer_checks_first_step_only_by_default(synthetic_imgs):
+    for checks, expected in (("first_step", [True, False, False]), ("every_step", [True, True, True])):
+        t = make_trainer("MF_perm1", synthetic_imgs, checks=checks)
+        assert [t.step(t.draw())["checks_on"] for _ in range(3)] == expected
+    with pytest.raises(ValueError):
+        make_trainer("MF_M0", synthetic_imgs, checks="sometimes")
+
+
+def test_trainer_phase_marks(synthetic_imgs):
+    for method, names in (("MF_M0", ["batch", "descriptors", "scenes", "objective", "backward", "update"]),
+                          ("MLP_perm1", ["batch", "descriptors", "objective", "backward", "update"])):
+        t = make_trainer(method, synthetic_imgs)
+        seen = []
+        t.step(t.draw(), mark=seen.append)
+        assert seen == names
+
+
+def test_qp_oracle_and_pair_features_match_the_package_head():
+    eye = torch.eye(2, dtype=torch.float64)
+    sc = [MF.SceneBatch(eye, eye, "u")]
+    delta, H = T01.pair_feature_quadratic(sc, [1.0], 0.0)
+    orc = T01.box_qp_oracle(delta, H)
+    assert abs(orc["F"] - 1.0) <= 1e-15 and orc["gap"] <= 1e-15 and np.allclose(np.abs(orc["x"]), 1.0)
+    const = torch.full((2, 3), 1 / 3, dtype=torch.float64)                      # a constant-feature U scene (Delta = 0)
+    scenes = near_uniform_scenes(3.0, n=9, k=3) + [MF.SceneBatch(const, const.clone(), "u")]
+    weights = [0.3, 0.5, 0.2]
+    head = MF.QuadraticHead(scenes, weights=weights, ridge=0.05)
+    delta, H = T01.pair_feature_quadratic(scenes, weights, 0.05)
+    assert np.allclose(head.delta.numpy().reshape(-1), delta, atol=1e-15)
+    v = torch.randn(3, 3, dtype=torch.float64)
+    assert np.allclose(head.hvp(v).numpy().reshape(-1), H @ v.numpy().reshape(-1), atol=1e-14)
+    sol = MF.solve_box_head(head, tolerance=1e-12, max_iterations=50000)
+    orc = T01.box_qp_oracle(delta, H)
+    assert sol.converged and orc["gap"] <= 1e-12 and abs(sol.f - orc["F"]) <= 1e-10
+
+
+def test_t02_train_labels_and_budget_provisional(tmp_path):
+    labels = [T02.train_label(c) for c in T02.TRAIN_CONFIGS]
+    assert len(set(labels)) == len(labels) and "MF_M1_K16_it30_capbound" in labels and "MF_M1_K16_it30_tol1e-04" in labels
+    assert "MF_perm1_K16_checks_every_step" in labels and T02.UNIT_METHOD_MAP["MF_VCS_M1"][0] in labels
+    fields = T02.TEMPLATE_FIELDS + T02.EXTRA_FIELDS
+    rows = [{"layer": "train_step", "config": "MF_M0_K16", "status": "completed", "median_ms": 20.0},
+            {"layer": "registration", "config": "MF_moments_K16", "phase": "registration", "status": "completed", "warmup_row": False,
+             "elapsed_seconds": 1.0}]
+    import csv
+    with open(tmp_path / "T02_LONG_cuda.csv", "w", newline="") as f:
+        wr = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        wr.writeheader()
+        wr.writerows(rows)
+    (tmp_path / "T02_TIMING_cuda.json").write_text(json.dumps({"environment": {}, "parts": {"head": {"status": "PASS"}, "head_extra": {"status": "FAIL"},
+                                                                                            "train": {"status": "PASS"}, "register": {"status": "PASS"}}}))
+
+    class Args:
+        repo_out = tmp_path
+    assert T02.budget(Args) == 0
+    b = json.loads((tmp_path / "BUDGET.json").read_text())
+    assert b["status"] == "PROVISIONAL" and b["per_unit_projection"]["MF_VCS_M0"]["status"] == "measured"
+    assert b["status_inputs"]["t02_parts"]["head_extra"] == "FAIL"
