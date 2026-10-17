@@ -268,3 +268,15 @@ Owner, 2026-10-14: A-P3 is the final recipe; test it.  `reports/P155_AP3_OFFICIA
 - §3's sentence "R4_02 §6.1: no v3–v7 recipe was ever confirmed on held-out data" no longer holds for A-P3.  §3's interpretation now reads:
   with the final recipe, a CS-type objective leads SimCLR at equal view / epoch budget on the linear probe (not on kNN); matched JS on the same
   recipe is level with it.
+
+## Corrections (2026-10-17; numbers unchanged)
+1. §7.1, line 175 — "grid 58.70 > SparseVLM 58.79 > S2 56.57 > S1 55.73 > S3 53.41" inverts the first two rows: 58.70 < 58.79.  At 25 % (144
+   tokens) on GQA testdev, R7-50 phase F, the order is SparseVLM (adapted) 58.79 > uniform grid 58.70 > S2 56.57 > S1 55.73 > S3 53.41 (full 61.95;
+   rows of `reports/R7/R7_50_results_F/r7_50_results.json`, seed means for S1–S3, printed by `scripts/r7_d1_closeout_tables.py`).  SparseVLM is
+   the best row at 25 %, as the phase F report reads (`reports/R7/R7_50_PHASE_F_REPORT_20261014.md:148`).
+
+## Update 2026-10-17: D1 closed
+D1 is closed by `reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md`, after REV9, REV9-FULL and REV10 (§7.2 above still describes REV9 as running).  The
+closeout rests on D1's pre-registered refutation rule (`reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml:257-260`; the clause "no practical
+advantage" fired on both hosts).  The closing rule of §11 C (line 237) is not applied as written and neither of its labels is used (closeout §4);
+the D1 interpretations of §7.3 (line 185) and §9.1–9.2 (lines 206–207) are not carried forward (closeout §8).

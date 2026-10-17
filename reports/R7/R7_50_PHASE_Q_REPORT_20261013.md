@@ -86,3 +86,14 @@ Same sign in 17 of 18 cells; same Holm verdict in 14 of 18 (families differ: 9 p
   uniform grid (descriptive table), on LLaVA S1 is below SparseVLM at tight budgets.
 - **For D1:** with R7-40c, this completes the 10k-image Qwen evidence; the full-data Qwen replication (E2) is running, and the D1 claim rule for
   LLaVA (DF-8) still waits for D1-FULL and R7-50 phase F.
+
+## Corrections (2026-10-17; numbers unchanged)
+1. §5, line 85 — "On both hosts and on both test sets, the VCS-trained selector does not beat its logistic sibling" was written before phase F
+   and holds only for the 10k-FIT selectors read in phases L and Q.  Read as "the VCS selector never beats its logistic sibling on the official
+   test", it is wrong: R7-50 phase F (full-FIT LLaVA selectors, `reports/R7/R7_50_results_F/r7_50_results.json`) detected S1 above S2 on ChartQA
+   test at L25, +0.75 [+0.34, +1.17], Holm p 0.006 (per seed +2.17, −0.10, +0.18), and S1 below S2 on GQA testdev at L25, −0.78 [−1.16, −0.40],
+   Holm p 0.006 (per seed −0.21, +0.21, −2.35); its other four S1 − S2 cells are not detected.  Correct statement: with the 10k-FIT selectors, S1
+   is below S2 on both hosts' official tests wherever a difference is detected (phase L: GQA testdev at L25 / L50 / L75 and ChartQA test at L25;
+   phase Q: every fraction on both benchmarks); with the full-FIT LLaVA selectors there is no stable ordering (two detected L25 cells of opposite
+   sign, each carried mainly by one seed).  Numbers printed by `scripts/r7_d1_closeout_tables.py`; reading in
+   `reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md` §3.
