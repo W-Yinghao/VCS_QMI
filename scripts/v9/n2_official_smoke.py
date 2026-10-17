@@ -51,6 +51,18 @@ def shared_stage(base: Path, n_train: int, rho: float, seed: int) -> None:
     NZ.write_noise(observed, labels, manifest, base, "pairs")
 
 
+def dev_trajectory(train_log: str) -> list:
+    """every validation the official trainer printed: 'Image to text: r1, r5, r10, medr, meanr' then 'Text to image: ...' -> recalls + rSum."""
+    import re
+    i2t = re.findall(r"Image to text:\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)", train_log)
+    t2i = re.findall(r"Text to image:\s*([\d.]+),\s*([\d.]+),\s*([\d.]+)", train_log)
+    out = []
+    for a, b in zip(i2t, t2i):
+        a, b = [float(x) for x in a], [float(x) for x in b]
+        out.append({"i2t_R1": a[0], "t2i_R1": b[0], "rsum": round(sum(a) + sum(b), 1)})
+    return out
+
+
 def run(cmd: list, log: Path) -> int:
     with open(log, "a") as fh:
         fh.write(f"\n$ {' '.join(cmd)}\n"); fh.flush()
@@ -74,12 +86,21 @@ def main() -> int:
         r["observed_index_loaded"] = "load V9 observed index" in tl
         r["anchor_term_lines"] = [ln.strip() for ln in tl.splitlines() if "[V9] anchor-supervised term" in ln][:4]
         r["traceback"] = "Traceback" in tl
+        # main session 2026-10-17: a dev-rSum drop after the first co-training / main epoch (as in timing job 1042195: dev R@1 48.5 / 43.2 ->
+        # 13.0 / 0.8) is a FAILURE, not a pass.  The last validation before the main phase is the warm-up reference (NCR: after the warm-up
+        # epochs; L2RM: after its warm-up epochs); every later validation must keep >= 50 % of its rSum and t2i R@1 above chance x 4.
+        traj = dev_trajectory(tl.split("-------- Testing --------")[0]); r["dev_trajectory"] = traj   # the trainers' own end-of-training test read is not a dev validation
+        n_warm = 1                                                  # smoke schedule: 1 warm-up epoch -> its validation is entry 0 (NCR also validates once after warm-up)
+        ref = traj[n_warm - 1]["rsum"] if len(traj) >= n_warm else None
+        later = traj[n_warm:]
+        chance_r1 = 100.0 / 200                                     # official dev validation: first 1,000 captions = 200 images
+        r["dev_drop"] = (ref is None or not later or any(x["rsum"] < 0.5 * ref or x["t2i_R1"] < 4 * chance_r1 for x in later))
         r["collect_dev_rc"] = run([py, drv, "collect-dev", "--baseline", b, "--unit", str(unit)], log)
         r["collect_rc"] = run([py, drv, "collect", "--baseline", b, "--unit", str(unit), "--dataset", "f30k", "--data-root", str(out / "data")], log)
         r["done"] = json.loads((unit / "done.json").read_text()) if (unit / "done.json").exists() else None
         r["test_primary"] = json.loads((unit / "result.json").read_text())["test"]["primary"] if (unit / "result.json").exists() else None
         r["ok"] = (r["export_rc"] == 0 and r["launch_rc"] == 0 and r["collect_dev_rc"] == 0 and r["collect_rc"] == 0 and r["observed_index_loaded"]
-                   and bool(r["anchor_term_lines"]) and not r["traceback"] and r["done"] is not None and r["test_primary"] is not None)
+                   and bool(r["anchor_term_lines"]) and not r["traceback"] and r["done"] is not None and r["test_primary"] is not None and not r["dev_drop"])
         report["baselines"][b] = r
     report["ok"] = all(r["ok"] for r in report["baselines"].values()); report["seconds"] = round(time.time() - t0, 1)
     (out / "smoke_report.json").write_text(json.dumps(report, indent=1)); print(json.dumps(report, indent=1))
