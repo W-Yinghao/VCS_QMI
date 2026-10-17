@@ -426,11 +426,12 @@ def near_uniform_scenes(spread, n_sc=2, n=32, k=8, seed=5):
 
 
 def test_m1_counts_hvp_and_equals_package_call():
-    """Rule 'absolute' (numeric audit mode): unchanged = the package profiled_objective; counters and the gap at W = 0."""
+    """Rule 'absolute' (reference mode, require_converged False explicitly): unchanged = the package profiled_objective; counters and
+    the gap at W = 0."""
     scenes = near_uniform_scenes(2.0)
     W0 = torch.zeros(8, 8, dtype=torch.float64)
     terms, info = A.mf_objective("MF_M1", scenes, W0, A.host_weights(2),
-                                 m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7))
+                                 m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7, require_converged=False))
     ref = MF.profiled_objective(scenes, weights=A.host_weights(2), initial=W0, tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7,
                                 require_converged=False)
     assert info["m1_iterations"] == 7 and not info["m1_converged"] and info["m1_momentum_restarts"] >= 0
@@ -454,7 +455,8 @@ def test_m1_absolute_tolerance_is_degenerate_from_w0_but_the_relative_rule_itera
     assert info["m1_iterations"] == 0 and info["m1_converged"] and float(info["m1_W"].abs().max()) == 0.0 and float(terms.j.detach()) == 0.0
     g = torch.autograd.grad(terms.f, z, allow_unused=True, retain_graph=True)
     assert all(x is None or float(x.abs().max()) == 0.0 for x in g)
-    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30))
+    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30,
+                                                                       require_converged=False))
     assert info["m1_iterations"] == 30 and float(info["m1_W"].abs().max()) > 0
     assert max(float(x.abs().max()) for x in torch.autograd.grad(terms.f, z, retain_graph=True)) > 0
     terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config())          # the protocol rule
@@ -464,10 +466,14 @@ def test_m1_absolute_tolerance_is_degenerate_from_w0_but_the_relative_rule_itera
 
 def test_m1_config_rules_and_validation():
     c = A.M1Config()
-    assert c.rule == "relative_zero_head" and c.relative_tolerance == 0.01 and c.tolerance is None and not c.require_converged
+    assert c.rule == "relative_zero_head" and c.relative_tolerance == 0.01 and c.tolerance is None and c.require_converged is False
     assert A.M1Config(rule="absolute").tolerance == A.M1_PROTOCOL_TOLERANCE and A.M1_CAL_CAPS == (10, 30, 100)
+    assert A.M1Config(rule="absolute").require_converged is True                    # strict audit mode by default (design 7)
+    assert A.M1Config(rule="absolute", require_converged=False).require_converged is False
+    assert A.M1Config(require_converged=True).require_converged is True
     for bad in ({"tolerance": 1e-4}, {"rule": "relative"}, {"relative_tolerance": 0.0}, {"relative_tolerance": 1.5},
-                {"max_iterations": -1}, {"max_iterations": True}, {"rule": "absolute", "tolerance": 0.0}, {"fp64_diagnostic_below": -1.0}):
+                {"max_iterations": -1}, {"max_iterations": True}, {"rule": "absolute", "tolerance": 0.0}, {"fp64_diagnostic_below": -1.0},
+                {"require_converged": 1}, {"rule": "absolute", "require_converged": "yes"}):
         with pytest.raises(ValueError):
             A.M1Config(**bad)
 
@@ -520,9 +526,59 @@ def test_m1_relative_counters_equal_independent_count():
     assert info["m1_hvp_calls"] + d["hvp_calls"] == cnt["hvp"] and cnt["objective_terms"] == 1 and cnt["solve_box_head"] == 1
     assert info["m1_hvp_calls"] == 2 + 3 * info["m1_iterations"] + info["m1_momentum_restarts"] and info["m1_moments_passes"] == 2
     assert MF.QuadraticHead.__dict__["__init__"].__module__ == MF.__name__ and A.objective_terms is MF.objective_terms
+    assert info["m1_fp64_diag_hvp_calls"] == d["hvp_calls"] and info["m1_fp64_diag_moments_passes"] == 1
+    assert info["m1_hvp_calls_total"] == cnt["hvp"] and info["m1_moments_passes_total"] == 3 == sum(cnt["heads"].values()) + cnt["objective_terms"]
+    a = cnt["solve_box_head_args"]
+    assert len(a) == 1 and a[0]["tolerance"] == info["m1_tolerance_effective"] and a[0]["max_iterations"] == 10 and not a[0]["initial"].any()
     with T01.independent_m1_counters() as cnt:                                 # rule 'absolute': the package call, no diagnostic
-        _, info = A.mf_objective("MF_M1", sc, torch.zeros(8, 8), wts, m1=A.M1Config(rule="absolute", tolerance=1e-300, max_iterations=5))
-    assert cnt == {"heads": {"float32": 1}, "hvp": info["m1_hvp_calls"], "objective_terms": 1, "solve_box_head": 1}
+        _, info = A.mf_objective("MF_M1", sc, torch.zeros(8, 8), wts, m1=A.M1Config(rule="absolute", tolerance=1e-300, max_iterations=5,
+                                                                                   require_converged=False))
+    rec = T01.counts_record(cnt)
+    assert {k: rec[k] for k in ("heads", "hvp", "objective_terms", "solve_box_head")} == {"heads": {"float32": 1}, "hvp": info["m1_hvp_calls"],
+                                                                                          "objective_terms": 1, "solve_box_head": 1}
+    assert rec["solve_box_head_args"] == [{"tolerance": 1e-300, "max_iterations": 5, "initial": {"is_zero": True, "absmax": 0.0, "dtype": "float32"}}]
+    assert info["m1_hvp_calls_total"] == info["m1_hvp_calls"] and info["m1_moments_passes_total"] == 2   # no diagnostic in rule 'absolute'
+
+
+def test_m1_absolute_rule_is_strict_by_default_and_never_the_training_rule(synthetic_imgs):
+    """Review 2026-10-17: M1Config(rule='absolute') = the strict audit mode (require_converged True: raises when unconverged, else the
+    package strict call bitwise); its approximate mode needs require_converged=False explicitly, and the Trainer accepts rule 'absolute'
+    only for reference rows (absolute_reference_only=True)."""
+    sc, wts = spread_scenes(), A.host_weights(2)
+    W0 = torch.zeros(8, 8, dtype=torch.float64)
+    with pytest.raises(RuntimeError, match="did not meet its empirical gap tolerance"):
+        A.mf_objective("MF_M1", sc, W0, wts, m1=A.M1Config(rule="absolute", tolerance=1e-300, max_iterations=3))
+    terms, info = A.mf_objective("MF_M1", sc, W0, wts, m1=A.M1Config(rule="absolute", tolerance=1e-6, max_iterations=20000))
+    ref = MF.profiled_objective(sc, weights=wts, initial=W0, tolerance=1e-6, max_iterations=20000)
+    assert info["m1_require_converged"] and info["m1_converged"] and torch.equal(info["m1_W"], ref.solution.w) and torch.equal(terms.f, ref.terms.f)
+    with pytest.raises(ValueError, match="never the training rule"):
+        make_trainer("MF_M1", synthetic_imgs, m1=A.M1Config(rule="absolute", require_converged=False))
+    for method, m1 in (("MF_M1", A.M1Config()), ("MF_M0", A.M1Config(rule="absolute"))):
+        with pytest.raises(ValueError, match="applies only to MF_M1"):
+            make_trainer(method, synthetic_imgs, m1=m1, absolute_reference_only=True)
+    t = make_trainer("MF_M1", synthetic_imgs, m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=5,
+                                                             require_converged=False), absolute_reference_only=True)
+    r = t.step(t.draw())
+    assert r["m1_rule"] == "absolute" and not r["m1_require_converged"] and r["m1_iterations"] == 5 and not r["m1_converged"]
+
+
+def test_m1_solver_call_check_has_power_against_a_wrong_threshold_or_start():
+    """T01 m1_solver_call_ok reads what the solver call itself received: it accepts the protocol call and rejects a tolerance that is
+    not 0.01 x G_b(0) or a start that is not the warm start, even when the cap binds and W would be the same."""
+    sc, wts = spread_scenes(torch.float32), A.host_weights(2)
+    head = MF.QuadraticHead(sc, weights=wts)
+    g_ref = float(head.delta.abs().sum())
+    W_warm = torch.empty(8, 8).uniform_(-0.9, 0.9, generator=torch.Generator().manual_seed(4))
+    with T01.independent_m1_counters() as cnt:
+        _, info = A.mf_objective("MF_M1", sc, W_warm, wts, m1=A.M1Config(max_iterations=3))
+    ok, rec = T01.m1_solver_call_ok(cnt, info, g_ref=g_ref, w_start=W_warm, cap=3, dn="float32")
+    assert ok and rec["solver_calls"] == 1 and rec["solver_initial_equals_warm_start_bitwise"] and not rec["solver_initial_is_zero"]
+    assert not T01.m1_solver_call_ok(cnt, info, g_ref=g_ref, w_start=torch.zeros(8, 8), cap=3, dn="float32")[0]      # wrong start
+    assert not T01.m1_solver_call_ok(cnt, info, g_ref=g_ref, w_start=W_warm, cap=10, dn="float32")[0]               # wrong cap
+    with T01.independent_m1_counters() as cnt2:                                   # a different threshold (2% of G_b(0)) is caught
+        _, info2 = A.mf_objective("MF_M1", sc, W_warm, wts, m1=A.M1Config(max_iterations=3, relative_tolerance=0.02))
+    assert info2["m1_W"].shape == info["m1_W"].shape and not T01.m1_solver_call_ok(cnt2, info2, g_ref=g_ref, w_start=W_warm, cap=3, dn="float32")[0]
+    assert T01.distinct_rel(0.01 * g_ref, 0.01 * float(head.fw_gap(W_warm)), "float32") and not T01.distinct_rel(1.0, 1.0 + 1e-6, "float32")
 
 
 def test_m1_fp64_diagnostic_same_input_and_trigger_rule():
@@ -582,7 +638,8 @@ def test_t01_one_update_checks_run_on_synthetic_images(synthetic_imgs, monkeypat
     errs = [(r["name"], r.get("error")) for r in res["checks"] if r["name"].endswith(":exception")]
     assert not errs, errs
     by = {r["name"]: r["status"] for r in res["checks"]}
-    for name in ("MF_M1_relative_from_W0_iterates_moves_W_and_trains_encoders", "MF_M1_relative_reference_is_l1_delta_of_the_batch_snapshot_and_gap_at_W0",
+    for name in ("MF_M1_trainer_refuses_rule_absolute_without_the_reference_flag",
+                 "MF_M1_relative_from_W0_iterates_moves_W_and_trains_encoders", "MF_M1_relative_reference_is_l1_delta_of_the_batch_snapshot_and_gap_at_W0",
                  "MF_M1_relative_next_batch_warm_starts_from_previous_W",
                  "MF_M1_relative_warm_start_gap_differs_from_zero_head_reference_threshold_uses_reference",
                  "MF_M1_relative_cap_10_reached_returns_approximate_W_with_true_gap", "MF_M1_relative_counters_equal_independent_count",
@@ -690,7 +747,7 @@ def test_t02_train_labels_scopes_and_m1_configs():
     for c in T02.TRAIN_SCOPES["all"]:
         if c["method"] == "MF_M1":
             m = T02.m1_config(c)
-            assert m.rule == c["m1_rule"] and m.max_iterations == c["m1_max_iterations"]
+            assert m.rule == c["m1_rule"] and m.max_iterations == c["m1_max_iterations"] and m.require_converged is False
             assert (m.tolerance == c["m1_tolerance"]) if m.rule == "absolute" else (m.tolerance is None and m.relative_tolerance == 0.01)
 
 
@@ -776,3 +833,71 @@ def test_t02_m1_relative_scope_runs_end_to_end_on_synthetic_data(tmp_path, monke
     per_step = json.loads(next((tmp_path / "out" / "T02" / "runs").glob("cpu_*_m1_relative")).joinpath("train_steps_per_step.json").read_text())
     first = per_step[rows[0]["config"]][0]
     assert first["m1_W_start_is_zero"] and first["m1_gap_start"] == first["m1_gap_ref_zero"] and "encoder_gradient_diagnostic" in first
+
+
+def _budget_inputs(tmp_path, factor: float, env: dict):
+    """Kept rows = the committed phase-1 timing (job 1043695); M1 rows = a synthetic re-measurement at factor x the cap-reference step
+    times, with the given environment record."""
+    import csv
+    import shutil
+    for name in ("T02_TIMING_cuda.json", "T02_LONG_cuda.csv"):
+        shutil.copy(REPO / "v10" / "T02" / name, tmp_path / name)
+    base = {r["config"]: float(r["median_ms"]) for r in csv.DictReader((tmp_path / "T02_LONG_cuda.csv").read_text().splitlines())
+            if r["layer"] == "train_step" and r["status"] == "completed"}
+    rows = [{"layer": "train_step", "config": T02.m1_relative_label(lr, cap), "status": "completed",
+             "median_ms": factor * base[T02.M1_CAPBOUND[cap]]} for lr in T02.LR_CANDIDATES for cap in A.M1_CAL_CAPS]
+    _write_long(tmp_path / "T02_M1_RELATIVE_LONG_cuda.csv", rows)
+    (tmp_path / "T02_M1_RELATIVE_TIMING_cuda.json").write_text(json.dumps({"environment": env, "train_scope": "m1_relative",
+                                                                           "parts": {"train": {"status": "PASS"}}}))
+
+    class Args:
+        repo_out = tmp_path
+    assert T02.budget(Args) == 0
+    return json.loads((tmp_path / "BUDGET.json").read_text())
+
+
+def test_t02_budget_family_caps_applied_in_frozen_order(tmp_path):
+    """Decision 8.2 (review 2026-10-17): with M1 step times x 3 the MF_VCS_M1 family crosses 8 L40S GPU-h; in the frozen order the
+    crossing candidate is charged up to the cap (incomplete_at_budget), later ones are not started, only completed candidates are
+    selectable for the final fits, the charged total is the cap, and the flags say so; the uncapped formula is kept separately."""
+    kept_env = json.loads((REPO / "v10" / "T02" / "T02_TIMING_cuda.json").read_text())["environment"]
+    b = _budget_inputs(tmp_path, 3.0, {**kept_env, "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": None, "NVIDIA_TF32_OVERRIDE": None})
+    P = b["projection"]
+    fam = P["families"]["MF_VCS_M1"]
+    m1 = [x for x in P["candidates"] if x["family"] == "MF_VCS_M1"]
+    states = [x["budget_state"] for x in m1]
+    k = states.index("incomplete_at_budget")
+    assert states == ["complete_within_caps"] * k + ["incomplete_at_budget"] + ["not_started_at_budget"] * (8 - k) and k >= 1
+    assert fam["family_cap_reached"] and fam["cap_reached_by"] == "max_L40S_gpu_h" and not fam["within_family_caps"]
+    assert abs(fam["tuning_gpu_h"] - 8.0) <= 1e-12 and fam["tuning_gpu_h_uncapped"] > 8.0 and fam["candidates_within_caps_in_frozen_order"] == k
+    assert abs(sum(x["tuning_gpu_h_charged"] for x in m1) - 8.0) <= 1e-12 and m1[k]["tuning_gpu_h_charged"] < m1[k]["tuning_gpu_h"]
+    assert fam["candidates_incomplete_at_budget"] == [m1[k]["candidate_id"]] and len(fam["candidates_not_started_at_budget"]) == 8 - k
+    sel = P["final_MF_VCS_M1_gpu_h_by_selected_candidate"]
+    assert [sel[f"lr{x['lr']:.0e}_cap{x['m1_cap']}"] is not None for x in m1] == [s == "complete_within_caps" for s in states]
+    assert P["families_reaching_cap"] == ["MF_VCS_M1"] and not P["grid_within_family_caps"] and b["families_reaching_cap"] == ["MF_VCS_M1"]
+    other = sum(P["families"][f]["tuning_gpu_h"] for f in T02.FAMILIES if f != "MF_VCS_M1")
+    assert abs(P["tuning_total_gpu_h"] - (other + 8.0)) <= 1e-9 and P["uncapped_formula"]["tuning_total_gpu_h"] > P["tuning_total_gpu_h"]
+    assert b["old_timing_projection_reproduced"]["status"] == "PASS"                   # the cap reference is within the caps
+    assert not any("precision environment" in r or "override" in r for r in b["provisional_reasons"])
+
+
+def test_t02_budget_compares_the_precision_environment(tmp_path):
+    """Decision 3 (review 2026-10-17): the re-measurement must run under the kept rows' recorded environment; a differing setting, or a
+    TF32 override variable set (or not recorded) in the re-measurement, makes BUDGET PROVISIONAL with the reason; the kept rows' missing
+    override record is stated, not assumed unset."""
+    kept_env = json.loads((REPO / "v10" / "T02" / "T02_TIMING_cuda.json").read_text())["environment"]
+    same = {**kept_env, "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": None, "NVIDIA_TF32_OVERRIDE": None}
+    b = _budget_inputs(tmp_path, 0.5, same)
+    cmp_ = b["precision_environment_comparison"]
+    assert cmp_["mismatches"] == [] and cmp_["overrides_set_in_remeasurement"] == {} and b["grid_within_family_caps"]
+    assert cmp_["kept_rows_without_override_record"] == list(A.TF32_ENV_VARS)
+    assert any("did not record TORCH_ALLOW_TF32_CUBLAS_OVERRIDE" in s for s in b["assumptions"])
+    b = _budget_inputs(tmp_path, 0.5, {**same, "cudnn_conv_fp32_precision": "ieee", "NVIDIA_TF32_OVERRIDE": "0"})
+    assert b["status"] == "PROVISIONAL" and b["precision_environment_comparison"]["mismatches"] == ["cudnn_conv_fp32_precision"]
+    assert any("cudnn_conv_fp32_precision 'tf32' vs 'ieee'" in r for r in b["provisional_reasons"])
+    assert any("NVIDIA_TF32_OVERRIDE" in r for r in b["provisional_reasons"])
+    env = dict(same)
+    del env["gpu_capability"], env["TORCH_ALLOW_TF32_CUBLAS_OVERRIDE"]
+    b = _budget_inputs(tmp_path, 0.5, env)
+    assert b["precision_environment_comparison"]["mismatches"] == ["gpu_capability"]
+    assert b["precision_environment_comparison"]["overrides_set_in_remeasurement"] == {"TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": "<not recorded>"}

@@ -14,9 +14,10 @@ Parts (python scripts/v10/t02_timing.py run --device cuda --parts head,head_extr
               resident = one host batch, so every step uses 16 crops as the host): MF_perm1 / MF_M0 / MF_M1 (K 8 / 16 / 32);
               M1 rule 'absolute' with a binding iteration cap (tolerance 1e-300: budgets 10 / 30 / 100 always run in full; cap
               references) plus one record row at the absolute target 1e-4 (degenerate from W = 0 at host init, excluded from
-              BUDGET); the nine MF_VCS_M1 CAL candidates under the protocol rule (owner decision 2026-10-17 2.1: relative
-              zero-head gap 1%, caps 10 / 30 / 100, lr 1e-4 / 3e-4 / 1e-3 tied across encoders + feature maps); MLP_perm1,
-              MLP_perm8, MLP_dense (full graph and checkpointed blocks).  MF W-box / permutation checks run on the first step
+              BUDGET) - reference rows only: require_converged False explicitly and TrainConfig.absolute_reference_only (rule
+              'absolute' is never the training rule); the nine MF_VCS_M1 CAL candidates under the protocol rule (owner decision
+              2026-10-17 2.1: relative zero-head gap 1%, caps 10 / 30 / 100, lr 1e-4 / 3e-4 / 1e-3 tied across encoders + feature
+              maps); MLP_perm1, MLP_perm8, MLP_dense (full graph and checkpointed blocks).  MF W-box / permutation checks run on the first step
               only (the validated-loop rule of the package); K16 perm1 / M0 rows with checks on every step quantify that
               overhead.  Synchronised phases: batch, descriptors, scenes (MF feature maps + partition / SceneBatch validation),
               objective, backward, update; CUDA host-device synchronisations per step counted with torch.cuda.set_sync_debug_mode.
@@ -28,10 +29,12 @@ Parts (python scripts/v10/t02_timing.py run --device cuda --parts head,head_extr
               fixed, UNTRAINED models: timing only - no error, F_true or any other truth-dependent quantity is computed.
               MF moments (K 8 / 16 / 32), MF perm1 (K 16), host MLP perm1 energy.
   budget      (no GPU) v10/T02/BUDGET.json for the decision-8 grid (owner decision 2026-10-17 section 8: 18 CAL candidates, per
-              family <= 9 candidates and <= 8 L40S GPU-h, 4 families x 3 formal seeds) from the kept rows (T02_TIMING_cuda.json +
-              T02_LONG_cuda.csv) and the M1 relative-rule re-measurement (T02_M1_RELATIVE_*); also the decision's old-timing
-              projection recomputed as a formula check, and v10/T02/UNIT_LEDGER.csv (package units) as before.  Status
-              MEASURED_PROJECTION / PROVISIONAL (reasons listed) / NOT_RUN (no M1 re-measurement) - see budget().
+              family <= 9 candidates and <= 8 L40S GPU-h, the first limit reached stops the family in the frozen candidate order,
+              4 families x 3 formal seeds) from the kept rows (T02_TIMING_cuda.json + T02_LONG_cuda.csv) and the M1 relative-rule
+              re-measurement (T02_M1_RELATIVE_*), whose effective precision environment (decision 3) is compared with the kept
+              rows'; also the decision's old-timing projection recomputed as a formula check, and v10/T02/UNIT_LEDGER.csv (package
+              units) as before.  Status MEASURED_PROJECTION / PROVISIONAL (reasons listed) / NOT_RUN (no M1 re-measurement) - see
+              budget().
 Outputs: v10/T02/T02_TIMING_<cpu|cuda>.json, v10/T02/T02_LONG_<cpu|cuda>.csv (COSTS_TEMPLATE columns first) in the repository
 (scope m1_relative: v10/T02/T02_M1_RELATIVE_TIMING_<dev>.json / T02_M1_RELATIVE_LONG_<dev>.csv); raw files and logs under
 <out-root>/T02/runs/<device>_<job>[_m1_relative]/.  Data: 16 FIT cores (train) and 3 DEV cores (register), DataGuard.
@@ -81,7 +84,10 @@ EXTRA_FIELDS = ["layer", "config", "R_permutations", "warmup", "repeats", "media
                 "m1_gap_ref_zero_median", "m1_gap_start_median", "m1_gap_relative_to_zero_median", "m1_gap_relative_to_zero_max",
                 "m1_tolerance_effective_median", "m1_W_update_fro_median", "m1_zero_reference_count", "m1_fp64_diag_triggered_fraction",
                 "m1_fp64_diag_decisions_agree_fraction", "m1_iterations_first", "m1_w_absmax_first", "encoder_grad_norm_first",
-                "m1_iterations_median_all_steps", "m1_cap_hit_fraction_all_steps", "n_steps_recorded"]
+                "m1_iterations_median_all_steps", "m1_cap_hit_fraction_all_steps", "n_steps_recorded",
+                # per-batch M1 work incl. the fp64 same-input diagnostic (decision 2.3: every added pass counted); appended
+                "m1_hvp_calls_total_median", "m1_moment_passes_total_per_batch", "m1_moment_passes_total_max",
+                "m1_fp64_diag_hvp_calls_median", "m1_fp64_diag_moment_passes_median"]
 CAP = A.M1_CAP_BINDING_TOLERANCE
 LR_CANDIDATES = (1e-4, 3e-4, 1e-3)    # decision 2026-10-17 8.1: one learning rate tied across the optimiser-learned modules
 TRAIN_CONFIGS = [   # the phase-1 list; its M1 rows are rule 'absolute' (cap-binding cost references and the 1e-4 record row)
@@ -109,7 +115,9 @@ M1_RECORD_NOTE = ("RECORD of the pre-decision setting, not an M1 cost: rule 'abs
 M1_RELATIVE_NOTE = ("M1 relative zero-head rule (decision 2026-10-17 2.1): per batch stop at G_b(W) <= 0.01 G_b(0) of the batch's own "
                     "snapshot, else at the cap (approximate head, true gap logged); warm start from the previous batch, first W = 0; "
                     "require_converged False; learning rate tied across encoders + feature maps; fp64 same-input diagnostic on batches "
-                    "with G_b(0) <= 1e4 x 2 eps (inside the timed step); cost = the measured step under this rule over the T02 window")
+                    "with G_b(0) <= 1e4 x 2 eps (inside the timed step; its snapshot and HVPs counted: m1_hvp_calls_total_median, "
+                    "m1_moment_passes_total_per_batch, m1_fp64_diag_*; m1_hvp_calls_median / m1_moment_passes_per_batch = the "
+                    "working-dtype M1 computation); cost = the measured step under this rule over the T02 window")
 REG_ENERGIES = [("MF_moments", 16), ("MF_perm1", 16), ("MF_moments", 8), ("MF_moments", 32), ("MLP_perm1_host", None)]
 
 
@@ -320,8 +328,9 @@ def part_head_extra(device, run_dir: Path, rows: list, info: dict, gpu: str) -> 
 # ------------------------------------------------------------------------------------------------------------ train steps
 def m1_config(cfgd: dict) -> A.M1Config:
     """The M1Config of a train config: rule 'absolute' rows keep their absolute tolerance; every other row the protocol rule."""
-    if cfgd.get("m1_rule") == "absolute":
-        return A.M1Config(rule="absolute", max_iterations=cfgd.get("m1_max_iterations", 30), tolerance=cfgd["m1_tolerance"])
+    if cfgd.get("m1_rule") == "absolute":      # reference rows (cap-binding cost references, the 1e-4 record row): approximate mode
+        return A.M1Config(rule="absolute", max_iterations=cfgd.get("m1_max_iterations", 30), tolerance=cfgd["m1_tolerance"],
+                          require_converged=False)
     return A.M1Config(max_iterations=cfgd.get("m1_max_iterations", 30))
 
 
@@ -382,6 +391,7 @@ def part_train(device, run_dir: Path, rows: list, info: dict, gpu: str, guard: A
         try:
             cfg = A.TrainConfig(method=cfgd["method"], seed=SEED, K=cfgd.get("K", 16), checks=cfgd.get("checks", "first_step"), m1=m1_config(cfgd),
                                 dense_block=cfgd.get("dense_block"), dense_checkpoint=cfgd.get("dense_checkpoint", False),
+                                absolute_reference_only=is_m1 and cfgd.get("m1_rule") == "absolute",
                                 **({"encoder_lr": lr, "head_lr": lr} if lr is not None else {}))
             t = A.Trainer(cfg, imgs, fit, dev)
             recs = [t.step() for _ in range(TRAIN_WARMUP)]
@@ -436,6 +446,12 @@ def part_train(device, run_dir: Path, rows: list, info: dict, gpu: str, guard: A
                             "m1_hvp_calls_median": float(np.median([r["m1_hvp_calls"] for r in timed])),
                             "m1_momentum_restarts_median": float(np.median([r["m1_momentum_restarts"] for r in timed])),
                             "m1_moment_passes_per_batch": float(np.median([r["m1_moments_passes"] for r in timed])),
+                            **({"m1_hvp_calls_total_median": float(np.median([r["m1_hvp_calls_total"] for r in timed])),
+                                "m1_moment_passes_total_per_batch": float(np.median([r["m1_moments_passes_total"] for r in timed])),
+                                "m1_moment_passes_total_max": int(max(r["m1_moments_passes_total"] for r in timed)),
+                                "m1_fp64_diag_hvp_calls_median": float(np.median([r["m1_fp64_diag_hvp_calls"] for r in timed])),
+                                "m1_fp64_diag_moment_passes_median": float(np.median([r["m1_fp64_diag_moments_passes"] for r in timed]))}
+                               if all("m1_hvp_calls_total" in r for r in timed) else {}),
                             "m1_w_absmax_last": recs[-1]["w_absmax"], "degenerate": all(r["w_absmax"] == 0.0 for r in timed),
                             "solver_iterations": float(np.median(its)), "solver_gap": float(np.median(gaps)), **m1_summary(timed, recs)})
                 if cfgd.get("record_only"):
@@ -458,7 +474,9 @@ def part_train(device, run_dir: Path, rows: list, info: dict, gpu: str, guard: A
                                                                          "m1_rule", "lr", "m1_cap_hit_fraction", "m1_stop_reasons",
                                                                          "m1_gap_ref_zero_first", "m1_iterations_first", "m1_w_absmax_first",
                                                                          "encoder_grad_norm_first", "m1_gap_relative_to_zero_median",
-                                                                         "m1_fp64_diag_triggered_fraction", "notes", "traceback")}
+                                                                         "m1_fp64_diag_triggered_fraction", "m1_moment_passes_per_batch",
+                                                                         "m1_moment_passes_total_per_batch", "m1_hvp_calls_median",
+                                                                         "m1_hvp_calls_total_median", "notes", "traceback")}
         print(json.dumps({"train": label, "status": row["status"], "median_ms": row.get("median_ms"), "syncs": row.get("syncs_per_step")}), flush=True)
         del t
         release()
@@ -745,11 +763,78 @@ def _gpu_h(step_ms, s_reg, n_reg):
     return (BUDGET_COUNTS["train_steps_per_fit"] * step_ms / 1000 + n_reg * s_reg) / 3600
 
 
+LR_TEXT = {1e-4: "1e-4", 3e-4: "3e-4", 1e-3: "1e-3"}      # candidate ids as in protocol P2 bf_batch1.candidates
+
+
+def candidate_id(cd: dict) -> str:
+    return f"BF1_{cd['family']}_lr{LR_TEXT[cd['lr']]}" + (f"_cap{cd['m1_cap']}" if cd["m1_cap"] else "")
+
+
+def _family_accounting(fc: list, c: dict) -> dict:
+    """Decision 8.2 for one family, in the frozen candidate order (protocol P2 landing choice 'BF budget accounting order'): at most
+    family_cap_candidates candidates and family_cap_L40S_gpu_h GPU-h, the first limit reached stops the family.  A candidate whose cost
+    would cross the GPU-h limit is charged up to the limit and marked incomplete_at_budget; every later one is not_started_at_budget
+    (charged 0); candidates after an unmeasured one are unmeasured (the cumulative cost is unknown).  Sets budget_state and
+    tuning_gpu_h_charged on every candidate."""
+    cum, n_done, reached, unknown = 0.0, 0, None, False
+    for x in fc:
+        if unknown or x["tuning_gpu_h"] is None:
+            unknown = True
+            x["budget_state"], x["tuning_gpu_h_charged"] = "unmeasured", None
+        elif reached is not None:
+            x["budget_state"], x["tuning_gpu_h_charged"] = "not_started_at_budget", 0.0
+        elif n_done + 1 > c["family_cap_candidates"]:
+            reached = "max_candidates"
+            x["budget_state"], x["tuning_gpu_h_charged"] = "not_started_at_budget", 0.0
+        elif cum + x["tuning_gpu_h"] > c["family_cap_L40S_gpu_h"]:
+            reached = "max_L40S_gpu_h"
+            x["budget_state"], x["tuning_gpu_h_charged"] = "incomplete_at_budget", float(c["family_cap_L40S_gpu_h"]) - cum
+            cum = float(c["family_cap_L40S_gpu_h"])
+        else:
+            x["budget_state"], x["tuning_gpu_h_charged"] = "complete_within_caps", x["tuning_gpu_h"]
+            cum += x["tuning_gpu_h"]
+            n_done += 1
+    measured = all(x["tuning_gpu_h"] is not None for x in fc)
+    uncapped = float(sum(x["tuning_gpu_h"] for x in fc)) if measured else None
+    return {"n_candidates": len(fc), "tuning_gpu_h": None if unknown else cum, "tuning_gpu_h_uncapped": uncapped,
+            "cap_candidates": c["family_cap_candidates"], "cap_L40S_gpu_h": c["family_cap_L40S_gpu_h"],
+            "family_cap_reached": None if unknown else reached is not None, "cap_reached_by": reached,
+            "within_family_caps": bool(not unknown and reached is None),
+            "candidates_within_caps_in_frozen_order": n_done,
+            "candidates_incomplete_at_budget": [x["candidate_id"] for x in fc if x["budget_state"] == "incomplete_at_budget"],
+            "candidates_not_started_at_budget": [x["candidate_id"] for x in fc if x["budget_state"] == "not_started_at_budget"],
+            "margin_gpu_h": (c["family_cap_L40S_gpu_h"] - uncapped) if measured else None}
+
+
+def _totals(cands: list, fams: dict, tuning_key: str, selectable, seeds: int) -> dict:
+    """Grand totals: the families' tuning cost (tuning_key) + 3 formal seeds per family at the CAL-selected candidate, selectable(x)
+    deciding which candidates can be selected (the non-M1 step costs are lr-independent: max = any)."""
+    tuning = [fams[f][tuning_key] for f in FAMILIES]
+    tuning_total = float(sum(tuning)) if all(v is not None for v in tuning) else None
+    final_fixed = {}
+    for fam in FAMILIES:
+        if fam != "MF_VCS_M1":
+            vals = [x["final_unit_gpu_h"] for x in cands if x["family"] == fam and selectable(x)]
+            final_fixed[fam] = seeds * max(vals) if vals and all(v is not None for v in vals) else None
+    m1_final = {f"lr{x['lr']:.0e}_cap{x['m1_cap']}": (seeds * x["final_unit_gpu_h"] if selectable(x) and x["final_unit_gpu_h"] is not None
+                                                      else None) for x in cands if x["family"] == "MF_VCS_M1"}
+    fixed_ok = all(v is not None for v in final_fixed.values()) and tuning_total is not None
+    totals = {k: (tuning_total + sum(final_fixed.values()) + v if (fixed_ok and v is not None) else None) for k, v in m1_final.items()}
+    by_cap = {}
+    for cap in A.M1_CAL_CAPS:
+        sel = [x for x in cands if x["family"] == "MF_VCS_M1" and x["m1_cap"] == cap and selectable(x)]
+        vals = [totals[f"lr{x['lr']:.0e}_cap{cap}"] for x in sel]
+        by_cap[str(cap)] = max(vals) if vals and all(v is not None for v in vals) else None
+    return {"tuning_total": tuning_total, "final_fixed": final_fixed, "m1_final": m1_final, "totals": totals, "by_cap": by_cap}
+
+
 def project(step_of, reg_med: dict) -> dict:
     """Decision-8 projection for step_of(candidate) -> (step ms, train config): per candidate the CAL tuning cost (3000 steps + 12
-    checkpoints x 8 CAL cores x 10 perturbations), per family the total against the caps (<= 9 candidates, <= 8 L40S GPU-h) and how
-    many candidates fit in the frozen order, the final fits (4 families x 3 seeds; 3000 steps + 960 CAL + 320 DEV registrations each)
-    by the CAL-selected M1 candidate, and the grand totals."""
+    checkpoints x 8 CAL cores x 10 perturbations); per family the accounting against the caps in the frozen candidate order
+    (_family_accounting: <= 9 candidates and <= 8 L40S GPU-h, the first limit reached stops the family; tuning_gpu_h = the charged
+    cost); the final fits (4 families x 3 seeds; 3000 steps + 960 CAL + 320 DEV registrations each) by the CAL-selected candidate,
+    selectable only among the candidates completed within the caps; and the grand totals from the charged tuning costs.
+    "uncapped_formula" = the decision's conditional formula (every candidate, no cap applied), used for the old-timing reproduction."""
     c = BUDGET_COUNTS
     n_cal = c["checkpoints_per_fit"] * c["cal_cores"] * c["perturbations_per_core"]
     n_final = n_cal + c["dev_cores"] * c["perturbations_per_core"]
@@ -757,55 +842,39 @@ def project(step_of, reg_med: dict) -> dict:
     for cd in decision8_candidates():
         step, cfg = step_of(cd)
         s_reg = reg_med.get(FAMILY_REG[cd["family"]])
-        cands.append({**cd, "train_config": cfg, "train_step_ms_median": step, "registration_energy": FAMILY_REG[cd["family"]],
-                      "s_per_registration_median": s_reg, "cal_registrations": n_cal, "tuning_gpu_h": _gpu_h(step, s_reg, n_cal),
-                      "final_registrations_per_seed": n_final, "final_unit_gpu_h": _gpu_h(step, s_reg, n_final)})
-    fams = {}
-    for fam in FAMILIES:
-        fc = [x for x in cands if x["family"] == fam]
-        done = all(x["tuning_gpu_h"] is not None for x in fc)
-        total = float(sum(x["tuning_gpu_h"] for x in fc)) if done else None
-        cum, n_in = 0.0, 0
-        for x in fc:                                                      # the frozen order; stop at the first limit reached
-            if x["tuning_gpu_h"] is None or n_in + 1 > c["family_cap_candidates"] or cum + x["tuning_gpu_h"] > c["family_cap_L40S_gpu_h"]:
-                break
-            cum += x["tuning_gpu_h"]
-            n_in += 1
-        fams[fam] = {"n_candidates": len(fc), "tuning_gpu_h": total, "cap_candidates": c["family_cap_candidates"],
-                     "cap_L40S_gpu_h": c["family_cap_L40S_gpu_h"],
-                     "within_family_caps": bool(done and len(fc) <= c["family_cap_candidates"] and total <= c["family_cap_L40S_gpu_h"]),
-                     "candidates_within_caps_in_frozen_order": n_in, "margin_gpu_h": (c["family_cap_L40S_gpu_h"] - total) if done else None}
+        cands.append({"candidate_id": candidate_id(cd), **cd, "train_config": cfg, "train_step_ms_median": step,
+                      "registration_energy": FAMILY_REG[cd["family"]], "s_per_registration_median": s_reg, "cal_registrations": n_cal,
+                      "tuning_gpu_h": _gpu_h(step, s_reg, n_cal), "final_registrations_per_seed": n_final,
+                      "final_unit_gpu_h": _gpu_h(step, s_reg, n_final)})
+    fams = {fam: _family_accounting([x for x in cands if x["family"] == fam], c) for fam in FAMILIES}
     seeds = len(c["final_seeds"])
-    tuning_total = float(sum(fams[f]["tuning_gpu_h"] for f in FAMILIES)) if all(fams[f]["tuning_gpu_h"] is not None for f in FAMILIES) else None
-    final_fixed = {}
-    for fam in FAMILIES:
-        if fam != "MF_VCS_M1":
-            vals = [x["final_unit_gpu_h"] for x in cands if x["family"] == fam]
-            final_fixed[fam] = seeds * max(vals) if all(v is not None for v in vals) else None    # lr-independent here (max = any)
-    m1_final = {f"lr{x['lr']:.0e}_cap{x['m1_cap']}": (seeds * x["final_unit_gpu_h"] if x["final_unit_gpu_h"] is not None else None)
-                for x in cands if x["family"] == "MF_VCS_M1"}
-    fixed_ok = all(v is not None for v in final_fixed.values()) and tuning_total is not None
-    totals = {k: (tuning_total + sum(final_fixed.values()) + v if (fixed_ok and v is not None) else None) for k, v in m1_final.items()}
-    by_cap = {}
-    for cap in A.M1_CAL_CAPS:
-        vals = [totals[f"lr{lr:.0e}_cap{cap}"] for lr in LR_CANDIDATES]
-        by_cap[str(cap)] = max(vals) if all(v is not None for v in vals) else None
-    return {"candidates": cands, "families": fams, "tuning_total_gpu_h": tuning_total, "final_seeds_per_family": seeds,
-            "final_fixed_families_gpu_h": final_fixed, "final_MF_VCS_M1_gpu_h_by_selected_candidate": m1_final,
-            "total_gpu_h_by_selected_M1_candidate": totals, "total_gpu_h_by_selected_M1_cap_max_over_lr": by_cap}
+    capped = _totals(cands, fams, "tuning_gpu_h", lambda x: x["budget_state"] == "complete_within_caps", seeds)
+    uncapped = _totals(cands, fams, "tuning_gpu_h_uncapped", lambda x: True, seeds)
+    return {"candidates": cands, "families": fams, "tuning_total_gpu_h": capped["tuning_total"], "final_seeds_per_family": seeds,
+            "final_fixed_families_gpu_h": capped["final_fixed"], "final_MF_VCS_M1_gpu_h_by_selected_candidate": capped["m1_final"],
+            "total_gpu_h_by_selected_M1_candidate": capped["totals"], "total_gpu_h_by_selected_M1_cap_max_over_lr": capped["by_cap"],
+            "selectable_candidates": "only candidates completed within the family caps (budget_state complete_within_caps); a "
+                                     "candidate cut at the budget is never selected or backfilled (decision 8.2)",
+            "families_reaching_cap": [f for f in FAMILIES if fams[f]["family_cap_reached"]],
+            "grid_within_family_caps": all(fams[f]["within_family_caps"] for f in FAMILIES),
+            "uncapped_formula": {"note": "every candidate charged in full, no cap applied (the decision's conditional formula)",
+                                 "tuning_total_gpu_h": uncapped["tuning_total"],
+                                 "total_gpu_h_by_selected_M1_cap_max_over_lr": uncapped["by_cap"]}}
 
 
 def reproduce_old(ref: dict, old: dict | None) -> dict:
-    """The decision's old-timing projection (8.2, from job 1043695 with M1 at the binding caps) recomputed with this formula."""
+    """The decision's old-timing projection (8.2, from job 1043695 with M1 at the binding caps) recomputed with this formula (the
+    uncapped values: the decision charged every candidate; in that projection no family reaches a cap, so charged = uncapped)."""
     if not old:
         return {"status": "NOT_RUN", "reason": "contract reference missing"}
-    rows = {f: (ref["families"][f]["tuning_gpu_h"], old["tuning_GPU_hours"].get(f)) for f in FAMILIES}
-    rows["tuning_total"] = (ref["tuning_total_gpu_h"], old["tuning_GPU_hours"].get("total"))
+    rows = {f: (ref["families"][f]["tuning_gpu_h_uncapped"], old["tuning_GPU_hours"].get(f)) for f in FAMILIES}
+    rows["tuning_total"] = (ref["uncapped_formula"]["tuning_total_gpu_h"], old["tuning_GPU_hours"].get("total"))
     for cap, v in old["tuning_plus_3_final_seeds_per_family_GPU_hours_by_selected_M1_cap"].items():
-        rows[f"total_selected_M1_cap{cap}"] = (ref["total_gpu_h_by_selected_M1_cap_max_over_lr"].get(str(cap)), v)
+        rows[f"total_selected_M1_cap{cap}"] = (ref["uncapped_formula"]["total_gpu_h_by_selected_M1_cap_max_over_lr"].get(str(cap)), v)
     out = {k: {"recomputed": a, "decision_value": b, "equal_at_4_decimals": a is not None and b is not None and round(a, 4) == round(b, 4)}
            for k, (a, b) in rows.items()}
-    return {"status": "PASS" if all(v["equal_at_4_decimals"] for v in out.values()) else "FAIL", "rows": out}
+    return {"status": "PASS" if all(v["equal_at_4_decimals"] for v in out.values()) else "FAIL", "rows": out,
+            "families_reaching_cap_in_this_projection": ref["families_reaching_cap"]}
 
 
 def _provenance(j: dict, path: Path) -> dict:
@@ -813,6 +882,35 @@ def _provenance(j: dict, path: Path) -> dict:
     return {"path": f"v10/T02/{path.name}", "sha256": A.sha256_file(path), "job": e.get("slurm_job_id"), "git_commit": e.get("git_commit"),
             "code_hash": e.get("code_hash_src_scripts_v10"), "gpu_name": e.get("gpu_name"), "node": e.get("slurm_nodelist") or e.get("host"),
             "torch": e.get("torch"), "precision": e.get("precision")}
+
+
+# decision 2026-10-17 section 3: the effective precision environment shared by the kept rows and the re-measurement (environment()
+# keys; the kept record of job 1043695 holds all of them, but not the two TF32 override variables, which it never recorded)
+ENV_COMPARE_KEYS = ("torch", "cuda_runtime", "cudnn", "gpu_name", "gpu_capability", "float32_matmul_precision", "cudnn_conv_fp32_precision",
+                    "cuda_matmul_fp32_precision", "deterministic_algorithms", "cudnn_benchmark", "cudnn_deterministic", "cublas_workspace_config")
+_UNRECORDED = "<not recorded>"
+
+
+def environment_comparison(base_env: dict, new_env: dict) -> dict:
+    """Decision 3 between the kept rows and the M1 re-measurement: every ENV_COMPARE_KEYS value must be recorded in both and equal; the
+    two TF32 override variables (A.TF32_ENV_VARS) must be unset in the re-measurement (the kept rows did not record them; they are not
+    assumed unset there).  Returns {"rows", "mismatches", "overrides_set_in_remeasurement", "kept_rows_without_override_record"}."""
+    rows, mismatches = {}, []
+    for k in ENV_COMPARE_KEYS:
+        a, b = base_env.get(k, _UNRECORDED), new_env.get(k, _UNRECORDED)
+        ok = a != _UNRECORDED and b != _UNRECORDED and a == b
+        rows[k] = {"kept": a, "remeasured": b, "equal": ok}
+        if not ok:
+            mismatches.append(k)
+    overrides = {}
+    for k in A.TF32_ENV_VARS:
+        a = base_env[k] if k in base_env else _UNRECORDED
+        b = new_env[k] if k in new_env else _UNRECORDED
+        rows[k] = {"kept": a, "remeasured": b, "equal": None}
+        if b == _UNRECORDED or b is not None:
+            overrides[k] = b
+    return {"rows": rows, "mismatches": mismatches, "overrides_set_in_remeasurement": overrides,
+            "kept_rows_without_override_record": [k for k in A.TF32_ENV_VARS if k not in base_env]}
 
 
 def squeue_snapshot() -> dict:
@@ -862,6 +960,7 @@ def budget(args) -> int:
     tv = t01["TORCH_VALIDATION.json"]
     base_parts = {k: v.get("status") for k, v in base.get("parts", {}).items()}
     m1_parts = {k: v.get("status") for k, v in (m1 or {}).get("parts", {}).items()}
+    envcmp = None
     reasons = []
     if tv.get("host_adapter_verified") is not True:
         reasons.append("T01 host_adapter_verified is not true")
@@ -879,6 +978,12 @@ def budget(args) -> int:
             reasons.append(f"M1 relative timing code hash {e.get('code_hash_src_scripts_v10')} != current {current}")
         if e.get("gpu_name") != base.get("environment", {}).get("gpu_name"):
             reasons.append(f"GPU of the re-measurement {e.get('gpu_name')} != GPU of the kept rows {base.get('environment', {}).get('gpu_name')}")
+        envcmp = environment_comparison(base.get("environment", {}), e)
+        if envcmp["mismatches"]:
+            reasons.append("precision environment of the re-measurement differs from (or is not recorded like) the kept rows (decision 3): "
+                           + "; ".join(f"{k} {envcmp['rows'][k]['kept']!r} vs {envcmp['rows'][k]['remeasured']!r}" for k in envcmp["mismatches"]))
+        if envcmp["overrides_set_in_remeasurement"]:
+            reasons.append(f"TF32 override variable(s) set (or not recorded) in the re-measurement: {envcmp['overrides_set_in_remeasurement']}")
         missing = [x["train_config"] for x in proj["candidates"] if x["tuning_gpu_h"] is None]
         if missing:
             reasons.append(f"unmeasured candidates: {missing}")
@@ -892,7 +997,10 @@ def budget(args) -> int:
                                                    "m1_gap_relative_to_zero_median", "m1_gap_relative_to_zero_max", "m1_iterations_first",
                                                    "m1_w_absmax_first", "encoder_grad_norm_first", "m1_fp64_diag_triggered_fraction",
                                                    "m1_fp64_diag_decisions_agree_fraction", "m1_zero_reference_count",
-                                                   "m1_iterations_median_all_steps", "m1_cap_hit_fraction_all_steps", "n_steps_recorded")}
+                                                   "m1_iterations_median_all_steps", "m1_cap_hit_fraction_all_steps", "n_steps_recorded",
+                                                   "m1_hvp_calls_median", "m1_moment_passes_per_batch", "m1_hvp_calls_total_median",
+                                                   "m1_moment_passes_total_per_batch", "m1_moment_passes_total_max",
+                                                   "m1_fp64_diag_hvp_calls_median", "m1_fp64_diag_moment_passes_median")}
                for r in m1_rows if r.get("layer") == "train_step"}
     for lab, v in m1_meas.items():
         cap = next((c_ for c_ in A.M1_CAL_CAPS if lab.startswith(f"MF_M1_K16_it{c_}_")), None)
@@ -900,10 +1008,16 @@ def budget(args) -> int:
         v["step_ratio_vs_cap_reference"] = (_fnum(v["median_ms"]) / ref_ms) if (ref_ms and _fnum(v.get("median_ms"))) else None
     out = {"schema": "V10-T02-BUDGET-v3", "status": status, "generated_utc": A.utc_now(), "decision": DECISION_DOC,
            "status_rule": "MEASURED_PROJECTION only when T01 host_adapter_verified is true at the current code hash, the kept T02 parts "
-                          "are PASS, the M1 relative-rule train part is PASS at the current code hash on the GPU type of the kept rows, "
-                          "every candidate is measured, the decision contract agrees with the counts used and the decision's old-timing "
-                          "projection is reproduced; otherwise PROVISIONAL (reasons listed); NOT_RUN without the M1 re-measurement",
+                          "are PASS, the M1 relative-rule train part is PASS at the current code hash on the GPU type of the kept rows "
+                          "under the same recorded precision environment (decision 3: versions, GPU, fp32 precisions, determinism "
+                          "switches, CUBLAS_WORKSPACE_CONFIG; both TF32 override variables unset in the re-measurement), every candidate "
+                          "is measured, the decision contract agrees with the counts used and the decision's old-timing projection is "
+                          "reproduced; otherwise PROVISIONAL (reasons listed); NOT_RUN without the M1 re-measurement.  Independently of "
+                          "the status, grid_within_family_caps / families_reaching_cap state whether the decision-8 grid fits the "
+                          "per-family caps (decision 8.2: a family stops at its first limit; the rest is marked incomplete, never extended)",
            "provisional_reasons": reasons,
+           "grid_within_family_caps": proj["grid_within_family_caps"], "families_reaching_cap": proj["families_reaching_cap"],
+           "precision_environment_comparison": envcmp,
            "status_inputs": {"t01": t01, "kept_t02_parts": base_parts, "m1_relative_t02_parts": m1_parts, "current_code_hash": current},
            "sources": {"rows_kept": {**_provenance(base, base_json), "long_csv": f"v10/T02/{base_csv.name}",
                                      "train_configs_used": sorted(set(FAMILY_BASE_TRAIN.values()) | set(M1_CAPBOUND.values())),
@@ -931,7 +1045,13 @@ def budget(args) -> int:
                            "MF perm1 / M0 and MLP perm1 step costs are learning-rate independent (fixed computation, measured at lr 1e-3)",
                            "registration cost per call from untrained models (fixed grid + 3 x 100 Adam steps: weight-independent)",
                            "CAL tuning per candidate: 3000 steps + 12 checkpoints x 8 CAL cores x 10 perturbations; final per seed: 3000 "
-                           "steps + 960 CAL + 320 DEV registrations"],
+                           "steps + 960 CAL + 320 DEV registrations",
+                           "per-family caps applied in the frozen candidate order (protocol P2 landing choice 'BF budget accounting "
+                           "order'): tuning_gpu_h = the charged cost; a candidate crossing 8 GPU-h is charged up to the cap and marked "
+                           "incomplete_at_budget, later ones not_started_at_budget; only candidates completed within the caps are "
+                           "selectable for the final fits; the uncapped decision formula is kept under uncapped_formula",
+                           "the kept rows (job 1043695) did not record TORCH_ALLOW_TF32_CUBLAS_OVERRIDE / NVIDIA_TF32_OVERRIDE (decision 3: "
+                           "not assumed unset); the comparison of the other environment keys is in precision_environment_comparison"],
            "superseded": {"phase1_budget": "commit 11746dd v10/T02/BUDGET.json (29.78 GPU-h incl. the EPFL proxy, 21.089 for the BF batch): "
                                            "not the budget of this grid (decision 8.2)"},
            "resources": {"queue_snapshot": squeue_snapshot(), "v10_queue_rule": "at most 2 queued V10 jobs; normal-QOS count <= 29"}}
@@ -956,6 +1076,7 @@ def budget(args) -> int:
                              "run_device": "", "evidence": ""})
     print(json.dumps({"BUDGET": status, "reasons": reasons, "tuning_total_gpu_h": proj["tuning_total_gpu_h"],
                       "total_by_M1_cap": proj["total_gpu_h_by_selected_M1_cap_max_over_lr"],
+                      "grid_within_family_caps": proj["grid_within_family_caps"], "families_reaching_cap": proj["families_reaching_cap"],
                       "families": {f: proj["families"][f]["tuning_gpu_h"] for f in FAMILIES}, "old_reproduced": repro.get("status")}), flush=True)
     return 0 if status != "NOT_RUN" else 1
 
