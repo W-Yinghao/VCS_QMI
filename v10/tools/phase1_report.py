@@ -14,6 +14,10 @@ queue snapshot); every later commit is checked to touch only those files, and th
 queue items come from v10/tools/phase1_report_queue_snapshot.json, written only by --refresh-queue (read-only squeue -u $USER and
 scontrol show job per V9 job, plus the V9 sbatch --nice defaults and the V9 job record).  Two runs, or a run at the commit that
 contains the report, give the same bytes.
+Correction of 2026-10-17 (section 12, owner decision V10-phase1-decisions-20261017, decision section 10 step 1): a dated
+corrections section is appended; sections 1-11 keep their text.  Commits confined to the report files and to the post-report
+documents (POST_DOC_PATHS: the owner decisions, the landed protocol P2 and its generator) do not move BASE either; the header and
+section 1 then name that path class.
 
 Every number, table and git fact is read at generation time from
   v10/T00   PREFLIGHT.json, PREFLIGHT_RUN.log, MANIFEST_BUILD_SUMMARY.json, MANIFEST_SHA256.txt, host_map.json, EXPOSURE_NOTES.md,
@@ -67,6 +71,18 @@ REPORT_REL = REPORT_DEFAULT.relative_to(REPO).as_posix()
 QUEUE_SNAPSHOT = V10 / "tools" / "phase1_report_queue_snapshot.json"
 QUEUE_REL = QUEUE_SNAPSHOT.relative_to(REPO).as_posix()
 OWN_PATHS = (SELF_REL, OLD_SELF_REL, REPORT_REL, QUEUE_REL)    # report files: commits confined to them do not move BASE
+# Post-report documents (correction of 2026-10-17, section 12): commits confined to report files and these paths do not move BASE
+# either; they hold no measurement code, job script, test, v10/T00-T02 or V9 file (checked in collect_git).
+POST_DOC_PATHS = ("v10/decisions", "v10/protocol", "v10/tools/make_protocol_p2.py")
+DECISION_MD = V10 / "decisions" / "V10_PHASE1_DECISIONS_20261017_CN.md"
+DECISION_SUMMARY = V10 / "decisions" / "V10_PHASE1_DECISIONS_20261017_SUMMARY_CN.md"
+DECISION_JSON = V10 / "decisions" / "V10_PROTOCOL_DECISIONS_20261017.json"
+PROTOCOL_P2_REL = "v10/protocol/V10_PROTOCOL_P2_20261017.json"
+PROTOCOL_P2_GEN = "v10/tools/make_protocol_p2.py"
+CORRECTION_DATE = "2026-10-17"
+# the owner-decision commits of 2026-10-17 (named in section 12; checked to be after BASE and to touch only v10/decisions)
+DECISION_COMMITS = ("249baac75bc21e8c704cad3aba3b9b42715faf86", "9cb1ae3b0cd9bcaee028fff95f7ae366f1b3cf46")
+P3_FILE = "src/v9/reg/r6_reg_p3.py"     # REG-P3 EPFL audit (read only, at BASE): alignment-check constants for section 12
 V9_REPO = Path("/home/infres/yinwang/CS_QMI/ssl_pilot_v9")     # read only by --refresh-queue (sbatch --nice, V9 job record)
 HOST_FILES = ("src/v9/reg/g1.py", "src/v9/reg/r6_reg_pilot.py", "src/v9/reg/r6_reg_p2.py")   # = adapter host_code_hash, same order
 CODE_PATHS = ("src/v10", "scripts/v10")               # = src/v10/adapter.py code_hash() = job header "code="
@@ -399,6 +415,12 @@ def collect(args) -> dict:
     D["mind_files"] = sorted(str(p.relative_to(REPO)) for p in (REPO / "src" / "v9" / "reg").glob("*.py")
                              if re.search(r"\bmind\b", p.read_text(errors="replace"), re.I))
     D["reads"] = phase1_reads(D)
+    # owner decision of 2026-10-17 (section 12)
+    D["decision_md"] = DECISION_MD.read_text(encoding="utf-8")
+    D["decision_summary"] = DECISION_SUMMARY.read_text(encoding="utf-8")
+    D["decision_contract"] = load_json(DECISION_JSON)
+    D["decision_sha256"] = {p.name: sha256_file(p) for p in (DECISION_MD, DECISION_SUMMARY, DECISION_JSON)}
+    D["manifest_text"] = (T00 / "V10_DATA_MANIFEST.csv").read_text(encoding="utf-8")
     return D
 
 
@@ -486,21 +508,34 @@ def check_ledger(D):
             check(r["run_status"].startswith("NOT_RUN"), f"ledger {r['unit_id']}")
 
 
+def post_doc(f: str) -> bool:
+    return any(f == p or f.startswith(p + "/") for p in POST_DOC_PATHS)
+
+
+def commit_files(sha: str) -> set:
+    return {f for f in git("show", "--name-only", "--format=", sha).splitlines() if f}
+
+
 def own_only(sha: str) -> bool:
-    """True when the commit changes only report files (OWN_PATHS)."""
-    files = {f for f in git("show", "--name-only", "--format=", sha).splitlines() if f}
-    return bool(files) and files <= set(OWN_PATHS)
+    """True when the commit changes only report files (OWN_PATHS) or post-report documents (POST_DOC_PATHS, section 12)."""
+    files = commit_files(sha)
+    return bool(files) and all(f in OWN_PATHS or post_doc(f) for f in files)
 
 
 def collect_git(D):
     base = next((x for x in git("rev-list", "--first-parent", "HEAD").split() if not own_only(x)), None)
     check(base is not None, "no commit outside the report files")
     after = git("rev-list", "--reverse", f"{base}..HEAD").split()
-    check(all(own_only(x) for x in after), f"commits after base {base[:7]} change more than the report files")
+    check(all(own_only(x) for x in after), f"commits after base {base[:7]} change more than the report files and post-report documents")
+    check(not any(post_doc(p) for p in STATUS_PATHS + CODE_PATHS + PIN_PATHS), "a post-report document path overlaps the checked paths")
+    post = [x for x in after if not commit_files(x) <= set(OWN_PATHS)]
+    for h in DECISION_COMMITS:
+        check(h in after, f"decision commit {h[:7]} is not after base {base[:7]}")
+        check(all(f.startswith("v10/decisions/") for f in commit_files(h)), f"decision commit {h[:7]} touches more than v10/decisions")
     st = [ln for ln in git("status", "--porcelain", "--untracked-files=all", "--", *STATUS_PATHS).splitlines() if ln.strip()]
     dirty = [ln for ln in st if "__pycache__" not in ln and any(p not in OWN_PATHS for p in ln[3:].split(" -> "))]
     check(not dirty, f"uncommitted changes outside the report files: {dirty}")
-    g = {"branch": git("rev-parse", "--abbrev-ref", "HEAD").strip(), "base": base}
+    g = {"branch": git("rev-parse", "--abbrev-ref", "HEAD").strip(), "base": base, "post_docs_after_base": bool(post)}
     g["base_utc"] = to_utc(git("log", "-1", "--format=%cI", base).strip())
     excl = [f":(exclude){p}" for p in OWN_PATHS]
     g["results_commit"] = git("log", "-1", "--format=%H", base, "--", *RESULT_PATHS, *excl).strip()
@@ -889,6 +924,11 @@ def summarize_log(L) -> str:
     return s
 
 
+def post_doc_clause(g) -> str:
+    """the base-rule extension of the 2026-10-17 correction; empty while no post-report document commit follows BASE"""
+    return ("与报告后文档（" + "、".join(c(p) for p in POST_DOC_PATHS) + "；§12）") if g["post_docs_after_base"] else ""
+
+
 def sec_header(D) -> list[str]:
     g, q = D["git"], D["queue"]
     qtxt = (f"队列各项取自快照 `{QUEUE_REL}`（{q['utc']}；只读 squeue / scontrol）" if q
@@ -899,7 +939,7 @@ def sec_header(D) -> list[str]:
         "# V10 MF-VCS 第一阶段（T00–T02）阶段报告",
         "",
         f"生成器 `{SELF_REL}`；仓库状态截至 base 提交 `{g['base'][:7]}`（{g['base_utc']}，分支 `{g['branch']}`）。base = 最近一个不只改动报告文件"
-        f"（本生成器、其首个位置 `{OLD_SELF_REL}`、本报告、队列快照）的提交，其后的提交只改动这些文件（生成器核对，且这些文件以外的工作区无改动）；"
+        f"（本生成器、其首个位置 `{OLD_SELF_REL}`、本报告、队列快照）{post_doc_clause(g)}的提交，其后的提交只改动这些文件（生成器核对，且这些文件以外的工作区无改动）；"
         f"结果提交 `{g['results_commit'][:7]}`；{qtxt}。报告不含生成时刻，也不做在线查询：在含本报告的提交上运行 "
         f"`/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL}` 逐字节复现本文件；`--refresh-queue` 才重新查询队列并改写快照。",
         "",
@@ -931,7 +971,7 @@ def sec1(D) -> list[str]:
     v10_q = [r for r in q["rows"] if r["name"].startswith("v10_")] if q else None
     own = "、".join(c(p) for p in OWN_PATHS)
     rows = [
-        ("分支 / base", f"{c(g['branch'])} / {c(g['base'])}（{g['base_utc']}）：最近一个不只改动报告文件（{own}）的提交；"
+        ("分支 / base", f"{c(g['branch'])} / {c(g['base'])}（{g['base_utc']}）：最近一个不只改动报告文件（{own}）{post_doc_clause(g)}的提交；"
                       f"其后的提交只改动这些文件，这些文件以外的工作区无未提交改动（均已核对），因此测量代码、作业脚本、测试、v10/T00–T02 与 V9 路径即 base 的内容"),
         ("结果提交", f"{c(g['results_commit'][:7])}：截至 base 最后一个改动 v10/T00–T02、src/v10、scripts/v10、slurm/v10 或 tests/v10 的提交（不计报告文件）"),
         ("测量代码身份", f"code hash {c(res)}（{' + '.join(CODE_PATHS)} 已跟踪文件，定义同 src/v10/adapter.py code_hash）："
@@ -949,7 +989,8 @@ def sec1(D) -> list[str]:
     ]
     for x in g["old_location"]:
         ran = [j for j, L in D["logs"].items() if L["header"]["code"] in (x["code_hash"],)]
-        rows.append(("报告提交与 code hash", f"base 之后只有报告提交。{c(x['sha'][:7])}（本报告第一版）把生成器放在 {c(OLD_SELF_REL)}，"
+        rows.append(("报告提交与 code hash", f"base 之后只有报告提交{'与报告后文档提交（§12）' if g['post_docs_after_base'] else ''}。"
+                     f"{c(x['sha'][:7])}（本报告第一版）把生成器放在 {c(OLD_SELF_REL)}，"
                      f"在 code hash 覆盖的目录内：该提交的 code hash 为 {c(x['code_hash'])}、pin 为 {c(x['pin'])}，"
                      f"{'没有 V10 作业以这两个值运行' if not ran else '作业 ' + '、'.join(ran) + ' 以该值运行'}"
                      + (f"，快照时队列中 V10 作业 {len(v10_q)} 个" if v10_q is not None else "") + "。"
@@ -1994,10 +2035,137 @@ def sec11(D) -> list[str]:
     return L
 
 
+def CORRECTED_ORIGINALS(D) -> list[str]:
+    """phrases of sections 1-11 that section 12 corrects, verbatim; each must occur exactly once there (checked in render)"""
+    thr = D["protocol"]["registration"]["threshold_native_px"]["EPFL_RGB_NIR"][1]
+    resid = re.search(r"residual of about (\d+) native px", D["exposure_notes"])
+    check(resid is not None, "EXPOSURE_NOTES.md: EPFL residual sentence")
+    return ["“分块 / checkpoint 的 fp32 实现 vs 同一输入的 fp64 值”",
+            f"发布对齐的残差约 {resid.group(1)} native px，严格阈值 {fg(thr)} native px 接近该限",
+            "| M1 协议容差从 W = 0 起步 |",
+            "‖Δ‖₁ 低于目标时求解器第 0 次迭代即停：W 保持 0，外层目标恒为 0，feature map 与 encoder 的梯度恰为 0（只剩 AdamW 衰减）"]
+
+
+def sec12(D) -> list[str]:
+    """Corrections of 2026-10-17 (owner decision V10-phase1-decisions-20261017, decision section 10 step 1).  Sections 1-11 keep their
+    text; every number below is read from the same records as there (T01 JSON, T02 per-step file, manifest summary, git objects at
+    BASE) and every decision clause is checked verbatim in the stored decision documents."""
+    g, dec, summ, con = D["git"], D["decision_md"], D["decision_summary"], D["decision_contract"]
+    opts = re.search(r"五项主建议采用报告选项 ([^，]+)，以及数据角色的 A 立即生效、B 冻结后生效。确认第 8 节的梯度门控修改。", dec)
+    did = re.search(r"决定版本：([\w-]+)。", dec)
+    check(opts is not None and did is not None and did.group(1) == con["decision_id"] and con["report_accepted"] is True
+          and con["decision_date"] == CORRECTION_DATE, "decision text / contract: id, options, acceptance, date")
+    for frag, src, what in (("报告第 8 节的“fp64 值”应改为**同输入和同权重的 fp64 梯度**", dec, "decision 7"),
+                            ("报告的“fp64 值”应改成 **“同输入和同权重的 fp64 梯度参考”**", summ, "summary 6"),
+                            ("报告中的“约 2 native px 残差”需要收窄", dec, "decision 6.2"),
+                            ("需要修正“永远不训练”的表述", dec, "decision 2.2"),
+                            ("但“根本不训练”需要稍微收窄", summ, "summary 1"),
+                            ("将本决定转入版本化协议与配置，修正报告中梯度参考及 EPFL 阈值的措辞", dec, "decision 10 step 1")):
+        check(frag in src, f"{what}: correction clause not found verbatim")
+    rel = re.search(r"\\tau_b=([0-9.]+)\\,g_\{\\mathrm\{ref\},b\}", dec)
+    caps = re.search(r"CAL 候选上限为 \*\*([^*]+)\*\*", dec)
+    check(rel is not None and caps is not None, "decision 2.1: tau_b factor and caps")
+    cap_max = max(int(x) for x in caps.group(1).split("、"))
+    proto_p2 = load_json(REPO / PROTOCOL_P2_REL)
+    check(proto_p2["decision"]["text"]["sha256"] == D["decision_sha256"][DECISION_MD.name]
+          and proto_p2["m1_rule"]["relative_tolerance"] == float(rel.group(1)), "protocol P2 vs the decision text")
+    tvd = D["tv"]["tolerances_design"]
+    # ---- 1: gradient reference (decision 7)
+    gate = {k: check_row(D, k, "MLP_dense_blocked_checkpointed_float32_grads_vs_float64_value_same_inputs") for k in ("adapter_cpu", "adapter_cuda")}
+    full = {k: check_row(D, k, "MLP_dense_full_float32_grads_vs_float64_value_same_inputs") for k in ("adapter_cpu", "adapter_cuda")}
+    pt = gate["adapter_cpu"]["per_tensor"]
+    tens = [t["tensor"] for t in pt]
+    ncrit = sum(1 for t in tens if t.startswith("critic."))
+    check(tens[:2] == ["du", "dv"] and len(tens) == 2 + ncrit == gate["adapter_cpu"]["n_tensors"]
+          and gate["adapter_cpu"]["numel"] == sum(t["numel"] for t in pt), "gate tensors: du, dv and the critic parameters")
+    t01v = git_blob(g["base"], "scripts/v10/t01_validate.py").decode()
+    check("du64, dv64 = du.detach().double().requires_grad_(), dv.detach().double().requires_grad_()" in t01v
+          and "cr64 = copy.deepcopy(cr).double()" in t01v and "g64 = grads(j64, [du64, dv64] + list(cr64.parameters()))" in t01v,
+          "t01_validate.py at base: fp64 reference gradients from the same fp32 inputs and weights")
+    note = "against fp64 at the same fp32-rounded inputs and weights"
+    check(note in full["adapter_cpu"]["note"] and "gate:" in gate["adapter_cpu"]["note"], "T01 notes of the dense-MLP rows")
+    # ---- 2: EPFL residual (decision 6.2, last paragraph)
+    thr = D["protocol"]["registration"]["threshold_native_px"]["EPFL_RGB_NIR"][1]
+    resid = re.search(r"residual of about (\d+) native px", D["exposure_notes"]).group(1)
+    p3 = git_blob(g["base"], P3_FILE).decode()
+    m = re.search(r"^ALIGN_SEARCH, ALIGN_MARGIN, ALIGN_EXCLUDE, THUMB_DOWN, DUP_THR = (\d+), (\d+), (\d+), (\d+), ([\d.]+)", p3, re.M)
+    rule = re.search(r"the check peaks >= (\d+) half-resolution px \(>= (\d+) native px\) from zero shift", p3)
+    check(m is not None and rule is not None and "def alignment_check(" in p3 and "resolution (2 × 2 area mean)" in p3
+          and int(rule.group(1)) == int(m.group(3)), f"{P3_FILE}: alignment-check constants")
+    search, excl = int(m.group(1)), int(m.group(3))
+    factor = int(rule.group(2)) // int(rule.group(1))
+    axis = excl - 1
+    ep = D["mbs"]["epfl"]
+    passed = ep["pairs"] - ep["excluded_alignment"]
+    check(passed == ep["kept"] + ep["excluded_size"], "EPFL: pairs passing the alignment rule = kept + size exclusions")
+    check("residual about 2 native px" in D["manifest_text"], "manifest alignment_note wording")
+    diag = factor * axis * 2 ** 0.5
+    # ---- 3: M1 under the old absolute tolerance (decision 2.2)
+    a = {k: check_row(D, f"adapter_{k}", "MF_M1_protocol_tolerance_from_W0_moves_W_and_trains_encoders") for k in ("cpu", "cuda")}
+    cb = check_row(D, "adapter_cpu", "MF_M1_cap_binding_step_logs_gap_iterations_hvp")
+    cw = check_row(D, "adapter_cpu", "MF_M1_cap_binding_W_is_inner_solution_nonzero_in_box")
+    eg = check_row(D, "adapter_cpu", "MF_M1_encoder_grad_nonzero_and_params_change")
+    check(cb["m1_gap_initial"] == a["cpu"]["m1_gap_initial_equals_Delta_l1"], "M1 forced row starts on the same batch")
+    check(all(a[k]["m1_iterations"] == 0 and a[k]["w_absmax"] == 0.0 and a[k]["encoder_grad_norm"] == 0.0 and a[k]["J"] == 0.0 for k in a),
+          "M1 old-rule rows: 0 iterations, W = 0, J = 0, encoder gradient 0")
+    ps = per_step_stats(D)
+    tr = {r["config"]: r for r in D["long"]["cuda"] if r["layer"] == "train_step"}
+    rec = next((k for k, r in tr.items() if r["status"] == "completed_record_only"), None)
+    check(rec in ps and ps[rec]["first_active"] is not None, "T02 record-only M1 row in the per-step file")
+    s = ps[rec]
+    tol = D["protocol"]["head"]["M1_gap_absolute_target"]
+    check(s["first_active"][1] > tol >= s["lead_delta"][1], "T02 record row: the start follows the first batch whose ||Delta||_1 exceeds the target")
+    drop = 100 * (cb["m1_gap_initial"] - cb["m1_gap"]) / cb["m1_gap_initial"]
+    post = "、".join(c(p) for p in POST_DOC_PATHS)
+    L = [f"## 12 更正（{CORRECTION_DATE}）", "",
+         f"owner 于 {CORRECTION_DATE} 接受本报告并对 §6 的五项作出决定（{c(con['decision_id'])}：选项 {opts.group(1)}，数据角色 A 立即生效、"
+         "B 冻结后生效；确认 §8 的门控修改）：决定全文 "
+         f"{c(DECISION_MD.relative_to(REPO).as_posix())}（sha256 {D['decision_sha256'][DECISION_MD.name][:16]}…），决定契约 "
+         f"{c(DECISION_JSON.relative_to(REPO).as_posix())}（sha256 {D['decision_sha256'][DECISION_JSON.name][:16]}…）；落地协议 {c(PROTOCOL_P2_REL)}"
+         f"（状态 {proto_p2['status']}，生成器 {c(PROTOCOL_P2_GEN)}）。按决定第 10 节第 1 步，下面三处措辞更正；§1–§11 除本节末“生成器说明”所列补充外"
+         "保持原文（包括被更正的句子与 §6 的决定请求原文），与本节不一致处以本节为准。本节由生成器写出，报告不手改。", "",
+         f"1. **§8 的梯度参考**（决定 §7）：§8“内容”一条中的“分块 / checkpoint 的 fp32 实现 vs 同一输入的 fp64 值”应为“分块 / checkpoint 的 fp32 实现 vs "
+         "**同输入和同权重的 fp64 梯度参考**”。被测的分块 / checkpoint 路径实际在 fp32 运行；参考把同一组 fp32 舍入后的输入描述符与 critic 权重转为 double 后"
+         "重新计算梯度（`scripts/v10/t01_validate.py`：`du.detach().double()`、`dv.detach().double()`、`copy.deepcopy(cr).double()`；T01 行注"
+         f"“{note}”）。比较对象是 {len(tens)} 个梯度张量（输入描述符 du、dv 与 {ncrit} 个 critic 参数张量）共 {gate['adapter_cpu']['numel']} 个元素，"
+         "不是目标函数值；检查名 `MLP_dense_*_float32_grads_vs_float64_value_same_inputs` 中的 `value` 沿用代码命名。门控行（必需）最大绝对误差 "
+         f"CPU {fe(gate['adapter_cpu']['max_abs_err'], 5)}、CUDA {fe(gate['adapter_cuda']['max_abs_err'], 5)}（{gate['adapter_cpu']['status']}、"
+         f"{gate['adapter_cuda']['status']}）；fp32 全图对同一参考 CPU {fe(full['adapter_cpu']['max_abs_err'], 5)}（诊断，{full['adapter_cpu']['status']}，保留）、"
+         f"CUDA {fe(full['adapter_cuda']['max_abs_err'], 5)}（诊断，{full['adapter_cuda']['status']}）。容差未改（fp32 atol {fe(tvd['float32']['atol'], 0)} / "
+         f"rtol {fe(tvd['float32']['rtol'], 0)}；fp64 atol {fe(tvd['float64']['atol'], 0)} / rtol {fe(tvd['float64']['rtol'], 0)}）。",
+         f"2. **§6.5 的 EPFL 对齐残差**（决定 §6.2 末段）：“发布对齐的残差约 {resid} native px，严格阈值 {fg(thr)} native px 接近该限”需要收窄。"
+         f"该句取自 `v10/T00/EXPOSURE_NOTES.md`（“a residual of about {resid} native px”；manifest 中 EPFL 行的 alignment_note 写作“residual about "
+         f"{resid} native px”；两份 T00 记录保留原文，以本节为准）。REG-P3 的检查（{c(P3_FILE)} 的 `alignment_check`）在半分辨率（2 × 2 面积均值）上"
+         f"对 RGB 亮度与 NIR 的梯度幅值做整数平移相关（平移搜索 [−{search}, {search}]²）；最佳平移满足 max(|dy|, |dx|) ≥ {excl} 个半分辨率像素"
+         f"（≥ {excl * factor} native px）的 {ep['excluded_alignment']} 对被排除，其余 {passed} 对（其中 {ep['kept']} 对保留为窗口，另 {ep['excluded_size']} 对"
+         f"因尺寸排除）的最佳整数平移每轴在 ±{axis} 个半分辨率像素（±{axis * factor} native px）以内。这是相关峰位置的整数统计，不是已知真对齐误差的 "
+         f"{axis * factor} 像素上界；对角平移 (±{axis}, ±{axis}) 对应的原生距离可达 {axis * factor}√2 ≈ {diag:.2f} native px。{fg(thr)} native px 严格阈值"
+         f"只衡量对已知施加扰动的恢复误差，不能据此声称真实 RGB–NIR 对齐误差小于约 {resid} 像素。",
+         f"3. **M1 旧绝对容差的后果**（决定 §2.2）：§2 诊断表“M1 协议容差从 W = 0 起步”一行与 §6.1“问题”一条描述的是 ‖Δ‖₁ 低于 {fe(tol, 0)} 的批次，"
+         f"不应读作旧规则下 M1“根本不训练”。T01 的初始化批次（‖Δ‖₁ = {fe(a['cpu']['m1_gap_initial_equals_Delta_l1'], 4)} / "
+         f"{fe(a['cuda']['m1_gap_initial_equals_Delta_l1'], 4)}）确实在第 0 次迭代停止，W、J 与 encoder 目标梯度均为 0；T02 协议记录行 {c(rec)} 的前 "
+         f"{s['lead_degenerate']} 步同样为 0 次迭代，第 {s['first_active'][0] + 1} 步（index {s['first_active'][0]}，‖Δ‖₁ = {fe(s['first_active'][1])}）起"
+         "开始更新：问题是启动时刻依赖批次波动。另一方面，同一 T01 批次强制用满 "
+         f"{cb['m1_iterations']} 次迭代后 gap 只从 {fe(cb['m1_gap_initial'], 3)} 降至 {fe(cb['m1_gap'], 3)}（下降 {drop:.2f}%）；|W|max {fg(cw['w_absmax'])}"
+         f" 与 encoder 梯度范数（clip 后）{fe(eg['encoder_grad_norm_postclip'], 2)} 说明发生了目标驱动的学习，但这不证明决定采用的相对目标（G_b(W) ≤ "
+         f"{rel.group(1)}·G_b(0)，G_b(0) 为当前批次 W = 0 的 gap；上限 {caps.group(1)}）能在 {cap_max} 次迭代内达到。§6.1 中上限强制行的“计时步 gap 中位”"
+         "是绝对 FW gap 的中位数，不能当作逐批相对零头 gap 的中位数（热启动批次的 G_b(0) 未记录）。新规则的实现与新代码身份下的全部 T01 重跑尚未进行"
+         "（决定第 10 节第 2 步）。", "",
+         f"生成器说明：自本更正起，base 规则另把只改动报告后文档（{post}）的提交视同报告提交，开头与 §1 据此补充。owner 决定提交 "
+         + "、".join(c(h[:7]) for h in DECISION_COMMITS) + " 与协议落地提交属于此类；生成器核对 base 之后的提交只改动报告文件或这些路径，"
+         f"测量代码、作业脚本、测试、v10/T00–T02 与 V9 路径仍为 base（{c(g['base'][:7])}）的内容。除上述补充、§2 代码清单与 §11 中生成器的 sha256 与"
+         "行数外，§1–§11 未改。", ""]
+    return L
+
+
 def render(D) -> str:
     L = []
     for f in (sec_header, sec1, sec2, sec3, sec4, sec5, sec6, sec7, sec8, sec9, sec10, sec11):
         L += f(D)
+    body = "\n".join(L)
+    for frag in CORRECTED_ORIGINALS(D):
+        check(body.count(frag) == 1, f"section 12 quotes an original phrase not found exactly once in sections 1-11: {frag}")
+    L += sec12(D)
     return "\n".join(L).rstrip() + "\n"
 
 
