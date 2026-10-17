@@ -27,8 +27,10 @@ def iv(c, key="ci95", nd=1):
 
 
 def fp(x, floor="0.001"):
-    """Two-sided bootstrap p from 2 000 resamples: the smallest non-zero value is 2 / 2 000 = 0.001, so 0 means < 0.001; Holm over 4 multiplies by up to 4 (< 0.004)."""
-    return "—" if x is None else f"< {floor}" if x == 0 else f"{x:.4f}"
+    """Two-sided bootstrap p from 2 000 resamples: the smallest non-zero value is 2 / 2 000 = 0.001, so 0 means < 0.001; Holm over 4 multiplies by up to 4 (< 0.004).
+    A stored value above 1 arises only when every resampled difference is exactly 0 (2 x min(P(d <= 0), P(d >= 0)) = 2); it is printed as 1, with that
+    reason, and the results file keeps the raw value (main-session review 2026-10-17)."""
+    return "—" if x is None else f"< {floor}" if x == 0 else "1 (every resampled Δ = 0)" if x > 1 else f"{x:.4f}"
 
 
 def excl(v):
