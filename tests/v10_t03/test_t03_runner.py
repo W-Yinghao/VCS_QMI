@@ -143,6 +143,31 @@ def test_resolution_denial_fails_the_unit(env, out_root, monkeypatch):
     assert not (R.unit_dir("SMK_E") / "checkpoints.pt").exists()
 
 
+def test_select_command_reports_every_group(env, out_root):
+    """t03_run.py select over the real unit table: 60 (condition, method) groups, every one BLOCKED while no CAL unit has run; with
+    the 3 candidates of one group COMPLETE under the current T03 code hash that group is SELECTED (max CAL U-J over candidates x
+    checkpoints) and the other 59 stay BLOCKED."""
+    import t03_units as U
+    ident = env["ident"]
+    path = out_root / "selection" / "T03_CAL_SELECTION.json"
+    assert R.main(["select"]) == 0
+    sel = json.loads(path.read_text())
+    assert sel["n_groups"] == 60 and sel["n_selected"] == 0
+    assert all(g["status"] == "BLOCKED" and "NOT_RUN" in g["reason"] for g in sel["groups"])
+    rows = [U.parse(r) for r in U.load_rows() if r["block"] == "CAL"][:3]           # condition 1, MF_VCS_perm1, lr 1e-4 / 3e-4 / 1e-3
+    assert [r["method"] for r in rows] == ["MF_VCS_perm1"] * 3
+    for i, r in enumerate(rows):
+        C.write_json_atomic(R.unit_dir(r["unit_id"]) / "result.json", {
+            "status": "COMPLETE", "provenance": {"identity": ident}, "config": {"method": r["method"], "block": "CAL", "lr": r["lr"], "cap": r["cap"]},
+            "checkpoints": [{"step": 250 * (k + 1), "CAL_UJ": (0.1 if k == 3 else 0.0) + 0.01 * i} for k in range(8)]})
+    assert R.main(["select"]) == 0
+    sel = json.loads(path.read_text())
+    g = sel["groups"][0]
+    assert sel["n_selected"] == 1 and g["status"] == "SELECTED" and g["candidates"] == [r["unit_id"] for r in rows]
+    assert (g["selected"]["unit_id"], g["selected"]["step"], g["selected"]["lr"]) == (rows[2]["unit_id"], 1000, 1e-3)
+    assert all(x["status"] == "BLOCKED" for x in sel["groups"][1:])
+
+
 def test_units_check_command(out_root, tmp_path):
     assert R.main(["units", "--check", "--output", str(tmp_path / "u.json")]) == 0
     assert json.loads((tmp_path / "u.json").read_text())["status"] == "PASS"

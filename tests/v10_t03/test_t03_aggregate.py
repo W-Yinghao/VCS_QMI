@@ -159,6 +159,13 @@ def test_budget_arithmetic(tmp_path):
             assert L["process_hours"][bd] / n <= w["wall_hours"][bd] + 1e-12 and w["wall_hours"][bd] <= L["process_hours"][bd]
     om = b["phase1_order_of_magnitude"]
     assert om["quotes_found_in_report"] and om["scaled_to_current_grid"]["units"] == {"non_M1": 880, "M1": 332}
+    pc = L["phase1_comparison"]                       # ~1 CPU-h against 80 - 576 scaled: far below, never 'exceeds'
+    assert pc["below_phase1_order_of_magnitude"] and not pc["exceeds_phase1_order_of_magnitude"] and not pc["over_budget_rule_triggered"]
+    ref = om["scaled_to_current_grid"]["cpu_hours_by_cap"]
+    big = AG.phase1_comparison({"low": 11 * ref["100"], "high": 11 * ref["100"]}, om)
+    assert big["exceeds_phase1_order_of_magnitude"] and big["over_budget_rule_triggered"] and not big["below_phase1_order_of_magnitude"]
+    assert AG.phase1_comparison({"low": ref["10"], "high": ref["100"]}, om)["within_phase1_scaled_band"]
+    assert all(v == {"status": "NOT_AVAILABLE"} for v in L["first_steps_excess_seconds"].values())          # no step logs here
     assert AG.lpt_makespan([5, 4, 3, 3, 3], 2) == 10 and AG.lpt_makespan([], 3) == 0
 
 

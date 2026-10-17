@@ -322,6 +322,39 @@ def phase1_order_of_magnitude() -> dict:
             "nature": "rough head-only estimate of the phase-1 report (not measured; '只给数量级')"}
 
 
+def phase1_comparison(cpu_hours: dict, om: dict) -> dict:
+    """Directional comparison with the phase-1 order of magnitude (scaled to the current grid, CPU-hours).  Decision 9.4 / protocol P2
+    t03.smoke.over_budget act only when the measured resources EXCEED the original order of magnitude (> 10 x its dearest scenario)."""
+    ref = om["scaled_to_current_grid"]["cpu_hours_by_cap"]
+    lo, hi = cpu_hours["low"], cpu_hours["high"]
+    exceeds = bool(hi > 10 * ref["100"])
+    return {"cpu_hours_low_over_scaled_cap10": lo / ref["10"], "cpu_hours_high_over_scaled_cap100": hi / ref["100"],
+            "exceeds_phase1_order_of_magnitude": exceeds, "below_phase1_order_of_magnitude": bool(lo < ref["10"] / 10),
+            "within_phase1_scaled_band": bool(ref["10"] <= lo and hi <= ref["100"]),
+            "over_budget_rule_triggered": exceeds,
+            "rule": "exceeds = projected CPU-h (high) > 10 x the scaled cap-100 scenario; below = projected CPU-h (low) < the scaled cap-10 "
+                    "scenario / 10; only 'exceeds' triggers the over-budget rule (record the new budget and the completable scope first)"}
+
+
+def first_steps_excess(root: Path, procs: int) -> dict:
+    """Per smoke unit of one layout: seconds of the first 100 steps above the median step of steps 201-2000 (process warm-up or the
+    early head-solver iterations of M1), and whether the unit was the first unit of its process (shard order k::P).  Descriptive only:
+    the projections use the measured walls unchanged."""
+    import gzip
+    out = {}
+    ids = [r["unit_id"] for r in U.load_rows() if r["block"] == "smoke"]
+    for i, uid in enumerate(ids):
+        p = root / "runs" / uid / "train_steps.json.gz"
+        if not p.exists():
+            out[uid] = {"status": "NOT_AVAILABLE"}
+            continue
+        t = np.asarray(json.loads(gzip.decompress(p.read_bytes()))["t_step"], dtype=np.float64)
+        steady = float(np.median(t[200:])) if len(t) > 200 else float(np.median(t))
+        out[uid] = {"first_unit_of_process": bool(i < procs), "steady_step_seconds": steady,
+                    "excess_seconds_first_100_steps": float(np.clip(t[:100] - steady, 0, None).sum())}
+    return out
+
+
 def budget(layouts: list[tuple[str, Path, int, int]], jobs=(1, 2), cpus_per_job=(32, 64)) -> dict:
     """Truth-free grid budget from the smoke cost records of the given layouts (name, root, processes, threads)."""
     rows = grid_rows()
@@ -335,7 +368,9 @@ def budget(layouts: list[tuple[str, Path, int, int]], jobs=(1, 2), cpus_per_job=
                            "CPU-hours = process-hours x allocated CPUs per process (allocation / processes)",
                            "wall time: two phases (252 CAL units, then the 960 formal units, which need the CAL selection), each an LPT "
                            "schedule over jobs x processes; per-unit cost assumed unchanged at the larger process count of a bigger "
-                           "allocation (memory-bandwidth contention beyond the measured 8-CPU layout is not measured); queue time excluded"]}
+                           "allocation (memory-bandwidth contention beyond the measured 8-CPU layout is not measured); queue time excluded",
+                           "measured walls are used unchanged: a one-off process warm-up inside a measured unit (first_steps_excess_seconds) "
+                           "is charged to every projected unit of that family (conservative)"]}
     cal = [r for r in rows if r["block"] == "CAL"]
     formal = [r for r in rows if r["block"] != "CAL"]
     for name, root, procs, threads in layouts:
@@ -370,9 +405,8 @@ def budget(layouts: list[tuple[str, Path, int, int]], jobs=(1, 2), cpus_per_job=
                          + lpt_makespan([unit_cost(r, cost_of, b) for r in formal], workers)) / 3600 for b in ("low", "high")}
                 walls.append({"jobs": J, "cpus_per_job": cpus, "processes_total": workers, "wall_hours": w})
         ent["wall_hours_at_concurrency"] = walls
-        ref = om["scaled_to_current_grid"]["cpu_hours_by_cap"]
-        ent["ratio_to_phase1_scaled_cpu_hours"] = {"low_vs_cap10": ent["cpu_hours"]["low"] / ref["10"], "high_vs_cap100": ent["cpu_hours"]["high"] / ref["100"]}
-        ent["within_order_of_magnitude_of_phase1"] = bool(ref["10"] / 10 <= ent["cpu_hours"]["low"] and ent["cpu_hours"]["high"] <= ref["100"] * 10)
+        ent["phase1_comparison"] = phase1_comparison(ent["cpu_hours"], om)
+        ent["first_steps_excess_seconds"] = first_steps_excess(root, procs)
         ent["status"] = "MEASURED_PROJECTION"
         out["layouts"].append(ent)
     return out
@@ -412,8 +446,9 @@ def main(argv=None) -> int:
         res["aggregator_sha256"] = tool_sha
         path = a.output or (agg / "T03_BUDGET.json")
         C.write_json_atomic(path, res)
-        print(json.dumps({"output": str(path), "layouts": [{k: L.get(k) for k in ("name", "status", "process_hours", "cpu_hours",
-                                                                                   "within_order_of_magnitude_of_phase1")} for L in res["layouts"]],
+        print(json.dumps({"output": str(path), "layouts": [{**{k: L.get(k) for k in ("name", "status", "process_hours", "cpu_hours")},
+                                                            "over_budget_rule_triggered": (L.get("phase1_comparison") or {}).get("over_budget_rule_triggered")}
+                                                           for L in res["layouts"]],
                           "phase1_quotes_found": res["phase1_order_of_magnitude"]["quotes_found_in_report"]}, indent=1))
         return 0 if all(L["status"] == "MEASURED_PROJECTION" for L in res["layouts"]) and res["phase1_order_of_magnitude"]["quotes_found_in_report"] else 1
     res = grid(root)

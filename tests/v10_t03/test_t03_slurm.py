@@ -12,7 +12,7 @@ import t03_common as C
 SL = C.REPO / "slurm" / "v10_t03"
 
 
-@pytest.mark.parametrize("name", ("submit.sh", "t03_header.sh", "t03_smoke.sbatch"))
+@pytest.mark.parametrize("name", ("submit.sh", "t03_header.sh", "t03_smoke.sbatch", "t03_grid.sbatch"))
 def test_shell_syntax(name):
     assert subprocess.run(["bash", "-n", str(SL / name)], capture_output=True).returncode == 0
 
@@ -41,6 +41,22 @@ def test_smoke_units_are_gated_on_every_prerequisite():
     assert last.endswith("|| exit 1")
     assert 'if [ "$rc_s" = 0 ] && [ "$rc_a" = 0 ]; then' in s                       # layouts / budget only after the formal smoke
     assert "--shard \"$k/$P\" --threads \"$T\"" in s and "for spec in p4t2:4:2 p8t1:8:1" in s
+
+
+def test_grid_sbatch():
+    """The grid batch job: cpu-high, nice 0, CPU only, the pinned header, CAL then select / formal = main + algo_extra + capacity, one
+    --shard k/P process per slot with --threads T, FAIL records kept (no --retry-failed), exit 0 only when every unit passed."""
+    s = (SL / "t03_grid.sbatch").read_text()
+    d = dict(re.findall(r"^#SBATCH --([a-z-]+)=(\S+)", s, flags=re.M))
+    assert d["job-name"] == "v10_t03_grid" and d["partition"] == "cpu-high" and d["nice"] == "0" and "gres" not in d
+    assert 't03_header cpu slurm/v10_t03/t03_grid.sbatch' in s and "V10_T03_OUT_ROOT=/projects/EEG-foundation-model/yinghao/outputs_v10/T03" in s
+    assert 'CAL) BLOCKS="CAL"; SEEDS="1017"' in s and 'formal) BLOCKS="main algo_extra capacity"' in s and "seq -s ' ' 2026101700 2026101709" in s
+    assert 'run --block "$b" --shard "$k/$P" --threads "$T"' in s and "--retry-failed" not in s.replace("no --retry-failed", "")
+    assert 'if [ "$BATCH" = CAL ]; then "$PYTHON" scripts/v10_t03/t03_run.py select' in s
+    assert [line for line in s.splitlines() if line.strip()][-1].endswith("|| exit 1")
+    import t03_units as U
+    formal = re.search(r'formal\) BLOCKS="([^"]+)"', s).group(1).split()
+    assert sorted(formal + ["CAL", "smoke"]) == sorted(U.BLOCK_COUNTS)                     # every grid block is covered exactly once
 
 
 def test_submit_queue_rules():
