@@ -48,3 +48,15 @@ without blocking work.
   arm's originally selected lr, CAL_SELECT MSE selection; DEV readout; no V8-05 / GenAI / TIFA160 label).  (2) The G1 closed-test trigger of
   decision note 1 (`reports/V9/V9_G1_PROTOCOL_FROZEN_20261015.yaml`, v9 branch) has its explicit go: one read, after the test samples,
   perturbations, metrics, comparison families and prediction files are fixed and committed.  Everything else stays paused.
+
+## 2026-10-17 (verbatim; recorded by the main session)
+- Between the main session's queue check at 05:03:54 UTC and the G2 aggregate start at 05:07:47 UTC (job 1043798), in reply to the question
+  whether the paused work should resume: 「解除暂停」.  Consequences: the pause of 2026-10-15 ~20:40 UTC on token-using agents is lifted.  Resumed:
+  V9-G2 (aggregate 1043798 on cpu-high, results 9fb315f, report 8803bfa + display fix b70db7b, v9 branch), V9-N2 wave 2 (smoke fixed in ccd7548,
+  rerun pending) and fork A's NCR evaluation (OOM fixed by --mem 96G, rerun 1043799), and the D1 closeout report (this branch, 478fbe7 + 9a9560a).
+- Earlier the same morning the owner accepted the V10 phase-1 report and decided the phase-2 protocol; the decision text and the owner's JSON
+  contract are stored verbatim on branch v10/mf-vcs under v10/decisions/ (249baac, 9cb1ae3).
+- Main-session decisions recorded for the owner's review: V9-N2 SGR recipe kept unchanged for the current block although the warm-up's original
+  rationale was withdrawn (HOST_LOCK correction_20261017, v9 15a5eec); after 4/24 SGR-student collapses at rho 0.4, wave 1 is paused (14 pending
+  jobs cancelled, resubmittable unchanged) and a pre-registered A/B diagnostic of the loss-reduction scale runs first (~2.8 GPU-h); any matched
+  rerun of the SGR-student units (~230-410 GPU-h) waits for the owner's decision on the diagnostic result.
