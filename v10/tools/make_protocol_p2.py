@@ -428,8 +428,11 @@ def build_m1(I) -> dict:
           "old_absolute_tolerance": a["m1_tolerance"], "old_rule_iterations": a["m1_iterations"], "old_rule_w_absmax": a["w_absmax"],
           "old_rule_encoder_grad_norm": a["encoder_grad_norm"], "forced30_gap_start": cb["m1_gap_initial"], "forced30_gap_final": cb["m1_gap"],
           "forced30_gap_decrease_percent": drop, "forced30_w_absmax": cw["w_absmax"],
-          "forced30_encoder_grad_norm_postclip": eg["encoder_grad_norm_postclip"],
-          "t02_record_row_degenerate_lead_steps": int(lead.group(1)), "t02_record_row_first_active_step_1based": int(lead.group(2))}
+          "forced30_encoder_grad_norm_postclip": eg["encoder_grad_norm_postclip"], "source": f"{TV} at {res[:7]}"}
+    ev_text = {"t02_record_row_degenerate_lead_steps": int(lead.group(1)), "t02_record_row_first_active_step_1based": int(lead.group(2)),
+               "source": "decision 2.2 text only: the raw T02 per-step record (outputs_v10/T02/runs/cuda_1043695/train_steps_per_step.json) "
+                         "is outside the repository and its hash is not pinned in a committed record; the phase-1 report section 12 "
+                         "renders the same figures from that record"}
     check("decision 2.2 host-init gap agrees with T01", agrees(ev["gap_ref_zero_host_init_cpu"], g0s), f"{ev['gap_ref_zero_host_init_cpu']!r} ~ {g0s}")
     check("decision 2.2 forced-30 |W|max agrees with T01", agrees(cw["w_absmax"], wmax), f"{cw['w_absmax']!r} ~ {wmax}")
     check("decision 2.2 encoder gradient norm agrees with T01", agrees(eg["encoder_grad_norm_postclip"], f"{egm.group(1)}e{egm.group(2)}"))
@@ -478,6 +481,7 @@ def build_m1(I) -> dict:
                           "encoder gradient error nor the population S error",
         "phase1_code": {"commit": res, "M1Config.tolerance_absolute": tol0, "solver_status_strings": ["gap_tolerance", "iteration_budget_exhausted"]},
         "evidence_phase1": ev,
+        "evidence_decision_text_only": ev_text,
         "evidence_scope": "the relative rule removes the batch-noise-dependent start; the forced-30 decrease (about "
                           f"{round(drop, 2)}%) does not show that tau_b is reachable within 100 iterations; the T02 cap-bound gap "
                           "medians of the phase-1 report are absolute gaps, not per-batch relative zero-head gaps",
