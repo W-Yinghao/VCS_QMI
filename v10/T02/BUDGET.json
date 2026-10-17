@@ -1,0 +1,225 @@
+{
+ "schema": "V10-T02-BUDGET-v2",
+ "status": "MEASURED_PROJECTION",
+ "generated_utc": "2026-10-17T01:48:35Z",
+ "status_rule": "MEASURED_PROJECTION only when T01 host_adapter_verified is true and every T02 part is PASS; otherwise PROVISIONAL (numbers measured, validity not established) or NOT_RUN (nothing measured)",
+ "status_inputs": {
+  "t01": {
+   "TORCH_VALIDATION.json": {
+    "overall_status": "PASS",
+    "host_adapter_verified": true,
+    "pending_parts": [],
+    "failed_parts": [],
+    "blocked_parts": [],
+    "provenance_mismatches": [],
+    "generated_utc": "2026-10-17T01:42:54Z"
+   },
+   "GEOMETRY_GRADIENT_CHECK.json": {
+    "overall_status": "PASS",
+    "host_adapter_verified": true,
+    "pending_parts": [],
+    "failed_parts": [],
+    "blocked_parts": [],
+    "provenance_mismatches": [],
+    "generated_utc": "2026-10-17T01:42:54Z"
+   }
+  },
+  "t02_parts": {
+   "head": "PASS",
+   "head_extra": "PASS",
+   "train": "PASS",
+   "register": "PASS"
+  }
+ },
+ "source": {
+  "t02_timing": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10/v10/T02/T02_TIMING_cuda.json",
+  "sha256": "c3b493c73bd2da81fb65475c2ed48377e07a52907497c030feda2f90159027f8",
+  "job": "1043695",
+  "device": "NVIDIA L40S",
+  "gpu_total_bytes": 47665709056,
+  "git_commit": "4c6bbe99cf8f95c3a180ce6d8ad7ec2d19e420ca",
+  "code_hash": "bf8942645f0167b0"
+ },
+ "measured": {
+  "train_step_ms_median": {
+   "MF_perm1_K16": 56.02489458397031,
+   "MF_M0_K16": 64.25469694659114,
+   "MF_M1_K16_it30_capbound": 367.256824625656,
+   "MF_M1_K16_it10_capbound": 171.99070029892027,
+   "MF_M1_K16_it100_capbound": 1051.5967125538737,
+   "MF_perm1_K8": 56.144586531445384,
+   "MF_M0_K8": 64.28066943772137,
+   "MF_M1_K8_it30_capbound": 366.42445041798055,
+   "MF_perm1_K32": 55.99008151330054,
+   "MF_M0_K32": 64.4605450797826,
+   "MF_M1_K32_it30_capbound": 371.6715050395578,
+   "MF_perm1_K16_checks_every_step": 57.60179599747062,
+   "MF_M0_K16_checks_every_step": 64.35473053716123,
+   "MLP_perm1": 39.29760307073593,
+   "MLP_perm8": 39.96879258193076,
+   "MLP_dense": 39.3814486451447,
+   "MLP_dense_block32_ckpt": 44.26076961681247
+  },
+  "s_per_registration_median": {
+   "MF_moments_K16": 1.023924969136715,
+   "MF_perm1_K16": 0.941631028894335,
+   "MF_moments_K8": 1.0251494864933193,
+   "MF_moments_K32": 1.0516348478849977,
+   "MLP_perm1_host": 1.5740305790677667
+  },
+  "head_only": "v10/T02/T02_LONG_cuda.csv layer=head / head_extra / perm_conditional_variance"
+ },
+ "protocol_counts": {
+  "train_steps_per_unit": 3000,
+  "checkpoints_per_unit": 12,
+  "bf_cal_cores": 8,
+  "bf_dev_cores": 32,
+  "perturbations_per_image": 10,
+  "epfl_cal_windows": 10,
+  "epfl_dev_windows": 74,
+  "training_seeds": [
+   1001,
+   1002,
+   1003
+  ],
+  "tuning_seed": 1017,
+  "cal_candidates_per_family": 9
+ },
+ "registrations_per_unit": {
+  "BF_SHG": 1280,
+  "EPFL_RGB_NIR": 1940
+ },
+ "per_unit_projection": {
+  "MF_VCS_perm1": {
+   "train_config": "MF_perm1_K16",
+   "registration_energy": "MF_perm1_K16",
+   "train_step_ms_median": 56.02489458397031,
+   "s_per_registration_median": 0.941631028894335,
+   "train_s": 168.07468375191092,
+   "registration_s_bf": 1205.2877169847488,
+   "registration_s_epfl_proxy": 1826.76419605501,
+   "gpu_h_bf_unit": 0.3814895557601833,
+   "gpu_h_epfl_unit_proxy": 0.554121911057478,
+   "status": "measured"
+  },
+  "MF_VCS_M0": {
+   "train_config": "MF_M0_K16",
+   "registration_energy": "MF_moments_K16",
+   "train_step_ms_median": 64.25469694659114,
+   "s_per_registration_median": 1.023924969136715,
+   "train_s": 192.76409083977342,
+   "registration_s_bf": 1310.6239604949951,
+   "registration_s_epfl_proxy": 1986.414440125227,
+   "gpu_h_bf_unit": 0.4176077920374357,
+   "gpu_h_epfl_unit_proxy": 0.6053273697125001,
+   "status": "measured"
+  },
+  "MF_VCS_M1": {
+   "train_config": "MF_M1_K16_it30_capbound",
+   "registration_energy": "MF_moments_K16",
+   "train_step_ms_median": 367.256824625656,
+   "s_per_registration_median": 1.023924969136715,
+   "train_s": 1101.770473876968,
+   "registration_s_bf": 1310.6239604949951,
+   "registration_s_epfl_proxy": 1986.414440125227,
+   "gpu_h_bf_unit": 0.6701095651033231,
+   "gpu_h_epfl_unit_proxy": 0.8578291427783875,
+   "status": "measured"
+  },
+  "MLP_VCS_perm1": {
+   "train_config": "MLP_perm1",
+   "registration_energy": "MLP_perm1_host",
+   "train_step_ms_median": 39.29760307073593,
+   "s_per_registration_median": 1.5740305790677667,
+   "train_s": 117.8928092122078,
+   "registration_s_bf": 2014.7591412067413,
+   "registration_s_epfl_proxy": 3053.6193233914673,
+   "gpu_h_bf_unit": 0.5924033195608192,
+   "gpu_h_epfl_unit_proxy": 0.8809755923899097,
+   "status": "measured"
+  },
+  "MLP_VCS_perm8": {
+   "train_config": "MLP_perm8",
+   "registration_energy": null,
+   "train_step_ms_median": 39.96879258193076,
+   "s_per_registration_median": null,
+   "train_s": 119.90637774579227,
+   "status": "partially_measured"
+  }
+ },
+ "grid_projection_measured_methods": {
+  "methods": [
+   "MF_VCS_perm1",
+   "MF_VCS_M0",
+   "MF_VCS_M1",
+   "MLP_VCS_perm1"
+  ],
+  "seeds": 3,
+  "BF_SHG_gpu_h": 6.184830697385284,
+  "EPFL_gpu_h_proxy": 8.694762047814827,
+  "CAL_tuning_gpu_h_BF": 14.903682855167427,
+  "total_gpu_h": 29.78327560036754,
+  "wall_h_at_concurrency": {
+   "1": 29.78327560036754,
+   "2": 14.89163780018377,
+   "4": 7.445818900091885,
+   "8": 3.7229094500459423
+  }
+ },
+ "not_measured_in_T02": {
+  "InfoNCE_host": "native InfoNCE energy undecided (T00 D3); host trains InfoNCE critics then scores J(tanh f)",
+  "CoMIR_native": "external system: own training / latent / registration costs (see V9 G1 / G2 results)",
+  "RuLSIF_kernel": "kernel fit + registration not implemented in V10 phase 1",
+  "MI_native / NMI_native / MIND_2D_adapted": "non-learned; registration cost only (V9 measured MI / NMI)",
+  "MLP_VCS_perm8 registration energy": "a perm8 registration energy is not implemented in phase 1"
+ },
+ "v9_reference_costs": {
+  "rule": "read-only from the V9 JSONs at budget time; registrations = 12 checkpoints x CAL x 10 + DEV x 10 (host protocol)",
+  "V9-G1-vcs-frac1-eps0-s901": {
+   "device_job_per_T00_audit": "RTX PRO 6000 Blackwell, job 1041939",
+   "registrations": 1280,
+   "train_steps": 3000,
+   "train_seconds": 82.95528507232666,
+   "train_peak_gib": 0.9668722152709961,
+   "train_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg/units/V9-G1-vcs-frac1-eps0-s901/run/train.json",
+   "train_json_sha256": "6ab40d245314f6468aab3767320ec5ef7cf547eefd864dffe78fee54c61d3fdc",
+   "s_per_registration_cal": 0.766579219698906,
+   "s_per_registration_dev": 0.7343286015093327,
+   "registration_phase_seconds": 955.3674874305725,
+   "device_in_json": null,
+   "results_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg/units/V9-G1-vcs-frac1-eps0-s901/p2/results/vcs_s901.json",
+   "results_json_sha256": "80271ee53c3c124a61abefd6a9b33b6a06954d95b3872f38dfa12aeff485c078"
+  },
+  "V9-G2-vcs-frac1-eps0-s901": {
+   "device_job_per_T00_audit": "L40S, job 1042139",
+   "registrations": 1940,
+   "s_per_registration_cal": 1.4768018054962158,
+   "s_per_registration_dev": 1.4788802027702332,
+   "registration_phase_seconds": 2886.2363982200623,
+   "device_in_json": "NVIDIA L40S",
+   "results_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg_epfl/units/V9-G2-vcs-frac1-eps0-s901/p3/results/vcs_s901.json",
+   "results_json_sha256": "9e88e0ff45e07b0cd3825608e72a64a44e8daca177f889d73d8f1389842bd318"
+  }
+ },
+ "resources": {
+  "per_user_gpu_cap": 8,
+  "normal_qos_submit_cap": 30,
+  "v10_queue_rule_2026_10_16": "V10 holds at most 2 normal-QOS jobs while V9-N2 keeps the count at 27; never above 29",
+  "queue_snapshot": {
+   "utc": "2026-10-17T01:48:35Z",
+   "normal_qos_count": 27,
+   "running_gpu_jobs": 10,
+   "pending": 19
+  }
+ },
+ "assumptions": [
+  "one GPU per unit; the measured GPU type only (other types scale differently: V9 RTX PRO 6000 ~ 2x L40S)",
+  "training: 3000 steps per unit (host), checkpoint every 250 steps, step time = encoder-inclusive median of T02",
+  "registration: CAL selection over 12 checkpoints x CAL images x 10 perturbations + DEV x 10 (host protocol); untrained-model registration timing used (search cost is weight-independent: fixed grid + 3 x 100 Adam steps)",
+  "EPFL: same step / registration cost per window as BF-SHG (512 px windows, same searcher) - proxy, not measured",
+  "CAL tuning: 9 candidates per measured family on BF-SHG, each trained once and CAL-registered",
+  "MF_VCS_M1 at max_iterations 30 with a binding cap (the whole budget every batch; candidates 10 / 30 / 100 in T02_LONG_cuda.csv); the protocol gap target 1e-4 is degenerate from W = 0 at host init (open owner decision), so the capped cost is an upper bound per batch, not the protocol run",
+  "MF step times: W-box / permutation checks on the first step only; SceneBatch validation included",
+  "no I/O, queue wait or failed-job reruns included"
+ ]
+}
