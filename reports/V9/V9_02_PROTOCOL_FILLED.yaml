@@ -75,7 +75,7 @@ budget_measured:   # timing job 1042033 ran on node60 = the THROTTLED RTX PRO 60
   ncr_warmup_step_seconds: "node60 throttled actual 0.600 (A) / 0.588 (B); healthy estimate 0.273 / 0.267"
   ncr_warmup_epoch_seconds_both_networks: {node60_throttled_actual: 1346, healthy_estimate: 612}   # 1,133 x (0.600 + 0.588); stage incl. startup 1,381 s
   ncr_gmm_loss_pass_seconds_per_network: {node60_throttled_actual: 446, healthy_estimate: 203}     # 1,133 x 0.394 s; 454 s incl. GMM before the py3 iterator crash
-  ncr_cotrain_epoch_seconds: "PENDING job 1042195 (one co-training epoch from the saved warm-up; py3 iterator patch; now excludes node51,node60 -> measured on a healthy node)"
+  ncr_cotrain_epoch_seconds: {L40S_node50_measured: 2335, healthy_RTX_estimate: 1730, note: "job 1042195 (L40S node50): one GMM loss pass 273 s (0.241 s/batch) + network A 697 x 1.244 s + network B 705 x 1.240 s + validation ~10 s + data load; healthy-RTX estimate = L40S / 1.35"}
   l2rm_warmup_epoch_seconds: "node60 throttled actual 774 (incl. startup + fast L2RM validation), later warm-up epochs ~707 (1,133 x 0.622 s); healthy estimate 352 / 321"
   l2rm_epoch_seconds: "node60 throttled actual 1,166 (epoch 1, labeled split 82,563 captions) and 914 (epoch 2, labeled 60,263), from checkpoint mtimes; healthy estimate 530 / 415"
   l2rm_validation_note: "L2RM's evaluation computes similarities in 2.2 s vs 72 s for SGRAF's shard_attn_scores (same model family; different evaluation code)"
@@ -84,11 +84,11 @@ budget_measured:   # timing job 1042033 ran on node60 = the THROTTLED RTX PRO 60
   per_unit_hours:
     sgr_student_unit: {node60_throttled_actual: 10.54, healthy_estimate: 4.79}   # 5 warm-up + 40 epochs = 50,985 steps + 95 dev passes + startup + test eval
     l2rm_A_unit: {node60_throttled_actual: "9.91-12.36", healthy_estimate: "4.5-5.62"}
-    ncr_A_unit: "PENDING job 1042195 (5 warm-up epochs = 6,730 s node60 / ~3059 s healthy estimate + 40 co-training epochs measured on a healthy node)"
+    ncr_A_unit: {L40S_measured_plus_estimate: 27.1, healthy_RTX_estimate: 20.2, note: "5 warm-up epochs x 823 s (L40S estimate = node60 1,346 s / 1.63, the measured node60 / L40S GMM-loss-pass ratio) + 40 x 2,335 s measured + 100 s eval; exceeds the 24 h partition limit on L40S and run.py cannot resume co-training -> RTX6000PRO / H100 only, or a resume patch"}
     teacher: {node60_throttled_actual: 0.15, healthy_estimate: 0.07}
   flickr_block_gpu_hours:   # budget uses the healthy-node column (N2 production units exclude node60)
-    formal_48: {node60_throttled_actual: "36 SGR-student 379 + 6 L2RM+A 59-74 + 6 NCR+A pending + 2 teachers 0.3", healthy_estimate: "36 SGR-student 172 + 6 L2RM+A 27-34 + 6 NCR+A pending + 2 teachers 0.1"}
+    formal_48: {node60_throttled_actual: "36 SGR-student 379 + 6 L2RM+A 59-74 + 6 NCR+A (not measured on node60) + 2 teachers 0.3", healthy_estimate: "36 SGR-student 172 + 6 L2RM+A 27-34 + 6 NCR+A 121 + 2 teachers 0.1 = ~320-327 GPU-h"}
     tuning_le_48: "same composition and per-unit costs as formal (6 SGR-student methods x 2 noise x 3 lr = 36, NCR+A 6, L2RM+A 6)"
     native_reproductions_3: "NCR 1 + L2RM 1 + SGR (warm-up recipe) 1 at noise 0.4"
-    total: {node60_throttled_actual: "2 x (379 + 59-74 + 6 x NCR unit)", healthy_estimate: "2 x (172 + 27-34 + 6 x NCR unit) GPU-h; replaced by measured healthy-node values from 1042195 and the first production units"}
+    total: {healthy_estimate: "formal ~320-327 + tuning ~320-327 + native reproductions ~35 = ~675-690 GPU-h for the Flickr30K block; replaced by the measured healthy-node values of the first production units", note: "NCR+A measured on L40S (1042195); SGR / L2RM / teacher are node60 actuals / 2.2"}
   validation_cadence: "kept as locked (every epoch + every 1,000 iterations); it is 18.5 % of an SGR unit — reported, not changed after the freeze"
