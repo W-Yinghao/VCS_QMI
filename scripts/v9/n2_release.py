@@ -19,6 +19,9 @@ nice 400 comes from slurm/v9/n2_unit.sbatch):
              queues once reports/V9/V9_N2_units/wave2_enabled.json exists (written after the official smoke passed and fork A's timings landed):
              their seed-917 tuning runs go to the tuning queue (ahead of any formal run not yet submitted), their formal runs to the formal list
              under the same selected / x1 rule.  The contingency is computed per run as soon as its members' selections are complete.
+  pause   reports/V9/V9_N2_units/wave1_paused.json (main session 2026-10-17) stops every SGR-student (wave-1) submission and resubmission:
+             wave-1 jobs that leave the queue incomplete while paused (the cancelled ones are listed in the file) are kept as `paused` with their
+             group files and are resubmitted UNCHANGED, once, when the file is removed; wave-2 (official) work keeps flowing.
 A job that left the queue with runs lacking done.json (official formal: result.json too) is resubmitted once (units resume from last.pt and skip when done); a second failure is
 logged as given_up for a human.  Ledger (append-only, no results): reports/V9/V9_N2_units/launch_ledger.jsonl; state + status:
 slurm_logs/v9_n2_release_{state,status}.json; job ids for slurm/v9/n2_watch.sh: slurm_logs/v9_n2_feed_ids.txt.
@@ -255,7 +258,7 @@ class Orchestrator:
         if self.state_path.exists():
             st = json.loads(self.state_path.read_text())
             st["tuning_queue"] = [q if isinstance(q, dict) else {"family": "sgr", "group_file": q} for q in st["tuning_queue"]]   # v1 state: group-file strings
-            st.setdefault("x1_processed", []); st.setdefault("wave2", None); st.setdefault("resubmit_queue", [])
+            st.setdefault("x1_processed", []); st.setdefault("wave2", None); st.setdefault("resubmit_queue", []); st.setdefault("paused_groups", []); st.setdefault("pause_state", "off")
             for j in st["jobs"]:
                 j.setdefault("family", family(j["runs"][0]))
             return st
@@ -267,7 +270,7 @@ class Orchestrator:
         pending.sort(key=lambda r: (-float(r["rho"]), ARMS.index(r["method"]), tuple(r["members"]), int(r["seed"])))
         st = {"created": utc(), "gate": "wait", "tuning_planned": False, "tuning_runs": [], "tuning_queue": [], "formal_pending": pending,
               "contingency_computed": False, "rerun_queue": [], "jobs": [], "counters": {"t": 0, "f": 1, "r": 0}, "done": False, "blocked": "",
-              "x1_processed": [], "wave2": None, "resubmit_queue": []}
+              "x1_processed": [], "wave2": None, "resubmit_queue": [], "paused_groups": [], "pause_state": "off"}
         st["jobs"].append({"job": self.gate_job, "name": "v9n2_f01", "kind": "formal", "case": "x1_contingency", "attempt": 1, "status": "queued", "family": "sgr",
                            "group_file": str(self.gate_group), "runs": [plain(r) for r in gate_runs], "submitted_utc": "",
                            "note": "gate group submitted before any seed-917 tuning existed (frozen contingency applies)"})
@@ -281,6 +284,7 @@ class Orchestrator:
         status = {"utc": utc(), "gate": self.st["gate"], "tuning_planned": self.st["tuning_planned"], "tuning_queue": len(self.st["tuning_queue"]),
                   "formal_pending_runs": len(self.st["formal_pending"]), "rerun_queue": len(self.st["rerun_queue"]),
                   "x1_runs_processed": len(self.st["x1_processed"]), "wave2_loaded": (self.st["wave2"] or {}).get("methods_loaded", []), "blocked": self.st["blocked"], "done": self.st["done"],
+                  "wave1_paused": self.st.get("pause_state") == "on", "paused_groups": len(self.st.get("paused_groups", [])),
                   "jobs": {s: sum(1 for j in jobs if j["status"] == s) for s in sorted({j["status"] for j in jobs})},
                   "cases": {c: sum(1 for j in jobs if j["case"] == c) for c in sorted({j["case"] for j in jobs})}}
         self.status_path.write_text(json.dumps(status, indent=1))
@@ -357,6 +361,28 @@ class Orchestrator:
                    planner_stdout=r.stdout.strip()[-1500:], precheck_tables_copied=copied)
         return "ok"
 
+    # -- wave-1 pause (main session 2026-10-17)
+    def pause_file(self) -> Path:
+        return self.units / "wave1_paused.json"
+
+    def paused(self) -> bool:
+        return self.pause_file().exists()
+
+    def update_pause(self) -> None:
+        on = self.paused()
+        if on and self.st["pause_state"] != "on":
+            self.st["pause_state"] = "on"
+            self.event("wave1_paused", file=str(self.pause_file()), content=json.loads(self.pause_file().read_text() or "{}"))
+        elif not on and self.st["pause_state"] == "on":
+            self.st["pause_state"] = "off"
+            groups, self.st["paused_groups"] = self.st["paused_groups"], []
+            for g in groups:                                     # unchanged resubmission: same group file, same runs, same case
+                self.st["resubmit_queue"].append({**g, "case": "resume:" + g["case"]})
+            self.event("wave1_resumed", n_groups=len(groups), groups=[g["name"] for g in groups])
+
+    def blocked_by_pause(self, runs: list) -> bool:
+        return self.paused() and family(runs[0]) == "sgr"
+
     # -- job bookkeeping
     def runs_done(self, runs: list, kind: str) -> bool:
         return all(run_complete(self.out, r, kind) for r in runs)
@@ -372,6 +398,13 @@ class Orchestrator:
                 continue
             j["ended_utc"] = utc()
             missing = [plain(r) for r in j["runs"] if not run_complete(self.out, r, j["kind"])]
+            if self.blocked_by_pause(j["runs"]):
+                listed = j["job"] in [str(x) for x in json.loads(self.pause_file().read_text() or "{}").get("cancelled_jobs", [])]
+                j["status"] = "paused"
+                self.st["paused_groups"].append({"of": j["job"], "name": j["name"], "kind": j["kind"], "case": j["case"], "group_file": j["group_file"],
+                                                 "runs": j["runs"], "attempt": j["attempt"], "cancelled_by_pause": listed})
+                self.event("paused_job_kept", job=j["job"], name=j["name"], cancelled_by_pause=listed, missing=missing)
+                continue
             if j["attempt"] >= 2:
                 j["status"] = "given_up"
                 self.event("given_up", job=j["job"], name=j["name"], missing=missing)
@@ -468,19 +501,21 @@ class Orchestrator:
             n = self.cluster.normal_count()
             if n is None or n >= self.cap:
                 return
-            rq = self.st.get("resubmit_queue", [])
+            rq = [q for q in self.st.get("resubmit_queue", []) if not self.blocked_by_pause(q["runs"])]
             if rq:
                 it = rq[0]
-                if not self._submit(it["name"] + f"_a{it['attempt']}", it["kind"], "resubmit:" + it["case"], Path(it["group_file"]), it["runs"],
-                                    attempt=it["attempt"], resubmit_of=it["of"]):
+                resume = it["case"].startswith("resume:")                # pause -> resume: same attempt, not a retry
+                if not self._submit(it["name"] + ("_resume" if resume else f"_a{it['attempt']}"), it["kind"], it["case"] if resume else "resubmit:" + it["case"],
+                                    Path(it["group_file"]), it["runs"], attempt=it["attempt"], resubmit_of=it["of"]):
                     return
-                rq.pop(0)
+                self.st["resubmit_queue"].remove(it)
                 for j in self.st["jobs"]:
                     if j["job"] == it["of"]:
                         j["status"] = "resubmitted"
                 continue
-            if self.st["tuning_queue"]:
-                item = self.st["tuning_queue"][0]
+            tq = [q for q in self.st["tuning_queue"] if not (self.paused() and q["family"] == "sgr")]
+            if tq:
+                item = tq[0]
                 self.st["counters"]["t"] += 1
                 name = f"v9n2_t{self.st['counters']['t']:02d}"
                 if item["family"] == "sgr":
@@ -493,12 +528,13 @@ class Orchestrator:
                 if not self._submit(name, "tuning", "tuning", g, runs):
                     self.st["counters"]["t"] -= 1
                     return
-                self.st["tuning_queue"].pop(0)
+                self.st["tuning_queue"].remove(item)
                 continue
             sel = selection(self.out, self.st["tuning_runs"])
             self.process_contingency(sel)
-            if self.st["formal_pending"]:
-                pend = self.st["formal_pending"]
+            pend_all = self.st["formal_pending"]
+            pend = [q for q in pend_all if not (self.paused() and family(q) == "sgr")]
+            if pend:
                 job, case, used, leftover = next_formal_job(pend, sel, self.per_job_of)
                 self.st["counters"]["f"] += 1
                 name = f"v9n2_f{self.st['counters']['f']:02d}"
@@ -511,10 +547,12 @@ class Orchestrator:
                                     else "x1: seed-917 tuning not complete for every member at submission; frozen contingency applies"):
                     self.st["counters"]["f"] -= 1
                     return
-                self.st["formal_pending"] = leftover + [q for k, q in enumerate(pend) if k not in used]
+                used_ids = {id(pend[k]) for k in used}
+                self.st["formal_pending"] = leftover + [q for q in pend_all if id(q) not in used_ids]
                 continue
-            if self.st["rerun_queue"]:
-                grp = self.st["rerun_queue"][0]
+            rr = [g for g in self.st["rerun_queue"] if not self.blocked_by_pause(g)]
+            if rr:
+                grp = rr[0]
                 self.st["counters"]["r"] += 1
                 name = f"v9n2_r{self.st['counters']['r']:02d}"
                 gfile = self.release_dir / f"{name}.txt"
@@ -523,12 +561,14 @@ class Orchestrator:
                 if not self._submit(name, "rerun", "contingency_rerun", gfile, grp, selection=sel_json(sel, keys)):
                     self.st["counters"]["r"] -= 1
                     return
-                self.st["rerun_queue"].pop(0)
+                self.st["rerun_queue"].remove(grp)
                 continue
             return
 
     def finished(self) -> bool:
         st = self.st
+        if self.paused() or st.get("paused_groups"):
+            return False
         wave2_settled = set(OFFICIAL) <= set((st["wave2"] or {}).get("methods_loaded", [])) or (self.units / "wave2_disabled.json").exists()
         x1 = {json.dumps(plain(r), sort_keys=True) for j in st["jobs"] if j["kind"] == "formal" and j["case"].endswith("x1_contingency") for r in j["runs"]}
         if not (st["gate"] == "pass" and st["tuning_planned"] and wave2_settled and not st["tuning_queue"] and not st["formal_pending"]
@@ -543,6 +583,7 @@ class Orchestrator:
         mine = self.cluster.my_jobs()
         if mine is None:
             return "squeue unavailable"
+        self.update_pause()
         self.refresh(mine)
         if st["gate"] == "wait":
             g, info = self.gate_status(mine)

@@ -255,3 +255,32 @@ def test_wave2_methods_added_one_at_a_time(tmp_path):
     assert all(s["args"] == ["--partition=RTX6000PRO,H100"] for s in off if "NCR_A" in s["lines"][0])
     n_off_formal = len([r for r in o.st["formal_pending"] if r["method"] in ("NCR_A", "L2RM_A")]) + len([r for j in o.st["jobs"] if j["kind"] == "formal" and j["family"] == "official" for r in j["runs"]])
     assert o.st["wave2"]["methods_loaded"] == ["L2RM_A", "NCR_A"] and n_off_formal == 12
+
+
+def test_wave1_pause_keeps_cancelled_jobs_and_lets_wave2_flow(tmp_path):
+    """main session 2026-10-17: pause wave 1, cancel its pending jobs, keep them for unchanged resubmission; wave 2 keeps flowing."""
+    out, units, logs = _layout(tmp_path, {0.4: [[m] for m in ARMS], 0.0: [sorted(ARMS)]})
+    fc = FakeCluster(logs, out, base=0, cap=27, rsum_fn=lambda r: 400.0)
+    o = _orch(fc, out, units, logs)
+    o.step()                                                    # gate + tuning plan + first wave-1 submissions (27 queued)
+    pending = list(fc.queue[-5:])                               # the last 5 submitted jobs play "pending"
+    (units / "wave1_paused.json").write_text(json.dumps({"reason": "test", "cancelled_jobs": pending}))
+    o.step()                                                    # pause registered before any cancel
+    n_before = len(fc.submitted)
+    fc.queue = [j for j in fc.queue if j not in pending]        # scancel of the pending wave-1 jobs (no done.json)
+    o.step()
+    js = {j["job"]: j for j in o.st["jobs"]}
+    assert all(js[p]["status"] == "paused" for p in pending) and len(o.st["paused_groups"]) == 5
+    assert len(fc.submitted) == n_before                        # nothing resubmitted, no new wave-1 work while paused
+    (units / "wave2_enabled.json").write_text(json.dumps({"methods": ["L2RM_A"]}))
+    o.step()
+    new = fc.submitted[n_before:]
+    assert new and all(s["official"] for s in new)              # wave 2 flows while wave 1 is paused
+    files = {js[p]["group_file"] for p in pending}
+    (units / "wave1_paused.json").unlink()
+    fc.queue = []                                               # room for the resumed groups
+    o.step()
+    resumed = [j for j in o.st["jobs"] if j["case"].startswith("resume:")]
+    assert {j["group_file"] for j in resumed} == files and all(js[p]["status"] == "resubmitted" for p in pending)
+    ev = [json.loads(ln)["event"] for ln in (units / "launch_ledger.jsonl").read_text().splitlines()]
+    assert {"wave1_paused", "paused_job_kept", "wave1_resumed"} <= set(ev)
