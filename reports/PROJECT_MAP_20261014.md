@@ -283,12 +283,14 @@ Owner, 2026-10-14: A-P3 is the final recipe; test it.  `reports/P155_AP3_OFFICIA
      other-learning-rate unit), so the pooled value is not mainly a ranking of budgets and does not support this reading.  The range 0.09–0.21 also
      spans the direct-risk critic: the seed means are 0.088–0.140 for the VCS and logistic critics and 0.171–0.214 for direct risk (REV8 §A).
    - 「S3 直接回归实现风险略好，说明问题在"后验→风险"的读数，不在二次形式」: S3's better critic-level ranking (within-(question, budget) pairwise accuracy 0.525–0.544 against
-     0.498–0.504 for VCS / logistic; REV8 §A) does not carry over to delivered accuracy.  Under both two-scale claim rules S3 is below S1 on TextVQA
-     (LLaVA DF-8 "S1 higher" at L25 / L50 / L75, full FIT +1.18 / +1.24 / +3.46; Qwen E2-8 "S1 above" at f 0.25 / 0.5, full FIT +29.80 / +14.82) and
-     above S1 only on Qwen GQA (E2-8 "S1 below" at f 0.25 / 0.5 / 0.75); the other S1 − S3 contrasts carry no claim, some being Holm-detected at one
-     scale in either direction (closeout T4, T5).  At 25 % of the visual tokens S3 is below the uniform grid in all 12 (host, FIT, benchmark) rows at
-     seed means (closeout T18; per seed, full-FIT LLaVA S3 seed 2 is above the grid on all three benchmarks, closeout §4).  D1 therefore does not
-     locate the problem in a "posterior → risk" read-out (closeout §7).
+     0.498–0.504 for VCS / logistic, on the GQA CAL questions; REV8 §A; CAL split `reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml:99`) does not
+     carry over consistently to delivered accuracy.  Under both two-scale claim rules S3 is below S1 on TextVQA (LLaVA DF-8 "S1 higher" at L25 / L50 /
+     L75, full FIT +1.18 / +1.24 / +3.46; Qwen E2-8 "S1 above" at f 0.25 / 0.5, full FIT +29.80 / +14.82) and above S1 only on Qwen GQA (E2-8 "S1
+     below" at f 0.25 / 0.5 / 0.75, full FIT −3.89 / −2.84 / −1.47); the other S1 − S3 contrasts carry no claim, some being Holm-detected at one
+     scale in either direction (on LLaVA GQA, S1 − S3 is −1.19 / −0.64 at 10k FIT at L25 / L50, Holm p 0.009, and not detected at full FIT; closeout
+     T4, T5).  At 25 % of the visual tokens S3 is below the uniform grid in all 12 (host, FIT, benchmark) rows at seed means (closeout T18; per seed,
+     full-FIT LLaVA S3 seed 2 is above the grid on all three benchmarks, closeout §4).  D1 therefore does not locate the problem in a "posterior →
+     risk" read-out (closeout §7).
    - 「REV9 会量化它们的份额」 is stale: REV9, REV9-FULL and REV10 have run (results-only commits 821ef73, be9a829, 9637b5b, 241a2c9) and assign no share.  With
      the critic held identical, the two phase-B mechanisms move DEV / val accuracy by −10.52 to +4.28 points in the Holm-significant contrasts of the
      seven seeded cells (67 of 168 contrasts), in directions that differ across objective × phase-A lr × FIT scale, and REV10's frozen rule returned

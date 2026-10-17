@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 """R7 D1 closeout tables (2026-10-17).
 
-Every results table (T0-T18) and every result number quoted in reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md (and in the Corrections sections
-it adds to earlier reports) is printed by this script from the committed results files in SOURCES; the report's clause table in §2 is a
-hand-written summary of these outputs.  It formats, counts, takes seed means / sd / minima / maxima and re-applies frozen decision rules (DF-8, E2-8, the
-REV10 rule) to the stored point estimates and Holm p-values.  It does no resampling and computes no new test or p-value.  Run from the
-repository root:
+Every results table (T0-T18) and every result number quoted in reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md (and in the Corrections items
+the closeout adds to earlier reports, 478fbe7 / 9a9560a: item 1 of the "Corrections (2026-10-17)" sections of reports/PROJECT_MAP_20261014.md,
+reports/R7/R7_50_PHASE_Q_REPORT_20261013.md and reports/REV8/REV8_DIAG_REPORT_20261014.md) is printed by this script from the committed results
+files in SOURCES; the report's clause table in §2 is a hand-written summary of these outputs.  The Corrections items added later (7d8ade5: items
+2-4 of the PROJECT_MAP section and the sections of the REV9, REV9-FULL and D1-10 CAL readout reports) quote these outputs together with other
+generated tables (REV8 §A, the REV9 / REV9-FULL tables, the D1-10 yes / no-mass secondary); each section's source note names them.  This script
+formats, counts, takes seed means / sd / minima / maxima and re-applies frozen decision rules (DF-8, E2-8, the REV10 rule) to the stored point
+estimates and Holm p-values.  It does no resampling and computes no new test or p-value.  Run from the repository root:
 
     python3 scripts/r7_d1_closeout_tables.py                                                     # print everything
     python3 scripts/r7_d1_closeout_tables.py --check reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md   # + verify the tables appear verbatim

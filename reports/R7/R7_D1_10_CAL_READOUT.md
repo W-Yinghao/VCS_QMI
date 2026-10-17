@@ -142,7 +142,7 @@ Per-item rank criterion (coordinator note 2026-10-12): observed Spearman(h, d) [
 > theoretical upper bound for all methods on natural data.  D1-10 shows only that the host's squared output gap d relates to the realised risk
 > change h, with systematic bias in some conditions; it is not yet evidence about the trained selectors (D1-20 / D1-30).
 
-## Corrections (2026-10-17; numbers unchanged)
+## Corrections (2026-10-17; results unchanged)
 Two sentences of the verdict lines are corrected; both keep their text, with a pointer to this section.  Numbers: `reports/R7/R7_D1_10_results.json`
 (results-only commit 4997cb6, unedited), `roles.CAL.cells` (the primary CAL tables above) and `secondary_mass_ge_0p9.tables.CAL.cells` (the yes /
 no-mass secondary); the primary values are also printed by `scripts/r7_d1_closeout_tables.py` (closeout T6).  No verdict changes: the rank rule fires
