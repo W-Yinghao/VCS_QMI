@@ -1,7 +1,8 @@
 <!-- Owner message of 2026-10-17 (summary version of V10_PHASE1_DECISIONS_20261017_CN.md), stored verbatim.  The three deliverables it links
      (V10_PHASE1_DECISIONS_20261017_CN.md, V10_PROTOCOL_DECISIONS_20261017.json, VCS_QMI_PROJECT_CONTEXT_CN.md) live in the owner's sandbox and were
-     not transferred to the server; the full decision text arrived as a separate message and is stored as V10_PHASE1_DECISIONS_20261017_CN.md.  The
-     machine-readable protocol on the server is derived from that text (v10/protocol/), not from the owner's JSON. -->
+     not transferred at first; the owner then uploaded two of them (2026-10-17): V10_PHASE1_DECISIONS_20261017_CN.md is byte-identical to the copy
+     stored from the message (sha256 2e60f963ad0cf874...), and V10_PROTOCOL_DECISIONS_20261017.json is stored unchanged next to it as the canonical
+     decision contract; v10/protocol/ is checked against that JSON. -->
 
 我已核对 **`v10/mf-vcs@15b1c54`** 的报告、对应源码和 T00–T02 原始记录。**我接受第一阶段报告；五项主建议均采纳，第 8 节的梯度门控修改也确认接受。T03 选择 U 为主，并按下面的网格推进。**
 
