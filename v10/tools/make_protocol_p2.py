@@ -11,9 +11,11 @@ Derivation.  Every value list is parsed from the decision text v10/decisions/V10
 its sentences, tables and numbered lists; a changed sentence aborts the run) or recomputed from the phase-1 records, all read as git objects at the
 phase-1 results commit named by the decision (11746dd): the v10/T00 manifest (sha256 pinned by MANIFEST_SHA256.txt), v10/T01
 {TORCH_VALIDATION, GEOMETRY_GRADIENT_CHECK}.json, v10/T02/{BUDGET, T02_TIMING_cuda}.json, the package (configs/V10_PROTOCOL.json,
-V10_DESIGN_CN.md, synthetic/src/v10_synthetic.py by ast) and the phase-1 code (adapter / backend defaults, the REG-P3 audit).  The
-working tree is read only for the three decision documents (required committed and unmodified), so later code, result or manifest
-commits cannot change this output.  The result is then compared
+V10_DESIGN_CN.md, synthetic/src/v10_synthetic.py by ast) and the phase-1 code (adapter / backend defaults, the REG-P3 audit).  Two
+more git objects at fixed commits: the phase-1 report at the reviewed HEAD of decision section 1 (cross-check of the T02 lead-step
+figures of decision 2.2) and src/v10/adapter.py at STEP2_CODE_COMMIT (the decision step-2 code: the landing choice of the fp64
+diagnostic trigger).  The working tree is read only for the three decision documents (required committed and unmodified), so later
+code, result or manifest commits cannot change this output.  The result is then compared
 field by field with the owner's decision contract v10/decisions/V10_PROTOCOL_DECISIONS_20261017.json.  Any mismatch aborts before
 anything is written; the checks that ran are listed in the output ("derivation_checks", all PASS by construction).
 Hand-written: English glosses; the mapping tables between decision wording and machine keys (MAP_* below); the implementation
@@ -59,6 +61,18 @@ OUT_JSON = "v10/protocol/V10_PROTOCOL_P2_20261017.json"
 OUT_UNITS = "v10/protocol/T03_UNITS.csv"
 # git objects read at the phase-1 results commit (the decision's "最近的测量结果提交"; checked below)
 CODE_AT_RESULTS = ("src/v10/adapter.py", "src/v10/mf_vcs.py", "src/v9/reg/r6_reg_p3.py")
+# decision step-2 code (relative M1 rule; review fixes) at a fixed commit: read as a git object, only for the landing choice of the
+# fp64 diagnostic trigger (later code commits cannot change this output)
+STEP2_CODE_COMMIT = "278abe4556e21c52d1ab974a2d4a948d1cf417a3"
+# package text superseded for T03 only (decision 9; quoted verbatim, checked in the design)
+PKG_T03_MODE = "U 保留为受控 iid 估计实验和命名清楚的目标敏感性分析，不能悄悄替换 V 来提高结果。"
+PKG_SEED_RULE = "主训练seed固定为1001/1002/1003；调参seed为1017。"
+PKG_T03_RETAINED = ("包内首先实现balanced two-block与diagonal-mixture的有限可观察表：m=8/32，rho=0/.25/.75；p/q/eta/S可以精确计算。"
+                    "FIT/CAL/EVAL分别使用独立随机流，truth单独保存在评估目录，训练器不读取。")
+# decision wording of the items frozen before the primary runs (section 10 step 3 and section 5) -> contract
+# rollout.freeze_before_primary_runs
+MAP_FREEZE = {"manifest": "manifest", "候选顺序": "candidate order", "成本上限": "cost ceilings", "数据": "manifest", "预处理": "preprocessing",
+              "seed": "seeds and RNG stream policy", "几何": "geometry", "CAL": "CAL rules", "精度": "precision"}
 UNIT_COLUMNS = ("unit_id", "block", "family", "m", "rho", "method", "K", "lr", "cap", "data_root_seed", "algo_seed", "steps",
                 "ckpt_every", "selection_rule", "depends_on")
 
@@ -354,7 +368,12 @@ def build_supersedes(I) -> list:
          "p2": "bf_batch1: K16 fixed, one learning rate tied across all optimiser-learned modules, 18 candidates; K8/K32 only as a named "
                "capacity extension"},
         {"contract_clause": "T03 target mode and repetition grid", "decision_section": "9",
-         "package": {"registration.training_seeds": P["registration"]["training_seeds"], "registration.tuning_seed": P["registration"]["tuning_seed"]},
+         "package": {"design 2.1 (target mode)": PKG_T03_MODE, "design 7 (seed rule, as applied to T03)": PKG_SEED_RULE},
+         "scope": "T03 only.  registration.training_seeds / registration.tuning_seed of the package (natural registration, "
+                  f"{P['registration']['training_seeds']} / {P['registration']['tuning_seed']}) stay in force for BF batch 1 (decision "
+                  "8.1; bf_batch1.seeds); design 6.3 (conditions, independent FIT / CAL / EVAL streams, truth kept from the trainer, "
+                  "oracle-free CAL selection) is retained (decision 9.2)",
+         "package_retained_design_6_3": PKG_T03_RETAINED,
          "p2": "t03: U primary, uniform derangements, 10 independent data suites + conditional algorithm seeds, 1212 trainings"},
         {"contract_clause": "fp32 dense-MLP gradient gate role", "decision_section": "7",
          "package": {"design 6.1": "大规模fp32消减错误超限 -> 显式更高精度积累并把成本计入"},
@@ -365,6 +384,12 @@ def build_supersedes(I) -> list:
          "p2": "data_roles / tma_colocation_sensitivity / epfl_activation"},
     ]
     same("contract supersedes clauses = P2 supersedes rows", [r["contract_clause"] for r in rows], C["supersedes"]["clauses"])
+    for what, text in (("design 2.1 U sentence", PKG_T03_MODE), ("design 7 seed sentence", PKG_SEED_RULE),
+                       ("design 6.3 T03 sentences", PKG_T03_RETAINED)):
+        check(f"package {what} quoted verbatim (supersedes: T03)", text in I["design"])
+    same("package natural-registration seeds = contract BF batch-1 seeds (not superseded)",
+         [P["registration"]["tuning_seed"], P["registration"]["training_seeds"]],
+         [C["natural_registration"]["tuning_algorithm_seed"], C["natural_registration"]["final_algorithm_seeds"]])
     same("package protocol M1 absolute target (superseded)", P["head"]["M1_gap_absolute_target"], 1e-4)
     check("package design section 5 InfoNCE row names 原生目标/候选归一化", "| InfoNCE宿主实现 | 相同局部观测与对应数据 | 原生目标/候选归一化 |" in I["design"])
     return rows
@@ -429,10 +454,21 @@ def build_m1(I) -> dict:
           "old_rule_encoder_grad_norm": a["encoder_grad_norm"], "forced30_gap_start": cb["m1_gap_initial"], "forced30_gap_final": cb["m1_gap"],
           "forced30_gap_decrease_percent": drop, "forced30_w_absmax": cw["w_absmax"],
           "forced30_encoder_grad_norm_postclip": eg["encoder_grad_norm_postclip"], "source": f"{TV} at {res[:7]}"}
+    head = one(r"HEAD 为 `([0-9a-f]{40})`", section(md, "1"), "reviewed HEAD (phase-1 report evidence)").group(1)
+    rep_bytes = git_blob(head, PHASE1_REPORT)
+    rep = rep_bytes.decode("utf-8")
+    I["inputs"][f"{head}:{PHASE1_REPORT}"] = sha256_bytes(rep_bytes)
+    rr = one(r"逐步文件 `train_steps_per_step\.json` sha256 ([0-9a-f]{16})…）：前 (\d+) 步（恰为全部 \d+ 个 warmup 步，不在计时窗口内）"
+             r"全部 0 次迭代、W = 0、J = 0，[^；]*；第 (\d+) 步（index (\d+)）", rep, "phase-1 report 6.1: T02 record-row lead steps")
+    same("decision 2.2 T02 lead steps = phase-1 report 6.1 (reviewed HEAD)", [int(lead.group(1)), int(lead.group(2))],
+         [int(rr.group(2)), int(rr.group(3))])
+    same("phase-1 report 6.1: first active index = step - 1", int(rr.group(4)), int(rr.group(3)) - 1)
     ev_text = {"t02_record_row_degenerate_lead_steps": int(lead.group(1)), "t02_record_row_first_active_step_1based": int(lead.group(2)),
-               "source": "decision 2.2 text only: the raw T02 per-step record (outputs_v10/T02/runs/cuda_1043695/train_steps_per_step.json) "
-                         "is outside the repository and its hash is not pinned in a committed record; the phase-1 report section 12 "
-                         "renders the same figures from that record"}
+               "per_step_record": "outputs_v10/T02/runs/cuda_1043695/train_steps_per_step.json (outside the repository)",
+               "per_step_record_sha256_prefix": rr.group(1),
+               "source": f"decision 2.2 text; the same two figures in the phase-1 report section 6.1 at the reviewed HEAD {head[:7]} "
+                         "(rendered there from the per-step record, whose sha256 that report pins only as the 16-hex prefix "
+                         f"{rr.group(1)}...; the full hash is in no committed record); checked equal here"}
     check("decision 2.2 host-init gap agrees with T01", agrees(ev["gap_ref_zero_host_init_cpu"], g0s), f"{ev['gap_ref_zero_host_init_cpu']!r} ~ {g0s}")
     check("decision 2.2 forced-30 |W|max agrees with T01", agrees(cw["w_absmax"], wmax), f"{cw['w_absmax']!r} ~ {wmax}")
     check("decision 2.2 encoder gradient norm agrees with T01", agrees(eg["encoder_grad_norm_postclip"], f"{egm.group(1)}e{egm.group(2)}"))
@@ -481,7 +517,7 @@ def build_m1(I) -> dict:
                           "encoder gradient error nor the population S error",
         "phase1_code": {"commit": res, "M1Config.tolerance_absolute": tol0, "solver_status_strings": ["gap_tolerance", "iteration_budget_exhausted"]},
         "evidence_phase1": ev,
-        "evidence_decision_text_only": ev_text,
+        "evidence_t02_record_row": ev_text,
         "evidence_scope": "the relative rule removes the batch-noise-dependent start; the forced-30 decrease (about "
                           f"{round(drop, 2)}%) does not show that tau_b is reachable within 100 iterations; the T02 cap-bound gap "
                           "medians of the phase-1 report are absolute gaps, not per-batch relative zero-head gaps",
@@ -606,11 +642,18 @@ def build_baselines(I) -> dict:
     one(r"必需基线补齐之前不发布方法优劣、强基线优势或新颖性比较结论。", s5, "no comparative conclusions")
     one(r"完整方法集合和方法内选择全部固定以后才能启用 TEST 重复块。", s5, "TEST repeat activation")
     same("contract no comparative conclusions", C["no_comparative_conclusions_until_required_baselines_complete"], True)
+    start_cn = one(r"(完成新 M1 验收和本文件所列协议落地后，可以开展 BF 的 CAL 与 DEV 工作；其余基线同步实施。)", s5, "batch-1 start").group(1)
+    step3_cn = one(r"(冻结首批公共协议、[^；]+；开展 BF 的四族 CAL/DEV。)", section(md, "10"), "step 3: freeze then BF CAL/DEV").group(1)
+    check("contract server_next_steps[2]: freeze first, then BF CAL/DEV",
+          I["contract"]["server_next_steps"][2].startswith("Freeze first-batch common protocol; run BF CAL/DEV"))
     return {
         "decision_section": "5", "report_option": "4B",
         "batch1": batch1,
-        "batch1_start_condition": "after the new M1 acceptance (all T01 parts under the new code hash) and this protocol landing; then BF "
-                                  "CAL and DEV work may start while the other baselines are implemented",
+        "batch1_start_condition": "after the new M1 acceptance (all T01 parts under the new code hash), this protocol landing and the "
+                                  "decision step-3 freeze of bf_batch1.freeze_before_primary_runs (contract rollout.freeze_before_primary_runs); "
+                                  "then BF CAL and DEV work may start while the other baselines are implemented",
+        "batch1_start_condition_sources": ["decision 5: " + start_cn, "decision 10 step 3: " + step3_cn,
+                                           "contract server_next_steps[2]: " + I["contract"]["server_next_steps"][2]],
         "later": later,
         "every_new_adapter": ["targeted T01 checks", "T02 complete timing", "frozen attachment (implementation note and predefined "
                               "candidates within the cost ceiling)", "rerun under the frozen data, preprocessing, seed, geometry, CAL and "
@@ -987,12 +1030,29 @@ def build_bf(I) -> dict:
                                           ("tuning_seed", tseed), ("steps", steps), ("checkpoint_every", every), ("checkpoints", nck),
                                           ("status", "NOT_RUN")]))
     same("BF candidates enumerated", len(cands), total)
+    # items frozen before the primary runs (decision 10 step 3 and section 5) = contract rollout.freeze_before_primary_runs
+    fr3 = one(r"冻结首批公共协议、(.+?)；开展 BF 的四族 CAL/DEV", section(md, "10"), "step 3: frozen items").group(1)
+    fr5 = one(r"再按冻结的(.+?)规则补跑。", section(md, "5"), "section 5: frozen rules").group(1)
+    items = [x.strip() for x in re.split(r"、|和", fr3) if x.strip()] + [x.strip() for x in re.split(r"、|和", fr5) if x.strip()]
+    for it in items:
+        check(f"freeze item {it!r}: mapped (MAP_FREEZE)", it in MAP_FREEZE)
+    cfreeze = I["contract"]["rollout"]["freeze_before_primary_runs"]
+    same("freeze before primary runs: decision 10 step 3 + section 5 = contract rollout.freeze_before_primary_runs (as sets)",
+         sorted({MAP_FREEZE[x] for x in items}), sorted(cfreeze))
+    same("contract freeze list without repeats", len(set(cfreeze)), len(cfreeze))
+    freeze = [OrderedDict([("item", it), ("decision_text", [x for x in items if MAP_FREEZE[x] == it]), ("status", "NOT_RUN")])
+              for it in cfreeze]
+    n_dev_reg = proj["n_reg_per_final_unit"] - proj["n_reg_cal_per_candidate"]
+    same("formal-unit DEV registrations = DEV cores x perturbations", n_dev_reg, dev_c * dev_p)
     formal = [OrderedDict([("unit_id", f"BF1_{mth}_s{s}"), ("method", mth), ("algo_seed", s), ("hyperparameters", "the family's CAL-selected "
                            "candidate (tuning seed 1017)"), ("checkpoint_selection", "decision 8.1 items 1-4 over this seed's 12 checkpoints on CAL"),
                            ("dev", f"{dev_c} cores x {dev_p} perturbations at the selected checkpoint"), ("status", "NOT_RUN")])
               for mth in methods for s in fseeds]
     return {
         "decision_section": "8", "status": "LANDED_NOT_FROZEN (freeze = decision step 3)",
+        "freeze_before_primary_runs": freeze,
+        "freeze_rule": "decision step 3 freezes these items (with the batch-1 common protocol) before any BF CAL / DEV primary run; "
+                       "items are NOT_RUN until then (baselines.batch1_start_condition)",
         "fixed": {"MF_K": K, "MF_temperature": temp, "ridge": ridge, "W_weight_decay": wwd,
                   "architecture": "the audited host encoders and MLP critic unchanged; MF head = host encoders + per-side feature map + W"},
         "learning_rate": {"candidates": lrs, "tied": "one candidate learning rate shared by every optimiser-learned module (MF perm1 / M0: "
@@ -1025,7 +1085,8 @@ def build_bf(I) -> dict:
                    "old_timing_projection_GPU_h": {"label": "phase-1 L40S timing (cap-bound M1) x the new candidate counts; conditional "
                                                    "projection only", "formula": f"candidate = ({proj['steps']} steps x step time + "
                                                    f"{proj['n_reg_cal_per_candidate']} CAL registrations x s/registration) / 3600; formal unit "
-                                                   f"adds DEV ({proj['n_reg_per_final_unit']} registrations)",
+                                                   f"= ({proj['steps']} steps x step time + {proj['n_reg_per_final_unit']} registrations "
+                                                   f"({proj['n_reg_cal_per_candidate']} CAL + {n_dev_reg} DEV) x s/registration) / 3600",
                                                    "tuning": proj["tuning"], "tuning_total": proj["tuning_total"],
                                                    "formal_unit": proj["final_unit"], "formal_unit_MF_VCS_M1_by_cap": proj["final_unit_M1_by_cap"],
                                                    "tuning_plus_3_formal_seeds_by_final_M1_cap": proj["totals_by_final_M1_cap"],
@@ -1386,6 +1447,31 @@ def landing_choices() -> list:
     ]
 
 
+def step2_landing_choices() -> list:
+    """implementation choices of the decision step-2 code (not owner decisions), read as git objects at STEP2_CODE_COMMIT"""
+    check(f"git: step-2 code commit {STEP2_CODE_COMMIT[:7]} is an ancestor of HEAD",
+          subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", STEP2_CODE_COMMIT, "HEAD"]).returncode == 0)
+    ad = git_blob(STEP2_CODE_COMMIT, "src/v10/adapter.py").decode("utf-8")
+    m = re.search(r"^M1_FP64_DIAGNOSTIC_BELOW = ([0-9.e+-]+)", ad, re.M)
+    check("step-2 adapter: fp64 diagnostic factor M1_FP64_DIAGNOSTIC_BELOW", m is not None)
+    check("step-2 adapter: resolution unit = 2 eps(dtype)", "def m1_resolution_unit(dtype) -> float:" in ad
+          and "    return 2.0 * torch.finfo(dtype).eps\n" in ad)
+    check("step-2 adapter: the diagnostic's HVPs / moment pass enter the per-batch totals",
+          '"m1_hvp_calls_total": int(hvp_calls) + diag_hvp' in ad and '"m1_moments_passes_total": int(moments_passes) + diag_mom' in ad)
+    check("step-2 adapter: no diagnostic in float64", 'return {"triggered": False, "reason": "working dtype float64", **base}' in ad)
+    below = float(m.group(1))
+    return [{"topic": "M1 same-input fp64 diagnostic trigger",
+             "choice": f"run the diagnostic on a batch when G_b(0) <= {gfmt(below)} x 2 eps(working dtype) (float32: "
+                       f"{below * 2 * 2.0 ** -23:.4g}; never in float64); diagnostic only (the training head, W and gradients are not "
+                       "touched); its HVPs and its one fp64 moment pass are logged per batch (m1_fp64_diag_*) and counted in "
+                       "m1_hvp_calls_total / m1_moments_passes_total; its time is inside the measured training step",
+             "where": f"src/v10/adapter.py M1_FP64_DIAGNOSTIC_BELOW and m1_resolution_unit at {STEP2_CODE_COMMIT[:7]}",
+             "why": "decision 2.3 keeps a same-input fp64 diagnostic for references near fp32 resolution without fixing the threshold; "
+                    "2 eps is the rounding scale of Delta_b and of the FW gap for simplex features with weights summing to 1, and the "
+                    "factor keeps the diagnostic on while G_b(0) is within four orders of that scale (it runs at the host init, "
+                    "G_b(0) about 3.2e-5)", "owner_decision": False}]
+
+
 def build(I) -> tuple[str, str]:
     P = OrderedDict()
     P["schema"] = "vcs_qmi.v10.protocol.v2"
@@ -1408,6 +1494,7 @@ def build(I) -> tuple[str, str]:
                       "reproducible": "no wall-clock time, no live query, no randomness: byte-identical across runs"}
     P["inputs"] = I["inputs"]
     P["inputs_code"] = OrderedDict((f"{I['results_commit']}:{p}", sha256_bytes(git_blob(I["results_commit"], p))) for p in CODE_AT_RESULTS)
+    P["inputs_code"][f"{STEP2_CODE_COMMIT}:src/v10/adapter.py"] = sha256_bytes(git_blob(STEP2_CODE_COMMIT, "src/v10/adapter.py"))
     P["phase1_identity"] = build_identity(I)
     P["supersedes"] = build_supersedes(I)
     P["m1_rule"] = build_m1(I)
@@ -1423,7 +1510,7 @@ def build(I) -> tuple[str, str]:
     P["t03"] = t03
     P["execution_order"] = build_execution(I)
     P["implementation_deltas_vs_phase1_code"] = implementation_deltas(I)
-    P["landing_choices"] = landing_choices()
+    P["landing_choices"] = landing_choices() + step2_landing_choices()
     P["standing_constraints"] = {"CONFIRM": 0, "TEST134": "HOLD, never read", "EPFL": "not activated", "public_repo": "ids and rules only; "
                                  "no data, images, checkpoints or per-image labels"}
     buf = io.StringIO()
