@@ -119,13 +119,13 @@ Per-item rank criterion (coordinator note 2026-10-12): observed Spearman(h, d) [
    - **Meaning:** d over-states the realised risk change. By the D1-L1 reference, a negative residual means an over-confident full teacher along (b − a).
    - **Consequence (frozen wording):** D1-20 is judged on realised h, and any d-based read-out is calibrated on CAL.
 3. **Rank criterion — calibrated-teacher ceiling** (coordinator note; it supersedes the 0.5 line).
-   - **On CAL the rule fires in no cell (0 / 12).** For random and grid masks, the observed per-item Spearman(h, d) lies inside or at the calibrated-teacher band.
+   - **On CAL the rule fires in no cell (0 / 12).** For random and grid masks, the observed per-item Spearman(h, d) lies inside or at the calibrated-teacher band. (See Corrections (2026-10-17), item 1.)
    - **qsim on CAL is borderline but not fired.** At 12.5 % the observed value is 0.396 [0.372, 0.421] against a band of [0.419, 0.461]; at 25 % it is 0.317 [0.289, 0.343] against [0.336, 0.373].
    - **On FIT (descriptive) the rule fires for qsim at 12.5 % and 25 %.** With the larger n, the interval is tighter.
    - **Reading, under-claimed:** for random and grid masks, d ranks per-question losses about as well as a calibrated teacher could. For question-similarity masks there is a sign, borderline on CAL and clear on FIT, that d ranks losses worse than that ceiling.
    - **Superseded 0.5 line:** every cell is below 0.5, as D1-L1 predicted for any teacher.
 4. **Text-only line.** Balanced text-only accuracy is 0.609 on CAL (0.616 on FIT), so question priors are present. The visual-evidence share, Brier_text − Brier_full, is 0.986 − 0.410 = 0.576 on the ±1 scale.
-5. **Package §F.** The residual is not "large and unpredictable": its magnitude is at most about 25 % of h and its sign is stable. So the squared-gap read-out is not invalid, but it is biased upwards at small budgets.
+5. **Package §F.** The residual is not "large and unpredictable": its magnitude is at most about 25 % of h and its sign is stable. So the squared-gap read-out is not invalid, but it is biased upwards at small budgets. (See Corrections (2026-10-17), item 2.)
 
 ## Surprises, disclosed before any D1-20 decision
 
@@ -141,3 +141,18 @@ Per-item rank criterion (coordinator note 2026-10-12): observed Spearman(h, d) [
 > teacher's own probabilities (labels redrawn as C* ~ Bernoulli(p̃_full)); it is what a calibrated teacher would produce on these items, not a
 > theoretical upper bound for all methods on natural data.  D1-10 shows only that the host's squared output gap d relates to the realised risk
 > change h, with systematic bias in some conditions; it is not yet evidence about the trained selectors (D1-20 / D1-30).
+
+## Corrections (2026-10-17; numbers unchanged)
+Two sentences of the verdict lines are corrected; both keep their text, with a pointer to this section.  Numbers: `reports/R7/R7_D1_10_results.json`
+(results-only commit 4997cb6, unedited), `roles.CAL.cells` (the primary CAL tables above) and `secondary_mass_ge_0p9.tables.CAL.cells` (the yes /
+no-mass secondary); the primary values are also printed by `scripts/r7_d1_closeout_tables.py` (closeout T6).  No verdict changes: the rank rule fires
+in 0 / 12 CAL cells, and the D1 closeout (`reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md` §2.3) reads clause 3 as not fired.
+1. Line 122 — "For random and grid masks, the observed per-item Spearman(h, d) lies inside or at the calibrated-teacher band."  Not for random 12.5 %:
+   its observed value 0.455 [0.429, 0.479] lies below the band [0.461, 0.502], by less than its bootstrap margin (the interval's upper end, 0.479, is
+   above the band's lower end), so the rule does not fire there.  Correct statement: 7 of the 8 random / grid cells lie inside their band; random
+   12.5 % lies just below it, within the margin, as do qsim 12.5 % (0.396 against 0.419) and qsim 25 % (0.317 against 0.336; line 123).  The yes /
+   no-mass secondary gives the same for random 12.5 % (0.455 [0.431, 0.479] against [0.461, 0.501]; line 83).
+2. Line 128 — "its magnitude is at most about 25 % of h".  |h − d| / h is at most 0.25 in 10 of the 12 CAL cells and 0.252 at qsim 25 %, but 0.367 at
+   qsim 75 %, the cell with the smallest mean h (0.0141; mean h − d −0.0052 [−0.0103, −0.0000]).  Correct statement: the magnitude is at most about
+   25 % of h in 11 of the 12 cells and 37 % at qsim 75 %; in absolute terms it is at most 0.0287 (qsim 12.5 %).  The sign is negative in 11 of the 12
+   cells, qsim 75 % included; the exception is grid 75 % (+0.0004 [−0.0048, +0.0055], CI covering 0).

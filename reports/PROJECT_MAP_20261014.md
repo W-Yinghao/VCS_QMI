@@ -182,7 +182,7 @@ SSL 里 P = 联合（两视图配对），Q = 边缘乘积（循环移位负对�
 - **REV9（已冻结、运行中）：** 对 9 个冻结单元从 phase-A 末状态配对重跑 phase B（I1 eval-mode；I2 + straight-through hard top-k），同一评价器在固定预算上比较——这是回答"候选因素是否致因"的实验。LLaVA 10k 与 FULL 两套都在队列里。
 
 ### 7.3 解读
-D1 的失败形态与 R5 一样：**成对 critic 学到的 r(K) 能排序"整体上哪个预算更安全"（pooled Spearman 0.09–0.21），却分不清同一问题内三个候选 mask 的优劣（随机水平）。**选择任务要的是候选间的竞争，而二分类后验（VCS 和 logistic 一样）不提供。S3 直接回归实现风险略好，说明问题在"后验→风险"的读数，不在二次形式。另外 REV8 指出两个纯工程缺陷（phase B 用了训练模式 dropout；软硬松弛），REV9 会量化它们的份额。
+D1 的失败形态与 R5 一样：**成对 critic 学到的 r(K) 能排序"整体上哪个预算更安全"（pooled Spearman 0.09–0.21），却分不清同一问题内三个候选 mask 的优劣（随机水平）。**选择任务要的是候选间的竞争，而二分类后验（VCS 和 logistic 一样）不提供。S3 直接回归实现风险略好，说明问题在"后验→风险"的读数，不在二次形式。另外 REV8 指出两个纯工程缺陷（phase B 用了训练模式 dropout；软硬松弛），REV9 会量化它们的份额。（本段的 D1 解读见文末 Corrections 2026-10-17 第 2 条。）
 
 ---
 
@@ -203,8 +203,8 @@ V7 是迄今匹配最严的自然数据实验（同接口、同初始化、同�
 
 ## 9. 横向总结：暴露的根本问题
 
-1. **"同一后验"是硬约束，不是失误。** VCS 与 logistic 的总体最优解相同（docs/03 §3），有限样本差异只是优化路径效应（R4-E1：拟合准则本身贡献 +0.0004，不显著）。六条自然数据线 + 受控数据全部印证。**任何以"VCS 比 logistic 更准"为前提的实验设计都不会有结果**——D1、V7、R5、VL3、R6 都是这么设计后得到"无差异"的。
-2. **成对二分类后验不适合"从候选中选一个"。** R5（候选数越多差距越大，−0.3 → −3.5）、D1（同一问题内 mask 选择处于随机水平）、R6 GAIN 的小效应，都是同一结构：任务要候选间竞争或排序，而 P/Q 后验只给每个候选一个孤立的分数。补救（R5 的 query 内归一化、D1 的 S3 直接风险）都来自任务侧，不来自 VCS。
+1. **"同一后验"是硬约束，不是失误。** VCS 与 logistic 的总体最优解相同（docs/03 §3），有限样本差异只是优化路径效应（R4-E1：拟合准则本身贡献 +0.0004，不显著）。六条自然数据线 + 受控数据全部印证。**任何以"VCS 比 logistic 更准"为前提的实验设计都不会有结果**——D1、V7、R5、VL3、R6 都是这么设计后得到"无差异"的。（D1 一项见文末 Corrections 2026-10-17 第 3 条。）
+2. **成对二分类后验不适合"从候选中选一个"。** R5（候选数越多差距越大，−0.3 → −3.5）、D1（同一问题内 mask 选择处于随机水平）、R6 GAIN 的小效应，都是同一结构：任务要候选间竞争或排序，而 P/Q 后验只给每个候选一个孤立的分数。补救（R5 的 query 内归一化、D1 的 S3 直接风险）都来自任务侧，不来自 VCS。（D1 部分见文末 Corrections 2026-10-17 第 4 条。）
 3. **精度已有的对手太强，而我们从不占优。** 对传统估计器（KDE、RFF、Nyström 小 N）学习型路线有优势，但那是"学习型 vs 核"的共性（JS 同样享有）；对调好的核（RuLSIF、Nyström 大 N / 高维）持平或略输（P86、X21）。
 4. **三条替代论证各有限定（§4.4）。** 鲁棒性：P134 支持的斜率优势被 R4-E0 重读为"局部退化优势"，且理论上不能写成定理；嵌套增量：恒等式精确、P118 有真值链上 VCS 通过全部判据、但自然特征上不可见；认证下界：对任意有界 T 成立，弱依赖在 n ≤ 512 永远无法认证。
 5. **工程缺陷反复出现在 VL 线。** D1 phase B 的训练模式 dropout、软硬松弛（REV8）；D1 的选择分数混合了 budget 间与 budget 内的方差（R8-04）；R5 的 63 个预定行未评价、测试标注未封存；V7 的 lr 全部选在网格上沿。SSL 线经过 100+ run 的打磨后没有这类问题——这是成熟度差距的直接表现。
@@ -275,6 +275,54 @@ Owner, 2026-10-14: A-P3 is the final recipe; test it.  `reports/P155_AP3_OFFICIA
    rows of `reports/R7/R7_50_results_F/r7_50_results.json`, seed means for S1–S3, printed by `scripts/r7_d1_closeout_tables.py`).  SparseVLM is
    the best row at 25 %, as the phase F report reads (`reports/R7/R7_50_PHASE_F_REPORT_20261014.md:148`).  Line 175 keeps its sentence and
    carries a pointer to this section.
+2. §7.3, line 185 (keeps its text, with a pointer to this section) — the D1 reading of this paragraph is not carried forward (closeout =
+   `reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md`, §8):
+   - 「成对 critic 学到的 r(K) 能排序"整体上哪个预算更安全"（pooled Spearman 0.09–0.21）」: REV8 (R8-04) found the pooled CAL score not mostly between-budget variation.
+     Its pre-registered flag `R8_04_pooled_mostly_between_budgets` (mean within-budget Spearman below 0.5 × the pooled Spearman;
+     `reports/REV8/REV8_DIAG_PROTOCOL_FROZEN_20261013.yaml:73, 80-81`) is set in 1 of the 36 units (LLaVA FULL vcs, lr 3e-4, seed 0, an
+     other-learning-rate unit), so the pooled value is not mainly a ranking of budgets and does not support this reading.  The range 0.09–0.21 also
+     spans the direct-risk critic: the seed means are 0.088–0.140 for the VCS and logistic critics and 0.171–0.214 for direct risk (REV8 §A).
+   - 「S3 直接回归实现风险略好，说明问题在"后验→风险"的读数，不在二次形式」: S3's better critic-level ranking (within-(question, budget) pairwise accuracy 0.525–0.544 against
+     0.498–0.504 for VCS / logistic; REV8 §A) does not carry over to delivered accuracy.  Under both two-scale claim rules S3 is below S1 on TextVQA
+     (LLaVA DF-8 "S1 higher" at L25 / L50 / L75, full FIT +1.18 / +1.24 / +3.46; Qwen E2-8 "S1 above" at f 0.25 / 0.5, full FIT +29.80 / +14.82) and
+     above S1 only on Qwen GQA (E2-8 "S1 below" at f 0.25 / 0.5 / 0.75); the other S1 − S3 contrasts carry no claim, some being Holm-detected at one
+     scale in either direction (closeout T4, T5).  At 25 % of the visual tokens S3 is below the uniform grid in all 12 (host, FIT, benchmark) rows at
+     seed means (closeout T18; per seed, full-FIT LLaVA S3 seed 2 is above the grid on all three benchmarks, closeout §4).  D1 therefore does not
+     locate the problem in a "posterior → risk" read-out (closeout §7).
+   - 「REV9 会量化它们的份额」 is stale: REV9, REV9-FULL and REV10 have run (results-only commits 821ef73, be9a829, 9637b5b, 241a2c9) and assign no share.  With
+     the critic held identical, the two phase-B mechanisms move DEV / val accuracy by −10.52 to +4.28 points in the Holm-significant contrasts of the
+     seven seeded cells (67 of 168 contrasts), in directions that differ across objective × phase-A lr × FIT scale, and REV10's frozen rule returned
+     MIXED (closeout §5, T14).
+   - The paragraph's second sentence, 「选择任务要的是候选间的竞争，而二分类后验（VCS 和 logistic 一样）不提供」, is the structural reading of §9.2; see item 4.
+3. §9.1, line 206 (keeps its text, with a pointer to this section) — 「D1、V7、R5、VL3、R6 都是这么设计后得到"无差异"的」 is wrong for D1, the only entry corrected here
+   (closeout §8).  D1 did not obtain "no difference" between the VCS selector (S1) and its logistic sibling (S2): it found Holm-detected S1 − S2
+   differences in both directions that depend on FIT scale, host and seed, and it set no equivalence margin
+   (`reports/R7/R7_D1_30_STAGED_FREEZE_20261012.yaml:103`; `reports/R7/R7_50_PROTOCOL_FROZEN_20261012.yaml:170`).  LLaVA, DEV / val: S1 is
+   Holm-detected below S2 at 10k FIT at L25 and L50 on all three benchmarks and above S2 at full FIT on TextVQA (+2.01 / +2.19 at L25 / L50, Holm p
+   0.009); there is no DF-8 claim at any of the 9 points (6 scale-dependent sign, 3 failing Holm at one or both scales).  Qwen: E2-8 claims "S1 below"
+   on ChartQA at f 0.25 / 0.5 / 0.75 (full FIT −3.58 / −3.14 / −0.89); on TextVQA the two scales are significant with opposite signs at f 0.25 / 0.5
+   (10k +14.81 / +3.98, full −2.40 / −0.44).  Official tests: the 10k-FIT S1 is below S2 in every detected cell (phase L: GQA testdev at L25 / L50 /
+   L75 and ChartQA test at L25; phase Q: all six cells, every seed negative); the full-FIT LLaVA S1 (phase F) is below S2 on GQA testdev at L25 (−0.78
+   [−1.16, −0.40]; seeds −0.21 / +0.21 / −2.35) and above it on ChartQA test at L25 (+0.75 [+0.34, +1.17]; seeds +2.17 / −0.10 / +0.18), Holm p 0.006
+   each.  Correct statement for D1: no host- or scale-independent ordering of VCS and logistic, no claim either way on LLaVA, and no equivalence
+   statement (closeout §3, T7, T8).
+4. §9.2, line 207 (keeps its text, with a pointer to this section) — its D1 part (「D1（同一问题内 mask 选择处于随机水平）」 as an instance of 「成对二分类后验不适合"从候选中选一个"」,
+   and 「D1 的 S3 直接风险」 as a remedy) is the negative structural label, which the closeout finds claims more than the data show and does not use
+   (closeout §4, §8).  What D1 shows: (i) within a (question, budget), the learned VCS and logistic critics choose among the three D1-10 masks at
+   chance (pairwise accuracy 0.498–0.504; regret 0.143–0.172 against 0.147–0.173 for a random choice), while the host's own squared-gap read-out d
+   chooses with regret 0.087–0.093 (a reference that uses host outputs, not a deployable selector; REV8 §A, closeout T11), and D1-10 did not find
+   h − d "large and unpredictable" (clause 3 did not fire; closeout §2.3); (ii) the shortfall is not specific to a posterior read-out: the S3
+   direct-risk selector, named here as D1's remedy, is below the uniform grid and below every external row at 25 % of the visual tokens in all 12
+   (host, FIT, benchmark) rows at seed means (closeout T18; the Qwen external rows are the E1 columns, run in their own environments), and below S1 on
+   TextVQA under both two-scale rules (item 2).  Correct statement for D1: the learned VCS and logistic critics do not discriminate between candidate
+   masks within a question; D1 does not show that a posterior read-out is unsuitable for candidate selection, and S3 does not remedy the shortfall
+   (closeout §4, §7, T18).  The same label in §11 C (line 237) is not used either (closeout §4; "Update 2026-10-17" below).  Lines 145 (its §7 part),
+   218, 224 and 241 refer to this structural reading or to an "R5/D1" remedy; their D1 part is read with this item.  The R5 and R6 parts of line 207
+   are outside this correction.
+
+Items 2–4: the closeout tables and quoted counts are printed by `scripts/r7_d1_closeout_tables.py` from the committed results files listed in closeout
+§9 (each unedited since its results-only commit); the REV8 values are from `reports/REV8/REV8_DIAG_RESULTS/rev8_diag_results.json` (5dd8f37; `flags`,
+`A_R8_04`), as tabulated in `reports/REV8/REV8_DIAG_REPORT_20261014.md` §A.
 
 ## Update 2026-10-17: D1 closed
 D1 is closed by `reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md`, after REV9, REV9-FULL and REV10 (§7.2 above still describes REV9 as running).  The

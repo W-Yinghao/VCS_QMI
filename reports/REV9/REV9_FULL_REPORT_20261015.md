@@ -3,7 +3,7 @@
 **Provenance.**
 - Protocol: REV9 addendum `addendum_full_20261014`, execution notes 3–5.
 - Phase B: job 1039944. Guards exact for VCS and logistic.
-- The direct objective's guard failed (cross-hardware). Its primary readout is stopped (note 3), and its H100 secondary rerun is pending (jobs 1040704 / 1040705).
+- The direct objective's guard failed (cross-hardware). Its primary readout is stopped (note 3), and its H100 secondary rerun is pending (jobs 1040704 / 1040705). (Stale: see §4 and Corrections (2026-10-17), item 1.)
 - Evaluations: jobs 1040486 and 1040487.
 - Scoring: job 1041006, frozen `rev9_score.py`, SparseVLM environment, tags VCS and logistic only.
 - Results-only commit `be9a829`.
@@ -26,12 +26,12 @@ So there is no relaxation gap for the hard top-k to repair, and forcing it costs
 **Reading against REV9 (10k), descriptive.**
 - At 10k, VCS (lr 3e-4) gained from I2 and logistic (lr 1e-4) lost.
 - At FULL, VCS at lr 1e-4 behaves like logistic at lr 1e-4.
-- This is **consistent with the 10k pattern being driven by the learning rate (through the relaxation gap), not by the objective.** It is not a test of that, because the data scale also differs (FULL vs 10k).
+- This is **consistent with the 10k pattern being driven by the learning rate (through the relaxation gap), not by the objective.** It is not a test of that, because the data scale also differs (FULL vs 10k). (See Corrections (2026-10-17), item 2.)
 - **REV10 is the test.** It is frozen in `REV10_LR_FACTORIAL_PROTOCOL_FROZEN_20261015.yaml` and has a pre-fixed decision rule: VCS at 1e-4 and logistic at 3e-4 at the 10k scale.
 
 **Against the grid (descriptive).**
 - The frozen D1-FULL selectors are below the uniform grid at small budgets: TextVQA −6.81 / −8.61 (VCS) and −7.79 / −10.62 (logistic) at 72 / 144; GQA about −3.
-- The eval-mode critic closes only a little of this, at most +1.86. The training-mechanics fixes that closed most of the gap at 10k do not close it at FULL.
+- The eval-mode critic closes only a little of this, at most +1.86. The training-mechanics fixes that closed most of the gap at 10k do not close it at FULL. (See Corrections (2026-10-17), item 3.)
 
 ## 2. Tables (generated)
 ### Guard (I0, seed 0 of each objective)
@@ -128,3 +128,25 @@ the 24 contrasts of this objective; paired per-item differences, image-grouped b
   gaps are 6e-4 to 1e-4.  All of this is one seed on one hardware class and is **descriptive**: it carries no claim and enters the D1 closeout only as the
   secondary reading it was pre-labelled to be (note 3).  A seeded, pre-registered unit would be needed before any statement about the direct objective's
   phase-B mechanism.
+
+## Corrections (2026-10-17; numbers unchanged)
+Three sentences of this report are stale or are not carried forward by the D1 closeout (`reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md` §8); each keeps
+its text, with a pointer to this section.  Numbers: the results files named below (each unedited since its results-only commit), as printed by
+`scripts/r7_d1_closeout_tables.py` (closeout T12, T14, T15), and §2 and §4 of this report.
+1. Provenance, line 6 — "its H100 secondary rerun is pending (jobs 1040704 / 1040705)" is stale.  The secondary has run and is reported in §4 of this
+   file, added in 47d0f93 (which updated §3, line 98, but not this line): the H100 rerun (job 1040704) passed its I0 guard (estimator and gate max abs
+   diff 0: `guard` of the results file; execution note 6, `REV9_PROTOCOL_FROZEN_20261014.yaml:69-75`), and its evaluation (job 1040705) and seed-0
+   scoring (job 1041304) produced the results file committed in 9637b5b (`REV9_FULL_H100_RESULTS/rev9_full_h100_direct_secondary.json`).  The primary
+   REV9-FULL readout of the direct objective stays stopped (note 3).
+2. §1, line 29 — "consistent with the 10k pattern being driven by the learning rate (through the relaxation gap), not by the objective".  Its
+   designated test (line 30), REV10, returned MIXED (results-only commit 241a2c9, `reports/REV9/REV10_RESULTS/rev10_results.json`; rule
+   `REV10_LR_FACTORIAL_PROTOCOL_FROZEN_20261015.yaml:29-32`): vcs_lr0.0001 has net I1 −1 and net I2 −10, logistic_lr0.0003 net I1 −3 and net I2 −1, so
+   neither shows pattern V (net I2 ≥ +3 and |net I1| ≤ 2) or pattern L (net I1 ≥ +3 and net I2 ≤ −3).  Logistic at lr 3e-4 has the relaxation gap
+   (frozen −0.0477 at 72 tokens) and does not gain from I2 (net −1).  The gap's size does sort by learning rate (over the VCS / logistic units of
+   REV9, REV9-FULL and REV10, |frozen gap| at 72 tokens is 0.0443 or more in all six lr-3e-4 units and at most 0.0223 in all twelve lr-1e-4 units),
+   the size pattern REV10's protocol lists as lr-driven for this secondary (line 34), but the accuracy response does not follow it.  Correct
+   statement: the 10k pattern is attributed neither to the learning rate nor to the objective (MIXED, reported descriptively; closeout §5, T14, T15).
+3. §1, line 34 — "at most +1.86": +1.86 is the logistic selector's I1 gain (TextVQA 144, Holm p 0.024; frozen − grid −10.62).  The VCS selector (S1)
+   has three Holm-significant I1 changes: +0.51 (GQA 144; frozen − grid −2.76), +0.60 (TextVQA 288; −5.28) and +0.63 (TextVQA 432, a cell above the
+   grid, +1.14).  Correct statement: in the cells below the grid, the eval-mode critic narrows the gap by at most +0.60 for S1 (TextVQA 288, Holm p
+   0.045; at most +0.51 at budgets 72 / 144, GQA 144) and by at most +1.86 for logistic (closeout §8, T12; the tables of §2).
