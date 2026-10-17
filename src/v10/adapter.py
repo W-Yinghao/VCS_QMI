@@ -24,10 +24,14 @@ W in [-1, 1]^{K x K} projected after every optimiser step, AdamW weight decay 0 
             G_b(W) <= tau_b = 0.01 g_ref, else at the iteration cap (CAL candidates 10 / 30 / 100; approximate head, its true
             FW gap logged); warm start = the previous batch's W (first batch W = 0); an exactly zero Delta_b returns W = 0 with
             status zero_reference_gap (no division, the solver is not called with a zero tolerance); a same-input fp64
-            diagnostic when g_ref is near the working-dtype resolution.  Rule 'absolute' = the strict absolute-tolerance mode
-            (numeric audit, unchanged: package profiled_objective).  History: the package start W = 0 with the absolute target
-            1e-4 was degenerate at the host init (||Delta||_1 = 3.2e-5 < 1e-4 on the first T01 / T02 batch: iteration 0, W = 0,
-            zero encoder gradient); T01 keeps that case as a diagnostic.  mf_vcs.py is unchanged (package sha256).
+            diagnostic when g_ref is near the working-dtype resolution (its HVPs / moment pass counted in the m1_*_total fields).
+            Rule 'absolute' (the unchanged package profiled_objective with an absolute FW-gap target) defaults to
+            require_converged=True: the strict numeric-audit mode (package design 7, decision 2.1).  With require_converged=False
+            passed explicitly it is the pre-decision approximate mode, kept only for reference rows (T01 cap-binding / degenerate
+            case, T02 cap-binding cost references): the Trainer refuses it unless TrainConfig.absolute_reference_only=True; it is
+            never the training rule.  History: the package start W = 0 with the absolute target 1e-4 was degenerate at the host
+            init (||Delta||_1 = 3.2e-5 < 1e-4 on the first T01 / T02 batch: iteration 0, W = 0, zero encoder gradient); T01 keeps
+            that case as a diagnostic.  mf_vcs.py is unchanged (package sha256).
   MF_dense  dense_objective_terms: exact dense reference (validation only)
 MLP (the host critic, T = tanh f), same P / Q, scene order and normalisation:
   MLP_perm1 host-identical (P.loss_fn 'vcs' on the host's permutation)
@@ -482,16 +486,22 @@ def mf_scenes(A, B, n_sc: int, n_pos: int):
 @dataclass
 class M1Config:
     """M1 head rule (module doc).  rule='relative_zero_head' (decision 2026-10-17 2.1, the protocol rule): threshold
-    relative_tolerance * G_b(0) of the current batch, iteration cap max_iterations, no absolute floor; `tolerance` must stay None.
-    rule='absolute' (strict numeric-audit mode, unchanged): the package profiled_objective with the absolute FW-gap target
-    `tolerance` (None -> the package value 1e-4).  fp64_diagnostic_below: the same-input fp64 diagnostic runs when g_ref <=
-    fp64_diagnostic_below * m1_resolution_unit(dtype) (None disables; never runs in float64)."""
+    relative_tolerance * G_b(0) of the current batch, iteration cap max_iterations, no absolute floor; `tolerance` must stay None;
+    require_converged defaults to False (training: approximate head at the cap, true gap logged).
+    rule='absolute': the unchanged package profiled_objective with the absolute FW-gap target `tolerance` (None -> the package
+    value 1e-4).  require_converged defaults to True there = the strict numeric-audit mode (package design 7: strict acceptance uses
+    the default require_converged=True; decision 2.1: the strict absolute mode is kept for the numerical audit); an unconverged head
+    raises.  require_converged=False must be passed explicitly: the pre-decision approximate mode, kept only for reference rows (T01
+    cap-binding / degenerate-case rows, T02 cap-binding cost references); the Trainer accepts rule 'absolute' only with
+    TrainConfig.absolute_reference_only=True (protocol P2 m1_rule.strict_absolute_mode: never the training rule).
+    fp64_diagnostic_below: the same-input fp64 diagnostic runs when g_ref <= fp64_diagnostic_below * m1_resolution_unit(dtype) (None
+    disables; never runs in float64)."""
     max_iterations: int = 30                    # the cap; CAL candidates 10 / 30 / 100 (M1_CAL_CAPS)
     rule: str = "relative_zero_head"
     relative_tolerance: float = M1_RELATIVE_TOLERANCE
     tolerance: float | None = None              # rule 'absolute' only
     ridge: float = 0.0                          # V10_PROTOCOL head.M1_ridge_primary
-    require_converged: bool = False             # training: explicit approximate profiled head, gap logged per batch
+    require_converged: bool | None = None       # None -> the rule's default: False (relative_zero_head), True (absolute: strict audit)
     fp64_diagnostic_below: float | None = M1_FP64_DIAGNOSTIC_BELOW
 
     def __post_init__(self):
@@ -511,6 +521,10 @@ class M1Config:
                 self.tolerance = M1_PROTOCOL_TOLERANCE
             if isinstance(self.tolerance, bool) or not math.isfinite(self.tolerance) or self.tolerance <= 0:
                 raise ValueError("the absolute tolerance must be finite and positive")
+        if self.require_converged is None:
+            self.require_converged = self.rule == "absolute"
+        if not isinstance(self.require_converged, bool):
+            raise ValueError("require_converged must be None (the rule's default) or a bool")
         fb = self.fp64_diagnostic_below
         if fb is not None and (isinstance(fb, bool) or not math.isfinite(fb) or fb < 0):
             raise ValueError("fp64_diagnostic_below must be None or a finite nonnegative number")
@@ -564,9 +578,16 @@ def _m1_info(m1: M1Config, *, dtype, W0, w, w0_zero: bool, g_ref, gap_start, gap
              stop_reason: str, converged: bool, solver_status, hvp_calls: int, solver_hvp_calls: int, moments_passes: int,
              fp64_diagnostic: dict) -> dict:
     """Per-batch M1 log (contract key m1.log_fields, prefixed m1_): gap_ref_zero, gap_start, gap_final, gap_relative_to_zero,
-    tolerance_effective, iterations, stop_reason, converged, hvp_calls, moments_passes, W update; m1_W is the solved head (not logged)."""
+    tolerance_effective, iterations, stop_reason, converged, hvp_calls, moments_passes, W update; m1_W is the solved head (not logged).
+    Counters (decision 2.3: every added moment pass or HVP is counted): m1_hvp_calls / m1_moments_passes = the working-dtype M1
+    computation (solver HVPs, plus 1 HVP when the gap of a non-zero warm start is logged at a zero reference; the QuadraticHead
+    snapshot + the outer objective_terms); m1_fp64_diag_hvp_calls / m1_fp64_diag_moments_passes = the same-input fp64 diagnostic of
+    this batch (0 when it did not run); m1_hvp_calls_total / m1_moments_passes_total = all M1 work of the batch."""
     dw = (w.detach() - W0)
     rel = (gap_final / g_ref) if (g_ref is not None and g_ref > 0) else None
+    ran = bool(fp64_diagnostic.get("triggered"))
+    diag_hvp = int(fp64_diagnostic["hvp_calls"]) if ran else 0
+    diag_mom = int(fp64_diagnostic["moments_passes"]) if ran else 0
     return {"m1_rule": m1.rule, "m1_relative_tolerance": m1.relative_tolerance if m1.rule == "relative_zero_head" else None,
             "m1_absolute_tolerance": m1.tolerance if m1.rule == "absolute" else None, "m1_max_iterations": m1.max_iterations,
             "m1_ridge": m1.ridge, "m1_require_converged": m1.require_converged, "m1_gap_scope": "inner_pre_outer_batch",
@@ -575,16 +596,19 @@ def _m1_info(m1: M1Config, *, dtype, W0, w, w0_zero: bool, g_ref, gap_start, gap
             "m1_tolerance_effective": tolerance_effective, "m1_iterations": int(iterations), "m1_stop_reason": stop_reason,
             "m1_converged": bool(converged), "m1_solver_status": solver_status, "m1_hvp_calls": int(hvp_calls),
             "m1_momentum_restarts": (solver_hvp_calls - 2 - 3 * int(iterations)) if solver_status is not None else 0,
-            "m1_moments_passes": int(moments_passes), "m1_W_start_is_zero": bool(w0_zero),
+            "m1_moments_passes": int(moments_passes), "m1_fp64_diag_hvp_calls": diag_hvp, "m1_fp64_diag_moments_passes": diag_mom,
+            "m1_hvp_calls_total": int(hvp_calls) + diag_hvp, "m1_moments_passes_total": int(moments_passes) + diag_mom,
+            "m1_W_start_is_zero": bool(w0_zero),
             "m1_W_start_absmax": float(W0.abs().max()), "m1_W_final_absmax": float(w.detach().abs().max()),
             "m1_W_update_fro": float(dw.norm()), "m1_W_update_absmax": float(dw.abs().max()),
             "m1_fp64_diagnostic": fp64_diagnostic, "m1_W": w}
 
 
 def _m1_absolute(scenes, W, weights, m1: M1Config):
-    """Strict absolute-tolerance mode (numeric audit), numerically unchanged: the package profiled_objective (its own QuadraticHead +
-    solve_box_head + objective_terms: 2 moment passes).  G_b(0) is only known when the start W is exactly 0 (then it is the
-    solver's iteration-0 gap); no extra pass is made to compute it otherwise."""
+    """Rule 'absolute', numerically unchanged: the package profiled_objective (its own QuadraticHead + solve_box_head +
+    objective_terms: 2 moment passes) with require_converged = m1.require_converged (True by default: the strict numeric-audit mode,
+    an unconverged head raises; False only when passed explicitly, for the reference rows).  G_b(0) is only known when the start W is
+    exactly 0 (then it is the solver's iteration-0 gap); no extra pass is made to compute it otherwise."""
     W0 = W.detach()
     with count_head_hvp() as cnt:
         prof = profiled_objective(scenes, weights=weights, ridge=m1.ridge, initial=W0, tolerance=m1.tolerance,
@@ -596,7 +620,7 @@ def _m1_absolute(scenes, W, weights, m1: M1Config):
                     gap_final=sol.fw_gap, tolerance_effective=m1.tolerance, iterations=sol.iterations,
                     stop_reason=_SOLVER_STOP[sol.status], converged=sol.converged, solver_status=sol.status, hvp_calls=cnt["hvp"],
                     solver_hvp_calls=cnt["hvp"], moments_passes=2,
-                    fp64_diagnostic={"triggered": False, "reason": "rule 'absolute' (numeric audit mode)"})
+                    fp64_diagnostic={"triggered": False, "reason": "rule 'absolute' (strict audit / pre-decision reference mode)"})
     return prof.terms, info
 
 
@@ -684,7 +708,8 @@ def mf_objective(method: str, scenes, W, weights, *, perm=None, m1: M1Config | N
     SceneBatch construction (finite, nonnegative, simplex rows) always validates; M1 always checks its start W.
     M1 info (_m1_info): the zero-head reference gap, start / final gap, relative gap, effective threshold, iterations, stop reason,
     convergence, HVP calls and moment passes of this batch (counted at the call sites: 2 = the QuadraticHead snapshot + the outer
-    objective_terms; the fp64 diagnostic, when it runs, counts its own), momentum restarts, W update and the solved W (m1_W)."""
+    objective_terms; the fp64 diagnostic, when it runs, counts its own: m1_fp64_diag_*; all of it: m1_*_total), momentum restarts,
+    W update and the solved W (m1_W)."""
     info: dict = {}
     if method == "MF_perm1":
         if perm is None:
@@ -773,6 +798,8 @@ class TrainConfig:
     checks: str = "first_step"           # W-box / permutation re-checks: first step only (validated loop) or "every_step"
     grad_spot_every: int | None = None   # encoder / feature-map gradient-norm spot checks (pre-clip) on steps 0, k, 2k, ...;
                                          # None = method default (MF_M1: 50, decision 2026-10-17 2.3; other methods: 0 = off)
+    absolute_reference_only: bool = False   # True only for MF_M1 reference rows under rule 'absolute' (T01 cap-binding / degenerate
+                                            # case, T02 cap-binding cost references); rule 'absolute' is never the training rule
 
 
 class Trainer:
@@ -783,6 +810,14 @@ class Trainer:
             raise ValueError(f"unknown training method {cfg.method}")
         if cfg.checks not in ("first_step", "every_step"):
             raise ValueError(f"checks must be 'first_step' or 'every_step', got {cfg.checks}")
+        if not isinstance(cfg.absolute_reference_only, bool):
+            raise ValueError("absolute_reference_only must be a bool")
+        m1_absolute = cfg.method == "MF_M1" and cfg.m1.rule == "absolute"
+        if m1_absolute and not cfg.absolute_reference_only:
+            raise ValueError("M1 rule 'absolute' is never the training rule (decision 2026-10-17 2.1; protocol P2 m1_rule.strict_absolute_mode): "
+                             "it trains only reference rows, with TrainConfig.absolute_reference_only=True")
+        if cfg.absolute_reference_only and not m1_absolute:
+            raise ValueError("absolute_reference_only applies only to MF_M1 with M1 rule 'absolute'")
         if cfg.method == "MF_M1" and cfg.w_init != "zeros":
             raise ValueError("MF_M1 starts from W = 0 (decision 2026-10-17 2.1: no random non-zero initialisation); later batches "
                              "warm-start from the previous batch's W")

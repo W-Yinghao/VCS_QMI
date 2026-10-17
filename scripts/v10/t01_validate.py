@@ -17,11 +17,17 @@ Parts (each writes <out-root>/T01/parts/<part>_<cpu|cuda>.json and a copy in its
                 both states (batched energy vs the package backend, fixed-W state hash across geometry candidates, checkpoint
                 save / restore).  M1 (owner decision 2026-10-17 section 2, relative zero-head rule): reference = ||Delta_b||_1 of
                 the batch's own snapshot, threshold 1% of it, warm-start gap separate, stop rule consistent with the true FW gap,
-                equality with the package profiled objective at tau_b; on the real host-init batch the zero-head start iterates,
-                moves W and trains the encoders, the next batch warm-starts, cap 10 returns the approximate W with its true gap,
-                HVP / moment-pass counters equal independent counts; an exact-zero Delta fixture returns W = 0 with
-                zero_reference_gap without calling the solver; the fp64 same-input diagnostic (non-gating); the old absolute
-                target 1e-4 from W = 0 (degenerate at the host init) and the absolute cap-binding rows stay (audit mode).
+                equality with the package profiled objective at tau_b; the arguments the solver call itself received (tolerance =
+                0.01 x the independently recomputed G_b(0), initial W = the warm start, max_iterations = the cap) recorded by an
+                independent wrapper, since with the cap binding the solved W does not show the tolerance; on the real host-init
+                batch the zero-head start iterates, moves W and trains the encoders, the next batch warm-starts, cap 10 returns the
+                approximate W with its true gap, HVP / moment-pass counters (working dtype, fp64 diagnostic and per-batch totals)
+                equal independent counts; an exact-zero Delta fixture returns W = 0 with zero_reference_gap without calling the
+                solver; the fp64 same-input diagnostic and a large-cap run that reaches the 1% threshold on real features
+                (non-gating); rule 'absolute' through the adapter is by default the strict package call (require_converged True,
+                bitwise; raises when unconverged) and the Trainer refuses it without absolute_reference_only; the old absolute
+                target 1e-4 from W = 0 (degenerate at the host init) and the absolute cap-binding rows stay as reference rows
+                (require_converged False, explicit).
   geometry      fp64 central finite differences of every energy term (P: p1, p2; Q: q1, q2 by moments, dense and perm1)
                 w.r.t. (u, ty, tx) on the real warp chain at two non-zero rigid transforms whose warped sampling grid lies
                 on a rational lattice (Pythagorean rotation) at distance >= 1/(2L) from every bilinear kink; two step sizes;
@@ -40,6 +46,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+import inspect
 import itertools
 import json
 import math
@@ -81,6 +88,8 @@ DETECT_NOTE = ("detectability: the effect of the wrong rule must exceed 100 x th
 BOUNDARY_TOL, BOUNDARY_ITERS = 1e-12, 3000        # boundary-W fixture: the batch's box QP solved far below the protocol target
 QP_ORACLE_CERT = 1e-12                            # the oracle's own FW gap must certify F* to this before it is compared
 HOST_REPLAY_SEED, HOST_REPLAY_STEPS = 901, 2      # G.cmd_train(uid, 'vcs', 1.0, 0.0, 901, steps=2) vs V10 Trainer MLP_perm1
+M1_LARGE_CAP = 5000                               # diagnostic: the relative stop rule from W = 0 on real features with a large cap
+SOLVE_SIGNATURE = inspect.signature(MF.solve_box_head)   # the unwrapped backend solver (binds the recorded call arguments)
 
 
 # ------------------------------------------------------------------------------------------------------------ recorder
@@ -192,12 +201,19 @@ def close_rel(x: float, y: float, dn: str) -> bool:
     return abs(x - y) <= A.TOLERANCES[dn][1] * abs(y)
 
 
+def distinct_rel(x: float, y: float, dn: str) -> bool:
+    """x and y differ by more than rtol(dtype) max(|x|, |y|): a check that tells the two apart has power at that dtype's rounding."""
+    return abs(x - y) > A.TOLERANCES[dn][1] * max(abs(x), abs(y))
+
+
 @contextlib.contextmanager
 def independent_m1_counters():
     """Counts, independently of the adapter's own counters, what an M1 call really does: QuadraticHead constructions (moment
     snapshots, by dtype), QuadraticHead._hvp calls, objective_terms calls (outer moment passes; both the backend name and the
-    adapter's imported name) and solve_box_head calls.  The wrappers change no value and are removed after the block."""
-    counts = {"heads": {}, "hvp": 0, "objective_terms": 0, "solve_box_head": 0}
+    adapter's imported name) and solve_box_head calls, with the arguments each solver call actually received (tolerance,
+    max_iterations and a clone of the initial W, bound against the backend signature; also when the call comes from the package
+    profiled_objective).  The wrappers change no value and are removed after the block.  Log with counts_record()."""
+    counts = {"heads": {}, "hvp": 0, "objective_terms": 0, "solve_box_head": 0, "solve_box_head_args": []}
     init0, hvp0, obj0, obj_a0, solve0 = MF.QuadraticHead.__init__, MF.QuadraticHead._hvp, MF.objective_terms, A.objective_terms, MF.solve_box_head
 
     def init(self, scenes, *args, **kw):
@@ -215,6 +231,11 @@ def independent_m1_counters():
 
     def solve(*args, **kw):
         counts["solve_box_head"] += 1
+        bound = SOLVE_SIGNATURE.bind(*args, **kw)
+        bound.apply_defaults()
+        ini = bound.arguments["initial"]
+        counts["solve_box_head_args"].append({"tolerance": bound.arguments["tolerance"], "max_iterations": bound.arguments["max_iterations"],
+                                              "initial": None if ini is None else ini.detach().clone()})
         return solve0(*args, **kw)
     MF.QuadraticHead.__init__, MF.QuadraticHead._hvp = init, hvp
     MF.objective_terms, A.objective_terms, MF.solve_box_head = obj, obj, solve
@@ -223,6 +244,35 @@ def independent_m1_counters():
     finally:
         MF.QuadraticHead.__init__, MF.QuadraticHead._hvp = init0, hvp0
         MF.objective_terms, A.objective_terms, MF.solve_box_head = obj0, obj_a0, solve0
+
+
+def counts_record(cnt: dict) -> dict:
+    """JSON record of independent_m1_counters: the counts, and per solver call its tolerance, cap and a summary of the initial W."""
+    out = {k: v for k, v in cnt.items() if k != "solve_box_head_args"}
+    out["solve_box_head_args"] = [{"tolerance": a["tolerance"], "max_iterations": a["max_iterations"],
+                                   "initial": None if a["initial"] is None else {"is_zero": not bool(a["initial"].any()),
+                                                                                 "absmax": float(a["initial"].abs().max()),
+                                                                                 "dtype": dtype_name(a["initial"].dtype)}}
+                                  for a in cnt["solve_box_head_args"]]
+    return out
+
+
+def m1_solver_call_ok(cnt: dict, info: dict, *, g_ref: float, w_start, cap: int, dn: str) -> tuple[bool, dict]:
+    """The M1 solver call itself, recorded independently of the adapter's log (independent_m1_counters): exactly one solve_box_head
+    call; its tolerance equals the logged tau_b bitwise and 0.01 x the independently recomputed G_b(0) (g_ref) to rtol; its initial W
+    equals the warm start bitwise (W = 0 on a first batch); its max_iterations equals the cap.  With the cap binding (host init) the
+    solved W does not depend on the tolerance, so only this records what the solver was given."""
+    calls = cnt["solve_box_head_args"]
+    a = calls[0] if len(calls) == 1 else None
+    tau_ref = A.M1_RELATIVE_TOLERANCE * g_ref
+    ok = (a is not None and a["tolerance"] == info["m1_tolerance_effective"] and close_rel(a["tolerance"], tau_ref, dn)
+          and a["initial"] is not None and a["initial"].shape == w_start.shape and torch.equal(a["initial"], w_start)
+          and a["max_iterations"] == cap == info["m1_max_iterations"])
+    return ok, {"solver_calls": len(calls), "solver_tolerance": None if a is None else a["tolerance"],
+                "tolerance_from_independent_reference": tau_ref, "solver_max_iterations": None if a is None else a["max_iterations"],
+                "solver_initial_equals_warm_start_bitwise": None if a is None or a["initial"] is None else bool(
+                    a["initial"].shape == w_start.shape and torch.equal(a["initial"], w_start)),
+                "solver_initial_is_zero": None if a is None or a["initial"] is None else not bool(a["initial"].any())}
 
 
 def m1_stop_consistent(info: dict) -> bool:
@@ -793,22 +843,46 @@ def real_m1(rec: Recorder, c: dict, dev, dn: str):
         rec.cmp(f"M1_outer_F_equals_inner_F_{sfx}", prof.terms.f, torch.tensor(sol.f, dtype=torch.float64), dn)
     rec.raises(f"M1_strict_incomplete_solve_rejected_{sfx}",
                lambda: MF.profiled_objective(scenes, weights=wts, max_iterations=0, tolerance=1e-300), RuntimeError)
+    # the adapter's rule 'absolute' with its default require_converged=True is the strict audit mode: the package call, bitwise, at
+    # the absolute target 1e-4 from the seeded W (converges within the strict budget in phase 1), and it raises when not converged
+    tol_a = A.M1_PROTOCOL_TOLERANCE
+    try:
+        pkg_a = MF.profiled_objective(scenes, weights=wts, ridge=0.0, initial=W.detach(), tolerance=tol_a, max_iterations=iters_strict)
+        terms_a, info_a = A.mf_objective("MF_M1", scenes, W.detach(), wts, m1=A.M1Config(rule="absolute", max_iterations=iters_strict))
+    except RuntimeError as e:
+        rec.add(f"M1_adapter_rule_absolute_default_is_the_strict_package_call_bitwise_{sfx}", "FAIL", True, failure_kind="not_converged",
+                error=str(e)[:500], tolerance=tol_a, max_iterations=iters_strict)
+    else:
+        rec.expect(f"M1_adapter_rule_absolute_default_is_the_strict_package_call_bitwise_{sfx}",
+                   info_a["m1_require_converged"] is True and info_a["m1_converged"] and torch.equal(info_a["m1_W"], pkg_a.solution.w)
+                   and torch.equal(terms_a.f, pkg_a.terms.f) and info_a["m1_iterations"] == pkg_a.solution.iterations
+                   and info_a["m1_gap_final"] == pkg_a.solution.fw_gap <= tol_a, tolerance=tol_a, iterations=info_a["m1_iterations"],
+                   gap=info_a["m1_gap_final"], require_converged=info_a["m1_require_converged"],
+                   note="M1Config(rule='absolute') defaults to require_converged=True (package design 7: strict acceptance)")
+    rec.raises(f"M1_adapter_rule_absolute_default_rejects_unconverged_head_{sfx}",
+               lambda: A.mf_objective("MF_M1", scenes, W.detach(), wts, m1=A.M1Config(rule="absolute", tolerance=1e-300, max_iterations=0)),
+               RuntimeError)
     pt = MF.profiled_objective(scenes, weights=wts, initial=W.detach(), tolerance=1e-4, max_iterations=10, require_converged=False)
     rec.expect(f"M1_training_mode_returns_and_logs_gap_{sfx}", math.isfinite(pt.solution.fw_gap) and pt.solution.iterations <= 10,
                gap=pt.solution.fw_gap, iterations=pt.solution.iterations, converged=pt.solution.converged, solver_status=pt.solution.status)
     # relative zero-head rule (decision 2026-10-17 2.1, the protocol rule) from the seeded non-zero W, i.e. a warm start, cap 10
-    W0 = W.detach()
-    terms_r, info_r = A.mf_objective("MF_M1", scenes, W0, wts, m1=A.M1Config(max_iterations=10))
+    W0 = W.detach().clone()
+    with independent_m1_counters() as cnt_r:
+        terms_r, info_r = A.mf_objective("MF_M1", scenes, W0, wts, m1=A.M1Config(max_iterations=10))
     fresh = MF.QuadraticHead(scenes, weights=wts)                      # an independent snapshot of the same features
     g_ref, g_start, g_final = float(fresh.delta.abs().sum()), float(fresh.fw_gap(W0)), float(fresh.fw_gap(info_r["m1_W"]))
     rt = A.M1_RELATIVE_TOLERANCE
+    solver_ok, solver = m1_solver_call_ok(cnt_r, info_r, g_ref=g_ref, w_start=W0, cap=10, dn=dn)
     rec.expect(f"M1_relative_reference_is_zero_head_gap_threshold_1pct_warm_start_gap_separate_{sfx}",
                close_rel(info_r["m1_gap_ref_zero"], g_ref, dn) and info_r["m1_tolerance_effective"] == rt * info_r["m1_gap_ref_zero"]
                and close_rel(info_r["m1_gap_start"], g_start, dn) and info_r["m1_gap_start"] != info_r["m1_gap_ref_zero"]
-               and info_r["m1_tolerance_effective"] != rt * info_r["m1_gap_start"] and not info_r["m1_W_start_is_zero"],
+               and info_r["m1_tolerance_effective"] != rt * info_r["m1_gap_start"] and not info_r["m1_W_start_is_zero"]
+               and solver_ok and distinct_rel(solver["solver_tolerance"], rt * g_start, dn),
                independent_gap_ref_zero=g_ref, independent_gap_start=g_start, bitwise_gap_ref_zero=info_r["m1_gap_ref_zero"] == g_ref,
-               bitwise_gap_start=info_r["m1_gap_start"] == g_start, **m1_fields(info_r),
-               note="threshold = 0.01 x G_b(0) of the current batch (not of the warm start); both gaps recomputed on a fresh snapshot")
+               bitwise_gap_start=info_r["m1_gap_start"] == g_start, **solver, independent_counts=counts_record(cnt_r), **m1_fields(info_r),
+               note="threshold = 0.01 x G_b(0) of the current batch (not of the warm start); both gaps recomputed on a fresh snapshot; "
+                    "the solver call's own tolerance / initial W / cap recorded independently (with the cap binding, W alone would not "
+                    "show the tolerance) and distinguishable from 0.01 x the warm-start gap")
     rec.expect(f"M1_relative_stop_rule_consistent_final_gap_is_true_FW_gap_{sfx}", m1_stop_consistent(info_r)
                and close_rel(info_r["m1_gap_final"], g_final, dn) and float(info_r["m1_W"].abs().max()) <= 1.0
                and not info_r["m1_W"].requires_grad, independent_gap_final=g_final, bitwise_gap_final=info_r["m1_gap_final"] == g_final,
@@ -824,6 +898,20 @@ def real_m1(rec: Recorder, c: dict, dev, dn: str):
         rec.expect(f"M1_relative_fp64_same_input_diagnostic_{sfx}", (not d.get("triggered")) or d.get("decisions_agree"), required=False,
                    note="diagnostic: same feature values through the same backend in float64 when g_ref <= 1e4 x 2 eps; PASS = "
                         "not triggered, or the fp32 and fp64 stop decisions at the returned W agree", **d)
+    # the relative stop rule exercised on real features (diagnostic: whether 1% of G_b(0) is reached within the cap depends on the
+    # feature state): zero-head start W = 0, cap M1_LARGE_CAP
+    WZ = torch.zeros_like(W0)
+    with independent_m1_counters() as cnt_l:
+        _, info_l = A.mf_objective("MF_M1", scenes, WZ, wts, m1=A.M1Config(max_iterations=M1_LARGE_CAP))
+    gl = float(fresh.fw_gap(info_l["m1_W"]))
+    ok_l, solver_l = m1_solver_call_ok(cnt_l, info_l, g_ref=g_ref, w_start=WZ, cap=M1_LARGE_CAP, dn=dn)
+    rec.expect(f"M1_relative_large_cap_from_W0_reaches_the_1pct_threshold_stop_rule_consistent_{sfx}",
+               info_l["m1_stop_reason"] == "gap_tolerance" and info_l["m1_iterations"] < M1_LARGE_CAP and m1_stop_consistent(info_l)
+               and close_rel(info_l["m1_gap_final"], gl, dn) and ok_l, required=False, independent_gap_final=gl, **solver_l,
+               **{k: info_l[k] for k in ("m1_stop_reason", "m1_iterations", "m1_gap_ref_zero", "m1_gap_final", "m1_tolerance_effective",
+                                         "m1_gap_relative_to_zero", "m1_converged", "m1_hvp_calls_total", "m1_moments_passes_total")},
+               note=f"diagnostic: the gap_tolerance branch of the relative rule on real features (cap {M1_LARGE_CAP}); FAIL here = the cap "
+                    "was reached before 1% of G_b(0) (recorded, not gating)")
 
 
 def m1_zero_reference_checks(rec: Recorder, dev, dn: str):
@@ -848,7 +936,9 @@ def m1_zero_reference_checks(rec: Recorder, dev, dn: str):
                and info["m1_gap_relative_to_zero"] is None and info["m1_tolerance_effective"] is None and info["m1_iterations"] == 0
                and info["m1_converged"] and info["m1_solver_status"] is None and info["m1_hvp_calls"] == 0 and info["m1_moments_passes"] == 2
                and float(terms.f) == 0.0 and cnt["solve_box_head"] == 0 and cnt["objective_terms"] == 1
-               and cnt["heads"].get(dn) == 1 and sum(cnt["heads"].values()) == 1 + diag_heads, independent_counts=cnt, f=float(terms.f),
+               and cnt["heads"].get(dn) == 1 and sum(cnt["heads"].values()) == 1 + diag_heads
+               and info["m1_hvp_calls_total"] == cnt["hvp"] and info["m1_moments_passes_total"] == sum(cnt["heads"].values()) + cnt["objective_terms"],
+               independent_counts=counts_record(cnt), f=float(terms.f),
                **m1_fields(info), note="constructed exact-zero fixture; W = 0 is the maximiser of the negative semidefinite empirical "
                                        "head objective; not a statement about population independence")
     gen = torch.Generator(device="cpu").manual_seed(A.Q.seed_of(f"V10|T01|zero-ref-warm|{dn}"))
@@ -859,8 +949,9 @@ def m1_zero_reference_checks(rec: Recorder, dev, dn: str):
     rec.expect(names[1], info2["m1_stop_reason"] == "zero_reference_gap" and torch.equal(info2["m1_W"], torch.zeros_like(Wp))
                and info2["m1_tolerance_effective"] is None and info2["m1_gap_relative_to_zero"] is None and not info2["m1_W_start_is_zero"]
                and close_rel(info2["m1_gap_start"], g_start, dn) and info2["m1_hvp_calls"] == 1 and cnt2["solve_box_head"] == 0
+               and info2["m1_hvp_calls_total"] == cnt2["hvp"] and info2["m1_moments_passes_total"] == sum(cnt2["heads"].values()) + cnt2["objective_terms"]
                and float(terms2.f) == 0.0 and info2["m1_W_update_absmax"] == float(Wp.abs().max()), independent_gap_start=g_start,
-               independent_counts=cnt2, **m1_fields(info2),
+               independent_counts=counts_record(cnt2), **m1_fields(info2),
                note="the warm start is replaced by W = 0 (the optimum); its gap is logged (1 HVP)")
     rec.raises(f"M1_solver_rejects_zero_tolerance_{dn}", lambda: MF.solve_box_head(head, tolerance=0.0), ValueError)
 
@@ -1106,14 +1197,20 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
                    a_std_max=float(o["A"].std(0).max()), b_std_max=float(o["B"].std(0).max()))
         del r, o, out
 
-    # (3) M1 (decision 2026-10-17 2.1 / 2.3: the relative zero-head rule is the protocol; rule 'absolute' = strict numeric audit).
+    # (3) M1 (decision 2026-10-17 2.1 / 2.3: the relative zero-head rule is the protocol; rule 'absolute' = strict numeric audit by
+    #     default (require_converged True); its approximate pre-decision mode only in the reference rows 3d-3f, explicitly).
     # (3a) zero-head start at the real host init: the package start W = 0, protocol rule, cap 30 (M1Config default)
     wts = A.host_weights(n_sc)
     rt = A.M1_RELATIVE_TOLERANCE
+    rec.raises("MF_M1_trainer_refuses_rule_absolute_without_the_reference_flag", lambda: trainer("MF_M1", m1=A.M1Config(rule="absolute")),
+               ValueError)
     t = trainer("MF_M1")
+    cap_default = t.cfg.m1.max_iterations
     before_enc = [p.detach().clone() for p in enc_params(t)]
     before_fm = [p.detach().clone() for p in fm_params(t)]
-    r1 = t.step(t.draw(), keep=True)
+    W_start1 = t.head.W.detach().clone()
+    with independent_m1_counters() as cnt1:
+        r1 = t.step(t.draw(), keep=True)
     i1 = r1["_out"]["info"]
     gn, enc_chg, fm_chg = grad_norm(enc_params(t)), max_change(before_enc, enc_params(t)), max_change(before_fm, fm_params(t))
     spot = r1.get("encoder_gradient_diagnostic") or {}
@@ -1124,11 +1221,14 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
                note="the absolute target 1e-4 stopped this batch at iteration 0 (row MF_M1_absolute_tolerance_1e-4_from_W0_...)")
     fresh1 = MF.QuadraticHead(r1["_out"]["scenes"], weights=wts)
     g_ref1 = float(fresh1.delta.abs().sum())
+    ok1, solver1 = m1_solver_call_ok(cnt1, i1, g_ref=g_ref1, w_start=W_start1, cap=cap_default, dn="float32")
     rec.expect("MF_M1_relative_reference_is_l1_delta_of_the_batch_snapshot_and_gap_at_W0", close_rel(i1["m1_gap_ref_zero"], g_ref1, "float32")
                and i1["m1_tolerance_effective"] == rt * i1["m1_gap_ref_zero"] and close_rel(i1["m1_gap_start"], i1["m1_gap_ref_zero"], "float32")
-               and i1["m1_moments_passes"] == 2 and m1_stop_consistent(i1), independent_gap_ref_zero=g_ref1,
-               bitwise_vs_fresh_snapshot=i1["m1_gap_ref_zero"] == g_ref1, bitwise_gap_start_at_W0=i1["m1_gap_start"] == i1["m1_gap_ref_zero"],
-               note="G_b(0) = ||Delta_b||_1 of the batch's own snapshot; from W = 0 the solver's iteration-0 gap is the same quantity")
+               and i1["m1_moments_passes"] == 2 and m1_stop_consistent(i1) and ok1 and solver1["solver_initial_is_zero"] is True,
+               independent_gap_ref_zero=g_ref1, bitwise_vs_fresh_snapshot=i1["m1_gap_ref_zero"] == g_ref1,
+               bitwise_gap_start_at_W0=i1["m1_gap_start"] == i1["m1_gap_ref_zero"], **solver1, independent_counts=counts_record(cnt1),
+               note="G_b(0) = ||Delta_b||_1 of the batch's own snapshot; from W = 0 the solver's iteration-0 gap is the same quantity; the "
+                    "solver call itself (recorded independently) got tau_b = 0.01 G_b(0), the start W = 0 and the cap")
     d1 = i1["m1_fp64_diagnostic"]
     rec.expect("MF_M1_relative_fp64_same_input_diagnostic_host_init", bool(d1.get("triggered")) and bool(d1.get("decisions_agree")),
                required=False, note="diagnostic: g_ref at the host init is near fp32 resolution; same feature values in float64", **d1)
@@ -1136,48 +1236,65 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
     W_prev = t.head.W.detach().clone()
     rec.expect("MF_M1_relative_next_batch_warm_starts_from_previous_W", torch.equal(W_prev, i1["m1_W"]) and float(W_prev.abs().max()) > 0,
                w_absmax=float(W_prev.abs().max()))
-    r2 = t.step(t.draw(), keep=True)
+    with independent_m1_counters() as cnt2:
+        r2 = t.step(t.draw(), keep=True)
     i2 = r2["_out"]["info"]
     fresh2 = MF.QuadraticHead(r2["_out"]["scenes"], weights=wts)
     g_ref2, g_start2 = float(fresh2.delta.abs().sum()), float(fresh2.fw_gap(W_prev))
+    ok2, solver2 = m1_solver_call_ok(cnt2, i2, g_ref=g_ref2, w_start=W_prev, cap=cap_default, dn="float32")
     rec.expect("MF_M1_relative_warm_start_gap_differs_from_zero_head_reference_threshold_uses_reference",
                (not i2["m1_W_start_is_zero"]) and i2["m1_W_start_absmax"] == float(W_prev.abs().max())
                and close_rel(i2["m1_gap_ref_zero"], g_ref2, "float32") and close_rel(i2["m1_gap_start"], g_start2, "float32")
                and i2["m1_gap_start"] != i2["m1_gap_ref_zero"] and i2["m1_tolerance_effective"] == rt * i2["m1_gap_ref_zero"]
-               and i2["m1_tolerance_effective"] != rt * i2["m1_gap_start"] and m1_stop_consistent(i2),
-               independent_gap_ref_zero=g_ref2, independent_gap_start=g_start2, **m1_fields(i2))
+               and i2["m1_tolerance_effective"] != rt * i2["m1_gap_start"] and m1_stop_consistent(i2)
+               and ok2 and distinct_rel(solver2["solver_tolerance"], rt * g_start2, "float32"),
+               independent_gap_ref_zero=g_ref2, independent_gap_start=g_start2, tolerance_from_warm_start_gap=rt * g_start2, **solver2,
+               independent_counts=counts_record(cnt2), **m1_fields(i2),
+               note="the solver call itself (recorded independently) got tau_b = 0.01 G_b(0) of this batch, distinguishable from 0.01 x "
+                    "the warm-start gap, and the previous batch's W as its start; the cap binds here, so W alone would not show it")
     del r1, r2, i1, i2, fresh1, fresh2
     # (3c) cap reached at the host init (cap 10): approximate W returned with its true FW gap, kept as the warm start
     t = trainer("MF_M1", m1=A.M1Config(max_iterations=10))
-    rc = t.step(t.draw(), keep=True)
+    W_startc = t.head.W.detach().clone()
+    with independent_m1_counters() as cntc:
+        rc = t.step(t.draw(), keep=True)
     ic = rc["_out"]["info"]
     name = "MF_M1_relative_cap_10_reached_returns_approximate_W_with_true_gap"
     if ic["m1_stop_reason"] != "iteration_budget_exhausted":
         rec.blocked(name, "precondition not met: the relative threshold was reached within 10 iterations at the host init", **m1_fields(ic))
     else:
-        true_gap = float(MF.QuadraticHead(rc["_out"]["scenes"], weights=wts).fw_gap(ic["m1_W"]))
+        headc = MF.QuadraticHead(rc["_out"]["scenes"], weights=wts)
+        true_gap = float(headc.fw_gap(ic["m1_W"]))
+        okc, solverc = m1_solver_call_ok(cntc, ic, g_ref=float(headc.delta.abs().sum()), w_start=W_startc, cap=10, dn="float32")
         rec.expect(name, ic["m1_iterations"] == 10 and not ic["m1_converged"] and ic["m1_gap_final"] > ic["m1_tolerance_effective"]
                    and close_rel(ic["m1_gap_final"], true_gap, "float32") and torch.equal(t.head.W, ic["m1_W"])
-                   and 0 < float(ic["m1_W"].abs().max()) <= 1.0 and math.isfinite(rc["J"]), independent_true_gap=true_gap,
-                   bitwise_true_gap=ic["m1_gap_final"] == true_gap, **m1_fields(ic))
+                   and 0 < float(ic["m1_W"].abs().max()) <= 1.0 and math.isfinite(rc["J"]) and okc, independent_true_gap=true_gap,
+                   bitwise_true_gap=ic["m1_gap_final"] == true_gap, **solverc, independent_counts=counts_record(cntc), **m1_fields(ic))
     del rc, ic
-    # (3d) counters against independent counts (relative and absolute rule), and the relative path = the package call at tau_b
-    for label, cfg_m1 in (("relative", A.M1Config()), ("absolute_cap_binding", A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE))):
-        t = trainer("MF_M1", m1=cfg_m1)
+    # (3d) counters against independent counts (relative rule, and rule 'absolute' as a cap-binding reference row), and the relative
+    #      path = the package call at tau_b; the per-batch totals include the fp64 diagnostic (decision 2.3)
+    for label, cfg_m1, ref_only in (("relative", A.M1Config(), False),
+                                    ("absolute_cap_binding", A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE,
+                                                                        require_converged=False), True)):
+        t = trainer("MF_M1", m1=cfg_m1, absolute_reference_only=ref_only)
         batch = t.draw()
         with torch.no_grad(), independent_m1_counters() as cnt:
             _, out = t.forward(*batch)
         info = out["info"]
         diag = info["m1_fp64_diagnostic"]
         diag_hvp = diag.get("hvp_calls", 0) if diag.get("triggered") else 0
+        diag_mom = diag.get("moments_passes", 0) if diag.get("triggered") else 0
         restarts = info["m1_momentum_restarts"]
         rec.expect(f"MF_M1_{label}_counters_equal_independent_count", info["m1_hvp_calls"] + diag_hvp == cnt["hvp"]
                    and info["m1_hvp_calls"] == 2 + 3 * info["m1_iterations"] + restarts and 0 <= restarts <= info["m1_iterations"]
                    and info["m1_moments_passes"] == 2 and cnt["objective_terms"] == 1 and cnt["solve_box_head"] == 1
-                   and cnt["heads"].get("float32") == 1 and cnt["heads"].get("float64", 0) == (diag.get("moments_passes", 0) if diag.get("triggered") else 0),
-                   independent_counts=cnt, diag_hvp_calls=diag_hvp, **m1_fields(info),
+                   and cnt["heads"].get("float32") == 1 and cnt["heads"].get("float64", 0) == diag_mom
+                   and info["m1_fp64_diag_hvp_calls"] == diag_hvp and info["m1_fp64_diag_moments_passes"] == diag_mom
+                   and info["m1_hvp_calls_total"] == cnt["hvp"] and info["m1_moments_passes_total"] == sum(cnt["heads"].values()) + cnt["objective_terms"],
+                   independent_counts=counts_record(cnt), diag_hvp_calls=diag_hvp, diag_moments_passes=diag_mom, **m1_fields(info),
                    note="moments passes = QuadraticHead snapshots in the working dtype + outer objective_terms calls; the fp64 "
-                        "diagnostic (when triggered) counts its own snapshot / HVPs")
+                        "diagnostic (when triggered) counts its own snapshot / HVPs (m1_fp64_diag_*), and the per-batch totals "
+                        "(m1_*_total) equal the independent counts of everything the call did")
         if label == "relative":
             with torch.no_grad():
                 ref = MF.profiled_objective(out["scenes"], weights=wts, ridge=0.0, initial=t.head.W.detach(),
@@ -1186,8 +1303,9 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
                        and torch.equal(out["terms"].f, ref.terms.f) and info["m1_iterations"] == ref.solution.iterations
                        and info["m1_gap_final"] == ref.solution.fw_gap, tau_b=info["m1_tolerance_effective"])
         del out, info
-    # (3e) the absolute target 1e-4 from W = 0 (the package setting before the decision): DIAGNOSTIC of the host-init degeneracy
-    t = trainer("MF_M1", m1=A.M1Config(rule="absolute"))
+    # (3e) the absolute target 1e-4 from W = 0 (the pre-decision training setting: require_converged False): DIAGNOSTIC of the
+    #      host-init degeneracy (a reference row: absolute_reference_only)
+    t = trainer("MF_M1", m1=A.M1Config(rule="absolute", require_converged=False), absolute_reference_only=True)
     before_enc = [p.detach().clone() for p in enc_params(t)]
     r = t.step(t.draw())
     gn = grad_norm(enc_params(t))
@@ -1196,11 +1314,11 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
                     "absolute target 1e-4 the first FW gap from W = 0 equals ||Delta||_1; below 1e-4 the head stops at iteration 0, W "
                     "stays 0 and the encoder gradient is exactly 0.  The protocol now uses the relative zero-head rule (rows above)",
                m1_gap_start_equals_Delta_l1=r["m1_gap_start"], m1_absolute_tolerance=r["m1_absolute_tolerance"], m1_iterations=r["m1_iterations"],
-               m1_converged=r["m1_converged"], m1_stop_reason=r["m1_stop_reason"], w_absmax=r["w_absmax"], encoder_grad_norm=gn, J=r["J"],
-               encoder_max_change=max_change(before_enc, enc_params(t)))
-    # (3f) rule 'absolute' with a binding iteration cap (numeric audit mode, unchanged; the phase-1 T02 cost configuration)
-    m1cap = A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30)
-    t = trainer("MF_M1", m1=m1cap)
+               m1_converged=r["m1_converged"], m1_stop_reason=r["m1_stop_reason"], m1_require_converged=r["m1_require_converged"],
+               w_absmax=r["w_absmax"], encoder_grad_norm=gn, J=r["J"], encoder_max_change=max_change(before_enc, enc_params(t)))
+    # (3f) rule 'absolute' with a binding iteration cap (the phase-1 T02 cost configuration; reference rows, require_converged False)
+    m1cap = A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30, require_converged=False)
+    t = trainer("MF_M1", m1=m1cap, absolute_reference_only=True)
     before_enc = [p.detach().clone() for p in enc_params(t)]
     before_fm = [p.detach().clone() for p in fm_params(t)]
     r = t.step(t.draw(), keep=True)
@@ -1217,7 +1335,7 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
     rec.expect("MF_M1_feature_maps_change", max_change(before_fm, fm_params(t)) > 0, max_change=max_change(before_fm, fm_params(t)))
     rec.expect("MF_M1_W_not_an_optimiser_parameter", all(p is not t.head.W for g in t.opt.param_groups for p in g["params"]))
     del r
-    t = trainer("MF_M1", m1=m1cap)
+    t = trainer("MF_M1", m1=m1cap, absolute_reference_only=True)
     batch = t.draw()
     with torch.no_grad():
         _, out = t.forward(*batch)
@@ -1228,8 +1346,9 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, b
                 and A.objective_terms is MF.objective_terms)
     rec.expect("MF_M1_adapter_path_equals_package_profiled_objective_bitwise", torch.equal(out["info"]["m1_W"], ref.solution.w)
                and torch.equal(out["terms"].f, ref.terms.f) and out["info"]["m1_iterations"] == ref.solution.iterations and restored,
-               wrappers_restored=restored, note="rule 'absolute' (numeric audit mode, unchanged); the HVP-counting wrapper and the "
-                                                "independent counters change no value and are removed after the call")
+               wrappers_restored=restored, note="rule 'absolute' with require_converged False (reference mode, explicit); the "
+                                                "HVP-counting wrapper and the independent counters change no value and are removed "
+                                                "after the call")
     del out, ref
     # (4) host MLP critic
     t = trainer("MLP_perm1")

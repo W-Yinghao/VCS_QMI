@@ -44,12 +44,14 @@
   "11746ddb914e1fb370215f13026fadb2dd4c571c:v10/package_v10_server_v1_20261016/configs/V10_PROTOCOL.json": "d9a52694f2b6738cfcc302658b13cdff9c4547c3f9b77e004183d3fe58d03b53",
   "11746ddb914e1fb370215f13026fadb2dd4c571c:v10/package_v10_server_v1_20261016/V10_DESIGN_CN.md": "6459d92fd4d3635c5e86a3ba959f3203cf001df1184726ed640aa60017281fc0",
   "11746ddb914e1fb370215f13026fadb2dd4c571c:v10/package_v10_server_v1_20261016/synthetic/src/v10_synthetic.py": "3c5d7d22e129eea703bf0075f7ee660e65c77ca6c55ef6173b96199efd37e73c",
-  "11746ddb914e1fb370215f13026fadb2dd4c571c:v10/package_v10_server_v1_20261016/MANIFEST_SHA256.json": "d3f1b0f508c366a67e8b54ca8358cc42f9a5e0f0c7a98309e8135c3fa21f6dc4"
+  "11746ddb914e1fb370215f13026fadb2dd4c571c:v10/package_v10_server_v1_20261016/MANIFEST_SHA256.json": "d3f1b0f508c366a67e8b54ca8358cc42f9a5e0f0c7a98309e8135c3fa21f6dc4",
+  "15b1c548a7dbeb8ee043fecfee209b118657202b:v10/V10_PHASE1_STAGE_REPORT_20261017.md": "f241a1831398ff5e0e3ec8123aecfe2fe0a6839d1748da369815c16c7ced4c0c"
  },
  "inputs_code": {
   "11746ddb914e1fb370215f13026fadb2dd4c571c:src/v10/adapter.py": "70096b5662c215313b9f054a82285253460cc7dc6d6082caa78af2f0ea4f73eb",
   "11746ddb914e1fb370215f13026fadb2dd4c571c:src/v10/mf_vcs.py": "cdf5df2e43bacb74b963f7b6b519a962f91fc8e41f28b4f6a4e2696816024973",
-  "11746ddb914e1fb370215f13026fadb2dd4c571c:src/v9/reg/r6_reg_p3.py": "5bbc3ebaf11b0cdca37663e0f0205bf00ab797fb523b3f8c7a38dd48b2e9c7a2"
+  "11746ddb914e1fb370215f13026fadb2dd4c571c:src/v9/reg/r6_reg_p3.py": "5bbc3ebaf11b0cdca37663e0f0205bf00ab797fb523b3f8c7a38dd48b2e9c7a2",
+  "278abe4556e21c52d1ab974a2d4a948d1cf417a3:src/v10/adapter.py": "d4e5d19b01633ba1b3ec8539e017539b054ad62e9b9d7561bc98e492ef557469"
  },
  "phase1_identity": {
   "reviewed_head": "15b1c548a7dbeb8ee043fecfee209b118657202b",
@@ -102,13 +104,11 @@
    "contract_clause": "T03 target mode and repetition grid",
    "decision_section": "9",
    "package": {
-    "registration.training_seeds": [
-     1001,
-     1002,
-     1003
-    ],
-    "registration.tuning_seed": 1017
+    "design 2.1 (target mode)": "U 保留为受控 iid 估计实验和命名清楚的目标敏感性分析，不能悄悄替换 V 来提高结果。",
+    "design 7 (seed rule, as applied to T03)": "主训练seed固定为1001/1002/1003；调参seed为1017。"
    },
+   "scope": "T03 only.  registration.training_seeds / registration.tuning_seed of the package (natural registration, [1001, 1002, 1003] / 1017) stay in force for BF batch 1 (decision 8.1; bf_batch1.seeds); design 6.3 (conditions, independent FIT / CAL / EVAL streams, truth kept from the trainer, oracle-free CAL selection) is retained (decision 9.2)",
+   "package_retained_design_6_3": "包内首先实现balanced two-block与diagonal-mixture的有限可观察表：m=8/32，rho=0/.25/.75；p/q/eta/S可以精确计算。FIT/CAL/EVAL分别使用独立随机流，truth单独保存在评估目录，训练器不读取。",
    "p2": "t03: U primary, uniform derangements, 10 independent data suites + conditional algorithm seeds, 1212 trainings"
   },
   {
@@ -290,10 +290,12 @@
    "forced30_encoder_grad_norm_postclip": 8.720766351974834e-06,
    "source": "v10/T01/TORCH_VALIDATION.json at 11746dd"
   },
-  "evidence_decision_text_only": {
+  "evidence_t02_record_row": {
    "t02_record_row_degenerate_lead_steps": 10,
    "t02_record_row_first_active_step_1based": 11,
-   "source": "decision 2.2 text only: the raw T02 per-step record (outputs_v10/T02/runs/cuda_1043695/train_steps_per_step.json) is outside the repository and its hash is not pinned in a committed record; the phase-1 report section 12 renders the same figures from that record"
+   "per_step_record": "outputs_v10/T02/runs/cuda_1043695/train_steps_per_step.json (outside the repository)",
+   "per_step_record_sha256_prefix": "592d47e167cc0554",
+   "source": "decision 2.2 text; the same two figures in the phase-1 report section 6.1 at the reviewed HEAD 15b1c54 (rendered there from the per-step record, whose sha256 that report pins only as the 16-hex prefix 592d47e167cc0554...; the full hash is in no committed record); checked equal here"
   },
   "evidence_scope": "the relative rule removes the batch-noise-dependent start; the forced-30 decrease (about 0.92%) does not show that tau_b is reachable within 100 iterations; the T02 cap-bound gap medians of the phase-1 report are absolute gaps, not per-batch relative zero-head gaps"
  },
@@ -408,7 +410,12 @@
    "MF_VCS_M1",
    "MLP_VCS_perm1"
   ],
-  "batch1_start_condition": "after the new M1 acceptance (all T01 parts under the new code hash) and this protocol landing; then BF CAL and DEV work may start while the other baselines are implemented",
+  "batch1_start_condition": "after the new M1 acceptance (all T01 parts under the new code hash), this protocol landing and the decision step-3 freeze of bf_batch1.freeze_before_primary_runs (contract rollout.freeze_before_primary_runs); then BF CAL and DEV work may start while the other baselines are implemented",
+  "batch1_start_condition_sources": [
+   "decision 5: 完成新 M1 验收和本文件所列协议落地后，可以开展 BF 的 CAL 与 DEV 工作；其余基线同步实施。",
+   "decision 10 step 3: 冻结首批公共协议、manifest、候选顺序和成本上限；开展 BF 的四族 CAL/DEV。",
+   "contract server_next_steps[2]: Freeze first-batch common protocol; run BF CAL/DEV four families; implement T03 and begin generation/check/smoke before full grid."
+  ],
   "later": [
    {
     "method": "MLP_VCS_perm8",
@@ -1927,6 +1934,66 @@
  "bf_batch1": {
   "decision_section": "8",
   "status": "LANDED_NOT_FROZEN (freeze = decision step 3)",
+  "freeze_before_primary_runs": [
+   {
+    "item": "manifest",
+    "decision_text": [
+     "manifest",
+     "数据"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "preprocessing",
+    "decision_text": [
+     "预处理"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "seeds and RNG stream policy",
+    "decision_text": [
+     "seed"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "geometry",
+    "decision_text": [
+     "几何"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "CAL rules",
+    "decision_text": [
+     "CAL"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "precision",
+    "decision_text": [
+     "精度"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "candidate order",
+    "decision_text": [
+     "候选顺序"
+    ],
+    "status": "NOT_RUN"
+   },
+   {
+    "item": "cost ceilings",
+    "decision_text": [
+     "成本上限"
+    ],
+    "status": "NOT_RUN"
+   }
+  ],
+  "freeze_rule": "decision step 3 freezes these items (with the batch-1 common protocol) before any BF CAL / DEV primary run; items are NOT_RUN until then (baselines.batch1_start_condition)",
   "fixed": {
    "MF_K": 16,
    "MF_temperature": 1.0,
@@ -2450,7 +2517,7 @@
    "engineering_cap_note": "8 GPU-h is an engineering ceiling, not a measured commitment of the relative rule; new native baselines are timed first and enter the frozen attachment with candidates bounded by this ceiling, or are disclosed as resource-limited",
    "old_timing_projection_GPU_h": {
     "label": "phase-1 L40S timing (cap-bound M1) x the new candidate counts; conditional projection only",
-    "formula": "candidate = (3000 steps x step time + 960 CAL registrations x s/registration) / 3600; formal unit adds DEV (1280 registrations)",
+    "formula": "candidate = (3000 steps x step time + 960 CAL registrations x s/registration) / 3600; formal unit = (3000 steps x step time + 1280 registrations (960 CAL + 320 DEV) x s/registration) / 3600",
     "tuning": {
      "MF_VCS_perm1": 0.8933670595753939,
      "MF_VCS_M0": 0.9797767176758497,
@@ -2935,6 +3002,13 @@
    "topic": "override environment variables",
    "choice": "recorded as the raw string or JSON null when unset; the key is always present",
    "owner_decision": false
+  },
+  {
+   "topic": "M1 same-input fp64 diagnostic trigger",
+   "choice": "run the diagnostic on a batch when G_b(0) <= 10000 x 2 eps(working dtype) (float32: 0.002384; never in float64); diagnostic only (the training head, W and gradients are not touched); its HVPs and its one fp64 moment pass are logged per batch (m1_fp64_diag_*) and counted in m1_hvp_calls_total / m1_moments_passes_total; its time is inside the measured training step",
+   "where": "src/v10/adapter.py M1_FP64_DIAGNOSTIC_BELOW and m1_resolution_unit at 278abe4",
+   "why": "decision 2.3 keeps a same-input fp64 diagnostic for references near fp32 resolution without fixing the threshold; 2 eps is the rounding scale of Delta_b and of the FW gap for simplex features with weights summing to 1, and the factor keeps the diagnostic on while G_b(0) is within four orders of that scale (it runs at the host init, G_b(0) about 3.2e-5)",
+   "owner_decision": false
   }
  ],
  "standing_constraints": {
@@ -2944,7 +3018,7 @@
   "public_repo": "ids and rules only; no data, images, checkpoints or per-image labels"
  },
  "derivation_checks": {
-  "n": 443,
+  "n": 473,
   "all": "PASS",
   "rows": [
    {
@@ -3096,6 +3170,23 @@
     "check": "contract supersedes clauses = P2 supersedes rows",
     "status": "PASS",
     "detail": "['M1 primary absolute tolerance', 'InfoNCE registration energy label', 'MF K x lr primary tuning grid', 'T03 target mode and repetition grid', 'fp32 dense-MLP gradient gate role', 'data-role activation details']"
+   },
+   {
+    "check": "package design 2.1 U sentence quoted verbatim (supersedes: T03)",
+    "status": "PASS"
+   },
+   {
+    "check": "package design 7 seed sentence quoted verbatim (supersedes: T03)",
+    "status": "PASS"
+   },
+   {
+    "check": "package design 6.3 T03 sentences quoted verbatim (supersedes: T03)",
+    "status": "PASS"
+   },
+   {
+    "check": "package natural-registration seeds = contract BF batch-1 seeds (not superseded)",
+    "status": "PASS",
+    "detail": "[1017, [1001, 1002, 1003]]"
    },
    {
     "check": "package protocol M1 absolute target (superseded)",
@@ -3284,6 +3375,24 @@
    {
     "check": "decision text: T02 degenerate lead",
     "status": "PASS"
+   },
+   {
+    "check": "decision text: reviewed HEAD (phase-1 report evidence)",
+    "status": "PASS"
+   },
+   {
+    "check": "decision text: phase-1 report 6.1: T02 record-row lead steps",
+    "status": "PASS"
+   },
+   {
+    "check": "decision 2.2 T02 lead steps = phase-1 report 6.1 (reviewed HEAD)",
+    "status": "PASS",
+    "detail": "[10, 11]"
+   },
+   {
+    "check": "phase-1 report 6.1: first active index = step - 1",
+    "status": "PASS",
+    "detail": "10"
    },
    {
     "check": "decision 2.2 host-init gap agrees with T01",
@@ -3869,6 +3978,18 @@
     "check": "contract no comparative conclusions",
     "status": "PASS",
     "detail": "True"
+   },
+   {
+    "check": "decision text: batch-1 start",
+    "status": "PASS"
+   },
+   {
+    "check": "decision text: step 3: freeze then BF CAL/DEV",
+    "status": "PASS"
+   },
+   {
+    "check": "contract server_next_steps[2]: freeze first, then BF CAL/DEV",
+    "status": "PASS"
    },
    {
     "check": "decision text: roles",
@@ -4673,6 +4794,65 @@
     "detail": "18"
    },
    {
+    "check": "decision text: step 3: frozen items",
+    "status": "PASS"
+   },
+   {
+    "check": "decision text: section 5: frozen rules",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item 'manifest': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item '候选顺序': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item '成本上限': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item '数据': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item '预处理': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item 'seed': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item '几何': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item 'CAL': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze item '精度': mapped (MAP_FREEZE)",
+    "status": "PASS"
+   },
+   {
+    "check": "freeze before primary runs: decision 10 step 3 + section 5 = contract rollout.freeze_before_primary_runs (as sets)",
+    "status": "PASS",
+    "detail": "['CAL rules', 'candidate order', 'cost ceilings', 'geometry', 'manifest', 'precision', 'preprocessing', 'seeds and RNG stream policy']"
+   },
+   {
+    "check": "contract freeze list without repeats",
+    "status": "PASS",
+    "detail": "8"
+   },
+   {
+    "check": "formal-unit DEV registrations = DEV cores x perturbations",
+    "status": "PASS",
+    "detail": "320"
+   },
+   {
     "check": "decision text: T03 mode",
     "status": "PASS"
    },
@@ -4975,6 +5155,26 @@
    },
    {
     "check": "phase-1 environment() lacks the two TF32 override variables",
+    "status": "PASS"
+   },
+   {
+    "check": "git: step-2 code commit 278abe4 is an ancestor of HEAD",
+    "status": "PASS"
+   },
+   {
+    "check": "step-2 adapter: fp64 diagnostic factor M1_FP64_DIAGNOSTIC_BELOW",
+    "status": "PASS"
+   },
+   {
+    "check": "step-2 adapter: resolution unit = 2 eps(dtype)",
+    "status": "PASS"
+   },
+   {
+    "check": "step-2 adapter: the diagnostic's HVPs / moment pass enter the per-batch totals",
+    "status": "PASS"
+   },
+   {
+    "check": "step-2 adapter: no diagnostic in float64",
     "status": "PASS"
    },
    {
