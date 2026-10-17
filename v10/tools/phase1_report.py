@@ -12,12 +12,18 @@ Reproducible output: no wall-clock time and no live query enter the report.  Git
 changes are not confined to the report files (this generator, its first location scripts/v10/phase1_report.py, the report, the
 queue snapshot); every later commit is checked to touch only those files, and the working tree outside them must be clean.  The
 queue items come from v10/tools/phase1_report_queue_snapshot.json, written only by --refresh-queue (read-only squeue -u $USER and
-scontrol show job per V9 job, plus the V9 sbatch --nice defaults and the V9 job record).  Two runs, or a run at the commit that
-contains the report, give the same bytes.
+scontrol show job per V9 job, plus the V9 sbatch --nice defaults and the V9 job record).  Two runs give the same bytes.  The tree
+the report is generated from (its HEAD, named in the header) is a commit whose post-BASE commits touch only report files and
+post-report documents; a later commit that contains the report may change measurement code or results, and there this generator
+refuses by design.  --tree-commit <generation tree> therefore runs THIS generator file inside a temporary clone checked out at the
+generation tree (branch TREE_BRANCH) and writes its output, so the committed report is reproducible from any later commit that
+contains it and this generator.  Job logs enter only when the job ran a commit that is BASE or an ancestor of it (later jobs belong
+to later stages), so new jobs do not change the report.
 Correction of 2026-10-17 (section 12, owner decision V10-phase1-decisions-20261017, decision section 10 step 1): a dated
 corrections section is appended; sections 1-11 keep their text.  Commits confined to the report files and to the post-report
 documents (POST_DOC_PATHS: the owner decisions, the landed protocol P2 and its generator) do not move BASE either; the header and
-section 1 then name that path class.
+section 1 then name that path class.  Section 12 reads the post-report documents as git objects at POST_DOC_COMMIT (not from the
+working tree), and the generator refuses when POST_DOC_PATHS have uncommitted changes.
 
 Every number, table and git fact is read at generation time from
   v10/T00   PREFLIGHT.json, PREFLIGHT_RUN.log, MANIFEST_BUILD_SUMMARY.json, MANIFEST_SHA256.txt, host_map.json, EXPOSURE_NOTES.md,
@@ -41,7 +47,7 @@ PACKAGE_REQUIRED sources).
 Consistency checks (BUDGET recomputed, CSV vs JSON, hashes, check counts, git state) abort the run on any mismatch.  Writes only the
 report and, with --refresh-queue, the queue snapshot.
 
-    /home/infres/yinwang/CS_QMI/env/bin/python v10/tools/phase1_report.py [--output PATH] [--refresh-queue]
+    /home/infres/yinwang/CS_QMI/env/bin/python v10/tools/phase1_report.py [--output PATH] [--refresh-queue | --tree-commit COMMIT]
 """
 from __future__ import annotations
 
@@ -82,6 +88,10 @@ PROTOCOL_P2_GEN = "v10/tools/make_protocol_p2.py"
 CORRECTION_DATE = "2026-10-17"
 # the owner-decision commits of 2026-10-17 (named in section 12; checked to be after BASE and to touch only v10/decisions)
 DECISION_COMMITS = ("249baac75bc21e8c704cad3aba3b9b42715faf86", "9cb1ae3b0cd9bcaee028fff95f7ae366f1b3cf46")
+# section 12 reads the decision documents and the landed protocol P2 as git objects at this commit (the protocol-landing commit of
+# the correction; checked to be after BASE), so later edits or commits of v10/decisions / v10/protocol cannot change the report
+POST_DOC_COMMIT = "7b7e272cbfa5aeb593d918904d8383540b628ce9"
+TREE_BRANCH = "v10/mf-vcs"     # --tree-commit: branch name of the temporary clone (the report's branch; printed in the header)
 P3_FILE = "src/v9/reg/r6_reg_p3.py"     # REG-P3 EPFL audit (read only, at BASE): alignment-check constants for section 12
 V9_REPO = Path("/home/infres/yinwang/CS_QMI/ssl_pilot_v9")     # read only by --refresh-queue (sbatch --nice, V9 job record)
 HOST_FILES = ("src/v9/reg/g1.py", "src/v9/reg/r6_reg_pilot.py", "src/v9/reg/r6_reg_p2.py")   # = adapter host_code_hash, same order
@@ -391,16 +401,21 @@ def collect(args) -> dict:
             D["bench_raw"][dtype] = load_json(p)
     ps = run_dir / "train_steps_per_step.json"
     D["per_step"] = {"path": str(ps), "sha256": sha256_file(ps), "data": load_json(ps)} if ps.exists() else None
-    # --- logs
-    D["logs"] = {}
-    for p in sorted(LOGS.glob("v10_*.out")):
-        L = parse_job_log(p)
-        D["logs"][L["header"].get("job")] = L
     m = re.search(r"SLURM_JOB_ID=(\d+)", D["preflight_log"])
     D["preflight_job"] = {"job": m.group(1) if m else None, "header": parse_header(D["preflight_log"].splitlines()[0]),
                           "end": (re.search(r"end=(\S+)", D["preflight_log"]) or [None, None])[1],
                           "exit": (re.search(r"exit=(\d+)", D["preflight_log"]) or [None, None])[1]}
     collect_git(D)
+    # --- logs: jobs that ran BASE or an ancestor of it (phase 1); jobs submitted at later commits belong to later stages
+    D["logs"] = {}
+    for p in sorted(LOGS.glob("v10_*.out")):
+        with p.open(errors="replace") as fh:
+            commit = parse_header(fh.readline()).get("commit", "")
+        if not re.fullmatch(r"[0-9a-f]{40}", commit) or subprocess.run(
+                ["git", "-C", str(REPO), "merge-base", "--is-ancestor", commit, D["git"]["base"]], capture_output=True).returncode != 0:
+            continue
+        L = parse_job_log(p)
+        D["logs"][L["header"].get("job")] = L
     # job header code / pin == git-object hashes at the job commit
     for job, L in D["logs"].items():
         h = L["header"]
@@ -416,10 +431,12 @@ def collect(args) -> dict:
                              if re.search(r"\bmind\b", p.read_text(errors="replace"), re.I))
     D["reads"] = phase1_reads(D)
     # owner decision of 2026-10-17 (section 12)
-    D["decision_md"] = DECISION_MD.read_text(encoding="utf-8")
-    D["decision_summary"] = DECISION_SUMMARY.read_text(encoding="utf-8")
-    D["decision_contract"] = load_json(DECISION_JSON)
-    D["decision_sha256"] = {p.name: sha256_file(p) for p in (DECISION_MD, DECISION_SUMMARY, DECISION_JSON)}
+    post_docs = {p.name: git_blob(POST_DOC_COMMIT, p.relative_to(REPO).as_posix()) for p in (DECISION_MD, DECISION_SUMMARY, DECISION_JSON)}
+    D["decision_md"] = post_docs[DECISION_MD.name].decode("utf-8")
+    D["decision_summary"] = post_docs[DECISION_SUMMARY.name].decode("utf-8")
+    D["decision_contract"] = json.loads(post_docs[DECISION_JSON.name].decode("utf-8"))
+    D["decision_sha256"] = {k: sha256_bytes(v) for k, v in post_docs.items()}
+    D["protocol_p2"] = json.loads(git_blob(POST_DOC_COMMIT, PROTOCOL_P2_REL).decode("utf-8"))
     D["manifest_text"] = (T00 / "V10_DATA_MANIFEST.csv").read_text(encoding="utf-8")
     return D
 
@@ -532,10 +549,15 @@ def collect_git(D):
     for h in DECISION_COMMITS:
         check(h in after, f"decision commit {h[:7]} is not after base {base[:7]}")
         check(all(f.startswith("v10/decisions/") for f in commit_files(h)), f"decision commit {h[:7]} touches more than v10/decisions")
+    check(POST_DOC_COMMIT in after, f"post-report document commit {POST_DOC_COMMIT[:7]} (section 12 inputs) is not after base {base[:7]}")
     st = [ln for ln in git("status", "--porcelain", "--untracked-files=all", "--", *STATUS_PATHS).splitlines() if ln.strip()]
     dirty = [ln for ln in st if "__pycache__" not in ln and any(p not in OWN_PATHS for p in ln[3:].split(" -> "))]
     check(not dirty, f"uncommitted changes outside the report files: {dirty}")
-    g = {"branch": git("rev-parse", "--abbrev-ref", "HEAD").strip(), "base": base, "post_docs_after_base": bool(post)}
+    st_post = [ln for ln in git("status", "--porcelain", "--untracked-files=all", "--", *POST_DOC_PATHS).splitlines()
+               if ln.strip() and "__pycache__" not in ln]
+    check(not st_post, f"uncommitted changes in the post-report documents: {st_post}")
+    g = {"branch": git("rev-parse", "--abbrev-ref", "HEAD").strip(), "base": base, "post_docs_after_base": bool(post),
+         "head": git("rev-parse", "HEAD").strip()}
     g["base_utc"] = to_utc(git("log", "-1", "--format=%cI", base).strip())
     excl = [f":(exclude){p}" for p in OWN_PATHS]
     g["results_commit"] = git("log", "-1", "--format=%H", base, "--", *RESULT_PATHS, *excl).strip()
@@ -940,8 +962,10 @@ def sec_header(D) -> list[str]:
         "",
         f"生成器 `{SELF_REL}`；仓库状态截至 base 提交 `{g['base'][:7]}`（{g['base_utc']}，分支 `{g['branch']}`）。base = 最近一个不只改动报告文件"
         f"（本生成器、其首个位置 `{OLD_SELF_REL}`、本报告、队列快照）{post_doc_clause(g)}的提交，其后的提交只改动这些文件（生成器核对，且这些文件以外的工作区无改动）；"
-        f"结果提交 `{g['results_commit'][:7]}`；{qtxt}。报告不含生成时刻，也不做在线查询：在含本报告的提交上运行 "
-        f"`/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL}` 逐字节复现本文件；`--refresh-queue` 才重新查询队列并改写快照。",
+        f"结果提交 `{g['results_commit'][:7]}`；生成树为提交 `{g['head'][:7]}`；{qtxt}。报告不含生成时刻，也不做在线查询：在含本报告与本生成器的任一提交上运行 "
+        f"`/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL} --tree-commit {g['head'][:7]}`（把该提交中的本生成器放进生成树的临时克隆运行，分支 "
+        f"`{TREE_BRANCH}`）逐字节复现本文件；不带该选项时生成器只在 base 之后仅有报告文件与报告后文档提交的树上运行，含本报告的后续提交若改动测量代码、"
+        "作业脚本、测试或结果，生成器按设计拒绝；`--refresh-queue` 才重新查询队列并改写快照。",
         "",
         "来源：数值、表格与 git 事实读自 §11 所列文件、包文件、git 对象、作业日志与队列快照。手写内容只有：文字说明；§6 各决定的选项与建议；"
         "§5 中标为“提议”或“粗估”的参数与假设；“依赖决定”列；T01 覆盖分组、代码清单“作用”列与作业表“内容”列的描述；§6.4 的现状描述；"
@@ -2030,7 +2054,8 @@ def sec11(D) -> list[str]:
           (f"队列快照：`{QUEUE_REL}`（{QUEUE_SNAPSHOT.stat().st_size} 字节，sha256 {D['queue_sha256'][:16]}…，{q['utc']}；只由 `--refresh-queue` 写入；"
            "只含作业号、名称、状态、nice、分区、开始时间、sbatch 脚本路径与计数，不含数据）。" if q else f"队列快照：`{QUEUE_REL}` 不存在。"),
           f"本报告：`{REPORT_REL}`；生成器：`{SELF_REL}`（sha256 {D['git']['self_sha256'][:16]}…，{D['git']['self_lines']} 行）。"
-          f"复现：在含本报告的提交上运行 `/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL}`，输出与本文件逐字节相同。"
+          f"复现：在含本报告与本生成器的任一提交上运行 `/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL} --tree-commit "
+          f"{D['git']['head'][:7]}`（生成树，见开头），输出与本文件逐字节相同。"
           "仓库公开：报告不含数据、图像块、checkpoint 或逐图标签。", ""]
     return L
 
@@ -2066,7 +2091,7 @@ def sec12(D) -> list[str]:
     caps = re.search(r"CAL 候选上限为 \*\*([^*]+)\*\*", dec)
     check(rel is not None and caps is not None, "decision 2.1: tau_b factor and caps")
     cap_max = max(int(x) for x in caps.group(1).split("、"))
-    proto_p2 = load_json(REPO / PROTOCOL_P2_REL)
+    proto_p2 = D["protocol_p2"]                                      # git object at POST_DOC_COMMIT
     check(proto_p2["decision"]["text"]["sha256"] == D["decision_sha256"][DECISION_MD.name]
           and proto_p2["m1_rule"]["relative_tolerance"] == float(rel.group(1)), "protocol P2 vs the decision text")
     tvd = D["tv"]["tolerances_design"]
@@ -2122,7 +2147,8 @@ def sec12(D) -> list[str]:
          "B 冻结后生效；确认 §8 的门控修改）：决定全文 "
          f"{c(DECISION_MD.relative_to(REPO).as_posix())}（sha256 {D['decision_sha256'][DECISION_MD.name][:16]}…），决定契约 "
          f"{c(DECISION_JSON.relative_to(REPO).as_posix())}（sha256 {D['decision_sha256'][DECISION_JSON.name][:16]}…）；落地协议 {c(PROTOCOL_P2_REL)}"
-         f"（状态 {proto_p2['status']}，生成器 {c(PROTOCOL_P2_GEN)}）。按决定第 10 节第 1 步，下面三处措辞更正；§1–§11 除本节末“生成器说明”所列补充外"
+         f"（提交 {c(POST_DOC_COMMIT[:7])} 的版本，状态 {proto_p2['status']}，生成器 {c(PROTOCOL_P2_GEN)}）。按决定第 10 节第 1 步，下面三处措辞更正；"
+         "§1–§11 除本节末“生成器说明”所列补充外"
          "保持原文（包括被更正的句子与 §6 的决定请求原文），与本节不一致处以本节为准。本节由生成器写出，报告不手改。", "",
          f"1. **§8 的梯度参考**（决定 §7）：§8“内容”一条中的“分块 / checkpoint 的 fp32 实现 vs 同一输入的 fp64 值”应为“分块 / checkpoint 的 fp32 实现 vs "
          "**同输入和同权重的 fp64 梯度参考**”。被测的分块 / checkpoint 路径实际在 fp32 运行；参考把同一组 fp32 舍入后的输入描述符与 critic 权重转为 double 后"
@@ -2142,7 +2168,7 @@ def sec12(D) -> list[str]:
          f"{axis * factor} 像素上界；对角平移 (±{axis}, ±{axis}) 对应的原生距离可达 {axis * factor}√2 ≈ {diag:.2f} native px。{fg(thr)} native px 严格阈值"
          f"只衡量对已知施加扰动的恢复误差，不能据此声称真实 RGB–NIR 对齐误差小于约 {resid} 像素。",
          f"3. **M1 旧绝对容差的后果**（决定 §2.2）：§2 诊断表“M1 协议容差从 W = 0 起步”一行与 §6.1“问题”一条描述的是 ‖Δ‖₁ 低于 {fe(tol, 0)} 的批次，"
-         f"不应读作旧规则下 M1“根本不训练”。T01 的初始化批次（‖Δ‖₁ = {fe(a['cpu']['m1_gap_initial_equals_Delta_l1'], 4)} / "
+         f"不应读作旧规则下 M1“永远不训练”（决定 §2.2 的说法；决定摘要作“根本不训练”）。T01 的初始化批次（‖Δ‖₁ = {fe(a['cpu']['m1_gap_initial_equals_Delta_l1'], 4)} / "
          f"{fe(a['cuda']['m1_gap_initial_equals_Delta_l1'], 4)}）确实在第 0 次迭代停止，W、J 与 encoder 目标梯度均为 0；T02 协议记录行 {c(rec)} 的前 "
          f"{s['lead_degenerate']} 步同样为 0 次迭代，第 {s['first_active'][0] + 1} 步（index {s['first_active'][0]}，‖Δ‖₁ = {fe(s['first_active'][1])}）起"
          "开始更新：问题是启动时刻依赖批次波动。另一方面，同一 T01 批次强制用满 "
@@ -2153,8 +2179,11 @@ def sec12(D) -> list[str]:
          "（决定第 10 节第 2 步）。", "",
          f"生成器说明：自本更正起，base 规则另把只改动报告后文档（{post}）的提交视同报告提交，开头与 §1 据此补充。owner 决定提交 "
          + "、".join(c(h[:7]) for h in DECISION_COMMITS) + " 与协议落地提交属于此类；生成器核对 base 之后的提交只改动报告文件或这些路径，"
-         f"测量代码、作业脚本、测试、v10/T00–T02 与 V9 路径仍为 base（{c(g['base'][:7])}）的内容。除上述补充、§2 代码清单与 §11 中生成器的 sha256 与"
-         "行数外，§1–§11 未改。", ""]
+         f"测量代码、作业脚本、测试、v10/T00–T02 与 V9 路径仍为 base（{c(g['base'][:7])}）的内容。本节引用的报告后文档（决定全文、摘要、契约与落地协议）"
+         f"按提交 {c(POST_DOC_COMMIT[:7])} 的 git 对象读取，这些路径在工作区有未提交改动时生成器拒绝运行；作业日志只取作业提交为 base 或其祖先的日志"
+         "（base 之后提交的作业属于后续阶段，不进入本报告）。开头的复现说明写明生成树与 `--tree-commit`：含本报告的后续提交可能改动测量代码或结果，"
+         "生成器在这类提交上直接运行时按设计拒绝；§11 末的复现说明随之改为同一写法。除上述补充、§2 代码清单与 §11 中生成器的 sha256 与行数外，"
+         "§1–§11 未改。", ""]
     return L
 
 
@@ -2169,12 +2198,40 @@ def render(D) -> str:
     return "\n".join(L).rstrip() + "\n"
 
 
+def run_in_tree(commit: str, output: Path) -> int:
+    """--tree-commit: run THIS generator file inside a temporary clone of the repository (objects shared, nothing fetched) checked out
+    at the generation tree `commit` on branch TREE_BRANCH, writing to `output`; the clone is removed afterwards.  Only the
+    generator file differs from the tree (a report file: allowed by the dirty check)."""
+    import shutil
+    import sys
+    import tempfile
+    sha = git("rev-parse", "--verify", f"{commit}^{{commit}}").strip()
+    with tempfile.TemporaryDirectory(prefix="v10_phase1_report_tree_") as tmp:
+        clone = Path(tmp) / "repo"
+        for cmd in (["git", "clone", "--quiet", "--shared", "--no-checkout", str(REPO), str(clone)],
+                    ["git", "-C", str(clone), "checkout", "--quiet", "-B", TREE_BRANCH, sha]):
+            p = subprocess.run(cmd, capture_output=True, text=True)
+            check(p.returncode == 0, f"{' '.join(cmd[:3])}: {p.stderr.strip()[:300]}")
+        shutil.copy2(Path(__file__).resolve(), clone / SELF_REL)
+        p = subprocess.run([sys.executable, str(clone / SELF_REL), "--output", str(output.resolve())], capture_output=True, text=True)
+        print(p.stdout, end="")
+        if p.returncode != 0:
+            print(p.stderr, end="", file=sys.stderr)
+        return p.returncode
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="V10 phase-1 stage report generator (read-only except the report file)")
     ap.add_argument("--output", type=Path, default=REPORT_DEFAULT)
     ap.add_argument("--refresh-queue", action="store_true",
                     help=f"query squeue / scontrol (read-only) and rewrite {QUEUE_REL} before rendering")
+    ap.add_argument("--tree-commit", metavar="COMMIT",
+                    help="run this generator in a temporary clone at the generation tree COMMIT (named in the report header): "
+                         "reproduces the committed report from any later commit that contains it")
     args = ap.parse_args()
+    if args.tree_commit:
+        check(not args.refresh_queue, "--tree-commit reproduces the committed report: --refresh-queue is not allowed with it")
+        return run_in_tree(args.tree_commit, args.output)
     D = collect(args)
     text = render(D)
     args.output.write_text(text, encoding="utf-8")
