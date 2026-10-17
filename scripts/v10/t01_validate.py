@@ -13,9 +13,15 @@ Parts (each writes <out-root>/T01/parts/<part>_<cpu|cuda>.json and a copy in its
                 init (nearly uniform features, J ~ 1e-6) and sharpened_x10 (the same descriptors, feature maps x 10: spread
                 features, so the comparisons have power) - dense vs moments values and A / B / W / encoder gradients,
                 unequal-n scene weights, Q modes, M1 strict / training modes, MLP perm1 / perm8 / dense; one-update checks
-                (same positive terms with a non-zero W, boundary-W projection, M1 at the protocol tolerance (diagnostic) and
-                with a binding iteration cap, AdamW decay in fp64); the real warp chain in both states (batched energy vs
-                the package backend, fixed-W state hash across geometry candidates, checkpoint save / restore).
+                (same positive terms with a non-zero W, boundary-W projection, AdamW decay in fp64); the real warp chain in
+                both states (batched energy vs the package backend, fixed-W state hash across geometry candidates, checkpoint
+                save / restore).  M1 (owner decision 2026-10-17 section 2, relative zero-head rule): reference = ||Delta_b||_1 of
+                the batch's own snapshot, threshold 1% of it, warm-start gap separate, stop rule consistent with the true FW gap,
+                equality with the package profiled objective at tau_b; on the real host-init batch the zero-head start iterates,
+                moves W and trains the encoders, the next batch warm-starts, cap 10 returns the approximate W with its true gap,
+                HVP / moment-pass counters equal independent counts; an exact-zero Delta fixture returns W = 0 with
+                zero_reference_gap without calling the solver; the fp64 same-input diagnostic (non-gating); the old absolute
+                target 1e-4 from W = 0 (degenerate at the host init) and the absolute cap-binding rows stay (audit mode).
   geometry      fp64 central finite differences of every energy term (P: p1, p2; Q: q1, q2 by moments, dense and perm1)
                 w.r.t. (u, ty, tx) on the real warp chain at two non-zero rigid transforms whose warped sampling grid lies
                 on a rational lattice (Pythagorean rotation) at distance >= 1/(2L) from every bilinear kink; two step sizes;
@@ -178,6 +184,78 @@ def grads(out, inputs, retain=True):
     inputs = list(inputs)
     gs = torch.autograd.grad(out, inputs, retain_graph=retain, allow_unused=True)
     return [torch.zeros_like(x) if g is None else g for g, x in zip(gs, inputs)]
+
+
+def close_rel(x: float, y: float, dn: str) -> bool:
+    """|x - y| <= rtol(dtype) |y| (the design rtol, atol = 0): for two code paths over the same inputs that should agree to rounding
+    (stricter than the design rule, whose fp32 atol 1e-5 exceeds the host-init gaps ~3e-5)."""
+    return abs(x - y) <= A.TOLERANCES[dn][1] * abs(y)
+
+
+@contextlib.contextmanager
+def independent_m1_counters():
+    """Counts, independently of the adapter's own counters, what an M1 call really does: QuadraticHead constructions (moment
+    snapshots, by dtype), QuadraticHead._hvp calls, objective_terms calls (outer moment passes; both the backend name and the
+    adapter's imported name) and solve_box_head calls.  The wrappers change no value and are removed after the block."""
+    counts = {"heads": {}, "hvp": 0, "objective_terms": 0, "solve_box_head": 0}
+    init0, hvp0, obj0, obj_a0, solve0 = MF.QuadraticHead.__init__, MF.QuadraticHead._hvp, MF.objective_terms, A.objective_terms, MF.solve_box_head
+
+    def init(self, scenes, *args, **kw):
+        init0(self, scenes, *args, **kw)
+        key = dtype_name(self.delta.dtype)
+        counts["heads"][key] = counts["heads"].get(key, 0) + 1
+
+    def hvp(self, direction):
+        counts["hvp"] += 1
+        return hvp0(self, direction)
+
+    def obj(*args, **kw):
+        counts["objective_terms"] += 1
+        return obj0(*args, **kw)
+
+    def solve(*args, **kw):
+        counts["solve_box_head"] += 1
+        return solve0(*args, **kw)
+    MF.QuadraticHead.__init__, MF.QuadraticHead._hvp = init, hvp
+    MF.objective_terms, A.objective_terms, MF.solve_box_head = obj, obj, solve
+    try:
+        yield counts
+    finally:
+        MF.QuadraticHead.__init__, MF.QuadraticHead._hvp = init0, hvp0
+        MF.objective_terms, A.objective_terms, MF.solve_box_head = obj0, obj_a0, solve0
+
+
+def m1_stop_consistent(info: dict) -> bool:
+    """The stop reason agrees with the logged numbers: gap_tolerance <=> gap_final <= threshold within the cap; iteration_budget_exhausted <=>
+    the cap was used and the gap is still above the threshold (approximate head); zero_reference_gap <=> G_b(0) = 0 and W = 0."""
+    s, it, cap = info["m1_stop_reason"], info["m1_iterations"], info["m1_max_iterations"]
+    if s == "gap_tolerance":
+        return info["m1_converged"] and info["m1_gap_final"] <= info["m1_tolerance_effective"] and it <= cap
+    if s == "iteration_budget_exhausted":
+        return (not info["m1_converged"]) and it == cap and info["m1_gap_final"] > info["m1_tolerance_effective"]
+    if s == "zero_reference_gap":
+        return info["m1_gap_ref_zero"] == 0.0 and it == 0 and info["m1_W_final_absmax"] == 0.0 and info["m1_solver_status"] is None
+    return False
+
+
+def m1_fields(info: dict) -> dict:
+    """The logged M1 fields of a row (the solved W itself is not recorded)."""
+    return {k: v for k, v in info.items() if k != "m1_W"}
+
+
+def exact_zero_delta_scenes(n_sc: int, n_pos: int, K: int, dtype, dev, seed: int) -> list:
+    """Scenes whose Delta is exactly zero in floating point: every a row is the one-hot e_0 and the b rows are one-hot of random
+    classes.  With n_pos a power of two, A^T B / n and (sum a)(sum b)^T / n^2 are the same exact numbers (integers over powers of
+    two), and the weights 1 / n_sc are powers of two, so Delta = 0 exactly (a constructed fixture: real features never give it)."""
+    g = torch.Generator(device="cpu").manual_seed(seed)
+    out = []
+    for s in range(n_sc):
+        a = torch.zeros(n_pos, K, dtype=dtype)
+        a[:, 0] = 1
+        b = torch.zeros(n_pos, K, dtype=dtype)
+        b[torch.arange(n_pos), torch.randint(0, K, (n_pos,), generator=g)] = 1
+        out.append(MF.SceneBatch(a.to(dev), b.to(dev), "v", scene_id=str(s)))
+    return out
 
 
 # ------------------------------------------------------------------------------------------------------------ part: verify_torch
@@ -600,6 +678,8 @@ def part_adapter(device: str, run_dir: Path, n_sc_by_dtype: dict) -> dict:
             with rec.group(f"real_mlp_{dn}"):
                 real_mlp(rec, base, dev, dn)
             del base
+        with rec.group(f"m1_zero_reference_{dn}"):
+            m1_zero_reference_checks(rec, dev, dn)
         for state in FEATURE_STATES:
             with rec.group(f"registration_side_{state}_{dn}"):
                 reg_side_checks(rec, guard, fit, dev, dtype, dn, run_dir, state)
@@ -716,6 +796,73 @@ def real_m1(rec: Recorder, c: dict, dev, dn: str):
     pt = MF.profiled_objective(scenes, weights=wts, initial=W.detach(), tolerance=1e-4, max_iterations=10, require_converged=False)
     rec.expect(f"M1_training_mode_returns_and_logs_gap_{sfx}", math.isfinite(pt.solution.fw_gap) and pt.solution.iterations <= 10,
                gap=pt.solution.fw_gap, iterations=pt.solution.iterations, converged=pt.solution.converged, solver_status=pt.solution.status)
+    # relative zero-head rule (decision 2026-10-17 2.1, the protocol rule) from the seeded non-zero W, i.e. a warm start, cap 10
+    W0 = W.detach()
+    terms_r, info_r = A.mf_objective("MF_M1", scenes, W0, wts, m1=A.M1Config(max_iterations=10))
+    fresh = MF.QuadraticHead(scenes, weights=wts)                      # an independent snapshot of the same features
+    g_ref, g_start, g_final = float(fresh.delta.abs().sum()), float(fresh.fw_gap(W0)), float(fresh.fw_gap(info_r["m1_W"]))
+    rt = A.M1_RELATIVE_TOLERANCE
+    rec.expect(f"M1_relative_reference_is_zero_head_gap_threshold_1pct_warm_start_gap_separate_{sfx}",
+               close_rel(info_r["m1_gap_ref_zero"], g_ref, dn) and info_r["m1_tolerance_effective"] == rt * info_r["m1_gap_ref_zero"]
+               and close_rel(info_r["m1_gap_start"], g_start, dn) and info_r["m1_gap_start"] != info_r["m1_gap_ref_zero"]
+               and info_r["m1_tolerance_effective"] != rt * info_r["m1_gap_start"] and not info_r["m1_W_start_is_zero"],
+               independent_gap_ref_zero=g_ref, independent_gap_start=g_start, bitwise_gap_ref_zero=info_r["m1_gap_ref_zero"] == g_ref,
+               bitwise_gap_start=info_r["m1_gap_start"] == g_start, **m1_fields(info_r),
+               note="threshold = 0.01 x G_b(0) of the current batch (not of the warm start); both gaps recomputed on a fresh snapshot")
+    rec.expect(f"M1_relative_stop_rule_consistent_final_gap_is_true_FW_gap_{sfx}", m1_stop_consistent(info_r)
+               and close_rel(info_r["m1_gap_final"], g_final, dn) and float(info_r["m1_W"].abs().max()) <= 1.0
+               and not info_r["m1_W"].requires_grad, independent_gap_final=g_final, bitwise_gap_final=info_r["m1_gap_final"] == g_final,
+               stop_reason=info_r["m1_stop_reason"], iterations=info_r["m1_iterations"])
+    ref = MF.profiled_objective(scenes, weights=wts, initial=W0, tolerance=info_r["m1_tolerance_effective"], max_iterations=10,
+                                require_converged=False)
+    rec.expect(f"M1_relative_equals_package_profiled_objective_at_tau_b_bitwise_{sfx}", torch.equal(info_r["m1_W"], ref.solution.w)
+               and torch.equal(terms_r.f, ref.terms.f) and info_r["m1_iterations"] == ref.solution.iterations
+               and info_r["m1_gap_final"] == ref.solution.fw_gap,
+               note="the relative rule = the package profiled objective with tolerance tau_b = 0.01 G_b(0) computed on the same batch")
+    if dn != "float64":
+        d = info_r["m1_fp64_diagnostic"]
+        rec.expect(f"M1_relative_fp64_same_input_diagnostic_{sfx}", (not d.get("triggered")) or d.get("decisions_agree"), required=False,
+                   note="diagnostic: same feature values through the same backend in float64 when g_ref <= 1e4 x 2 eps; PASS = "
+                        "not triggered, or the fp32 and fp64 stop decisions at the returned W agree", **d)
+
+
+def m1_zero_reference_checks(rec: Recorder, dev, dn: str):
+    """Decision 2026-10-17 2.3: an exactly zero Delta_b returns W = 0 with status zero_reference_gap; nothing is divided by g_ref and the
+    solver (which requires a positive tolerance) is not called.  Constructed fixture (exact_zero_delta_scenes), the host batch shape
+    (16 scenes x 128 positions, K16), through the adapter path A.mf_objective, from W = 0 and from a non-zero warm start."""
+    dtype = getattr(torch, dn)
+    n_sc, n_pos, K = 16, 128, K_SMOKE
+    scenes, wts = exact_zero_delta_scenes(n_sc, n_pos, K, dtype, dev, SEED), A.host_weights(n_sc)
+    head = MF.QuadraticHead(scenes, weights=wts)
+    names = (f"M1_relative_zero_reference_from_W0_returns_W0_zero_reference_gap_{dn}",
+             f"M1_relative_zero_reference_from_warm_start_returns_W0_{dn}")
+    if bool(head.delta.any()):
+        for nm in names:
+            rec.blocked(nm, "precondition not met: the constructed fixture's Delta is not exactly zero", delta_absmax=float(head.delta.abs().max()))
+        return
+    W0 = torch.zeros(K, K, dtype=dtype, device=dev)
+    with independent_m1_counters() as cnt:
+        terms, info = A.mf_objective("MF_M1", scenes, W0, wts, m1=A.M1Config())
+    diag_heads = 1 if info["m1_fp64_diagnostic"].get("triggered") else 0
+    rec.expect(names[0], info["m1_stop_reason"] == "zero_reference_gap" and torch.equal(info["m1_W"], W0) and info["m1_gap_ref_zero"] == 0.0
+               and info["m1_gap_relative_to_zero"] is None and info["m1_tolerance_effective"] is None and info["m1_iterations"] == 0
+               and info["m1_converged"] and info["m1_solver_status"] is None and info["m1_hvp_calls"] == 0 and info["m1_moments_passes"] == 2
+               and float(terms.f) == 0.0 and cnt["solve_box_head"] == 0 and cnt["objective_terms"] == 1
+               and cnt["heads"].get(dn) == 1 and sum(cnt["heads"].values()) == 1 + diag_heads, independent_counts=cnt, f=float(terms.f),
+               **m1_fields(info), note="constructed exact-zero fixture; W = 0 is the maximiser of the negative semidefinite empirical "
+                                       "head objective; not a statement about population independence")
+    gen = torch.Generator(device="cpu").manual_seed(A.Q.seed_of(f"V10|T01|zero-ref-warm|{dn}"))
+    Wp = torch.empty(K, K, dtype=torch.float64).uniform_(-0.9, 0.9, generator=gen).to(dev, dtype)
+    with independent_m1_counters() as cnt2:
+        terms2, info2 = A.mf_objective("MF_M1", scenes, Wp, wts, m1=A.M1Config())
+    g_start = float(head.fw_gap(Wp))
+    rec.expect(names[1], info2["m1_stop_reason"] == "zero_reference_gap" and torch.equal(info2["m1_W"], torch.zeros_like(Wp))
+               and info2["m1_tolerance_effective"] is None and info2["m1_gap_relative_to_zero"] is None and not info2["m1_W_start_is_zero"]
+               and close_rel(info2["m1_gap_start"], g_start, dn) and info2["m1_hvp_calls"] == 1 and cnt2["solve_box_head"] == 0
+               and float(terms2.f) == 0.0 and info2["m1_W_update_absmax"] == float(Wp.abs().max()), independent_gap_start=g_start,
+               independent_counts=cnt2, **m1_fields(info2),
+               note="the warm start is replaced by W = 0 (the optimum); its gap is logged (1 HVP)")
+    rec.raises(f"M1_solver_rejects_zero_tolerance_{dn}", lambda: MF.solve_box_head(head, tolerance=0.0), ValueError)
 
 
 def real_mlp(rec: Recorder, c: dict, dev, dn: str):
@@ -859,13 +1006,18 @@ def reg_side_checks(rec: Recorder, guard, fit, dev, dtype, dn: str, run_dir: Pat
         rec.cmp(f"checkpoint_roundtrip_geometry_grad_{spec['name']}_{sfx}", g2, g0, dn, bitwise=bool(torch.equal(g2, g0)))
 
 
-def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int):
-    first = A.HostBatchSampler(fit, SEED, n_sc=n_sc).draw()
-    imgs = A.load_learned_inputs(guard, first.cores, {"FIT"}, "T01 one-update checks (float32)", dev)
+def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int, *, imgs=None, build_models=None):
+    """imgs / build_models: injected only by the unit tests (synthetic images, tiny encoders); T01 reads the real FIT batch through
+    the guard and builds the host models."""
+    replay = A.HostBatchSampler(fit, SEED, n_sc=n_sc)               # the trainers' own draws (same seed): batches 1 and 2
+    first, second = replay.draw(), replay.draw()
+    if imgs is None:                                                # batch 2: the M1 warm-start check (3b) takes a second step
+        imgs = A.load_learned_inputs(guard, sorted(set(first.cores) | set(second.cores)), {"FIT"},
+                                     "T01 one-update checks (float32; the first two host batches)", dev)
     n_pos = first.perm.shape[1]
 
     def trainer(method, **kw):
-        return A.Trainer(A.TrainConfig(method=method, seed=SEED, n_sc=n_sc, **kw), imgs, fit, dev)
+        return A.Trainer(A.TrainConfig(method=method, seed=SEED, n_sc=n_sc, **kw), imgs, fit, dev, build_models=build_models)
 
     def enc_params(t):
         return [p for m in (t.eU, t.eV) for p in m.parameters()]
@@ -954,28 +1106,110 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int):
                    a_std_max=float(o["A"].std(0).max()), b_std_max=float(o["B"].std(0).max()))
         del r, o, out
 
-    # (3) M1.  (a) The protocol setting (absolute gap target 1e-4, 30 iterations) from the package start W = 0: DIAGNOSTIC of the
-    #     init degeneracy (escalated to the owner, not changed here).  (b) A binding iteration cap (the T02 cost configuration).
+    # (3) M1 (decision 2026-10-17 2.1 / 2.3: the relative zero-head rule is the protocol; rule 'absolute' = strict numeric audit).
+    # (3a) zero-head start at the real host init: the package start W = 0, protocol rule, cap 30 (M1Config default)
+    wts = A.host_weights(n_sc)
+    rt = A.M1_RELATIVE_TOLERANCE
     t = trainer("MF_M1")
+    before_enc = [p.detach().clone() for p in enc_params(t)]
+    before_fm = [p.detach().clone() for p in fm_params(t)]
+    r1 = t.step(t.draw(), keep=True)
+    i1 = r1["_out"]["info"]
+    gn, enc_chg, fm_chg = grad_norm(enc_params(t)), max_change(before_enc, enc_params(t)), max_change(before_fm, fm_params(t))
+    spot = r1.get("encoder_gradient_diagnostic") or {}
+    rec.expect("MF_M1_relative_from_W0_iterates_moves_W_and_trains_encoders", i1["m1_W_start_is_zero"] and r1["m1_iterations"] > 0
+               and r1["w_absmax"] > 0 and r1["m1_W_update_absmax"] > 0 and gn > 0 and enc_chg > 0 and fm_chg > 0
+               and spot.get("encoders_grad_norm", 0.0) > 0, encoder_grad_norm_postclip=gn, encoder_max_change=enc_chg,
+               feature_map_max_change=fm_chg, encoder_gradient_diagnostic=spot, J=r1["J"], **m1_fields(i1),
+               note="the absolute target 1e-4 stopped this batch at iteration 0 (row MF_M1_absolute_tolerance_1e-4_from_W0_...)")
+    fresh1 = MF.QuadraticHead(r1["_out"]["scenes"], weights=wts)
+    g_ref1 = float(fresh1.delta.abs().sum())
+    rec.expect("MF_M1_relative_reference_is_l1_delta_of_the_batch_snapshot_and_gap_at_W0", close_rel(i1["m1_gap_ref_zero"], g_ref1, "float32")
+               and i1["m1_tolerance_effective"] == rt * i1["m1_gap_ref_zero"] and close_rel(i1["m1_gap_start"], i1["m1_gap_ref_zero"], "float32")
+               and i1["m1_moments_passes"] == 2 and m1_stop_consistent(i1), independent_gap_ref_zero=g_ref1,
+               bitwise_vs_fresh_snapshot=i1["m1_gap_ref_zero"] == g_ref1, bitwise_gap_start_at_W0=i1["m1_gap_start"] == i1["m1_gap_ref_zero"],
+               note="G_b(0) = ||Delta_b||_1 of the batch's own snapshot; from W = 0 the solver's iteration-0 gap is the same quantity")
+    d1 = i1["m1_fp64_diagnostic"]
+    rec.expect("MF_M1_relative_fp64_same_input_diagnostic_host_init", bool(d1.get("triggered")) and bool(d1.get("decisions_agree")),
+               required=False, note="diagnostic: g_ref at the host init is near fp32 resolution; same feature values in float64", **d1)
+    # (3b) warm start: the next batch starts from this batch's W; its start gap differs from its own zero-head reference
+    W_prev = t.head.W.detach().clone()
+    rec.expect("MF_M1_relative_next_batch_warm_starts_from_previous_W", torch.equal(W_prev, i1["m1_W"]) and float(W_prev.abs().max()) > 0,
+               w_absmax=float(W_prev.abs().max()))
+    r2 = t.step(t.draw(), keep=True)
+    i2 = r2["_out"]["info"]
+    fresh2 = MF.QuadraticHead(r2["_out"]["scenes"], weights=wts)
+    g_ref2, g_start2 = float(fresh2.delta.abs().sum()), float(fresh2.fw_gap(W_prev))
+    rec.expect("MF_M1_relative_warm_start_gap_differs_from_zero_head_reference_threshold_uses_reference",
+               (not i2["m1_W_start_is_zero"]) and i2["m1_W_start_absmax"] == float(W_prev.abs().max())
+               and close_rel(i2["m1_gap_ref_zero"], g_ref2, "float32") and close_rel(i2["m1_gap_start"], g_start2, "float32")
+               and i2["m1_gap_start"] != i2["m1_gap_ref_zero"] and i2["m1_tolerance_effective"] == rt * i2["m1_gap_ref_zero"]
+               and i2["m1_tolerance_effective"] != rt * i2["m1_gap_start"] and m1_stop_consistent(i2),
+               independent_gap_ref_zero=g_ref2, independent_gap_start=g_start2, **m1_fields(i2))
+    del r1, r2, i1, i2, fresh1, fresh2
+    # (3c) cap reached at the host init (cap 10): approximate W returned with its true FW gap, kept as the warm start
+    t = trainer("MF_M1", m1=A.M1Config(max_iterations=10))
+    rc = t.step(t.draw(), keep=True)
+    ic = rc["_out"]["info"]
+    name = "MF_M1_relative_cap_10_reached_returns_approximate_W_with_true_gap"
+    if ic["m1_stop_reason"] != "iteration_budget_exhausted":
+        rec.blocked(name, "precondition not met: the relative threshold was reached within 10 iterations at the host init", **m1_fields(ic))
+    else:
+        true_gap = float(MF.QuadraticHead(rc["_out"]["scenes"], weights=wts).fw_gap(ic["m1_W"]))
+        rec.expect(name, ic["m1_iterations"] == 10 and not ic["m1_converged"] and ic["m1_gap_final"] > ic["m1_tolerance_effective"]
+                   and close_rel(ic["m1_gap_final"], true_gap, "float32") and torch.equal(t.head.W, ic["m1_W"])
+                   and 0 < float(ic["m1_W"].abs().max()) <= 1.0 and math.isfinite(rc["J"]), independent_true_gap=true_gap,
+                   bitwise_true_gap=ic["m1_gap_final"] == true_gap, **m1_fields(ic))
+    del rc, ic
+    # (3d) counters against independent counts (relative and absolute rule), and the relative path = the package call at tau_b
+    for label, cfg_m1 in (("relative", A.M1Config()), ("absolute_cap_binding", A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE))):
+        t = trainer("MF_M1", m1=cfg_m1)
+        batch = t.draw()
+        with torch.no_grad(), independent_m1_counters() as cnt:
+            _, out = t.forward(*batch)
+        info = out["info"]
+        diag = info["m1_fp64_diagnostic"]
+        diag_hvp = diag.get("hvp_calls", 0) if diag.get("triggered") else 0
+        restarts = info["m1_momentum_restarts"]
+        rec.expect(f"MF_M1_{label}_counters_equal_independent_count", info["m1_hvp_calls"] + diag_hvp == cnt["hvp"]
+                   and info["m1_hvp_calls"] == 2 + 3 * info["m1_iterations"] + restarts and 0 <= restarts <= info["m1_iterations"]
+                   and info["m1_moments_passes"] == 2 and cnt["objective_terms"] == 1 and cnt["solve_box_head"] == 1
+                   and cnt["heads"].get("float32") == 1 and cnt["heads"].get("float64", 0) == (diag.get("moments_passes", 0) if diag.get("triggered") else 0),
+                   independent_counts=cnt, diag_hvp_calls=diag_hvp, **m1_fields(info),
+                   note="moments passes = QuadraticHead snapshots in the working dtype + outer objective_terms calls; the fp64 "
+                        "diagnostic (when triggered) counts its own snapshot / HVPs")
+        if label == "relative":
+            with torch.no_grad():
+                ref = MF.profiled_objective(out["scenes"], weights=wts, ridge=0.0, initial=t.head.W.detach(),
+                                            tolerance=info["m1_tolerance_effective"], max_iterations=30, require_converged=False)
+            rec.expect("MF_M1_relative_adapter_path_equals_package_profiled_objective_at_tau_b_bitwise", torch.equal(info["m1_W"], ref.solution.w)
+                       and torch.equal(out["terms"].f, ref.terms.f) and info["m1_iterations"] == ref.solution.iterations
+                       and info["m1_gap_final"] == ref.solution.fw_gap, tau_b=info["m1_tolerance_effective"])
+        del out, info
+    # (3e) the absolute target 1e-4 from W = 0 (the package setting before the decision): DIAGNOSTIC of the host-init degeneracy
+    t = trainer("MF_M1", m1=A.M1Config(rule="absolute"))
     before_enc = [p.detach().clone() for p in enc_params(t)]
     r = t.step(t.draw())
     gn = grad_norm(enc_params(t))
-    rec.expect("MF_M1_protocol_tolerance_from_W0_moves_W_and_trains_encoders", r["w_absmax"] > 0 and gn > 0, required=False,
-               note="DIAGNOSTIC of the protocol setting (owner decision pending): from W = 0 the first FW gap equals ||Delta||_1; "
-                    "when it is below the absolute target 1e-4 the head stops at iteration 0, W stays 0, the outer objective is 0 "
-                    "and its encoder gradient is exactly 0 (only AdamW decay acts)",
-               m1_gap_initial_equals_Delta_l1=r["m1_gap_initial"], m1_tolerance=r["m1_tolerance"], m1_iterations=r["m1_iterations"],
-               m1_converged=r["m1_converged"], w_absmax=r["w_absmax"], encoder_grad_norm=gn, J=r["J"],
+    rec.expect("MF_M1_absolute_tolerance_1e-4_from_W0_moves_W_and_trains_encoders", r["w_absmax"] > 0 and gn > 0, required=False,
+               note="DIAGNOSTIC kept from phase 1 (formerly MF_M1_protocol_tolerance_from_W0_moves_W_and_trains_encoders): with the "
+                    "absolute target 1e-4 the first FW gap from W = 0 equals ||Delta||_1; below 1e-4 the head stops at iteration 0, W "
+                    "stays 0 and the encoder gradient is exactly 0.  The protocol now uses the relative zero-head rule (rows above)",
+               m1_gap_start_equals_Delta_l1=r["m1_gap_start"], m1_absolute_tolerance=r["m1_absolute_tolerance"], m1_iterations=r["m1_iterations"],
+               m1_converged=r["m1_converged"], m1_stop_reason=r["m1_stop_reason"], w_absmax=r["w_absmax"], encoder_grad_norm=gn, J=r["J"],
                encoder_max_change=max_change(before_enc, enc_params(t)))
-    m1cap = A.M1Config(tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30)
+    # (3f) rule 'absolute' with a binding iteration cap (numeric audit mode, unchanged; the phase-1 T02 cost configuration)
+    m1cap = A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30)
     t = trainer("MF_M1", m1=m1cap)
     before_enc = [p.detach().clone() for p in enc_params(t)]
     before_fm = [p.detach().clone() for p in fm_params(t)]
     r = t.step(t.draw(), keep=True)
-    keys = ("m1_gap", "m1_iterations", "m1_converged", "m1_status", "m1_gap_initial", "m1_hvp_calls", "m1_momentum_restarts")
-    rec.expect("MF_M1_cap_binding_step_logs_gap_iterations_hvp", all(k in r for k in keys) and math.isfinite(r["m1_gap"])
+    keys = ("m1_gap_final", "m1_iterations", "m1_converged", "m1_solver_status", "m1_stop_reason", "m1_gap_start", "m1_hvp_calls",
+            "m1_momentum_restarts")
+    rec.expect("MF_M1_cap_binding_step_logs_gap_iterations_hvp", all(k in r for k in keys) and math.isfinite(r["m1_gap_final"])
                and r["m1_gap_scope"] == "inner_pre_outer_batch" and not r["m1_require_converged"] and r["m1_iterations"] == 30
-               and r["m1_momentum_restarts"] >= 0 and not r["m1_converged"], **{k: r.get(k) for k in keys})
+               and r["m1_momentum_restarts"] >= 0 and not r["m1_converged"] and r["m1_stop_reason"] == "iteration_budget_exhausted",
+               **{k: r.get(k) for k in keys})
     rec.expect("MF_M1_cap_binding_W_is_inner_solution_nonzero_in_box", torch.equal(t.head.W, r["_out"]["info"]["m1_W"])
                and 0 < r["w_absmax"] <= 1.0 and not t.head.W.requires_grad, w_absmax=r["w_absmax"])
     rec.expect("MF_M1_encoder_grad_nonzero_and_params_change", grad_norm(enc_params(t)) > 0 and max_change(before_enc, enc_params(t)) > 0,
@@ -989,10 +1223,13 @@ def one_update_checks(rec: Recorder, guard, fit, dev, n_sc: int):
         _, out = t.forward(*batch)
         ref = MF.profiled_objective(out["scenes"], weights=A.host_weights(n_sc), ridge=0.0, initial=t.head.W.detach(),
                                     tolerance=m1cap.tolerance, max_iterations=m1cap.max_iterations, require_converged=False)
+    restored = (MF.QuadraticHead.__dict__["_hvp"].__module__ == MF.__name__ and MF.QuadraticHead.__dict__["__init__"].__module__ == MF.__name__
+                and MF.solve_box_head.__module__ == MF.__name__ and MF.objective_terms.__module__ == MF.__name__
+                and A.objective_terms is MF.objective_terms)
     rec.expect("MF_M1_adapter_path_equals_package_profiled_objective_bitwise", torch.equal(out["info"]["m1_W"], ref.solution.w)
-               and torch.equal(out["terms"].f, ref.terms.f) and out["info"]["m1_iterations"] == ref.solution.iterations
-               and MF.QuadraticHead.__dict__["_hvp"].__module__ == MF.__name__,
-               note="the HVP-counting wrapper changes no value and is removed after the call")
+               and torch.equal(out["terms"].f, ref.terms.f) and out["info"]["m1_iterations"] == ref.solution.iterations and restored,
+               wrappers_restored=restored, note="rule 'absolute' (numeric audit mode, unchanged); the HVP-counting wrapper and the "
+                                                "independent counters change no value and are removed after the call")
     del out, ref
     # (4) host MLP critic
     t = trainer("MLP_perm1")
@@ -1217,6 +1454,8 @@ def run(args) -> int:
     env = A.environment(device)
     print(json.dumps({"t01_run": str(run_dir), **{k: env[k] for k in ("host", "git_commit", "code_hash_src_scripts_v10", "device", "torch")},
                       "gpu_name": env.get("gpu_name"), "job_pin": pin}), flush=True)
+    print(json.dumps({"precision_record": env["precision"]}, default=str), flush=True)
+    settings0 = A.precision_settings(env["precision"])
     n_sc = {"float64": args.n_sc_fp64 if args.n_sc_fp64 else (4 if devtype == "cpu" else 16), "float32": args.n_sc_fp32}
     rc = 0
     for part in [p for p in args.parts.split(",") if p]:
@@ -1237,7 +1476,9 @@ def run(args) -> int:
         except Exception as e:  # noqa: BLE001
             res = {"part": part, "device": devtype, "status": "FAIL", "failure_kind": "exception", "error": repr(e)[:2000],
                    "traceback": traceback.format_exc()[-8000:], "checks": []}
-        res.update({"provenance": env, "job_pin": pin, "run_dir": str(run_dir), "wall_seconds": time.time() - t0, "device_type": devtype})
+        prec_after = A.precision_record(device)
+        res.update({"provenance": env, "job_pin": pin, "run_dir": str(run_dir), "wall_seconds": time.time() - t0, "device_type": devtype,
+                    "precision_after_part": prec_after, "precision_settings_unchanged": A.precision_settings(prec_after) == settings0})
         A.write_json_atomic(run_dir / f"{part}_{devtype}.json", res)
         A.write_json_atomic(parts_dir(args.out_root) / f"{part}_{devtype}.json", res)
         print(f"[t01] part {part} on {devtype}: {res['status']} ({res.get('n_pass', 0)} pass / {res.get('n_fail', 0)} fail / "
@@ -1275,6 +1516,10 @@ def provenance_check(parts: dict) -> tuple[dict, list]:
         pv = p.get("provenance") or {}
         rows[key] = {k: pv.get(k) for k in ("git_commit", "submit_commit", "slurm_job_id", "slurm_partition", "host", "gpu_name", "utc",
                                             "job_pin_expected", "job_code_hash", "git_dirty_code", *PROVENANCE_KEYS)}
+        prec = pv.get("precision")                     # decision 2026-10-17 section 3: recorded, not gating (absent in phase-1 parts)
+        rows[key]["precision"] = None if prec is None else {"settings": A.precision_settings(prec), "env": prec.get("env"),
+                                                            "gpu_capability": prec.get("gpu_capability"),
+                                                            "unchanged_during_part": p.get("precision_settings_unchanged")}
         bad = [k for k in PROVENANCE_KEYS if pv.get(k) != current[k]] + (["git_dirty_code"] if pv.get("git_dirty_code") else [])
         if bad:
             mismatches.append({"part": key, "fields": bad, **{k: pv.get(k) for k in bad}})

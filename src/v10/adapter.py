@@ -17,12 +17,17 @@ reference; fixed points allowed), locked scene weights 1/n_sc (the host's implic
 W in [-1, 1]^{K x K} projected after every optimiser step, AdamW weight decay 0 for W, no output tanh, ridge 0 by default.
   MF_perm1  sampled_permutation_terms with the host's own per-scene permutation of the step (perm1)
   MF_M0     objective_terms: exact V moments
-  MF_M1     profiled_objective on the SAME batch tensors; training uses require_converged=False and logs the gap per batch.
-            Degeneracy at the package start W = 0 (review 2026-10-17): the solver's first gap equals ||Delta||_1; a reviewer probe
-            found ||Delta||_1 = 3.2e-5 on the first T01 / T02 batch at host init (T01 records it), below the protocol's absolute
-            target 1e-4, so the head stops at iteration 0 with W = 0, the outer objective is identically 0 and its feature /
-            encoder gradient is exactly 0.  M1Config keeps the protocol value (owner
-            decision pending); T02 times M1 with M1_CAP_BINDING_TOLERANCE (the 10 / 30 / 100 iteration budget always binds).
+  MF_M1     the profiled head on the SAME batch tensors; training uses require_converged=False and logs the gap per batch.
+            Owner decision 2026-10-17 (v10/decisions/V10_PHASE1_DECISIONS_20261017_CN.md section 2; contract key "m1"), rule
+            'relative_zero_head' (M1Config default): per batch ONE QuadraticHead snapshot of the current fixed features;
+            g_ref = G_b(0) = ||Delta_b||_1 read from that snapshot's delta (no HVP, no extra moment pass); stop when
+            G_b(W) <= tau_b = 0.01 g_ref, else at the iteration cap (CAL candidates 10 / 30 / 100; approximate head, its true
+            FW gap logged); warm start = the previous batch's W (first batch W = 0); an exactly zero Delta_b returns W = 0 with
+            status zero_reference_gap (no division, the solver is not called with a zero tolerance); a same-input fp64
+            diagnostic when g_ref is near the working-dtype resolution.  Rule 'absolute' = the strict absolute-tolerance mode
+            (numeric audit, unchanged: package profiled_objective).  History: the package start W = 0 with the absolute target
+            1e-4 was degenerate at the host init (||Delta||_1 = 3.2e-5 < 1e-4 on the first T01 / T02 batch: iteration 0, W = 0,
+            zero encoder gradient); T01 keeps that case as a diagnostic.  mf_vcs.py is unchanged (package sha256).
   MF_dense  dense_objective_terms: exact dense reference (validation only)
 MLP (the host critic, T = tanh f), same P / Q, scene order and normalisation:
   MLP_perm1 host-identical (P.loss_fn 'vcs' on the host's permutation)
@@ -31,6 +36,9 @@ MLP (the host critic, T = tanh f), same P / Q, scene order and normalisation:
 Test-time energy (MFRigidEnergy): encoders + feature maps + W fixed (eval mode, requires_grad False, enforced), nothing
 refitted per candidate, autograd kept for the geometry parameters (no torch.no_grad around the energy), warp-then-encode,
 P and Q both from the same warped-then-encoded moving descriptors.
+Provenance: environment() / precision_record() record the effective numeric environment after all imports (owner decision
+2026-10-17 section 3, option 2A: versions, GPU, matmul / cuDNN fp32 precisions as returned, determinism switches,
+CUBLAS_WORKSPACE_CONFIG and both TF32 override variables, unset recorded as null); no precision setting is changed here.
 """
 from __future__ import annotations
 
@@ -38,11 +46,13 @@ import contextlib
 import csv
 import hashlib
 import json
+import math
 import os
 import socket
 import subprocess
 import sys
 import time
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
@@ -70,8 +80,13 @@ TOLERANCES = {"float64": (1e-10, 1e-8), "float32": (1e-5, 1e-4)}   # package V10
 CODE_PATHS = ("src/v10", "scripts/v10")
 JOB_PIN_PATHS = ("src/v10", "scripts/v10", "slurm/v10")              # pinned at submission (slurm/v10/submit.sh: V10_EXPECT_CODE)
 DIRTY_PATHS = ("src/v10", "scripts/v10", "slurm/v10", "tests/v10", "src/v9/reg")   # = the dirty check of slurm/v10/v10_header.sh
-M1_PROTOCOL_TOLERANCE = 1e-4          # V10_PROTOCOL head.M1_gap_absolute_target (absolute FW gap)
-M1_CAP_BINDING_TOLERANCE = 1e-300     # far below any reachable gap: the solver always runs its whole iteration budget
+M1_PROTOCOL_TOLERANCE = 1e-4          # package V10_PROTOCOL head.M1_gap_absolute_target (absolute FW gap): rule 'absolute' only
+M1_CAP_BINDING_TOLERANCE = 1e-300     # rule 'absolute': far below any reachable gap, the solver always runs its whole iteration budget
+M1_RULES = ("relative_zero_head", "absolute")
+M1_RELATIVE_TOLERANCE = 0.01          # decision 2026-10-17 2.1: tau_b = 0.01 * G_b(0) = 0.01 * ||Delta_b||_1
+M1_CAL_CAPS = (10, 30, 100)           # decision 2026-10-17 2.1 / 8.1: M1 iteration caps (CAL candidates)
+M1_FP64_DIAGNOSTIC_BELOW = 1e4        # fp64 same-input diagnostic when g_ref <= 1e4 * M1 resolution unit (m1_resolution_unit)
+TF32_ENV_VARS = ("TORCH_ALLOW_TF32_CUBLAS_OVERRIDE", "NVIDIA_TF32_OVERRIDE")   # decision 2026-10-17 section 3: always recorded
 
 
 # ------------------------------------------------------------------------------------------------------------ host import
@@ -150,23 +165,77 @@ def _safe(fn, default=None):
         return default
 
 
+def env_explicit(name: str) -> dict:
+    """An environment variable recorded explicitly: {'set': False, 'value': None} when unset (never assumed empty)."""
+    value = os.environ.get(name)
+    return {"set": value is not None, "value": value}
+
+
+PRECISION_SETTING_KEYS = ("float32_matmul_precision", "cuda_matmul_fp32_precision_raw", "backends_fp32_precision_raw",
+                          "cudnn_fp32_precision_raw", "cudnn_conv_fp32_precision", "cudnn_rnn_fp32_precision_raw",
+                          "deterministic_algorithms", "deterministic_algorithms_warn_only", "cudnn_benchmark", "cudnn_deterministic")
+
+
+def precision_record(device=None) -> dict:
+    """Decision 2026-10-17 section 3 (option 2A, contract key "precision"): the EFFECTIVE numeric environment, read after all imports
+    (the callers run it inside their entry points) and never set here.  Raw fp32_precision strings are stored as returned
+    ('none' = inherited from the parent backend; not rewritten to 'ieee').  torch.get_float32_matmul_precision() is the legacy getter
+    (torch 2.9 warns on it; reading changes no setting).  CUBLAS_WORKSPACE_CONFIG and both TF32 override variables are recorded
+    explicitly, unset included."""
+    device = torch.device(device) if device is not None else None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        matmul_precision = torch.get_float32_matmul_precision()
+    rec = {"decision": "V10-phase1-decisions-20261017 section 3 (2A: common recorded environment, settings not changed)",
+           "torch_version": torch.__version__, "cuda_version_torch_build": torch.version.cuda,
+           "cudnn_version": _safe(torch.backends.cudnn.version), "cudnn_available": _safe(torch.backends.cudnn.is_available),
+           "float32_matmul_precision": matmul_precision,
+           "cuda_matmul_fp32_precision_raw": _safe(lambda: torch.backends.cuda.matmul.fp32_precision),
+           "backends_fp32_precision_raw": _safe(lambda: torch.backends.fp32_precision),
+           "cudnn_fp32_precision_raw": _safe(lambda: torch.backends.cudnn.fp32_precision),
+           "cudnn_conv_fp32_precision": _safe(lambda: torch.backends.cudnn.conv.fp32_precision),
+           "cudnn_rnn_fp32_precision_raw": _safe(lambda: torch.backends.cudnn.rnn.fp32_precision),
+           "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+           "deterministic_algorithms_warn_only": torch.is_deterministic_algorithms_warn_only_enabled(),
+           "cudnn_benchmark": torch.backends.cudnn.benchmark, "cudnn_deterministic": torch.backends.cudnn.deterministic,
+           "env": {name: env_explicit(name) for name in ("CUBLAS_WORKSPACE_CONFIG",) + TF32_ENV_VARS},
+           "recorded_after_imports_of": {m: m in sys.modules for m in ("v10.mf_vcs", "v10.adapter", "v9.reg.g1", "r6_reg_pilot", "r6_reg_p2")},
+           "device": str(device) if device is not None else None}
+    if device is not None and device.type == "cuda":
+        prop = torch.cuda.get_device_properties(device)
+        smi = _safe(lambda: subprocess.run(["nvidia-smi", "--query-gpu=name,driver_version", "--format=csv,noheader"],
+                                           capture_output=True, text=True, timeout=30).stdout.strip())
+        rec.update({"gpu_name": torch.cuda.get_device_name(device), "gpu_capability": f"{prop.major}.{prop.minor}",
+                    "gpu_total_bytes": prop.total_memory, "nvidia_smi_name_driver": smi})
+    return rec
+
+
+def precision_settings(rec: dict) -> dict:
+    """The settings part of a precision_record (to verify that nothing changed them during a run)."""
+    return {k: rec.get(k) for k in PRECISION_SETTING_KEYS}
+
+
 def environment(device=None) -> dict:
     device = torch.device(device) if device is not None else None
+    prec = precision_record(device)
     env = {"host": socket.gethostname(), "utc": utc_now(), "python": sys.version.split()[0], "executable": sys.executable,
            "torch": torch.__version__, "numpy": np.__version__, "cuda_runtime": torch.version.cuda,
-           "cudnn": _safe(torch.backends.cudnn.version), "device": str(device) if device else None,
+           "cudnn": prec["cudnn_version"], "device": str(device) if device else None,
            "slurm_job_id": os.environ.get("SLURM_JOB_ID"), "slurm_partition": os.environ.get("SLURM_JOB_PARTITION"),
            "slurm_nodelist": os.environ.get("SLURM_JOB_NODELIST"), "git_commit": git("rev-parse", "HEAD"),
            "git_dirty_code": git("status", "--porcelain", "--", *DIRTY_PATHS),
            "code_hash_src_scripts_v10": code_hash(), "host_code_hash": host_code_hash(), "mf_vcs_sha256": sha256_file(MF.__file__),
            "job_code_hash": code_hash(JOB_PIN_PATHS), "job_pin_expected": os.environ.get("V10_EXPECT_CODE"),
            "submit_commit": os.environ.get("V10_SUBMIT_COMMIT"),
-           "torch_threads": torch.get_num_threads(), "float32_matmul_precision": torch.get_float32_matmul_precision(),
-           "cudnn_conv_fp32_precision": _safe(lambda: torch.backends.cudnn.conv.fp32_precision),
-           "cuda_matmul_fp32_precision": _safe(lambda: torch.backends.cuda.matmul.fp32_precision),
-           "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
-           "cudnn_benchmark": torch.backends.cudnn.benchmark, "cudnn_deterministic": torch.backends.cudnn.deterministic,
-           "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG")}
+           "torch_threads": torch.get_num_threads(),
+           # phase-1 flat keys, kept for continuity; the complete decision-3 record is "precision" (same reads)
+           "float32_matmul_precision": prec["float32_matmul_precision"], "cudnn_conv_fp32_precision": prec["cudnn_conv_fp32_precision"],
+           "cuda_matmul_fp32_precision": prec["cuda_matmul_fp32_precision_raw"],
+           "deterministic_algorithms": prec["deterministic_algorithms"], "cudnn_benchmark": prec["cudnn_benchmark"],
+           "cudnn_deterministic": prec["cudnn_deterministic"], "cublas_workspace_config": prec["env"]["CUBLAS_WORKSPACE_CONFIG"]["value"],
+           # protocol P2 precision_environment.record_contract: both override variables as keys, raw value or null when unset
+           **{name: prec["env"][name]["value"] for name in TF32_ENV_VARS},
+           "precision": prec}
     if device is not None and device.type == "cuda":
         prop = torch.cuda.get_device_properties(device)
         env.update({"gpu_name": torch.cuda.get_device_name(device), "gpu_total_bytes": prop.total_memory,
@@ -412,10 +481,58 @@ def mf_scenes(A, B, n_sc: int, n_pos: int):
 
 @dataclass
 class M1Config:
-    max_iterations: int = 30
-    tolerance: float = M1_PROTOCOL_TOLERANCE   # V10_PROTOCOL head.M1_gap_absolute_target (degenerate from W = 0 at host init: module doc)
-    ridge: float = 0.0                 # V10_PROTOCOL head.M1_ridge_primary
-    require_converged: bool = False    # training: explicit approximate profiled head, gap logged per batch
+    """M1 head rule (module doc).  rule='relative_zero_head' (decision 2026-10-17 2.1, the protocol rule): threshold
+    relative_tolerance * G_b(0) of the current batch, iteration cap max_iterations, no absolute floor; `tolerance` must stay None.
+    rule='absolute' (strict numeric-audit mode, unchanged): the package profiled_objective with the absolute FW-gap target
+    `tolerance` (None -> the package value 1e-4).  fp64_diagnostic_below: the same-input fp64 diagnostic runs when g_ref <=
+    fp64_diagnostic_below * m1_resolution_unit(dtype) (None disables; never runs in float64)."""
+    max_iterations: int = 30                    # the cap; CAL candidates 10 / 30 / 100 (M1_CAL_CAPS)
+    rule: str = "relative_zero_head"
+    relative_tolerance: float = M1_RELATIVE_TOLERANCE
+    tolerance: float | None = None              # rule 'absolute' only
+    ridge: float = 0.0                          # V10_PROTOCOL head.M1_ridge_primary
+    require_converged: bool = False             # training: explicit approximate profiled head, gap logged per batch
+    fp64_diagnostic_below: float | None = M1_FP64_DIAGNOSTIC_BELOW
+
+    def __post_init__(self):
+        if self.rule not in M1_RULES:
+            raise ValueError(f"M1 rule must be one of {M1_RULES}, got {self.rule!r}")
+        if isinstance(self.max_iterations, bool) or not isinstance(self.max_iterations, int) or self.max_iterations < 0:
+            raise ValueError("max_iterations must be a nonnegative integer")
+        if self.rule == "relative_zero_head":
+            if self.tolerance is not None:
+                raise ValueError("an absolute tolerance belongs to rule='absolute'; the relative rule's threshold is relative_tolerance * "
+                                 "G_b(0) (decision 2026-10-17 2.1: no absolute floor)")
+            rt = self.relative_tolerance
+            if isinstance(rt, bool) or not isinstance(rt, (int, float)) or not math.isfinite(rt) or not 0 < rt < 1:
+                raise ValueError("relative_tolerance must be a finite number in (0, 1)")
+        else:
+            if self.tolerance is None:
+                self.tolerance = M1_PROTOCOL_TOLERANCE
+            if isinstance(self.tolerance, bool) or not math.isfinite(self.tolerance) or self.tolerance <= 0:
+                raise ValueError("the absolute tolerance must be finite and positive")
+        fb = self.fp64_diagnostic_below
+        if fb is not None and (isinstance(fb, bool) or not math.isfinite(fb) or fb < 0):
+            raise ValueError("fp64_diagnostic_below must be None or a finite nonnegative number")
+
+
+def m1_resolution_unit(dtype) -> float:
+    """2 eps(dtype): the L1 mass of the two moment matrices that Delta_b differences (E_P[a b^T] and E_Q[a b^T], each of L1 mass 1
+    for simplex features with weights summing to 1) times the unit roundoff, i.e. the scale of the rounding error of Delta_b and of
+    the FW gap.  Analytic; no extra pass over the data."""
+    return 2.0 * torch.finfo(dtype).eps
+
+
+def same_input_scene(s: MF.SceneBatch, dtype) -> MF.SceneBatch:
+    """fp64 diagnostic only: a copy of an already validated SceneBatch whose feature VALUES are cast exactly to `dtype`, built without
+    re-running SceneBatch validation (fp32 simplex rows sum to 1 only to fp32 rounding, which the float64 check (32 eps) rejects).
+    Nothing is renormalised; the validated original is the input of the computation."""
+    c = object.__new__(MF.SceneBatch)
+    cast = (lambda t: None if t is None else t.detach().to(dtype))
+    for name, value in (("a", cast(s.a)), ("b", cast(s.b)), ("q_mode", s.q_mode), ("a_marginal", cast(s.a_marginal)),
+                        ("b_marginal", cast(s.b_marginal)), ("scene_id", s.scene_id), ("forbidden_edges", None)):
+        object.__setattr__(c, name, value)
+    return c
 
 
 @contextlib.contextmanager
@@ -439,15 +556,135 @@ def count_head_hvp():
 
 MF_METHODS = ("MF_perm1", "MF_M0", "MF_M1", "MF_dense")
 MLP_METHODS = ("MLP_perm1", "MLP_perm8", "MLP_dense")
+M1_STOP_REASONS = ("gap_tolerance", "iteration_budget_exhausted", "zero_reference_gap")   # protocol P2 m1_rule.log_field_rules
+_SOLVER_STOP = {"gap_tolerance": "gap_tolerance", "iteration_budget_exhausted": "iteration_budget_exhausted"}   # the backend status strings
+
+
+def _m1_info(m1: M1Config, *, dtype, W0, w, w0_zero: bool, g_ref, gap_start, gap_final, tolerance_effective, iterations: int,
+             stop_reason: str, converged: bool, solver_status, hvp_calls: int, solver_hvp_calls: int, moments_passes: int,
+             fp64_diagnostic: dict) -> dict:
+    """Per-batch M1 log (contract key m1.log_fields, prefixed m1_): gap_ref_zero, gap_start, gap_final, gap_relative_to_zero,
+    tolerance_effective, iterations, stop_reason, converged, hvp_calls, moments_passes, W update; m1_W is the solved head (not logged)."""
+    dw = (w.detach() - W0)
+    rel = (gap_final / g_ref) if (g_ref is not None and g_ref > 0) else None
+    return {"m1_rule": m1.rule, "m1_relative_tolerance": m1.relative_tolerance if m1.rule == "relative_zero_head" else None,
+            "m1_absolute_tolerance": m1.tolerance if m1.rule == "absolute" else None, "m1_max_iterations": m1.max_iterations,
+            "m1_ridge": m1.ridge, "m1_require_converged": m1.require_converged, "m1_gap_scope": "inner_pre_outer_batch",
+            "m1_dtype": str(dtype).replace("torch.", ""),
+            "m1_gap_ref_zero": g_ref, "m1_gap_start": gap_start, "m1_gap_final": gap_final, "m1_gap_relative_to_zero": rel,
+            "m1_tolerance_effective": tolerance_effective, "m1_iterations": int(iterations), "m1_stop_reason": stop_reason,
+            "m1_converged": bool(converged), "m1_solver_status": solver_status, "m1_hvp_calls": int(hvp_calls),
+            "m1_momentum_restarts": (solver_hvp_calls - 2 - 3 * int(iterations)) if solver_status is not None else 0,
+            "m1_moments_passes": int(moments_passes), "m1_W_start_is_zero": bool(w0_zero),
+            "m1_W_start_absmax": float(W0.abs().max()), "m1_W_final_absmax": float(w.detach().abs().max()),
+            "m1_W_update_fro": float(dw.norm()), "m1_W_update_absmax": float(dw.abs().max()),
+            "m1_fp64_diagnostic": fp64_diagnostic, "m1_W": w}
+
+
+def _m1_absolute(scenes, W, weights, m1: M1Config):
+    """Strict absolute-tolerance mode (numeric audit), numerically unchanged: the package profiled_objective (its own QuadraticHead +
+    solve_box_head + objective_terms: 2 moment passes).  G_b(0) is only known when the start W is exactly 0 (then it is the
+    solver's iteration-0 gap); no extra pass is made to compute it otherwise."""
+    W0 = W.detach()
+    with count_head_hvp() as cnt:
+        prof = profiled_objective(scenes, weights=weights, ridge=m1.ridge, initial=W0, tolerance=m1.tolerance,
+                                  max_iterations=m1.max_iterations, require_converged=m1.require_converged)
+    sol = prof.solution
+    w0_zero = not bool(W0.any())
+    gap_start = sol.history[0]["fw_gap"]
+    info = _m1_info(m1, dtype=W0.dtype, W0=W0, w=sol.w, w0_zero=w0_zero, g_ref=gap_start if w0_zero else None, gap_start=gap_start,
+                    gap_final=sol.fw_gap, tolerance_effective=m1.tolerance, iterations=sol.iterations,
+                    stop_reason=_SOLVER_STOP[sol.status], converged=sol.converged, solver_status=sol.status, hvp_calls=cnt["hvp"],
+                    solver_hvp_calls=cnt["hvp"], moments_passes=2,
+                    fp64_diagnostic={"triggered": False, "reason": "rule 'absolute' (numeric audit mode)"})
+    return prof.terms, info
+
+
+def _m1_fp64_diagnostic(scenes, weights, m1: M1Config, *, delta, W0, w, g_ref: float, gap_start: float, gap_final: float,
+                        tau: float, zero: bool) -> dict:
+    """Same-input fp64 diagnostic (decision 2026-10-17 2.3), diagnostic only: when g_ref is near the working-dtype resolution, the
+    same feature values (cast exactly) through the same backend QuadraticHead in float64: g_ref, gap at the start and the returned W,
+    and whether the stop decision of the working dtype agrees.  Costs one fp64 snapshot + up to 2 fp64 HVPs, counted here; the
+    training head, W and gradients are not touched."""
+    dtype = delta.dtype
+    unit = m1_resolution_unit(dtype)
+    below = m1.fp64_diagnostic_below
+    trigger_at = None if below is None else below * unit
+    base = {"rule": "g_ref <= fp64_diagnostic_below * 2 eps(dtype)", "resolution_unit": unit, "trigger_at": trigger_at}
+    if dtype == torch.float64:
+        return {"triggered": False, "reason": "working dtype float64", **base}
+    if below is None or g_ref > trigger_at:
+        return {"triggered": False, "reason": "g_ref above the trigger" if below is not None else "disabled", **base}
+    with count_head_hvp() as cnt:
+        head = MF.QuadraticHead([same_input_scene(s, torch.float64) for s in scenes], weights=weights, ridge=m1.ridge)
+        g64 = float(head.delta.abs().sum())
+        zero64 = not bool(head.delta.any())
+        gs64 = g64 if not bool(W0.any()) else float(head.fw_gap(W0.to(torch.float64)))
+        wf = w.detach().to(torch.float64)
+        gf64 = g64 if not bool(wf.any()) else float(head.fw_gap(wf))
+        delta_err = float((delta.detach().to(torch.float64) - head.delta).abs().max())
+    tau64 = m1.relative_tolerance * g64
+    stop_w = True if zero else bool(gap_final <= tau)
+    stop_64 = True if zero64 else bool(gf64 <= tau64)
+    return {"triggered": True, **base, "gap_ref_zero_fp64": g64, "zero_reference_fp64": zero64,
+            "gap_ref_zero_rel_err": abs(g_ref - g64) / g64 if g64 > 0 else None, "delta_max_abs_err": delta_err,
+            "gap_start_fp64": gs64, "gap_final_fp64": gf64, "gap_final_rel_err": abs(gap_final - gf64) / gf64 if gf64 > 0 else None,
+            "tolerance_effective_fp64": tau64, "stop_rule_met_working_dtype": stop_w, "stop_rule_met_fp64": stop_64,
+            "decisions_agree": bool(stop_w == stop_64 and zero == zero64), "hvp_calls": cnt["hvp"], "moments_passes": 1}
+
+
+def _m1_relative(scenes, W, weights, m1: M1Config):
+    """Decision 2026-10-17 2.1 / 2.3 (the protocol rule).  One QuadraticHead snapshot of the batch (moment pass 1) gives Delta_b and
+    g_ref = G_b(0) = ||Delta_b||_1 (H 0 = 0: no HVP); tau_b = relative_tolerance * g_ref; the package solve_box_head from the warm
+    start W with tolerance tau_b and the cap; the outer objective_terms at the solved W on the SAME tensors (moment pass 2).  Exactly
+    zero Delta_b: W = 0 is the maximiser of the negative-semidefinite empirical head objective -> W = 0, status zero_reference_gap,
+    the solver is not called (it requires a positive tolerance) and nothing is divided by g_ref."""
+    W0 = W.detach()
+    MF._matrix(W0, scenes[0].a, scenes[0].b, box=True)            # the warm start must be a feasible head (as solve_box_head checks)
+    moments = 0
+    with count_head_hvp() as cnt:
+        head = MF.QuadraticHead(scenes, weights=weights, ridge=m1.ridge)
+        moments += 1
+        g_ref = float(head.delta.abs().sum())
+        if not math.isfinite(g_ref):
+            raise FloatingPointError(f"M1 zero-head reference gap is not finite: {g_ref}")
+        zero = not bool(head.delta.any())
+        if zero != (g_ref == 0.0):
+            raise FloatingPointError("inconsistent zero-reference test")   # cannot happen: a sum of |entries| is 0 iff every entry is 0
+        w0_zero = not bool(W0.any())
+        if zero:
+            w = torch.zeros_like(head.delta)
+            gap_start = 0.0 if w0_zero else float(head.fw_gap(W0))      # the start gap is logged (1 HVP when the warm start is non-zero)
+            sol, tau, iterations, gap_final, stop, converged, solver_hvp = None, None, 0, 0.0, "zero_reference_gap", True, 0
+        else:
+            tau = m1.relative_tolerance * g_ref
+            n0 = cnt["hvp"]
+            sol = MF.solve_box_head(head, initial=W0, tolerance=tau, max_iterations=m1.max_iterations)
+            solver_hvp = cnt["hvp"] - n0
+            w, iterations, gap_final, converged = sol.w, sol.iterations, sol.fw_gap, sol.converged
+            gap_start, stop = sol.history[0]["fw_gap"], _SOLVER_STOP[sol.status]
+    if m1.require_converged and not converged:
+        raise RuntimeError(f"M1 head did not meet its relative gap threshold: gap={gap_final:.6g}, threshold={tau:.6g} (= "
+                           f"{m1.relative_tolerance:g} x G_b(0) {g_ref:.6g}); cap {m1.max_iterations}")
+    terms = objective_terms(scenes, w.detach(), weights=weights, ridge=m1.ridge)
+    moments += 1
+    diag = _m1_fp64_diagnostic(scenes, weights, m1, delta=head.delta, W0=W0, w=w, g_ref=g_ref, gap_start=gap_start,
+                               gap_final=gap_final, tau=tau, zero=zero)
+    info = _m1_info(m1, dtype=W0.dtype, W0=W0, w=w, w0_zero=w0_zero, g_ref=g_ref, gap_start=gap_start, gap_final=gap_final,
+                    tolerance_effective=tau, iterations=iterations, stop_reason=stop, converged=converged,
+                    solver_status=None if sol is None else sol.status, hvp_calls=cnt["hvp"], solver_hvp_calls=solver_hvp,
+                    moments_passes=moments, fp64_diagnostic=diag)
+    return terms, info
 
 
 def mf_objective(method: str, scenes, W, weights, *, perm=None, m1: M1Config | None = None, ridge: float = 0.0,
                  dense_chunk: int | None = None, dense_checkpoint: bool = False, check_w: bool = True, check_permutations: bool = True):
     """(ObjectiveTerms, info).  perm: [n_sc, n_pos] int64 on the feature device, row s = the host permutation of scene s.
     check_w / check_permutations=False only inside an already-validated training loop (package README section 3: no repair);
-    SceneBatch construction (finite, nonnegative, simplex rows) always validates; profiled_objective (M1) always checks W.
-    M1 info: solver gap / iterations / convergence, the gap at the initial W (= ||Delta||_1 when W = 0), HVP calls, momentum
-    restarts and the number of moment passes per batch (2: the QuadraticHead snapshot + the outer objective_terms)."""
+    SceneBatch construction (finite, nonnegative, simplex rows) always validates; M1 always checks its start W.
+    M1 info (_m1_info): the zero-head reference gap, start / final gap, relative gap, effective threshold, iterations, stop reason,
+    convergence, HVP calls and moment passes of this batch (counted at the call sites: 2 = the QuadraticHead snapshot + the outer
+    objective_terms; the fp64 diagnostic, when it runs, counts its own), momentum restarts, W update and the solved W (m1_W)."""
     info: dict = {}
     if method == "MF_perm1":
         if perm is None:
@@ -461,15 +698,7 @@ def mf_objective(method: str, scenes, W, weights, *, perm=None, m1: M1Config | N
                                       check_w=check_w)
     elif method == "MF_M1":
         m1 = m1 or M1Config()
-        with count_head_hvp() as cnt:
-            prof = profiled_objective(scenes, weights=weights, ridge=m1.ridge, initial=W.detach(), tolerance=m1.tolerance,
-                                      max_iterations=m1.max_iterations, require_converged=m1.require_converged)
-        terms, sol = prof.terms, prof.solution
-        info = {"m1_gap": sol.fw_gap, "m1_iterations": sol.iterations, "m1_converged": sol.converged, "m1_status": sol.status,
-                "m1_tolerance": sol.tolerance, "m1_max_iterations": m1.max_iterations, "m1_ridge": m1.ridge,
-                "m1_require_converged": m1.require_converged, "m1_gap_scope": "inner_pre_outer_batch",
-                "m1_gap_initial": sol.history[0]["fw_gap"] if sol.history else None, "m1_hvp_calls": cnt["hvp"],
-                "m1_momentum_restarts": cnt["hvp"] - 2 - 3 * sol.iterations, "m1_moment_passes": 2, "m1_W": sol.w}
+        terms, info = (_m1_absolute if m1.rule == "absolute" else _m1_relative)(scenes, W, weights, m1)
     else:
         raise ValueError(f"unknown MF method {method}")
     return terms, info
@@ -516,6 +745,12 @@ def mlp_objective(method: str, cr, du, dv, *, perm=None, perms=None, block: int 
 
 
 # ------------------------------------------------------------------------------------------------------------ trainer
+def grad_l2(params) -> float:
+    """L2 norm (in float64) of the existing .grad tensors of params; a parameter without .grad contributes 0."""
+    gs = [p.grad for p in params if p.grad is not None]
+    return float(torch.sqrt(sum((g.detach().double() ** 2).sum() for g in gs))) if gs else 0.0
+
+
 @dataclass
 class TrainConfig:
     method: str
@@ -534,8 +769,10 @@ class TrainConfig:
     dense_block: int | None = None
     dense_checkpoint: bool = False
     dtype: str = "float32"
-    w_init: str = "zeros"                # package default (SimplexBilinearCritic); "uniform" only for checks / timing
+    w_init: str = "zeros"                # package default (SimplexBilinearCritic); "uniform" only for perm1 / M0 checks / timing
     checks: str = "first_step"           # W-box / permutation re-checks: first step only (validated loop) or "every_step"
+    grad_spot_every: int | None = None   # encoder / feature-map gradient-norm spot checks (pre-clip) on steps 0, k, 2k, ...;
+                                         # None = method default (MF_M1: 50, decision 2026-10-17 2.3; other methods: 0 = off)
 
 
 class Trainer:
@@ -546,6 +783,13 @@ class Trainer:
             raise ValueError(f"unknown training method {cfg.method}")
         if cfg.checks not in ("first_step", "every_step"):
             raise ValueError(f"checks must be 'first_step' or 'every_step', got {cfg.checks}")
+        if cfg.method == "MF_M1" and cfg.w_init != "zeros":
+            raise ValueError("MF_M1 starts from W = 0 (decision 2026-10-17 2.1: no random non-zero initialisation); later batches "
+                             "warm-start from the previous batch's W")
+        spot = cfg.grad_spot_every if cfg.grad_spot_every is not None else (50 if cfg.method == "MF_M1" else 0)
+        if isinstance(spot, bool) or not isinstance(spot, int) or spot < 0:
+            raise ValueError(f"grad_spot_every must be None or a nonnegative integer, got {cfg.grad_spot_every!r}")
+        self.grad_spot_every = spot
         self.n_steps = 0
         self.cfg, self.device, self.dtype = cfg, torch.device(device), getattr(torch, cfg.dtype)
         torch.manual_seed(cfg.seed)                                      # host G L141
@@ -575,6 +819,11 @@ class Trainer:
             groups = [{"params": enc + list(self.critic.parameters()), "lr": cfg.encoder_lr, "weight_decay": cfg.weight_decay, "name": "host_all"}]
         self.opt = torch.optim.AdamW(groups)
         self.clip_params = [p for g in groups for p in g["params"]]
+        self.spot_groups = {"encoders": enc}                             # gradient-norm spot checks (read only, pre-clip)
+        if self.mf:
+            self.spot_groups["feature_maps"] = list(self.head.left.parameters()) + list(self.head.right.parameters())
+        else:
+            self.spot_groups["critic"] = list(self.critic.parameters())
         self.sampler = HostBatchSampler(fit, cfg.seed, n_sc=cfg.n_sc, n_pos=cfg.n_pos, crop=cfg.crop)
         self.g_extra = np.random.default_rng(Q.seed_of(f"V10|MLP-extra-perms|{cfg.seed}"))   # separate stream: host stream untouched
         self.imgs = imgs
@@ -632,9 +881,16 @@ class Trainer:
         loss.backward()
         if mark:
             mark("backward")
+        spot = None
+        if self.grad_spot_every and self.n_steps % self.grad_spot_every == 0:
+            spot = {"trainer_step": self.n_steps, "every": self.grad_spot_every, "scope": "pre-clip gradients of this step",
+                    **{f"{name}_grad_norm": grad_l2(params) for name, params in self.spot_groups.items()},
+                    **{f"{name}_params_without_grad": sum(p.grad is None for p in params) for name, params in self.spot_groups.items()}}
         grad_norm = float(torch.nn.utils.clip_grad_norm_(self.clip_params, self.cfg.clip_norm))
         self.opt.step()
         rec = {"step": hb.step, "loss": float(loss.detach()), "grad_norm_preclip": grad_norm}
+        if spot is not None:
+            rec["encoder_gradient_diagnostic"] = spot
         if self.mf:
             with torch.no_grad():
                 if self.cfg.method == "MF_M1":

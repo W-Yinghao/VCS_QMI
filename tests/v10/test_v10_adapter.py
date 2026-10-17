@@ -3,7 +3,10 @@
 Covered here: host pin + V9-writer tripwires, the data gate (refusals happen before any read), the host batch RNG (equal to the
 independent T00 replay), MF / MLP objectives, the trainer (one step per method, W projection, W weight decay 0, M1 gap logging),
 the registration energy on the host warp chain (frozen contract, batched vs package backend, fixed-W state hash, fp64 finite
-differences at the lattice transforms used by T01), checkpoint round trip, and the merge / budget fallbacks.
+differences at the lattice transforms used by T01), checkpoint round trip, and the merge / budget fallbacks.  Owner decision
+2026-10-17: the M1 relative zero-head rule (reference, threshold, warm start, zero reference, cap, counters, fp64 diagnostic,
+package equality), the T01 one-update / zero-reference rows on synthetic data, the precision record, the T02 m1_relative scope
+end to end and the decision-8 budget (incl. the reproduction of the decision's old-timing numbers).
 NOT covered (T01 / T02 jobs): the real encoders on real FIT / DEV images, CUDA, timing.
 """
 from __future__ import annotations
@@ -159,8 +162,11 @@ def test_trainer_one_step_each_method(method, synthetic_imgs):
     if method.startswith("MF_"):
         assert r["w_absmax"] <= 1.0
     if method == "MF_M1":
-        assert {"m1_gap", "m1_iterations", "m1_converged", "m1_status"} <= set(r) and r["m1_gap_scope"] == "inner_pre_outer_batch"
-        assert all(p is not t.head.W for g in t.opt.param_groups for p in g["params"]) and not t.head.W.requires_grad
+        logged = {"m1_gap_ref_zero", "m1_gap_start", "m1_gap_final", "m1_gap_relative_to_zero", "m1_tolerance_effective", "m1_iterations",
+                  "m1_stop_reason", "m1_converged", "m1_hvp_calls", "m1_moments_passes", "m1_W_update_fro", "m1_W_update_absmax",
+                  "encoder_gradient_diagnostic"}
+        assert logged <= set(r) and r["m1_gap_scope"] == "inner_pre_outer_batch" and r["m1_rule"] == "relative_zero_head"
+        assert "m1_W" not in r and all(p is not t.head.W for g in t.opt.param_groups for p in g["params"]) and not t.head.W.requires_grad
 
 
 def test_trainer_same_batch_and_positive_terms_across_methods(synthetic_imgs):
@@ -420,33 +426,187 @@ def near_uniform_scenes(spread, n_sc=2, n=32, k=8, seed=5):
 
 
 def test_m1_counts_hvp_and_equals_package_call():
+    """Rule 'absolute' (numeric audit mode): unchanged = the package profiled_objective; counters and the gap at W = 0."""
     scenes = near_uniform_scenes(2.0)
     W0 = torch.zeros(8, 8, dtype=torch.float64)
-    terms, info = A.mf_objective("MF_M1", scenes, W0, A.host_weights(2), m1=A.M1Config(tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7))
+    terms, info = A.mf_objective("MF_M1", scenes, W0, A.host_weights(2),
+                                 m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7))
     ref = MF.profiled_objective(scenes, weights=A.host_weights(2), initial=W0, tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=7,
                                 require_converged=False)
     assert info["m1_iterations"] == 7 and not info["m1_converged"] and info["m1_momentum_restarts"] >= 0
-    assert info["m1_hvp_calls"] == 2 + 3 * 7 + info["m1_momentum_restarts"] and info["m1_moment_passes"] == 2
-    assert torch.equal(info["m1_W"], ref.solution.w) and torch.equal(terms.f, ref.terms.f)
+    assert info["m1_hvp_calls"] == 2 + 3 * 7 + info["m1_momentum_restarts"] and info["m1_moments_passes"] == 2
+    assert torch.equal(info["m1_W"], ref.solution.w) and torch.equal(terms.f, ref.terms.f) and info["m1_stop_reason"] == "iteration_budget_exhausted"
     assert MF.QuadraticHead.__dict__["_hvp"].__module__ == MF.__name__            # the counting wrapper is removed
     head = MF.QuadraticHead(scenes, weights=A.host_weights(2))
-    assert abs(info["m1_gap_initial"] - float(head.delta.abs().sum())) <= 1e-15    # gap at W = 0 is ||Delta||_1
+    assert abs(info["m1_gap_start"] - float(head.delta.abs().sum())) <= 1e-15      # gap at W = 0 is ||Delta||_1
+    assert info["m1_gap_ref_zero"] == info["m1_gap_start"]                         # known in absolute mode only because W = 0
 
 
-def test_m1_protocol_tolerance_is_degenerate_from_w0_when_delta_is_small():
-    """The review finding, reproduced on synthetic near-uniform features: ||Delta||_1 < 1e-4 -> the protocol M1 head stops at
-    iteration 0 with W = 0 (J = 0, no feature gradient); with a binding cap the head leaves 0."""
+def test_m1_absolute_tolerance_is_degenerate_from_w0_but_the_relative_rule_iterates():
+    """The phase-1 review finding on synthetic near-uniform features: ||Delta||_1 < 1e-4 -> the absolute target stops at iteration
+    0 with W = 0 (J = 0, no feature gradient); the protocol rule (relative zero-head gap, decision 2026-10-17) iterates, moves W and
+    gives a non-zero feature gradient on the same batch."""
     z = [torch.randn(32, 8, dtype=torch.float64, generator=torch.Generator().manual_seed(s)).mul(0.01).requires_grad_() for s in (1, 2)]
     sc = [MF.SceneBatch(z[0].softmax(-1), z[1].softmax(-1), "v")]
     W0 = torch.zeros(8, 8, dtype=torch.float64)
     assert float(MF.QuadraticHead(sc, weights=[1.0]).delta.abs().sum()) < A.M1_PROTOCOL_TOLERANCE
-    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config())
+    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config(rule="absolute"))
     assert info["m1_iterations"] == 0 and info["m1_converged"] and float(info["m1_W"].abs().max()) == 0.0 and float(terms.j.detach()) == 0.0
     g = torch.autograd.grad(terms.f, z, allow_unused=True, retain_graph=True)
     assert all(x is None or float(x.abs().max()) == 0.0 for x in g)
-    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config(tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30))
+    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config(rule="absolute", tolerance=A.M1_CAP_BINDING_TOLERANCE, max_iterations=30))
     assert info["m1_iterations"] == 30 and float(info["m1_W"].abs().max()) > 0
+    assert max(float(x.abs().max()) for x in torch.autograd.grad(terms.f, z, retain_graph=True)) > 0
+    terms, info = A.mf_objective("MF_M1", sc, W0, [1.0], m1=A.M1Config())          # the protocol rule
+    assert info["m1_rule"] == "relative_zero_head" and info["m1_iterations"] > 0 and float(info["m1_W"].abs().max()) > 0
     assert max(float(x.abs().max()) for x in torch.autograd.grad(terms.f, z)) > 0
+
+
+def test_m1_config_rules_and_validation():
+    c = A.M1Config()
+    assert c.rule == "relative_zero_head" and c.relative_tolerance == 0.01 and c.tolerance is None and not c.require_converged
+    assert A.M1Config(rule="absolute").tolerance == A.M1_PROTOCOL_TOLERANCE and A.M1_CAL_CAPS == (10, 30, 100)
+    for bad in ({"tolerance": 1e-4}, {"rule": "relative"}, {"relative_tolerance": 0.0}, {"relative_tolerance": 1.5},
+                {"max_iterations": -1}, {"max_iterations": True}, {"rule": "absolute", "tolerance": 0.0}, {"fp64_diagnostic_below": -1.0}):
+        with pytest.raises(ValueError):
+            A.M1Config(**bad)
+
+
+def spread_scenes(dtype=torch.float64, n_sc=2, n=48, k=8, seed=9, spread=2.0):
+    return [MF.SceneBatch(*(s.a.to(dtype), s.b.to(dtype)), "v", scene_id=s.scene_id)
+            for s in near_uniform_scenes(spread, n_sc=n_sc, n=n, k=k, seed=seed)]
+
+
+def test_m1_relative_reference_threshold_warm_start_and_package_equality():
+    """Decision 2026-10-17 2.1: g_ref = ||Delta_b||_1 of the batch's own snapshot, tau = 0.01 g_ref (never from the warm-start gap);
+    the relative path equals the package profiled objective called with that tau (bitwise); the stop reason matches the numbers."""
+    sc, wts = spread_scenes(), A.host_weights(2)
+    head = MF.QuadraticHead(sc, weights=wts)
+    g_ref = float(head.delta.abs().sum())
+    W_warm = torch.empty(8, 8, dtype=torch.float64).uniform_(-0.9, 0.9, generator=torch.Generator().manual_seed(3))
+    for W_start, cap in ((torch.zeros(8, 8, dtype=torch.float64), 10), (W_warm, 10), (W_warm, 2000)):
+        terms, info = A.mf_objective("MF_M1", sc, W_start, wts, m1=A.M1Config(max_iterations=cap))
+        assert info["m1_gap_ref_zero"] == g_ref and info["m1_tolerance_effective"] == 0.01 * g_ref
+        assert info["m1_gap_start"] == float(head.fw_gap(W_start)) and info["m1_gap_final"] == float(head.fw_gap(info["m1_W"]))
+        assert info["m1_gap_relative_to_zero"] == info["m1_gap_final"] / g_ref and info["m1_moments_passes"] == 2
+        assert T01.m1_stop_consistent(info) and info["m1_W_update_absmax"] == float((info["m1_W"] - W_start).abs().max())
+        ref = MF.profiled_objective(sc, weights=wts, initial=W_start, tolerance=0.01 * g_ref, max_iterations=cap, require_converged=False)
+        assert torch.equal(info["m1_W"], ref.solution.w) and torch.equal(terms.f, ref.terms.f)
+        if bool(W_start.any()):
+            assert info["m1_gap_start"] != g_ref and info["m1_tolerance_effective"] != 0.01 * info["m1_gap_start"]
+    assert info["m1_stop_reason"] == "gap_tolerance" and info["m1_converged"] and info["m1_iterations"] < 2000   # enough budget: rule met
+    terms, info = A.mf_objective("MF_M1", sc, W_warm, wts, m1=A.M1Config(max_iterations=1))
+    assert info["m1_stop_reason"] == "iteration_budget_exhausted" and not info["m1_converged"] and info["m1_iterations"] == 1   # approximate
+    assert info["m1_gap_final"] > info["m1_tolerance_effective"] and info["m1_gap_final"] == float(head.fw_gap(info["m1_W"]))
+    with pytest.raises(RuntimeError, match="relative gap threshold"):
+        A.mf_objective("MF_M1", sc, W_warm, wts, m1=A.M1Config(max_iterations=1, require_converged=True))
+
+
+@pytest.mark.parametrize("dn", ["float64", "float32"])
+def test_m1_relative_exact_zero_reference(dn):
+    """Exactly zero Delta_b: W = 0, status zero_reference_gap, no division, the solver is not called (zero tolerance is rejected by it)."""
+    rec = T01.Recorder("unit", "cpu")
+    T01.m1_zero_reference_checks(rec, torch.device("cpu"), dn)
+    res = rec.result()
+    assert res["status"] == "PASS" and res["n_pass"] == 3, [(r["name"], r["status"]) for r in res["checks"]]
+
+
+def test_m1_relative_counters_equal_independent_count():
+    sc, wts = spread_scenes(torch.float32, spread=0.02), A.host_weights(2)      # near-uniform fp32: the fp64 diagnostic triggers
+    with T01.independent_m1_counters() as cnt:
+        _, info = A.mf_objective("MF_M1", sc, torch.zeros(8, 8), wts, m1=A.M1Config(max_iterations=10))
+    d = info["m1_fp64_diagnostic"]
+    assert d["triggered"] and d["moments_passes"] == 1 and cnt["heads"] == {"float32": 1, "float64": 1}
+    assert info["m1_hvp_calls"] + d["hvp_calls"] == cnt["hvp"] and cnt["objective_terms"] == 1 and cnt["solve_box_head"] == 1
+    assert info["m1_hvp_calls"] == 2 + 3 * info["m1_iterations"] + info["m1_momentum_restarts"] and info["m1_moments_passes"] == 2
+    assert MF.QuadraticHead.__dict__["__init__"].__module__ == MF.__name__ and A.objective_terms is MF.objective_terms
+    with T01.independent_m1_counters() as cnt:                                 # rule 'absolute': the package call, no diagnostic
+        _, info = A.mf_objective("MF_M1", sc, torch.zeros(8, 8), wts, m1=A.M1Config(rule="absolute", tolerance=1e-300, max_iterations=5))
+    assert cnt == {"heads": {"float32": 1}, "hvp": info["m1_hvp_calls"], "objective_terms": 1, "solve_box_head": 1}
+
+
+def test_m1_fp64_diagnostic_same_input_and_trigger_rule():
+    sc32 = spread_scenes(torch.float32, spread=0.02)
+    c = A.same_input_scene(sc32[0], torch.float64)
+    assert c.a.dtype == torch.float64 and torch.equal(c.a.float(), sc32[0].a) and torch.equal(c.b.float(), sc32[0].b) and c.q_mode == "v"
+    _, info = A.mf_objective("MF_M1", sc32, torch.zeros(8, 8), A.host_weights(2), m1=A.M1Config(max_iterations=5))
+    d = info["m1_fp64_diagnostic"]
+    assert d["triggered"] and info["m1_gap_ref_zero"] <= d["trigger_at"] == 1e4 * 2 * torch.finfo(torch.float32).eps
+    assert d["gap_ref_zero_rel_err"] < 1e-3 and d["decisions_agree"] and d["stop_rule_met_working_dtype"] == info["m1_converged"]
+    _, info = A.mf_objective("MF_M1", sc32, torch.zeros(8, 8), A.host_weights(2), m1=A.M1Config(max_iterations=5, fp64_diagnostic_below=None))
+    assert not info["m1_fp64_diagnostic"]["triggered"]
+    _, info = A.mf_objective("MF_M1", spread_scenes(torch.float64, spread=0.02), torch.zeros(8, 8, dtype=torch.float64), A.host_weights(2),
+                             m1=A.M1Config(max_iterations=5))
+    assert not info["m1_fp64_diagnostic"]["triggered"] and info["m1_fp64_diagnostic"]["reason"] == "working dtype float64"
+    _, info = A.mf_objective("MF_M1", spread_scenes(torch.float32, spread=3.0), torch.zeros(8, 8), A.host_weights(2), m1=A.M1Config(max_iterations=5))
+    assert info["m1_gap_ref_zero"] > 1e4 * 2 * torch.finfo(torch.float32).eps and not info["m1_fp64_diagnostic"]["triggered"]
+
+
+def test_trainer_m1_start_warm_start_and_spot_checks(synthetic_imgs):
+    with pytest.raises(ValueError, match="starts from W = 0"):
+        make_trainer("MF_M1", synthetic_imgs, w_init="uniform")
+    t = make_trainer("MF_M1", synthetic_imgs, grad_spot_every=2)
+    assert float(t.head.W.abs().max()) == 0.0
+    recs = []
+    for _ in range(3):
+        W_before = t.head.W.detach().clone()
+        r = t.step(t.draw(), keep=True)
+        assert torch.equal(t.head.W, r["_out"]["info"]["m1_W"])                 # the solved W is the next batch's warm start
+        assert r["m1_W_start_absmax"] == float(W_before.abs().max())
+        recs.append(r)
+    assert recs[0]["m1_W_start_is_zero"] and not recs[1]["m1_W_start_is_zero"] and recs[0]["m1_iterations"] > 0
+    assert [("encoder_gradient_diagnostic" in r) for r in recs] == [True, False, True]
+    assert recs[0]["encoder_gradient_diagnostic"]["encoders_grad_norm"] > 0 and recs[0]["encoder_gradient_diagnostic"]["feature_maps_grad_norm"] > 0
+    assert make_trainer("MF_M1", synthetic_imgs).grad_spot_every == 50 and make_trainer("MF_M0", synthetic_imgs).grad_spot_every == 0
+
+
+def test_t01_one_update_checks_run_on_synthetic_images(synthetic_imgs, monkeypatch):
+    """Exercises every row of T01.one_update_checks (incl. the M1 relative-rule rows) on synthetic images with tiny encoders, 2
+    scenes: no check group may raise, and the M1 relative-rule rows must PASS (the real host batch runs in the T01 job).  As in T01,
+    only the cores the function asks the loader for are available (the second host batch of the warm-start check included)."""
+    asked = []
+
+    def load(guard, cores, roles, purpose, device):
+        asked.append(sorted(cores))
+        return {c: synthetic_imgs[c] for c in cores}
+    monkeypatch.setattr(A, "load_learned_inputs", load)
+    fit = sorted(synthetic_imgs)
+    replay = A.HostBatchSampler(fit, T01.SEED, n_sc=2)
+    b1, b2 = replay.draw(), replay.draw()
+    assert set(b2.cores) - set(b1.cores), "fixture: batch 2 must use a core that batch 1 does not"
+    rec = T01.Recorder("unit", "cpu")
+    with rec.group("one_update"):
+        T01.one_update_checks(rec, None, fit, torch.device("cpu"), 2, build_models=tiny_models)
+    assert asked == [sorted(set(b1.cores) | set(b2.cores))]
+    res = rec.result()
+    errs = [(r["name"], r.get("error")) for r in res["checks"] if r["name"].endswith(":exception")]
+    assert not errs, errs
+    by = {r["name"]: r["status"] for r in res["checks"]}
+    for name in ("MF_M1_relative_from_W0_iterates_moves_W_and_trains_encoders", "MF_M1_relative_reference_is_l1_delta_of_the_batch_snapshot_and_gap_at_W0",
+                 "MF_M1_relative_next_batch_warm_starts_from_previous_W",
+                 "MF_M1_relative_warm_start_gap_differs_from_zero_head_reference_threshold_uses_reference",
+                 "MF_M1_relative_cap_10_reached_returns_approximate_W_with_true_gap", "MF_M1_relative_counters_equal_independent_count",
+                 "MF_M1_absolute_cap_binding_counters_equal_independent_count",
+                 "MF_M1_relative_adapter_path_equals_package_profiled_objective_at_tau_b_bitwise", "MF_M1_cap_binding_step_logs_gap_iterations_hvp",
+                 "MF_M1_adapter_path_equals_package_profiled_objective_bitwise"):
+        assert by.get(name) == "PASS", (name, by.get(name))
+    assert "MF_M1_absolute_tolerance_1e-4_from_W0_moves_W_and_trains_encoders" in by       # the kept diagnostic row exists
+
+
+def test_precision_record_explicit_and_settings_unchanged(monkeypatch):
+    monkeypatch.delenv("TORCH_ALLOW_TF32_CUBLAS_OVERRIDE", raising=False)
+    monkeypatch.setenv("NVIDIA_TF32_OVERRIDE", "")
+    before = (torch.get_float32_matmul_precision(), torch.backends.cudnn.conv.fp32_precision, torch.backends.cuda.matmul.fp32_precision)
+    rec = A.precision_record()
+    assert rec["env"]["TORCH_ALLOW_TF32_CUBLAS_OVERRIDE"] == {"set": False, "value": None}
+    assert rec["env"]["NVIDIA_TF32_OVERRIDE"] == {"set": True, "value": ""} and set(rec["env"]) == {"CUBLAS_WORKSPACE_CONFIG", *A.TF32_ENV_VARS}
+    assert rec["float32_matmul_precision"] == before[0] and rec["cudnn_conv_fp32_precision"] == before[1]
+    assert rec["cuda_matmul_fp32_precision_raw"] == before[2]                    # raw string as returned (e.g. 'none'), not rewritten
+    assert set(A.PRECISION_SETTING_KEYS) <= set(rec) and all(rec["recorded_after_imports_of"].values())
+    after = (torch.get_float32_matmul_precision(), torch.backends.cudnn.conv.fp32_precision, torch.backends.cuda.matmul.fp32_precision)
+    env = A.environment()
+    assert after == before and env["precision"]["env"] == rec["env"]
+    assert "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE" in env and env["TORCH_ALLOW_TF32_CUBLAS_OVERRIDE"] is None and env["NVIDIA_TF32_OVERRIDE"] == ""
 
 
 def test_trainer_checks_first_step_only_by_default(synthetic_imgs):
@@ -520,25 +680,99 @@ def test_t01_real_batch_check_functions_run_on_synthetic_features(dn):
             "MLP_dense_full_float32_grads_vs_float64_value_same_inputs", "MLP_dense_blocked_checkpointed_float32_grads_vs_float64_value_same_inputs"}
 
 
-def test_t02_train_labels_and_budget_provisional(tmp_path):
-    labels = [T02.train_label(c) for c in T02.TRAIN_CONFIGS]
+def test_t02_train_labels_scopes_and_m1_configs():
+    labels = [T02.train_label(c) for c in T02.TRAIN_SCOPES["all"]]
     assert len(set(labels)) == len(labels) and "MF_M1_K16_it30_capbound" in labels and "MF_M1_K16_it30_tol1e-04" in labels
-    assert "MF_perm1_K16_checks_every_step" in labels and T02.UNIT_METHOD_MAP["MF_VCS_M1"][0] in labels
-    fields = T02.TEMPLATE_FIELDS + T02.EXTRA_FIELDS
-    rows = [{"layer": "train_step", "config": "MF_M0_K16", "status": "completed", "median_ms": 20.0},
-            {"layer": "registration", "config": "MF_moments_K16", "phase": "registration", "status": "completed", "warmup_row": False,
-             "elapsed_seconds": 1.0}]
+    assert "MF_perm1_K16_checks_every_step" in labels and set(T02.M1_CAPBOUND.values()) <= set(labels)
+    rel = [T02.train_label(c) for c in T02.TRAIN_SCOPES["m1_relative"]]
+    assert rel == [f"MF_M1_K16_it{cap}_rel1e-02_lr{lr:.0e}" for lr in (1e-4, 3e-4, 1e-3) for cap in (10, 30, 100)]   # frozen order
+    assert rel == [T02.m1_relative_label(lr, cap) for lr in T02.LR_CANDIDATES for cap in A.M1_CAL_CAPS] and set(rel) <= set(labels)
+    for c in T02.TRAIN_SCOPES["all"]:
+        if c["method"] == "MF_M1":
+            m = T02.m1_config(c)
+            assert m.rule == c["m1_rule"] and m.max_iterations == c["m1_max_iterations"]
+            assert (m.tolerance == c["m1_tolerance"]) if m.rule == "absolute" else (m.tolerance is None and m.relative_tolerance == 0.01)
+
+
+def test_t02_m1_relative_scope_refuses_other_parts(tmp_path):
+    class Args:
+        device, parts, train_scope, out_root, repo_out = "cpu", "head,train", "m1_relative", tmp_path, tmp_path
+    assert T02.run(Args) == 2 and not any(tmp_path.iterdir())
+
+
+def _write_long(path, rows):
     import csv
-    with open(tmp_path / "T02_LONG_cuda.csv", "w", newline="") as f:
-        wr = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+    with open(path, "w", newline="") as f:
+        wr = csv.DictWriter(f, fieldnames=T02.TEMPLATE_FIELDS + T02.EXTRA_FIELDS, extrasaction="ignore")
         wr.writeheader()
         wr.writerows(rows)
-    (tmp_path / "T02_TIMING_cuda.json").write_text(json.dumps({"environment": {}, "parts": {"head": {"status": "PASS"}, "head_extra": {"status": "FAIL"},
-                                                                                            "train": {"status": "PASS"}, "register": {"status": "PASS"}}}))
+
+
+def test_t02_budget_decision8_from_kept_rows_and_m1_remeasurement(tmp_path):
+    """Kept rows = the committed phase-1 timing (job 1043695); M1 rows = a synthetic re-measurement at the cap-reference step times
+    x 0.5.  The decision's old-timing numbers are reproduced; the decision-8 families, caps and totals follow from the inputs; the
+    status stays PROVISIONAL here (T01 of this tree is not verified, synthetic M1 provenance) with the reasons listed."""
+    import shutil
+    for name in ("T02_TIMING_cuda.json", "T02_LONG_cuda.csv"):
+        shutil.copy(REPO / "v10" / "T02" / name, tmp_path / name)
 
     class Args:
         repo_out = tmp_path
+    assert T02.budget(Args) == 1                                                  # no M1 re-measurement yet: NOT_RUN
+    b = json.loads((tmp_path / "BUDGET.json").read_text())
+    assert b["status"] == "NOT_RUN" and b["old_timing_projection_reproduced"]["status"] == "PASS"
+    assert b["contract_check"]["status"] == "consistent" and len(b["projection"]["candidates"]) == 18
+    import csv
+    base = {r["config"]: float(r["median_ms"]) for r in csv.DictReader((tmp_path / "T02_LONG_cuda.csv").read_text().splitlines())
+            if r["layer"] == "train_step" and r["status"] == "completed"}
+    rows = [{"layer": "train_step", "config": T02.m1_relative_label(lr, cap), "status": "completed",
+             "median_ms": 0.5 * base[T02.M1_CAPBOUND[cap]], "m1_cap_hit_fraction": 1.0} for lr in T02.LR_CANDIDATES for cap in A.M1_CAL_CAPS]
+    _write_long(tmp_path / "T02_M1_RELATIVE_LONG_cuda.csv", rows)
+    (tmp_path / "T02_M1_RELATIVE_TIMING_cuda.json").write_text(json.dumps({"environment": {"gpu_name": "NVIDIA L40S", "code_hash_src_scripts_v10": "x"},
+                                                                           "train_scope": "m1_relative", "parts": {"train": {"status": "PASS"}}}))
     assert T02.budget(Args) == 0
     b = json.loads((tmp_path / "BUDGET.json").read_text())
-    assert b["status"] == "PROVISIONAL" and b["per_unit_projection"]["MF_VCS_M0"]["status"] == "measured"
-    assert b["status_inputs"]["t02_parts"]["head_extra"] == "FAIL"
+    assert b["status"] == "PROVISIONAL" and any("M1 relative timing code hash" in r for r in b["provisional_reasons"])
+    fam = b["projection"]["families"]
+    ref = b["m1_cap_reference_projection"]["families"]
+    assert fam["MF_VCS_perm1"]["tuning_gpu_h"] == ref["MF_VCS_perm1"]["tuning_gpu_h"] and fam["MF_VCS_M1"]["n_candidates"] == 9
+    n_cal = 12 * 8 * 10
+    s_reg = b["projection"]["candidates"][3]["s_per_registration_median"]          # M0 / M1: the moments energy
+    expect_m1 = sum((3000 * 0.5 * base[T02.M1_CAPBOUND[cap]] / 1000 + n_cal * s_reg) / 3600 for cap in A.M1_CAL_CAPS) * 3
+    assert abs(fam["MF_VCS_M1"]["tuning_gpu_h"] - expect_m1) <= 1e-9 and fam["MF_VCS_M1"]["within_family_caps"]
+    assert all(f["candidates_within_caps_in_frozen_order"] == f["n_candidates"] for f in fam.values())
+    tot = b["projection"]["total_gpu_h_by_selected_M1_cap_max_over_lr"]
+    assert tot["10"] < tot["30"] < tot["100"] and b["projection"]["tuning_total_gpu_h"] < b["m1_cap_reference_projection"]["tuning_total_gpu_h"]
+    assert set(b["m1_relative_measurement"]) == {r["config"] for r in rows}
+    assert all(abs(v["step_ratio_vs_cap_reference"] - 0.5) <= 1e-12 for v in b["m1_relative_measurement"].values())
+
+
+def test_t02_m1_relative_scope_runs_end_to_end_on_synthetic_data(tmp_path, monkeypatch, synthetic_imgs):
+    """t02_timing.py run --parts train --train-scope m1_relative on synthetic images with tiny encoders and a 1 + 2 + 1 + 1-step
+    window: the nine relative-rule candidates are timed, written to T02_M1_RELATIVE_* (not to T02_TIMING / T02_LONG), with the M1
+    summary columns, and the unaffected parts are recorded NOT_RUN with the kept-rows pointer."""
+    import csv
+    monkeypatch.setattr(T02, "TRAIN_WARMUP", 1)
+    monkeypatch.setattr(T02, "TRAIN_TIMED", 2)
+    monkeypatch.setattr(T02, "TRAIN_PHASE", 1)
+    monkeypatch.setattr(A, "fit_cores", lambda guard, frac=1.0, seed=1001: sorted(synthetic_imgs))
+    monkeypatch.setattr(A, "load_learned_inputs", lambda guard, cores, roles, purpose, device: {c: synthetic_imgs[c] for c in cores})
+    monkeypatch.setattr(A.P, "build_models", tiny_models)
+    (tmp_path / "T02_TIMING_cpu.json").write_text(json.dumps({"environment": {"slurm_job_id": "1043668", "code_hash_src_scripts_v10": "old"},
+                                                              "parts": {"head": {"status": "PASS"}}}))
+
+    class Args:
+        device, parts, train_scope, out_root, repo_out = "cpu", "train", "m1_relative", tmp_path / "out", tmp_path
+    assert T02.run(Args) == 0
+    out = json.loads((tmp_path / "T02_M1_RELATIVE_TIMING_cpu.json").read_text())
+    assert out["train_scope"] == "m1_relative" and out["parts"]["train"]["status"] == "PASS" and out["precision_settings_unchanged"]
+    assert out["rows_kept_from"]["job"] == "1043668" and out["parts"]["head"]["status"] == "NOT_RUN" and "kept" in out["parts"]["head"]["reason"]
+    assert out["parts"]["train"]["configs_run"] == [T02.m1_relative_label(lr, cap) for lr in T02.LR_CANDIDATES for cap in A.M1_CAL_CAPS]
+    rows = list(csv.DictReader((tmp_path / "T02_M1_RELATIVE_LONG_cpu.csv").read_text().splitlines()))
+    assert len(rows) == 9 and all(r["status"] == "completed" and r["m1_rule"] == "relative_zero_head" for r in rows)
+    assert all(float(r["median_ms"]) > 0 and int(r["m1_iterations_first"]) > 0 and float(r["m1_w_absmax_first"]) > 0 for r in rows)
+    assert all(float(r["encoder_grad_norm_first"]) > 0 and r["m1_stop_reasons"] and r["lr"] for r in rows)
+    assert not (tmp_path / "T02_TIMING_cuda.json").exists() and not (tmp_path / "T02_LONG_cpu.csv").exists()
+    per_step = json.loads(next((tmp_path / "out" / "T02" / "runs").glob("cpu_*_m1_relative")).joinpath("train_steps_per_step.json").read_text())
+    first = per_step[rows[0]["config"]][0]
+    assert first["m1_W_start_is_zero"] and first["m1_gap_start"] == first["m1_gap_ref_zero"] and "encoder_gradient_diagnostic" in first
