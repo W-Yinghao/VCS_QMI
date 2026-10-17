@@ -6,9 +6,10 @@ recorded in `reports/OWNER_DECISIONS_20261015.md` line 20 (review item forwarded
 training, evaluation or scoring job, and no label or test read.  §5 is also the report owed by REV10's protocol ("results-only commit to
 reports/REV9/REV10_RESULTS/, then a report").
 
-**Numbers.**  Every table, and every result quoted in the text, is printed by `scripts/r7_d1_closeout_tables.py` from the 14 committed results
-files of §9, each added by a results-only commit and not edited since; design facts (budgets, step counts, replicate counts, rule texts) are quoted
-from the freeze files.  The script formats, counts, takes seed means / sd / minima / maxima and re-applies the frozen decision rules (DF-8, E2-8,
+**Numbers.**  Every results table (T0–T18), and every result quoted in the text, is printed by `scripts/r7_d1_closeout_tables.py` from the 17
+committed results files of §9, each added by a results-only commit and not edited since; the clause table of §2 is a hand-written summary of those
+outputs.  Design facts (budgets, step counts, replicate counts, rule texts, guard outcomes recorded in execution notes) are quoted from the freeze
+files.  The script formats, counts, takes seed means / sd / minima / maxima and re-applies the frozen decision rules (DF-8, E2-8,
 the REV10 rule) to the stored deltas and Holm p-values.  It does no resampling and computes no new test or p-value.
 `python3 scripts/r7_d1_closeout_tables.py --check reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md` confirms that each of its tables appears here
 verbatim.  Deltas are accuracy points; [95 % CI] is the stored image- (chart-) grouped paired bootstrap (2,000 replicates); "p" is
@@ -20,6 +21,10 @@ counts the per-seed deltas below zero.
   2424556 (2026-10-12, before any quality result) and unchanged since: "S1 not better than S3 (direct risk) at equal information -> the gain is
   the selector, not the divergence; S1 not better than SparseVLM / uniform at matched latency -> no practical advantage; D1-10 shows h − d large
   and unpredictable -> the squared-gap read-out is not a risk estimate; the regime rule finds no saving -> no acceleration claim."
+- **The regime rule on the second host.**  The frozen D1 rule, re-applied on Qwen in R7-40a (`R7_40_PROTOCOL_DRAFT_20261012.yaml:105-108`,
+  adopted by the R7-40a staged freeze, D40a-7 and OPEN-R740-8, `R7_40A_STAGED_FREEZE_20261012.yaml:31-34, 39`): "If no batch size qualifies,
+  Qwen reports 'no LLM-side latency saving in any tested regime', its primary endpoint becomes quality at fixed kept-token fraction, and no
+  acceleration is claimed."
 - **Claim rules of the confirmatory reads.**  LLaVA, DF-8 (`R7_D1_FULL_STAGED_FREEZE_20261012.yaml:21-24`): a claim only where the 10k-FIT
   (D1-30) and the full-FIT (D1-FULL) results agree in sign and both pass their Holm-corrected primary tests.  Qwen, E2-8
   (`R7_E2_STAGED_FREEZE_20261013.yaml:16-17`): the same between R7-40c (10k) and E2 (full).  Official test, R7-50: Holm per phase and latency
@@ -31,42 +36,50 @@ counts the per-seed deltas below zero.
 
 Notation: S1 = VCS-trained selector; S2 = its logistic sibling (same architecture, same read-out r(K) = (T_B − T_A(K))²); S3 = direct-risk
 regressor (same backbone, regresses the teacher's realised h); seed means over seeds 0–2.  LLaVA: L25 / L50 / L75 = quality at the uniform
-grid's 144 / 288 / 432-token latency at B* = 4.  Qwen has no B*: fixed fractions f 0.25 / 0.5 / 0.75 of the merged visual tokens.
+grid's 144 / 288 / 432-token latency at B* = 4.  Qwen has no B* (§2.4): fixed fractions f 0.25 / 0.5 / 0.75 of the merged visual tokens.
 
 ## 1. Closing statement
 
-- **The pre-registered D1 hypothesis is refuted by its own rule (clause 2: no practical advantage).**  On LLaVA-1.5-7B, S1 is below
-  budget-matched SparseVLM at L25 and L50 on GQA DEV, TextVQA val and ChartQA val at both FIT scales (6 of the 9 DF-8 claims) and on GQA testdev
-  and ChartQA test in both official-test phases; every seed is negative in each of these 20 cells, and no S1 − SparseVLM contrast is detected in
-  S1's favour anywhere (T1).  On Qwen2.5-VL-7B, where the uniform grid is the primary external row, 7 of the 9 S1 − grid contrasts are E2-8
-  claims, all "S1 below", and S1 is below the grid in all 6 official-test cells (T3).
-- **Clause 1 holds on GQA and ChartQA, not on TextVQA.**  Under the two-scale claim rules S1 is better than S3 only on TextVQA (DF-8 claims at
-  L25 / L50 / L75; E2-8 claims at f 0.25 / 0.5), a transfer benchmark for selectors trained on GQA yes / no risk.  On in-distribution GQA, Qwen has
-  E2-8 claims "S1 below" at all three fractions and LLaVA has no claim; on ChartQA neither host has a claim (LLaVA's 10k-FIT lead at L25 / L50
-  changes sign at full FIT) (T4, T5).  With clause 2 fired there is no gain for clause 1 to attribute.
-- **Clause 3 did not fire.**  The frozen D1-10 readout judged h − d "not large and unpredictable": the residual has a stable negative sign, and d
-  over-states the realised risk change at small budgets (T6).  The host's squared-gap read-out is not refuted as a risk estimate.
-- **Clause 4 did not fire.**  The regime rule found a saving (B* = 4).  No acceleration claim is made all the same: nothing has a quality
-  advantage at matched latency, SparseVLM's official code is batch-1 only, and Qwen has no B*.
+- **D1's pre-registered refutation condition "S1 not better than SparseVLM / uniform at matched latency -> no practical advantage" is met on
+  both hosts; the D1 hypothesis is not supported.**  On LLaVA-1.5-7B, S1 is below budget-matched SparseVLM at L25 and L50 on GQA DEV, TextVQA val
+  and ChartQA val at both FIT scales (6 of the 9 DF-8 claims) and on GQA testdev and ChartQA test in both official-test phases; every seed is
+  negative in each of these 20 cells, and no S1 − SparseVLM contrast is detected in S1's favour anywhere (T1).  On Qwen2.5-VL-7B, where the
+  uniform grid is the primary external row and the reading is at fixed fractions (the regime rule's pre-declared fallback, clause 4), 7 of the 9
+  S1 − grid contrasts are E2-8 claims, all "S1 below", and S1 is below the grid in all 6 official-test cells (T3).
+- **Clause 1: S1 is not shown better than S3 on GQA and ChartQA; it is better on TextVQA.**  Under the two-scale claim rules S1 is better than S3
+  only on TextVQA (DF-8 claims at L25 / L50 / L75; E2-8 claims at f 0.25 / 0.5), a transfer benchmark for selectors trained on GQA yes / no risk.
+  On in-distribution GQA, Qwen has E2-8 claims "S1 below" at all three fractions and LLaVA has no claim.  On ChartQA neither host has a claim,
+  although S1 is Holm-detected above S3 at one scale on each host: LLaVA at 10k FIT (L25 / L50 +1.32 / +0.81, and +1.07 / +0.76 on the phase L
+  test), Qwen at full FIT (f 0.5 / 0.75 +3.16 / +1.51) (T4, T5).  With clause 2 met there is no gain for clause 1 to attribute.
+- **Clause 3 did not fire.**  The frozen D1-10 readout judged h − d "not large and unpredictable": the residual is negative in 11 of 12 CAL
+  cells (grid 75 %: +0.0004, CI covering 0), and d over-states the realised risk change at small budgets (T6).  The host's squared-gap read-out is
+  not refuted as a risk estimate.  Its per-item rank rule fires in no CAL cell, with three cells just below the calibrated-teacher band within
+  the margin; on FIT (descriptive) it fires for qsim at 12.5 % and 25 % (§2.3).
+- **Clause 4 did not fire on LLaVA and fired on Qwen.**  On LLaVA the regime rule found a saving (B* = 4, D1-10 smoke).  Re-applied on Qwen in
+  R7-40a it found none (B* null; at most 19.6 % saving, 7.3 % at B 4 with 25 % kept), so Qwen reports no LLM-side latency saving in any tested
+  regime, its primary endpoint is quality at fixed fractions, and no acceleration is claimed.  No acceleration claim is made on LLaVA either:
+  nothing has a quality advantage at matched latency, and SparseVLM's official code is batch-1 only.
 - **VCS against its matched logistic sibling: no ordering.**  No DF-8 claim at any of the 9 LLaVA points (6 scale-dependent, 3 failing Holm at
   one or both scales); on Qwen the only E2-8 claims are "S1 below" on ChartQA.  On the official tests the 10k-FIT S1 is below S2 wherever a
   difference is detected, and the full-FIT LLaVA S1 has two detected cells of opposite sign, each carried mainly by one seed (T7, T8).  This is
   not an equivalence statement.
 - **Phase-B mechanics move delivered accuracy, and are not attributed.**  With the critic held identical (phase B never updates the estimator;
-  every I0 guard exact), the eval-mode critic and straight-through hard top-k move DEV / val accuracy by −10.52 to +4.28 points in
-  Holm-significant cells, in a direction that depends on objective × phase-A learning rate × FIT scale.  REV10's frozen rule returned MIXED, so the 10k pattern is attributed neither to the objective
-  nor to the learning rate (§5).
-- **Neither closing label of `reports/PROJECT_MAP_20261014.md` line 237 is used** (§4): its positive condition holds at one scale and reverses at
-  the other, and its negative label ("后验读数不适合候选选择") claims more than the data show.
+  every I0 guard of the cells read is exact, and the one failed guard, REV9-FULL direct across hardware, stopped that primary readout), the
+  eval-mode critic and straight-through hard top-k move DEV / val accuracy by −10.52 to +4.28 points in the Holm-significant contrasts of the
+  seven seeded cells (single-seed H100 direct secondary: +1.15 to +11.69), in directions that differ across the objective × phase-A lr × FIT
+  scale cells (descriptive).  REV10's frozen rule returned MIXED, so the 10k pattern is attributed neither to the objective nor to the learning
+  rate (§5).
+- **Neither closing label of `reports/PROJECT_MAP_20261014.md` line 237 is used** (§4): its positive condition is met only under a permissive
+  reading and only at 10k FIT (it reverses at full FIT), and its negative label ("后验读数不适合候选选择") claims more than the data show.
 
 ## 2. The refutation rule, clause by clause
 
 | clause (frozen text) | read on | outcome |
 |---|---|---|
-| S1 not better than SparseVLM / uniform at matched latency -> no practical advantage | LLaVA: S1 − SparseVLM, primary on the budget-matched basis D30-1 (T1); S1 − uniform grid, secondary at matched latency (T2).  Qwen: S1 − uniform grid, primary (T3) | **fired** on both hosts, both FIT scales, DEV / val and official test |
-| S1 not better than S3 (direct risk) at equal information -> the gain is the selector, not the divergence | S1 − S3, primary on both hosts (T4, T5) | **holds on GQA and ChartQA, not on TextVQA**; no gain to attribute (clause 2) |
-| D1-10 shows h − d large and unpredictable -> the squared-gap read-out is not a risk estimate | frozen D1-10 CAL readout under the interpretation grid of protocol lines 138-143 (T6) | **did not fire** |
-| the regime rule finds no saving -> no acceleration claim | regime rule, protocol lines 67-77, decision OPEN-2 (lines 297-299) | **did not fire** (B* = 4); no acceleration claim for the reasons in §2.4 |
+| S1 not better than SparseVLM / uniform at matched latency -> no practical advantage | LLaVA: S1 − SparseVLM, primary on the budget-matched basis D30-1 (T1); S1 − uniform grid, secondary at matched latency (T2).  Qwen: S1 − uniform grid, primary, at fixed fractions, the regime rule's pre-declared fallback (T3; clause 4) | **fired** on both hosts, both FIT scales, DEV / val and official test |
+| S1 not better than S3 (direct risk) at equal information -> the gain is the selector, not the divergence | S1 − S3, primary on both hosts (T4, T5) | **S1 not shown better than S3 on GQA and ChartQA** under DF-8 / E2-8 (on ChartQA, Holm-detected above S3 at one scale on each host); better on TextVQA; no gain to attribute (clause 2) |
+| D1-10 shows h − d large and unpredictable -> the squared-gap read-out is not a risk estimate | frozen D1-10 CAL readout under the interpretation grid of protocol lines 138-143 and the rank-criterion note of lines 353-361 (T6) | **did not fire** |
+| the regime rule finds no saving -> no acceleration claim | LLaVA: regime rule, protocol lines 67-77, decision OPEN-2 (lines 297-299).  Qwen: the same rule re-applied in R7-40a (`R7_40_PROTOCOL_DRAFT_20261012.yaml:105-108`; `R7_40A_STAGED_FREEZE_20261012.yaml:39, 48-52`) | **did not fire on LLaVA** (B* = 4); **fired on Qwen** (B* null); no acceleration claim on either host (§2.4) |
 
 ### 2.1 Clause 2 — S1 against SparseVLM and the uniform grid
 
@@ -106,8 +119,11 @@ LLaVA family; TextVQA has no official-test read).
 | chartqa_val | L75 | +0.20 [-0.55, +1.00], p 0.578 | -0.13 [-0.89, +0.66], p 0.795 | +0.07 [-0.61, +0.68], p 0.859 | -0.21 [-0.89, +0.43], p 0.511 |
 
 - At L25 the point estimate is negative in all 10 cells (unadjusted p ≤ 0.005 in 8; ChartQA test p 0.298 in phase L and 0.094 in phase F).
-- S1 is above the grid at one point only, 10k-FIT TextVQA val at L75 (+1.51 [+0.89, +2.17], unadjusted), where it is not above SparseVLM (T1:
-  −0.18, p 1.000); at full FIT that cell is +0.41 (p 0.197).  So no matched-latency point has S1 better than both external rows.
+- S1 is detected above the grid (unadjusted p < 0.05) at one point only, 10k-FIT TextVQA val at L75 (+1.51 [+0.89, +2.17], p 0.001), where it
+  is not above SparseVLM (T1: −0.18, p 1.000); at full FIT that cell is +0.41 (p 0.197).  The point estimate is above the grid in 9 of the 30
+  cells (GQA L75 in all four columns, TextVQA L75 at both FIT scales, ChartQA L50 at 10k FIT, ChartQA L75 at 10k FIT and in phase L); the other
+  eight are not detected.  So no point has S1 detected above both the grid (matched latency, secondary) and SparseVLM (matched budget, D30-1).
+  The point estimates exceed both only at ChartQA L75, at 10k FIT on DEV / val (+0.20 / +0.14) and in phase L (+0.07 / +0.04), none detected.
 
 **T3 — S1 − uniform grid on Qwen** (primary; E2-8 on DEV / val; R7-50 phase Q on the official test, 10k-FIT selectors only).
 
@@ -170,41 +186,56 @@ LLaVA family; TextVQA has no official-test read).
 **T6 — D1-10 CAL readout** (the host's own squared gap d = (b − a)² against the realised risk change h; all 7,989 CAL questions; frozen readout
 `reports/R7/R7_D1_10_CAL_READOUT.md`).
 
-| mechanism | kept | mean h | mean d | mean h − d [95 % CI] | abs(h − d) / h | per-item Spearman(h, d) | calibrated-teacher band | rank rule |
+| mechanism | kept | mean h | mean d | mean h − d [95 % CI] | abs(h − d) / h | per-item Spearman(h, d) [95 %] | calibrated-teacher band | rank rule |
 |---|---|---|---|---|---|---|---|---|
-| grid | 12.5 % | 0.1579 | 0.1672 | -0.0093 [-0.0220, +0.0032] | 0.06 | 0.472 | [0.463, 0.500] | does not fire |
-| grid | 25 % | 0.0956 | 0.0993 | -0.0037 [-0.0141, +0.0067] | 0.04 | 0.402 | [0.380, 0.422] | does not fire |
-| grid | 50 % | 0.0393 | 0.0430 | -0.0037 [-0.0112, +0.0034] | 0.10 | 0.249 | [0.231, 0.274] | does not fire |
-| grid | 75 % | 0.0210 | 0.0205 | +0.0004 [-0.0048, +0.0055] | 0.02 | 0.194 | [0.173, 0.217] | does not fire |
-| random | 12.5 % | 0.1616 | 0.1808 | -0.0192 [-0.0333, -0.0063] | 0.12 | 0.455 | [0.461, 0.502] | does not fire |
-| random | 25 % | 0.0901 | 0.1017 | -0.0116 [-0.0224, -0.0007] | 0.13 | 0.384 | [0.378, 0.423] | does not fire |
-| random | 50 % | 0.0436 | 0.0475 | -0.0039 [-0.0119, +0.0041] | 0.09 | 0.268 | [0.244, 0.296] | does not fire |
-| random | 75 % | 0.0158 | 0.0189 | -0.0031 [-0.0082, +0.0019] | 0.20 | 0.172 | [0.154, 0.201] | does not fire |
-| qsim | 12.5 % | 0.1410 | 0.1697 | -0.0287 [-0.0421, -0.0158] | 0.20 | 0.396 | [0.419, 0.461] | does not fire |
-| qsim | 25 % | 0.0854 | 0.1069 | -0.0215 [-0.0335, -0.0104] | 0.25 | 0.317 | [0.336, 0.373] | does not fire |
-| qsim | 50 % | 0.0440 | 0.0503 | -0.0064 [-0.0140, +0.0014] | 0.14 | 0.214 | [0.208, 0.256] | does not fire |
-| qsim | 75 % | 0.0141 | 0.0193 | -0.0052 [-0.0103, -0.0000] | 0.37 | 0.107 | [0.104, 0.151] | does not fire |
+| grid | 12.5 % | 0.1579 | 0.1672 | -0.0093 [-0.0220, +0.0032] | 0.06 | 0.472 [0.448, 0.496] | [0.463, 0.500] | does not fire |
+| grid | 25 % | 0.0956 | 0.0993 | -0.0037 [-0.0141, +0.0067] | 0.04 | 0.402 [0.376, 0.428] | [0.380, 0.422] | does not fire |
+| grid | 50 % | 0.0393 | 0.0430 | -0.0037 [-0.0112, +0.0034] | 0.10 | 0.249 [0.219, 0.278] | [0.231, 0.274] | does not fire |
+| grid | 75 % | 0.0210 | 0.0205 | +0.0004 [-0.0048, +0.0055] | 0.02 | 0.194 [0.166, 0.222] | [0.173, 0.217] | does not fire |
+| random | 12.5 % | 0.1616 | 0.1808 | -0.0192 [-0.0333, -0.0063] | 0.12 | 0.455 [0.429, 0.479] | [0.461, 0.502] | does not fire |
+| random | 25 % | 0.0901 | 0.1017 | -0.0116 [-0.0224, -0.0007] | 0.13 | 0.384 [0.358, 0.409] | [0.378, 0.423] | does not fire |
+| random | 50 % | 0.0436 | 0.0475 | -0.0039 [-0.0119, +0.0041] | 0.09 | 0.268 [0.241, 0.295] | [0.244, 0.296] | does not fire |
+| random | 75 % | 0.0158 | 0.0189 | -0.0031 [-0.0082, +0.0019] | 0.20 | 0.172 [0.144, 0.198] | [0.154, 0.201] | does not fire |
+| qsim | 12.5 % | 0.1410 | 0.1697 | -0.0287 [-0.0421, -0.0158] | 0.20 | 0.396 [0.372, 0.421] | [0.419, 0.461] | does not fire |
+| qsim | 25 % | 0.0854 | 0.1069 | -0.0215 [-0.0335, -0.0104] | 0.25 | 0.317 [0.289, 0.343] | [0.336, 0.373] | does not fire |
+| qsim | 50 % | 0.0440 | 0.0503 | -0.0064 [-0.0140, +0.0014] | 0.14 | 0.214 [0.187, 0.242] | [0.208, 0.256] | does not fire |
+| qsim | 75 % | 0.0141 | 0.0193 | -0.0052 [-0.0103, -0.0000] | 0.37 | 0.107 [0.077, 0.135] | [0.104, 0.151] | does not fire |
 
 - The frozen interpretation grid (protocol lines 138-143), as applied in the readout (lines 113-128): grid line 1 (|h − d| ≤ 0.1 · h with the CI
   covering 0) holds for grid masks only; grid line 2 (consistent sign, CI excluding 0) applies to random and qsim masks, i.e. d over-states h at
-  small budgets and is biased; the per-item rank rule (calibrated-teacher band, coordinator note added before the readout) fires in 0 of 12 CAL
-  cells; Package §F: the residual is "not 'large and unpredictable'".  Clause 3 did not fire.
-- Recomputed from the results file: the residual is negative in 11 of 12 cells and at most 0.0287 in absolute value; |h − d| / h is ≤ 0.25 in 10
-  cells, 0.252 at qsim 25 % and 0.367 at qsim 75 % (on a small h, 0.0141).  The readout's sentence "its magnitude is at most about 25 % of h"
-  (line 128) therefore misses the qsim 75 % cell; the sign there is negative as elsewhere.
+  small budgets and is biased; Package §F: the residual is "not 'large and unpredictable'".  Clause 3 did not fire.
+- The rank line.  The coordinator note added before the readout (protocol lines 353-361) replaced the grid line "per-item Spearman (h, d) < 0.5"
+  by a calibrated-teacher band: "d does not rank per-question losses" is written only if the observed value lies below the band's lower end by
+  more than its image-clustered bootstrap margin, i.e. if the upper end of the observed interval is below the band
+  (`scripts/r7_d1_analyze.py:65`).  On CAL that happens in 0 of 12 cells.  Three cells sit below the band's lower end within the margin: random
+  12.5 % (0.455 against 0.461; upper end 0.479), qsim 12.5 % (0.396 against 0.419; 0.421) and qsim 25 % (0.317 against 0.336; 0.343).  On FIT
+  (descriptive) the rule fires for qsim at 12.5 % (0.385 [0.372, 0.397] against [0.423, 0.440]) and 25 % (0.308 [0.295, 0.320] against [0.338,
+  0.358]).  The superseded 0.5 line, kept on record by the note as "unattainable for a calibrated teacher", is below 0.5 in all 12 CAL cells
+  (0.107–0.472).
+- Recomputed from the results file: the residual is negative in 11 of 12 cells (grid 75 %: +0.0004 [−0.0048, +0.0055]) and at most 0.0287 in
+  absolute value; |h − d| / h is ≤ 0.25 in 10 cells, 0.252 at qsim 25 % and 0.367 at qsim 75 % (on a small h, 0.0141).  The readout's sentence
+  "its magnitude is at most about 25 % of h" (line 128) therefore misses the qsim 75 % cell; the sign there is negative as elsewhere.
 - The calibrated-teacher band is a reference generated under the teacher's own probabilities, not a bound for every method (readout
   clarification, lines 140-143).
 
 ### 2.4 Clause 4 — the regime rule
 
 - The rule (protocol lines 67-71): B* is the smallest batch in {1, 4, 16, 32} at which the uniform grid at 25 % cuts per-item latency by at least
-  25 %.  It was applied once, to the D1-10 timing smoke before any quality result: 9.4 % at B = 1, 27.2 % at B = 4, so B* = 4 (protocol lines
-  73-77 and OPEN-2, lines 297-299; `R7_D1_10_SMOKE.md:67-72`).  The smoke's timing file is outside the repository
+  25 %; "if no batch size qualifies, D1 reports 'no LLM-side latency saving in any tested regime'; the primary endpoint becomes quality at fixed
+  kept-token budget, and no acceleration is claimed."
+- LLaVA: applied to the D1-10 timing smoke before any quality result: 9.4 % at B = 1, 27.2 % at B = 4, so B* = 4 (protocol lines 73-77 and
+  OPEN-2, lines 297-299; `R7_D1_10_SMOKE.md:67-72`).  The smoke's timing file is outside the repository
   (`outputs/R7_D1/smoke/timing/timing_report.json`); the script re-derives 9.4 % and 27.2 % from it when it is present.  At B* = 4 the D1-30
   timing runs (descriptive; the rule is not re-applied) give the uniform grid at 144 tokens a median per-item latency 26.6 % (GQA DEV), 24.0 %
-  (TextVQA val) and 26.3 % (ChartQA val) below the full row.
-- The clause did not fire, but no acceleration claim is made: clause 2 leaves no method of ours with a quality advantage at matched latency;
-  SparseVLM has no B* = 4 latency (D30-1); Qwen has no B* (R7-40c basis, E2-13).
+  (TextVQA val) and 26.3 % (ChartQA val) below the full row.  The clause did not fire on LLaVA.
+- Qwen: the same rule, re-applied in R7-40a on the reference node (`R7_40_PROTOCOL_DRAFT_20261012.yaml:105-108`; staged freeze D40a-7 and
+  OPEN-R740-8, `R7_40A_STAGED_FREEZE_20261012.yaml:31-34, 39`; readout lines 48-52).  No batch size qualifies (B* null): the uniform grid at
+  25 % saves 2.2 % at B = 1, 7.3 % at B = 4, 14.4 % at B = 16 and 18.0 % at B = 32, and the largest saving of any row is 19.6 % (B = 32, 12.5 %
+  kept).  So the clause fired on Qwen, with its pre-declared consequence: no LLM-side latency saving in any tested regime, the primary endpoint
+  is quality at fixed fractions (R7-40c, E2, R7-50 phase Q; E2-13), and no acceleration is claimed.  The Qwen reading of clause 2 at fixed
+  fractions (T3) rests on this fallback.
+- No acceleration claim on LLaVA either: clause 2 leaves no method of ours with a quality advantage at matched latency, and SparseVLM has no
+  B* = 4 latency (D30-1).
 
 ## 3. VCS against the matched logistic sibling (S1 − S2)
 
@@ -255,8 +286,8 @@ The rule (line 237; written by the coordinator in 6c91e9e, 2026-10-14 17:07 +020
 '后验读数不适合候选选择'的负面结构发现收口。不再做新的 D1 变体。"  It is a suggestion in an interpretive document (§11 "下一步（建议…）"), not a frozen
 protocol, and it defines no test of "显著缩小"; it is read here with the frozen REV9 Holm decisions.
 
-**Positive condition: met at one scale only.**  The uniform-grid row is fixed per item, so the change of S1 − grid at a fixed budget is exactly
-S1's Holm-tested I − frozen contrast.
+**Positive condition: not shown at the two scales the rule names.**  The uniform-grid row is fixed per item, so the change of S1 − grid at a
+fixed budget is exactly S1's Holm-tested I − frozen contrast.
 
 **T12 — S1 − grid under I1 / I2 at fixed budgets** (frozen REV9 / REV9-FULL primary contrasts; grid = the frozen D1-30 rows on the same items).
 
@@ -279,11 +310,14 @@ S1's Holm-tested I − frozen contrast.
   deficit cells and takes TextVQA 432 from above the grid (+1.14) to below it; I1 narrows 2 of 9 (GQA 144 +0.51, TextVQA 288 +0.60).  The
   narrowing does not hold at both scales the rule names; DF-8, D1's frozen two-scale claim rule (applied here by analogy), would call it
   scale-dependent.
+- Even the 10k reading takes choices the rule does not make: "/" read as "or" (the S1 − S2 half has no test, next bullet), the fixed-budget
+  S1 − grid change in place of D1's latency-matched S1 − grid secondary, and the VCS I2 arm.  Under a stricter reading (both halves, both
+  scales) the positive condition is not shown at all.
 - S1 − S2 was never tested: every REV9 / REV10 primary contrast is within one objective.  Descriptively, the post-intervention S1 − S2 depends on
   which arm is paired with which, from −8.66 to +3.11 at 10k (T13); choosing the arms from these DEV / val results would be selection on the
   evaluation data.  Pairings through the 10k S2 arms are also seed-fragile: frozen S2 TextVQA accuracy at 72 tokens is 34.10 / 15.69 / 25.73 by
   seed, and its I2 − frozen is −8.86 / +10.44 / −7.34.
-- REV10, added after the rule, returned MIXED (§5): no defect with a stable fix is identified.
+- REV10 is not named by the rule, which was written before REV10 was designed, and decides neither branch; it is context only (MIXED, §5).
 
 **T13 — S1 − S2 at fixed budgets by arm pairing** (seed means; descriptive, post hoc, no interval; not a test).
 
@@ -319,10 +353,13 @@ S1's Holm-tested I − frozen contrast.
   masks with regret 0.087–0.093, against 0.147–0.173 for a random choice (T11; a reference that uses host outputs, not a deployable selector).
   What is at chance is the learned VCS and logistic critics: pairwise accuracy 0.498–0.504, regret 0.143–0.172 against 0.147–0.173 for a
   random choice.
-- The shortfall is not specific to a posterior read-out: S3, which regresses the realised risk directly, is below the uniform grid at 25 % in all
-  12 (host, FIT, benchmark) rows and below every external row (T18); S1 is too, and S2 is below the grid in 10 of 12 rows and below every external
-  row.
-- With the critic identical, phase-B gate training alone moves delivered accuracy by −10.52 to +4.28 points (§5).
+- The shortfall is not specific to a posterior read-out: at seed means, S3, which regresses the realised risk directly, is below the uniform
+  grid at 25 % in all 12 (host, FIT, benchmark) rows and below every external row (T18); so is S1, and S2 is below the grid in 10 of 12 rows and
+  below every external row.  Per seed it is less uniform: full-FIT LLaVA S3 seed 2 is above the grid on all three benchmarks (GQA 82.01, TextVQA
+  37.74, ChartQA 18.33 against 81.12 / 32.55 / 16.98) and above adapted SparseVLM on GQA (82.01 against 81.94); 10k LLaVA S1 seed 2 is above the
+  grid on ChartQA (17.24); 8 of the 36 S2 seed values are above the grid, 2 of them above an external row.
+- With the critic identical, phase-B gate training alone moves delivered accuracy by −10.52 to +4.28 points in the seven seeded cells, and by
+  +1.15 to +11.69 in the single-seed H100 direct secondary (§5).
 
 **T11 — within-question mask choice of the frozen critics** (REV8, critic-only, CAL; 3 seeds per row; descriptive, no test).
 
@@ -380,12 +417,17 @@ for the two REV10 cells).
 | 10k | logistic | 3e-4 | no | REV10 | 0.0 / 0.0 | 0, 3 | 0, 1 | -3 | -1 | neither |
 | full | VCS | 1e-4 | yes | REV9-FULL | 0.0 / 0.0 | 3, 0 | 0, 7 | +3 | -7 | L |
 | full | logistic | 1e-4 | yes | REV9-FULL | 0.0 / 0.0 | 5, 0 | 0, 8 | +5 | -8 | L |
-| full | direct | 1e-4 | yes | REV9-FULL H100 secondary, seed 0 only | 0.0 / 0.0 | 0, 0 | 10, 0 | +0 | +10 | V |
+| full | direct | 1e-4 | yes | REV9-FULL H100 secondary, seed 0 only | 0.0 / 0.0 (H100 rerun) | 0, 0 | 10, 0 | +0 | +10 | V |
 
-- Every I0 guard is exact (estimator and gate max abs diff 0 on seed 0 of each cell) and phase B never updates the estimator, so frozen, I1 and
-  I2 units share the identical critic and every effect is a gate-training effect.  Prediction files: 324 (REV9), 216 (REV9-FULL), 36 (H100 secondary), 216 (REV10), none with dropped, blank or duplicate
-  lines.
-- 67 of the 168 contrasts of the seven seeded cells are Holm-significant, from −10.52 to +4.28 points.
+- Every I0 guard of the cells read is exact (estimator and gate max abs diff 0 on seed 0 of each cell, T14) and phase B never updates the
+  estimator, so frozen, I1 and I2 units share the identical critic and every effect is a gate-training effect.  Of the guards run, one failed:
+  REV9-FULL direct_lr0.0001_s0 (estimator diff 0, gate diff 2.114 > 1e-3), the only frozen D1-FULL unit trained on an H100 NVL, rerun on RTX
+  PRO 6000.  The frozen rule stopped the primary REV9-FULL readout of the direct objective (execution note 3,
+  `REV9_PROTOCOL_FROZEN_20261014.yaml:49-58`), and T14's full-direct row is the labelled secondary H100 rerun of seed 0, whose own guard passed
+  (note 6, lines 69-75).  Prediction files: 324 (REV9), 216 (REV9-FULL), 36 (H100 secondary), 216 (REV10), none with dropped, blank or
+  duplicate lines.
+- 67 of the 168 contrasts of the seven seeded cells are Holm-significant, from −10.52 to +4.28 points; the single-seed H100 direct secondary has
+  10 of 24, all I2, from +1.15 to +11.69.
 - **REV10's frozen rule:** vcs_lr0.0001 (net I1 −1, net I2 −10) shows neither pattern V nor pattern L, and neither does logistic_lr0.0003 (net I1
   −3, net I2 −1), so the outcome is **MIXED**: reported descriptively, no attribution to the objective or to the learning rate.  This is the
   computation recorded in 241a2c9.
@@ -407,9 +449,11 @@ for the two REV10 cells).
 | full | logistic | 1e-4 | -0.0013 [-0.0024, -0.0004] | -0.0024 [-0.0036, -0.0010] | -0.0023 [-0.0026, -0.0017] | -0.0008 [-0.0015, -0.0002] | -0.0012 [-0.0019, -0.0004] | -0.0020 [-0.0032, -0.0009] |
 | full | direct | 1e-4 | +0.0000 (n 1) | +0.0001 (n 1) | +0.0006 (n 1) | +0.0000 (n 1) | -0.0000 (n 1) | +0.0004 (n 1) |
 
-- The gap follows the phase-A learning rate, not the objective: |frozen gap| at 72 tokens is ≥ 0.044 in all six lr-3e-4 units and ≤ 0.022 in all
-  twelve VCS / logistic units at lr 1e-4.  REV8's "at 1e-4 every |SD − HD| ≤ 0.004" (REV8 report line 104) describes its own 36 units only:
-  REV10's newly trained VCS-1e-4 seeds 1 and 2 log −0.0223 and −0.0079.
+- Descriptively, the size of the frozen gap sorts by phase-A lr, not by objective: |frozen gap| at 72 tokens is 0.0443 or more in all six
+  lr-3e-4 units and at most 0.0223 in all twelve VCS / logistic units at lr 1e-4.  That is the size pattern REV10's protocol lists as the
+  lr-driven prediction for this secondary (line 34); the primary rule returned MIXED, so no attribution follows.  REV8's "at 1e-4 every
+  |SD − HD| ≤ 0.004" (REV8 report line 104) holds for its seed means only (largest 0.0037): per unit, 7 values in 4 of its 21 lr-1e-4 units exceed
+  0.004, up to 0.0085 (Corrections section added there, §8); REV10's newly trained VCS-1e-4 seeds 1 and 2 log −0.0223 and −0.0079 at 72.
 - The gap does not predict the accuracy response: I2 roughly halves the gap in both lr-3e-4 cells (VCS −0.0567 → −0.0283, logistic −0.0477 →
   −0.0275), yet VCS gains (net +9) and logistic does not (net −1).
 
@@ -468,20 +512,24 @@ for the two REV10 cells).
 | S1-grid | 7 | 0 | 0 | 2 | 0 | 0 |
 | all 27 | 13 | 2 | 2 | 3 | 5 | 2 |
 
-**T10 — E1 external columns** (MMTok, HiPrune: official code in its own pinned environment at batch 1 on R7-40c's items; a separate host column
-with no contrast or test computed, D-E1-7; descriptive only).
+**T10 — E1 external columns, with the learned rows at both FIT scales** (MMTok, HiPrune: official code in its own pinned environment at batch 1
+on R7-40c's items; a separate host column with no contrast or test computed, D-E1-7; full-FIT learned rows: E2's seed means at the same
+fractions, against the same grid column; every count over f 0.125 / 0.25 / 0.5 / 0.75; descriptive only).
 
-| benchmark | learned rows (S1, S2, S3) below the grid column, f 0.125–0.75 | MMTok / HiPrune above the grid column, f 0.125–0.5 | largest grid − S1 (f) |
-|---|---|---|---|
-| gqa_dev | 12 / 12 | 6 / 6 | 5.31 (f 0.125) |
-| textvqa_val | 12 / 12 | 6 / 6 | 7.17 (f 0.25) |
-| chartqa_val | 12 / 12 | 6 / 6 | 17.26 (f 0.25) |
+| benchmark | learned rows (S1, S2, S3) below the grid column: 10k FIT (R7-40c) | learned rows below the grid column: full FIT (E2) | MMTok / HiPrune above the grid column | MMTok / HiPrune − grid at f 0.75 | largest grid − S1, 10k FIT (f) |
+|---|---|---|---|---|---|
+| gqa_dev | 12 / 12 | 12 / 12 | 7 / 8 | -0.20 / +0.20 | 5.31 (f 0.125) |
+| textvqa_val | 12 / 12 | 8 / 12 | 7 / 8 | -0.48 / +0.76 | 7.17 (f 0.25) |
+| chartqa_val | 12 / 12 | 12 / 12 | 8 / 8 | +0.05 / +2.03 | 17.26 (f 0.25) |
 
-- The learned selectors do not reach the training-free grid on Qwen: 13 of the 27 contrasts are "S1 below" claims (7 against the grid, 3 against
-  S2 on ChartQA, 3 against S3 on GQA); the only "S1 above" claims are against S3 on TextVQA.  On the official test (phase Q, 10k-FIT selectors)
-  S1 is below the grid and below S2 at every fraction on both benchmarks (T3, T8).
-- E1, descriptive: both published training-free methods are above the grid column at f ≤ 0.5 on all three benchmarks (18 of 18), and the learned
-  rows are below it in all 36 cells at f 0.125–0.75.  Not a same-condition comparison; it enters no claim.
+- On Qwen, S1 is below the uniform grid wherever an E2-8 claim is made (7 of the 9 grid contrasts, T3).  The other "S1 below" claims are against
+  S2 on ChartQA (3) and against S3 on GQA (3); the only "S1 above" claims are against S3 on TextVQA (2) (T9).  On the official test (phase Q,
+  10k-FIT selectors) S1 is below the grid and below S2 at every fraction on both benchmarks (T3, T8).
+- E1, descriptive: with the 10k-FIT selectors every learned row is below the grid column (36 of 36 cells, R7-40c's rows; E1 report line 61).  At
+  full FIT 4 of the 36 are above it, all on TextVQA: S2 at f 0.125 / 0.25 / 0.5 (60.27 / 73.74 / 81.56 against 58.28 / 73.18 / 80.85) and S1 at
+  f 0.5 (81.12).  Both published training-free methods are above the grid column at f ≤ 0.5 on all three benchmarks (18 of 18; E1 report line
+  57) and in 22 of 24 cells over f 0.125–0.75: at f 0.75 MMTok is below it on GQA (−0.20) and TextVQA (−0.48).  Not a same-condition
+  comparison; it enters no claim.
 - Mechanism evidence on Qwen is critic-level only: the Qwen VCS and logistic critics choose at chance within a (question, budget) (T11).  REV9 /
   REV10 did not run on Qwen.
 
@@ -513,8 +561,12 @@ changes):
    beats its logistic sibling on the official test", it is wrong.  Phase F detected the full-FIT LLaVA S1 above S2 on ChartQA test at L25 (+0.75
    [+0.34, +1.17], Holm p 0.006; seeds +2.17 / −0.10 / +0.18), next to S1 below S2 on GQA testdev at L25 (−0.78 [−1.16, −0.40], Holm p 0.006;
    seeds −0.21 / +0.21 / −2.35).  The correct statement is §3's.
-3. `reports/PROJECT_MAP_20261014.md` also gets a short "Update 2026-10-17: D1 closed" section pointing to this report (its §7.2 still describes
-   REV9 as running).
+3. `reports/REV8/REV8_DIAG_REPORT_20261014.md:104` wrote "at 1e-4 every |SD − HD| ≤ 0.004".  That holds for the seed means its §B table reports
+   (largest 0.0037, LLaVA 10k logistic at 72 tokens), not for every unit: per unit, 7 values in 4 of the 21 lr-1e-4 units exceed 0.004, up to
+   0.0085 (LLaVA 10k logistic seed 2 at 288 tokens; also 0.0072 for Qwen 10k logistic seed 1 at 12.5 %, 0.0071 for LLaVA 10k logistic seed 2 at
+   144 and 0.0069 for LLaVA FULL direct seed 1 at 72).
+4. `reports/PROJECT_MAP_20261014.md` also gets a short "Update 2026-10-17: D1 closed" section pointing to this report (its §7.2 still describes
+   REV9 as running), and line 175 gets a visible pointer to its Corrections section.
 
 **Earlier interpretive sentences not carried forward** (left in place; listed so they are not reused):
 - PROJECT_MAP §7.3 (line 185): the pooled CAL Spearman means r(K) ranks "整体上哪个预算更安全", and S3's slightly better ranking "说明问题在'后验→风险'的
@@ -528,9 +580,10 @@ changes):
   10k logistic at 3e-4 has the gap, I2 halves it, and accuracy does not improve (T14, T15).
 - REV9-FULL report line 29, "consistent with the 10k pattern being driven by the learning rate": its designated test, REV10, returned MIXED.
   Line 34's "at most +1.86" is logistic's gain; S1's largest Holm-significant I1 change in a deficit cell is +0.60 (TextVQA 288).  Its provenance
-  line 6 ("its H100 secondary rerun is pending") is superseded by its own §4 (9637b5b).
+  line 6 ("its H100 secondary rerun is pending") is superseded by its own §4 (47d0f93; results 9637b5b).
+- D1-10 readout line 122, "For random and grid masks, the observed per-item Spearman(h, d) lies inside or at the calibrated-teacher band": random
+  12.5 % lies below the band's lower end (0.455 against 0.461), within the margin (§2.3).
 - D1-10 readout line 128, "its magnitude is at most about 25 % of h": not for qsim at 75 % (0.367; §2.3).
-- REV8 report line 104, "at 1e-4 every |SD − HD| ≤ 0.004": true of REV8's 36 units, not a rule (§5).
 
 ## 9. Files
 
@@ -546,8 +599,11 @@ changes):
 | r50_L | `reports/R7/R7_50_results_L/r7_50_results.json` | 81c89df | 4ccd69ff25e7386c |
 | r50_F | `reports/R7/R7_50_results_F/r7_50_results.json` | ee172c7 | 60cfc0b72b875cef |
 | r50_Q | `reports/R7/R7_50_results_Q/r7_50_results.json` | 1bbeb8e | e4e1f428837938a2 |
+| r40a_t | `reports/R7/R7_40A_QWEN_REFERENCE_TIMING.json` | 6ca09ec | de96836b5b7d918d |
+| r40c | `reports/R7/R7_40C_results/r7_40c_results.json` | e8061c7 | 02ba946ad6a04b58 |
 | e1 | `reports/R7/R7_E1_results/r7_e1_results.json` | 7d98a17 | 6775c798ce2c691e |
 | e2 | `reports/R7/R7_E2_results/e2_claims.json` | 895ca7b | 9a5a84fa4d1a79d0 |
+| e2_rows | `reports/R7/R7_E2_results/r7_40c_results_E2_recompute.json` | 895ca7b | 15b1bab33371dae1 |
 | rev8 | `reports/REV8/REV8_DIAG_RESULTS/rev8_diag_results.json` | 5dd8f37 | 781cfe24567b44ef |
 | rev9 | `reports/REV9/REV9_RESULTS/rev9_results.json` | 821ef73 | 86665bc105a3412d |
 | rev9f | `reports/REV9/REV9_FULL_RESULTS/rev9_full_results.json` | be9a829 | 7d35430c4ca9c124 |
@@ -555,8 +611,9 @@ changes):
 | rev10 | `reports/REV9/REV10_RESULTS/rev10_results.json` | 241a2c9 | 61cb280167aefe41 |
 
 - Freeze files cited: `reports/R7/R7_D1_PROTOCOL_FROZEN_20261012.yaml`, `R7_D1_20_STAGED_FREEZE_20261012.yaml`,
-  `R7_D1_30_STAGED_FREEZE_20261012.yaml`, `R7_D1_FULL_STAGED_FREEZE_20261012.yaml`, `R7_E2_STAGED_FREEZE_20261013.yaml`,
+  `R7_D1_30_STAGED_FREEZE_20261012.yaml`, `R7_D1_FULL_STAGED_FREEZE_20261012.yaml`, `R7_40_PROTOCOL_DRAFT_20261012.yaml` (the Qwen regime-rule
+  text adopted by) `R7_40A_STAGED_FREEZE_20261012.yaml`, `R7_E1_STAGED_FREEZE_20261013.yaml`, `R7_E2_STAGED_FREEZE_20261013.yaml`,
   `R7_50_PROTOCOL_FROZEN_20261012.yaml` (all in `reports/R7/`); `reports/REV9/REV9_PROTOCOL_FROZEN_20261014.yaml`;
   `reports/REV9/REV10_LR_FACTORIAL_PROTOCOL_FROZEN_20261015.yaml`.
-- Reports these results come from: `reports/R7/` D1-10 and D1-20 CAL readouts, D1-30, D1-FULL, R7-40c, E1, E2, R7-50 phases L / Q / F;
+- Reports these results come from: `reports/R7/` D1-10 and D1-20 CAL readouts, D1-30, D1-FULL, R7-40a, R7-40c, E1, E2, R7-50 phases L / Q / F;
   `reports/REV8/REV8_DIAG_REPORT_20261014.md`; `reports/REV9/REV9_REPORT_20261015.md`, `REV9_FULL_REPORT_20261015.md`.

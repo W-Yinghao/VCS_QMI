@@ -115,3 +115,11 @@ Guard: 36 units; max |recomputed − logged| pooled CAL Spearman = 6.73e-07.
   logistic critics (the direct-risk critic is better there), (ii) a soft–hard relaxation gap that appears with phase-A learning rate 3e-4, and
   (iii) dropout-perturbed gate inputs during phase B.  Whether any of them causes the D1 shortfall is not identified here; a paired retraining
   (e.g. phase B in eval mode, or hard-mask evaluation during gate training) would test it and is the owner's decision.
+
+## Corrections (2026-10-17; numbers unchanged)
+1. Reading, R8-02 (line 104) — "at 1e-4 every |SD − HD| ≤ 0.004" holds for the seed means that the §B table reports (the largest seed mean over
+   all four budgets is 0.0037, LLaVA 10k logistic at 72 tokens), not for every unit.  Per unit (`B_R8_02.by_budget.<k>.relax_det` of
+   `reports/REV8/REV8_DIAG_RESULTS/rev8_diag_results.json`), 7 values in 4 of the 21 lr-1e-4 units exceed 0.004: LLaVA 10k logistic seed 2
+   −0.0085 at 288 tokens and −0.0071 at 144; Qwen 10k logistic seed 1 −0.0072 at 12.5 % and −0.0041 at 25 %; LLaVA FULL direct seed 1 −0.0069 at
+   72 and −0.0050 at 144; LLaVA 10k logistic seed 1 −0.0043 at 72.  Numbers printed by `scripts/r7_d1_closeout_tables.py`; reading in
+   `reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md` §5.

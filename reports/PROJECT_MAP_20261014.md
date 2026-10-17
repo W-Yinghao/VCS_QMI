@@ -172,7 +172,7 @@ SSL 里 P = 联合（两视图配对），Q = 边缘乘积（循环移位负对�
 - Phase L（10k 选择器）：GQA testdev S1−S2 @L25 −3.24 [−3.76, −2.66]，S1−SparseVLM −4.03；ChartQA test S1−S2 −0.87，S1−SparseVLM −1.65。与 DEV 同号 18/18。
 - Phase Q（Qwen，10k，固定比例）：S1−grid @25 % GQA −4.81，ChartQA **−16.25**；S1−S2 @25 % −1.40 / **−13.28**。Qwen 上网格处处优于所有学习型选择器。
 - Phase F（FULL 选择器）：S1−SparseVLM @L25 −3.06 / −1.99，@L50 −1.47 / −1.49（全部 seed 为负）；S1−S2 @L25 GQA −0.78、ChartQA +0.75（各由单 seed 驱动）。
-- 固定预算 25 %（Phase F，GQA testdev，full 61.95）：grid 58.70 > SparseVLM 58.79 > S2 56.57 > S1 55.73 > S3 53.41。
+- 固定预算 25 %（Phase F，GQA testdev，full 61.95）：grid 58.70 > SparseVLM 58.79 > S2 56.57 > S1 55.73 > S3 53.41。（前两项顺序有误，见文末 Corrections 2026-10-17。）
 - E1（Qwen，`reports/R7/R7_E1_REPORT_20261013.md`）：GQA f=0.125 grid 82.08、S1 76.78、MMTok 83.23、HiPrune 82.36；ChartQA f=0.25 grid 56.77、S1 39.51、HiPrune 69.95。"学习型选择器在 36/36 cell 低于网格列"。
 
 ### 7.2 D1 确立了什么
@@ -273,7 +273,8 @@ Owner, 2026-10-14: A-P3 is the final recipe; test it.  `reports/P155_AP3_OFFICIA
 1. §7.1, line 175 — "grid 58.70 > SparseVLM 58.79 > S2 56.57 > S1 55.73 > S3 53.41" inverts the first two rows: 58.70 < 58.79.  At 25 % (144
    tokens) on GQA testdev, R7-50 phase F, the order is SparseVLM (adapted) 58.79 > uniform grid 58.70 > S2 56.57 > S1 55.73 > S3 53.41 (full 61.95;
    rows of `reports/R7/R7_50_results_F/r7_50_results.json`, seed means for S1–S3, printed by `scripts/r7_d1_closeout_tables.py`).  SparseVLM is
-   the best row at 25 %, as the phase F report reads (`reports/R7/R7_50_PHASE_F_REPORT_20261014.md:148`).
+   the best row at 25 %, as the phase F report reads (`reports/R7/R7_50_PHASE_F_REPORT_20261014.md:148`).  Line 175 keeps its sentence and
+   carries a pointer to this section.
 
 ## Update 2026-10-17: D1 closed
 D1 is closed by `reports/R7/R7_D1_CLOSEOUT_REPORT_20261017.md`, after REV9, REV9-FULL and REV10 (§7.2 above still describes REV9 as running).  The
