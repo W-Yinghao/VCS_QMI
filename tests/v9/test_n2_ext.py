@@ -129,3 +129,40 @@ def test_host_lock_pending_markers_block_only_recipe_fields(tmp_path):
     bad = tmp_path / "lock.yaml"; bad.write_text(src.replace("native_margin: 0.2", "native_margin: TO_VERIFY"))
     cfg2 = load_host_lock(bad, "f30k_precomp", 8481)
     assert "margin" in cfg2.to_verify
+
+
+
+def _fixture_student(tmp_path, tag, **kw):
+    from functools import partial
+    from v9.n2 import noise as NZ, roles as RL
+    from v9.n2.fixtures import collate_pairs, make_fixture
+    from v9.n2.teacher import HostConfig
+    from v9.n2.train import WeightedStudent
+    fx = make_fixture(n_images=24, seed=8); roles = RL.assign_roles([str(i) for i in range(24)], 8, 0.25, min_sizes={k: 1 for k in RL.ANCHOR_ROLES})
+    pairs = NZ.make_pair_table(fx["caption_image"], RL.role_of_image(roles)); obs, _, _ = NZ.inject_mismatch(pairs, 0.4, 8)
+    cfg = HostConfig(vocab_size=fx["vocab"], img_dim=fx["img_dim"], word_dim=8, embed_size=16, sim_dim=8, num_region=fx["n_region"], batch_size=8, num_epochs=3, warmup_epochs=1)
+    dev = make_fixture(n_images=6, seed=9)
+    w = {r["pair_id"]: 0.5 for r in obs if r["role"] == "U"}
+    return WeightedStudent(cfg, obs, w, partial(collate_pairs, fx["images"], fx["captions"]), dev["images"], [dev["captions"][i] for i in range(30)], tmp_path / tag, 0, **kw)
+
+
+def test_loss_scale_sum_is_batch_times_mean_at_the_first_step(tmp_path):
+    """A/B diagnostic: identical init / batch at step 1 -> the official sum scale is batch_size x the V9 mean scale (loss and pre-clip grad norm)."""
+    logs = {}
+    for scale in ("mean", "sum"):
+        st = _fixture_student(tmp_path, scale, loss_scale=scale, grad_log_window=(10_000, 1), stop_epoch_steps=1)
+        st.fit(epochs=2)
+        logs[scale] = [json.loads(ln) for ln in (tmp_path / scale / "grad_norms.jsonl").read_text().splitlines()]
+    a, b = logs["mean"][0], logs["sum"][0]
+    assert a["step"] == b["step"] == 1 and a["u_risk"] == pytest.approx(b["u_risk"])
+    assert b["loss"] == pytest.approx(8 * a["loss"], rel=1e-5) and b["grad_norm_pre_clip"] == pytest.approx(8 * a["grad_norm_pre_clip"], rel=1e-4)
+    assert any(x["phase"] == "hard" for x in logs["sum"]) and json.loads((tmp_path / "sum" / "progress.jsonl").read_text().splitlines()[-1])["steps_in_epoch"] == 1
+
+
+def test_diag_readout_on_a_fixture_unit(tmp_path):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("n2_run_mod", Path("scripts/v9/n2_run.py")); mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+    st = _fixture_student(tmp_path, "unit_x_lr1_diag_sum", loss_scale="sum", grad_log_window=(3, 2), stop_epoch_steps=2); st.fit(epochs=2)
+    rule = {"lock_window_steps": [1, 2], "lock_u_risk": 0.39, "lock_share": 0.9, "warmup_epochs": 1, "dev_margin": 30, "grad_log_window": [3, 2], "stop_steps": 2}
+    ro = mod.diag_readout(tmp_path / "unit_x_lr1_diag_sum", rule)
+    assert set(ro) >= {"locked", "dev_fall", "collapse_present", "grad_pre_clip_median_first100_hard", "clipped_share_last100_warmup"} and ro["steps_after_switch"] == 2

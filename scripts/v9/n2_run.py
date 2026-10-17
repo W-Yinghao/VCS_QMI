@@ -79,6 +79,50 @@ def cmd_strict(a):
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True); res = run_strict_check(seed=a.seed); (out / "strict_check.json").write_text(json.dumps(res, indent=1)); print(json.dumps(res, indent=1)); return 0
 
 
+def diag_readout(unit_dir: Path, rule: dict) -> dict:
+    """the pre-registered A/B readout (reports/V9/V9_N2_PROTOCOL_FROZEN_20261015.yaml, diagnostic_preregistration_20261017) for one diagnostic run."""
+    import statistics as st
+    g = [json.loads(ln) for ln in (unit_dir / "grad_norms.jsonl").read_text().splitlines()]
+    prog = [json.loads(ln) for ln in (unit_dir / "progress.jsonl").read_text().splitlines()]
+    warm, hard = [x for x in g if x["phase"] == "warmup"], [x for x in g if x["phase"] == "hard"]
+    lo, hi = rule["lock_window_steps"]
+    win = [x for x in hard if lo <= x["step_in_epoch"] <= hi and x["u_risk"] == x["u_risk"]]
+    locked_frac = sum(1 for x in win if x["u_risk"] >= rule["lock_u_risk"]) / max(1, len(win))
+    ep4 = next(x["dev_rsum"] for x in prog if x["epoch"] == rule["warmup_epochs"] - 1); after = prog[-1]["dev_rsum"]
+    med = lambda xs, k: round(st.median([x[k] for x in xs]), 5) if xs else None
+    first = [x for x in hard if x["step_in_epoch"] <= 100]
+    out = {"unit": unit_dir.name, "dev_rsum_epoch4": round(ep4, 1), "dev_rsum_after_switch": round(after, 1), "steps_after_switch": prog[-1].get("steps_in_epoch"),
+           "locked_fraction": round(locked_frac, 3), "u_risk_median_window": med(win, "u_risk"),
+           "grad_pre_clip_median_last100_warmup": med(warm, "grad_norm_pre_clip"), "grad_pre_clip_median_first100_hard": med(first, "grad_norm_pre_clip"),
+           "clipped_share_last100_warmup": round(sum(x["clipped"] for x in warm) / max(1, len(warm)), 3), "clipped_share_first100_hard": round(sum(x["clipped"] for x in first) / max(1, len(first)), 3)}
+    out["locked"] = locked_frac >= rule["lock_share"]; out["dev_fall"] = after < ep4 - rule["dev_margin"]
+    out["collapse_present"] = out["locked"] or out["dev_fall"]
+    return out
+
+
+def cmd_diag(a):
+    """A/B diagnostic (main session 2026-10-17): every config of --spec trained from scratch on its own deterministic seed and shared stage, warm-up
+    epochs + the first `stop_steps` steps of the first hard epoch, at the spec's loss scale; data loaded once; tagged unit dirs, never formal, no test."""
+    from v9.n2.data import eval_arrays, load_precomp, load_vocab
+    spec = json.loads(Path(a.spec).read_text()); rule = spec["rule"]
+    name = "f30k_precomp"; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); cache = Path(a.out_root) / "token_cache"
+    tr = load_precomp(Path(a.data_root) / name, "train", w2i, cache_dir=cache); dev = load_precomp(Path(a.data_root) / name, "dev", w2i, cache_dir=cache)
+    ds = dict(tr); ds["dev_images"], ds["dev_captions"] = eval_arrays(dev)
+    cfg = load_host_lock(a.host_lock, name, len(w2i)); print("host config:", {k: v for k, v in cfg.__dict__.items() if k != "vocab_size"})
+    results = []
+    for c in spec["configs"]:
+        tag = f"_diag_{c['loss_scale']}"
+        print(f"[diag] {time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())} {c['id']}: rho {c['rho']} s{c['seed']} {c['method']} x{c['lr_mult']} scale={c['loss_scale']}", flush=True)
+        r = run_unit(ds, cfg, Path(a.out_root), "f30k", float(c["rho"]), c["method"], int(c["seed"]), a.device, epochs=cfg.warmup_epochs + 1, lr_mult=float(c["lr_mult"]),
+                     formal=False, loss_scale=c["loss_scale"], grad_log_window=tuple(rule["grad_log_window"]), stop_epoch_steps=int(rule["stop_steps"]), unit_tag=tag)
+        ud = Path(a.out_root) / "f30k" / f"rho{float(c['rho']):g}" / f"s{int(c['seed'])}" / f"unit_{c['method']}_lr{float(c['lr_mult']):g}{tag}"
+        ro = {"id": c["id"], **{k: c[k] for k in ("rho", "seed", "method", "lr_mult", "loss_scale")}, **diag_readout(ud, rule)}
+        print("[diag-readout]", json.dumps(ro), flush=True); results.append(ro)
+        (Path(a.spec).with_suffix(".results.json")).write_text(json.dumps(results, indent=1)) if Path(a.spec).parent.exists() else None
+        (ud / "diag_readout.json").write_text(json.dumps(ro, indent=1))
+    return 0
+
+
 def cmd_unit(a):
     from v9.n2.data import eval_arrays, load_precomp, load_vocab
     name = {"f30k": "f30k_precomp", "coco": "coco_precomp"}[a.dataset]; w2i = load_vocab(Path(a.vocab) / f"{name}_vocab.json"); cache = Path(a.out_root) / "token_cache"
@@ -109,7 +153,11 @@ def main():
                   ("--device", {"default": "cuda"}), ("--formal", {"action": "store_true"}), ("--test", {"action": "store_true"}),
                   ("--members", {"default": "", "help": "comma-separated methods this run is attributed to (merge rule); must lie in the precheck coefficient group"})):
         u.add_argument(k, **kw)
-    a = ap.parse_args(); return {"smoke": cmd_smoke, "strict": cmd_strict, "unit": cmd_unit, "precheck": cmd_precheck}[a.cmd](a)
+    dg = sub.add_parser("diag")
+    for k, kw in (("--spec", {"required": True}), ("--data-root", {"required": True}), ("--vocab", {"required": True}), ("--out-root", {"required": True}),
+                  ("--host-lock", {"default": "reports/V9/HOST_LOCK.yaml"}), ("--device", {"default": "cuda"})):
+        dg.add_argument(k, **kw)
+    a = ap.parse_args(); return {"smoke": cmd_smoke, "strict": cmd_strict, "unit": cmd_unit, "precheck": cmd_precheck, "diag": cmd_diag}[a.cmd](a)
 
 
 if __name__ == "__main__":

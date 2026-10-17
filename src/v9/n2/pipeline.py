@@ -133,7 +133,8 @@ def unit_members(out_root: Path, dataset: str, rho: float, seed: int, method: st
 
 def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float, method: str, seed: int, device: str = "cpu", epochs: int | None = None,
              lr_mult: float = 1.0, critic_steps: int = 400, formal: bool = False, anchor_fraction: float = 0.1, min_sizes=None, test: dict | None = None,
-             members: list | None = None) -> dict:
+             members: list | None = None, loss_scale: str = "mean", grad_log_window: tuple | None = None, stop_epoch_steps: int | None = None,
+             unit_tag: str = "") -> dict:
     group = unit_members(out_root, dataset, rho, seed, method)
     if members is None:
         members = group
@@ -148,8 +149,11 @@ def run_unit(ds: dict, cfg: HostConfig, out_root: Path, dataset: str, rho: float
     if method == "RankMass":
         n3 = make_weights(shared, scores, "VCS_Weight", seed, critic_steps)["lock"]["record"]["total_mass"]
     wres = make_weights(shared, scores, method, seed, critic_steps, n3_mass=n3)
-    unit_dir = out_root / dataset / f"rho{rho:g}" / f"s{seed}" / f"unit_{method}_lr{lr_mult:g}"
-    student = WeightedStudent(cfg, shared["observed"], wres["w"], shared["collate"], ds["dev_images"], ds["dev_captions"], unit_dir, seed, lr_mult, device, wres["lock"], formal)
+    if unit_tag and formal:
+        raise ValueError("a tagged (diagnostic) unit is never formal")
+    unit_dir = out_root / dataset / f"rho{rho:g}" / f"s{seed}" / f"unit_{method}_lr{lr_mult:g}{unit_tag}"
+    student = WeightedStudent(cfg, shared["observed"], wres["w"], shared["collate"], ds["dev_images"], ds["dev_captions"], unit_dir, seed, lr_mult, device, wres["lock"], formal,
+                              loss_scale=loss_scale, grad_log_window=grad_log_window, stop_epoch_steps=stop_epoch_steps)
     done = student.fit(epochs)
     result = {"unit": unit_dir.name, "dataset": dataset, "rho": rho, "method": method, "seed": seed, "lr_mult": lr_mult, "formal": formal, "noise_manifest": shared["noise_manifest"],
               "weights_record": wres["lock"]["record"], "scores_hash": scores["hash"], "done": done,

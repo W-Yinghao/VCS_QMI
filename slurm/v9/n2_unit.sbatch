@@ -12,6 +12,7 @@
 #   gate                      CPU-capable: tests/v9/test_n2.py + the fixture smoke (`n2_run.py smoke`) — code path only, never evidence
 #   smoke-gpu                 the fixture smoke on a GPU (timing of the code path)
 #   unit  <dataset> <rho> <method> <seed> [lr_mult]      one formal unit on the real precomp data (needs DATA_ROOT, VOCAB, HOST_LOCK; resumable; skips when done)
+#   diag  <spec json>         A/B diagnostic: configs trained from scratch for warm-up + the first steps of the hard phase (n2_run.py diag)
 #   group <units file>        several `unit` lines run back to back on one GPU (owner rule: no many short jobs); each line = "dataset rho method seed lr_mult"
 # Environment: V9_SGR_PY (python of fork A's v9_sgr env; default = main env), DATA_ROOT (…/ncr_precomp), VOCAB (…/vocab), OUT_ROOT (default
 # /projects/EEG-foundation-model/yinghao/outputs_v9/n2), HOST_LOCK (reports/V9/HOST_LOCK.yaml), FORMAL=1 to require a verified HOST_LOCK, TEST=1 to
@@ -37,6 +38,8 @@ case "$MODE" in
           $PY $SNAP/scripts/v9/n2_run.py unit --dataset $ds --rho $rho --method $m --seed $seed --lr-mult ${lm:-1} ${members:+--members $members} --data-root $DATA_ROOT --vocab $VOCAB --out-root $OUT_ROOT \
               --host-lock ${HOST_LOCK:-reports/V9/HOST_LOCK.yaml} --device $DEV ${FORMAL:+--formal} ${TEST:+--test}; r=$?; echo "[unit-exit] rc=$r"; [ $r -ne 0 ] && rc=$r
         done < "$1";;
+  diag) : "${DATA_ROOT:?}" "${VOCAB:?}"                    # A/B diagnostic (main session 2026-10-17): $1 = spec json (configs + pre-registered rule)
+        $PY $SNAP/scripts/v9/n2_run.py diag --spec $1 --data-root $DATA_ROOT --vocab $VOCAB --out-root $OUT_ROOT --host-lock ${HOST_LOCK:-reports/V9/HOST_LOCK.yaml} --device $DEV; rc=$?;;
   *) echo "unknown mode $MODE"; rc=2;;
 esac
 echo "exit=$rc end=$(date -u +%FT%TZ)"; exit $rc

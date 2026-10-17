@@ -9,6 +9,7 @@
 #SBATCH --nice=400
 #SBATCH --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out
 # V9-N2 wave 2 (NCR+A / L2RM+A through the PATCHED official code; package docs/05 §1, §6).  Positional MODE:
+#   ncr-health [--co-epochs 3]                              NCR_A gate: full data, seed 917 rho 0.4, 5 warm-up + 3 co-training epochs (scripts/v9/n2_ncr_health.py)
 #   smoke                                                   real-data subset, anchors ON, 1 warm-up + 1 main epoch per baseline (scripts/v9/n2_official_smoke.py)
 #   unit <ncr|l2rm> <dataset> <rho> <seed> <lr_mult> <tuning|formal>
 #        export the V9 mapping of the shared stage <OUT_ROOT>/<dataset>/rho<rho>/s<seed> -> launch -> collect-dev (dev best rSum, tuning selection)
@@ -20,10 +21,11 @@ MODE=${1:?mode}; shift
 PY=/home/infres/yinwang/CS_QMI/env/bin/python; OUT_ROOT=${OUT_ROOT:-/projects/EEG-foundation-model/yinghao/outputs_v9/n2}
 DATA_ROOT=${DATA_ROOT:-/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data}
 SNAP=$(mktemp -d /tmp/v9_n2off_${SLURM_JOB_ID}_XXXX); trap "rm -rf $SNAP" EXIT; mkdir -p $SNAP/src/v9 $SNAP/scripts/v9 $SNAP/v9 $SNAP/reports/V9
-cp -r src/v9/n2 $SNAP/src/v9/; cp src/v9/*.py $SNAP/src/v9/; cp scripts/v9/n2_official.py scripts/v9/n2_official_smoke.py $SNAP/scripts/v9/; cp -r v9/patches $SNAP/v9/; cp reports/V9/HOST_LOCK.yaml $SNAP/reports/V9/
+cp -r src/v9/n2 $SNAP/src/v9/; cp src/v9/*.py $SNAP/src/v9/; cp scripts/v9/n2_official.py scripts/v9/n2_official_smoke.py scripts/v9/n2_ncr_health.py $SNAP/scripts/v9/; cp -r v9/patches $SNAP/v9/; cp reports/V9/HOST_LOCK.yaml $SNAP/reports/V9/
 echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | head -1) start=$(date -u +%FT%TZ) commit=$(git rev-parse --short HEAD) mode=$MODE $*"
 case "$MODE" in
   smoke) $PY $SNAP/scripts/v9/n2_official_smoke.py --out $OUT_ROOT/official_smoke_${SLURM_JOB_ID:-local} "$@"; rc=$?;;
+  ncr-health) $PY $SNAP/scripts/v9/n2_ncr_health.py --out $OUT_ROOT/ncr_health_${SLURM_JOB_ID:-local} "$@"; rc=$?;;   # NCR_A gate (pre-registered), RTX6000PRO only
   unit) b=$1; ds=$2; rho=$3; seed=$4; lm=$5; kind=$6; [ "$b" = ncr ] && meth=NCR_A || meth=L2RM_A
         SH=$OUT_ROOT/$ds/rho$rho/s$seed; U=$SH/unit_${meth}_lr$lm; mkdir -p $U; rc=0; echo "[unit] $(date -u +%FT%TZ) $b $ds rho=$rho s$seed lr$lm $kind -> $U"
         if [ -f $U/done.json ] && { [ "$kind" = tuning ] || [ -f $U/result.json ]; }; then echo "[skip] done"
