@@ -45,7 +45,7 @@ noise_injection_conventions:
 teacher_epochs: 5                      # package §05 §2: SGR path on the anchor teacher-warmup role only
 extra_supervision_visible_to_all: true
 measured_epoch_seconds: "node60 (throttled) actuals from job 1042033: SGR step 0.596 s x 1,133 + 2 dev passes x 74 s = ~816 s per epoch after a 438 s startup; NCR warm-up 1,346 s per epoch (both networks); L2RM 914-1,166 s per rematching epoch; teacher 99 s per epoch on 1,160 images. Healthy-node estimate = node60 / 2.2 (2026-10-02: 0.252 vs 0.116 s/step): SGR step ~0.271 s, dev pass ~34 s; replaced by measured values when 1042195 runs on a healthy node"
-estimated_hours_from_measured_epoch: "per unit, node60 (throttled) actual | healthy-node estimate (/2.2): SGR student 10.54 | 4.79 h; L2RM+A 9.91-12.36 | 4.5-5.62 h; teacher 0.15 | 0.07 h; NCR+A pending job 1042195 (healthy node). Budget uses the healthy-node column (N2 production units exclude node60)"
+estimated_hours_from_measured_epoch: "production measurements (V9-N2 wave 1, 40-epoch SGR student, one dev pass per epoch): RTX PRO 6000 median 3.60 h (17 units), L40S 6.47 h (14), H100 NVL 7.21 h (3); NCR+A ~15.7 h on RTX (27.1 h L40S x 335/578) -> RTX only; L2RM+A 4.5-5.6 h healthy estimate (node60 / 2.2); node60 (throttled) actuals of 1042033 in V9_02 budget_measured"
 owner_resource_authorization_reference: "owner 2026-10-15 (prepare V9 in parallel with V8: code + smoke; GPU for timing only). Full N2 training (96 formal + <= 96 tuning + teacher runs) needs the owner's budget confirmation (package §09 §2, §05 §7)"
 
 locked_recipes:   # owner 2026-10-15: resolve the NCR-vs-L2RM schedule difference by locking the SGR single-model recipe NCR uses for the native A table; L2RM keeps its own schedule for its row
