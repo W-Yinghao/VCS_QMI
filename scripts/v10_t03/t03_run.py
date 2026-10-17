@@ -3,18 +3,21 @@
   t03_run.py units --check                  the CSV against its pin and the independent derivation of decision section 9
   t03_run.py gen --root-seed S              the complete suite of data root seed S + the package checker on it (checks/)
   t03_run.py gate                           the uniform-derangement / U gates (gates/T03_GATES.json)
-  t03_run.py run (--unit-ids A,B | --block smoke) [--shard k/N] [--retry-failed]
+  t03_run.py run (--unit-ids A,B | --block smoke) [--shard k/N] [--threads T] [--retry-failed]
   t03_run.py select                         the tuning-suite CAL selection table (selection/T03_CAL_SELECTION.json)
   t03_run.py status                         status per block
 Outputs (V10_T03_OUT_ROOT, default /projects/EEG-foundation-model/yinghao/outputs_v10/T03):
   data/seed<S>/                 package-layout suite + T03_SUITE_RECORD.json (generator and sample hashes)
-  checks/check_synthetic_seed<S>.json, gates/T03_GATES.json
+  checks/check_synthetic_seed<S>.json   truth-free package-checker summary (status, n_checks, hashes): the suite gate reads this
+  checks/evaluator_only/check_synthetic_seed<S>.json   the checker's full record (its rows carry truth values: evaluator-only)
+  gates/T03_GATES.json
   runs/<unit>/result.json       sample-only record: config, resolved hyperparameters, data / stream / init hashes, CAL trace,
                                 own-CAL selection, cost, provenance, status COMPLETE / FAIL / BLOCKED
   runs/<unit>/train_steps.json.gz, runs/<unit>/checkpoints.pt (all 8 states), runs/<unit>/evaluator_only/evaluation.json
 A unit's prerequisites (else BLOCKED, nothing trained): its suite checked (PASS); the gates PASS under the same T03 code hash; every
 depends_on unit COMPLETE under the same T03 code hash; formal rows: their tuning-suite group selection.  Training and CAL readout /
-selection run inside the truth barrier; the evaluator runs after it.  FAIL records are kept (a retry moves them to attempts/).
+selection run inside the truth barrier; the evaluator runs after it.  A unit whose barrier block recorded any denial is FAIL (stage
+truth_barrier), even when the refused call was swallowed; it is not evaluated.  FAIL records are kept (a retry moves them to attempts/).
 """
 from __future__ import annotations
 
@@ -61,7 +64,13 @@ def unit_status(uid: str, root: Path | None = None) -> str:
 
 
 def check_path(seed: int, root: Path | None = None) -> Path:
+    """The truth-free checker summary (the suite gate); the full record is full_check_path()."""
     return (root or C.out_root()) / "checks" / f"check_synthetic_seed{seed}.json"
+
+
+def full_check_path(summary: Path) -> Path:
+    """The package checker's full record beside a summary, under evaluator_only (its rows carry table / analytic S values)."""
+    return summary.parent / C.TRUTH_DIR_NAME / summary.name
 
 
 def gates_path(root: Path | None = None) -> Path:
@@ -74,9 +83,11 @@ class Blocked(RuntimeError):
 
 # ------------------------------------------------------------------------------------------------------------ suite + checker
 def run_package_checker(suite: Path, out_json: Path) -> dict:
-    """The package synthetic/tests/check_synthetic.py run_checks (sha256-pinned, code unchanged) on a suite.  Its module-level ROOT
-    only places the temporary regeneration directory; it is pointed at a temporary directory beside out_json so nothing is written
-    into the package tree.  Evaluator-side (it reads truth): never inside the barrier."""
+    """The package synthetic/tests/check_synthetic.py run_checks (sha256-pinned, code unchanged) on a suite.  Evaluator-side (it reads
+    truth): never inside the barrier.  Its full record - the checker rows carry table / analytic S values - goes to
+    full_check_path(out_json) under evaluator_only; out_json gets the truth-free summary (status, check counts, the name of a failed
+    check, hashes) that the suite gate reads.  The checker's module-level ROOT only places its temporary regeneration directory; it
+    is pointed at a temporary directory inside the evaluator-only directory so nothing is written into the package tree."""
     if C.barrier_active():
         raise C.TruthAccessError("the package checker reads truth; not inside the barrier")
     C.verify_pinned_file(C.CHECKER_PATH, C.CHECKER_SHA256, "package checker")
@@ -84,11 +95,13 @@ def run_package_checker(suite: Path, out_json: Path) -> dict:
     spec = importlib.util.spec_from_file_location("v10_t03_check_synthetic", C.CHECKER_PATH)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
-    out_json.parent.mkdir(parents=True, exist_ok=True)
+    full = full_check_path(out_json)
+    full.parent.mkdir(parents=True, exist_ok=True)
     t0 = time.perf_counter()
     rec = {"schema": "v10_t03.package_check.v1", "checker": str(C.CHECKER_PATH.relative_to(C.REPO)), "checker_sha256": C.CHECKER_SHA256,
            "suite": str(suite), "redirect": "module ROOT -> a temporary directory beside this record (regeneration scratch only)"}
-    with tempfile.TemporaryDirectory(prefix=".checker_", dir=out_json.parent) as tmp:
+    failed_name = None
+    with tempfile.TemporaryDirectory(prefix=".checker_", dir=full.parent) as tmp:
         (Path(tmp) / "validation").mkdir()
         mod.ROOT = Path(tmp)
         try:
@@ -96,18 +109,31 @@ def run_package_checker(suite: Path, out_json: Path) -> dict:
             rec.update({"status": "PASS" if res["status"] == "passed" else "FAIL", "result": res})
         except AssertionError as e:
             rec.update({"status": "FAIL", "failed_check": str(e)})
+            try:                                                     # the checker raises AssertionError(json.dumps(row))
+                failed_name = json.loads(str(e)).get("name")
+            except (ValueError, AttributeError):
+                failed_name = "<unparsed>"
     rec["seconds"] = time.perf_counter() - t0
     rec["utc"] = C.utc_now()
-    C.write_json_atomic(out_json, rec)
-    return rec
+    full_sha = C.write_json_atomic(full, rec)
+    res = rec.get("result") or {}
+    summary = {"schema": "v10_t03.package_check_summary.v1", "checker": rec["checker"], "checker_sha256": C.CHECKER_SHA256, "suite": str(suite),
+               "status": rec["status"], "n_checks": res.get("n_checks"), "n_cases": res.get("n_cases"),
+               "n_checks_passed": sum(1 for r in res.get("checks", []) if r.get("passed") is True) if res else None,
+               "failed_check_name": failed_name, "seconds": rec["seconds"], "utc": rec["utc"],
+               "full_record": {"path": str(full.relative_to(out_json.parent)), "sha256": full_sha,
+                               "note": "the checker rows carry truth values (table / analytic S): evaluator-only"}}
+    C.write_json_atomic(out_json, summary)
+    return summary
 
 
 def ensure_checked_suite(seed: int, root: Path | None = None) -> tuple[Path, dict, dict]:
+    """(suite directory, suite record, truth-free checker summary); the checker reruns when the suite manifest changed."""
     record = D.ensure_suite(seed, root)
     suite = D.suite_dir(seed, root)
     cp = check_path(seed, root)
     chk = json.loads(cp.read_text()) if cp.exists() else None
-    if chk is None or chk.get("suite_manifest_sha256") != record["manifest_sha256"]:
+    if chk is None or chk.get("schema") != "v10_t03.package_check_summary.v1" or chk.get("suite_manifest_sha256") != record["manifest_sha256"]:
         chk = run_package_checker(suite, cp)
         chk["suite_manifest_sha256"] = record["manifest_sha256"]
         C.write_json_atomic(cp, chk)
@@ -191,7 +217,7 @@ def execute_unit(cfg: TR.UnitConfig, *, suite: Path, record: dict, out: Path, id
     base = {"schema": "v10_t03.unit_result.v1", "unit_id": cfg.unit_id, "block": cfg.block, "config": None, "status": "FAIL",
             "started_utc": C.utc_now(), "provenance": {"identity": ident, "environment": env}, **extra}
     stage = "train"
-    n_denied0 = len(C.barrier_denials())
+    n_denied0 = C.denial_count()
     try:
         with C.truth_barrier(f"train+CAL {cfg.unit_id}"):
             t_load = time.perf_counter()
@@ -205,6 +231,10 @@ def execute_unit(cfg: TR.UnitConfig, *, suite: Path, record: dict, out: Path, id
             steps_sha = C.write_json_gz_atomic(out / "train_steps.json.gz", log)
             t_save = time.perf_counter() - t_save
             denied = C.barrier_denials()[n_denied0:]                   # this unit's own barrier block only
+        if denied:                                                   # a refused (even if swallowed) access fails the unit
+            stage = "truth_barrier"
+            raise C.TruthAccessError(f"{len(denied)} truth-barrier denial(s) recorded during sample loading / training / CAL readout; "
+                                     f"first: {denied[0]['event']} of {denied[0]['path']} ({denied[0]['reason']})")
         result = {**base, **rec, "data": {"suite": str(suite), "case_id": cfg.case_id, "generator_sha256": record["generator_sha256"],
                   "suite_manifest_sha256": record["manifest_sha256"], "numpy_version_generation": record["numpy_version"],
                   "sample_sha256": {r: smp[r].sample_sha256 for r in ("fit", "cal")},
@@ -236,7 +266,8 @@ def execute_unit(cfg: TR.UnitConfig, *, suite: Path, record: dict, out: Path, id
     except Exception as exc:                                          # noqa: BLE001 - every failure is recorded and kept
         fail = {**base, "config": TR.asdict(cfg), "status": "FAIL", "finished_utc": C.utc_now(),
                 "failure": {"stage": stage, "type": type(exc).__name__, "message": str(exc)[:2000], "traceback": traceback.format_exc()[-8000:]},
-                "cost": {"wall_seconds_unit_total": time.perf_counter() - t0}}
+                "cost": {"wall_seconds_unit_total": time.perf_counter() - t0},
+                "truth_barrier": {"denials_during_unit": C.barrier_denials()[n_denied0:]}}
         prev = out / "result.json"
         if prev.exists():
             fail["partial_result_sha256"] = C.sha256_file(prev)
@@ -268,8 +299,11 @@ def run_unit(raw_row: dict, *, ident: dict, env: dict, device: str = "cpu", dtyp
         if chk["status"] != "PASS":
             raise Blocked(f"suite seed{row['data_root_seed']} failed the package checker")
         g = gates_ok(ident, root)
+        n_denied0 = C.denial_count()
         with C.truth_barrier(f"hyperparameter resolution {uid}"):   # the tuning-suite selection reads result.json records only
             lr, cap, resolution = resolve(row, ident, root)
+        if C.denial_count() != n_denied0:
+            raise C.TruthAccessError(f"truth-barrier denial(s) during hyperparameter resolution: {C.barrier_denials()[n_denied0:]}")
     except Blocked as b:
         rec = {"schema": "v10_t03.unit_result.v1", "unit_id": uid, "block": row["block"], "status": "BLOCKED", "reason": str(b),
                "utc": C.utc_now(), "provenance": {"identity": ident}, **extra}
@@ -312,7 +346,7 @@ def cmd_gen(a) -> int:
     for seed in a.root_seed:
         suite, record, chk = ensure_checked_suite(seed)
         print(json.dumps({"root_seed": seed, "suite": str(suite), "manifest_sha256": record["manifest_sha256"], "n_cases": record["n_cases"],
-                          "check": chk["status"], "check_n": chk.get("result", {}).get("n_checks")}))
+                          "check": chk["status"], "check_n": chk.get("n_checks"), "failed_check_name": chk.get("failed_check_name")}))
         if chk["status"] != "PASS":
             return 1
     return 0
@@ -324,6 +358,14 @@ def cmd_gate(a) -> int:
     C.write_json_atomic(gates_path(), res)
     print(json.dumps({"status": res["status"], **{k: v["status"] for k, v in res["gates"].items()}, "seconds": res["seconds"]}))
     return 0 if res["status"] == "PASS" else 1
+
+
+def run_threads(requested: int | None) -> int:
+    """torch intra-op threads of a run process: --threads, else SLURM_CPUS_PER_TASK, else the torch default."""
+    t = requested if requested is not None else int(os.environ.get("SLURM_CPUS_PER_TASK", torch.get_num_threads()))
+    if isinstance(t, bool) or int(t) != t or t < 1:
+        raise SystemExit(f"[t03] bad thread count {t!r}")
+    return int(t)
 
 
 def cmd_run(a) -> int:
@@ -348,7 +390,7 @@ def cmd_run(a) -> int:
         todo = todo[k::n]
     if a.limit:
         todo = todo[: a.limit]
-    torch.set_num_threads(int(os.environ.get("SLURM_CPUS_PER_TASK", torch.get_num_threads())))
+    torch.set_num_threads(run_threads(a.threads))
     ident, env = C.identity(), C.environment(a.device)
     if ident["git_dirty"] and os.environ.get(C.PIN_ENV):
         raise SystemExit(f"[t03] REFUSED: uncommitted changes in pinned paths:\n{ident['git_dirty']}")
@@ -372,11 +414,16 @@ def cmd_select(a) -> int:
     with C.truth_barrier("CAL group selection"):
         for (f, m, rho, method), ids in groups.items():
             ent = {"case_id": C.case_id(f, m, rho), "family": f, "m": m, "rho": rho, "method": method, "candidates": ids}
+            n_denied0 = C.denial_count()
             try:
                 deps = _dep_results({"depends_on": ids}, ident, None)
-                ent.update({"status": "SELECTED", **group_selection(method, deps)})
-            except Blocked as b:
-                ent.update({"status": "BLOCKED", "reason": str(b)})
+                sel = {"status": "SELECTED", **group_selection(method, deps)}
+            except (Blocked, C.TruthAccessError) as b:
+                sel = {"status": "BLOCKED", "reason": f"{type(b).__name__}: {b}"}
+            if C.denial_count() != n_denied0:                        # a refused (even if swallowed) access blocks the group
+                sel = {"status": "BLOCKED", "reason": "truth-barrier denial(s) during the group selection",
+                       "denials": C.barrier_denials()[n_denied0:]}
+            ent.update(sel)
             out.append(ent)
     res = {"schema": "v10_t03.cal_selection.v1", "identity": ident, "utc": C.utc_now(), "groups": out,
            "n_selected": sum(e["status"] == "SELECTED" for e in out), "n_groups": len(out)}
@@ -410,6 +457,7 @@ def main(argv=None) -> int:
     grp.add_argument("--block", choices=tuple(U.BLOCK_COUNTS))
     r.add_argument("--limit", type=int)
     r.add_argument("--shard", help="k/N: run every N-th selected unit starting at k (0-based), for parallel processes of one job")
+    r.add_argument("--threads", type=int, help="torch intra-op threads of this process (default SLURM_CPUS_PER_TASK, else torch's)")
     r.add_argument("--device", default="cpu")
     r.add_argument("--dtype", default="float32", choices=("float32", "float64"))
     r.add_argument("--retry-failed", action="store_true")

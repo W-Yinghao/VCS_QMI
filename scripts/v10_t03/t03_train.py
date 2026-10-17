@@ -34,7 +34,10 @@ from t03_data import SampleSet
 
 M1_LOG_FIELDS = ("m1_gap_ref_zero", "m1_gap_start", "m1_gap_final", "m1_gap_relative_to_zero", "m1_tolerance_effective",
                  "m1_iterations", "m1_stop_reason", "m1_converged", "m1_hvp_calls", "m1_momentum_restarts", "m1_moments_passes",
+                 "m1_fp64_diag_hvp_calls", "m1_fp64_diag_moments_passes", "m1_hvp_calls_total", "m1_moments_passes_total",
                  "m1_W_start_is_zero", "m1_W_update_fro", "m1_W_update_absmax", "m1_W_final_absmax")
+# m1_hvp_calls / m1_moments_passes = the working-dtype M1 work of the step; m1_fp64_diag_* = the same-input fp64 diagnostic (0 when it
+# did not run); m1_*_total = all M1 work of the step (src/v10/adapter._m1_info at 278abe4, decision 2.3: every added pass is counted)
 
 
 @dataclass
@@ -251,6 +254,9 @@ def _m1_summary(log: dict, m1cfg) -> dict:
             "steps": len(it), "stop_reasons": reasons, "converged_fraction": float(np.mean(log["m1_converged"])),
             "iterations": {"sum": int(it.sum()), "median": float(np.median(it)), "max": int(it.max()), "min": int(it.min())},
             "hvp_calls_sum": int(np.sum(log["m1_hvp_calls"])), "moments_passes_sum": int(np.sum(log["m1_moments_passes"])),
+            "fp64_diag_hvp_calls_sum": int(np.sum(log["m1_fp64_diag_hvp_calls"])),
+            "fp64_diag_moments_passes_sum": int(np.sum(log["m1_fp64_diag_moments_passes"])),
+            "hvp_calls_total_sum": int(np.sum(log["m1_hvp_calls_total"])), "moments_passes_total_sum": int(np.sum(log["m1_moments_passes_total"])),
             "momentum_restarts_sum": int(np.sum(log["m1_momentum_restarts"])),
             "gap_relative_to_zero": {"median": float(np.median(rel)) if rel.size else None, "max": float(rel.max()) if rel.size else None,
                                      "last": log["m1_gap_relative_to_zero"][-1]},

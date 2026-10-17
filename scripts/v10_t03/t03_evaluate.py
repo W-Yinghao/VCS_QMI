@@ -1,4 +1,6 @@
-"""V10 T03 evaluator (decision 9.5): the ONLY T03 module that reads the population truth; it refuses to run inside the truth barrier.
+"""V10 T03 evaluator (decision 9.5): the only T03 module that reads the population truth to evaluate critics (the other truth reader
+is the package-checker wrapper t03_run.run_package_checker, suite validation only); both refuse to run inside the truth barrier, and
+their truth-derived outputs are written under evaluator_only paths only.
 
 For the frozen selected checkpoint of a unit (and, as a labelled diagnostic never used for selection, for every checkpoint):
   population  E_M(T - eta)^2 and J_pop(T) on the m x m table (m^2 <= 1024 cells, float64), the identity check

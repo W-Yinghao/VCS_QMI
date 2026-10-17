@@ -8,10 +8,24 @@ bytewise, first 16 hex):
                   generator synthetic/src/v10_synthetic.py and its checker synthetic/tests/check_synthetic.py)
 Analysis tools (v10/tools/t03_aggregate.py), docs and results are not hashed (the BF convention for v10/tools).
 
-Truth barrier (decision 9.2 "truth 仅交 evaluator；训练和 CAL 选择只读样本"): a process-wide audit hook that, while a
-truth_barrier() block is active, refuses (TruthAccessError) every open / link / rename / copy / symlink of a path with an
-'evaluator_only' component (the package truth directory and the T03 evaluation outputs) and of the EVAL sample directory of a T03
-case, plus every process creation.  Training and CAL selection run inside the barrier; the evaluator refuses to run inside it.
+Truth barrier (decision 9.2 "truth 仅交 evaluator；训练和 CAL 选择只读样本"), an in-process guard against accidental access (not an
+OS sandbox).  While a truth_barrier() block is active it refuses (TruthAccessError) and records:
+  - every Python-level file operation that raises an audit event - open (builtins / io / os.open, hence np.load / np.fromfile /
+    np.memmap / torch.load / pathlib reads), os.link / rename / symlink / remove / rmdir / truncate / chmod / chown / utime,
+    shutil.copyfile / copytree / move / rmtree, sqlite3.connect - on a path with an 'evaluator_only' component (raw or after
+    resolving symlinks) or on the EVAL sample directory of a T03 case;
+  - every process creation (subprocess, os.system / exec / spawn / fork, pty.spawn);
+  - the torch C-level file readers, which raise no audit event and are therefore wrapped: torch.from_file,
+    torch.UntypedStorage.from_file (the TypedStorage classes call it) and torch.ops.aten.from_file (with its overloads);
+  - the package generator's truth APIs (guard_truth_api).
+Not intercepted at run time: readers that bypass Python's audit events (ctypes / cffi calls, C extensions such as h5py or pyarrow,
+torch.jit.load / torch._C.PyTorchFileReader on a path); tests/v10_t03/test_t03_barrier.py keeps them out of the training-side
+modules statically.  Every refusal is recorded even when the caller swallows the error, and the runner marks a unit FAIL (a
+hyperparameter resolution FAIL, a CAL group selection BLOCKED) when its barrier block recorded any denial.  Training and CAL
+selection run inside the barrier; the evaluator and the package checker refuse to run inside it.
+Truth-derived values are written only under 'evaluator_only' paths: runs/<unit>/evaluator_only/evaluation.json,
+checks/evaluator_only/check_synthetic_seed<S>.json (the package checker's rows; the gate reads the truth-free summary beside it)
+and aggregate/evaluator_only/ (aggregator tables); tests/v10_t03 checks that no S or evaluation value appears anywhere else.
 """
 from __future__ import annotations
 
@@ -134,7 +148,8 @@ CASE_DIR_RE = re.compile(r"^(two_block|diagonal_mixture)__m\d{3}__rho[0-9a-z+-]+
 TRUTH_DIR_NAME = "evaluator_only"
 _PROCESS_EVENTS = ("subprocess.Popen", "os.system", "os.exec", "os.posix_spawn", "os.spawn", "os.fork", "os.forkpty", "pty.spawn")
 _PATH_EVENTS = {"open": (0,), "os.link": (0, 1), "os.rename": (0, 1), "os.symlink": (0, 1), "shutil.copyfile": (0, 1),
-                "shutil.copytree": (0, 1), "shutil.move": (0, 1)}
+                "shutil.copytree": (0, 1), "shutil.move": (0, 1), "os.remove": (0,), "os.rmdir": (0,), "os.truncate": (0,),
+                "os.chmod": (0,), "os.chown": (0,), "os.utime": (0,), "shutil.rmtree": (0,), "sqlite3.connect": (0,)}
 # one barrier state per process, shared by every copy of this module (the hook installed first consults the same dict)
 _BARRIER: dict[str, Any] = getattr(sys, "_v10_t03_barrier", None) or {"depth": 0, "allow_eval": True, "phase": None, "denied": []}
 sys._v10_t03_barrier = _BARRIER
@@ -162,17 +177,24 @@ def forbidden_reason(path, *, allow_eval: bool) -> str | None:
     return None
 
 
+def _check_path(event: str, path) -> None:
+    """Inside the barrier: record and refuse an access of `path` that forbidden_reason flags (no-op outside the barrier)."""
+    if not _BARRIER["depth"] or not isinstance(path, (str, bytes, os.PathLike)):
+        return
+    reason = forbidden_reason(path, allow_eval=_BARRIER["allow_eval"])
+    if reason:
+        _BARRIER["denied"].append({"event": event, "path": os.fsdecode(path), "reason": reason, "phase": _BARRIER["phase"]})
+        raise TruthAccessError(f"T03 truth barrier ({_BARRIER['phase']}): {event} of {os.fsdecode(path)} refused ({reason} "
+                               "is evaluator-only; training and CAL selection read FIT / CAL samples only)")
+
+
 def _audit(event: str, args: tuple) -> None:
     if not _BARRIER["depth"]:
         return
     if event in _PATH_EVENTS:
         for i in _PATH_EVENTS[event]:
-            if i < len(args) and isinstance(args[i], (str, bytes, os.PathLike)):
-                reason = forbidden_reason(args[i], allow_eval=_BARRIER["allow_eval"])
-                if reason:
-                    _BARRIER["denied"].append({"event": event, "path": os.fsdecode(args[i]), "reason": reason, "phase": _BARRIER["phase"]})
-                    raise TruthAccessError(f"T03 truth barrier ({_BARRIER['phase']}): {event} of {os.fsdecode(args[i])} refused ({reason} "
-                                           "is evaluator-only; training and CAL selection read FIT / CAL samples only)")
+            if i < len(args):
+                _check_path(event, args[i])
     elif event.startswith(_PROCESS_EVENTS):
         _BARRIER["denied"].append({"event": event, "path": None, "reason": "process creation", "phase": _BARRIER["phase"]})
         raise TruthAccessError(f"T03 truth barrier ({_BARRIER['phase']}): {event} refused (no process creation inside training / CAL)")
@@ -183,10 +205,55 @@ if not getattr(sys, "_v10_t03_audit_installed", False):         # one permanent 
     sys._v10_t03_audit_installed = True
 
 
+GUARDED_TORCH_READERS = ("torch.from_file", "torch.UntypedStorage.from_file", "torch.ops.aten.from_file")
+
+
+def _path_arg(args: tuple, kwargs: dict):
+    return args[0] if args else kwargs.get("filename")
+
+
+def _guarded_reader(fn, event: str):
+    def guarded(*args, **kwargs):
+        _check_path(event, _path_arg(args, kwargs))
+        return fn(*args, **kwargs)
+    guarded.__name__, guarded.__doc__, guarded.__wrapped__, guarded.v10_t03_guarded = getattr(fn, "__name__", event), fn.__doc__, fn, True
+    return guarded
+
+
+class _GuardedOpPacket:
+    """torch.ops.aten.from_file in the barrier: the packet call and its overloads (.default, ...) check the path first."""
+    v10_t03_guarded = True
+
+    def __init__(self, packet):
+        self._packet = packet
+
+    def __call__(self, *args, **kwargs):
+        _check_path("torch.ops.aten.from_file", _path_arg(args, kwargs))
+        return self._packet(*args, **kwargs)
+
+    def __getattr__(self, name):
+        attr = getattr(self._packet, name)
+        return _guarded_reader(attr, f"torch.ops.aten.from_file.{name}") if callable(attr) and not name.startswith("_") else attr
+
+
+def guard_torch_readers():
+    """Wrap the torch C-level file readers (GUARDED_TORCH_READERS; they raise no audit event) in memory, idempotently.  Called on
+    every barrier entry, so a torch imported later in the process is covered from its first barrier on."""
+    import torch
+    if not getattr(torch.from_file, "v10_t03_guarded", False):
+        torch.from_file = _guarded_reader(torch.from_file, "torch.from_file")
+    if not getattr(torch.UntypedStorage.from_file, "v10_t03_guarded", False):
+        torch.UntypedStorage.from_file = staticmethod(_guarded_reader(torch.UntypedStorage.from_file, "torch.UntypedStorage.from_file"))
+    if not getattr(torch.ops.aten.from_file, "v10_t03_guarded", False):
+        torch.ops.aten.from_file = _GuardedOpPacket(torch.ops.aten.from_file)
+    return torch
+
+
 @contextlib.contextmanager
 def truth_barrier(phase: str, *, allow_eval: bool = False):
-    """Training / CAL phase: evaluator-only paths (and EVAL samples unless allow_eval) cannot be opened.  Nesting keeps the strictest
-    setting of the outer block."""
+    """Training / CAL phase: evaluator-only paths (and EVAL samples unless allow_eval) cannot be opened (module doc for the scope).
+    Nesting keeps the strictest setting of the outer block."""
+    guard_torch_readers()
     prev = (_BARRIER["allow_eval"], _BARRIER["phase"])
     _BARRIER["allow_eval"] = (prev[0] and allow_eval) if _BARRIER["depth"] else allow_eval
     _BARRIER["phase"] = phase
@@ -223,6 +290,11 @@ def guard_truth_api(mod):
 
 def barrier_denials() -> list[dict]:
     return list(_BARRIER["denied"])
+
+
+def denial_count() -> int:
+    """Number of denials recorded so far in this process (callers compare before / after their own barrier block)."""
+    return len(_BARRIER["denied"])
 
 
 # ------------------------------------------------------------------------------------------------------------ provenance

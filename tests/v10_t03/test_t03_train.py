@@ -93,6 +93,11 @@ def test_m1_log_follows_the_relative_zero_head_rule(five):
         assert rs in ("gap_tolerance", "iteration_budget_exhausted", "zero_reference_gap")
     assert log["m1_gap_start"][0] == log["m1_gap_ref_zero"][0]                               # from W = 0 the start gap is G(0)
     assert r["m1"]["rule"] == "relative_zero_head" and r["m1"]["require_converged"] is False and r["m1"]["cap"] == 10
+    for h, hd, ht, mp, md, mt, trig in zip(log["m1_hvp_calls"], log["m1_fp64_diag_hvp_calls"], log["m1_hvp_calls_total"], log["m1_moments_passes"],
+                                           log["m1_fp64_diag_moments_passes"], log["m1_moments_passes_total"], log["m1_fp64_triggered"]):
+        assert ht == h + hd and mt == mp + md and (md == 1) == trig          # decision 2.3: the fp64 diagnostic's work is counted
+    assert r["m1"]["hvp_calls_total_sum"] == sum(log["m1_hvp_calls_total"]) >= r["m1"]["hvp_calls_sum"]
+    assert r["m1"]["moments_passes_total_sum"] == r["m1"]["moments_passes_sum"] + r["m1"]["fp64_diag_moments_passes_sum"]
 
 
 def test_m1_step_equals_the_adapter_rule_on_the_same_tensors(tiny_suite, out_root):

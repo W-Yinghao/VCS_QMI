@@ -43,7 +43,11 @@ def test_prerequisites_block_then_complete_and_keep(env, out_root):
     assert R.run_unit(s, ident=ident, env=env["env"]) == "COMPLETE"
     assert (R.unit_dir("SMK_A") / "result.json").stat().st_mtime_ns == mtime     # kept, not rerun
     chk = json.loads(R.check_path(7).read_text())
-    assert chk["status"] == "PASS" and chk["result"]["n_checks"] > 100
+    assert chk["status"] == "PASS" and chk["n_checks"] > 100 and chk["n_checks_passed"] == chk["n_checks"]
+    assert "result" not in chk and "checks" not in chk                                    # truth-free summary: no checker rows
+    full = R.full_check_path(R.check_path(7))
+    assert C.TRUTH_DIR_NAME in full.parts and json.loads(full.read_text())["result"]["n_checks"] == chk["n_checks"]
+    assert chk["full_record"]["sha256"] == C.sha256_file(full)
 
 
 def test_cal_and_formal_resolution(env, out_root):
@@ -108,7 +112,35 @@ def test_package_checker_wrapper_leaves_the_package_untouched(tiny_suite, out_ro
     rec = R.run_package_checker(suite, out_root / "checks" / "x.json")
     assert rec["status"] == "PASS" and rec["checker_sha256"] == C.CHECKER_SHA256
     assert sorted(p.name for p in (C.PACKAGE / "synthetic" / "validation").iterdir()) == before
-    assert [p.name for p in (out_root / "checks").iterdir()] == ["x.json"]
+    assert sorted(p.name for p in (out_root / "checks").iterdir()) == ["evaluator_only", "x.json"]
+    assert [p.name for p in (out_root / "checks" / "evaluator_only").iterdir()] == ["x.json"]         # scratch directory removed
+
+
+def test_run_threads():
+    assert R.run_threads(3) == 3
+    for bad in (0, -1, True):
+        with pytest.raises(SystemExit):
+            R.run_threads(bad)
+
+
+def test_resolution_denial_fails_the_unit(env, out_root, monkeypatch):
+    """A refused access during the hyperparameter resolution (even when swallowed) makes the unit FAIL before any training."""
+    ident = env["ident"]
+    _pass_gates(ident)
+    s = row("SMK_E", "smoke", "MF_VCS_M0", "3e-4")
+    orig = R.resolve
+
+    def sneaky(*a, **k):
+        try:
+            open(out_root / "runs" / "OTHER_UNIT" / "evaluator_only" / "evaluation.json")
+        except PermissionError:
+            pass
+        return orig(*a, **k)
+    monkeypatch.setattr(R, "resolve", sneaky)
+    assert R.run_unit(s, ident=ident, env=env["env"]) == "FAIL"
+    f = R.read_result("SMK_E")
+    assert f["failure"]["stage"] == "prerequisites" and "hyperparameter resolution" in f["failure"]["message"]
+    assert not (R.unit_dir("SMK_E") / "checkpoints.pt").exists()
 
 
 def test_units_check_command(out_root, tmp_path):

@@ -26,6 +26,23 @@ def test_smoke_sbatch_directives():
     assert "V10_T03_OUT_ROOT=/projects/EEG-foundation-model/yinghao/outputs_v10/T03" in s
 
 
+def test_smoke_units_are_gated_on_every_prerequisite():
+    """Protocol P2 t03.smoke.prerequisites (T03 code and unit tests; suite + package checker; derangement gate): the smoke units run
+    only when tests, unit table, suite + checker and gates all pass; the job exits 0 only when every step passed."""
+    s = (SL / "t03_smoke.sbatch").read_text()
+    gate = next(line for line in s.splitlines() if line.startswith("if ") and "rc_u" in line)
+    for rc in ("rc_t", "rc_u", "rc_g", "rc_d"):
+        assert f'[ "${rc}" -eq 0 ]' in gate, (rc, gate)
+    body = s[s.index(gate):]
+    assert body.index("run --block smoke;") < body.index("else") and body.index("t03_aggregate.py smoke;") < body.index("else")
+    last = [line for line in s.splitlines() if line.strip()][-1]
+    for rc in ('[ "$rc_t" -eq 0 ]', '[ "$rc_s" = 0 ]', '[ "$rc_a" = 0 ]', '[ "$rc_l" = 0 ]', '[ "$rc_b" = 0 ]'):
+        assert rc in last, (rc, last)
+    assert last.endswith("|| exit 1")
+    assert 'if [ "$rc_s" = 0 ] && [ "$rc_a" = 0 ]; then' in s                       # layouts / budget only after the formal smoke
+    assert "--shard \"$k/$P\" --threads \"$T\"" in s and "for spec in p4t2:4:2 p8t1:8:1" in s
+
+
 def test_submit_queue_rules():
     s = (SL / "submit.sh").read_text()
     assert "grep -c '^v10_'" in s and '"$n_v10" -ge 2' in s and '"$n_normal" -ge 29' in s
