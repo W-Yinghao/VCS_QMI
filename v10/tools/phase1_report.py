@@ -5,22 +5,39 @@ Layout follows the package's 「首批回传格式」 (v10/package_v10_server_v1
 with 当前真实提交 / 已完成代码与验证 / 仍缺的输入 / 实际测量表 / 下一批单元与资源, then the open owner decisions, the failed
 attempts, the main-session decisions, queue handling, limitations and the file list.
 
+Location: v10/tools, outside the code-hash paths (src/v10 + scripts/v10), so committing the generator does not change the code
+identity that the T01 provenance rule and the job pins check.
+
+Reproducible output: no wall-clock time and no live query enter the report.  Git facts are read at BASE = the newest commit whose
+changes are not confined to the report files (this generator, its first location scripts/v10/phase1_report.py, the report, the
+queue snapshot); every later commit is checked to touch only those files, and the working tree outside them must be clean.  The
+queue items come from v10/tools/phase1_report_queue_snapshot.json, written only by --refresh-queue (read-only squeue -u $USER and
+scontrol show job per V9 job, plus the V9 sbatch --nice defaults and the V9 job record).  Two runs, or a run at the commit that
+contains the report, give the same bytes.
+
 Every number, table and git fact is read at generation time from
-  v10/T00   PREFLIGHT.json, PREFLIGHT_RUN.log, MANIFEST_BUILD_SUMMARY.json, MANIFEST_SHA256.txt, host_map.json, EXPOSURE_NOTES.md
+  v10/T00   PREFLIGHT.json, PREFLIGHT_RUN.log, MANIFEST_BUILD_SUMMARY.json, MANIFEST_SHA256.txt, host_map.json, EXPOSURE_NOTES.md,
+            HOST_ADAPTER_AUDIT.md (one heading checked)
   v10/T01   TORCH_VALIDATION.json, GEOMETRY_GRADIENT_CHECK.json
   v10/T02   T02_TIMING_{cpu,cuda}.json, T02_LONG_{cpu,cuda}.csv, BUDGET.json, UNIT_LEDGER.csv
-  package   configs/V10_PROTOCOL.json, MANIFEST_SHA256.json, PACKAGE_STATUS.json, core/benchmark_torch.py (its tolerance),
-            synthetic/src/v10_synthetic.py (CLI defaults, by ast) and synthetic/validation/example_data (truth.json S values)
-  git       branch, HEAD, log, status; code hashes recomputed from git objects at every commit
-  code      slurm/v10 (queue rules, sbatch resources), src/v10/adapter.py (method tuples, by ast), src/v9/reg (MIND search)
+  package   configs/V10_PROTOCOL.json, configs/EXPERIMENT_UNITS.csv, MANIFEST_SHA256.json, PACKAGE_STATUS.json, README_CN.md,
+            core/benchmark_torch.py (its tolerance), synthetic/src/v10_synthetic.py (CLI defaults, by ast),
+            synthetic/validation/example_data (truth.json S values); quotes of V10_DESIGN_CN.md, 01_SERVER_AGENT_PROMPT_CN.md,
+            README_CN.md and synthetic/README.md are checked verbatim
+  git       objects up to BASE (log, messages, code hashes recomputed at every commit), the commits after BASE, the working tree
+  code      slurm/v10 (queue rules, sbatch resources), src/v10/adapter.py (method tuples and comments, by ast / regex), src/v9/reg
+            (MIND search; the host hash recomputed from the three host files)
   runs      /home/infres/yinwang/CS_QMI/slurm_logs/v10_*.out and the raw files under outputs_v10 named in T02_TIMING_cuda.json
             (benchmark JSONs, checked against the recorded sha256; train_steps_per_step.json, sha256 printed)
-  queue     one read-only `squeue -u $USER` call (skip with --no-squeue)
-Hand-written: prose, the options / recommendations of the open decisions, PROPOSAL (the one proposal parameter) and
-MAIN_SESSION (main-session statements without a file record, rendered with that attribution).
-Consistency checks (BUDGET recomputed, CSV vs JSON, hashes, check counts) abort the run on any mismatch.  Writes only the report.
+  queue     v10/tools/phase1_report_queue_snapshot.json
+Hand-written: prose; the options / recommendations of the open decisions; PROPOSAL (proposal parameters, labelled as such in the
+report); MAIN_SESSION (main-session statements without a file record, rendered with that attribution); the descriptive cells the
+report header lists (DEPENDS, COVERAGE and file-role descriptions, job-content labels, 6.4 status texts, section-7 causes,
+PACKAGE_REQUIRED sources).
+Consistency checks (BUDGET recomputed, CSV vs JSON, hashes, check counts, git state) abort the run on any mismatch.  Writes only the
+report and, with --refresh-queue, the queue snapshot.
 
-    /home/infres/yinwang/CS_QMI/env/bin/python scripts/v10/phase1_report.py [--output PATH] [--no-squeue]
+    /home/infres/yinwang/CS_QMI/env/bin/python v10/tools/phase1_report.py [--output PATH] [--refresh-queue]
 """
 from __future__ import annotations
 
@@ -39,27 +56,48 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SELF_REL = Path(__file__).resolve().relative_to(REPO).as_posix()
+OLD_SELF_REL = "scripts/v10/phase1_report.py"   # location in the first report commit (inside the code-hash paths)
 V10 = REPO / "v10"
 T00, T01, T02 = V10 / "T00", V10 / "T01", V10 / "T02"
 PKG = V10 / "package_v10_server_v1_20261016"
 PKG_REL = PKG.relative_to(REPO).as_posix()
 LOGS = Path("/home/infres/yinwang/CS_QMI/slurm_logs")
 REPORT_DEFAULT = V10 / "V10_PHASE1_STAGE_REPORT_20261017.md"
+REPORT_REL = REPORT_DEFAULT.relative_to(REPO).as_posix()
+QUEUE_SNAPSHOT = V10 / "tools" / "phase1_report_queue_snapshot.json"
+QUEUE_REL = QUEUE_SNAPSHOT.relative_to(REPO).as_posix()
+OWN_PATHS = (SELF_REL, OLD_SELF_REL, REPORT_REL, QUEUE_REL)    # report files: commits confined to them do not move BASE
+V9_REPO = Path("/home/infres/yinwang/CS_QMI/ssl_pilot_v9")     # read only by --refresh-queue (sbatch --nice, V9 job record)
+HOST_FILES = ("src/v9/reg/g1.py", "src/v9/reg/r6_reg_pilot.py", "src/v9/reg/r6_reg_p2.py")   # = adapter host_code_hash, same order
 CODE_PATHS = ("src/v10", "scripts/v10")               # = src/v10/adapter.py code_hash() = job header "code="
 PIN_PATHS = ("src/v10", "scripts/v10", "slurm/v10")    # = slurm/v10/submit.sh job pin = job header "pin="
 RESULT_PATHS = ("v10/T00", "v10/T01", "v10/T02", "src/v10", "scripts/v10", "slurm/v10", "tests/v10")
 STATUS_PATHS = RESULT_PATHS + ("src/v9", "scripts/v9", "slurm/v9")
-# 「首批回传格式」 attachments: PREFLIGHT.json、HOST_ADAPTER_AUDIT.md、manifest及hash、TORCH_VALIDATION.json、GEOMETRY_GRADIENT_CHECK.json、
-# T02长表、BUDGET.json、单元ledger
-PACKAGE_REQUIRED = ("v10/T00/PREFLIGHT.json", "v10/T00/HOST_ADAPTER_AUDIT.md", "v10/T00/V10_DATA_MANIFEST.csv",
-                    "v10/T00/MANIFEST_SHA256.txt", "v10/T01/TORCH_VALIDATION.json", "v10/T01/GEOMETRY_GRADIENT_CHECK.json",
-                    "v10/T02/T02_LONG_cpu.csv", "v10/T02/T02_LONG_cuda.csv", "v10/T02/BUDGET.json", "v10/T02/UNIT_LEDGER.csv")
+# Package clauses asking for each attachment (hand-written mapping; every parenthesised clause is checked verbatim in the package
+# prompt or design).  「首批回传格式」 lists PREFLIGHT.json、HOST_ADAPTER_AUDIT.md、manifest及hash、TORCH_VALIDATION.json、
+# GEOMETRY_GRADIENT_CHECK.json、T02长表、BUDGET.json、单元ledger; design §6 (T00 / T01 rows), §7 and §10 add the others.
+PACKAGE_REQUIRED = {
+    "v10/T00/PREFLIGHT.json": "首批回传格式；设计 §6 T00、§10",
+    "v10/T00/HOST_ADAPTER_AUDIT.md": "首批回传格式；设计 §6 T00、§10（宿主接口映射）",
+    "v10/T00/V10_DATA_MANIFEST.csv": "首批回传格式（manifest及hash）",
+    "v10/T00/MANIFEST_SHA256.txt": "首批回传格式（manifest及hash）",
+    "v10/T00/host_map.json": "设计 §10（宿主接口映射）",
+    "v10/T00/EXPOSURE_NOTES.md": "设计 §6 T00（来源/暴露说明）、§10（数据暴露/划分说明）",
+    "v10/T01/TORCH_VALIDATION.json": "首批回传格式；设计 §6 T01、§10（T01执行结果）",
+    "v10/T01/GEOMETRY_GRADIENT_CHECK.json": "首批回传格式；设计 §6 T01、§10（T01执行结果）",
+    "v10/T02/T02_LONG_cpu.csv": "首批回传格式（T02长表）；设计 §10（T02实测小表）",
+    "v10/T02/T02_LONG_cuda.csv": "首批回传格式（T02长表）；设计 §10（T02实测小表）",
+    "v10/T02/BUDGET.json": "首批回传格式；设计 §7",
+    "v10/T02/UNIT_LEDGER.csv": "首批回传格式（单元ledger）；设计 §10（单元ledger）",
+}
 
 # Main-session statements (task brief of 2026-10-17) without any file record; rendered only with this attribution.
 MAIN_SESSION = {"attribution": "主会话陈述（2026-10-17 任务说明；仓库、日志与结果文件中无记录）",
                 "nice_raise_max": 1300, "nice_restored_utc": "2026-10-17T01:36:48Z"}
-# The only proposal parameter (recommended default of open decision 1; a design value, not a measurement).
-PROPOSAL = {"m1_relative_gap_target": 1e-2}
+# Proposal parameters (design values, not measurements; rendered as 提议 / 粗估):
+#   m1_relative_gap_target   recommended default of open decision 1 (option A)
+#   t03_steps_per_training   placeholder step count of the T03 order-of-magnitude estimate (the T03 smoke replaces it)
+PROPOSAL = {"m1_relative_gap_target": 1e-2, "t03_steps_per_training": 2000}
 
 OUTLIER_FACTOR = 10   # CPU timing anomaly rule of section 4.4 (a reporting rule, not a measurement)
 HEAD_METHODS = (("permutation1", "perm1"), ("permutation8", "perm8"), ("dense", "dense"),
@@ -139,6 +177,11 @@ def fg(x, sig=3) -> str:
 
 def fi(x) -> str:
     return "—" if x is None else str(int(round(float(x))))
+
+
+def fr(x) -> str:
+    """ratio: integer from 100 up, else 3 significant digits"""
+    return "—" if x is None else fi(x) if abs(float(x)) >= 100 else fg(x)
 
 
 def fv(x) -> str:
@@ -240,17 +283,19 @@ def parse_job_log(path: Path) -> dict:
         req_rows[m.group(3)] = json.loads(m.group(4))
     t02 = [{"part": a, "status": b, "seconds": int(s)} for a, b, s in re.findall(r"^\[t02\] part (\w+): (\w+) \((\d+) s\)$", text, re.M)]
     end = re.search(r"^\[v10\] (.*)end=(\S+)$", text, re.M)
-    tests = re.search(r"^(\d+) passed", text, re.M)
+    tests = re.search(r"^(\d+) passed[^\n]*$", text, re.M)
     merges = [json.loads(ln) for ln in lines if ln.startswith('{"TORCH_VALIDATION"')]
     return {"path": str(path), "sha256": sha256_bytes(path.read_bytes()), "bytes": path.stat().st_size, "header": hdr,
             "parts": parts, "required_rows": req_rows, "t02": t02,
             "end_utc": end.group(2) if end else None, "rcs": dict(re.findall(r"(\w+)=(\d+)", end.group(1))) if end else {},
-            "tests_passed": int(tests.group(1)) if tests else None, "merge": merges[-1] if merges else None}
+            "tests_passed": int(tests.group(1)) if tests else None,
+            "tests_summary": re.sub(r" in [\d.]+s$", "", tests.group(0).strip()) if tests else None,
+            "merge": merges[-1] if merges else None}
 
 
 # ------------------------------------------------------------------------------------------------ collection
 def collect(args) -> dict:
-    D: dict = {"gen_utc": utc_now()}
+    D: dict = {}
     # --- T00
     D["preflight"] = load_json(T00 / "PREFLIGHT.json")
     D["preflight_log"] = (T00 / "PREFLIGHT_RUN.log").read_text()
@@ -270,6 +315,10 @@ def collect(args) -> dict:
     # --- package
     D["protocol"] = load_json(PKG / "configs" / "V10_PROTOCOL.json")
     D["design"] = (PKG / "V10_DESIGN_CN.md").read_text(encoding="utf-8")
+    D["prompt"] = (PKG / "01_SERVER_AGENT_PROMPT_CN.md").read_text(encoding="utf-8")
+    D["pkg_readme"] = (PKG / "README_CN.md").read_text(encoding="utf-8")
+    D["syn_readme"] = (PKG / "synthetic" / "README.md").read_text(encoding="utf-8")
+    D["audit_text"] = (T00 / "HOST_ADAPTER_AUDIT.md").read_text(encoding="utf-8")
     D["pkg_status"] = load_json(PKG / "PACKAGE_STATUS.json")
     pm = load_json(PKG / "MANIFEST_SHA256.json")
     D["pkg_manifest_n"] = len(pm)
@@ -341,7 +390,10 @@ def collect(args) -> dict:
         h = L["header"]
         check(code_hash_at(h["commit"], CODE_PATHS)[0] == h["code"], f"job {job}: code hash at {h['commit'][:7]}")
         check(code_hash_at(h["commit"], PIN_PATHS)[0] == h["pin"] == h["expect"], f"job {job}: pin at {h['commit'][:7]}")
-    D["queue"] = None if args.no_squeue else squeue()
+    if args.refresh_queue:
+        refresh_queue_snapshot(D)
+    D["queue"] = load_json(QUEUE_SNAPSHOT) if QUEUE_SNAPSHOT.exists() else None
+    D["queue_sha256"] = sha256_file(QUEUE_SNAPSHOT) if QUEUE_SNAPSHOT.exists() else None
     D["slurm"] = slurm_facts()
     D["adapter_methods"] = adapter_methods()
     D["mind_files"] = sorted(str(p.relative_to(REPO)) for p in (REPO / "src" / "v9" / "reg").glob("*.py")
@@ -425,6 +477,7 @@ def check_budget(D):
 def check_ledger(D):
     L = D["ledger"]
     units = load_csv(PKG / "configs" / "EXPERIMENT_UNITS.csv")
+    D["units_pkg"] = units
     check([u["unit_id"] for u in units] == [r["unit_id"] for r in L], "UNIT_LEDGER unit ids vs package EXPERIMENT_UNITS.csv")
     for r in L:
         if r["stage"] == "T02":
@@ -433,19 +486,28 @@ def check_ledger(D):
             check(r["run_status"].startswith("NOT_RUN"), f"ledger {r['unit_id']}")
 
 
+def own_only(sha: str) -> bool:
+    """True when the commit changes only report files (OWN_PATHS)."""
+    files = {f for f in git("show", "--name-only", "--format=", sha).splitlines() if f}
+    return bool(files) and files <= set(OWN_PATHS)
+
+
 def collect_git(D):
-    g = {"branch": git("rev-parse", "--abbrev-ref", "HEAD").strip(), "head": git("rev-parse", "HEAD").strip()}
-    g["head_utc"] = to_utc(git("log", "-1", "--format=%cI", "HEAD").strip())
-    excl = [f":(exclude){SELF_REL}", f":(exclude){REPORT_DEFAULT.relative_to(REPO).as_posix()}"]
-    g["results_commit"] = git("log", "-1", "--format=%H", "--", *RESULT_PATHS, *excl).strip()
-    g["package_commit"] = git("log", "--format=%H", "--diff-filter=A", "--", f"{PKG_REL}/V10_DESIGN_CN.md").strip().splitlines()[-1]
-    g["v9_diff_since_package"] = git("diff", "--stat", g["package_commit"], "HEAD", "--", "src/v9", "scripts/v9", "slurm/v9").strip()
+    base = next((x for x in git("rev-list", "--first-parent", "HEAD").split() if not own_only(x)), None)
+    check(base is not None, "no commit outside the report files")
+    after = git("rev-list", "--reverse", f"{base}..HEAD").split()
+    check(all(own_only(x) for x in after), f"commits after base {base[:7]} change more than the report files")
     st = [ln for ln in git("status", "--porcelain", "--untracked-files=all", "--", *STATUS_PATHS).splitlines() if ln.strip()]
-    own = {SELF_REL, REPORT_DEFAULT.relative_to(REPO).as_posix()}
-    g["status_own"] = [ln for ln in st if ln[3:] in own]
-    g["status_other"] = [ln for ln in st if ln[3:] not in own and "__pycache__" not in ln]
+    dirty = [ln for ln in st if "__pycache__" not in ln and any(p not in OWN_PATHS for p in ln[3:].split(" -> "))]
+    check(not dirty, f"uncommitted changes outside the report files: {dirty}")
+    g = {"branch": git("rev-parse", "--abbrev-ref", "HEAD").strip(), "base": base}
+    g["base_utc"] = to_utc(git("log", "-1", "--format=%cI", base).strip())
+    excl = [f":(exclude){p}" for p in OWN_PATHS]
+    g["results_commit"] = git("log", "-1", "--format=%H", base, "--", *RESULT_PATHS, *excl).strip()
+    g["package_commit"] = git("log", "--format=%H", "--diff-filter=A", base, "--", f"{PKG_REL}/V10_DESIGN_CN.md").strip().splitlines()[-1]
+    g["v9_diff_since_package"] = git("diff", "--stat", g["package_commit"], base, "--", "src/v9", "scripts/v9", "slurm/v9").strip()
     commits = []
-    for ln in git("log", "--reverse", "--format=%H%x1f%cI%x1f%s", f"{g['package_commit']}^..HEAD").splitlines():
+    for ln in git("log", "--reverse", "--format=%H%x1f%cI%x1f%s", f"{g['package_commit']}^..{base}").splitlines():
         h, iso, subj = ln.split("\x1f")
         files = [f for f in git("show", "--name-only", "--format=", h).splitlines() if f]
         tops = sorted({"/".join(f.split("/")[:2]) for f in files})
@@ -454,28 +516,82 @@ def collect_git(D):
                         "pin": code_hash_at(h, PIN_PATHS)[0], "tops": tops, "n_files": len(files)})
     g["commits"] = commits
     g["msgs"] = {h["sha"]: git("log", "-1", "--format=%B", h["sha"]) for h in commits}
-    g["tree_hash_excl"] = code_hash_tree(CODE_PATHS, exclude=[SELF_REL])[0]
-    g["tree_hash_incl"] = code_hash_tree(CODE_PATHS, include=[SELF_REL])[0]
-    g["tree_pin_incl"] = code_hash_tree(PIN_PATHS, include=[SELF_REL])[0]
+    # report commits that put the generator inside the code-hash paths (history; stable once committed)
+    g["old_location"] = [{"sha": x, "code_hash": code_hash_at(x, CODE_PATHS)[0], "pin": code_hash_at(x, PIN_PATHS)[0]}
+                         for x in git("log", "--reverse", "--format=%H", "--diff-filter=A", "HEAD", "--", OLD_SELF_REL).split()]
+    check(not any(SELF_REL.startswith(p + "/") for p in PIN_PATHS), "the generator lies inside the code-hash / pin paths")
+    # current tree identity (= what t01_validate.py merge compares every part with)
+    g["tree_code_hash"] = code_hash_tree(CODE_PATHS)[0]
+    g["tree_pin"] = code_hash_tree(PIN_PATHS)[0]
+    g["base_code_hash"] = code_hash_at(base, CODE_PATHS)[0]
+    g["tree_host_hash"] = sha256_bytes(b"".join((REPO / f).read_bytes() for f in HOST_FILES))[:16]
+    g["tree_mf_sha256"] = sha256_file(REPO / "src" / "v10" / "mf_vcs.py")
     g["self_sha256"] = sha256_file(REPO / SELF_REL)
     g["self_lines"] = (REPO / SELF_REL).read_text().count("\n")
-    g["self_tracked"] = bool(git("ls-files", "--", SELF_REL).strip())
     D["git"] = g
 
 
-def squeue() -> dict:
+def local_to_utc(s: str):
+    """squeue / scontrol times are local (Europe/Paris on this cluster) without a zone; N/A -> None"""
     try:
-        p = subprocess.run(["squeue", "-u", os.environ.get("USER", "yinwang"), "-h", "-o", "%i|%q|%T|%j"],
-                           capture_output=True, text=True, timeout=60)
-        if p.returncode != 0:
-            return {"utc": utc_now(), "error": p.stderr.strip()[:200]}
-        rows = [ln.split("|") for ln in p.stdout.splitlines() if ln.strip()]
-        v10 = [r for r in rows if r[3].startswith("v10_")]
-        n2 = [r for r in rows if r[3].startswith("v9n2_")]
-        return {"utc": utc_now(), "v10": len(v10), "normal": sum(1 for r in rows if r[1] == "normal"),
-                "v9n2_running": sum(1 for r in n2 if r[2] == "RUNNING"), "v9n2_pending": sum(1 for r in n2 if r[2] == "PENDING")}
-    except Exception as e:  # noqa: BLE001 - the queue line is optional
-        return {"utc": utc_now(), "error": repr(e)[:200]}
+        return dt.datetime.fromisoformat(s).astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return None
+
+
+def refresh_queue_snapshot(D) -> None:
+    """One read-only `squeue -u $USER` plus `scontrol show job` per V9 job -> QUEUE_SNAPSHOT.  Rows kept: job names v9* / v10_*
+    and the jobs this report references; counts over all of the user's jobs.  Expected nice of a V9 job = the `#SBATCH --nice`
+    default of its sbatch script, else a 'nice N' entry for the job in the V9 job record (ssl_pilot_v9/reports/V9/V9_JOB_IDS.json)."""
+    user = os.environ.get("USER", "yinwang")
+    fmt = "%i|%j|%T|%y|%P|%q|%S|%b"
+    p = subprocess.run(["squeue", "-u", user, "-h", "-o", fmt], capture_output=True, text=True, timeout=60)
+    check(p.returncode == 0, f"squeue failed: {p.stderr.strip()[:200]}")
+    utc = utc_now()
+    rows = []
+    for ln in p.stdout.splitlines():
+        if not ln.strip():
+            continue
+        jid, name, state, nice, part, qos, start, gres = ln.split("|")
+        mg = re.search(r"gpu(?::[\w-]+)?:(\d+)", gres)
+        rows.append({"job": jid, "name": name, "state": state, "nice": int(nice), "partition": part, "qos": qos,
+                     "start_utc": local_to_utc(start), "gpus": int(mg.group(1)) if mg else 0})
+    referenced = {D["preflight_job"]["job"]} | set(D["logs"])
+    keep = sorted((r for r in rows if r["name"].startswith(("v9", "v10_")) or r["job"] in referenced),
+                  key=lambda r: (int(re.match(r"\d+", r["job"]).group(0)), r["job"]))
+    counts = {"jobs": len(rows), "normal_qos": sum(r["qos"] == "normal" for r in rows),
+              "pending_all_partitions": sum(r["state"] == "PENDING" for r in rows),
+              "running_gpu_jobs_all_qos": sum(r["state"] == "RUNNING" and r["gpus"] > 0 for r in rows),
+              "normal_qos_running_gpu_jobs": sum(r["state"] == "RUNNING" and r["gpus"] > 0 and r["qos"] == "normal" for r in rows),
+              "normal_qos_running_gpus": sum(r["gpus"] for r in rows if r["state"] == "RUNNING" and r["qos"] == "normal")}
+    record_path = V9_REPO / "reports" / "V9" / "V9_JOB_IDS.json"
+    record = load_json(record_path) if record_path.exists() else []
+    expected = {}
+    for r in keep:
+        if not r["name"].startswith("v9"):
+            continue
+        sc = subprocess.run(["scontrol", "show", "job", r["job"]], capture_output=True, text=True, timeout=60)
+        cmd = re.search(r"Command=(\S+)", sc.stdout)
+        script = Path(cmd.group(1)) if cmd else None
+        snice = None
+        if script and script.exists():
+            ms = re.search(r"^#SBATCH --nice=(\d+)", script.read_text(errors="replace"), re.M)
+            snice = int(ms.group(1)) if ms else None
+        rec = None
+        for e in record:
+            if r["job"] in [str(j) for j in e.get("jobs", [])]:
+                mr = re.search(r"\bnice (\d+)\b", " ".join(str(e.get(k, "")) for k in ("unit", "note")))
+                rec = int(mr.group(1)) if mr else rec
+        rel = (script.relative_to(V9_REPO.parent).as_posix() if script and script.is_relative_to(V9_REPO.parent)
+               else str(script) if script else None)
+        expected[r["job"]] = {"script": rel, "script_nice": snice, "record_nice": rec,
+                              "record": "ssl_pilot_v9/reports/V9/V9_JOB_IDS.json" if rec is not None else None}
+    snap = {"schema": "V10-phase1-queue-snapshot-v1", "utc": utc, "user": user, "squeue_format": fmt, "counts": counts,
+            "rows": keep, "v9_expected_nice": expected,
+            "note": "read-only: squeue -u <user> (counts over all jobs; rows: names v9* / v10_* and jobs the report references) "
+                    "and scontrol show job <id> per V9 row; start times converted from local time to UTC"}
+    QUEUE_SNAPSHOT.parent.mkdir(parents=True, exist_ok=True)
+    QUEUE_SNAPSHOT.write_text(json.dumps(snap, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
 def slurm_facts() -> dict:
@@ -583,6 +699,9 @@ def per_step_stats(D) -> dict:
         out[cfg] = {"n_recs": len(recs), "lead_degenerate": lead,
                     "lead_delta": (min(r["m1_gap_initial"] for r in recs[:lead]), max(r["m1_gap_initial"] for r in recs[:lead])) if lead else None,
                     "first_active": (lead, recs[lead]["m1_gap_initial"]) if lead < len(recs) else None,
+                    "first_active_rec": recs[lead] if lead < len(recs) else None,
+                    "lead_status": sorted({r["m1_status"] for r in recs[:lead]}),
+                    "lead_converged": sorted({bool(r["m1_converged"]) for r in recs[:lead]}),
                     "first_delta": recs[0]["m1_gap_initial"], "first_w": recs[0]["w_absmax"],
                     "timed_w0": sum(1 for r in timed if r["w_absmax"] == 0.0), "timed_conv": sum(1 for r in timed if r["m1_converged"]),
                     "timed_min_gap": min(r["m1_gap"] for r in timed), "tol": recs[0]["m1_tolerance"],
@@ -591,6 +710,126 @@ def per_step_stats(D) -> dict:
 
 
 # ------------------------------------------------------------------------------------------------ rendering
+def unit_cost(D, train_ms: float, s_reg: float) -> dict:
+    """BUDGET.json's formula for one unit, GPU-h: train_steps_per_unit x step time + registrations x s/registration
+    (BF-SHG, EPFL proxy) and the CAL tuning of one family (cal_candidates_per_family x (training + CAL registrations))."""
+    c, bc = D["budget"]["protocol_counts"], D["budget_counts"]
+    tr = c["train_steps_per_unit"] * train_ms / 1000
+    return {"bf": (tr + bc["n_reg_bf"] * s_reg) / 3600, "epfl": (tr + bc["n_reg_ep"] * s_reg) / 3600,
+            "cal": c["cal_candidates_per_family"] * (tr + bc["n_reg_cal_bf"] * s_reg) / 3600}
+
+
+def family_costs(D) -> dict:
+    """per measured family: BUDGET's per-unit GPU-h (checked against unit_cost) and its CAL tuning share"""
+    out = {}
+    for m, e in D["budget"]["per_unit_projection"].items():
+        if e["status"] != "measured":
+            continue
+        u = unit_cost(D, e["train_step_ms_median"], e["s_per_registration_median"])
+        check(close(u["bf"], e["gpu_h_bf_unit"]) and close(u["epfl"], e["gpu_h_epfl_unit_proxy"]), f"unit_cost {m}")
+        out[m] = {**u, "s_reg": e["s_per_registration_median"], "train_config": e["train_config"]}
+    check(close(sum(v["cal"] for v in out.values()), D["budget"]["grid_projection_measured_methods"]["CAL_tuning_gpu_h_BF"]),
+          "family CAL tuning shares vs BUDGET")
+    return out
+
+
+def detect_rows(D) -> list[dict]:
+    """all detectability checks (PASS and FAIL) with |J| recovered from the recorded bound tol = atol + rtol |J|"""
+    tol = D["tv"]["tolerances_design"]
+    out = []
+    for k in D["t01_order"]:
+        for x in D["t01_parts"][k]["checks"]:
+            m = re.match(r"(.+)_detectable_(host_init|sharpened_x10)_(float32|float64)$", x["name"])
+            if not m:
+                continue
+            a, r = tol[m.group(3)]["atol"], tol[m.group(3)]["rtol"]
+            out.append({"part": k, "check": m.group(1), "state": m.group(2), "dtype": m.group(3), "status": x["status"],
+                        "required": bool(x.get("required")), "eff": x["effect_over_tol"], "tol": x["tol"],
+                        "J": (x["tol"] - a) / r, "value": x["value"], "note": x.get("note", "")})
+    check(out, "no detectability rows")
+    return out
+
+
+def queue_row(D, job: str):
+    q = D["queue"]
+    return next((r for r in q["rows"] if r["job"] == job), None) if q else None
+
+
+def nice_audit(D) -> dict:
+    """V9 rows of the queue snapshot: observed nice vs the submission value (sbatch default, else the V9 job record)"""
+    q = D["queue"]
+    if not q:
+        return {}
+    ok, bad, unk = [], [], []
+    for r in q["rows"]:
+        if not r["name"].startswith("v9"):
+            continue
+        e = q["v9_expected_nice"].get(r["job"], {})
+        exp = e.get("script_nice") if e.get("script_nice") is not None else e.get("record_nice")
+        src = (f"{e['script']} `#SBATCH --nice={e['script_nice']}`" if e.get("script_nice") is not None
+               else f"{e['record']}（nice {e['record_nice']}）" if e.get("record_nice") is not None else None)
+        (unk if exp is None else ok if r["nice"] == exp else bad).append({**r, "expected": exp, "source": src})
+    return {"ok": ok, "bad": bad, "unknown": unk}
+
+
+def quote_in(text: str, fragment: str, what: str) -> str:
+    check(fragment in text, f"{what} quote not found: {fragment!r}")
+    return f"“{fragment}”"
+
+
+def job_minutes(L) -> float:
+    return (dt.datetime.fromisoformat(L["end_utc"].replace("Z", "+00:00"))
+            - dt.datetime.fromisoformat(L["header"]["start"].replace("Z", "+00:00"))).total_seconds() / 60
+
+
+def test_block(D) -> dict:
+    """BF-SHG TEST repeat block (decision 5, option B), rough: registrations only, CAL-selected checkpoint, BUDGET s/registration"""
+    c_ = D["budget"]["protocol_counts"]
+    cores = D["mbs"]["bf_shg"]["test_cores"]
+    n = cores * c_["perturbations_per_image"]
+    per = {m: n * v["s_reg"] / 3600 for m, v in family_costs(D).items()}
+    return {"cores": cores, "pert": c_["perturbations_per_image"], "n": n, "per_unit": per, "seeds": len(c_["training_seeds"]),
+            "total": sum(per.values()) * len(c_["training_seeds"])}
+
+
+def t03_estimate(D) -> dict:
+    """Order-of-magnitude CPU estimate of the proposed T03 grid.  Assumptions (rendered with the numbers): PROPOSAL steps per training,
+    full FIT batch; per-step cost = CPU head medians at the largest N (non-anomalous cells only); MLP rows proxied by the bilinear
+    perm1 / perm8 columns; M1 adds the T02 GPU HVP calls per step x the CPU moments median at the smallest N per call."""
+    syn, proto = D["synthetic"], D["protocol"]
+    head, reg = proto["head"], proto["registration"]
+    mf = [m for m in reg["learned_methods"] if m.startswith("MF_")]
+    mlp = [m for m in reg["learned_methods"] if m.startswith("MLP_")]
+    check(mf == ["MF_VCS_perm1", "MF_VCS_M0", "MF_VCS_M1"] and mlp == ["MLP_VCS_perm1", "MLP_VCS_perm8"], "T03 estimate method mapping")
+    K = head["width_candidates"]
+    grid = D["t2"]["cpu"]["protocol"]["grid"]
+    nmax, nmin = max(n for n, _ in grid), min(n for n, _ in grid)
+    check(nmax >= syn["defaults"]["n_fit"], "T03 estimate: largest timed N below the FIT size")
+    flagged = cpu_outliers(D)
+
+    def ms(method, n, k):
+        check(("float32", n, k, method) not in flagged, f"T03 estimate would use an anomalous CPU cell {method} N{n} K{k}")
+        return num(head_cell(D, "cpu", "float32", n, k, method)["median_ms"])
+    p1 = {k: ms("permutation1", nmax, k) for k in K}
+    p8 = {k: ms("permutation8", nmax, k) for k in K}
+    mo = {k: ms("moments", nmax, k) for k in K}
+    call = max(num(head_cell(D, "cpu", "float32", nmin, k, "moments")["median_ms"]) for k in K
+               if ("float32", nmin, k, "moments") not in flagged)
+    per_cfg = len(syn["cases"]) * (len(head["feature_head_learning_rate_candidates"]) + len(reg["training_seeds"]))
+    S = PROPOSAL["t03_steps_per_training"]
+    non_m1_ms = sum(p1.values()) + sum(mo.values()) + max(p1.values()) + max(p8.values())
+    hvp = {}
+    for r in D["long"]["cuda"]:
+        m = re.match(r"MF_M1_K16_it(\d+)_capbound$", r["config"])
+        if r["layer"] == "train_step" and m:
+            hvp[int(m.group(1))] = num(r["m1_hvp_calls_median"])
+    check(sorted(hvp) == sorted(head["M1_max_iterations_candidates"]), "T02 HVP calls per M1 iteration cap")
+    m1_h = {it: per_cfg * S * sum(mo[k] + n_calls * call for k in K) / 1000 / 3600 for it, n_calls in sorted(hvp.items())}
+    return {"S": S, "per_cfg": per_cfg, "n_non_m1": per_cfg * (2 * len(K) + 2), "n_m1": per_cfg * len(K),
+            "non_m1_h": per_cfg * S * non_m1_ms / 1000 / 3600, "m1_h": m1_h, "hvp": hvp, "call_ms": call, "nmax": nmax, "nmin": nmin,
+            "p1": max(p1.values()), "p8": max(p8.values()), "mo": max(mo.values())}
+
+
 def short(s: str, n: int = 78) -> str:
     return s if len(s) <= n else s[: n - 1] + "…"
 
@@ -651,19 +890,30 @@ def summarize_log(L) -> str:
 
 
 def sec_header(D) -> list[str]:
-    g = D["git"]
+    g, q = D["git"], D["queue"]
+    qtxt = (f"队列各项取自快照 `{QUEUE_REL}`（{q['utc']}；只读 squeue / scontrol）" if q
+            else f"队列快照 `{QUEUE_REL}` 不存在，队列各项未给出")
+    nolog = "、".join(x["job"] for x in jobs_without_log(D)) or "—"
+    step5 = quote_in(D["prompt"], "接受阶段结论后，按包内预定科学协议继续T03–T05", "package prompt")
     return [
         "# V10 MF-VCS 第一阶段（T00–T02）阶段报告",
         "",
-        f"生成：`{SELF_REL}`，{D['gen_utc']}；分支 `{g['branch']}`，生成时 HEAD `{g['head'][:7]}`，结果提交 `{g['results_commit'][:7]}`。"
-        "全部数值、表格与 git 事实在生成时读自 §11 所列文件、包文件、git 对象与作业日志（另有一次只读 squeue）；手写的只有文字、决定选项与建议，"
-        "以及明确标为“主会话陈述”的条目。",
+        f"生成器 `{SELF_REL}`；仓库状态截至 base 提交 `{g['base'][:7]}`（{g['base_utc']}，分支 `{g['branch']}`）。base = 最近一个不只改动报告文件"
+        f"（本生成器、其首个位置 `{OLD_SELF_REL}`、本报告、队列快照）的提交，其后的提交只改动这些文件（生成器核对，且这些文件以外的工作区无改动）；"
+        f"结果提交 `{g['results_commit'][:7]}`；{qtxt}。报告不含生成时刻，也不做在线查询：在含本报告的提交上运行 "
+        f"`/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL}` 逐字节复现本文件；`--refresh-queue` 才重新查询队列并改写快照。",
+        "",
+        "来源：数值、表格与 git 事实读自 §11 所列文件、包文件、git 对象、作业日志与队列快照。手写内容只有：文字说明；§6 各决定的选项与建议；"
+        "§5 中标为“提议”或“粗估”的参数与假设；“依赖决定”列；T01 覆盖分组、代码清单“作用”列与作业表“内容”列的描述；§6.4 的现状描述；"
+        f"§7 的原因描述（含作业 {nolog} 一行）；§11 的“包要求（出处）”列；以及标为“主会话陈述”的条目。",
         "",
         "**范围**：第一阶段只做了预检、数学/宿主接入验证与计时。**没有测量任何配准精度、S 估计质量或训练后任务表现**；"
         "本报告不含性能、加速或新颖性结论，计时表只是成本输入。",
         "",
         "**待 owner 决定 5 项（§6；每项列选项、证据与标为“建议”的默认值，本报告不作决定）**：① MF-M1 头停止规则；② TF32 策略；"
-        "③ InfoNCE 配准能量；④ T04/T05 前尚缺的基线；⑤ 数据角色（TEST、CONFIRM、EPFL 激活）。决定 1–4 之前不提交 T04/T05 作业。",
+        "③ InfoNCE 配准能量；④ T04/T05 前尚缺的基线；⑤ 数据角色（TEST、CONFIRM、EPFL 激活）。决定 1、2、4 之前不提交任何 T04/T05 作业；"
+        "InfoNCE 行另需决定 3，EPFL 行另需决定 5（§5.2“依赖决定”列）。T03 的数据生成与 smoke 等 owner 接受本阶段报告后再做"
+        f"（包第一阶段第 5 步：{step5}）；在此之前只写 T03 代码与单元测试（§5.3）。",
         "",
     ]
 
@@ -675,47 +925,58 @@ def sec1(D) -> list[str]:
     rj = result_jobs(D)
     pins = sorted({D["logs"][j]["header"]["pin"] for j in rj})
     pm_bad = D["pkg_manifest_bad"]
-    tree = ("测量代码、作业脚本、测试、v10/T00–T02 与 V9 路径无未提交改动" if not g["status_other"]
-            else "未提交改动：" + "；".join(g["status_other"]))
-    own = ("、".join(c(ln[3:]) + ("（未跟踪）" if ln.startswith("??") else "（已改动）") for ln in g["status_own"])
-           + "，二者在此 HEAD 之后的同一提交中加入") if g["status_own"] else "均已提交"
-    q = D["queue"]
-    qtxt = ("未查询（--no-squeue）" if q is None else f"squeue 失败：{q['error']}" if "error" in q
-            else f"生成时（{q['utc']}）队列中 V10 作业 {q['v10']} 个")
     backend = check_row(D, "verify_torch_cpu", "backend_copy_sha256_equals_package")["value"]
+    ident_ok = (g["tree_code_hash"] == res and g["tree_host_hash"] == cur["host_code_hash"] and g["tree_mf_sha256"] == cur["mf_vcs_sha256"])
+    q = D["queue"]
+    v10_q = [r for r in q["rows"] if r["name"].startswith("v10_")] if q else None
+    own = "、".join(c(p) for p in OWN_PATHS)
     rows = [
-        ("分支 / 生成时 HEAD", f"{c(g['branch'])} / {c(g['head'])}（{g['head_utc']}）；{tree}；本生成器与本报告：{own}"),
-        ("结果提交", f"{c(g['results_commit'][:7])}：最后一个改动 v10/T00–T02、src/v10、scripts/v10、slurm/v10 或 tests/v10 的提交（不计本生成器与本报告）"),
+        ("分支 / base", f"{c(g['branch'])} / {c(g['base'])}（{g['base_utc']}）：最近一个不只改动报告文件（{own}）的提交；"
+                      f"其后的提交只改动这些文件，这些文件以外的工作区无未提交改动（均已核对），因此测量代码、作业脚本、测试、v10/T00–T02 与 V9 路径即 base 的内容"),
+        ("结果提交", f"{c(g['results_commit'][:7])}：截至 base 最后一个改动 v10/T00–T02、src/v10、scripts/v10、slurm/v10 或 tests/v10 的提交（不计报告文件）"),
         ("测量代码身份", f"code hash {c(res)}（{' + '.join(CODE_PATHS)} 已跟踪文件，定义同 src/v10/adapter.py code_hash）："
                     f"由 git 对象在 {'、'.join(same)} 重算均得此值，等于结果作业 {'、'.join(rj)} 作业头的 code= 与 T01/T02 JSON 的 provenance；"
-                    f"作业 pin（另含 slurm/v10）{'、'.join(c(p) for p in pins)}"),
-        ("宿主与后端", f"宿主代码 hash {c(cur['host_code_hash'])}（V9-G1 g1.py + r6_reg_pilot.py + r6_reg_p2.py，只读导入）；"
-                  f"自包提交 {c(g['package_commit'][:7])} 起 src/v9、scripts/v9、slurm/v9 的 git diff "
+                    f"作业 pin（另含 slurm/v10）{'、'.join(c(p) for p in pins)}。当前树重算：code hash {c(g['tree_code_hash'])}"
+                    f"{'（= 结果）' if g['tree_code_hash'] == res else '（≠ 结果）'}、pin {c(g['tree_pin'])}"
+                    f"{'（= 结果作业 pin）' if [g['tree_pin']] == pins else '（≠ 结果作业 pin）'}"),
+        ("宿主与后端", f"宿主代码 hash {c(cur['host_code_hash'])}（V9-G1 g1.py + r6_reg_pilot.py + r6_reg_p2.py，只读导入；当前文件重算"
+                  f"{'相同' if g['tree_host_hash'] == cur['host_code_hash'] else '不同：' + g['tree_host_hash']}）；"
+                  f"自包提交 {c(g['package_commit'][:7])} 至 base，src/v9、scripts/v9、slurm/v9 的 git diff "
                   f"{'为空' if not g['v9_diff_since_package'] else '非空：' + g['v9_diff_since_package']}；"
                   f"后端 src/v10/mf_vcs.py sha256 {c(backend[:16])}… = 包 core/mf_vcs.py"),
         ("包", f"{c(PKG_REL)}（{c(g['package_commit'][:7])} 原样提交）；包 MANIFEST_SHA256.json 所列 {D['pkg_manifest_n']} 个文件"
               + ("全部一致" if not pm_bad else f"中 {len(pm_bad)} 个不一致：{', '.join(pm_bad)}")),
-        ("本报告提交的影响", f"生成器位于 scripts/v10，code hash 的定义覆盖该目录：提交后树的 code hash 变为 {c(g['tree_hash_incl'])}、"
-                     f"pin 变为 {c(g['tree_pin_incl'])}；其余测量代码不变（去掉生成器重算 = {c(g['tree_hash_excl'])}"
-                     f"{'，等于结果' if g['tree_hash_excl'] == res else '，≠ 结果：测量代码已改'}）。{qtxt}，没有按旧 pin 排队的作业。"
-                     "提交后若在新 HEAD 重跑 `t01_validate.py merge`，会把这些 part 记为 provenance 不一致；核对时应以去掉生成器的 hash 为准"),
     ]
+    for x in g["old_location"]:
+        ran = [j for j, L in D["logs"].items() if L["header"]["code"] in (x["code_hash"],)]
+        rows.append(("报告提交与 code hash", f"base 之后只有报告提交。{c(x['sha'][:7])}（本报告第一版）把生成器放在 {c(OLD_SELF_REL)}，"
+                     f"在 code hash 覆盖的目录内：该提交的 code hash 为 {c(x['code_hash'])}、pin 为 {c(x['pin'])}，"
+                     f"{'没有 V10 作业以这两个值运行' if not ran else '作业 ' + '、'.join(ran) + ' 以该值运行'}"
+                     + (f"，快照时队列中 V10 作业 {len(v10_q)} 个" if v10_q is not None else "") + "。"
+                     f"生成器现位于 {c(SELF_REL)}，不在 code hash 与 pin 的范围内。"
+                     f"T01 合并（`t01_validate.py merge`）的 provenance 规则（每个 part 的 code hash、宿主 hash、后端 sha256 等于当前树，且树干净）"
+                     f"{'对当前树成立' if ident_ok else '对当前树不成立'}。"))
+    if not g["old_location"]:
+        rows.append(("报告提交与 code hash", f"生成器位于 {c(SELF_REL)}，不在 code hash 与 pin 的范围内；T01 provenance 规则"
+                     f"{'对当前树成立' if ident_ok else '对当前树不成立'}"))
     L = ["## 1 当前真实提交", ""] + md_table(["项", "值"], rows, "ll") + [""]
     crow = []
     for x in g["commits"]:
         crow.append((c(x["sha"][:7]), x["utc"], c(x["code_hash"]) if x["code_hash"] else "—（无代码文件）", ", ".join(x["tops"]),
                      short(x["subject"])))
-    L += ["V10 提交（包提交起，git log；code hash 由 git 对象重算）：", ""]
+    L += ["V10 提交（包提交起至 base，git log；code hash 由 git 对象重算）：", ""]
     L += md_table(["提交", "UTC", "code hash", "改动路径", "说明（提交标题）"], crow, "lllll") + [""]
     # jobs
     jrows = []
     pj = D["preflight_job"]
     h = pj["header"]
     others = D["host_map"].get("v9_jobs_snapshot", {}).get("other_normal_qos_jobs_not_v9", {})
-    label = (f"T00 预检（在已存在的 CPU 作业内运行，T00 审计记为 {others[pj['job']]}；非 V10 提交）" if pj["job"] in others
-             else "T00 预检（非 V10 提交）")
-    jrows.append((pj["job"], label, c(h.get("commit", "—")), h.get("host", "—"), f"{h.get('start')} – {pj['end']}",
-                  f"exit {pj['exit']}；{D['preflight']['status']}", "v10/T00/PREFLIGHT_RUN.log"))
+    qr = queue_row(D, pj["job"])
+    qstate = (f"；作业本身在快照时 {qr['state']}" if qr else "；作业本身不在快照队列中" if q else "")
+    label = (f"T00 预检，在已有的 CPU 作业内运行（该作业不是 V10 提交的作业；T00 审计记为 {others[pj['job']]}）" if pj["job"] in others
+             else "T00 预检，在已有作业内运行（不是 V10 提交的作业）")
+    jrows.append((pj["job"], label, c(h.get("commit", "—")), h.get("host", "—"), f"预检命令 {h.get('start')} – {pj['end']}",
+                  f"exit {pj['exit']}；{D['preflight']['status']}{qstate}", "v10/T00/PREFLIGHT_RUN.log"))
     res_set = set(rj)
     nolog = {x["job"]: x for x in jobs_without_log(D)}
     for job in sorted(set(D["logs"]) | set(nolog)):
@@ -731,7 +992,7 @@ def sec1(D) -> list[str]:
         tag = "；**当前结果**" if job in res_set else "；已作废（§7）"
         jrows.append((job, kind, f"{c(hh['commit'][:7])} / {c(hh['code'])}", node, f"{hh['start']} – {Lg['end_utc']}",
                       summarize_log(Lg) + tag, Path(Lg["path"]).name))
-    L += ["作业（作业头、结束行与 part 行解析自 slurm 日志；T00 行解析自 PREFLIGHT_RUN.log）：", ""]
+    L += ["作业（作业头、结束行与 part 行解析自 slurm 日志；T00 行解析自 PREFLIGHT_RUN.log，其时间是预检命令的起止）：", ""]
     L += md_table(["作业", "内容", "提交 / code hash", "节点", "开始 – 结束（UTC）", "结果", "日志"], jrows, "lllllll") + [""]
     return L
 
@@ -788,15 +1049,19 @@ def coverage_rows(D) -> list:
 def sec2(D) -> list[str]:
     P, order = D["t01_parts"], D["t01_order"]
     pf, mbs, hm = D["preflight"], D["mbs"], D["host_map"]
-    rows = [("T00 预检（包 scripts/preflight.py，未改动）", "PASS" if not pf["errors"] else "FAIL",
-             f"状态 {pf['status']}（只表示清单已写出）；errors {len(pf['errors'])}，warnings {len(pf['data_inventory']['warnings'])}",
+    readme_q = quote_in(D["pkg_readme"], "只说明清单生成，不表示宿主接入或数据独立性已通过", "package README")
+    rows = [("T00 预检（包 scripts/preflight.py，未改动）", pf["status"],
+             f"errors {len(pf['errors'])}，warnings {len(pf['data_inventory']['warnings'])}；source_review_complete "
+             f"{str(pf.get('source_review_complete')).lower()}；不证明：{'、'.join(pf.get('does_not_certify', []))}。包 README：该状态{readme_q}",
              "v10/T00/PREFLIGHT.json、PREFLIGHT_RUN.log"),
-            ("T00 数据 manifest", "PASS" if not mbs["checks_failed"] else "FAIL",
-             f"构建检查 {mbs['checks_passed']}/{len(mbs['checks'])}；{mbs['manifest']['rows']} 行，sha256 {D['manifest_sha256'][:16]}… "
-             "= MANIFEST_SHA256.txt = 预检记录", "v10/T00/V10_DATA_MANIFEST.csv、MANIFEST_BUILD_SUMMARY.json、EXPOSURE_NOTES.md"),
-            ("T00 宿主源码映射", "PASS（已写出）",
-             f"映射状态 {hm['status']['T00_host_source_map']}；与包假设的差异 {len(hm['target_differences_vs_package'])} 项"
-             f"（{hm['target_differences_vs_package'][0]['id']}–{hm['target_differences_vs_package'][-1]['id']}）登记未改；数值接入见 T01",
+            ("T00 数据 manifest", f"构建检查 {mbs['checks_passed']}/{len(mbs['checks'])} PASS" if not mbs["checks_failed"]
+             else f"构建检查 FAIL {len(mbs['checks_failed'])}",
+             f"{mbs['manifest']['rows']} 行，sha256 {D['manifest_sha256'][:16]}… = MANIFEST_SHA256.txt = 预检记录；构建摘要没有总状态字段",
+             "v10/T00/V10_DATA_MANIFEST.csv、MANIFEST_BUILD_SUMMARY.json、EXPOSURE_NOTES.md"),
+            ("T00 宿主源码映射", hm["status"]["T00_host_source_map"],
+             f"T00 时 host_adapter_verified {str(hm['status']['host_adapter_verified']).lower()}（T00 只映射源码，数值接入见 T01）；"
+             f"与包假设的差异 {len(hm['target_differences_vs_package'])} 项"
+             f"（{hm['target_differences_vs_package'][0]['id']}–{hm['target_differences_vs_package'][-1]['id']}）登记未改",
              "v10/T00/HOST_ADAPTER_AUDIT.md、host_map.json")]
     for k in order:
         p = P[k]
@@ -819,6 +1084,8 @@ def sec2(D) -> list[str]:
             elif part == "head":
                 nmeth = len({r["method"] for r in D["long"][d] if r["layer"] == "head"})
                 det = f"fp32 + fp64，各 {len(t['protocol']['grid'])} 格 × {nmeth} 法；OOM {v['float32']['oom_count'] + v['float64']['oom_count']}"
+                if d == "cpu":
+                    det += f"；{len(cpu_outliers(D))}/{sum(1 for r in D['long']['cpu'] if r['layer'] == 'head')} 行计时异常、原因未诊断（§4.4）"
             elif part == "head_extra":
                 det = f"分块保留图 + 排列条件方差；包抽样重放核对 {v['replay_verified_cells']}/{len(t['protocol']['grid'])} 格，不一致 {len(v['replay_mismatches'])}"
             elif part == "train":
@@ -833,17 +1100,27 @@ def sec2(D) -> list[str]:
                  "v10/T02/BUDGET.json"))
     led = D["ledger"]
     n_t02 = sum(1 for r in led if r["stage"] == "T02")
-    rows.append(("UNIT_LEDGER（= 包 EXPERIMENT_UNITS.csv 的单元）", "PASS（T02 格）/ NOT_RUN（其余）",
-                 f"{len(led)} 个单元：T02 计算格 {n_t02} 个 completed（fp32 + fp64 参考）；T04/T05 {len(led) - n_t02} 个 NOT_RUN",
+    word = lambda x: re.match(r"[A-Za-z_]+", x).group(0)  # noqa: E731
+    st02 = "/".join(sorted({word(r["run_status"]) for r in led if r["stage"] == "T02"}))
+    sto = "/".join(sorted({word(r["run_status"]) for r in led if r["stage"] != "T02"}))
+    rows.append(("UNIT_LEDGER（= 包 EXPERIMENT_UNITS.csv 的单元）", f"{st02}（T02 格）、{sto}（其余）",
+                 f"{len(led)} 个单元：T02 计算格 {n_t02} 个（fp32 + fp64 参考）；T04/T05 {len(led) - n_t02} 个",
                  "v10/T02/UNIT_LEDGER.csv"))
-    tests = "；".join(f"{j} {L['tests_passed']} passed" for j, L in sorted(D["logs"].items()) if L["tests_passed"] is not None)
-    rows.append(("单元测试 tests/v10（pytest，作业内记录、不门控）", "PASS", tests, "作业日志"))
+    summ = [(j, L["tests_summary"]) for j, L in sorted(D["logs"].items()) if L["tests_summary"]]
+    clean = all("failed" not in t and "error" not in t for _, t in summ)
+    rows.append(("单元测试 tests/v10（pytest，作业内记录、不门控）", "passed（pytest 摘要）" if clean else "有 failed / error",
+                 "；".join(f"{j}：{t}" for j, t in summ), "作业日志"))
     lv = D["pkg_status"]["local_validation"]
-    rows.append(("包作者本地检查", "NOT_RUN（服务器未重跑）",
+    rows.append(("包作者本地检查", "服务器未重跑",
                  f"包记录：NumPy 数学 {lv['independent_numpy_math']}、synthetic {lv['synthetic_checks']}、语法与 manifest "
                  f"{lv['package_syntax_and_manifest_checks']} 项通过", f"{PKG_REL}/PACKAGE_STATUS.json"))
-    rows.append(("T03 受控真值 / T04 完整训练 / T05 完整配准", "NOT_RUN", "第一阶段不启动（§5 为提议）", "v10/T02/UNIT_LEDGER.csv"))
-    L = ["## 2 已完成代码/验证", ""] + md_table(["项", "状态", "计数 / 要点", "证据"], rows, "llll") + [""]
+    n_t03 = sum(1 for r in D["units_pkg"] if r["stage"].startswith("T03"))
+    rows.append(("T03 受控真值 / T04 完整训练 / T05 完整配准", "NOT_RUN",
+                 f"第一阶段不启动；T04/T05 的 {len(led) - n_t02} 个单元在 UNIT_LEDGER 中为 NOT_RUN；T03 在包单元表与 UNIT_LEDGER 中"
+                 + ("没有单元（§5.1 为提议）" if n_t03 == 0 else f"有 {n_t03} 个单元"),
+                 f"v10/T02/UNIT_LEDGER.csv；{PKG_REL}/configs/EXPERIMENT_UNITS.csv"))
+    L = ["## 2 已完成代码/验证", ""] + md_table(["项", "状态（来源记录）", "计数 / 要点", "证据"], rows, "llll") + [""]
+    L += ["状态列是各来源自身的状态值：T00 预检与宿主映射的状态不是 PASS 类状态；manifest 的构建摘要没有总状态，列其检查计数；单元测试列 pytest 摘要。", ""]
     req = sum(p["n_required"] for p in P.values())
     tot = sum(p["n_checks"] for p in P.values())
     dfail = sum(p["n_fail"] for p in P.values())
@@ -857,7 +1134,7 @@ def sec2(D) -> list[str]:
     roles = {"src/v10/mf_vcs.py": "包后端原样（sha256 = 包）", "src/v10/adapter.py": "真实宿主 adapter（V9-G1 只读导入）",
              "src/v10/__init__.py": "包初始化", "scripts/v10/t00_build_manifest.py": "T00 manifest 构建（只读元数据）",
              "scripts/v10/t01_validate.py": "T01 验证与合并", "scripts/v10/t01_host_replay.py": "T01 宿主 replay",
-             "scripts/v10/t02_timing.py": "T02 计时、BUDGET、UNIT_LEDGER", SELF_REL: "本报告生成器（不参与测量）"}
+             "scripts/v10/t02_timing.py": "T02 计时、BUDGET、UNIT_LEDGER", SELF_REL: "本报告生成器（不参与测量；不在 code hash 范围内）"}
     files = sorted({f for f in git("ls-files", "--", "src/v10", "scripts/v10", "slurm/v10", "tests/v10").splitlines() if f} | {SELF_REL})
     crow = []
     for f in files:
@@ -897,13 +1174,28 @@ def diag_rows(D) -> list:
         eff = [x["effect_over_tol"] for _, x in it]
         mult = re.search(r"exceed (\d+) x", it[0][1]["note"])
         jn = re.search(r"\(J ~ ([0-9e.+-]+)\)", it[0][1]["note"])
-        bn = re.search(r"\(bound >= ([0-9e.+-]+)\)", it[0][1]["note"])
-        gate = [x for k in P for x in P[k]["checks"] if "_detectable_" in x["name"] and "sharpened_x10_float64" in x["name"]]
-        check(gate and all(x.get("required") and x["status"] == "PASS" for x in gate), "detectability gate rows")
+        R = detect_rows(D)
+        check(sorted((k, x["name"]) for k, x in it) == sorted((r["part"], f"{r['check']}_detectable_{r['state']}_{r['dtype']}")
+                                                             for r in R if r["status"] != "PASS"), "detectability FAIL rows vs all rows")
+        gate = [r for r in R if r["state"] == "sharpened_x10" and r["dtype"] == "float64"]
+        check(gate and all(r["required"] and r["status"] == "PASS" for r in gate), "detectability gate rows")
+        check(not any(r["required"] for r in R if r not in gate), "detectability: required rows outside fp64 sharpened_x10")
+        hi = [r for r in R if r["state"] == "host_init"]
+        h64 = [r for r in hi if r["dtype"] == "float64"]
+        h64p, h64f = [r for r in h64 if r["status"] == "PASS"], [r for r in h64 if r["status"] != "PASS"]
+        f32 = [r for r in R if r["dtype"] == "float32"]
+        f32f = [r for r in f32 if r["status"] != "PASS"]
+        fchk = sorted({r["check"] for r in h64f})
+        lab = "U − V" if fchk == ["U_differs_from_V"] else "效应"
         per = Counter(k for k, _ in it)
         out.append(("可检测性（错误规则的效应是否超过等式界）", "、".join(f"{k} {v}" for k, v in per.items()), len(it),
-                    f"effect/界 = {fg(min(eff))}–{fg(max(eff))}（门槛 {mult.group(1) if mult else '?'}）",
-                    f"host_init（J 约 {jn.group(1) if jn else '?'}）与 fp32（界 ≥ {bn.group(1) if bn else '?'}）下效应按构造不足；"
+                    f"effect/界 = {fr(min(eff))}–{fr(max(eff))}（门槛 {mult.group(1) if mult else '?'}）",
+                    f"由各行记录的界 tol = atol + rtol·|J| 反推，host_init 的 |J| = {fe(min(r['J'] for r in hi))}–{fe(max(r['J'] for r in hi))}"
+                    + (f"（t01_validate.py 的说明文字写 “J ~ {jn.group(1)}”，与记录不符；测量代码未改，以记录为准）" if jn else "") + "。"
+                    f"fp64 host_init：{len(h64)} 行中 {len(h64p)} 行 PASS（effect/界 {fr(min(r['eff'] for r in h64p))}–{fr(max(r['eff'] for r in h64p))}），"
+                    f"未达门槛的只有 {'、'.join(fchk)}（effect/界 {'、'.join(fr(r['eff']) for r in h64f)}；{lab} = "
+                    f"{fe(min(abs(r['value']) for r in h64f))}–{fe(max(abs(r['value']) for r in h64f))}）；"
+                    f"fp32（界 ≥ {fe(min(r['tol'] for r in f32), 0)}）：{len(f32f)}/{len(f32)} 行未达（effect/界 ≤ {fr(max(r['eff'] for r in f32))}）。"
                     f"这类检查只在 fp64 sharpened_x10 状态门控，那 {len(gate)} 行均为必需且 PASS"))
     if classes.get("mlp"):
         it = classes["mlp"]
@@ -927,26 +1219,67 @@ def diag_rows(D) -> list:
         out.append(("M1 协议容差从 W = 0 起步", "、".join(k for k, _ in it), len(it),
                     "‖Δ‖₁ = " + " / ".join(fe(x["m1_gap_initial_equals_Delta_l1"], 4) for _, x in it)
                     + f" < {fe(it[0][1]['m1_tolerance'], 0)}；迭代 {it[0][1]['m1_iterations']}，|W|max {fg(it[0][1]['w_absmax'])}，"
-                    f"encoder 梯度 {fg(it[0][1]['encoder_grad_norm'])}", "协议设置的诊断，见 §6 决定 1"))
+                    f"encoder 梯度 {fg(it[0][1]['encoder_grad_norm'])}",
+                    "协议设置的诊断，见 §6 决定 1；这些行同时记 m1_converged = "
+                    + "/".join(sorted({str(x.get('m1_converged')).lower() for _, x in it})) + "（0 次迭代、W = 0 即判为收敛）"))
     return out
 
 
 def sec3(D) -> list[str]:
     B, proto = D["budget"], D["protocol"]
+    reg, head = proto["registration"], proto["head"]
     nm = B["not_measured_in_T02"]
     am = D["adapter_methods"]
+    c_ = B["protocol_counts"]
+    fc = family_costs(D)
+    mchk = {x["id"]: x["status"] for x in D["mbs"]["checks"]}
+    ep = sorted(k for k in mchk if k.startswith("epfl."))
+    al = ("epfl.exclusions.alignment_rule", "epfl.exclusions.size_rule")
+    check(all(k in mchk for k in al), "EPFL exclusion checks")
+    check("EPFL RGB-NIR (G2)" in D["audit_text"] and "## 2. Host source inventory and call graph" in D["audit_text"],
+          "HOST_ADAPTER_AUDIT.md: EPFL column / call graph")
+    g2 = D["host_map"]["identity_checks"]["g2_code_hash_current"]
+    g2_jobs = sorted(D["host_map"]["identity_checks"].get("g2_code_hash_printed_by_formal_jobs", {}))
+    units = D["units_pkg"]
+    fracs = sorted({(r["stage"], r["fit_fraction"]) for r in units if r["stage"] != "T02"})
+    cal_ext = reg["calibrated_extension_methods"]
+    check(not (set(cal_ext) & {r["method"] for r in units}), "calibrated extension methods are in the unit table")
+    kw = sorted({r["simplex_width"] for r in units if r["stage"] == "T04_T05" and r["method"].startswith("MF_")})
+    steps_src = next((a for a in B["assumptions"] if a.startswith("training:")), "")
+    check("(host)" in steps_src, "BUDGET training-length assumption")
+    tb = test_block(D)
+    m1 = fc["MF_VCS_M1"]
+    lam = ", ".join(fe(x, 0) for x in head["M1_ridge_sensitivity"])
+    q41 = quote(D, "训练数据25%/100%是估计—数据预算扩展")
+    q7r = quote(D, "额外lambda∈{1e-6,1e-4}仅作显式敏感性")
+    q7t = quote(D, "初始调参上限每个方法族9个候选，且附相同总调参时间预算")
+    tot = B["grid_projection_measured_methods"]["total_gpu_h"]
     L = ["## 3 仍缺的输入", "",
-         "1. **owner 决定 1–5**（§6）。决定 1、2 影响所有已测族的单元；决定 3、4 决定哪些基线能进入同一比较；决定 5 决定 TEST 与 EPFL 的使用。",
+         "1. **owner 决定 1–5**（§6）。决定 1、2 影响所有已测族的单元；决定 4 定已测族能否先跑；决定 3 定 InfoNCE 的能量；决定 5 定 TEST 与 EPFL 的使用。",
          f"2. **尚未实现或未接入 V10 的方法**（BUDGET `not_measured_in_T02`）：{'、'.join(nm)}（逐项现状见 §6.4）。"
          f"V10 trainer 只接受 {', '.join(am.get('TRAINER', []))}（src/v10/adapter.py），InfoNCE、CoMIR、核方法都未接入。",
-         f"3. **EPFL**：协议激活规则为 {c(proto['registration']['dataset_activation'])}；V10 adapter 的数据门只开放 BF_SHG 行，"
-         "EPFL 宿主路径（V9-G2 / REG-P3）尚未接入或审计；BUDGET 中的 EPFL 成本是代理值。",
+         f"3. **EPFL**：协议激活规则为 {c(reg['dataset_activation'])}。T00 已做：宿主源码映射含 EPFL（G2 / REG-P3）一列与 G2 训练、配准调用图"
+         f"（HOST_ADAPTER_AUDIT.md §2–§3；G2 代码 hash {c(g2)} = 正式 G2 作业 {'、'.join(g2_jobs)} 所印）；manifest 含 EPFL 行，EPFL 构建检查 "
+         f"{sum(mchk[k] == 'PASS' for k in ep)}/{len(ep)} PASS，其中 {'、'.join(c(k) for k in al)} 只核对 REG-P3 记录的位移、尺寸与排除名单"
+         "（元数据，未读图像）。未做：V10 adapter 接入 EPFL（数据门只开放 BF_SHG 行）、G2 / P3 路径上的 T01 核对、图像级对齐复核。"
+         "BUDGET 中的 EPFL 成本是代理值。",
          "4. **T03 代码**：包只提供离散真值生成器与检查脚本（synthetic/README.md：不含神经训练器）；V10 的 T03 训练/CAL/评估脚本尚未编写。",
          f"5. **冻结的 V10 T04/T05 协议**：包协议状态为 {c(proto['status'])}，`execution.full_training_budget_seconds` = "
          f"{json.dumps(proto['execution']['full_training_budget_seconds'])}，`independent_confirmation_source` = "
-         f"{json.dumps(proto['execution']['independent_confirmation_source'])}；"
-         "BUDGET 已给出实测投影，但单元的冻结协议（种子、CAL 规则、停止规则、TF32、能量定义）要在决定 1–5 后写定。",
+         f"{json.dumps(proto['execution']['independent_confirmation_source'])}。BUDGET 已给出实测投影，但单元的冻结协议要在决定 1–5 后写定："
+         f"种子、CAL 规则（含第 7 项的等时间调参）、K 的选择（包单元表 simplex_width = {'、'.join(kw)}，BUDGET 按 K16 计）、M1 停止规则、TF32、"
+         f"能量定义，以及训练长度（BUDGET 沿用宿主每单元 {c_['train_steps_per_unit']} 步：“{steps_src}”）。",
          f"6. **CONFIRM 数据**：T00 结论为 {c(D['mbs']['confirm_assessment']['result'])}（可登记组 {D['mbs']['confirm_assessment']['eligible_groups']}）。",
+         f"7. **包协议中未进入 UNIT_LEDGER / BUDGET 的项**（以下均不在已测合计 {fh(tot)} GPU-h 内）：",
+         f"   - FIT 25% 样本量扩展（`registration.sample_size_extension` = {json.dumps(reg['sample_size_extension'])}；设计 §4.1 {q41}）："
+         f"包单元表的 fit_fraction 只有 {'、'.join(f'{a} {b}' for a, b in fracs)}；训练步数不变时每单元成本同 100% 单元，单元数包未定。",
+         f"   - 校准扩展方法 `calibrated_extension_methods`（{'、'.join(cal_ext)}；设计 §5）：未实现，不在单元表，成本未知。",
+         f"   - M1 ridge 敏感性 λ ∈ {{{lam}}}（设计 §7 {q7r}）：每个 λ 每单元成本同 M1（BF {fs(m1['bf'])}、EPFL 代理 {fs(m1['epfl'])} GPU-h，"
+         f"{c(m1['train_config'])}）；单元数包未定。",
+         f"   - 等时间调参（设计 §7 {q7t}）：BUDGET 给每族 {c_['cal_candidates_per_family']} 个候选，各族调参成本不等（"
+         + "、".join(f"{m} {fh(v['cal'])}" for m, v in fc.items()) + " GPU-h）；统一时间预算下各族的候选数待协议冻结时定。",
+         f"   - BF-SHG TEST 重复块（决定 5 的选项 B）：粗估每单元 {tb['cores']} 个 TEST core × {tb['pert']} 个扰动 = {tb['n']} 次配准"
+         f"（只配准 CAL 选定的 checkpoint，不重训；按 BUDGET 的每次配准秒数）；已测 {len(fc)} 族 × {tb['seeds']} seed 约 {fh(tb['total'])} GPU-h。",
          ""]
     return L
 
@@ -1099,7 +1432,7 @@ def sec4(D) -> list[str]:
     return L
 
 
-DEPENDS = {"MLP_VCS_perm1": "2", "MLP_VCS_perm8": "2、4", "MF_VCS_perm1": "2", "MF_VCS_M0": "2", "MF_VCS_M1": "1、2",
+DEPENDS = {"MLP_VCS_perm1": "2、4", "MLP_VCS_perm8": "2、4", "MF_VCS_perm1": "2、4", "MF_VCS_M0": "2、4", "MF_VCS_M1": "1、2、4",
            "InfoNCE_host": "2、3、4", "CoMIR_native": "2、4", "RuLSIF_kernel": "4", "MI_native": "4", "NMI_native": "4",
            "MIND_2D_adapted": "4"}
 
@@ -1139,6 +1472,15 @@ def sec5(D) -> list[str]:
     K, lrs, seeds, ts = head["width_candidates"], head["feature_head_learning_rate_candidates"], reg["training_seeds"], reg["tuning_seed"]
     n_cfg = len(mf) * len(K) + len(mlp)
     pkg_ok = D["pkg_manifest"].get("synthetic/src/v10_synthetic.py") == syn["generator_sha256"]
+    kw = sorted({r["simplex_width"] for r in D["units_pkg"] if r["stage"] == "T04_T05" and r["method"].startswith("MF_")})
+    cal_ext = reg["calibrated_extension_methods"]
+    q7k = quote(D, "MF的K∈{8,16,32}与feature/head lr∈{1e-4,3e-4,1e-3}构成9格")
+    q11 = quote(D, "相同参考下的基础二次风险也有仿射等价")
+    qU = quote(D, "受控 iid 估计实验")
+    qQ = quote_in(D["syn_readme"], "Q(x,y)=P_X(x)P_Y(y)=1/m²", "synthetic README")
+    qDg = quote_in(D["syn_readme"], "包含对角的经验乘积与不含对角的 U 目标不同，训练器必须显式登记规则", "synthetic README")
+    est = t03_estimate(D)
+    cpu = D["slurm"]["t01_cpu.sbatch"]
     L = ["## 5 下一批具体单元与预计资源（提议，未提交）", "",
          "### 5.1 T03 受控真值（CPU / 小 GPU；T03 代码尚未编写）", "",
          f"- 数据：包生成器 `synthetic/src/v10_synthetic.py`（sha256 {syn['generator_sha256'][:16]}…，{'= 包清单' if pkg_ok else '≠ 包清单'}）的默认参数："
@@ -1146,14 +1488,27 @@ def sec5(D) -> list[str]:
          f"每条件 FIT/CAL/EVAL = {d['n_fit']}/{d['n_cal']}/{d['n_eval']} 个独立基本观测，{n_cond} 个条件共 {n_cond * per} 个。"
          f"输出写 `outputs_v10/T03/`，再跑包的 `synthetic/tests/check_synthetic.py`（包示例套件上同一脚本 {syn['check_n']} 项 {syn['check_status']}）。"
          "truth 只交给评估器。",
-         f"- 方法（建议网格）：{'、'.join(mf)} × K ∈ {{{', '.join(map(str, K))}}}，加 {'、'.join(mlp)}（整数观测 one-hot 输入）；"
+         f"- 方法（提议，待 owner 确认）：{'、'.join(mf)} × K ∈ {{{', '.join(map(str, K))}}}，加 {'、'.join(mlp)}（整数观测 one-hot 输入）；"
          f"CAL 在调参 seed {ts} 上按 CAL 经验 J 从 lr ∈ {{{', '.join(fe(x, 0) for x in lrs)}}} 中选，最终 seed {'/'.join(map(str, seeds))}："
          f"{n_cond} 条件 × {n_cfg} 配置 → 最终训练 {n_cond * n_cfg * len(seeds)} 次、CAL 候选 {n_cond * n_cfg * len(lrs)} 次。M1 行等决定 1。",
-         f"- 目标模式：包 §2.1 把 U 留作{quote(D, '受控 iid 估计实验')}；建议 V（与配准一致）为主，U 作命名的敏感性行。"
+         f"  与包的差异（都是待确认的提议选择）：① 设计 §7 把 K 与 lr 一起作为 CAL 维度（{q7k}；包单元表 simplex_width = {'、'.join(kw)}），"
+         "本提议把 K 作为报告因子、只调 lr；按设计则每个 MF 族在 CAL 上从 9 个候选中选、MLP 族从 lr 的 3 个候选中选，候选数不等，"
+         f"要配合等时间调参（§3 第 7 项）。② RuLSIF / 核（设计 §1.1：{q11}；§5 要求精确矩）与校准估计对照（{'、'.join(cal_ext)}）未列入："
+         "两者都未实现（决定 4），是否进入 T03 待确认。",
+         f"- 目标模式（待确认的协议选择）：T03 真值的参考分布是 {qQ}（synthetic/README §1）；包 §2.1 把 U 留作{qU}，README §4：{qDg}。"
+         "建议默认按包：U 为主，V 作命名行（或两者都报）。V 形式含 n 个对角（联合分布）对：E[q1_V] = (1 − 1/n)·E_Q[T] + (1/n)·E_P[T]（q2 同理），"
+         f"即 Q 项被拉向 E_P、偏差为 O(1/n)（n = 每批基本观测数；FIT 全批时 n = {d['n_fit']}）。"
          f"其他估计器按包 §6.3 {quote(D, 'MINE/DV/NWJ/SMILE/InfoNCE以各自原生量和共同下游任务比较，不用S真值给非S输出算RMSE')}，不在本提议内。",
          "- 指标（包 §6.3）：E_M(T−η)²（evaluator-only truth）、EVAL 经验 J 对 S 的 bias / variance / RMSE（跨 seed）、同一基础数据上的排列方差、M1 gap、总时间。",
          "- 需先写：`scripts/v10/t03_synthetic.py`（训练只经 `load_samples` 读 FIT/CAL，评估器单独 `load_evaluation_truth`）、单元测试与 smoke。",
-         "- 资源：CPU（cpu-high）为主，**未实测**；第一个作业 = 生成 + 检查 + 1 个条件的 smoke 计时，再写预算。",
+         f"- 资源（**粗估，未实测，只给数量级**）：第一个作业 = 生成 + 检查 + 1 个条件全部配置的 smoke 计时，1 个 CPU 作业（{cpu.get('partition')}、"
+         f"{cpu.get('cpus-per-task')} 线程、--time={cpu.get('time')}，同 slurm/v10/t01_cpu.sbatch）。全量粗估的假设：每次训练 {est['S']} 步全批"
+         f"（步数是提议的占位值）；每步成本取 CPU 数值头中位数，N = {est['nmax']} 格（≥ FIT 全批 {d['n_fit']}），均非 §4.4 异常格：perm1 ≤ {fms(est['p1'])} ms、"
+         f"perm8 ≤ {fms(est['p8'])} ms、moments ≤ {fms(est['mo'])} ms，MLP 行以同名排列列代理。由此，非 M1 的 {est['n_non_m1']} 次训练约 "
+         f"{fh(est['non_m1_h'])} 作业小时；M1 的 {est['n_m1']} 次训练每步另有 HVP 调用（T02 GPU 实测每步 "
+         + "/".join(fi(v) for _, v in sorted(est["hvp"].items())) + " 次，对应上限 " + "/".join(str(k) for k in sorted(est["hvp"]))
+         + f"），每次调用以 CPU N = {est['nmin']} 的 moments 中位 {fms(est['call_ms'])} ms 代理，合计约 "
+         + "/".join(fh(v, 1) for _, v in sorted(est["m1_h"].items())) + " 作业小时。smoke 实测后替换这些数。",
          "", "条件（精确总体 S 读自包示例套件的 truth.json；S 只取决于 family、m、ρ）：", ""]
     L += md_table(["条件", "family", "m", "ρ", "S"], [(c(x["case"]), x["family"], x["m"], fv(x["rho"]), fg(x["S"], 4)) for x in syn["cases"]], "llrrr")
     L += [""]
@@ -1166,45 +1521,62 @@ def sec5(D) -> list[str]:
     for r in plan["rows"]:
         seeds_txt = f"{r['n']}（seed {'/'.join(r['seeds'])}）" if r["seeds"] != ["not_applicable"] else f"{r['n']}（非学习，无 seed）"
         rows.append((c(r["method"]), r["dataset"], r["stage"], seeds_txt,
-                     fh(r["per_unit"]) if r["per_unit"] is not None else ("未测（仅训练步）" if r["status"] == "partially_measured" else "未测"),
-                     fh(r["sub"]) if r["sub"] is not None else "—", r["depends"], "、".join(x.split(" (")[0] for x in r["run_status"])))
+                     fs(r["per_unit"]) if r["per_unit"] is not None else ("未测（仅训练步）" if r["status"] == "partially_measured" else "未测"),
+                     fs(r["sub"]) if r["sub"] is not None else "—", r["depends"], "、".join(x.split(" (")[0] for x in r["run_status"])))
     nf = len(g["methods"])
-    cand = B["protocol_counts"]["cal_candidates_per_family"]
-    rows.append(("CAL 调参（已测族）", "BF_SHG", "T04_T05", f"{nf} 族 × {cand} 候选（调参 seed {B['protocol_counts']['tuning_seed']}）",
-                 "—", fh(g["CAL_tuning_gpu_h_BF"]), "1、2", "NOT_RUN"))
+    cand = c_["cal_candidates_per_family"]
+    rows.append(("CAL 调参（已测族）", "BF_SHG", "T04_T05", f"{nf} 族 × {cand} 候选（调参 seed {c_['tuning_seed']}）",
+                 "—", fs(g["CAL_tuning_gpu_h_BF"]), "1、2、4", "NOT_RUN"))
     L += ["### 5.2 T04/T05 单元（UNIT_LEDGER.csv；GPU-h 取 BUDGET.json，L40S；全部 NOT_RUN）", "",
-          f"每单元 = {B['protocol_counts']['train_steps_per_unit']} 训练步 + 配准 {D['budget_counts']['n_reg_bf']} 次（BF-SHG：{c_['checkpoints_per_unit']} checkpoint × "
+          f"每单元 = {c_['train_steps_per_unit']} 训练步 + 配准 {D['budget_counts']['n_reg_bf']} 次（BF-SHG：{c_['checkpoints_per_unit']} checkpoint × "
           f"{c_['bf_cal_cores']} CAL × {c_['perturbations_per_image']} + {c_['bf_dev_cores']} DEV × {c_['perturbations_per_image']}）/ {D['budget_counts']['n_reg_ep']} 次"
           f"（EPFL：{c_['checkpoints_per_unit']} × {c_['epfl_cal_windows']} CAL × {c_['perturbations_per_image']} + {c_['epfl_dev_windows']} DEV × {c_['perturbations_per_image']}，代理）；"
-          f"M1 按 {c(B['per_unit_projection']['MF_VCS_M1']['train_config'])}（迭代上限用满，上界）计。已测合计 **{fh(g['total_gpu_h'])} GPU-h**（BF-SHG {fh(g['BF_SHG_gpu_h'])} + EPFL 代理 "
-          f"{fh(g['EPFL_gpu_h_proxy'])} + BF CAL 调参 {fh(g['CAL_tuning_gpu_h_BF'])}）；“依赖决定”列为 §6 的编号。", ""]
+          f"M1 按 {c(B['per_unit_projection']['MF_VCS_M1']['train_config'])}（K16、迭代上限 30 每批用满）计，只对 K16、max_iter ≤ 30 是上界（§5.3）。"
+          f"已测合计 **{fh(g['total_gpu_h'])} GPU-h**（BF-SHG {fh(g['BF_SHG_gpu_h'])} + EPFL 代理 {fh(g['EPFL_gpu_h_proxy'])} + BF CAL 调参 "
+          f"{fh(g['CAL_tuning_gpu_h_BF'])}）。表中 GPU-h 取 3 位小数；小计与合计都由未取整的 BUDGET 值计算，显示值相加可差 0.01。"
+          "“依赖决定”列为 §6 的编号；已测族列出 4，是因为要先跑它们需要决定 4 选 B（分批）。", ""]
     L += md_table(["方法", "数据", "阶段", "单元", "每单元 GPU-h", "小计", "依赖决定", "状态"], rows, "llllrrll") + [""]
     # 5.3 batches
     sl = D["slurm"]
+    q = D["queue"]
+    cap = B["resources"]["per_user_gpu_cap"]
     bf_units = sum(r["n"] for r in plan["rows"] if r["dataset"] == "BF_SHG" and r["per_unit"] is not None)
     ep_units = sum(r["n"] for r in plan["rows"] if r["dataset"] != "BF_SHG" and r["per_unit"] is not None)
     other_units = sum(r["n"] for r in plan["rows"] if r["per_unit"] is None)
     b1 = g["CAL_tuning_gpu_h_BF"] + g["BF_SHG_gpu_h"]
+    tb = test_block(D)
     pu = B["per_unit_projection"]
     m1 = pu["MF_VCS_M1"]
-    alt = []
     m1cfg = m1["train_config"]
     kpref = m1cfg.split("_it")[0]
-    alts = sorted((k for k in B["measured"]["train_step_ms_median"] if k.startswith(kpref + "_it") and k.endswith("_capbound")),
-                  key=lambda k: int(re.search(r"_it(\d+)_", k).group(1)))
-    for cfg in alts:
-        ms = B["measured"]["train_step_ms_median"][cfg]
-        alt.append((cfg, (c_["train_steps_per_unit"] * ms / 1000 + D["budget_counts"]["n_reg_bf"] * m1["s_per_registration_median"]) / 3600))
+    tsm = B["measured"]["train_step_ms_median"]
+    alts = sorted((k for k in tsm if k.startswith(kpref + "_it") and k.endswith("_capbound")), key=lambda k: int(re.search(r"_it(\d+)_", k).group(1)))
+    alt = [(k, unit_cost(D, tsm[k], m1["s_per_registration_median"])) for k in alts]
+    ns = len(c_["training_seeds"])
+    k32 = m1cfg.replace("_K16_", "_K32_")
+    reg_k = {k: v for k, v in B["measured"]["s_per_registration_median"].items() if k.startswith("MF_moments_K")}
+    if q:
+        used, njobs = q["counts"]["normal_qos_running_gpus"], q["counts"]["normal_qos_running_gpu_jobs"]
+        share = f"V10 与 V9 共用每用户 {cap} GPU 上限：快照时 normal-QOS 已运行 {used} 个 GPU（{njobs} 个作业），空余 {max(cap - used, 0)} 个。"
+    else:
+        share = f"V10 与 V9 共用每用户 {cap} GPU 上限（无队列快照）。"
     L += ["### 5.3 建议的批次（均为提议；每批提交前再按队列规则核对）", "",
-          "- **批 0（不需 owner 决定）**：T03 数据生成 + 检查 + T03 代码与 smoke（CPU）；成本未测。",
-          f"- **批 1（决定 1、2 之后）**：BF-SHG CAL 调参 {fh(g['CAL_tuning_gpu_h_BF'])} GPU-h，再跑已测 {nf} 族 × {len(c_['training_seeds'])} seed"
-          f"（{bf_units} 单元，{fh(g['BF_SHG_gpu_h'])} GPU-h）；合计 {fh(b1)} GPU-h，V10 同时最多 {sl['v10_max']} 个作业时墙钟约 {fh(b1 / sl['v10_max'], 1)} h（不含排队）。",
-          f"- **批 2（决定 5 / EPFL 审计之后）**：EPFL 已测 {nf} 族（{ep_units} 单元，{fh(g['EPFL_gpu_h_proxy'])} GPU-h，代理值）；EPFL 的 CAL 调参未计入 BUDGET。",
+          "- **批 0a（不需 owner 决定，不提交作业）**：编写 `scripts/v10/t03_synthetic.py` 与单元测试。",
+          "- **批 0b（owner 接受本阶段报告之后，包第一阶段第 5 步）**：T03 数据生成 + 包检查 + 1 个条件的 smoke 计时，1 个 CPU 作业（§5.1）；"
+          "目标模式与方法网格按 §5.1 的确认结果；M1 行另待决定 1。",
+          f"- **批 1（决定 1、2 与 4（选 B）之后）**：BF-SHG CAL 调参 {fs(g['CAL_tuning_gpu_h_BF'])} GPU-h，再跑已测 {nf} 族 × {ns} seed"
+          f"（{bf_units} 单元，{fs(g['BF_SHG_gpu_h'])} GPU-h）；合计 {fs(b1)} GPU-h。墙钟（不含排队）：1 个 GPU 约 {fh(b1, 1)} h，2 个约 {fh(b1 / 2, 1)} h"
+          f"（V10 至多 {sl['v10_max']} 个作业）。{share}",
+          f"- **批 2（决定 5 与 EPFL 激活条件之后，§3 第 3 项）**：EPFL 已测 {nf} 族（{ep_units} 单元，{fs(g['EPFL_gpu_h_proxy'])} GPU-h，代理值）；EPFL 的 CAL 调参未计入 BUDGET。",
           f"- **批 3（决定 3、4 与实现之后）**：其余 {other_units} 个单元（{'、'.join(dict.fromkeys(r['method'] for r in plan['rows'] if r['per_unit'] is None))}）；"
           "先做 T01 式核对与 T02 式计时再定 GPU-h。",
-          f"- M1 迭代上限的成本（BF-SHG 每单元 GPU-h，按 BUDGET 同一公式由 T02 步时推算；BUDGET 只含 {c(m1cfg)}）："
-          + "；".join(f"{c(k)} {fh(v)}" for k, v in alt)
-          + f"。包把 max_iter ∈ {{{', '.join(map(str, D['protocol']['head']['M1_max_iterations_candidates']))}}} 也算作调参，BUDGET 的 CAL 调参未含此维度。", ""]
+          f"- **批 4（决定 5 选 B，V10 协议冻结后）**：BF-SHG TEST 重复块，粗估 {fs(tb['total'])} GPU-h（§3 第 7 项）。",
+          f"- M1 迭代上限的成本（按 BUDGET 同一公式由 T02 步时推算；BUDGET 只含 {c(m1cfg)}）："
+          + "；".join(f"{c(k)}：BF 每单元 {fs(u['bf'])}、{ns} seed {fs(ns * u['bf'])}，EPFL 代理每单元 {fs(u['epfl'])}、{ns} seed {fs(ns * u['epfl'])}，"
+                     f"CAL 调参（{cand} 候选）{fs(u['cal'])}" for k, u in alt)
+          + f" GPU-h。包把 max_iter ∈ {{{', '.join(map(str, head['M1_max_iterations_candidates']))}}} 也算作调参，BUDGET 的 CAL 调参未含此维度。"
+          + (f"K32 也略高于 K16：{c(k32)} {fms(tsm[k32])} ms/步（K16 {fms(tsm[m1cfg])}），moments 配准 "
+             f"{fs(reg_k.get('MF_moments_K32'))} s/次（K16 {fs(reg_k.get('MF_moments_K16'))}）；BUDGET 按 K16 计。" if k32 in tsm else ""), ""]
     return L
 
 
@@ -1217,12 +1589,25 @@ def sec6(D) -> list[str]:
     # ---- 1
     a = {dev: check_row(D, f"adapter_{dev}", "MF_M1_protocol_tolerance_from_W0_moves_W_and_trains_encoders") for dev in ("cpu", "cuda")}
     cb = {dev: check_row(D, f"adapter_{dev}", "MF_M1_cap_binding_step_logs_gap_iterations_hvp") for dev in ("cpu", "cuda")}
+    sc32 = check_row(D, "adapter_cpu", "M1_strict_converged_host_init_float32")
+    ss32 = check_row(D, "adapter_cpu", "M1_strict_converged_sharpened_x10_float32")
+    check(sc32 and ss32 and all(check_row(D, "adapter_cuda", n)["iterations"] == check_row(D, "adapter_cpu", n)["iterations"]
+                                for n in ("M1_strict_converged_host_init_float32", "M1_strict_converged_sharpened_x10_float32")),
+          "M1 strict fp32 rows: CPU and CUDA iteration counts")
+    lg = D["logs"]
+    rjobs = result_jobs(D)
+    durs = {("GPU" if "gpu" in lg[j]["header"]["script"] else "CPU"): job_minutes(lg[j]) for j in rjobs}
     cw = {dev: check_row(D, f"adapter_{dev}", "MF_M1_cap_binding_W_is_inner_solution_nonzero_in_box") for dev in ("cpu", "cuda")}
     tr = {r["config"]: r for r in D["long"]["cuda"] if r["layer"] == "train_step"}
     rec = next((k for k, r in tr.items() if r["status"] == "completed_record_only"), None)
     cap = t2c["protocol"]["m1_cap_binding_tolerance"]
     capcfg = [k for k, r in tr.items() if r["method"] == "MF_M1" and num(r["m1_tolerance"]) == cap]
     tol = head["M1_gap_absolute_target"]
+    m1cfg_b = D["budget"]["per_unit_projection"]["MF_VCS_M1"]["train_config"]
+    k100 = m1cfg_b.replace("_it30_", "_it100_")
+    check(k100 in D["budget"]["measured"]["train_step_ms_median"], "BUDGET: it100 step time")
+    m1_100 = unit_cost(D, D["budget"]["measured"]["train_step_ms_median"][k100],
+                       D["budget"]["per_unit_projection"]["MF_VCS_M1"]["s_per_registration_median"])
     L += ["### 6.1 决定 1：MF-M1 头的停止规则（影响全部 MF_VCS_M1 单元与 T03 的 M1 行）", "",
           f"- **问题**：协议 `head.M1_gap_absolute_target` = {fe(tol, 0)}（绝对 FW gap；包 §7：{quote(D, 'gap目标1e-4是起始工程容差，达到iteration cap时报告不足，不硬称精确包络梯度')}），包的起点 W = 0，W = 0 处的 FW gap 恰为 ‖Δ‖₁"
           "（Δ = F 在 W = 0 处对 W 的梯度，即 P 与 Q 的一阶矩差 E_P[abᵀ] − E_Q[abᵀ]）。‖Δ‖₁ 低于目标时求解器第 0 次迭代即停：W 保持 0，"
@@ -1239,7 +1624,10 @@ def sec6(D) -> list[str]:
                                                  else f"（都在 {t2c['protocol']['train_warmup']} 个 warmup 步内）" if s["lead_degenerate"] < t2c["protocol"]["train_warmup"] else "")
               + f"全部 0 次迭代、W = 0、J = 0，各步 ‖Δ‖₁ ∈ [{fe(s['lead_delta'][0])}, {fe(s['lead_delta'][1])}]；"
               f"第 {s['first_active'][0] + 1} 步（index {s['first_active'][0]}）‖Δ‖₁ = {fe(s['first_active'][1])} 超过目标后才开始迭代；"
-              f"之后计时 {s['n_timed']} 步中 W = 0 的 {s['timed_w0']} 步、收敛 {s['timed_conv']} 步。即起步时刻由 batch 间 ‖Δ‖₁ 的波动决定。"]
+              f"之后计时 {s['n_timed']} 步中 W = 0 的 {s['timed_w0']} 步、收敛 {s['timed_conv']} 步。即起步时刻由 batch 间 ‖Δ‖₁ 的波动决定。"
+              f"这 {s['lead_degenerate']} 个退化步在逐步文件中记为 m1_converged = {'/'.join(str(x).lower() for x in s['lead_converged'])}、"
+              f"m1_status = {'/'.join(s['lead_status'])}：求解器的“收敛”标志掩盖了退化；上句的“收敛 {s['timed_conv']} 步”只指计时窗口。"
+              f"T01 的诊断行同样记 m1_converged {str(a['cpu']['m1_converged']).lower()}。"]
     if capcfg and ps:
         fd = defaultdict(list)
         for k in capcfg:
@@ -1249,18 +1637,32 @@ def sec6(D) -> list[str]:
               + f"，均 < {fe(tol, 0)}。",
               f"- **证据 T02 上限强制行**（tolerance {fe(cap, 0)}）：" + "；".join(
                   f"{c(k)} 计时步 gap 中位 {fe(num(tr[k]['m1_gap_median']), 3)}、最小 {fe(ps[k]['timed_min_gap'], 3)}" for k in capcfg if k in ps)
-              + (f"。计时步中没有一步的 gap 到达 {fe(tol, 0)}：一旦起步，迭代上限总是先到。" if all(ps[k]["timed_min_gap"] > tol for k in capcfg if k in ps)
-                 else f"。部分计时步的 gap 低于 {fe(tol, 0)}。")]
+              + (f"。在 host init 后的计时窗口（index {t2c['protocol']['train_warmup']}–{t2c['protocol']['train_warmup'] + t2c['protocol']['train_timed'] - 1}）"
+                 f"中，上限 {'/'.join(str(x) for x in sorted({ps[k]['max_it'] for k in capcfg if k in ps}))} "
+                 f"下没有一步的 gap 到达 {fe(tol, 0)}，迭代上限先到；这只覆盖训练开始后的这几十步。"
+                 if all(ps[k]["timed_min_gap"] > tol for k in capcfg if k in ps) else f"。部分计时步的 gap 低于 {fe(tol, 0)}。")
+              + (f"T01 的严格行（同一 batch 上从 seeded W 起步，起始 gap {fe(sc32['gap_at_start'], 2)}）在 {sc32['iterations']} 次迭代内到达 "
+                 f"{fe(sc32['gap'], 2)} < {fe(tol, 0)}（fp32 host_init；sharpened_x10 需 {ss32['iterations']} 次）：迭代足够时 {fe(tol, 0)} 可以达到。"
+                 if sc32 and ss32 else "")]
     L += ["- **选项**：",
-          f"  - A 尺度相对目标：G(W) ≤ ε_rel·‖Δ‖₁（同一 batch、同一目标；W = 0 时相对 gap 为 1，至少迭代一次）。以 |F| 作分母不合适（W = 0 时 F = 0）。",
+          "  - A 尺度相对目标：G(W) ≤ ε_rel·‖Δ‖₁（同一 batch、同一目标；W = 0 时相对 gap 为 1，至少迭代一次）。",
+          (f"  - A2 相对 |F| 的目标：G(W) ≤ ε·|F(W)|。W = 0 处 F = 0 而 G = ‖Δ‖₁ > 0，规则不满足，求解器同样会迭代（这一点与 A 相同）。"
+           f"缺点：host init 附近 |F| 很小（ridge = 0 时 F = J；T02 记录行 index {ps[rec]['first_active'][0]}：{ps[rec]['first_active_rec']['m1_iterations']} 次迭代后 "
+           f"J = {fe(ps[rec]['first_active_rec']['J'])}、gap = {fe(ps[rec]['first_active_rec']['m1_gap'])}），ε·|F| 远低于可达到的 gap，上限会用满；"
+           "P 与 Q 越接近，F 的最优值越小，规则越严。" if rec in ps and ps[rec]["first_active_rec"] else
+           "  - A2 相对 |F| 的目标：G(W) ≤ ε·|F(W)|；W = 0 处规则不满足，求解器同样迭代；|F| 小时规则很严。"),
           "  - B 非零起点 W：例如现有的 seeded uniform 初始化（目前只用于检查与计时）或取 M0 的 W。现实现已在 batch 间热启动（沿用上一 batch 的 W），"
           "问题只出在训练起点 W = 0；非零起点使 M1 与 M0 / perm1（均从 W = 0 起）的初始化不对称，须登记。",
-          "  - C 更小的绝对目标：仍随 K、温度与特征尺度变化；按上面的 gap，一旦起步，上限总是先到。",
+          "  - C 更小的绝对目标（例如低于 host init 的 ‖Δ‖₁）：可避开 W = 0 处的停滞，但仍随 K、温度与特征尺度变化；在 T02 的计时窗口中，"
+          "上限 10/30/100 已先于 1e-4 用满，目标更小只会让上限更常用满。",
           f"  - D 维持 {fe(tol, 0)}：起步延迟取决于 batch 噪声（T02 记录行中为 {ps[rec]['lead_degenerate'] if rec in ps else '?'} 步）。",
           f"- **建议默认（建议，未执行）**：A，ε_rel = {fe(PROPOSAL['m1_relative_gap_target'], 0)}；迭代上限沿用包的 "
           f"{{{', '.join(map(str, head['M1_max_iterations_candidates']))}}} 作为 CAL 维度；require_converged = "
-          f"{str(head['M1_require_converged_training'])}，逐批记录 gap 与 ‖Δ‖₁；W 起点保持 0。需改 `M1Config`（src/v10/adapter.py）"
-          "并重跑 T01 的 M1 行（小）；BUDGET 的 M1 成本（迭代上限用满）在 A 下仍是上界。", ""]
+          f"{str(head['M1_require_converged_training'])}，逐批记录 gap 与 ‖Δ‖₁；W 起点保持 0。需改 `M1Config`（src/v10/adapter.py）："
+          "这会改变 code hash，按 T01 的 provenance 规则，全部 T01 part 要在新代码上重跑后 host_adapter_verified 才再为 true（第一阶段："
+          + "、".join(f"{k} 作业 {v:.0f} min" for k, v in sorted(durs.items())) + "）。"
+          f"BUDGET 的 M1 成本（{c(m1cfg_b)}）只对 K16、max_iter ≤ 30 是上界；选 100 时 BF 每单元 {fs(m1_100['bf'])} GPU-h（§5.3）。"
+          "A 下上限是否每批用满取决于各 batch 的 ‖Δ‖₁（热启动后的 batch 未记录 ‖Δ‖₁）；若每批用满，capbound 步时就是预期成本而非宽松上界。", ""]
     # ---- 2
     geo = {}
     for k in ("geometry_cpu", "geometry_cuda"):
@@ -1276,6 +1678,14 @@ def sec6(D) -> list[str]:
         if mt:
             tl[mt.group(1)] = f"{mt.group(1)}（{mt.group(2)}°）"
     tol32 = D["tv"]["tolerances_design"]["float32"]
+    ieee = [x for (dev, mode, _, _), x in geo.items() if dev == "cuda" and mode == "cudnn_conv_ieee"]
+    check(ieee and all("fp32_precision=ieee" in x.get("note", "") for x in ieee), "IEEE convolution rows")
+    full_cpu = check_row(D, "adapter_cpu", "MLP_dense_full_float32_grads_vs_float64_value_same_inputs")
+    full_cuda = check_row(D, "adapter_cuda", "MLP_dense_full_float32_grads_vs_float64_value_same_inputs")
+    gname = "MLP_dense_blocked_checkpointed_vs_full_grads_float32"
+    old_jobs = [j for j in sorted(D["logs"]) if gname in D["logs"][j]["required_rows"]]
+    old = [D["logs"][j]["required_rows"][gname]["worst_err_over_bound"] for j in old_jobs]
+    check(old, "fp32 gated row of the failed jobs")
     check(all(x["allclose"] for x in geo.values()), "geometry fp32 vs fp64 rows not all within the fp32 bound")
     grow = []
     for st, tt in states:
@@ -1286,16 +1696,21 @@ def sec6(D) -> list[str]:
     rep = re.search(r"([\d.]+) px on RTX PRO 6000, ([\d.]+) px on L40S", D["host_map"]["environment_numerics"]["repeatability_v9_finding"])
     L += ["### 6.2 决定 2：TF32 策略（全部 GPU 方法）", "",
           f"- **问题**：torch {env['torch']} 默认 cuDNN fp32 卷积用 TF32（作业环境 `cudnn_conv_fp32_precision = {env['cudnn_conv_fp32_precision']}`），"
-          f"fp32 matmul = `{env['float32_matmul_precision']}`；宿主文件中没有任何精度开关（T00）。第一阶段全部 CUDA 计时与 T01 的 CUDA fp32 行都在此默认下运行。",
+          f"fp32 matmul = `{env['float32_matmul_precision']}`；宿主文件中没有任何精度开关（T00）。第一阶段全部 CUDA 计时与 T01 的 CUDA fp32 行都在此默认下运行，"
+          f"只有 {len(ieee)} 行 IEEE 卷积几何诊断例外（cuDNN conv fp32_precision = ieee，下表最后一列）。",
           f"- **证据**：几何梯度 fp32 对 fp64 的最大相对误差（T01 geometry 诊断行，同一 fp32 舍入权重；全部在 fp32 门限 atol {fe(tol32['atol'], 0)} + rtol "
           f"{fe(tol32['rtol'], 0)} 内，但 host_init 行的参考梯度低于 atol，该门限在此不敏感）：", ""]
     L += md_table(["状态 / 变换", "参考 max|g|", "参考 / atol", "CPU", "L40S 默认（TF32 卷积）", "L40S IEEE 卷积"], grow, "lrrrrr") + [""]
     L += [f"  V9 记录：学习型 critic 的配准不逐位可重复（同设备最大 {rep.group(1) if rep else '?'} px RTX PRO 6000、{rep.group(2) if rep else '?'} px L40S），"
           "原因未定位（host_map.json）。BUDGET 的全部 GPU 成本在 TF32 卷积下测得，IEEE 卷积下的成本未测。"
-          f"包 §6.1：{quote(D, '若大规模fp32消减错误超限，使用显式更高精度积累并把成本计入')}；T01 的 fp32 门控行没有超限。",
+          f"包 §6.1：{quote(D, '若大规模fp32消减错误超限，使用显式更高精度积累并把成本计入')}。T01 中出现过这种情形：CPU 上 fp32 全图 dense-MLP"
+          f"（{full_cpu.get('n_pairs') or check_row(D, 'adapter_cpu', gname).get('n_pairs')} 对求和）对 fp64 的最大误差 {fe(full_cpu['max_abs_err'])}（当前为诊断行，{full_cpu['status']}）；"
+          f"作业 {' / '.join(old_jobs)} 中含该全图路径的 fp32 门控行（分块 vs 全图）为 fp32 界的 {fg(max(old))} 倍。"
+          f"它是由主会话改变门控对象处理的（§8），没有采用 §6.1 的更高精度累加；CUDA 上该全图路径 {fe(full_cuda['max_abs_err'])}（{full_cuda['status']}）。",
           "- **选项**：A 全部方法保持 torch 默认并写进协议（作业环境已逐次记录这些开关）；B 全部方法关闭 TF32（cuDNN conv fp32_precision = ieee）："
-          "几何梯度误差降到上表 IEEE 列的量级，需先重测 T02 train / register；C 训练用默认、测试与配准能量用 IEEE：训练与测试数值设置不同，须登记。",
-          "- **建议默认（建议，未执行）**：A——所有方法同一设置，与 V9 宿主和已测 BUDGET 一致；若 owner 更看重跨 GPU 型号的数值可重复性，选 B 并先补测成本。", ""]
+          "实测的效果只有上表一项——L40S 上几何梯度误差降到 IEEE 列的量级；对可重复性（同设备或跨型号）的影响未测（只测了 L40S，V9 不可重复的原因未定位）；"
+          "需先重测 T02 train / register 的成本；C 训练用默认、测试与配准能量用 IEEE：训练与测试数值设置不同，须登记。",
+          "- **建议默认（建议，未执行）**：A——所有方法同一设置，与 V9 宿主和已测 BUDGET 一致。B 能改善可重复性只是未经检验的假设；若 owner 选 B，先补测其成本。", ""]
     # ---- 3
     d3 = next(x for x in D["host_map"]["target_differences_vs_package"] if x["id"] == "D3")
     rg = [r for r in D["long"]["cuda"] if r["layer"] == "registration" and r["phase"] == "registration"]
@@ -1308,7 +1723,7 @@ def sec6(D) -> list[str]:
           "（T02_LONG_cuda.csv）；T02 未测任何 InfoNCE 能量。",
           "- **选项**：A 宿主能量：InfoNCE 训练 + J(tanh f) perm1 能量（与 V9 定义相同，表中命名 InfoNCE_host[J]）；B 原生 InfoNCE 能量："
           "每个候选需要 N×N 打分与候选归一化，是新定义，需实现、T01 式核对与 T02 式计时；C A 进主表，B 作单列命名变体。",
-          "- **建议默认（建议，未执行）**：A（命名明确，表注披露 D3）；B 只在实测成本后作为单列变体（即 C）。", ""]
+          "- **建议默认（建议，未执行）**：A（命名明确，表注披露 D3）。C（A 进主表、B 作单列命名变体）要等 B 实现并实测成本后由 owner 另行决定。", ""]
     # ---- 4
     B = D["budget"]
     nm = B["not_measured_in_T02"]
@@ -1322,7 +1737,7 @@ def sec6(D) -> list[str]:
     L += ["### 6.4 决定 4：T04/T05 之前尚缺的基线", ""]
     L += md_table(["方法", "V10 现状", "BUDGET 记录"], st, "lll") + [""]
     meas = B["grid_projection_measured_methods"]["methods"]
-    L += [f"- **选项**：A 全部实现并核对后再启动任何 T04 单元；B 分批：已测 {len(meas)} 族（{'、'.join(meas)}）在决定 1–2 后先跑，"
+    L += [f"- **选项**：A 全部实现并核对后再启动任何 T04 单元；B 分批：已测 {len(meas)} 族（{'、'.join(meas)}）在决定 1、2 后先跑（§5.3 批 1），"
           "各基线并行实现 → T01 式核对 → T02 式计时 → 在同一冻结协议下补跑；全部基线完成前不写任何比较结论；"
           "C 删减基线（包要求强基线与 same-data / same-total-cost 比较，不建议）。",
           "- **建议默认（建议，未执行）**：B。", ""]
@@ -1334,12 +1749,18 @@ def sec6(D) -> list[str]:
     resid = re.search(r"residual of about (\d+) native px", D["exposure_notes"])
     thr = proto["registration"]["threshold_native_px"]
     rd = D["reads"]
+    rp = bf["slide_position_overlap"]["role_pairs"]
+    check(sum(rp.values()) == bf["slide_position_overlap"]["shared_positions"], "TMA role pairs vs shared positions")
+    rp_txt = "、".join(f"{k.replace(' / ', '/')} {v}" for k, v in rp.items())
+    rp_other = lambda role: sum(v for k, v in rp.items() if role in k.split(" / ") and k.split(" / ") != [role, role])  # noqa: E731
     L += ["### 6.5 决定 5：数据角色（TEST、CONFIRM、EPFL）", "",
           f"- **证据（T00）**：BF-SHG {mb['counts']['bf_total_records']} 个 core 全部已被读过（{bf['trainval_cores']} 个 train/validation 由 R6/V9 使用；"
           f"{bf['test_cores']} 个官方 test 由 V9-G1 做过一次确认读取，读取开始 {bf['test_read_utc']}）；EPFL {ep['pairs']} 对全部被 REG-P3 审计读过"
           f"（其中 {len(ep['p60_ids'])} 对另被 P60 读过）；可登记为 CONFIRM 的组 {mb['confirm_assessment']['eligible_groups']} 个。"
           f"TEST 在 V10 manifest 中为 HOLD（role DEV、inclusion exclude，{hold} 行）。{bf['slide_position_overlap']['shared_positions']} 个 TMA 位置同时出现在 "
-          f"1B 与 2B 两张切片，是否同一组织块未记录。EPFL 保留 {ep['kept']} 个窗口（对齐排除 {ep['excluded_alignment']}、尺寸排除 {ep['excluded_size']}），"
+          f"1B 与 2B 两张切片（两张切片上的角色对：{rp_txt}）；1B 与 2B 是否同一组织块的切片未记录，若是，这些位置是同一 specimen 处于两个角色"
+          f"（EXPOSURE_NOTES.md §5）。这关系到选项 A 的 DEV 表（DEV 与其他角色同位 {rp_other('DEV')} 个）和选项 B 的 TEST 块"
+          f"（TEST(V9) 与其他角色同位 {rp_other('TEST(V9)')} 个）。EPFL 保留 {ep['kept']} 个窗口（对齐排除 {ep['excluded_alignment']}、尺寸排除 {ep['excluded_size']}），"
           f"发布对齐的残差约 {resid.group(1) if resid else '?'} native px，严格阈值 {fg(thr['EPFL_RGB_NIR'][1])} native px 接近该限。"
           + ("V10 adapter 的数据门只开放 BF_SHG 行（src/v10/adapter.py DataGuard）。" if D["adapter_methods"].get("bf_only_gate") else "")
           + f"第一阶段实际读取：FIT {rd.get('FIT', 0)} 个 core、DEV {rd.get('DEV', 0)} 个 core（仅 T02 计时，未训练模型，"
@@ -1347,8 +1768,10 @@ def sec6(D) -> list[str]:
           f"  包 §4.3：{quote(D, 'V9已读或参与方法设计的集合，在V10仍是开发/重复benchmark。')}",
           f"- **选项**：A BF-SHG 只用 DEV（{bf['roles']['DEV']} 个 core）作开发主表；B 另把 {bf['test_cores']} 个 TEST core 作为单独的重复基准块"
           "（V10 协议冻结后、新 manifest 版本；与 DEV 分表、不合并）；C 寻找新的 CONFIRM 数据（超出现有授权，需单独提案；T00 未评估服务器上的其他数据）。"
-          "EPFL：在 V10 的 EPFL 宿主路径（V9-G2 / REG-P3）adapter 与对齐审计完成后激活，单独分表。",
-          "- **建议默认（建议，未执行）**：A 立即；B 在 V10 协议冻结后；EPFL 审计后激活；全部结论标为开发 / 重复基准结果；C 只作独立提案。", ""]
+          f"EPFL：激活规则 {c(proto['registration']['dataset_activation'])} 中，manifest 与元数据级的对齐 / 排除检查已在 T00 完成（§3 第 3 项）；"
+          "仍缺 V10 adapter 接入 EPFL 与 G2 / P3 路径上的 T01 核对。元数据级检查是否足以算作规则中的“对齐审计”，还是需要图像级复核，请 owner 确定；之后单独分表。",
+          "- **建议默认（建议，未执行）**：A 立即；B 在 V10 协议冻结后；EPFL 在 adapter 接入与 T01 核对完成（及 owner 认定的对齐审计）后激活；"
+          "全部结论标为开发 / 重复基准结果；C 只作独立提案。", ""]
     return L
 
 
@@ -1391,8 +1814,12 @@ def sec7(D) -> list[str]:
         rows.append((x["job"], "—", "未运行（排队中取消）", "pin 指向门控修改之前的代码", f"{c(x['commit'][:7])}：“{x['sentence']}”", "无日志"))
     L = ["## 7 失败尝试（保留原因与原日志）", ""]
     L += md_table(["作业", "提交 / code hash", "失败内容", "原因", "相关提交（git）", "日志与原始文件"], rows, "llllll") + [""]
-    L += ["这些作业的结果文件已被结果作业取代（结果提交链见 §1），日志与 part 文件原样保留；没有任何失败行被删除或改判，"
-          "fp32 门控的修改见 §8。", ""]
+    gname = "MLP_dense_blocked_checkpointed_vs_full_grads_float32"
+    cur = check_row(D, "adapter_cpu", gname)
+    was = [j for j, Lg in sorted(D["logs"].items()) if gname in [f for p in Lg["parts"] for f in p["required_failures"]]]
+    check(cur is not None and not cur.get("required"), f"{gname}: current row should be diagnostic")
+    L += [f"这些作业的结果文件已被结果作业取代（结果提交链见 §1），日志与 part 文件原样保留，没有删除任何行。作业 {'、'.join(was)} 之后，"
+          f"fp32 行 {c(gname)} 由必需改为诊断（当前 T01 CPU 中仍为 {cur['status']}，{fe(cur['max_abs_err'])}）：这一行的门控被改判，见 §8。", ""]
     return L
 
 
@@ -1406,15 +1833,22 @@ def sec8(D) -> list[str]:
     blk = {k: check_row(D, k, "MLP_dense_blocked_checkpointed_float32_grads_vs_float64_value_same_inputs") for k in ("adapter_cpu", "adapter_cuda")}
     f64 = {k: check_row(D, k, "MLP_dense_blocked_checkpointed_vs_full_grads_float64") for k in ("adapter_cpu", "adapter_cuda")}
     npairs = check_row(D, "adapter_cpu", "MLP_dense_blocked_checkpointed_vs_full_grads_float32").get("n_pairs")
+    mlp_units = sorted({r["method"] for r in D["ledger"] if r["method"].startswith("MLP_") and r["stage"] != "T02"})
+    check(mlp_units and not any("dense" in m for m in mlp_units), "a T04/T05 unit uses MLP dense")
     only_fp32 = [j for j, Lg in sorted(D["logs"].items())
                  if [f for p in Lg["parts"] for f in p["required_failures"]] == ["MLP_dense_blocked_checkpointed_vs_full_grads_float32"]]
     L += [f"  - 内容：fp32 的 dense-MLP 门控改为“分块 / checkpoint 的 fp32 实现 vs 同一输入的 fp64 值”（必需）；fp32 全图实现与 fp32 分块 vs 全图之差保留为诊断；"
-          f"fp64 仍门控分块 vs 全图（{'、'.join(f'{k} {v['status']}' for k, v in f64.items())}）。容差未改：fp64 atol {fe(tvd['float64']['atol'], 0)} / rtol "
+          f"fp64 仍门控分块 vs 全图（{'、'.join(k + ' ' + v['status'] for k, v in f64.items())}）。容差未改：fp64 atol {fe(tvd['float64']['atol'], 0)} / rtol "
           f"{fe(tvd['float64']['rtol'], 0)}，fp32 atol {fe(tvd['float32']['atol'], 0)} / rtol {fe(tvd['float32']['rtol'], 0)}。",
           f"  - 证据（当前 T01）：CPU 上 fp32 全图（对 {npairs} 对求和）对 fp64 的最大误差 {fe(full['adapter_cpu']['max_abs_err'])}，分块 fp32 为 "
           f"{fe(blk['adapter_cpu']['max_abs_err'])}；CUDA 上分别为 {fe(full['adapter_cuda']['max_abs_err'])} 与 {fe(blk['adapter_cuda']['max_abs_err'])}。",
           f"  - 影响：作业 {'、'.join(only_fp32) or '—'} 的唯一必需失败由此消除；当时排队的作业 {'、'.join(x['job'] for x in jobs_without_log(D)) or '—'} "
-          "因 pin 过期被取消（§7）。", ""]
+          "因 pin 过期被取消（§7）。",
+          f"  - 与包 §6.1 的关系：改判前，fp32 全图 dense-MLP（大规模 fp32 累加）在 CPU 上超出 fp32 界（§6.2）。§6.1 规定的补救是"
+          f"{quote(D, '使用显式更高精度积累并把成本计入')}；本决定没有这样做，而是把 fp32 门控对象换成分块 / checkpoint 实现。"
+          f"受影响的只有 CPU 上的 fp32 全图路径（CUDA {fe(full['adapter_cuda']['max_abs_err'])}，{full['adapter_cuda']['status']}）；"
+          f"UNIT_LEDGER 的 T04/T05 单元不使用 MLP dense（MLP 单元为 {'、'.join(mlp_units)}），T02 只对 `MLP_dense` 计时。"
+          "该决定由主会话作出、未经 owner 确认；owner 若要求按 §6.1 处理，需为全图路径加更高精度累加并计入成本，再按 provenance 规则重跑全部 T01 part。", ""]
     ad = (REPO / "src" / "v10" / "adapter.py").read_text()
     clip = re.search(r"clip_norm: float = ([\d.]+)\s+# (.*)", ad)
     warm = re.search(r"# (warm start of the next batch[^\n]*)", ad)
@@ -1451,11 +1885,40 @@ def sec9(D) -> list[str]:
          f"CPU 作业 partition {cpu.get('partition')}、--nice={cpu.get('nice')}、--time={cpu.get('time')}。V10 与 V9-N2 共用每用户 GPU 上限，V9 作业未取消。",
          f"- {MAIN_SESSION['attribution']}：第一阶段为让 V10 GPU 作业（--time={gpu.get('time')}）启动，主会话临时把排队中的 V9 作业 nice 最多调高 {MAIN_SESSION['nice_raise_max']}，"
          f"并在该作业启动时（{MAIN_SESSION['nice_restored_utc']}）恢复原值。可核对的时间：作业 {gj[0] if gj else '—'} 作业头开始 {gstart}，"
-         f"首个 CUDA part 开始 {first_cuda}（T01 JSON）。",
-         f"- BUDGET 生成时的队列快照（{qs['utc']}）：normal-QOS {qs['normal_qos_count']}，GPU 分区上运行中（全部 QOS）{qs['running_gpu_jobs']}，排队 {qs['pending']}。",
-         ("- 本报告生成时：未查询队列（--no-squeue）。" if q is None else f"- 本报告生成时：squeue 失败（{q['error']}）。" if "error" in q else
-          f"- 本报告生成时（{q['utc']}）：V10 作业 {q['v10']} 个；normal-QOS {q['normal']}；v9n2_* 运行 {q['v9n2_running']}、排队 {q['v9n2_pending']}。"),
-         "- 本报告未提交、取消、hold 或修改任何作业。", ""]
+         f"首个 CUDA part 开始 {first_cuda}（T01 JSON）。"]
+    na = nice_audit(D)
+    if q:
+        n9 = len(na["ok"]) + len(na["bad"]) + len(na["unknown"])
+        txt = (f"- 用队列快照（{q['utc']}）核对上一条：提交值 = sbatch 脚本的 `#SBATCH --nice`，脚本没有此行时取 V9 作业记录。{n9} 个 V9 作业中 "
+               f"{len(na['ok'])} 个等于提交值")
+        if na["bad"]:
+            txt += f"，**{len(na['bad'])} 个不等**：" + "；".join(
+                f"{r['job']} `{r['name']}`（{r['state']}，{r['partition']}，开始 {r['start_utc']}）nice {r['nice']}，提交值 {r['expected']}（{r['source']}）"
+                for r in na["bad"])
+        else:
+            txt += "，没有不等的"
+        txt += (f"；{len(na['unknown'])} 个无法判定（" + "、".join(r["job"] for r in na["unknown"]) + "）" if na["unknown"] else "") + "。"
+        for r in na["bad"]:
+            early = r["start_utc"] and r["start_utc"] < MAIN_SESSION["nice_restored_utc"]
+            diff = r["nice"] - r["expected"]
+            txt += (f"{r['job']} 在恢复时刻之前已开始运行，nice 比提交值高 {diff}（"
+                    + ("等于" if diff == MAIN_SESSION["nice_raise_max"] else "不等于") + f"所述最多调高的 {MAIN_SESSION['nice_raise_max']}）"
+                    + ("，与“恢复只作用于当时仍在排队的作业”一致。" if early else "。"))
+        if na["bad"]:
+            txt += "运行中作业的 nice 不影响调度，但作业若被重新排队会带着这个值。V9 作业归主会话处理，本报告未改动；列为待主会话处理的事项。"
+        L.append(txt)
+    L.append(f"- BUDGET 生成时的队列快照（{qs['utc']}）：normal-QOS {qs['normal_qos_count']}，GPU 分区上运行中（全部 QOS）{qs['running_gpu_jobs']}，"
+             f"排队（全部分区）{qs['pending']}。")
+    if q:
+        cn = q["counts"]
+        rows = q["rows"]
+        L.append(f"- 本报告的队列快照（{q['utc']}，`{QUEUE_REL}`）：V10 作业 {sum(r['name'].startswith('v10_') for r in rows)} 个；normal-QOS {cn['normal_qos']}；"
+                 f"v9n2_* 运行 {sum(r['name'].startswith('v9n2_') and r['state'] == 'RUNNING' for r in rows)}、"
+                 f"排队 {sum(r['name'].startswith('v9n2_') and r['state'] == 'PENDING' for r in rows)}；normal-QOS 运行中 GPU "
+                 f"{cn['normal_qos_running_gpus']}/{B['per_user_gpu_cap']}（{cn['normal_qos_running_gpu_jobs']} 个作业）；排队（全部分区）{cn['pending_all_partitions']}。")
+    else:
+        L.append(f"- 无队列快照（`{QUEUE_REL}`）。")
+    L += ["- 本报告未提交、取消、hold 或修改任何作业。", ""]
     return L
 
 
@@ -1468,6 +1931,8 @@ def sec10(D) -> list[str]:
     g2 = v9.get("V9-G2-vcs-frac1-eps0-s901", {})
     mlp = B["measured"]["s_per_registration_median"].get("MLP_perm1_host")
     reg = t2c["parts"]["register"]
+    m1c = B["per_unit_projection"]["MF_VCS_M1"]
+    m1_100 = unit_cost(D, B["measured"]["train_step_ms_median"][m1c["train_config"].replace("_it30_", "_it100_")], m1c["s_per_registration_median"])
     pm = re.search(r"partition ([\w,]+)", D["host_map"]["sbatch_environment"]["reg_g1_sbatch_resources"])
     others = [x for x in (pm.group(1).split(",") if pm else []) if x != env.get("slurm_partition")]
     L = ["## 10 限制", "",
@@ -1475,14 +1940,16 @@ def sec10(D) -> list[str]:
          f"（V9-G1 vcs 在 {g1.get('device_job_per_T00_audit')}：{fs(g1.get('s_per_registration_dev'))} s/次 DEV；T02 宿主 MLP_perm1 在 L40S：{fs(mlp)} s/次，未训练模型）。",
          f"2. **EPFL 成本是代理**：按与 BF-SHG 相同的每窗口成本计；V9-G2 vcs 在 {g2.get('device_job_per_T00_audit')} 实测 {fs(g2.get('s_per_registration_dev'))} s/次（DEV）。"
          "EPFL 的 CAL 调参未计入 BUDGET。",
-         f"3. **M1 成本是上界**：BUDGET 取 {c(B['per_unit_projection']['MF_VCS_M1']['train_config'])}（迭代上限用满）；其他迭代上限另有实测（§4.6、§5.3）；"
-         "M1 在 max_iter 维度上的调参未计入 BUDGET。",
+         f"3. **M1 成本只对 K16、max_iter ≤ 30 是上界**：BUDGET 取 {c(B['per_unit_projection']['MF_VCS_M1']['train_config'])}（上限 30 每批用满）；"
+         f"max_iter = 100 时 BF 每单元 {fs(m1_100['bf'])} GPU-h（BUDGET 中 {fs(B['per_unit_projection']['MF_VCS_M1']['gpu_h_bf_unit'])}），"
+         "K32 的步时与配准也略高（§4.6、§5.3）；M1 在 max_iter 维度上的调参未计入 BUDGET。",
          f"4. **配准计时**：未训练的固定模型，{len(reg['cores'])} 个 DEV core × {len(reg['perturbation_indices'])} 个扰动，每能量 n = "
          f"{len(reg['cores']) * len(reg['perturbation_indices'])}；假定搜索成本与权重无关（BUDGET assumptions）。",
          f"5. **训练步**：只测宿主 batch（K{train_ks(D)[0]} 为主，{'/'.join('K' + k for k in train_ks(D)[1])} 另测）；完整训练、checkpoint 读写、数据加载、CAL 选择、"
          "排队与失败重跑都未计入（BUDGET assumptions）。",
          "6. **数值头**：随机合成 simplex 特征、单场景、固定排列，不是真实 descriptor；峰值显存含进程基线；CPU 计时有未诊断的成段跳变（§4.4），CPU 不测显存。",
-         "7. **T02 未测**：InfoNCE 能量、CoMIR、RuLSIF、MIND、MI/NMI、MLP perm8 配准能量、任何 EPFL 计时、TF32 关闭时的成本、其他 GPU 型号、多 GPU。",
+         "7. **T02 未测**：InfoNCE 能量、CoMIR、RuLSIF、MIND、MI/NMI、MLP perm8 配准能量、任何 EPFL 计时、TF32 关闭时的成本、其他 GPU 型号、多 GPU；"
+         "包协议中未进入 UNIT_LEDGER / BUDGET 的项见 §3 第 7 项。",
          "8. **T00 只读元数据**：未重算图像 hash；BF-SHG 的患者 / 组织块独立性未验证（core 是可核验的最细单位）。",
          "9. **没有任务结果**：没有配准误差、成功率、S 估计误差或训练曲线；本报告的任何数字都不支持性能、加速或新颖性结论。", ""]
     return L
@@ -1490,14 +1957,19 @@ def sec10(D) -> list[str]:
 
 def sec11(D) -> list[str]:
     tracked = [f for f in git("ls-files", "--", "v10/T00", "v10/T01", "v10/T02").splitlines() if f]
+    texts = D["prompt"] + D["design"]
+    check("首批回传格式" in D["prompt"], "prompt: 首批回传格式")
+    for f, src in PACKAGE_REQUIRED.items():
+        for clause in re.findall(r"（([^）]+)）", src):
+            check(clause in texts, f"PACKAGE_REQUIRED clause not in the package texts: {clause}")
     rows = []
     for f in tracked:
         p = REPO / f
-        rows.append((c(f), p.stat().st_size, c(sha256_file(p)[:16]), "是" if f in PACKAGE_REQUIRED else ""))
+        rows.append((c(f), p.stat().st_size, c(sha256_file(p)[:16]), PACKAGE_REQUIRED.get(f, "")))
     missing = [f for f in PACKAGE_REQUIRED if f not in tracked]
     check(not missing, f"package-required attachments missing: {missing}")
-    L = ["## 11 文件清单", "", "结果文件（已提交；“包要求”= 「首批回传格式」列出的附件）：", ""]
-    L += md_table(["文件", "字节", "sha256[:16]", "包要求"], rows, "lrll") + [""]
+    L = ["## 11 文件清单", "", "结果文件（已提交；“包要求（出处）”= 要求该附件的包条款：「首批回传格式」或设计的章节，括号内为条款原文）：", ""]
+    L += md_table(["文件", "字节", "sha256[:16]", "包要求（出处）"], rows, "lrll") + [""]
     ext = []
     for j, Lg in sorted(D["logs"].items()):
         ext.append((c(Lg["path"]), Lg["bytes"], c(Lg["sha256"][:16]), f"作业 {j} 日志"))
@@ -1511,9 +1983,13 @@ def sec11(D) -> list[str]:
         ext.append((c(str(ps)), ps.stat().st_size, c(D["per_step"]["sha256"][:16]), "T02 训练逐步记录（§6.1）"))
     L += ["本报告读取的仓库外文件（未提交；日志与原始 run 目录原样保留）：", ""]
     L += md_table(["文件", "字节", "sha256[:16]", "用途"], ext, "lrll") + [""]
+    q = D["queue"]
     L += ["原始 part 与 run 目录：`/projects/EEG-foundation-model/yinghao/outputs_v10/T01/{parts,runs,host_replay}/`、"
           "`/projects/EEG-foundation-model/yinghao/outputs_v10/T02/runs/`；T00 审计证据：`/projects/EEG-foundation-model/yinghao/outputs_v10/T00/`。",
-          f"本报告：`v10/{REPORT_DEFAULT.name}`；生成器：`{SELF_REL}`（sha256 {D['git']['self_sha256'][:16]}…，{D['git']['self_lines']} 行）。"
+          (f"队列快照：`{QUEUE_REL}`（{QUEUE_SNAPSHOT.stat().st_size} 字节，sha256 {D['queue_sha256'][:16]}…，{q['utc']}；只由 `--refresh-queue` 写入；"
+           "只含作业号、名称、状态、nice、分区、开始时间、sbatch 脚本路径与计数，不含数据）。" if q else f"队列快照：`{QUEUE_REL}` 不存在。"),
+          f"本报告：`{REPORT_REL}`；生成器：`{SELF_REL}`（sha256 {D['git']['self_sha256'][:16]}…，{D['git']['self_lines']} 行）。"
+          f"复现：在含本报告的提交上运行 `/home/infres/yinwang/CS_QMI/env/bin/python {SELF_REL}`，输出与本文件逐字节相同。"
           "仓库公开：报告不含数据、图像块、checkpoint 或逐图标签。", ""]
     return L
 
@@ -1528,13 +2004,15 @@ def render(D) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description="V10 phase-1 stage report generator (read-only except the report file)")
     ap.add_argument("--output", type=Path, default=REPORT_DEFAULT)
-    ap.add_argument("--no-squeue", action="store_true", help="do not query the queue (the queue line says so)")
+    ap.add_argument("--refresh-queue", action="store_true",
+                    help=f"query squeue / scontrol (read-only) and rewrite {QUEUE_REL} before rendering")
     args = ap.parse_args()
     D = collect(args)
     text = render(D)
     args.output.write_text(text, encoding="utf-8")
     print(json.dumps({"report": str(args.output), "lines": text.count("\n"), "bytes": len(text.encode("utf-8")),
-                      "head": D["git"]["head"][:7], "results_commit": D["git"]["results_commit"][:7]}))
+                      "sha256": sha256_bytes(text.encode("utf-8"))[:16], "base": D["git"]["base"][:7],
+                      "results_commit": D["git"]["results_commit"][:7], "queue_snapshot_utc": (D["queue"] or {}).get("utc")}))
     return 0
 
 
