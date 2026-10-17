@@ -1,0 +1,225 @@
+host=nodecpu01 gpu=none start=2026-10-17T07:50:50Z commit=8af9ccf2fd18706c425b3f7b8cc40b6521090e13 branch=v10/t03 submit_commit=8af9ccf2fd18706c425b3f7b8cc40b6521090e13 t03_code=54606921cdd2bf15 bf_code=e9b4239450c4e2eb pin=4fef9e2bc122c35d expect=4fef9e2bc122c35d script=slurm/v10_t03/t03_smoke.sbatch script_sha=0feac704d59bae26 committed_script_sha=0feac704d59bae26 mode=smoke dirty_files=0 job=1043854 partition=cpu-high node=nodecpu01 cpus=8
+precision_env CUBLAS_WORKSPACE_CONFIG=:4096:8 TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=<unset> NVIDIA_TF32_OVERRIDE=<unset>
+  /home/infres/yinwang/CS_QMI/ssl_pilot_v10_t03/tests/v10_t03/test_t03_barrier.py:167: UserWarning: TypedStorage is deprecated. It will be removed in the future and UntypedStorage will be the only storage class. This should only matter to you if you are using storages directly.  To access UntypedStorage directly, use tensor.untyped_storage() instead of tensor.storage()
+    "ByteStorage.from_file": lambda f: torch.ByteStorage.from_file(str(f), False, 4),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+81 passed, 1 warning in 11.84s
+[v10_t03] unit tests rc=0 t=14s
+{
+ "file": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_t03/v10/protocol/T03_UNITS.csv",
+ "sha256": "fa05019200f6f7ecb40c3467e4504ade0a5583c5fcfaa9f327d0f3c6ea0d86a2",
+ "pinned_sha256": "fa05019200f6f7ecb40c3467e4504ade0a5583c5fcfaa9f327d0f3c6ea0d86a2",
+ "rows_file": 1219,
+ "rows_derived": 1219,
+ "bytes_identical": true,
+ "n_field_differences": 0,
+ "status": "PASS"
+}
+{"root_seed": 20261016, "suite": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/data/seed20261016", "manifest_sha256": "656c583586371fb237abf840f9036dde2c1eadd9119bc0a87fd0fc03458d644e", "n_cases": 12, "check": "PASS", "check_n": 138, "failed_check_name": null}
+{"status": "PASS", "G1_enumeration": "PASS", "G2_sampler_law": "PASS", "G3_rejection_rate": "PASS", "G4_perm8_mean": "PASS", "G5_table_U": "PASS", "seconds": 3.635677533224225}
+[v10_t03] tests rc=0 units_check rc=0 suite+checker rc=0 gates rc=0 t=23s
+[t03] T03_SMK_001 smoke diagonal_mixture__m032__rho0p75 MF_VCS_perm1 K=16 lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:51:14Z
+[t03] T03_SMK_001 COMPLETE wall=15.0s train=13.7s
+[t03] T03_SMK_002 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M0 K=16 lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:51:29Z
+[t03] T03_SMK_002 COMPLETE wall=7.3s train=6.0s
+[t03] T03_SMK_003 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=10 data=20261016 algo=1017 start 2026-10-17T07:51:36Z
+[t03] T03_SMK_003 COMPLETE wall=12.8s train=11.5s
+[t03] T03_SMK_004 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=30 data=20261016 algo=1017 start 2026-10-17T07:51:49Z
+[t03] T03_SMK_004 COMPLETE wall=13.8s train=12.5s
+[t03] T03_SMK_005 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=100 data=20261016 algo=1017 start 2026-10-17T07:52:03Z
+[t03] T03_SMK_005 COMPLETE wall=14.0s train=12.7s
+[t03] T03_SMK_006 smoke diagonal_mixture__m032__rho0p75 MLP_VCS_perm1 K=None lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:52:17Z
+[t03] T03_SMK_006 COMPLETE wall=11.4s train=11.1s
+[t03] T03_SMK_007 smoke diagonal_mixture__m032__rho0p75 MLP_VCS_perm8 K=None lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:52:28Z
+[t03] T03_SMK_007 COMPLETE wall=46.3s train=46.0s
+[t03] run done units=7 {'COMPLETE': 7, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=120.6s
+{
+ "cost_record": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/aggregate/T03_SMOKE_COST.json",
+ "summary": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/aggregate/evaluator_only/T03_SMOKE_SUMMARY.json",
+ "status": "PASS",
+ "checks": {
+  "all_smoke_units_complete": "PASS",
+  "full_2000_steps": "PASS",
+  "MF_methods_share_initial_state": "PASS",
+  "MLP_perm1_perm8_share_initial_state": "PASS",
+  "perm_methods_share_derangement_stream": "PASS",
+  "evaluations_pass": "PASS",
+  "no_truth_barrier_denials": "PASS",
+  "M1_first_step_from_W0": "PASS"
+ },
+ "per_unit_wall_seconds": {
+  "MF_VCS_perm1": 14.996495161671191,
+  "MF_VCS_M0": 7.261945401784033,
+  "MF_VCS_M1|cap10": 12.802053687162697,
+  "MF_VCS_M1|cap30": 13.768374873325229,
+  "MF_VCS_M1|cap100": 14.002871554344893,
+  "MLP_VCS_perm1": 11.388206808827817,
+  "MLP_VCS_perm8": 46.300760213751346
+ },
+ "process_hours": {
+  "low": 5.6943076223947315,
+  "high": 5.769025178574957
+ }
+}
+[v10_t03] smoke units rc=0 smoke summary rc=0 t=145s
+{"root_seed": 20261016, "suite": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/layout/p4t2/data/seed20261016", "manifest_sha256": "656c583586371fb237abf840f9036dde2c1eadd9119bc0a87fd0fc03458d644e", "n_cases": 12, "check": "PASS", "check_n": 138, "failed_check_name": null}
+{"status": "PASS", "G1_enumeration": "PASS", "G2_sampler_law": "PASS", "G3_rejection_rate": "PASS", "G4_perm8_mean": "PASS", "G5_table_U": "PASS", "seconds": 2.016049087047577}
+--- layout p4t2 shard 0/4
+[t03] T03_SMK_001 smoke diagonal_mixture__m032__rho0p75 MF_VCS_perm1 K=16 lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:53:23Z
+[t03] T03_SMK_001 COMPLETE wall=11.6s train=8.9s
+[t03] T03_SMK_005 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=100 data=20261016 algo=1017 start 2026-10-17T07:53:34Z
+[t03] T03_SMK_005 COMPLETE wall=14.0s train=12.4s
+[t03] run done units=2 {'COMPLETE': 2, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=25.6s
+--- layout p4t2 shard 1/4
+[t03] T03_SMK_002 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M0 K=16 lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:53:23Z
+[t03] T03_SMK_002 COMPLETE wall=14.8s train=13.4s
+[t03] T03_SMK_006 smoke diagonal_mixture__m032__rho0p75 MLP_VCS_perm1 K=None lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:53:38Z
+[t03] T03_SMK_006 COMPLETE wall=12.9s train=12.6s
+[t03] run done units=2 {'COMPLETE': 2, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=27.7s
+--- layout p4t2 shard 2/4
+[t03] T03_SMK_003 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=10 data=20261016 algo=1017 start 2026-10-17T07:53:23Z
+[t03] T03_SMK_003 COMPLETE wall=11.3s train=9.9s
+[t03] T03_SMK_007 smoke diagonal_mixture__m032__rho0p75 MLP_VCS_perm8 K=None lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:53:34Z
+[t03] T03_SMK_007 COMPLETE wall=66.5s train=66.2s
+[t03] run done units=2 {'COMPLETE': 2, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=77.7s
+--- layout p4t2 shard 3/4
+[t03] T03_SMK_004 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=30 data=20261016 algo=1017 start 2026-10-17T07:53:23Z
+[t03] T03_SMK_004 COMPLETE wall=10.4s train=9.1s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=10.4s
+{
+ "cost_record": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/layout/p4t2/aggregate/T03_SMOKE_COST.json",
+ "summary": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/layout/p4t2/aggregate/evaluator_only/T03_SMOKE_SUMMARY.json",
+ "status": "PASS",
+ "checks": {
+  "all_smoke_units_complete": "PASS",
+  "full_2000_steps": "PASS",
+  "MF_methods_share_initial_state": "PASS",
+  "MLP_perm1_perm8_share_initial_state": "PASS",
+  "perm_methods_share_derangement_stream": "PASS",
+  "evaluations_pass": "PASS",
+  "no_truth_barrier_denials": "PASS",
+  "M1_first_step_from_W0": "PASS"
+ },
+ "per_unit_wall_seconds": {
+  "MF_VCS_perm1": 11.600533840246499,
+  "MF_VCS_M0": 14.848294138908386,
+  "MF_VCS_M1|cap10": 11.261083305813372,
+  "MF_VCS_M1|cap30": 10.377180157229304,
+  "MF_VCS_M1|cap100": 13.951236833818257,
+  "MLP_VCS_perm1": 12.8693637563847,
+  "MLP_VCS_perm8": 66.47449296200648
+ },
+ "process_hours": {
+  "low": 6.8789721804991775,
+  "high": 7.101357929264712
+ }
+}
+[v10_t03] layout p4t2 (4 processes x 2 threads) rc=0 t=231s
+{"root_seed": 20261016, "suite": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/layout/p8t1/data/seed20261016", "manifest_sha256": "656c583586371fb237abf840f9036dde2c1eadd9119bc0a87fd0fc03458d644e", "n_cases": 12, "check": "PASS", "check_n": 138, "failed_check_name": null}
+{"status": "PASS", "G1_enumeration": "PASS", "G2_sampler_law": "PASS", "G3_rejection_rate": "PASS", "G4_perm8_mean": "PASS", "G5_table_U": "PASS", "seconds": 1.9298495836555958}
+--- layout p8t1 shard 0/8
+[t03] T03_SMK_001 smoke diagonal_mixture__m032__rho0p75 MF_VCS_perm1 K=16 lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_001 COMPLETE wall=10.0s train=7.9s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=10.0s
+--- layout p8t1 shard 1/8
+[t03] T03_SMK_002 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M0 K=16 lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_002 COMPLETE wall=12.6s train=10.6s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=12.7s
+--- layout p8t1 shard 2/8
+[t03] T03_SMK_003 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=10 data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_003 COMPLETE wall=15.2s train=13.8s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=15.2s
+--- layout p8t1 shard 3/8
+[t03] T03_SMK_004 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=30 data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_004 COMPLETE wall=18.1s train=16.7s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=18.1s
+--- layout p8t1 shard 4/8
+[t03] T03_SMK_005 smoke diagonal_mixture__m032__rho0p75 MF_VCS_M1 K=16 lr=0.0003 cap=100 data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_005 COMPLETE wall=17.0s train=15.7s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=17.0s
+--- layout p8t1 shard 5/8
+[t03] T03_SMK_006 smoke diagonal_mixture__m032__rho0p75 MLP_VCS_perm1 K=None lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_006 COMPLETE wall=22.0s train=21.7s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=22.0s
+--- layout p8t1 shard 6/8
+[t03] T03_SMK_007 smoke diagonal_mixture__m032__rho0p75 MLP_VCS_perm8 K=None lr=0.0003 cap=None data=20261016 algo=1017 start 2026-10-17T07:54:49Z
+[t03] T03_SMK_007 COMPLETE wall=70.3s train=70.0s
+[t03] run done units=1 {'COMPLETE': 1, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=70.4s
+--- layout p8t1 shard 7/8
+[t03] run done units=0 {'COMPLETE': 0, 'FAIL': 0, 'BLOCKED': 0, 'NOT_RUN': 0} wall=0.0s
+{
+ "cost_record": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/layout/p8t1/aggregate/T03_SMOKE_COST.json",
+ "summary": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/layout/p8t1/aggregate/evaluator_only/T03_SMOKE_SUMMARY.json",
+ "status": "PASS",
+ "checks": {
+  "all_smoke_units_complete": "PASS",
+  "full_2000_steps": "PASS",
+  "MF_methods_share_initial_state": "PASS",
+  "MLP_perm1_perm8_share_initial_state": "PASS",
+  "perm_methods_share_derangement_stream": "PASS",
+  "evaluations_pass": "PASS",
+  "no_truth_barrier_denials": "PASS",
+  "M1_first_step_from_W0": "PASS"
+ },
+ "per_unit_wall_seconds": {
+  "MF_VCS_perm1": 10.029602131806314,
+  "MF_VCS_M0": 12.644621594808996,
+  "MF_VCS_M1|cap10": 15.169718756340444,
+  "MF_VCS_M1|cap30": 18.07899294840172,
+  "MF_VCS_M1|cap100": 17.005842830985785,
+  "MLP_VCS_perm1": 22.031962285283953,
+  "MLP_VCS_perm8": 70.34707649005577
+ },
+ "process_hours": {
+  "low": 7.702973920329888,
+  "high": 7.8839954256137
+ }
+}
+[v10_t03] layout p8t1 (8 processes x 1 threads) rc=0 t=310s
+{
+ "output": "/projects/EEG-foundation-model/yinghao/outputs_v10/T03/aggregate/T03_BUDGET.json",
+ "layouts": [
+  {
+   "name": "p1t8",
+   "status": "MEASURED_PROJECTION",
+   "process_hours": {
+    "low": 5.6943076223947315,
+    "high": 5.769025178574957
+   },
+   "cpu_hours": {
+    "low": 45.55446097915785,
+    "high": 46.15220142859965
+   },
+   "within_order_of_magnitude_of_phase1": true
+  },
+  {
+   "name": "p4t2",
+   "status": "MEASURED_PROJECTION",
+   "process_hours": {
+    "low": 6.8789721804991775,
+    "high": 7.101357929264712
+   },
+   "cpu_hours": {
+    "low": 13.757944360998355,
+    "high": 14.202715858529425
+   },
+   "within_order_of_magnitude_of_phase1": true
+  },
+  {
+   "name": "p8t1",
+   "status": "MEASURED_PROJECTION",
+   "process_hours": {
+    "low": 7.702973920329888,
+    "high": 7.8839954256137
+   },
+   "cpu_hours": {
+    "low": 7.702973920329888,
+    "high": 7.8839954256137
+   },
+   "within_order_of_magnitude_of_phase1": false
+  }
+ ],
+ "phase1_quotes_found": true
+}
+[v10_t03] t03_smoke tests_rc=0 units_check_rc=0 suite_rc=0 gates_rc=0 smoke_units_rc=0 summary_rc=0 layouts_rc=0 budget_rc=0 wall=310s end=2026-10-17T07:56:00Z
