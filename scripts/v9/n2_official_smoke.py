@@ -1,5 +1,5 @@
 """V9-N2 wave-2 smoke (GPU, <= 30 min; run by `slurm/v9/n2_official.sbatch smoke`): the PATCHED official NCR+A and L2RM+A with the anchor term ON
-on a real-data subset of Flickr30K precomp (first --n-train training images, first --n-eval dev / test images), 1 warm-up + 1 main epoch each,
+on a real-data subset of Flickr30K precomp (first --n-train training images, first --n-eval test images, the official dev split), 1 warm-up + 1 main epoch each,
 through the same driver calls as a wave-2 unit (export -> launch -> collect-dev -> collect).  Checks that the V9 observed index is loaded, that the
 anchor block runs (its `[V9] anchor-supervised term` line), that both trainers exit 0, and that the dev best rSum and the official test recalls
 are collected.  A code-path check only — never evidence (subset, 1+1 epochs)."""
@@ -22,11 +22,19 @@ SRC = Path("/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/dat
 
 
 def subset(dst: Path, n_train: int, n_eval: int) -> Path:
+    """train / test: the first n images (5 captions each).  dev: the OFFICIAL files, linked — NCR's and L2RM's PrecompDataset hard-code the dev
+    length to 1000 images x 5 captions (smoke 1042220 overran a 100-image dev subset at the first validation), and the real runs validate on
+    exactly these files."""
     d = dst / "f30k_precomp"
     d.mkdir(parents=True, exist_ok=True)
-    for split, n in (("train", n_train), ("dev", n_eval), ("test", n_eval)):
+    for f in ("dev_ims.npy", "dev_caps.txt"):
+        if not (d / f).exists():
+            (d / f).symlink_to(SRC / f)
+    for split, n in (("train", n_train), ("test", n_eval)):
         ims = np.load(SRC / f"{split}_ims.npy", mmap_mode="r")
-        np.save(d / f"{split}_ims.npy", np.ascontiguousarray(ims[:n]))
+        n_caps = sum(1 for _ in open(SRC / f"{split}_caps.txt"))
+        rows = 5 * n if ims.shape[0] == n_caps else n            # f30k dev / test store one image row per caption (rows 5i..5i+4 identical); train unique rows
+        np.save(d / f"{split}_ims.npy", np.ascontiguousarray(ims[:rows]))
         with open(SRC / f"{split}_caps.txt") as f:
             lines = [next(f) for _ in range(5 * n)]
         (d / f"{split}_caps.txt").write_text("".join(lines))
