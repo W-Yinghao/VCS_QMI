@@ -67,8 +67,9 @@ failed outputs are archived as `*.oom_1042193.txt`; rerun = job 1043799 (pending
   "The loss starts to decrease only when the margin between the nearest negative and the farthest positive exceeds 0"; "Yes, it is normal, occurring
   with both 0.4.1 (we recommended) and 1.2.0 (others tried)"; issue #13 repeats the 12–13 epoch statement).  My earlier word "collapsed" is withdrawn:
   one epoch cannot distinguish the expected plateau from a non-starting run.  The 5-epoch sum-violation warm-up in HOST_LOCK `locked_recipes` was based on
-  that reading — still needed for the 5-epoch teacher; for the 40-epoch students the decision (keep or revert to native SGR) is with the main session
-  (HOST_LOCK `correction_20261017`; the lock text is not edited here).
+  that reading.  **Main-session decision 2026-10-17** (HOST_LOCK `correction_20261017.main_session_decision_20261017`): the warm-up's original rationale
+  ("SGR collapse") is withdrawn per the SGRAF author (issues #2, #13); the recipe is kept unchanged for this block so all units share one recipe; its
+  effect versus native SGR is not measured; a native-SGR student is only possible later as a separately named variant with its own cost.
 - NCR co-training (1042195; reloaded 1-epoch warm-up, noise 0.4): dev R@1 48.5 / 43.2 after the warm-up → 13.0 / 0.8 after one co-training epoch (test
   rsum 40.0), with the co-training loss flat at the margin-sum values (A 86.7, B 102.3 per batch).  The native schedule warms up for 5 epochs, not 1;
   whether 5 warm-up epochs avoid the drop is not tested here.
