@@ -293,6 +293,21 @@ def run_cal(root, family, release_sha, data_sha, data_lock, allocation, environm
     return checked_selection(root, family, release_sha, data_sha)
 
 
+def initialize_science():
+    """Shared import initialization for the released CLI and isolated validation.
+
+    Validation calls the same runner functions in its own namespace; it never
+    creates a scientific release or imports held-out data.
+    """
+    global A, torch, np, CP, new_trainer, RegistrationSession
+    import numpy as np
+    import torch
+    from v10 import adapter as A
+    from v10.supplement import checkpoints as CP
+    from v10.supplement.training import new_trainer
+    from v10.supplement.registration import RegistrationSession
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("phase", choices=("cal", "final"))
@@ -311,13 +326,7 @@ def main():
     release_sha = sha(args.release)
     data_lock_path = base / release["data_lock"]["path"]
     data_sha, data_lock = sha(data_lock_path), read(data_lock_path)
-    global A, torch, np, CP, new_trainer, RegistrationSession
-    import numpy as np
-    import torch
-    from v10 import adapter as A
-    from v10.supplement import checkpoints as CP
-    from v10.supplement.training import new_trainer
-    from v10.supplement.registration import RegistrationSession
+    initialize_science()
 
     def terminated(signum, frame):
         raise InterruptedError(f"Slurm signal {signum}; preserve last verified checkpoint")

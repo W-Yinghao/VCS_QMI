@@ -75,7 +75,7 @@ def schedule(family):
 
 def source_inventory():
     paths = set()
-    for relative in ("src/v10", "src/v9/reg", "scripts/v10_supplement"):
+    for relative in ("src/v10", "src/v9/reg", "scripts/v10_supplement", "tests/v10"):
         paths.update(p for p in (REPO / relative).rglob("*.py"))
     for suffix in ("*.sbatch", "*.sh"):
         paths.update((REPO / "slurm/v10_supplement").glob(suffix))
