@@ -730,9 +730,15 @@ def mf_objective(method: str, scenes, W, weights, *, perm=None, m1: M1Config | N
 
 
 def mlp_objective(method: str, cr, du, dv, *, perm=None, perms=None, block: int | None = None, checkpoint: bool = False):
-    """(loss, J) of the host MLP critic, T = tanh f; P = (du_i, dv_i); Q per scene; equal scene weights, as the host.
+    """(loss, J) for VCS; (InfoNCE loss, None) for the raw-logit host objective.
+    VCS uses T=tanh(f), aligned P and equal-weight within-scene Q.
     perm [n_sc, n] (host), perms [n_sc, R, n] (row 0 = host permutation)."""
     n_sc, n, _ = du.shape
+    if method == "InfoNCE_host":
+        # Same scene/row layout and raw logits as G.cmd_train. This loss is not -J.
+        logits = cr(torch.cat([du[:, :, None].expand(-1, -1, n, -1),
+                               dv[:, None].expand(-1, n, -1, -1)], -1)).squeeze(-1)
+        return P.loss_fn(torch, F, "infonce", None, None, logits), None
     fp = cr(torch.cat([du, dv], -1)).squeeze(-1)                                           # host G L172
     if method == "MLP_perm1":
         dvq = torch.stack([dv[s, perm[s]] for s in range(n_sc)])                            # host G L171
@@ -803,10 +809,10 @@ class TrainConfig:
 
 
 class Trainer:
-    """One V10 trainer for MF_* / MLP_* on the host batch (identical crops, positions and permutations for every method)."""
+    """MF, MLP VCS and InfoNCE training on identical host batches and initialization."""
 
     def __init__(self, cfg: TrainConfig, imgs: dict, fit: Sequence[str], device, *, build_models: Callable | None = None):
-        if cfg.method not in ("MF_perm1", "MF_M0", "MF_M1") + MLP_METHODS:
+        if cfg.method not in ("MF_perm1", "MF_M0", "MF_M1", "InfoNCE_host") + MLP_METHODS:
             raise ValueError(f"unknown training method {cfg.method}")
         if cfg.checks not in ("first_step", "every_step"):
             raise ValueError(f"checks must be 'first_step' or 'every_step', got {cfg.checks}")
@@ -936,8 +942,10 @@ class Trainer:
                 rec["w_absmax"] = float(self.head.W.abs().max())
             rec.update({k: v for k, v in out["info"].items() if k != "m1_W"})
             rec["J"] = float(out["terms"].j.detach())
-        else:
+        elif out["J"] is not None:
             rec["J"] = float(out["J"].detach())
+        else:
+            rec["training_objective"] = "InfoNCE_host"
         self.n_steps += 1
         if mark:
             mark("update")

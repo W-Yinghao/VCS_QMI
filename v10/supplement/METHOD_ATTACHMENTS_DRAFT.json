@@ -1,0 +1,380 @@
+{
+  "schema": "v10.supplement.draft.v1",
+  "status": "IMPLEMENTATION_DRAFT_NOT_EXECUTION_RELEASE",
+  "parent_protocol_sha256": "de4c0c3943d5a54b3a7de73a84785f240f7ee5b1396d173fd2109999a5555e9d",
+  "methods": {
+    "MLP_VCS_perm8": {
+      "candidates": [
+        {
+          "order": 0,
+          "lr": 0.0001
+        },
+        {
+          "order": 1,
+          "lr": 0.0003
+        },
+        {
+          "order": 2,
+          "lr": 0.001
+        }
+      ],
+      "schedule": {
+        "kind": "gradient_training",
+        "steps": 3000,
+        "save_steps": [
+          250,
+          500,
+          750,
+          1000,
+          1250,
+          1500,
+          1750,
+          2000,
+          2250,
+          2500,
+          2750,
+          3000
+        ],
+        "cal_steps": [
+          250,
+          500,
+          750,
+          1000,
+          1250,
+          1500,
+          1750,
+          2000,
+          2250,
+          2500,
+          2750,
+          3000
+        ],
+        "final_seeds": [
+          1001,
+          1002,
+          1003
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    },
+    "InfoNCE_host[J_perm1]": {
+      "candidates": [
+        {
+          "order": 0,
+          "lr": 0.0001
+        },
+        {
+          "order": 1,
+          "lr": 0.0003
+        },
+        {
+          "order": 2,
+          "lr": 0.001
+        }
+      ],
+      "schedule": {
+        "kind": "gradient_training",
+        "steps": 3000,
+        "save_steps": [
+          250,
+          500,
+          750,
+          1000,
+          1250,
+          1500,
+          1750,
+          2000,
+          2250,
+          2500,
+          2750,
+          3000
+        ],
+        "cal_steps": [
+          250,
+          500,
+          750,
+          1000,
+          1250,
+          1500,
+          1750,
+          2000,
+          2250,
+          2500,
+          2750,
+          3000
+        ],
+        "final_seeds": [
+          1001,
+          1002,
+          1003
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    },
+    "MI_native": {
+      "candidates": [
+        {
+          "order": 0,
+          "bins": 64,
+          "sigma_bins": 1.0,
+          "range_percentiles": [
+            0.5,
+            99.5
+          ]
+        }
+      ],
+      "schedule": {
+        "kind": "training_free",
+        "steps": 0,
+        "save_steps": [
+          0
+        ],
+        "cal_steps": [
+          0
+        ],
+        "final_seeds": [
+          1001
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    },
+    "NMI_native": {
+      "candidates": [
+        {
+          "order": 0,
+          "bins": 64,
+          "sigma_bins": 1.0,
+          "range_percentiles": [
+            0.5,
+            99.5
+          ]
+        }
+      ],
+      "schedule": {
+        "kind": "training_free",
+        "steps": 0,
+        "save_steps": [
+          0
+        ],
+        "cal_steps": [
+          0
+        ],
+        "final_seeds": [
+          1001
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    },
+    "CoMIR_native": {
+      "candidates": [
+        {
+          "order": 0,
+          "epochs": 23,
+          "steps_per_epoch": 32,
+          "batch_size": 32,
+          "lr": 0.01
+        }
+      ],
+      "schedule": {
+        "kind": "native_gradient_training",
+        "steps": 736,
+        "save_steps": [
+          32,
+          64,
+          96,
+          128,
+          160,
+          192,
+          224,
+          256,
+          288,
+          320,
+          352,
+          384,
+          416,
+          448,
+          480,
+          512,
+          544,
+          576,
+          608,
+          640,
+          672,
+          704,
+          736
+        ],
+        "cal_steps": [
+          736
+        ],
+        "final_seeds": [
+          1001,
+          1002,
+          1003
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    },
+    "RuLSIF_exact": {
+      "candidates": [
+        {
+          "order": 0,
+          "bandwidth_multiplier": 0.5,
+          "ridge": 0.0001,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 1,
+          "bandwidth_multiplier": 0.5,
+          "ridge": 0.001,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 2,
+          "bandwidth_multiplier": 0.5,
+          "ridge": 0.01,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 3,
+          "bandwidth_multiplier": 1.0,
+          "ridge": 0.0001,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 4,
+          "bandwidth_multiplier": 1.0,
+          "ridge": 0.001,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 5,
+          "bandwidth_multiplier": 1.0,
+          "ridge": 0.01,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 6,
+          "bandwidth_multiplier": 2.0,
+          "ridge": 0.0001,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 7,
+          "bandwidth_multiplier": 2.0,
+          "ridge": 0.001,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        },
+        {
+          "order": 8,
+          "bandwidth_multiplier": 2.0,
+          "ridge": 0.01,
+          "alpha": 0.5,
+          "centres": 128,
+          "fit_positions_per_core": 2048,
+          "patch_radius": 4
+        }
+      ],
+      "schedule": {
+        "kind": "kernel_fit",
+        "steps": 1,
+        "save_steps": [
+          1
+        ],
+        "cal_steps": [
+          1
+        ],
+        "final_seeds": [
+          1001,
+          1002,
+          1003
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    },
+    "MIND_2D_adapted": {
+      "candidates": [
+        {
+          "order": 0,
+          "descriptor": {
+            "radius": 1,
+            "sigma": 0.8,
+            "offset": 1,
+            "variance_floor": 1e-06
+          }
+        }
+      ],
+      "schedule": {
+        "kind": "training_free",
+        "steps": 0,
+        "save_steps": [
+          0
+        ],
+        "cal_steps": [
+          0
+        ],
+        "final_seeds": [
+          1001
+        ]
+      },
+      "implementation": "WRITTEN_UNTESTED",
+      "T01": "DEFERRED",
+      "T02": "DEFERRED",
+      "RUNNER": "DEFERRED"
+    }
+  },
+  "common_rules": "BF FIT32/CAL8/DEV32; scene V; unchanged host search/support/precision; CAL only selection",
+  "new_method_choices": "Pre-result implementation proposals; targeted checks and timing required before versioned method freeze",
+  "native_disclosures": {
+    "CoMIR": "23*32*32 native training; save each epoch, final-epoch CAL only; native SGD distinct from host AdamW",
+    "RuLSIF": "128 paired Gaussian centres balanced across FIT; 2048 samples per FIT core; FIT-centre median bandwidth; 9 width/ridge candidates; exact scene V; fp64 unconstrained ridge solve; no coefficient or g/T clipping",
+    "MIND": "4 axial 2D neighbours; Gaussian 3x3 patches sigma .8; local variance floor1e-6; encode-then-register; orientation not reindexed",
+    "MI_NMI": "unchanged host Gaussian Parzen64-bin native Shannon MI / Studholme NMI, percentile range .5/99.5; not an ITK Mattes reproduction"
+  },
+  "held_roles": {
+    "TEST_REPEAT": "HOLD",
+    "EPFL": "NOT_ACTIVATED",
+    "CONFIRM": 0
+  }
+}
