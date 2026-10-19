@@ -30,6 +30,11 @@ Refusals (SystemExit, nothing written): uncommitted or untracked changes under t
 results commit or a results commit that does not name its job; tracked block files != manifest files (+ the manifest), or a sha256 /
 size mismatch; unit table != protocol pin; a unit not COMPLETE / evaluation not PASS / evaluation sha256 != result record / code
 identity or job != its block's; any recomputed cell, selection or checkpoint that differs; a missing decision quote.
+Section 10 (corrections, 2026-10-19): appended after section 9; the header gains one line saying so.  Everything else must equal, byte
+for byte, the report as first published at PUBLISHED_COMMIT (checked; refusal otherwise).  Each item quotes the published sentence
+(checked verbatim against the published text), the corrected statement and its evidence; its numbers are computed from the same
+records (collect_corrections), plus, for item 1, the exact population tables of the committed package generator v10_synthetic.py
+(sha256 = every unit record's generator_sha256; S checked against the recorded S).  The reviewed counts of section 10 are pinned.
 Output: no generation time, no live query; two runs give the same bytes.  --check renders in memory and compares with the report as
 committed at HEAD (exit 1 on a difference).
 
@@ -43,6 +48,7 @@ import csv
 import datetime as dt
 import difflib
 import hashlib
+import importlib.util
 import io
 import json
 import math
@@ -67,6 +73,11 @@ AGGREGATE_REL = "v10/T03/formal/aggregate/evaluator_only/T03_AGGREGATE.json"
 SELECTION_REL = "v10/T03/CAL/selection/T03_CAL_SELECTION.json"
 BUDGET_REL = "v10/T03/smoke/T03_BUDGET.json"
 COMMON_REL = "scripts/v10_t03/t03_common.py"
+OBJECTIVES_REL = "scripts/v10_t03/t03_objectives.py"
+PACKAGE_GENERATOR_REL = "v10/package_v10_server_v1_20261016/synthetic/src/v10_synthetic.py"
+# section 10 (corrections, 2026-10-19): everything before it must stay byte-identical to the report as first published
+PUBLISHED_COMMIT = "0518984db074826f2976afdff4b441a7ff190b22"
+CORRECTIONS_DATE = "2026-10-19"
 BLOCKS = {
     "smoke": {"dir": "v10/T03/smoke", "manifest": "SMOKE_RESULTS_MANIFEST.json", "commit": "90897ba89e0f71d28ae4998df1cc39a64da35219",
               "log": "logs/v10_t03_smoke_{job}.out", "units": ("smoke",), "label": "smoke"},
@@ -368,6 +379,7 @@ def collect() -> dict:
     collect_cells(D)
     collect_diagnostics(D)
     collect_cost(D)
+    collect_corrections(D)
     D["quotes_text"] = (REPO / DECISION_REL).read_text(encoding="utf-8")
     return D
 
@@ -826,21 +838,432 @@ def collect_cost(D) -> None:
     D["budget"] = {"layout": L, "wall": wall[0], "om": om, "ncpu": ncpu, "threads": thr}
 
 
+# ------------------------------------------------------------------------------------------------ section 10: corrections (2026-10-19)
+def load_package_generator(D):
+    """The package generator v10_synthetic.py (committed, clean, sha256 = every unit record's generator_sha256), imported from its
+    file for the exact population tables of section 10 item 1 (float64 arithmetic, no sampling)."""
+    check(git("status", "--porcelain", "--untracked-files=all", "--", PACKAGE_GENERATOR_REL).strip() == "",
+          f"{PACKAGE_GENERATOR_REL}: uncommitted or untracked changes")
+    path = REPO / PACKAGE_GENERATOR_REL
+    sha = sha256_file(path)
+    rec = {u["res"]["provenance"]["identity"]["generator_sha256"] for u in D["units"].values()}
+    check(rec == {sha}, f"{PACKAGE_GENERATOR_REL}: sha256 {sha[:16]} != the generator_sha256 of the unit records {sorted(rec)}")
+    spec = importlib.util.spec_from_file_location("v10_synthetic_package", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod, sha
+
+
+def block_witness(p, q, eta, K: int) -> tuple[float, float]:
+    """A K-feature MF table in the closure of the MF class: the m states split in order into K equal groups, a(x) = b(x) = one-hot of
+    the group (the limit of softmax features), W = the M-weighted mean of eta over each group block.  (E_M(T - eta)^2, max |W|)."""
+    m = p.shape[0]
+    check(m % K == 0, "witness: m is not a multiple of K")
+    g = np.arange(m) // (m // K)
+    w = 0.5 * (p + q)
+    W = np.zeros((K, K), dtype=np.float64)
+    for i in range(K):
+        for j in range(K):
+            blk = np.ix_(g == i, g == j)
+            mass = float(w[blk].sum())
+            W[i, j] = float((w[blk] * eta[blk]).sum()) / mass if mass > 0 else 0.0
+    T = W[g][:, g]
+    return float(np.sum(w * (T - eta) ** 2)), float(np.abs(W).max())
+
+
+def _mm(v) -> tuple[float, float]:
+    v = list(v)
+    return min(v), max(v)
+
+
+def fpct_up(x: float, d: int = 2) -> str:
+    """percentage rounded up to d decimals (for an upper bound stated as "≤")"""
+    return f"{math.ceil(100 * float(x) * 10 ** d) / 10 ** d:.{d}f}%"
+
+
+def collect_corrections(D) -> None:
+    """Every number of section 10, from the records (item 1 also from the package generator's exact population tables); each
+    data-dependent phrase of section 10 is checked here and the counts reviewed on 2026-10-19 are pinned."""
+    conds, methods, mf = D["conds"], D["methods"], D["mf_methods"]
+    mlp = [m for m in methods if m not in mf]
+    main, capc, sel = D["main"], D["capacity"], D["selection"]
+    K = D["K_main"]
+    lr_hi, lr_lo, s_last = max(D["lrs"]), min(D["lrs"]), max(D["steps"])
+    units = list(D["units"].values())
+    formal = [u for u in units if u["block"] in ("main", "algo_extra", "capacity")]
+    run = D["jobs"]["formal"]["run_commit"]
+    dmp = [c for c in conds if c[0] == "diagonal_mixture" and c[2] > 0]
+    tbp = [c for c in conds if c[0] == "two_block" and c[2] > 0]
+    c0 = [c for c in conds if c[2] == 0]
+    X = {}
+    # 1  "not the minimum error of the K16 MF class": representational support
+    arch = {json.dumps({k: u["res"]["critic"]["architecture"][k] for k in ("features", "head", "input", "output")}, sort_keys=True)
+            for u in units if u["method"] in mf}
+    check(arch == {json.dumps({"features": "Linear + softmax per side", "head": "W in [-1, 1]^{K x K}, zeros at start",
+                               "input": "one-hot integer observations", "output": "T = a(x)^T W b(y) (no tanh)"}, sort_keys=True)},
+          "MF architecture records differ from the class described in section 10 item 1")
+    small = [c for c in dmp if c[1] <= K]
+    large = [c for c in dmp if c[1] > K]
+    kge = [k for k in D["cap_K"] if all(k >= c[1] for c in large)]
+    check(small and large and kge and all(c in D["cap_conds"] for c in large), "section 10 item 1: condition / capacity structure")
+    gen, gen_sha = load_package_generator(D)
+    wit = {}
+    for c in large:
+        t = gen.exact_truth(*c)
+        p, q, eta = (np.asarray(t[k], dtype=np.float64) for k in ("p", "q", "eta"))
+        Ss = {u["ev"]["truth"]["S"] for mth in methods for u in main[(c, mth)]["units"]}
+        check(Ss == {float(t["S"])}, f"package exact_truth S of {c} != the recorded S")
+        check(float(np.abs(eta).max()) <= 1.0, "eta outside [-1, 1]")
+        e, wmax = block_witness(p, q, eta, K)
+        trained = _mm(main[(c, mth)]["pop_mse"]["mean"] for mth in mf)
+        check(wmax <= 1.0 and 0 < e < trained[0], f"section 10 item 1: the K{K} construction of {c} is not below the trained values")
+        wit[c] = {"pop": e, "trained": trained, "group": c[1] // K}
+    X["c1"] = {"m_small": sorted({c[1] for c in small}), "m_large": sorted({c[1] for c in large}), "kge": kge, "witness": wit,
+               "pop_small": _mm(main[(c, mth)]["pop_mse"]["mean"] for c in small for mth in mf),
+               "pop_kge": _mm(capc[(c, mth, k)]["pop_mse"]["mean"] for c in large for mth in mf for k in kge), "gen_sha": gen_sha}
+    # 2  grid-edge selections, MF and MLP (recomputed CAL selection, section 3)
+    mf_hi = [(c, m) for c in conds for m in mf if sel[(c, m)]["lr"] == lr_hi]
+    mf_both = [(c, m) for (c, m) in mf_hi if sel[(c, m)]["step"] == s_last]
+    check(all(sel[(c, m)]["lr"] == lr_hi for c in conds for m in mf if sel[(c, m)]["step"] == s_last), "an MF last-step group below lr max")
+    mlp_lo = [(c, m) for c in conds for m in mlp if sel[(c, m)]["lr"] == lr_lo]
+    mlp_pos = [(c, m) for c in conds if c[2] > 0 for m in mlp]
+    mlp_lo_pos = [k for k in mlp_pos if k in mlp_lo]
+    mlp_exc = [k for k in mlp_pos if k not in mlp_lo]
+    full_hi = [c for c in conds if all((c, m) in mf_hi for m in mf)]
+    full_both = [c for c in conds if all((c, m) in mf_both for m in mf)]
+    rest_both = [(c, m) for (c, m) in mf_both if c not in full_both]
+    exc_lr = {sel[k]["lr"] for k in mlp_exc}
+    check(len(full_hi) * len(mf) == len(mf_hi), "section 10 item 2: an lr-max condition without every MF method")
+    check(full_both == dmp, "section 10 item 2: the both-edge conditions are not the diagonal_mixture rho > 0 conditions")
+    check(len(exc_lr) == 1, "section 10 item 2: MLP rho > 0 exceptions at more than one lr")
+    check((len(mf_hi), len(mf) * len(conds), len(mf_both), len(mlp_lo), len(mlp) * len(conds), len(mlp_lo_pos), len(mlp_pos))
+          == (18, 36, 13, 21, 24, 14, 16), "section 10 item 2: grid-edge counts changed")
+    X["c2"] = {"mf_hi": mf_hi, "mf_n": len(mf) * len(conds), "mf_both": mf_both, "full_hi": full_hi, "full_both": full_both,
+               "rest_both": rest_both, "mlp_lo": mlp_lo, "mlp_n": len(mlp) * len(conds), "mlp_lo_pos": mlp_lo_pos, "mlp_pos": mlp_pos,
+               "mlp_exc": mlp_exc, "exc_lr": exc_lr.pop()}
+    # 3  expected sign of the error: E[e | T] = -E_M(T - eta)^2 for a critic chosen without EVAL
+    run_py = git("show", f"{run}:scripts/v10_t03/t03_run.py")
+    common = git("show", f"{run}:{COMMON_REL}")
+    obj = git("show", f"{run}:{OBJECTIVES_REL}")
+    check('with C.truth_barrier(f"train+CAL {cfg.unit_id}"):' in run_py, "train+CAL outside a truth-barrier block at the formal run commit")
+    check("def truth_barrier(phase: str, *, allow_eval: bool = False):" in common, "truth_barrier does not default to allow_eval=False")
+    for frag in ("q_hat_U = (N_x N_y - N_xy) / (n (n - 1))", "J_hat = sum_xy [ p_hat (T - T^2/2) - q_hat (T + T^2/2) ]"):
+        check(frag in obj, f"{OBJECTIVES_REL} at the formal run commit lacks {frag!r}")
+    check(D["jobs"]["formal"]["denials"] == 0, "truth-barrier denials in the formal block")
+    main_units = [u for c in conds for m in methods for u in main[(c, m)]["units"]]
+    check(len(main_units) == D["n_by_block"]["main"] and all(u["sel"]["pop_mse"] > 0 for u in main_units), "a main unit with E_M(T - eta)^2 = 0")
+    neg0 = sum(main[(c, m)]["EVAL_UJ_minus_S"]["mean"] < 0 for c in c0 for m in methods)
+    excl0 = [(c, m) for c in c0 for m in methods if not has0(main[(c, m)]["EVAL_UJ_minus_S"]["mean_ci95_t"])]
+    check(all(main[k]["EVAL_UJ_minus_S"]["mean_ci95_t"][1] < 0 for k in excl0) and (neg0, len(c0) * len(methods), len(excl0)) == (18, 20, 2),
+          "section 10 item 3a: rho = 0 counts changed")
+    t75 = [c for c in tbp if c[2] == 0.75]
+    b75 = [main[(c, m)]["EVAL_UJ_minus_S"]["mean"] for c in t75 for m in methods]
+    e75 = [-main[(c, m)]["pop_mse"]["mean"] for c in t75 for m in methods]
+    s75 = [main[(c, m)]["EVAL_UJ_minus_J_pop"]["mean"] for c in t75 for m in methods]
+    pos75 = [c for c in t75 if all(main[(c, m)]["EVAL_UJ_minus_J_pop"]["mean_ci95_t"][0] > 0 for m in methods)]
+    check(all(b > 0 for b in b75) and all(s > 0 for s in s75) and pos75, "section 10 item 3b: two_block rho 0.75 signs")
+    check(all(main[(c, m)]["EVAL_UJ_minus_S"]["mean"] < 0 for c in dmp for m in methods), "section 10 item 3c: a diagonal rho > 0 bias >= 0")
+    X["c3"] = {"neg0": neg0, "n0": len(c0) * len(methods), "excl0": excl0, "n75": len(b75), "b75": _mm(b75), "e75": _mm(e75), "s75": _mm(s75),
+               "pos75": pos75, "n_main": len(main_units),
+               "ratio_mlp": _mm(main[(c, m)]["pop_mse"]["mean"] / -main[(c, m)]["EVAL_UJ_minus_S"]["mean"] for c in dmp for m in mlp),
+               "pop_mf_dm": _mm(main[(c, m)]["pop_mse"]["mean"] for c in dmp for m in mf)}
+    # 4  shared samples and diagnostic derangement streams within a condition
+    streams = collections.defaultdict(set)
+    for u in formal:
+        for role in ("fit", "eval"):
+            streams[(u["data"],) + u["cond"] + (role,)].add(json.dumps(u["sel"]["perm_conditional_variance"][role]["stream"], sort_keys=True))
+    check(D["obs_sets"] == len(conds) * len(D["data_seeds"]), "observation sets != conditions x data roots")
+    check(all(len(v) == 1 for v in streams.values()) and len(streams) == 2 * D["obs_sets"]
+          and len({next(iter(v)) for v in streams.values()}) == len(streams), "diagnostic derangement streams not shared one per (data root, condition, role)")
+    n75 = sum(has0(main[(c, m)]["EVAL_UJ_minus_S"]["mean_ci95_t"]) for c in t75 for m in methods)
+    n0 = sum(has0(main[(c, m)]["EVAL_UJ_minus_S"]["mean_ci95_t"]) for c in c0 for m in methods)
+    nsamp = sum(has0(main[(c, m)]["EVAL_UJ_minus_J_pop"]["mean_ci95_t"]) for c in conds for m in methods)
+    check(all(main[(c, m)]["EVAL_UJ_minus_S"]["mean_ci95_t"][1] < 0 for c in dmp for m in methods), "section 10 item 4: diagonal rho > 0 count")
+    X["c4"] = {"obs": D["obs_sets"], "streams": len(streams), "n75": n75, "n75_of": len(t75) * len(methods), "ndm": len(dmp) * len(methods),
+               "n0": n0, "n0_of": len(c0) * len(methods), "nsamp": nsamp, "nsamp_of": len(conds) * len(methods), "nz": D["perm_z"]["n"],
+               "n_cond": len(conds), "n_data": len(D["data_seeds"])}
+    # 5  two_block rho > 0: RMSE per rho and the cross-family paired difference
+    rr = {}
+    for rho in sorted({c[2] for c in tbp}):
+        cs = [c for c in tbp if c[2] == rho]
+        pc = [D["paired"][(c, "MF_VCS_M0", "MLP_VCS_perm1")]["sq"]["mean_ci95_t"] for c in cs]
+        kind = {"neg" if ci[1] < 0 else "pos" if ci[0] > 0 else "zero" for ci in pc}
+        check(len(kind) == 1, f"section 10 item 5: paired M0 - MLP_perm1 at two_block rho {rho} not homogeneous")
+        rr[rho] = {"mf": _mm(main[(c, m)]["EVAL_UJ_minus_S"]["rmse"] for c in cs for m in mf),
+                   "mlp": _mm(main[(c, m)]["EVAL_UJ_minus_S"]["rmse"] for c in cs for m in mlp), "n": len(cs), "kind": kind.pop()}
+    check([rr[r]["kind"] for r in sorted(rr)] == ["neg", "zero"], "section 10 item 5: paired-difference pattern changed")
+    X["c5"] = rr
+    # 6  fp64 diagnostic disagreements by rho and cap (formal M1 units)
+    fb = collections.defaultdict(lambda: collections.defaultdict(lambda: [0, 0]))
+    nm1 = 0
+    for u in formal:
+        if u["method"] == "MF_VCS_M1":
+            nm1 += 1
+            r = u["res"]["m1"]
+            e = fb[u["rho"]][int(r["cap"])]
+            e[0] += r["fp64_diagnostic"]["triggered_steps"]
+            e[1] += r["fp64_diagnostic"]["disagreements"]
+    tot = sum(v[1] for d in fb.values() for v in d.values())
+    check(tot == sum(e["fp64_dis"] for e in D["m1"].values()) and sum(v[0] for d in fb.values() for v in d.values()) == sum(e["fp64_trig"] for e in D["m1"].values()),
+          "section 10 item 6: fp64 diagnostic totals != section 5.3")
+    check(tot == 6845 and sum(v[1] for v in fb[0.0].values()) == 6233, "section 10 item 6: disagreement counts changed")
+    X["c6"] = {"by": {rho: dict(sorted(d.items())) for rho, d in sorted(fb.items())}, "tot": tot, "n_m1": nm1}
+    # 7  identity checks vs distinct tables
+    modes = {tuple(sorted(k for k in u["ev"]["saturated_fit_table"] if k != "note")) for u in units}
+    check(modes == {("U", "V")}, "saturated table references")
+    n_modes = len(modes.pop())
+    per_unit = {1 + len(u["ev"]["trajectory_diagnostic"]["rows"]) + n_modes for u in units}
+    sel_in_traj = sum(any(r["step"] == u["ev"]["selected"]["step"] and all(r[f] == u["sel"][f] for f in ("pop_mse", "J_pop", "EVAL_UJ", "FIT_UJ", "CAL_UJ"))
+                          for r in u["ev"]["trajectory_diagnostic"]["rows"]) for u in units)
+    n_traj = sum(len(u["ev"]["trajectory_diagnostic"]["rows"]) for u in units)
+    check(len(per_unit) == 1 and D["identity"]["n"] == len(units) * per_unit.copy().pop() and sel_in_traj == len(units),
+          "section 10 item 7: identity check layout")
+    X["c7"] = {"per_unit": per_unit.pop(), "n_traj_ckpt": n_traj // len(units), "sel_in_traj": sel_in_traj, "n_units": len(units),
+               "n_traj": n_traj, "sat_keys": D["sat_keys"], "distinct": n_traj + n_modes * D["sat_keys"], "checks": D["identity"]["n"],
+               "n_sat_modes": n_modes}
+    check(n_traj // len(units) * len(units) == n_traj, "trajectory rows differ between units")
+    # 8  head gap: fp32 column vs fp64 bound; checkpoint (post-update) gap vs the M1 solver's pre-update gap
+    hg = [u["sel"]["head_gap"] for u in formal if u["method"] in mf]
+    check(all(h["status"] == "MEASURED" for h in hg) and len(hg) == sum(D["polish"].values()), "section 10 item 8: head-gap records")
+    rel = max(abs(h["fw_gap_W"] - h["fp64"]["fw_gap_W"]) / h["fp64"]["fw_gap_W"] for h in hg)
+    nb = sum(h["fp64_polish"]["suboptimality_upper_bound_fw_gap"] == h["fp64"]["fw_gap_W"]
+             and h["fp64_polish"]["suboptimality_lower_bound"] <= h["fp64"]["fw_gap_W"] for h in hg)
+    sc_eval = {h["scope"] for h in hg}
+    sc_m1 = {u["res"]["m1"]["gap_scope"] for u in formal if u["method"] == "MF_VCS_M1"}
+    check(nb == len(hg) and len(sc_eval) == 1 and "post outer update" in next(iter(sc_eval)), "section 10 item 8: fp64 bound / evaluator scope")
+    check(len(sc_m1) == 1 and next(iter(sc_m1)).startswith("inner_pre_outer_batch"), "section 10 item 8: M1 gap scope")
+    gm1 = sum(main[(c, "MF_VCS_M1")]["gap"]["mean"] < main[(c, "MF_VCS_M0")]["gap"]["mean"] for c in conds)
+    X["c8"] = {"rel": rel, "n": len(hg), "nb": nb, "m1_scope": next(iter(sc_m1)).split(" ", 1)[0], "gm1": gm1, "n_cond": len(conds)}
+    # 9  section 5.5 column "V 参考 EVAL − S 均值" = EVAL U-J of the V-reference saturated table
+    satfull = {}
+    for u in units:
+        k = (u["data"],) + u["cond"]
+        rec = json.dumps(u["ev"]["saturated_fit_table"], sort_keys=True)
+        check(satfull.setdefault(k, rec) == rec, f"saturated table copies of {k} differ")
+    vrows = {k: json.loads(v)["V"] for k, v in satfull.items() if k[0] in D["data_seeds"]}
+    check(len(vrows) == D["obs_sets"], "section 10 item 9: formal saturated rows")
+    for c in conds:
+        S = main[(c, methods[0])]["S"]
+        mine = float(np.mean([vrows[(s,) + c]["EVAL_UJ"] - S for s in D["data_seeds"]]))
+        check(close(mine, D["sat"][c]["eval_err_V"]["mean"]), f"section 10 item 9: {c} column != V-table EVAL U-J - S")
+    shift = {}
+    for c in conds:
+        col = float(np.mean([vrows[(s,) + c]["EVAL_UJ"] - main[(c, methods[0])]["S"] for s in D["data_seeds"]]))
+        d = float(np.mean([vrows[(s,) + c]["EVAL_UJ"] - vrows[(s,) + c]["EVAL_VJ"] for s in D["data_seeds"]]))
+        check(col != 0, "section 10 item 9: zero column value")
+        shift[c] = (abs(d), abs(d) / abs(col))
+    ca = max(shift, key=lambda c: shift[c][0])
+    cr = max(shift, key=lambda c: shift[c][1])
+    X["c9"] = {"n": len(vrows), "abs": shift[ca][0], "abs_c": ca, "rel": shift[cr][1], "rel_c": cr}
+    # 10  R = 3 of the algorithm table
+    ra = {a["EVAL_UJ_minus_S"]["R"] for a in D["algo"].values()}
+    ci = next(iter(D["algo"].values()))["EVAL_UJ_minus_S"]["var_ci95_chi2"]
+    nalg = sum(D["algo"][k]["EVAL_UJ_minus_S"]["sd"] > main[k]["EVAL_UJ_minus_S"]["sd"] for k in main)
+    check(len(ra) == 1, "algo cells with different R")
+    X["c10"] = {"R": ra.pop(), "ratio": math.sqrt(ci[1] / ci[0]), "nalg": nalg, "n": len(main)}
+    # 11  report date
+    rdate = D["git"]["formal"]["utc"][:10]
+    check(rdate.replace("-", "") in REPORT_REL, "section 10 item 11: report date != the formal results commit date")
+    X["c11"] = {"date": rdate}
+    # 12  training implementation (no cell-count aggregation) and the per-method cost of section 2.4
+    frag = "used for CAL selection and every readout; training itself evaluates the critic row by row, as the natural host does"
+    check(frag in obj and "complete U moments; one scene, weight 1" in obj, f"{OBJECTIVES_REL} at the formal run commit: training layout")
+    negs = {}
+    for u in units:
+        r = u["res"]
+        if u["method"].startswith("MLP_"):
+            v = r["critic"]["architecture"]["negatives_per_step"]
+        elif (r.get("derangements") or {}).get("perm"):
+            v = r["derangements"]["perm"]["draws"] // int(D["proto"]["training"]["steps"])
+        else:
+            v = None
+        negs.setdefault(u["method"], set()).add(v)
+        check(r["data"]["n"]["fit"] == int(D["n_obs"]["FIT"]), f"{u['row']['unit_id']}: FIT n")
+    check(all(len(v) == 1 for v in negs.values()), "negatives per step differ within a method")
+    negs = {m: v.pop() for m, v in negs.items()}
+    check(negs["MF_VCS_M0"] is None and negs["MF_VCS_M1"] is None and all(negs[m] for m in ("MF_VCS_perm1", "MLP_VCS_perm1", "MLP_VCS_perm8")),
+          "section 10 item 12: negatives per step")
+    per = {m: v["wall"] / v["n"] for m, v in D["cost_methods"].items()}
+    X["c12"] = {"frag": frag, "negs": negs, "n_fit": int(D["n_obs"]["FIT"]), "per": _mm(per.values())}
+    # every integer count stated in section 10, as reviewed on 2026-10-19: a changed count refuses the run
+    stated = {
+        "1": (X["c1"]["m_small"], X["c1"]["m_large"], X["c1"]["kge"], sorted({v["group"] for v in wit.values()}), K),
+        "2": (len(mf_hi), X["c2"]["mf_n"], len(mf_both), len(full_hi), len(full_both), len(rest_both), len(mlp_lo), X["c2"]["mlp_n"],
+              len(mlp_lo_pos), len(mlp_pos), len(mlp_exc), D["n_by_block"]["CAL"], len(sel)),
+        "3": (neg0, len(c0) * len(methods), len(excl0), len(b75), len(pos75), len(main_units), len(D["data_seeds"])),
+        "4": (D["obs_sets"], len(streams), n75, len(t75) * len(methods), len(dmp) * len(methods), n0, nsamp, len(conds) * len(methods),
+              D["perm_z"]["n"], D["perm_z"]["R"], len(conds), len(D["data_seeds"])),
+        "5": tuple((r, X["c5"][r]["n"], X["c5"][r]["kind"]) for r in sorted(X["c5"])),
+        "6": (tot, nm1, tuple((rho, tuple(v[1] for v in d.values()), tuple(d)) for rho, d in X["c6"]["by"].items())),
+        "7": (X["c7"]["checks"], X["c7"]["per_unit"], X["c7"]["n_traj_ckpt"], X["c7"]["n_sat_modes"], X["c7"]["sel_in_traj"], X["c7"]["n_units"],
+              X["c7"]["sat_keys"], X["c7"]["n_traj"], X["c7"]["distinct"]),
+        "8": (X["c8"]["n"], X["c8"]["nb"], X["c8"]["gm1"], X["c8"]["n_cond"]),
+        "9": (X["c9"]["n"],),
+        "10": (X["c10"]["R"], X["c10"]["nalg"], X["c10"]["n"], round(X["c10"]["ratio"])),
+        "12": (tuple(sorted((m, v) for m, v in negs.items() if v)), X["c12"]["n_fit"]),
+    }
+    reviewed = {
+        "1": ([8], [32], [32], [2], 16),
+        "2": (18, 36, 13, 6, 4, 1, 21, 24, 14, 16, 2, 252, 60),
+        "3": (18, 20, 2, 10, 1, 600, 10),
+        "4": (120, 240, 10, 10, 20, 18, 48, 60, 1920, 512, 12, 10),
+        "5": ((0.25, 2, "neg"), (0.75, 2, "zero")),
+        "6": (6845, 224, ((0.0, (22, 6211), (10, 100)), (0.25, (0, 612), (10, 100)), (0.75, (0, 0), (10, 30)))),
+        "7": (13409, 11, 8, 2, 1219, 1219, 133, 9752, 10018),
+        "8": (672, 672, 9, 12),
+        "9": (120,),
+        "10": (3, 13, 60, 12),
+        "12": ((("MF_VCS_perm1", 1), ("MLP_VCS_perm1", 1), ("MLP_VCS_perm8", 8)), 4096),
+    }
+    for k in reviewed:
+        check(stated[k] == reviewed[k], f"section 10 item {k}: stated counts {stated[k]} != the reviewed counts {reviewed[k]}")
+    D["corr"] = X
+
+
+def sec_corrections(D, Q, published: str) -> list[str]:
+    X = D["corr"]
+
+    def orig(frag: str) -> str:
+        check(frag in published, f"section 10 quotes a sentence not in the published sections 1-9: {frag!r}")
+        return f"“{frag}”"
+
+    def item(n: int, title: str, original: str, corrected: str, evidence: str) -> list[str]:
+        return [f"{n}. **{title}**", f"   - 原文{original}", f"   - 更正：{corrected}", f"   - 依据：{evidence}"]
+
+    lab = cond_label
+    rng = lambda t: f"{fe(t[0])}–{fe(t[1])}"  # noqa: E731
+    c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12 = (X[f"c{i}"] for i in range(1, 13))
+    K = D["K_main"]
+    out = ["## 10 更正（2026-10-19）", "",
+           f"本节于 2026-10-19 追加，逐条补充 §1、§5、§8 中若干语句的依据、限定与澄清。§1–§9 保持首次发布时的原文（生成器核对其与提交 `{PUBLISHED_COMMIT[:7]}` 中的版本"
+           "逐字节相同），全部结果不变。每条给出原文、更正后的表述与依据；数值均由生成器从已提交记录计算，第 1 条的构造另由已提交的包生成器 "
+           f"`{PACKAGE_GENERATOR_REL}`（sha256 `{c1['gen_sha'][:16]}`…，等于全部单元记录中的 generator_sha256）的 exact_truth 计算；依赖数据的语句其成立条件由生成器核对，"
+           "不成立则拒绝生成。", ""]
+    w = c1["witness"]
+    wl = sorted(w)
+    out += item(1, f"“不是 K{K} MF 函数类可达到的最小误差”的依据",
+                "（§1 diagonal_mixture、ρ > 0 条）：" + orig(f"选择落在固定步数与学习率网格的边界，这些 MF 数值是本训练规则下的结果，不是 K{K} MF 函数类可达到的最小误差") + "。",
+                f"选择落在网格边界只说明冻结网格没有包住 CAL 最优点；网格外（更大学习率、更长训练）未测量，不能由此推出函数类可达到的最小误差。"
+                f"“不是 K{K} MF 函数类可达到的最小误差”本身成立，但依据是函数类的表示能力，见下。",
+                "MF 单元记录的结构为每侧 Linear + softmax 特征、one-hot 输入、T = a(x)ᵀ W b(y)、W ∈ [−1, 1]^(K×K)；softmax 特征可任意接近 one-hot，且 η ∈ [−1, 1]。"
+                f"m = {'、'.join(map(str, c1['m_small']))} 时 K{K} ≥ m，函数类闭包含 η，E_M(T − η)² 的下确界为 0，而所选 K{K} MF critic 的 E_M(T − η)² 均值为 {rng(c1['pop_small'])}。"
+                f"m = {'、'.join(map(str, c1['m_large']))} 时，同条件 {'、'.join(f'K{k}' for k in c1['kge'])}（K ≥ m，闭包同样含 η）训练所得 E_M(T − η)² 均值仍为 {rng(c1['pop_kge'])}（§7）；"
+                f"另把 {wl[0][1]} 个状态按顺序每 {w[wl[0]]['group']} 个分为 {K} 组、a(x) 与 b(y) 取所在组的 one-hot、W 取 M 加权的组内 η 均值，这一 K{K} 构造的 E_M(T − η)² 为 "
+                + " / ".join(f"{fe(w[c]['pop'])}（{lab(c)}）" for c in wl) + "，低于训练所得的 " + " / ".join(rng(w[c]["trained"]) for c in wl)
+                + "。该构造只给出函数类误差的上界，不是训练结果。")
+    out += item(2, "网格边界的选择不限于 diagonal_mixture ρ > 0 的 MF 组，也包括 MLP",
+                "（§8）：" + orig("diagonal_mixture ρ > 0 的 MF 选择落在学习率与步数网格边界（§1、§3）") + "；§1 diagonal_mixture、ρ > 0 条只对 MF 作此说明。",
+                f"MF {c2['mf_n']} 组中 {len(c2['mf_hi'])} 组选中学习率上端 {flr(max(D['lrs']))}（{'、'.join(lab(c) for c in c2['full_hi'])} 的全部 {len(D['mf_methods'])} 个 MF 方法），"
+                f"其中 {len(c2['mf_both'])} 组同时选中最后一个 checkpoint（{max(D['steps'])} 步）：diagonal_mixture ρ > 0 的 {len(c2['full_both'])} 个条件 × {len(D['mf_methods'])} 个 MF 方法，加 "
+                + "、".join(f"{lab(c)} {m}" for c, m in c2["rest_both"]) + f"。MLP {c2['mlp_n']} 组中 {len(c2['mlp_lo'])} 组选中学习率下端 {flr(min(D['lrs']))}，ρ > 0 的 "
+                f"{len(c2['mlp_pos'])} 组中 {len(c2['mlp_lo_pos'])} 组（其余为 " + "、".join(f"{lab(c)} {m}" for c, m in c2["mlp_exc"]) + f"，选 {flr(c2['exc_lr'])}）。"
+                "网格外（更大或更小的学习率、更长训练）未测量，MF 与 MLP 的数值都只代表冻结网格内的结果；网格按决定 §9.2 冻结，未作事后扩展。",
+                f"由 {D['n_by_block']['CAL']} 个 CAL 单元的检查点 CAL U-J 重算的 {len(D['selection'])} 组选择（§3.1，与选模记录逐组一致）。")
+    e0 = "；".join(f"{lab(c)} {m}" for c, m in c3["excl0"])
+    out += item(3, "误差的期望符号：每格的期望偏差都为负",
+                f"（§1 ρ = 0 条）：" + orig(f"{c4['n0']}/{c4['n0_of']} 格偏差区间含 0，其余 {len(c3['excl0'])} 格（{e0}）偏差为负")
+                + "；（§1 two_block、ρ > 0 条）：" + orig(f"ρ = 0.75 的 {c4['n75']}/{c4['n75_of']} 格偏差区间含 0")
+                + "；（§1 diagonal_mixture、ρ > 0 条）：" + orig("MF 的偏差主要是总体逼近误差") + "；（§8）：" + orig("主读数为 U") + "。",
+                f"所选 critic T 不依赖本重复的 EVAL 样本（训练用 FIT，checkpoint 由本重复的 CAL 选，超参数来自独立调参套），完整经验 U-J 对固定 T 无偏，故每格 E[e | T] = −E_M(T − η)² ≤ 0；{c3['n_main']} 个主单元的 E_M(T − η)² 均 > 0，"
+                f"所以每个方法、每个条件的期望偏差都严格为负。(a) “区间含 0”只表示 R = {len(D['data_seeds'])} 下没有分辨出，不表示无偏；ρ = 0 的 {c3['n0']} 格中 {c3['neg0']} 格点估计为负，"
+                f"原文所列 {len(c3['excl0'])} 格是区间整体低于 0。(b) two_block ρ0.75 的 {c3['n75']} 格点估计均为正（{rng(c3['b75'])}），而这些格期望偏差的估计 −E_M(T − η)² 均值为 "
+                f"{fe(c3['e75'][0])} 至 {fe(c3['e75'][1])}；正值来自 EVAL 抽样误差（{c3['n75']} 格均值 {rng(c3['s75'])}）：同一条件的 {len(D['methods'])} 个方法共用同一组 "
+                f"{len(D['data_seeds'])} 套 EVAL 样本（第 4 条），{'、'.join(lab(c) for c in c3['pos75'])} 的 {len(D['methods'])} 个方法抽样误差区间都整体高于 0。"
+                f"(c) “偏差主要是总体逼近误差”在期望上对每个方法都成立；E_M(T − η)² 均值 / |偏差| 只反映 {len(D['data_seeds'])} 个重复的均值中 EVAL 抽样误差所占的份量（同条件 "
+                f"{len(D['methods']) - len(D['mf_methods'])} 个 MLP 方法为 {c3['ratio_mlp'][0]:.2f}–{c3['ratio_mlp'][1]:.2f}）。该句的实际含义是 diagonal_mixture ρ > 0 的 MF 组 E_M(T − η)² 本身大（均值 {rng(c3['pop_mf_dm'])}）。"
+                "(d) 经训练与选模的 critic 的 EVAL U-J 期望为 S − E[E_M(T − η)²] ≤ S，主读数 U 同样不是 S 的无偏估计（§8 所引决定 §9.1 的句子针对 V 公式）。",
+                "运行提交的 `scripts/v10_t03/t03_run.py` 中训练与 CAL 处于 `truth_barrier` 内，`scripts/v10_t03/t03_common.py` 的 `truth_barrier` 默认 `allow_eval=False`，"
+                "EVAL 样本在此期间不可读取（拒绝 0 次，§2.3）；`scripts/v10_t03/t03_objectives.py` 的读数为 Ĵ = Σ_xy [p̂ (T − T²/2) − q̂ (T + T²/2)]，"
+                "q̂_U = (N_x N_y − N_xy)/(n(n − 1))，p̂ 与 q̂_U 是 P 与 Q = P_X P_Y 单元概率的无偏估计，Ĵ 对二者线性。数值取自 §4.1 与 §5.2。")
+    out += item(4, "同一条件内各方法共用样本与排列流：跨方法的格计数不是独立证据",
+                "（§1 精度条）：" + orig("区间逐格给出，未做多重比较校正") + "——该条未说明样本共用。",
+                f"同一（数据 root，条件）的全部方法（含算法重复与容量单元）使用同一套 FIT/CAL/EVAL 样本，评估用的 {D['perm_z']['R']} 个诊断排列也按（数据 root，条件，FIT/EVAL）共用。"
+                f"因此同一条件内跨方法的格计数——§1 的“{c4['n75']}/{c4['n75_of']} 格”“全部 {c4['ndm']} 格”“{c4['n0']}/{c4['n0_of']} 格”“{c4['nsamp']}/{c4['nsamp_of']} 格”与 "
+                f"{c4['nz']} 个 z 值——不是独立证据；独立单位只有 {c4['n_cond']} 个条件 × {c4['n_data']} 套数据 = {c4['obs']} 套。§4.2 的配对差正是利用这种共用；跨方法的格计数应按条件读。",
+                f"{c4['obs']} 套观测的 FIT/CAL/EVAL 样本 sha256 逐一核对（§4）；正式单元的诊断排列流记录共 {c4['streams']} 个（{c4['obs']} 套 × FIT/EVAL），每个在其全部单元中相同。")
+    r5 = c5
+    rk = sorted(r5)
+    kind_txt = {"neg": "为负", "zero": "含 0", "pos": "为正"}
+    out += item(5, "MF 与 MLP 的合并范围",
+                "（§1 two_block、ρ > 0 条）：" + orig(f"K{K} MF 三法 RMSE {fe(min(r5[r]['mf'][0] for r in rk))}–{fe(max(r5[r]['mf'][1] for r in rk))}，MLP 两法 "
+                                                    f"{fe(min(r5[r]['mlp'][0] for r in rk))}–{fe(max(r5[r]['mlp'][1] for r in rk))}")
+                + "；§1 标题为" + orig("结论摘要") + ("。" if "\n## 1 结论摘要\n" in published else fail("section 1 heading changed")),
+                "§1 是测量结果的摘要，不是方法优劣结论（§1 精度条，决定 §5）。合并条件的范围掩盖了条件差异，按 ρ 分开：" + f"{len(D['mf_methods'])} 个 K{K} MF 方法的 RMSE 在 "
+                + "、".join(f"ρ{r:g} 为 {rng(r5[r]['mf'])}" for r in rk) + f"；{len(D['methods']) - len(D['mf_methods'])} 个 MLP 方法在 " + "、".join(f"ρ{r:g} 为 {rng(r5[r]['mlp'])}" for r in rk)
+                + "。逐条件的配对差 MF_VCS_M0 − MLP_VCS_perm1（§4.2）" + "、".join(f"在 two_block ρ{r:g} 的 {r5[r]['n']} 个条件{kind_txt[r5[r]['kind']]}" for r in rk)
+                + "；方法间比较以 §4.2 的逐条件配对差为准。",
+                "§4.1 与 §4.2。")
+    by6 = c6["by"]
+    out += item(6, "fp64 诊断与决定 §2.3 的条件",
+                "（§8）：" + orig("按决定 §2.3 这只是诊断，训练仍用 fp32，其对所选 critic 的影响未单独测量") + "。",
+                Q("2.3", "对接近 fp32 分辨能力的参考值，保留一个同输入 fp64 数值诊断；没有实际失败证据时不把主训练整体改成 fp64")
+                + f"。{c6['tot']} 个不一致步按 ρ：" + "，".join(f"ρ = {rho:g} 为 {sum(v[1] for v in d.values())} 步（" + "，".join(f"cap {cap}：{v[1]}" for cap, v in d.items()) + "）"
+                                                          for rho, d in by6.items())
+                + "。这些不一致是否构成“实际失败证据”，本报告不作判定，留待 owner；训练仍用 fp32，其对所选 critic 的影响未单独测量。",
+                f"{c6['n_m1']} 个正式 MF_VCS_M1 单元记录的 fp64_diagnostic（§5.3）。")
+    out += item(7, f"“{c7['checks']} 个评估表”是核对次数",
+                "（§5.1）：" + orig(f"{c7['n_units']} 个单元共 {c7['checks']} 个表") + "；（§1 误差分解条）：" + orig(f"在 {c7['checks']} 个评估表上成立") + "。",
+                f"{c7['checks']} 是恒等式的核对次数：每个单元 {c7['per_unit']} 次（所选 checkpoint 的表、{c7['n_traj_ckpt']} 个轨迹 checkpoint 的表与 {c7['n_sat_modes']} 张饱和表 U/V，各核对一次）。"
+                f"所选 checkpoint 的表在 {c7['sel_in_traj']}/{c7['n_units']} 个单元中就是轨迹里的一张；饱和表按（数据 root，条件）共 {c7['sat_keys']} 组、每组 {c7['n_sat_modes']} 张，在同组单元间重复。"
+                f"不同的表共 {c7['n_traj']} + {c7['n_sat_modes'] * c7['sat_keys']} = {c7['distinct']} 张；最大残差与全部 PASS 的结论不变。",
+                "各单元 evaluation.json 的 selected_metrics、trajectory_diagnostic 与 saturated_fit_table。")
+    out += item(8, "头 gap 的计算位置与 fp32 / fp64",
+                "（§5.2 表注）：" + orig("头 gap 在所选 checkpoint 的特征上、外层更新之后计算；FW gap 是头部次优值的上界") + "；" + orig("故真实次优值位于 [polish 下界, FW gap] 之间") + "。",
+                f"(a) §5.2 与 §7 表中的 FW gap 为 fp32 值；同输入 fp64 值与之相差不超过 {fpct_up(c8['rel'])}（{c8['n']} 个正式 MF 单元），区间上界取 fp64 FW gap，"
+                f"{c8['nb']}/{c8['n']} 个单元的 polish 下界不超过 fp64 FW gap。(b) 这是所选 checkpoint 特征（外层更新之后）上的诊断量，不是 M1 训练中 solver 的停止 gap；后者是训练日志中的量（"
+                + Q("2.3", "头 gap 对应本步外层更新前的特征") + f"；M1 单元记录 gap_scope 为 {c8['m1_scope']}）。§1 误差分解条中"
+                + orig(f"所选 checkpoint 处 MF_VCS_M1 的头 gap 均值低于 MF_VCS_M0 的条件为 {c8['gm1']}/{c8['n_cond']}") + "比较的是前者。",
+                "各正式 MF 单元 evaluation.json 的 head_gap（fp32、fp64、fp64_polish）与 MF_VCS_M1 单元 result.json 的 m1.gap_scope。")
+    out += item(9, "§5.5 “V 参考 EVAL − S 均值”列的含义",
+                "（§5.5 表头）：" + orig("V 参考 EVAL − S 均值") + "。",
+                f"该列是用 q̂^V 构造的饱和表在 EVAL 上的完整 U-J − S，不是 EVAL V-J − S。若改用 EVAL V-J − S，列均值逐条件最多相差 {fe(c9['abs'])}（{lab(c9['abs_c'])}），"
+                f"相对该列数值最多 {fpct_up(c9['rel'], 1)}（{lab(c9['rel_c'])}）；表中数值本身不变。",
+                "各单元 evaluation.json 的 saturated_fit_table.V（EVAL_UJ 与 EVAL_VJ；同组副本逐字段一致）。")
+    out += item(10, f"§1 算法波动的 R = {c10['R']} 限定",
+                 "（§1 算法波动与容量条）：" + orig(f"固定首套数据、R = {c10['R']} 个算法 seed 的 sd 大于同格数据重复 sd 的有 {c10['nalg']}/{c10['n']} 格") + "。",
+                 f"补充 §6 的限定：R = {c10['R']} 时 sd 的 95% χ² 区间上限约为下限的 {c10['ratio']:.0f} 倍，{c10['nalg']}/{c10['n']} 只作粗略比较。",
+                 "§6。")
+    out += item(11, "RuLSIF 状态的日期",
+                 "（§8）：" + orig("RuLSIF / 核精确矩尚未实现，本网格不含其二次风险对照") + "。",
+                 f"原句指本报告日期（{c11['date']}）的状态；所指基线见"
+                 + Q("5", "实现所声明参考下的精确矩；V9 的 RFF ridge perm1 不充当该基线")
+                 + "。此后的实现进展以相应记录为准，不在本报告范围内；本网格不含 RuLSIF 对照这一点不变。",
+                 f"报告文件名与正式结果提交 `{D['git']['formal']['commit'][:7]}` 的日期（{c11['date']}）。")
+    ng = c12["negs"]
+    out += item(12, "§2.4 成本与训练实现方式",
+                 "（§8）：" + orig("§2.4 的成本只是本网格、本 CPU 布局下的实测") + "。",
+                 f"补充实现方式：本网格训练没有按单元频数聚合。排列方法每步按样本行计算若干组 n = {c12['n_fit']} 个负样本（"
+                 + "、".join(f"{m} {ng[m]} 组" for m in D["methods"] if ng.get(m)) + "），"
+                 + " / ".join(m for m in D["methods"] if ng.get(m, 0) is None) + " 由样本行的特征计算完整 U 矩；按单元频数的表统计只用于 CAL 选模与各项读数。"
+                 f"§2.4 按方法的每单元耗时（{c12['per'][0]:.1f}–{c12['per'][1]:.1f} s）反映这一实现，不是函数类之间的计算成本比较（"
+                 + Q("9.5", "离散场景中 MLP 同样可以按单元频数聚合") + "）。",
+                 f"运行提交的 `{OBJECTIVES_REL}`：“{c12['frag']}”；单元记录的每步负样本数（MLP 的 negatives_per_step、MF_VCS_perm1 的排列抽取数）。")
+    out.append("")
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ rendering
 def render(D) -> str:
     Q = Quotes(D["quotes_text"])
-    out = []
-    out += sec_header(D)
-    out += sec_terms(D)
-    out += sec_summary(D, Q)
-    out += sec_impl(D, Q)
-    out += sec_cal(D, Q)
-    out += sec_main(D, Q)
-    out += sec_decomp(D, Q)
-    out += sec_algo(D, Q)
-    out += sec_capacity(D, Q)
-    out += sec_limits(D, Q)
-    out += sec_files(D)
+    head = sec_header(D)
+    body = []
+    body += sec_terms(D)
+    body += sec_summary(D, Q)
+    body += sec_impl(D, Q)
+    body += sec_cal(D, Q)
+    body += sec_main(D, Q)
+    body += sec_decomp(D, Q)
+    body += sec_algo(D, Q)
+    body += sec_capacity(D, Q)
+    body += sec_limits(D, Q)
+    body += sec_files(D)
+    # the report as first published (header + terms + sections 1-9) must be reproduced byte for byte; section 10 is appended
+    published = "\n".join(head + body).rstrip("\n") + "\n"
+    check(published.encode("utf-8") == git_bytes("show", f"{PUBLISHED_COMMIT}:{REPORT_REL}"),
+          f"sections before 10 differ from the report published at {PUBLISHED_COMMIT[:7]}")
+    note = (f"**{CORRECTIONS_DATE} 追加 §10 更正**：逐条补充 §1、§5、§8 若干语句的依据、限定与澄清。除本行外，§10 之前的内容与首次发布的提交 "
+            f"`{PUBLISHED_COMMIT[:7]}` 逐字节相同（生成器核对），全部结果未改动；§10 的数值同样由生成器从记录计算并核对。")
+    out = head[:2] + [note, ""] + head[2:] + body + sec_corrections(D, Q, published)
     return "\n".join(out).rstrip("\n") + "\n"
 
 
