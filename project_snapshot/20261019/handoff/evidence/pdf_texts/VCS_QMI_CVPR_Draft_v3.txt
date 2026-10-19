@@ -1,0 +1,1466 @@
+PAGE 1
+Variational Cauchy–Schwarz Quadratic Mutual Information
+for Stable Representation Learning
+Working manuscript
+Author list and affiliations to be confirmed
+Development draft v3. Theory from the collaborator’s plan is
+retained. SSL implementation and observed results are updated
+to repository snapshot 236931d (September 26, 2026, 22:15:16
+UTC). All accuracies are internal selection results. Pending cells
+are not predictions. This is not yet a final anonymous CVPR
+submission.
+Abstract
+Learning representations through statistical dependence re-
+quires a sample-based objective and a useful implementa-
+tion of that objective. We study variational Cauchy–Schwarz
+quadratic mutual information (VCS-QMI) under the equal
+mixture of a joint distribution and the product of its marginals.
+This reference measure makes CS divergence a monotone
+transform of a bounded quadratic score. The score has an
+exact variational representation using first- and second-order
+critic moments, a population optimizer tanh(PMI /2), and a
+squared-regression variational gap. We retain this construc-
+tion and its fixed-distribution error analysis, then study its use
+in visual self-supervised learning. The current implementa-
+tion uses a shared encoder and projector, a bounded cosine
+critic, separately averaged joint and off-diagonal terms, and
+a disclosed stop-gradient on the shifted negative partner. A
+multi-view version averages the same score over view pairs.
+On a fixed CIFAR-10 development split, the original two-view
+MLP implementation reaches 74.34 ± 0.46% frozen-feature
+linear accuracy; the current four-view, 200-epoch configura-
+tion reaches 84.54 ± 0.16%, and one four-view, 800-epoch
+run reaches 86.42%. These are internal selection results,
+not official-test or equal-budget superiority claims. The ex-
+periments distinguish implementation effects, representation
+quality, and training cost; controlled estimator experiments,
+broader benchmarks, and matched baseline tuning remain
+open.
+1 Introduction
+Self-supervised visual learning uses relations between observa-
+tions to train an encoder without semantic training labels. Aug-
+mented views of the same image provide joint observations,
+while views from different images provide an off-diagonal
+reference. The training criterion is important, but so are the
+function class, augmentations, projector, and gradient paths.
+Estimating more dependence does not by itself establish a
+better visual representation [4, 15].
+Neural mutual information estimation makes dependence
+trainable from samples. MINE uses a Kullback–Leibler (KL)
+variational representation whose Donsker–Varadhan objective
+contains an exponential critic moment [ 3]. Different varia-
+tional estimators have different bias–variance behavior, espe-
+cially at high dependence [10, 12]. This motivates examining
+other statistical objectives, without assuming that all KL-based
+or contrastive objectives are unstable.
+CS divergence compares densities through normalized over-
+lap. The reference measure matters because changing it
+generally changes density-square integrals. We retain the
+collaborator’s equal-mixture construction: for P = PXY and
+Q = PXPY , set M = (P + Q)/2. The densities relative to M
+sum to two. This identity reduces mixture-reference CS to
+a monotone transform of a bounded score S. Completing a
+square yields a sample-only quadratic variational objective, an
+optimal bounded PMI transform, and an exact regression gap.
+The target is not Shannon MI or the classical fixed-reference
+CS value. Its relation to triangular discrimination, relative
+density-ratio fitting, and balanced relative predictive coding
+(RPC) is stated explicitly [14, 18]. The construction and the
+sampling analysis remain the theoretical core. We do not
+attribute a new divergence or an unrestricted new variational
+principle to an already related quadratic functional.
+The visual experiments now provide evidence beyond the
+initial implementation check. Under one common CIFAR-10
+development protocol, changing the critic from a concatena-
+tion MLP to a cosine form improves frozen features. With
+that critic, a negative-partner stop-gradient and additional in-
+dependently augmented views improve the selected configu-
+rations further. This stop-gradient retains the score’s forward
+value but changes the encoder’s derivative; the distinction
+is part of the method, not hidden in an implementation de-
+tail. No auxiliary covariance, orthogonality, reconstruction, or
+marginal-alignment loss is added.
+Contributions and current scope. The manuscript con-
+nects three components: the retained mixture-reference CS
+formulation and exact variational characterization; a neural es-
+timator with an explicit fixed-distribution error decomposition;
+and a reproducible SSL study showing how a concrete imple-
+mentation can improve visual features. The current evidence
+is a development study on 45,000 fitting and 5,000 selection
+images, with multiple pretraining seeds for key configurations.
+
+PAGE 2
+VCS-QMI Working manuscript v3 27 September 2026
+It supports useful learning and implementation sensitivity, not
+yet a general stability advantage or state-of-the-art SSL claim.
+A second application is being compared separately and is not
+selected or claimed here.
+2 Related Work
+Neural dependence estimation. MINE provides a neural
+estimator through KL variational representations [3]. Nguyen
+et al. study divergence estimation through convex risk mini-
+mization [8]. Poole et al. analyze variational MI bounds, while
+Song and Ermon study their limitations and variance reduction
+through SMILE [10, 12]. These works motivate evaluating
+bias, variance, and useful learning separately. Since their KL-
+based targets differ from S, their numerical outputs are not
+compared against the CS target as though they estimated the
+same quantity.
+CS and relative density ratios. CS-IB uses CS-based pre-
+diction and compression terms for regression; conditional CS
+compares conditional laws through kernel estimators [21, 22].
+CS-Aligner adds marginal-distribution alignment to pairwise
+visual–language learning [20]. Our joint-versus-product com-
+parison instead measures dependence between two views.
+LSMI fits an ordinary density ratio with a squared criterion,
+and RuLSIF fits a relative density ratio under a mixture distri-
+bution [13, 18]. General variational f -divergence methods and
+Fisher GAN provide related quadratic formulations [7, 9]. Re-
+lated bounded dependence measures also appear in geometric
+mutual information [19].
+Quadratic contrastive learning. RPC explicitly studies a
+first- and second-moment objective [14]:
+JRPC(T ) =EPT − αEQT
+− β
+2 EPT 2 − γ
+2 EQT 2.
+(1)
+At (α, β , γ) = (1,1,1) it is identical to our quadratic func-
+tional. With matching function class, parameterization, sam-
+pling, and optimizer, this is an implementation identity rather
+than a separate algorithm. We use the equality for numerical
+checks. Tuned RPC remains a planned full learning compari-
+son, not a completed experiment. The CS reference-measure
+interpretation explains the specific balanced instance; it does
+not erase the prior objective.
+Visual SSL. SimCLR learns through augmented image pairs
+and a contrastive loss [4]. VICReg separates invariance, vari-
+ance, and covariance constraints [1]; SSL-HSIC maximizes
+dependence on image identity with a kernelized-variance term
+[5]. FroSSL studies covariance Frobenius norms and multi-
+view learning efficiency, and f -MICL generalizes divergence-
+based contrastive criteria [ 6, 11]. These are representation-
+learning comparators, not all estimators of the same scalar.
+Matched-component experiments isolate choices in a common
+system, whereas method-native experiments preserve each
+baseline’s appropriate training recipe.
+3 Variational CS-QMI
+3.1 An explicit reference measure
+Let P,Q be probability measures on the same measurable
+space. For dependence learning, P = PXY and Q = PX ⊗ PY .
+Define
+M = 1
+2 (P + Q), pM = dP
+dM , qM = dQ
+dM . (2)
+The derivatives exist because M dominates both laws, even
+when ordinary Lebesgue densities do not exist. They satisfy
+pM + qM = 2 almost everywhere. Setting
+η = 1
+2 (pM − qM), pM = 1 + η, qM = 1 − η (3)
+gives |η| ≤1 and EMη = 0.
+We use the squared-ratio CS convention:
+D(M)
+CS (P,Q) =−log
+ R
+pMqM dM
+2
+ R
+p2
+M dM
+ R
+q2
+M dM
+ . (4)
+Changing the reference measure generally changes a density-
+overlap CS value. Equation (4) is therefore an explicitly de-
+fined target, not a claim to recover the classical fixed-reference
+value without KDE.
+Proposition 1 (Mixture-reference decomposition) . Define
+S(P,Q) =EM[η2]. Then 0 ≤ S ≤ 1 and
+D(M)
+CS (P,Q) =g(S), g(s) =2log 1 + s
+1 − s . (5)
+The right-hand side is finite for S < 1 and is +∞ at S = 1.
+Indeed, the three integrals in Eq. (4) are 1 + S, 1 + S, and
+1 − S. The increasing map g preserves maximizers when it
+is applied to the sole population objective. This does not
+imply identical optimization paths or equivalence after adding
+another fixed-weight loss.
+3.2 Exact variational representation
+For a measurable T with values in [−1,1], write
+J(T ;P,Q) =EP[T − 1
+2T 2]
++ EQ[−T − 1
+2T 2].
+(6)
+Proposition 2 (Variational identity and regression gap).
+S(P,Q) =sup
+|T |≤1
+J(T ;P,Q), (7)
+with
+S(P,Q) − J(T ;P,Q) =EM[(T − η)2]. (8)
+The population optimizer is T ∗ = η, unique up to M-null sets.
+2
+
+PAGE 3
+VCS-QMI Working manuscript v3 27 September 2026
+The equal-mixture identity givesJ(T ) =2EM[T η] − EMT 2.
+Completing the square proves Eq. (8). Only expectations of
+a computable function under P and Q are required. A finite
+neural function class can have a nonzero approximation gap
+even though the full measurable class attains the optimum.
+For densities p,q relative to a common dominating measure
+and on the support of the ratios,
+T ∗ = p − q
+p + q = r − 1
+r + 1 = tanh( 1
+2 logr), r = p/q. (9)
+For P = PXY and Q = PXPY , this yields
+T ∗(x,y) =tanh
+  1
+2 PMI(x,y)
+
+. (10)
+Boundary values are interpreted by limits. A finite tanh net-
+work takes values in (−1,1) and may only approximate an
+endpoint-valued optimizer.
+3.3 Dependence and classification interpreta-
+tions
+Following the original construction, define
+IVQ(X;Y ) =S(PXY ,PXPY ), IVCS = g(IVQ). (11)
+The training objective estimates IVQ through J rather than
+applying g to each mini-batch. This avoids the factor g′(s) =
+4/(1 − s2) near s = 1, without claiming that the transformed
+CS estimate also has uniformly small variance.
+Assign a balanced source label C = +1 to P and C = −1 to
+Q. Its posterior mean is E[C | Z] =η(Z). The squared risk
+R(T ) =1
+2 EP(1 − T )2 + 1
+2 EQ(−1 − T )2 (12)
+satisfies J(T ) =1 − R(T ) and S = 1 − infT R(T ). These la-
+bels indicate joint or independent pairing, not semantic image
+classes.
+Finally, for any common base measure µ,
+S(P,Q) =1
+2
+Z (p − q)2
+p + q dµ = 1
+2 ∆(P,Q), (13)
+where ∆ is triangular discrimination. This establishes IVQ = 0
+exactly at independence and supplies a data-processing in-
+equality through the f -divergence connection. For depen-
+dence, the maps on X and Y must act separately so that the
+transformed reference remains the product of the transformed
+marginals. Shannon-MI additivity is not assumed.
+4 Neural Estimation and the SSL Im-
+plementation
+4.1 Fixed-distribution estimator and sampling
+For a fixed pair distribution, the estimator uses Tφ = tanh fφ
+and maximizes the functional in Eq. (6). Write a+(t) =t −
+t2/2 and a−(t) =−t −t2/2. For B positive observations and
+K off-diagonal partners per anchor,
+bJ = 1
+B ∑
+i
+a+(t+
+i ) + 1
+BK ∑
+i,k
+a−(t−
+ik ). (14)
+The two distributions are averaged separately. Increasing K
+does not change their mixture weights. No clipping of J,
+logarithmic CS training transform, exponential critic moment,
+hard-negative selection, or semantic-label filtering is used.
+For each ordered view pairing, sample K distinct shifts
+uniformly without replacement from {1, . . . ,B − 1} and set
+πk(i) = (i + sk) mod B. (15)
+The current default is K = 8. Distinct image identities are
+sampled without replacement within a shuffled training pass.
+For i.i.d. base pairs and fixed pointwise features, off-diagonal
+pairs have the product-marginal law; the terms themselves
+are correlated. Finite-dataset exclusion of the same identity
+and training-mode BatchNorm are further differences from
+independent-pool theory. We report the actual off-diagonal im-
+plementation rather than treating BK pairs as BK independent
+base observations.
+4.2 Encoder, projector, and critic
+For V ≥ 2 independent augmentations tv drawn from the same
+distribution, define
+hv,i = fθ (tv(xi)) ∈ R512, (16)
+pv,i = gψ (hv,i) ∈ R128, (17)
+zv,i = pv,i/max(∥pv,i∥2,10−8). (18)
+The backbone is a randomly initialized torchvision ResNet-18
+with a CIFAR stem: a 3 × 3 stride-one convolution, no initial
+max-pool, global average pooling, and no classification layer.
+The projector is
+Linear512→512 (no bias) → BN → ReLU
+→ Linear512→128 (with bias).
+There is no final projector BatchNorm. All V B views are
+concatenated for a single encoder/projector forward pass; gra-
+dients and normalization statistics are shared through that
+pass.
+The selected SSL critic is
+Tφ (z,z′) =tanh(α z⊤z′ + β ), φ = (α, β ), (19)
+initialized with α0 = 5, β0 = 0. Both scalar parameters are or-
+dinarily learned without a positivity constraint or critic weight
+decay. The outer tanh comes from the original estimator plan.
+The cosine function class and its initialization are empirical
+SSL choices. A two-parameter critic does not in general re-
+cover the unrestricted optimum tanh(PMI /2) for arbitrary
+distributions.
+The original implementation used a pointwise concatenation
+MLP with two 512-wide ReLU layers and a scalartanh output.
+3
+
+PAGE 4
+VCS-QMI Working manuscript v3 27 September 2026
+We retain its results as a baseline; it is an engineering starting
+point, not the collaborator’s uniquely prescribed architecture.
+Current cosine configuration files retain inactive MLP-related
+schema fields; those fields do not create hidden MLP layers.
+4.3 Negative-partner stop-gradient
+For each view paira < b, the current implementation computes
+t+
+ab,i = Tφ (za,i,zb,i), (20)
+t−
+ab,ik = Tφ
+ 
+za,i,sg(zb,πk(i))
+
+. (21)
+Positive pairs backpropagate through both representations.
+Negative pairs backpropagate through their first representation
+and through the critic, but not through the explicit second rep-
+resentation input. The shared encoder still receives gradients
+from other paths and from all views’ positive terms. This is
+not a frozen teacher or a fully detached view branch.
+Numerically sg(z) =z, so Eq. (14) retains the same forward
+score. Its autodifferentiated encoder update is not the full
+derivative of that score when both marginal representations
+depend on the encoder. In particular, writing the full derivative
+as GP + GQ,L + GQ,R, the prescribed graph retains GP + GQ,L
+through the explicit pair inputs. We call this a disclosed SSL
+gradient-routing choice, not a theorem about unbiased opti-
+mization of S. The fixed-distribution variational identities and
+critic moment estimates are unaffected.
+4.4 Multi-view averaging and one update
+The loss for A = {(a,b) : 1 ≤ a < b ≤ V } is
+LSSL = − 1
+|A | ∑
+(a,b)∈A
+bJab, |A | =
+V
+2
+
+. (22)
+Each view pair draws its own K shifts from the dedicated
+sampler. The source code enumerates pairs with a < b; it
+does not score both orders. Thus, although the cosine score
+is symmetric, the negative-gradient routing is not view-order
+symmetric on a fixed batch. For four views, explicit negative
+left-input appearances per view are (3,2,1,0) before averag-
+ing; every view still participates in three positive pairs. Since
+views use identical random transforms, they are exchangeable
+at sampling time, but we do not replace this implementation
+by an unreported symmetric variant.
+The current default has no EMA, predictor, extra critic-
+only step, or auxiliary representation loss. These were ex-
+plored in named variants. For independently generated same-
+distribution views, all pairs target the same population de-
+pendence; they are additional correlated observations, not a
+new multiway-information functional or independent evidence
+replicated six times.
+4.5 Optimization and exact configuration
+AdamW uses learning rate 10−3, betas (0.9,0.999), and ε =
+10−8. Encoder/projector matrix weights receive decay 10−4;
+Table 1: Current SSL update, including the actual stop-
+gradient. V = 4, K = 8 are the reference multi-view con-
+figuration.
+1 Sample B distinct fitting identities and drawV independent views
+for each.
+2 Concatenate the V B views; compute h, p,z in one encoder/pro-
+jector pass.
+3 For every a < b, draw K nonzero distinct shifts and score
+Eq. (21).
+4 Average positive and negative moments separately, then average
+bJab over all view pairs.
+5 Zero gradients, backpropagate −meana<b bJab once through the
+prescribed graph, and take one AdamW step on encoder, projec-
+tor, and critic.
+biases, normalization parameters, and critic scalars receive
+zero decay. There is one GPU, FP32, no gradient clipping,
+no gradient accumulation, TF32 disabled, and no compilation.
+Learning-rate updates are per optimizer step: 10 warm-up
+epochs, then cosine decay to 1% of the peak. The learning
+rate is not scaled automatically with batch size.
+Four-view configurations use B = 256 at 200/400/800
+epochs; the selected short configuration uses B = 128, 100
+epochs. Two-view 800-epoch and eight-view 200-epoch runs
+are separately identified. These are distinct training horizons,
+each initialized with its own schedule, not continuations of
+an already completed cosine decay. Detailed transformations,
+seeds, checkpoint behavior, and configuration-to-code map-
+pings are in Appendix D.
+Implementation provenance. All descriptions and results
+refer to repository snapshot236931d [16]. Exact numerical in-
+put normalization is channelwise mean and standard deviation
+(0.5,0.5,0.5), as specified in the YAML files, not empirical
+CIFAR channel statistics. Appendix G records this and other
+discrepancies between prose summaries and executable set-
+tings instead of silently reconciling them.
+5 Statistical Error and Stability
+The original plan calls for consistency and finite-sample anal-
+ysis. The following statements retain the fixed-distribution
+analysis of the previous draft; they are supplied for recon-
+ciliation with the collaborator’s complete proofs. They do
+not change the objective or establish convergence of a jointly
+moving encoder and critic. Full assumptions and proofs are in
+Appendix B.
+5.1 Independent evaluation of a fixed critic
+For |T | ≤1, both a+(T ) and a−(T ) lie in [−3/2,1/2]. Sup-
+pose n independent P samples and m independent Q samples
+are independent of the fitted critic and of each other. Condi-
+4
+
+PAGE 5
+VCS-QMI Working manuscript v3 27 September 2026
+tional on that critic,
+Var( bJ | T ) ≤ 1
+n + 1
+m . (23)
+A Hoeffding bound and a union bound give, with probability
+at least 1 − δ,
+| bJ − J(T )| ≤
+r
+2log (4/δ )
+n +
+r
+2log (4/δ )
+m . (24)
+These bounds control evaluation noise at a fixed fitted func-
+tion. Run-to-run variation in the fitted function is additional.
+They do not directly apply to a training score computed on
+the critic’s fitting data or to correlated in-batch pairs with an
+artificial sample size B2.
+5.2 Approximation, sampling, and optimiza-
+tion
+For a neural class T , define
+aT = inf
+T ∈T
+EM(T − η)2,
+∆n,m = sup
+T ∈T
+| bJ(T ) − J(T )|. (25)
+Proposition 3 (Fitted-critic error decomposition). If bJ( bT ) ≥
+supT ∈T bJ(T ) − εopt, then
+S − J( bT ) ≤ aT + 2∆n,m + εopt. (26)
+Under measurability and bounded-class assumptions, stan-
+dard symmetrization, contraction, and concentration yield a
+universal constant C such that
+∆n,m ≤ C
+
+Rn(P, T ) +Rm(Q, T )
++
+r
+log(4/δ )
+n +
+r
+log(4/δ )
+m
+ (27)
+with high probability [2]. Consistency requires the approxi-
+mation, sampling, and optimization terms to vanish. Bounded
+output alone guarantees neither vanishing network complexity
+nor successful optimization. Independent evaluation adds its
+own sampling error. A confidence interval for J( bT ) is not
+automatically a two-sided interval for S.
+5.3 Interpreting stability in learning
+The estimator avoids exponential critic moments and has
+bounded sample terms. These are specific structural properties,
+not a universal variance ranking across different dependence
+targets. Neither ∇φ Tφ nor the encoder Jacobian is bounded
+merely because Tφ ∈ [−1,1]. Gradient behavior in end-to-end
+SSL is measured rather than inferred from Eq. (23).
+The bounded score can saturate near one, and its CS trans-
+form becomes sensitive there. A nearly constant score with
+low variance is not necessarily an informative estimator. Like-
+wise, stable arithmetic does not establish non-collapse or se-
+mantic usefulness. The empirical design therefore measures
+dependence resolution, fitted-critic generalization, feature vari-
+ation, and frozen linear accuracy separately.
+6 Experiments: Protocol and Current
+Evidence
+6.1 Status and evidence boundary
+The empirical evidence now consists of executed CIFAR-10
+development runs, not empty templates. It is still not a final
+benchmark comparison. All reported feature accuracies use
+a repeatedly consulted 5,000-image selection subset of the
+official training data. Key configurations have three complete
+pretraining seeds; most exploratory changes have one. The
+official test set is disabled in the inspected configurations. No
+second application, CIFAR-100, ImageNet-scale result, or
+controlled-estimator result is claimed from these SSL reports.
+The repository snapshot is dated September 26, 2026,
+22:15:16 UTC. Results marked Pending have no final value
+in that snapshot; they are not predicted from job IDs, an ex-
+pected completion time, or a kNN trajectory. The four-view
+400-epoch endpoint is reported in narrative updates but still
+has an older incomplete structured table. We mark that specific
+value with a dagger and retain the discrepancy in the evidence
+ledger.
+6.2 Data, augmentations, and frozen-feature
+evaluation
+CIFAR-10’s official training portion is partitioned by image
+identity using split seed 20260924: 500 images per class form
+selection and the remaining 45,000 form fitting. The saved
+manifest is common to all methods. Labels are used for the
+stratified split and downstream probes, never as inputs to the
+SSL loss or negative selection. Every view of one image stays
+in its assigned partition.
+Each view uses random resized crop to 32 × 32 with area
+scale [0.2,1], aspect ratio [3/4,4/3], bilinear interpolation and
+antialiasing; horizontal flip with probability 0.5; brightness/-
+contrast/saturation/hue jitter (0.4,0.4,0.4,0.1) applied with
+probability 0.8; grayscale with probability 0.2; tensor conver-
+sion and fixed (0.5,0.5,0.5) normalization. Blur and solariza-
+tion are off. The pending strong-augmentation run changes
+crop and jitter and is not mixed with the default results.
+The primary endpoint is a linear classifier on the frozen
+512-dimensional h, before projector and critic. Clean images
+use only tensor conversion and the same fixed normalization.
+A linear layer with bias is fitted on the 45,000 fitting features
+with SGD: 100 epochs, batch 256, learning rate 0.1, momen-
+tum 0.9, zero decay, cosine decay to 0.1% of peak, and seed
+20260925. The final probe epoch is reported. No feature
+normalization or best-validation-epoch selection is used in
+the primary probe. The weighted kNN monitor uses cosine
+similarity, k = 200, temperature 0.1, and the fitting set as its
+bank. Checkpoint copies freeze parameters and BN buffers;
+monitoring preserves the training random states.
+5
+
+PAGE 6
+VCS-QMI Working manuscript v3 27 September 2026
+6.3 From the initial implementation to the cur-
+rent one
+Table 2 reports the accumulated development evidence. The
+original MLP version learns useful features, but changing its
+capacity did not close its gap to the matched controls. A cosine
+critic and then negative-partner stop-gradient improved three-
+seed performance. Initial scale α0 = 5 helped the two-view
+configuration, while its gain largely overlapped with four-
+view training. These changes are observed implementation
+effects, not additive proof that each mechanism contributes
+independently.
+The controls have not yet received the subsequent recipe
+search. They are useful fixed reference points, not fully re-
+tuned comparators. A same-score balanced RPC implementa-
+tion is an identity check; a tuned RPC study is still absent from
+the current evidence. We do not infer a general SSL advantage
+from selective comparison against the frozen P5 recipes.
+6.4 Views, updates, and training horizon
+Table 3 separates views, image batch, steps, and encoded-
+view exposure. With two views and 800 epochs, the selected
+configuration reaches 85.30 ± 0.21% over three seeds. Eight
+views and 200 epochs reach 86.28% in one completed run.
+Four views and 800 epochs reach 86.42% in one completed
+run, with kNN 85.60%. The latter is the largest final linear
+value verified in the inspected stage tables; the other two seeds
+and larger-horizon runs remain pending.
+At the shorter budget, reducing the four-view image batch
+from 256 to 128 increases update count and raises linear vali-
+dation from 81.88 to 83.19 ± 0.40%. This also changes batch
+statistics and the identities contributing per update, so the ef-
+fect is not attributed to update count alone. At approximately
+the same encoded-view exposure and number of updates
+as four views/200 epochs, eight views/100 epochs/ B = 128
+reaches 84.60, whereas eight views/100 epochs/ B = 256
+reaches 83.40. Thus the earlier conclusion that eight views are
+intrinsically worse is not supported.
+Long-horizon exploration is currently aimed at achievable
+quality, not an efficiency claim. The 86.42% VCS endpoint
+uses eight times the encoded views of the two-view 200-epoch
+control and is a single seed. It cannot establish superiority over
+a tuned control at equal budget. Likewise, a continued rise in
+kNN is not an extrapolation of unmeasured linear accuracy.
+6.5 Ablations and diagnostics
+Disabling negative-partner stop-gradient in the four-view,
+B = 256, 100-epoch setting lowers linear validation from
+81.88 to 79.66. This is the relevant within-setting compara-
+tor; comparing 79.66 directly with the B = 128 three-seed
+result would confound the routing change with batch size. At
+B = 128, increasing projector output from 128 to 512, widen-
+ing the hidden layer to 2048, or using K = 127 yields 82.88,
+82.82, and 82.86 respectively, versus the 83.19 mean. These
+single-seed ablations do not establish universal irrelevance of
+those settings.
+Geometry is diagnostic, not the endpoint. Effective rank
+is the exponential entropy of normalized eigenvalues of cen-
+tered covariance on a fixed 4,096-selection-image subset. In
+the inspected diagnostic runs, stronger frozen- h results can
+coexist with a more concentrated normalized projector space.
+Alignment and uniformity [17] and per-layer probes therefore
+remain separate from linear accuracy. Their co-variation does
+not by itself prove the mechanism of improvement. A more
+expressive critic, output BN, or an added metric matrix did
+not consistently improve the tested configurations; rank con-
+centration is not equated with the complete absence of useful
+information.
+The derivative of a pair score with respect to its logit u is
+(c − T )(1 − T 2), with c ∈ {−1, +1}. Saturation can attenuate
+this factor, but total parameter gradients also contain scale
+and network derivatives. Reports of lower positive saturation
+under detach are observations at specified checkpoints; they
+are not true for every long-horizon endpoint and do not prove
+universal gradient stability.
+6.6 What remains untested
+Controlled Gaussian/mixture/nonlinear-channel studies re-
+tain the original plan’s target-specific evaluation: estimate
+S against analytic or independent high-precision Monte Carlo
+references, and assess other MI estimators against their own
+targets. Those results have not been supplied in this repository
+snapshot. Formal CIFAR-100/ImageNet-scale experiments,
+official-test evaluation, and broader batch/learning-rate com-
+parisons against tuned methods are likewise pending.
+P41 is a draft, unlaunched control-tuning plan, not a com-
+pleted equal-search-budget comparison. Its planned knobs do
+not retroactively equalize the approximately 150 exploratory
+VCS runs reported by the technical note. Both per-run ex-
+posure and cumulative search cost must be disclosed. The
+second-application options are maintained in a separate docu-
+ment; no candidate is assumed to have run or to improve the
+method.
+7 Discussion
+The fixed-distribution CS construction and the empirical SSL
+implementation should not be conflated. The same moment
+score can be estimated with a flexible bounded neural critic,
+while the selected visual implementation uses a restricted
+cosine family and a negative-partner semi-gradient. Better
+frozen features under that implementation do not prove exact
+estimation of the population supremum or inherit an end-to-
+end convergence theorem.
+The current results support a useful implementation and
+reproducible gains over its initial version. They do not estab-
+lish a uniformly more stable or more efficient SSL algorithm
+than existing methods. All results are development-selection
+outcomes after extensive search. Multi-seed replication ad-
+dresses training variation, not selection overfitting or cross-
+6
+
+PAGE 7
+VCS-QMI Working manuscript v3 27 September 2026
+Table 2: CIFAR-10 development progression. All values are frozen- h linear validation or kNN percentages on the same 5k
+selection set. Mean ± sample SD refers to three complete pretraining seeds. The final four-view row uses twice the encoded
+views of the two-view rows at equal epochs. Sources: P7/P11/P30/P27/P32/P36 at 236931d.
+Implementation K Views Epochs Linear val. kNN h eff. rank
+VCS: concatenation MLP, full gradients 1 2 200 74 .34 ± 0.46 63 .93 ± 0.62 13.18
+VCS: concatenation MLP, full gradients 8 2 200 76 .74 ± 0.78 67 .09 ± 0.31 15.57
+VCS: cosine critic, full gradients 8 2 200 78 .21 ± 0.13 73.09 57.73
+VCS: cosine, negative-partner stop-gradient 8 2 200 80 .59 ± 0.12 74 .41 ± 0.19 30.40
+VCS: previous row, α0 = 5 8 2 200 81 .56 ± 0.44 76 .94 ± 0.09 45.60
+VCS: previous row, four views 8 4 200 84 .54 ± 0.16 81 .40 ± 0.22 75.71
+SimCLR, frozen matched recipe – 2 200 86 .09 ± 0.38 83 .98 ± 0.24 89.96
+VICReg, matched 128-d projector – 2 200 85 .46 ± 0.26 81 .92 ± 0.40 75.66
+Table 3: Selected VCS configurations (K = 8, cosine, negative-partner stop-gradient, α0 = 5). Relative exposure uses encoded
+views, not total compute: 1× is 17.92 million encoded views for B = 256, V = 2, 200 epochs. B = 128 changes dropped tails
+slightly. A dagger marks a narrative-reported endpoint whose structured table still needs synchronization. Single-seed endpoints
+have no fabricated SD. Sources: P36/P38/P40 and their stage tables.
+V B Epochs Steps Rel. exposure Linear val. kNN Seeds / evidence
+2 256 200 35,000 1.00 × 81.56 ± 0.44 76.94 3 / completed
+4 256 100 17,500 1.00 × 81.88 77.74 1 / completed
+4 128 100 35,100 1.003 × 83.19 ± 0.40 78 .43 ± 0.11 3 / completed
+8 256 50 8,750 1.00 × 80.60 76.08 1 / completed
+4 256 200 35,000 2.00 × 84.54 ± 0.16 81 .40 ± 0.22 3 / completed
+8 128 100 35,100 2.006 × 84.60 81.62 1 / completed
+2 256 800 140,000 4.00 × 85.30 ± 0.21 82 .33 ± 0.25 3 / completed
+4 256 400 70,000 4.00 × 85.90† 83.58† 1 / report-only
+8 256 200 35,000 4.00 × 86.28 83.66 1 / completed
+4 256 800 140,000 8.00 × 86.42 85.60 1 completed; 2 pending
+dataset transport. Published final claims require frozen recipes,
+broader visual evaluation, explicit matched comparisons, and
+the collaborator’s complete statistical analysis.
+8 Conclusion
+We retain a mixture-reference CS dependence functional with
+an exact quadratic variational representation, bounded PMI
+optimizer, and squared-regression gap. The updated SSL
+study specifies how it is actually implemented: a shared
+encoder/projector, bounded cosine critic, off-diagonal sam-
+pling, disclosed negative-partner stop-gradient, and view-pair
+averaging. The current four-view 200-epoch configuration
+reaches 84.54 ± 0.16% frozen linear validation on CIFAR-
+10; a completed four-view 800-epoch run reaches 86.42%.
+These development results establish useful learning and iden-
+tify implementation-sensitive behavior. Statistical superiority,
+official-test performance, larger-scale transfer, and a second
+application remain to be demonstrated.
+7
+
+PAGE 8
+VCS-QMI Working manuscript v3 27 September 2026
+References
+[1] Adrien Bardes, Jean Ponce, and Yann LeCun. VI-
+CReg: Variance-invariance-covariance regularization for self-
+supervised learning. In International Conference on Learn-
+ing Representations, 2022. URL https://arxiv.org/abs/
+2105.04906.
+[2] Peter L. Bartlett and Shahar Mendelson. Rademacher and Gaus-
+sian complexities: Risk bounds and structural results. Journal
+of Machine Learning Research, 3:463–482, 2002. URL https:
+//www.jmlr.org/papers/v3/bartlett02a.html.
+[3] Mohamed Ishmael Belghazi, Aristide Baratin, Sai Rajeshwar,
+Sherjil Ozair, Yoshua Bengio, Aaron Courville, and R. Devon
+Hjelm. Mutual information neural estimation. In Interna-
+tional Conference on Machine Learning, 2018. URL https:
+//proceedings.mlr.press/v80/belghazi18a.html.
+[4] Ting Chen, Simon Kornblith, Mohammad Norouzi, and Ge-
+offrey Hinton. A simple framework for contrastive learning
+of visual representations. In International Conference on Ma-
+chine Learning, 2020. URL https://arxiv.org/abs/2002.
+05709.
+[5] Yazhe Li, Roman Pogodin, Danica J. Sutherland, and Arthur
+Gretton. Self-supervised learning with kernel dependence max-
+imization. In Advances in Neural Information Processing Sys-
+tems, 2021. URL https://arxiv.org/abs/2106.08320.
+[6] Yiwei Lu, Guojun Zhang, Sun Sun, Hongyu Guo, and Yaoliang
+Yu. f-MICL: Understanding and generalizing InfoNCE-based
+contrastive learning. Transactions on Machine Learning Re-
+search, 2023. URL https://arxiv.org/abs/2402.10150.
+[7] Youssef Mroueh and Tom Sercu. Fisher GAN. In Advances
+in Neural Information Processing Systems, 2017. URL https:
+//arxiv.org/abs/1705.09675.
+[8] XuanLong Nguyen, Martin J. Wainwright, and Michael I. Jor-
+dan. Estimating divergence functionals and the likelihood ratio
+by convex risk minimization. IEEE Transactions on Informa-
+tion Theory, 56(11):5847–5861, 2010. doi: 10.1109/TIT.2010.
+2068870. URL https://arxiv.org/abs/0809.0853.
+[9] Sebastian Nowozin, Botond Cseke, and Ryota Tomioka. f-
+GAN: Training generative neural samplers using variational
+divergence minimization. In Advances in Neural Information
+Processing Systems, 2016. URL https://arxiv.org/abs/
+1606.00709.
+[10] Ben Poole, Sherjil Ozair, Aaron van den Oord, Alexander
+Alemi, and George Tucker. On variational bounds of mutual
+information. In International Conference on Machine Learn-
+ing, 2019. URL https://proceedings.mlr.press/v97/
+poole19a.html.
+[11] Oscar Skean, Aayush Dhakal, Nathan Jacobs, and Luis Gon-
+zalo Sanchez Giraldo. FroSSL: Frobenius norm minimiza-
+tion for efficient multiview self-supervised learning. In Eu-
+ropean Conference on Computer Vision, 2024. URL https:
+//arxiv.org/abs/2310.02903.
+[12] Jiaming Song and Stefano Ermon. Understanding the limita-
+tions of variational mutual information estimators. In Interna-
+tional Conference on Learning Representations, 2020. URL
+https://arxiv.org/abs/1910.06222.
+[13] Taiji Suzuki, Masashi Sugiyama, Takafumi Kanamori, and
+Jun Sese. Mutual information estimation reveals global as-
+sociations between stimuli and biological processes. BMC
+Bioinformatics, 10(Suppl 1):S52, 2009. doi: 10.1186/
+1471-2105-10-S1-S52. URL https://link.springer.
+com/article/10.1186/1471-2105-10-S1-S52 .
+[14] Yao-Hung Hubert Tsai, Martin Q. Ma, Muqiao Yang, Han
+Zhao, Louis-Philippe Morency, and Ruslan Salakhutdinov. Self-
+supervised representation learning with relative predictive cod-
+ing. In International Conference on Learning Representations,
+2021. URL https://arxiv.org/abs/2103.11275.
+[15] Michael Tschannen, Josip Djolonga, Paul K. Rubenstein, Syl-
+vain Gelly, and Mario Lucic. On mutual information max-
+imization for representation learning. In International Con-
+ference on Learning Representations , 2020. URL https:
+//arxiv.org/abs/1907.13625.
+[16] VCS-QMI research team. VCS_QMI: Ssl implementa-
+tion and development reports, snapshot 236931d, 2026.
+URL https://github.com/W-Yinghao/VCS_QMI/tree/
+236931d1bc7c227177b566db290823f01dccaf96. Commit
+236931d1bc7c227177b566db290823f01dccaf96; September
+26, 22:15:16 UTC. Read-only audit September 27, 2026.
+[17] Tongzhou Wang and Phillip Isola. Understanding contrastive
+representation learning through alignment and uniformity on
+the hypersphere. In International Conference on Machine
+Learning, 2020. URL https://proceedings.mlr.press/
+v119/wang20k.html.
+[18] Makoto Yamada, Taiji Suzuki, Takafumi Kanamori, Hi-
+rotaka Hachiya, and Masashi Sugiyama. Relative
+density-ratio estimation for robust distribution com-
+parison. In Advances in Neural Information Process-
+ing Systems , 2011. URL https://proceedings.
+neurips.cc/paper_files/paper/2011/file/
+d1f255a373a3cef72e03aa9d980c7eca-Paper.pdf.
+[19] Salimeh Yasaei Sekeh and Alfred O. Hero. Geomet-
+ric estimation of multivariate dependency. arXiv preprint
+arXiv:1905.08594, 2019. URL https://arxiv.org/abs/
+1905.08594.
+[20] Wenzhe Yin, Zehao Xiao, Pan Zhou, Shujian Yu, Jiayi Shen,
+Jan-Jakob Sonke, and Efstratios Gavves. Distributional vision-
+language alignment by Cauchy–Schwarz divergence. In Inter-
+national Conference on Learning Representations, 2026. URL
+https://arxiv.org/abs/2502.17028.
+[21] Shujian Yu, Xi Yu, Sigurd Løkse, Robert Jenssen, and José C.
+Príncipe. Cauchy–Schwarz divergence information bottleneck
+for regression. In International Conference on Learning Rep-
+resentations, 2024. URL https://arxiv.org/abs/2404.
+17951.
+[22] Shujian Yu, Hongming Li, Sigurd Løkse, Robert Jenssen, and
+José C. Príncipe. The conditional Cauchy–Schwarz divergence
+with applications to time-series data and sequential decision
+making. IEEE Transactions on Pattern Analysis and Machine
+Intelligence, 2025. URL https://arxiv.org/abs/2301.
+08970.
+8
+
+PAGE 9
+VCS-QMI Working manuscript v3 27 September 2026
+A Proofs of the Retained Identities
+A.1 Mixture-reference decomposition
+Since M = (P + Q)/2 dominates both distributions, pM +
+qM = 2 M-almost everywhere. With η = (pM − qM)/2, we
+have
+R
+η dM = 0 and
+Z
+p2
+MdM =
+Z
+(1 + 2η + η2)dM = 1 + S, (28)
+Z
+q2
+MdM = 1 + S, (29)
+Z
+pMqMdM =
+Z
+(1 − η2)dM = 1 − S. (30)
+Substituting into the squared-ratio CS definition proves Eq.(5).
+Boundedness of η gives 0 ≤ S ≤ 1. At S = 1 the cross-overlap
+vanishes, giving the extended value +∞.
+A.2 Variational representation and classifica-
+tion
+For every measurable bounded T ,
+EPT − EQT = 2EM[T η], (31)
+1
+2 EPT 2 + 1
+2 EQT 2 = EMT 2. (32)
+Consequently,
+J(T ) =2EM[T η] − EMT 2 (33)
+= EMη2 − EM(T − η)2. (34)
+The maximum is attained by T = η in the full measurable
+bounded class. Equality implies T = η M-almost everywhere,
+proving uniqueness in L2(M).
+For the balanced label C, E[C | Z] =η(Z). Expanding its
+risk gives
+R(T ) =E[C2] − 2E[CT ] +E[T 2] (35)
+= 1 − 2EM[ηT ] +EMT 2 = 1 − J(T ). (36)
+This also explains why positive and negative losses must retain
+equal total weights even if their sample counts differ.
+On the support where p,q > 0, let r = p/q. Then
+η = r − 1
+r + 1 = tanh( 1
+2 logr). (37)
+At zero-density boundaries use the corresponding limiting
+values. The finite network tanh fφ lies in (−1,1); equality
+with a boundary-valued optimal function is interpreted through
+approximation or closure. The inverse r = (1 + η)/(1 − η) is
+valid on its domain, but is sensitive as η → 1 and is not used
+to claim stable density-ratio recovery.
+A.3 Independence and local data processing
+For any common dominating measureµ, substitution of dM =
+(p + q)dµ/2 yields Eq. (13). Nonnegativity and zero integral
+imply p = q almost everywhere, hence S = 0 exactly when
+P = Q. With P = PXY and Q = PXPY , this is independence.
+The associated convex function is
+f (r) =(r − 1)2
+2(r + 1) , r ≥ 0, f ′′(r) = 4
+(r + 1)3 > 0. (38)
+The usual f -divergence contraction under a common Markov
+kernel applies, including the limiting contribution on singular
+support. For a dependence statement, take separate kernels
+KX and KY . The pushforward of Q under KX ⊗ KY is again
+the product of the transformed marginals, so IVQ(X ′;Y ′) ≤
+IVQ(X;Y ). Monotonicity of g gives the corresponding CS
+ordering. This does not establish additivity of S under inde-
+pendent products.
+B Statistical Analysis: Assumptions
+and Proofs
+The statements in this section are carried over from the pre-
+vious working draft as a standard completion of the original
+plan’s proposed finite-sample analysis. They are not newly
+attributed to an unseen collaborator proof, and require author
+review before submission.
+B.1 Independent evaluation
+Assume a critic T is fixed before drawing independent sam-
+ples U1, . . . ,Un ∼ P and V1, . . . ,Vm ∼ Q, with the two pools
+independent. The same statement holds conditionally on a
+randomly fitted critic when evaluation data are independent of
+its fit. Since a±(T ) have range width two, each variance is at
+most one. Independence of the pools gives Eq. (23).
+Hoeffding’s inequality gives
+Pr
+ 
+1
+n ∑
+i
+a+(T (Ui)) − EPa+(T )
+ > t
+!
+≤ 2e−nt2/2. (39)
+Apply the analogous bound underQ and a union bound, setting
+each failure probability to δ /2, to obtain Eq. (24).
+If τn,m(δ ) denotes its right-hand side, then
+S ≥ max{0, bJ − τn,m(δ )} (40)
+with the same probability. This is a one-sided statement using
+J(T ) ≤ S, not a two-sided confidence interval for the optimum.
+It does not remove approximation bias. With a random fitted
+critic, total evaluation variance also contains Var(J( bT )); the
+conditional bound alone does not bound run-to-run training
+variability by 1/n + 1/m.
+B.2 Empirical-risk oracle inequality
+Let T be a class of measurable functions into [−1,1] and
+assume the relevant suprema are measurable, or use their
+standard outer-probability formulation. Define aT and ∆n,m
+9
+
+PAGE 10
+VCS-QMI Working manuscript v3 27 September 2026
+as in the main text. For any ε > 0, choose Tε ∈ T satisfying
+S − J(Tε ) ≤ aT + ε. Then
+J(Tε ) − J( bT ) ≤ bJ(Tε ) − bJ( bT ) +2∆n,m (41)
+≤ εopt + 2∆n,m. (42)
+Adding S − J(Tε ) and taking ε ↓ 0 proves Eq. (26). This
+argument does not require the infimum to be attained.
+For an independent evaluation sample with deviation at the
+fitted critic at most τ, one obtains
+|S − bJeval( bT )| ≤aT + 2∆n,m + εopt + τ. (43)
+The quantities on the right are a theoretical decomposition, not
+all directly measurable on images. In particular, the unknown
+Bayes risk prevents treating raw held-out squared risk as the
+exact gap.
+B.3 Complexity control
+Define the expected absolute Rademacher complexity by
+Rn(P, T ) =EU,ε sup
+T ∈T
+
+1
+n
+n
+∑
+i=1
+εiT (Ui)
+ . (44)
+The signs are independent Rademacher variables and the obser-
+vations are i.i.d. from P. Symmetrization bounds the expected
+uniform deviation for the positive-score class a+ ◦ T by its
+Rademacher complexity up to a universal factor. Because
+a+(0) =0 and it is 2-Lipschitz on [−1,1], contraction bounds
+this complexity by a universal multiple of Rn(P, T ). The
+same argument applies to a− under Q.
+Changing one sample changes the relevant uniform devia-
+tion by at most 2/n or 2/m. Bounded-differences concentra-
+tion and a union bound therefore give Eq. (27), for a universal
+numerical constant C. This is a direct application of standard
+complexity tools [2], not a special property that distinguishes
+the balanced criterion from every relative-ratio estimator. A
+practical network-specific bound requires specifying architec-
+ture, norm constraints, or another effective complexity control.
+For a sequence of classes TN, consistency follows when
+aTN → 0, the complexity and concentration terms vanish, and
+εopt,N → 0. Independent evaluation sample sizes must also
+grow. A proof for a fixed encoder does not by itself show uni-
+form convergence over a concurrently trained encoder class.
+B.4 In-batch product sampling
+When base observations (Xi,Yi) are i.i.d. and i ̸= j, (Xi,Yj) has
+law PXPY . This gives correct expectations for a fixed pairwise
+critic. However, (Xi,Yj) and (Xk,Yi) may share variables and
+are not generally independent. A permutation of one batch and
+all-off-diagonal pairing must therefore be analyzed with their
+actual dependence structure. The independent-pool formulas
+above are not quoted with an artificial sample size B(B − 1).
+For theory-aligned checks, obtain independent Q samples
+from independent source-observation pools, or use disjoint
+pairs of base observations. For efficient SSL, retain the docu-
+mented in-batch rule and test it empirically. Critic selection
+on the same data further precludes interpreting the training
+estimate as an unbiased estimate at a fixed function.
+C Precise Relationships to Prior Objec-
+tives
+C.1 RPC
+The equality between Eq. (6) and RPC at (1,1,1) follows
+directly from Eq. (1). The optimal unrestricted RPC function
+can be obtained by pointwise maximization:
+T ∗
+RPC = p − αq
+β p + γq . (45)
+Its balanced instance is η. Consequently, a matched imple-
+mentation should agree numerically when the function class,
+parameterization, weights, samples, normalization, optimizer,
+and update schedule also agree. Different parameter settings
+or method-native recipes are meaningful practical compar-
+isons, but cannot be described as the same target with all other
+factors fixed [14].
+C.2 Relative least-squares fitting
+At equal mixture weight, RuLSIF fits
+r1/2 = p
+(p + q)/2 = 1 + η. (46)
+Ignoring target-independent constants, its population quadratic
+criterion is
+L(g) =1
+2 EMg2 − EPg. (47)
+Under g = 1 + T , direct expansion gives
+L(1 + T ) =− 1
+2 − 1
+2J(T ). (48)
+Thus these objectives are affinely related under matched
+classes and without added unequal regularization [18]. LSMI’s
+ordinary density-ratio target should be distinguished from this
+relative-mixture case [13].
+C.3 Variational f -divergence expression
+For f (r) = (r − 1)2/[2(r + 1)], take U = T − T 2/2 with
+−1 ≤ T ≤ 1. The conjugate on this image satisfies f ∗(U) =
+T +T 2/2. Substitution into EPU −EQ f ∗(U) reproduces J(T ).
+This locates the construction within the established variational
+f -divergence framework [8, 9]. The CS-reference interpreta-
+tion and its evaluation are the focus of this paper; the general
+Fenchel device is not newly invented here.
+10
+
+PAGE 11
+VCS-QMI Working manuscript v3 27 September 2026
+D Exact Current SSL Implementation
+D.1 What is inherited and what is empirical
+The collaborator’s research plan supplies the equal-mixture
+reference, the moment objective, its variational identity and
+regression gap, the bounded optimal critic, and the neural
+parameterization T = tanh f . These are retained in Sec. 3.
+The plan does not prescribe the concatenation MLP, ResNet,
+projector, cosine function, or negative-partner stop-gradient.
+Those are implementation choices evaluated in the repository.
+The original SSL starting point is still a valid reported base-
+line: two views, K = 1, concatenation MLP, and full input
+backpropagation. The current reference configuration is dif-
+ferent: four views, K = 8, cosine critic, α0 = 5, and explicit
+negative-partner stop-gradient. It is called the current config-
+uration, rather than a theoretically necessary or universally
+optimal architecture.
+D.2 Architecture and tensor layout
+Input views are a list of tensors [x1, . . . ,xV ], each of shape
+B × 3 × 32 × 32. Concatenation is view-major, producing
+V B images. The modified ResNet-18 removes the original
+classifier and initial max-pool, and replaces the stem with a
+3 × 3 stride-one, padding-one convolution without bias. Its
+feature dimension is 512. The reported parameter counts are
+11,168,832 for the encoder and 328,832 for the projector.
+The projector is a bias-free 512 × 512 linear map, Batch-
+Norm1d, ReLU, and a 512 × 128 linear map with bias. No
+final BN, dropout, or LayerNorm is present in the current con-
+figuration. L2 normalization uses 10−8 as the norm floor. The
+cosine critic has only two learned scalar parameters; legacy
+Y AML keys such ashidden_dims: [512,512] are not ac-
+tive layers when input: cosine .
+After projection, view-major chunks recover zv ∈ RB×128.
+Every view participates in the common BN forward. The im-
+plementation is not V independent forwards with independent
+BN statistics.
+D.3 Per-pair objective and gradient graph
+For each a < b, the implementation is represented by the
+following pseudocode. This is an explanation of the pinned
+code, not an independently benchmarked alternative trainer.
+# z[a], z[b]: [B, D]; alpha,beta shared
+# shifts: K distinct integers from 1,...,B-1
+idx = (arange(B)[None, :] + shifts[:, None]) % B
+pos = tanh(alpha * (z[a] * z[b]).sum(-1) + beta)
+left = z[a][None].expand(K, -1, -1)
+right = z[b].detach()[idx]
+neg = tanh(alpha * (left * right).sum(-1) + beta)
+J_ab = (pos.mean() - neg.mean()
+- 0.5 * pos.square().mean()
+- 0.5 * neg.square().mean())
+loss = -mean(J_ab for every a < b)
+optimizer.zero_grad(set_to_none=True)
+loss.backward()
+optimizer.step()
+The score is a sum of separately averaged distribution mo-
+ments. Positive terms number B
+ V
+2
+
+and negative terms num-
+ber BK
+ V
+2
+
+per update. For V = 4,B = 256,K = 8, these
+counts are 1,536 and 12,288. Increasing the number of nega-
+tives does not increase their total class weight. The relation
+Rbinary = 1 −J remains an algebraic equality for the computed
+scores.
+The second negative input is detached before indexing. The
+critic still receives derivatives from both score classes, and
+the positive representations receive gradients from both inputs.
+This is an asymmetric semi-gradient for the encoder; it must
+not be described as full joint ascent on the ordinary differ-
+entiable Jθ or on an exactly optimized Sθ . The variational
+identity concerns the scalar functional and is not altered by
+this engineering choice.
+For a < b, the explicit negative left roles of four views occur
+(3,2,1,0) times. No automatic reversal or randomization of
+view order occurs in the current loss. This describes the pair-
+input graph; shared BN can couple individual image gradients,
+so it does not mean the last view is absent from the network’s
+backpropagation.
+D.4 Sampling interpretation
+Each view pair consumes fresh shifts from a dedicated CPU
+generator. Shifts are unique within that pair’s call; different
+view pairs may draw the same shift by chance. The sampler
+excludes unchanged image identities but does not filter se-
+mantic classes. Sampling all B − 1 nonzero shifts gives every
+off-diagonal pair. The optional matrix implementation is used
+only in named all-pair variants; the current K = 8 configura-
+tion uses the sampled-shift path.
+The comparison is with off-diagonal pairs from the training
+empirical population. Under ideal i.i.d. base sampling and
+pointwise fixed features, i ̸= j has product-marginal law, but
+the terms share observations. Training-mode BN and finite-
+population sampling require additional care; the independent-
+pool bounds in Appendix B are not invoked with BK
+ V
+2
+
+inde-
+pendent samples.
+All views currently use the same augmentation law. A
+future asymmetric multi-crop design could change the pair
+distributions and would require an explicitly stated target. No
+such change is inserted into this description.
+D.5 Data and transforms
+Only the five official CIFAR-10 training batches are used in
+these reported experiments. A common manifest partitions
+image identities into 45,000 fitting and 5,000 selection im-
+ages, with 500 selection examples per class and split seed
+20260924. Labels serve the stratified split and downstream
+probes; the SSL dataset emits views and identities, not seman-
+tic labels. The official test split is disabled in the inspected
+configurations.
+Each view independently applies the following transforms,
+in this order:
+11
+
+PAGE 12
+VCS-QMI Working manuscript v3 27 September 2026
+1. RandomResizedCrop to 32 × 32, area scale [0.2,1.0], as-
+pect ratio [0.75,4/3], bilinear interpolation, antialiasing
+enabled.
+2. Random horizontal flip with probability 0.5.
+3. Color jitter with brightness, contrast, saturation, and hue
+magnitudes (0.4,0.4,0.4,0.1), applied with probability
+0.8.
+4. Random grayscale with probability 0.2.
+5. Tensor conversion and channelwise normalization with
+mean (0.5,0.5,0.5) and standard deviation (0.5,0.5,0.5).
+Blur and solarization are disabled. The last normalization is
+a fixed rescaling, not empirically estimated CIFAR channel
+statistics. The clean probe transform only performs tensor
+conversion and the same fixed normalization. The pending
+stronger-augmentation run uses crop scale [0.08,1] and jitter
+(0.8,0.8,0.8,0.2); it is not merged into completed default-
+augmentation results.
+D.6 Optimization, initialization, and schedules
+There is one AdamW optimizer with explicitly separated pa-
+rameter groups. The peak learning rate is 10−3; betas are
+(0.9,0.999) and epsilon 10−8. Matrix weights in the en-
+coder/projector receive decay 10−4. Biases, normalization pa-
+rameters, and critic scalars receive zero decay. Critic learning-
+rate multiplier is one. There is no gradient clipping or accu-
+mulation, and no additional critic-only update in the selected
+configuration.
+With Nfit = 45,000, drop-last gives SB = ⌊Nfit/B⌋ updates
+per epoch. Each horizon has its own warm-up and de-
+cay. The schedule is updated each optimizer step, warms
+up over 10SB steps, and then follows cosine decay to-
+ward 1% of the peak. The exact endpoint convention fol-
+lows src/vcs_ssl/schedule.py; it is not changed by this
+manuscript. Batch size does not automatically rescale the
+learning rate.
+Encoder and projector are initialized from the run
+seed. Critic initialization uses the separate stream seed *
+1000003 + 7919 ; cosine scalar initializations are determin-
+istic. The pair generator uses seed + 100003 . Data-loader
+and monitoring streams are recorded separately. The primary
+precision is FP32; TF32 and compilation are disabled. Data
+loading uses four workers, pinned memory on GPU, and non-
+persistent workers.
+Long runs resume at saved epoch boundaries with the same
+intended horizon, configuration, optimizer, and random-state
+payload. A migration to another GPU is not a new statistical
+seed. The repository records CPU resume tests and GPU
+nondeterminism qualifications; this revision did not execute
+those server tests or assert cross-hardware bitwise equality.
+D.7 Exposure and update counts
+Define base-image presentations and encoded views as
+Nbase = E⌊45,000/B⌋B, (49)
+Nview = V Nbase. (50)
+For B = 256,E = 200,V = 2, these are 8.96 million base
+presentations and 17.92 million encoded views. The 1× label
+used in the paper normalizes encoded views by 17.92 million.
+It is not a measured FLOP or time ratio.
+For B = 128,E = 100,V = 4, there are 35,100 updates,
+4,492,800 base presentations, and 17,971,200 encoded views,
+or 1.002857×. This small discrepancy from exactly 1× comes
+from dropped tails. At a fixed number of encoded views, batch
+statistics, unique images per update, number of view pairs,
+and optimizer steps can still differ.
+The measured train time for the completed four-view 800-
+epoch seed-0 run is 48,508 seconds; the eight-view 200-epoch
+seed-0 run records 27,674 seconds. They are repository mea-
+surements with their run-specific hardware, not interchange-
+able hardware-normalized estimates. They do not support a
+universal speed claim. Peak allocations are reported separately
+from reserved memory; the listed MiB-style counters should
+not silently be relabeled decimal GB.
+E Evaluation and Reproducibility De-
+tails
+E.1 Primary frozen linear endpoint
+A fresh model copy loads the specified final checkpoint. The
+encoder is in evaluation mode and its parameters and Batch-
+Norm buffers are frozen. Clean transforms yield raw h ∈ R512,
+without L2 normalization or feature standardization for the
+primary probe. The head is one linear layer with bias, trained
+on fitting-set labels only.
+The head optimizer is SGD with learning rate 0.1, momen-
+tum 0.9, no weight decay, batch size 256, and 100 epochs. Its
+stepwise cosine schedule reaches 0.1% of the initial learning
+rate; the fixed seed is 20260925. The final probe epoch is re-
+ported, not the best selection epoch. A common standardized-
+feature diagnostic exists, but its numbers are not silently sub-
+stituted for the primary endpoint. The development process
+has nevertheless repeatedly consulted the selection set across
+recipes, so final unseen-test confirmation is still necessary.
+Feature caches are keyed by checkpoint, transform, iden-
+tity list, dtype, and split hashes. The classifier uses 45,000
+fitting features; the 5,000 selection labels are only used to
+score the current probe. The official test remains unused in
+the inspected stage reports. This revision did not obtain raw
+images, checkpoints, or cached features from the server.
+E.2 kNN, spectrum, and critic validation
+Weighted kNN uses cosine similarities on L2-normalized h,
+k = 200, and temperature 0.1, with fitting features as the bank
+and selection features as queries. The weighting subtracts the
+maximum top-k similarity before exponentiation for numerical
+stability. This exponential belongs to the kNN evaluation rule,
+not to the VCS training objective.
+Spectrum diagnostics use the first 4,096 sorted selec-
+tion identities, center the features, and form sample covari-
+12
+
+PAGE 13
+VCS-QMI Working manuscript v3 27 September 2026
+ance with denominator N − 1. If its nonnegative eigenval-
+ues normalized by their sum are p j, the effective rank is
+exp(− ∑ j p j log p j). This is an energy-concentration statis-
+tic, not a count of semantic factors or bits. Low effective rank
+can coexist with nontrivial classification, so it is not by itself
+evidence of complete collapse.
+The current critic-validation helper drawstwo fresh training-
+distribution augmentations for each selection identity, repeats
+this four times, and does not refit the critic. Its scores use the
+declared critic and appropriate student/teacher/predictor path
+when relevant. With K larger than a tail batch permits, it uses
+Keff = min(K,Btail − 1) and records the change. A size-one
+tail is merged according to the helper’s documented rule.
+For a four- or eight-view training run, this is a two-view
+evaluation of the fitted pairwise score, not the full training-
+batch average over all
+ V
+2
+
+pairs. Since the augmentations
+have the same distribution, it provides a common pair di-
+agnostic in evaluation mode. It does not exactly replicate
+multi-view training-mode BN or the variance of the full multi-
+view estimator. Stop-gradient is numerically invisible during
+no-gradient validation; its training effect is evaluated by the
+resulting checkpoint.
+The teacher/predictor validation path was repaired after ear-
+lier experiments. Current code restores those states and routes
+features accordingly. The global historical ALL_RUNS table
+still contains some older entries, so each reused historical
+critic number must be versioned against its evaluation artifact.
+Frozen backbone linear metrics and critic-path diagnostic met-
+rics are distinct.
+E.3 Monitoring and failures
+The trainer evaluates a separate checkpoint copy under inde-
+pendent random streams and checks that training RNG finger-
+prints are unchanged. Logged quantities include J, the binary
+risk, score means and second moments, the fractions with
+|T | > 0.95, and module-wise gradient norms. The selected
+cosine implementation also records its scale and bias. Check-
+point trajectories are not final results from shorter-horizon
+schedules.
+Failure and stopped-run artifacts are retained by the repos-
+itory. Some failed attempts were infrastructure or preflight
+issues, while some variants showed severe representation con-
+centration. Those categories should remain separate. This
+manuscript quotes executed results and inspections; it does
+not turn a reported number of tests into a new independently
+executed validation certificate.
+F Expanded Development Results and
+Ablations
+F.1 Seed-level endpoints
+The following values are retained to make aggregates traceable.
+The sample SD uses denominator n − 1. The fourth row’s
+mean and SD are deliberately absent until final seed-level
+Table 4: Seed-level frozen linear endpoints, ordered by seeds
+0/1/2. All are selection results.
+Configuration s0 s1 s2
+4 views, B = 128, 100 ep 83.52 82.74 83.30
+4 views, B = 256, 200 ep 84.50 84.40 84.72
+2 views, B = 256, 800 ep 85.54 85.18 85.18
+4 views, B = 256, 800 ep 86.42 Pending Pending
+results are committed. A job submission, predicted finish time,
+or partial kNN trace does not fill those cells.
+F.2 Ablation comparators must match
+The fixed-scale variant still learns a bias; it is not a parameter-
+free critic. Intermediate negative results concern their specific
+base configurations, not every possible version of the com-
+ponent. Interactions are visible: negative detach failed with
+some MLP critics but improved the tested cosine setting, and
+the scale initialization mattered more at shorter budgets than
+in four-view 200-epoch runs.
+F.3 Current long-horizon status
+The pinned reports describe a ceiling exploration before the
+broader comparison phase. Completed, structurally supported
+endpoints include two-view 800 epochs on three seeds, eight-
+view 200 epochs on one seed, and four-view 800 epochs on
+one seed. The four-view 400-epoch value of 85.90 is narrative-
+reported while its structured table remains incomplete.
+No final endpoint is supplied at this snapshot for four-view
+800-epoch seeds 1/2, four-view 1,600 epochs, eight-view 800
+epochs, eight-view 400 epochs, sixteen-view 200 epochs, four-
+view 800 epochs with B = 128, or the stronger-augmentation
+long run. Scheduling/migration commits are evidence of or-
+chestration, not measured performance. Their cells remain
+Pending. The three-seed four-view 800-epoch estimate must
+not be inferred from the completed first seed.
+F.4 Future comparison phase
+P41 is marked draft, not frozen or launched. It proposes offer-
+ing view count, image batch, schedule, and method-specific
+temperature or weighting changes to the controls. The imple-
+mented multi-view controls average each control’s own two-
+view loss over view pairs; this is a named component-matched
+construction, not automatically every method’s canonical
+multi-positive implementation. Method-native baselines and
+tuned RPC still require explicit protocols and executed results.
+The number of explored VCS configurations and their hard-
+ware cost must be reported alongside baseline search oppor-
+tunities. A selected subset of useful hyperparameters does
+not erase the preceding unsuccessful search. Larger visual
+datasets, official-test results, and controlled estimator compar-
+isons are planned work, not hidden completed evidence.
+13
+
+PAGE 14
+VCS-QMI Working manuscript v3 27 September 2026
+Table 5: Selected current and intermediate ablations. Comparator columns prevent mixing the B = 128 and B = 256 short
+schedules. Candidate cells are single-seed results unless otherwise noted; comparisons against a three-seed mean are descriptive,
+not paired significance tests.
+Change V /B/E Candidate Correct comparator Source
+Remove negative-partner detach 4/256/100 79.66 81.88, same V /B/E P40
+Reduce negatives to K = 1 4/256/100 81.14 81.88, same V /B/E P40
+Increase negatives to K = 127 4/128/100 82.86 83 .19 ± 0.40 P40
+Projector output 128 → 512 4/128/100 82.88 83 .19 ± 0.40 P40
+Projector hidden 512 → 2048 4/128/100 82.82 83 .19 ± 0.40 P40
+Initial scale 5 → 1 4/128/100 82.12 83 .19 ± 0.40 P40
+Warm-up 10 → 5 epochs 4/128/100 82.00 83 .19 ± 0.40 P40
+Initial scale 5 → 1 4/256/200 84 .41 ± 0.06 84 .54 ± 0.16 P29/P36
+Freeze scale at 5 2/256/200 81.54 81.90, learned-scale seed 0 P27
+Calibrate initial bias 2/256/200 80.12 80 .59 ± 0.12, α0 = 1 P27
+Add affine-free projector output BN 2/256/200 78.52 80 .59 ± 0.12, α0 = 1 P27
+Learn shared metric matrix 2/256/200 75.28 80 .59 ± 0.12, α0 = 1 P27
+G Source Ledger and Explicit Discrep-
+ancies
+Scope of inspection. The revision reads public repos-
+itory files through the authorized GitHub connector at
+commit 236931d1bc7c227177b566db290823f01dccaf96,
+dated September 26, 2026, 22:15:16 UTC. It also reads the
+supplied collaborator plan and v2 manuscript/source archive.
+No repository write, server run, checkpoint evaluation, or live
+scheduler inspection was performed for this revision. Local
+checks verify formulas, aggregate arithmetic, and document
+construction only.
+Evidence classes. A completed table value is present in a
+committed stage table or structured result. A report-only value
+appears in narrative updates while its structured counterpart
+is stale. Pending means no final value is supplied. Proposed
+refers to experiments not yet run. These classes are preserved
+rather than silently merged.
+Principal repository sources. The source package includes
+an evidence index and run-level arithmetic ledger. Principal
+paths are reports/SSL_TECHNICAL_NOTE_20260926.md;
+P7/P11/P25/P27/P29/P30/P32/P36/P38/P40 reports and their
+stage tables; configs/cifar10_hpK_a5_views4_800ep_
+vcs_seed0.yaml; and src/vcs_ssl/ models, objectives,
+training, and evaluation modules. Canonical commit-pinned
+URLs are recorded outside the printed paper for direct inspec-
+tion.
+Preservation of the theoretical manuscript. The bodies
+of main Sections 3 and 5 and mathematical Appendices A–C
+are copied from v2 without changing their mathematical state-
+ments. Their SHA-256 hashes and the source-plan checksum
+are in SOURCE_PROVENANCE.json. Section 5 remains the
+earlier statistical completion draft awaiting the collaborator’s
+full-proof review. Neither experimental tuning nor the second-
+application brainstorming is used to replace that theoretical
+basis.
+Submission preparation. This is a detailed working
+manuscript, not the final anonymous conference template. Be-
+fore submission, reconcile report-only cells, freeze the win-
+ning configuration and all comparison protocols, complete
+independent data evaluation, shorten implementation detail
+into the supplement as needed, and replace the status box
+with a result-supported final abstract. The separate second-
+application document contains proposals, not additional ex-
+periments of this paper.
+14
+
+PAGE 15
+VCS-QMI Working manuscript v3 27 September 2026
+Table 6: Known source mismatches and how this draft handles them. The right column is the revision’s documented resolution,
+not a claim that the repository was modified.
+Item Source observation Treatment in this draft
+Pixel normalization Technical note says “CIFAR mean/std”; actual Y AML
+uses three 0.5 means and three 0.5 standard deviations.
+State the numerical transform from the executable con-
+figuration and record the prose discrepancy.
+Exposure units Technical note calls 8.96M “image-forwards” for two
+views/200 epochs.
+Compute 8.96M base presentations and 17.92M en-
+coded views; retain relative budgets as exposure, not
+total FLOPs.
+Four-view 400 ep Narrative reports 85.90/83.58; stage table still shows
+356/400 with null final values.
+Mark the value with a dagger, classify it report-only,
+and require table synchronization before a final main-
+result claim.
+Current score vs gradient Note says the objective is unchanged, but negative part-
+ner is detached.
+Retain the scalar estimator; explicitly describe the
+changed encoder semi-gradient.
+View symmetry Multi-view code loops a < b, with only the second
+negative input detached.
+State actual pair ordering and explicit role counts; do
+not insert symmetric scoring.
+Critic validation Note mentions “same views” while the helper con-
+structs two fresh views.
+Describe two-view pair validation in eval mode, sepa-
+rate from the full training multi-view average.
+Short ablation bases One summary groups detach-off/K = 1 with the final
+B = 128 recipe; run-level reports place them atB = 256.
+Use 81.88 as their corresponding baseline, not 83.19.
+Saturation claims Some prose says positives never saturate; the long four-
+view report records substantial positive saturation.
+Restrict statements to the reported horizon/configura-
+tion; treat a proposed mechanism as interpretation.
+Historical summaries ALL_RUNS and some historical predictor-J entries pre-
+date final stage updates or repaired validation.
+Prefer specific stage artifacts; do not infer a new final
+score from an old global status.
+15

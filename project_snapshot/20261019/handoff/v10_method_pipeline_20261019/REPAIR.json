@@ -1,0 +1,30 @@
+{
+  "utc": "2026-10-19T02:05:32Z",
+  "status": "REPAIR_IMPLEMENTED_VALIDATION_REQUIRED",
+  "failed_gpu_job": "1047204",
+  "failed_validation_controller": "1047202",
+  "superseded_waiting_controller": "1047235",
+  "failure_evidence": {
+    "exit": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_validation_20261019/exits/1047204.json",
+      "sha256": "822b135681248efe686cca3cc8538efb667ef0c5e8b7db58482c4a9053693a9a"
+    },
+    "validation_error": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_validation_20261019/ERROR.json",
+      "sha256": "049732b35ab69a6e35bdabe1d9ede47ae5e4983f9635de1221c43e4cba2111b9"
+    },
+    "gpu_log": {
+      "path": "/home/infres/yinwang/CS_QMI/slurm_logs/v10val_gate_1047204.out",
+      "sha256": "21f1fc367ff61bec28413860b45895140b1054d753a54834d174a494ac4bef07"
+    }
+  },
+  "root_cause": "torch.load(map_location=trainer.device) moved non-capturable AdamW step counters from CPU to CUDA. Optimizer.load_state_dict retains step location; GPU state equality gate correctly rejected it.",
+  "repair": "Deserialize checkpoint on CPU; module/optimizer.load_state_dict place parameters/moments according to their device policy. Preserve CPU AdamW step; retain exact device checks.",
+  "regression": "CPU/CUDA AdamW and SGD save/load replay compares next update, optimizer values/devices, CPU/CUDA RNG exactly.",
+  "dispatch_repair": "Seven independent family gates; each gate enables only its full validation. A failure blocks descendants of that family, not other methods. Explicit failure/blocked state; no indefinite WAIT on a failed upstream.",
+  "old_failed_results_preserved": true,
+  "old_acceptance_reused": false,
+  "scientific_grids_or_training_objectives_changed": false,
+  "cancel_running_jobs": false,
+  "source_commit": "ecd8a95cb73f66fc54f10350bb8474b12c9665f4"
+}

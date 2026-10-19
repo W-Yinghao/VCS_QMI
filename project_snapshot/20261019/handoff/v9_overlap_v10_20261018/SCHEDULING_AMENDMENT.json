@@ -1,0 +1,32 @@
+{
+  "schema": "cs_qmi.v10.scheduling_amendment.v1",
+  "utc": "2026-10-18T13:12:42.992955+00:00",
+  "user_instruction": "按“V9尾部释放的GPU立即接V10”来调度",
+  "v10_freeze_sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+  "base_protocol_sha256": "de4c0c3943d5a54b3a7de73a84785f240f7ee5b1396d173fd2109999a5555e9d",
+  "overrides": {
+    "gate_dependency": {
+      "before": "afterok:1045974",
+      "after": null
+    },
+    "execution.gpu_concurrency": {
+      "before": 2,
+      "after": 4
+    }
+  },
+  "retained": {
+    "formal_array_dependency": "afterok:1045975",
+    "gpu_type": "NVIDIA L40S",
+    "shared_normal_gpu_limit": 8,
+    "formal_trainings": 30,
+    "CAL": 18,
+    "FINAL_DEV": 12,
+    "cal_allocated_L40S_gpu_hours_per_family": 8
+  },
+  "notes": [
+    "Operational concurrency amendment to frozen protocol execution.gpu_concurrency; preserve the original protocol bytes and report this override explicitly.",
+    "No change to scientific candidate order, seeds, training steps, model, data roles, per-family cost cap or checkpoint selection.",
+    "No V9 training job will be held or cancelled; V9 continues its frozen matrix and independent closeout.",
+    "Do not broaden to RTX/H100 silently: the V10 cost protocol specifies L40S."
+  ]
+}

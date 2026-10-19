@@ -1,0 +1,1386 @@
+PAGE 1
+Variational Cauchy–Schwarz Quadratic Mutual Information
+for Stable Representation Learning
+Working manuscript
+Author list and affiliations to be confirmed
+Draft status, v2. This manuscript retains the collaborator’s
+original construction and specifies its visual SSL implementa-
+tion. No server training report has been supplied. All empirical
+entries are NR. Statistical proof drafts and development settings
+remain subject to author review.
+Abstract
+Learning representations through statistical dependence re-
+quires a sample-based objective with a tractable estimator. We
+study variational Cauchy–Schwarz quadratic mutual informa-
+tion (VCS-QMI) under the equal mixture of a joint distribu-
+tion and the product of its marginals. This reference measure
+makes the CS divergence a monotone transform of a bounded
+quadratic dependence score. The score admits an exact vari-
+ational representation involving only first- and second-order
+critic moments. Its population optimizer is tanh(PMI /2), and
+its variational gap is exactly a squared regression error. These
+identities yield a neural estimator without explicit density
+estimation or exponential critic moments. We organize its
+statistical analysis around approximation, sampling, and op-
+timization errors, and distinguish the bounded training score
+from the sensitive logarithmic CS transform. For visual rep-
+resentation learning, we instantiate the estimator in a conven-
+tional two-view encoder–projector framework with a bounded
+pairwise critic and ordinary joint backpropagation. Our eval-
+uation protocol separates controlled dependence estimation,
+training sensitivity, computational cost, and frozen-feature
+quality. It also separates short development runs from multi-
+seed benchmark evaluation. Empirical improvements are not
+asserted before these experiments are completed.
+1 Introduction
+Self-supervised visual learning uses relationships between ob-
+servations to learn an encoder without semantic training labels.
+In a two-view setting, independently sampled augmentations
+of the same image provide paired observations, while views
+from different images provide a reference for independent
+pairing. This construction supports several successful learning
+objectives, but the usefulness of the learned representation also
+depends on the augmentations, architecture, and projection
+head [4, 8, 18]. An improved dependence estimate is therefore
+not, by itself, evidence of an improved visual encoder.
+Neural mutual information estimation offers a flexible way
+to turn dependence into a trainable objective. MINE uses
+a variational representation of Kullback–Leibler (KL) diver-
+gence whose Donsker–Varadhan form contains an exponential
+critic moment [3]. Subsequent analyses show that particular
+variational estimators can exhibit difficult bias–variance trade-
+offs, especially at high dependence [13, 15]. This motivates
+investigating other statistical objectives, without treating KL
+divergence or all contrastive losses as intrinsically unstable.
+Cauchy–Schwarz (CS) divergence compares density func-
+tions through their normalized overlap. Kernel-based CS quan-
+tities have been used for information-bottleneck regression
+and conditional-distribution comparison [22, 23]. CS-Aligner
+also uses CS for visual–language marginal-distribution align-
+ment [21]. These applications motivate a sample-based neural
+treatment of CS dependence, but two decisions must remain
+explicit: which distributions are compared, and relative to
+which measure their densities are defined.
+We study the equal-mixture reference construction for
+P = PXY and Q = PXPY . With M = (P + Q)/2, the two densi-
+ties relative to M sum to two. This identity reduces mixture-
+reference CS divergence to a monotone transform of a bounded
+score S. Completing a square gives an exact variational rep-
+resentation of S involving only the first and second moments
+of a critic under P and Q. The optimal critic is the bounded
+pointwise-mutual-information transform tanh(PMI /2), and
+the difference between S and a critic’s objective is its squared
+regression error under M.
+This route makes the reference measure part of the learning
+objective, rather than an implicit choice in density estima-
+tion. It does not estimate Shannon MI or the classical fixed-
+reference CS value. The bounded score is related to triangular
+discrimination, relative density-ratio fitting, and a balanced
+instance of relative predictive coding (RPC) [17, 19]. We re-
+tain these relationships in the formulation and comparisons.
+The paper studies the CS interpretation, the resulting estima-
+tor, and its use in visual learning; it does not present every
+component of the quadratic objective as a new divergence.
+For visual SSL, we use a shared encoder, a projection head,
+and a pointwise tanh critic. Real pairs consist of two views
+of one image. Off-diagonal pairs are formed by a nonzero
+cyclic shift of the second view. All trainable modules receive
+gradients from the same quadratic objective in an ordinary
+joint update. No separate gradient estimator, teacher network,
+marginal-alignment term, or auxiliary anti-collapse loss is
+
+PAGE 2
+VCS-QMI Working manuscript v2 24 September 2026
+included in the current method. The empirical question is
+whether the estimator’s statistical structure supports useful
+frozen features under practical training conditions.
+Contributions and scope. The manuscript develops three
+connected components: the mixture-reference CS formulation
+and its exact neural variational characterization; a sample-
+based estimator with a regression interpretation and an ex-
+plicit statistical error decomposition; and a visual SSL imple-
+mentation with an evaluation design that separates estimation
+quality from representation quality. The empirical component
+is currently a protocol, not a completed performance claim.
+Its primary application is two-view image SSL. Additional
+modalities are not prerequisites of the present experiment or
+conclusions.
+2 Related Work
+Neural dependence estimation. MINE provides a neural es-
+timator through KL variational representations [3]. Nguyen et
+al. study divergence estimation through convex risk minimiza-
+tion [11]. Poole et al. analyze variational MI bounds, while
+Song and Ermon study their limitations and variance reduction
+through SMILE [13, 15]. These works motivate evaluating
+bias, variance, and useful learning separately. Since their KL-
+based targets differ from S, their numerical outputs are not
+compared against the CS target as though they estimated the
+same quantity.
+CS and relative density ratios. CS-IB uses CS-based pre-
+diction and compression terms for regression; conditional CS
+compares conditional laws through kernel estimators [22, 23].
+CS-Aligner adds marginal-distribution alignment to pairwise
+visual–language learning [21]. Our joint-versus-product com-
+parison instead measures dependence between two views.
+LSMI fits an ordinary density ratio with a squared criterion,
+and RuLSIF fits a relative density ratio under a mixture distri-
+bution [16, 19]. General variational f -divergence methods and
+Fisher GAN provide related quadratic formulations [10, 12].
+Related bounded dependence measures also appear in geomet-
+ric mutual information [20].
+Quadratic contrastive learning. RPC explicitly studies a
+first- and second-moment objective [17]:
+JRPC(T ) =EPT − αEQT
+− β
+2 EPT 2 − γ
+2 EQT 2.
+(1)
+At (α, β , γ) = (1,1,1) it is identical to our quadratic func-
+tional. With matching function class, parameterization, sam-
+pling, and optimizer, this is an implementation identity rather
+than a separate algorithm. We use the equality for numerical
+checks and reserve tuned RPC for the full learning comparison.
+The CS reference-measure interpretation explains the specific
+balanced instance; it does not erase the prior objective.
+Visual SSL. SimCLR learns through augmented image pairs
+and a contrastive loss [4]. VICReg separates invariance, vari-
+ance, and covariance constraints [1]; SSL-HSIC maximizes
+dependence on image identity with a kernelized-variance term
+[8]. FroSSL studies covariance Frobenius norms and multi-
+view learning efficiency, and f -MICL generalizes divergence-
+based contrastive criteria [ 9, 14]. These are representation-
+learning comparators, not all estimators of the same scalar.
+Matched-component experiments isolate choices in a common
+system, whereas method-native experiments preserve each
+baseline’s appropriate training recipe.
+3 Variational CS-QMI
+3.1 An explicit reference measure
+Let P,Q be probability measures on the same measurable
+space. For dependence learning, P = PXY and Q = PX ⊗ PY .
+Define
+M = 1
+2 (P + Q), pM = dP
+dM , qM = dQ
+dM . (2)
+The derivatives exist because M dominates both laws, even
+when ordinary Lebesgue densities do not exist. They satisfy
+pM + qM = 2 almost everywhere. Setting
+η = 1
+2 (pM − qM), pM = 1 + η, qM = 1 − η (3)
+gives |η| ≤1 and EMη = 0.
+We use the squared-ratio CS convention:
+D(M)
+CS (P,Q) =−log
+ R
+pMqM dM
+2
+ R
+p2
+M dM
+ R
+q2
+M dM
+ . (4)
+Changing the reference measure generally changes a density-
+overlap CS value. Equation (4) is therefore an explicitly de-
+fined target, not a claim to recover the classical fixed-reference
+value without KDE.
+Proposition 1 (Mixture-reference decomposition) . Define
+S(P,Q) =EM[η2]. Then 0 ≤ S ≤ 1 and
+D(M)
+CS (P,Q) =g(S), g(s) =2log 1 + s
+1 − s . (5)
+The right-hand side is finite for S < 1 and is +∞ at S = 1.
+Indeed, the three integrals in Eq. (4) are 1 + S, 1 + S, and
+1 − S. The increasing map g preserves maximizers when it
+is applied to the sole population objective. This does not
+imply identical optimization paths or equivalence after adding
+another fixed-weight loss.
+3.2 Exact variational representation
+For a measurable T with values in [−1,1], write
+J(T ;P,Q) =EP[T − 1
+2T 2]
++ EQ[−T − 1
+2T 2].
+(6)
+2
+
+PAGE 3
+VCS-QMI Working manuscript v2 24 September 2026
+Proposition 2 (Variational identity and regression gap).
+S(P,Q) =sup
+|T |≤1
+J(T ;P,Q), (7)
+with
+S(P,Q) − J(T ;P,Q) =EM[(T − η)2]. (8)
+The population optimizer is T ∗ = η, unique up to M-null sets.
+The equal-mixture identity givesJ(T ) =2EM[T η] − EMT 2.
+Completing the square proves Eq. (8). Only expectations of
+a computable function under P and Q are required. A finite
+neural function class can have a nonzero approximation gap
+even though the full measurable class attains the optimum.
+For densities p,q relative to a common dominating measure
+and on the support of the ratios,
+T ∗ = p − q
+p + q = r − 1
+r + 1 = tanh( 1
+2 logr), r = p/q. (9)
+For P = PXY and Q = PXPY , this yields
+T ∗(x,y) =tanh
+  1
+2 PMI(x,y)
+
+. (10)
+Boundary values are interpreted by limits. A finite tanh net-
+work takes values in (−1,1) and may only approximate an
+endpoint-valued optimizer.
+3.3 Dependence and classification interpreta-
+tions
+Following the original construction, define
+IVQ(X;Y ) =S(PXY ,PXPY ), IVCS = g(IVQ). (11)
+The training objective estimates IVQ through J rather than
+applying g to each mini-batch. This avoids the factor g′(s) =
+4/(1 − s2) near s = 1, without claiming that the transformed
+CS estimate also has uniformly small variance.
+Assign a balanced source label C = +1 to P and C = −1 to
+Q. Its posterior mean is E[C | Z] =η(Z). The squared risk
+R(T ) =1
+2 EP(1 − T )2 + 1
+2 EQ(−1 − T )2 (12)
+satisfies J(T ) =1 − R(T ) and S = 1 − infT R(T ). These la-
+bels indicate joint or independent pairing, not semantic image
+classes.
+Finally, for any common base measure µ,
+S(P,Q) =1
+2
+Z (p − q)2
+p + q dµ = 1
+2 ∆(P,Q), (13)
+where ∆ is triangular discrimination. This establishes IVQ = 0
+exactly at independence and supplies a data-processing in-
+equality through the f -divergence connection. For depen-
+dence, the maps on X and Y must act separately so that the
+transformed reference remains the product of the transformed
+marginals. Shannon-MI additivity is not assumed.
+4 Neural Estimation and Two-View
+Learning
+4.1 Sample objective and pairing
+Use one pointwise critic Tφ = tanh fφ . For B paired observa-
+tions, positive scores are t+
+i = Tφ (xi,yi) and negative scores
+are t−
+ik = Tφ (xi,yπk(i)). With K negative partners per anchor,
+bJ = 1
+B ∑
+i
+a+(t+
+i ) + 1
+BK ∑
+i,k
+a−(t−
+ik ), (14)
+where a+(t) =t −t2/2 and a−(t) =−t −t2/2. Positive and
+negative terms are averaged separately. Thus K changes the
+sampling budget, not the equal-mixture prior. In particular, an
+unweighted average over an unequal number of positive and
+negative squared errors is not Eq. (14).
+The initial SSL implementation setsK = 1. Each step draws
+s uniformly from {1, . . . ,B − 1} and uses
+π(i) = (i + s) mod B. (15)
+The batch is shuffled without semantic labels; same-class im-
+ages are not filtered out. Both positive and negative branches
+transmit gradients to their two input views. We do not use
+hard-negative mining, queues, or validation images as negative
+partners.
+For i.i.d. base observations and fixed pointwise represen-
+tations, any off-diagonal pair has the product-marginal law,
+although the resulting terms share observations. Without-
+replacement sampling from a finite training set additionally
+excludes same-identity pairing. We report this off-diagonal
+implementation rather than claiming independent product sam-
+ples in every batch. The fixed-distribution theory in Sec. 5
+uses genuinely independent pools. Training-mode BatchNorm
+in the encoder and projector is another reason not to equate
+the SSL mini-batch with that statistical setting.
+4.2 Encoder, projector, and critic
+For independent augmentations t1,t2 of an image x, compute
+hv = fθ (tv(x)), ezv = gψ (hv),
+zv = ezv/max(∥ezv∥2,10−8), v ∈ {1,2}.
+(16)
+The CIFAR backbone is a randomly initialized ResNet-18
+with a 3 × 3, stride-one first convolution, no initial max-
+pooling, and no classifier [ 5]. Global average pooling pro-
+duces h ∈ R512. The projector is a 512 → 512 → 128 MLP
+with BatchNorm and ReLU after its first linear layer. Its fi-
+nal output has no BatchNorm. We encode the concatenated
+2B views in one forward pass, using the same normalization
+policy across the matched comparisons.
+The critic receives the ordered concatenation [z1,z2] ∈ R256.
+It has two 512-unit ReLU hidden layers, a scalar linear output,
+and tanh. It contains no BatchNorm, LayerNorm, dropout,
+or cross-sample attention. The same critic evaluates both
+3
+
+PAGE 4
+VCS-QMI Working manuscript v2 24 September 2026
+Table 1: One ordinary joint SSL update. The notation refers
+to the configured neural objective, not an oracle value of IVQ.
+1 Sample B distinct training image identities and draw two
+augmentations independently for each.
+2 Encode the 2B views; project and normalize to obtain
+z1,z2.
+3 Draw the nonzero shift in Eq. (15). Score the B positive
+and B negative pairs with the same critic.
+4 Compute the two balanced means in Eq. (14); set L =
+− bJ.
+5 Backpropagate once through critic, projector, and encoder;
+update all three parameter groups.
+kinds of pair. Neither image identity nor the positive/negative
+branch indicator is provided as an input. Appendix D records
+initialization, augmentation, and optimization details; these
+are engineering defaults, not implications of the CS identities.
+4.3 Ordinary joint optimization
+The SSL loss is
+LVCS(θ , ψ, φ ) =− bJθ ,ψ (Tφ ). (17)
+All three modules maximize the same score. There is no
+adversarial sign reversal, detached negative representation,
+critic warm-up, or extra critic-only update in the pilot. Table 1
+describes one step. The raw objective is neither clipped at zero
+nor replaced by its logarithmic CS transform. The pilot has no
+auxiliary variance, covariance, reconstruction, or alignment
+loss; parameter weight decay is reported separately as an
+optimizer setting.
+The population target contains a supremum over the critic; a
+simultaneous finite-capacity update does not solve that supre-
+mum at each encoder step. We therefore report the actual fitted-
+critic score and evaluate the encoder independently. Ordinary
+alternating optimization remains a possible later ablation, not
+an unreported change to the current update rule.
+4.4 Reporting and cost
+Training logs use Jraw and Rbinary, with J = 1 − R checked
+numerically. A negative J is possible for a suboptimal critic
+and is retained. Evaluation on unseen images estimates the
+current fitted critic’s score, not the unknown optimized S.
+Any later plug-in CS display would require its own domain
+projection and clipping report; the pilot reports no transformed
+CS value.
+With fixed network sizes and K, the pairwise objective
+needs B(1 + K) critic evaluations, rather than a full B2 pair
+matrix. Total cost still includes the encoder, projector, critic,
+and evaluation. We record actual time, peak memory, pair
+counts, and optimizer steps. This computational form alone
+is not evidence of a faster or more sample-efficient learning
+system.
+5 Statistical Error and Stability
+The original plan calls for consistency and finite-sample anal-
+ysis. The following statements retain the fixed-distribution
+analysis of the previous draft; they are supplied for recon-
+ciliation with the collaborator’s complete proofs. They do
+not change the objective or establish convergence of a jointly
+moving encoder and critic. Full assumptions and proofs are in
+Appendix B.
+5.1 Independent evaluation of a fixed critic
+For |T | ≤1, both a+(T ) and a−(T ) lie in [−3/2,1/2]. Sup-
+pose n independent P samples and m independent Q samples
+are independent of the fitted critic and of each other. Condi-
+tional on that critic,
+Var( bJ | T ) ≤ 1
+n + 1
+m . (18)
+A Hoeffding bound and a union bound give, with probability
+at least 1 − δ,
+| bJ − J(T )| ≤
+r
+2log (4/δ )
+n +
+r
+2log (4/δ )
+m . (19)
+These bounds control evaluation noise at a fixed fitted func-
+tion. Run-to-run variation in the fitted function is additional.
+They do not directly apply to a training score computed on
+the critic’s fitting data or to correlated in-batch pairs with an
+artificial sample size B2.
+5.2 Approximation, sampling, and optimiza-
+tion
+For a neural class T , define
+aT = inf
+T ∈T
+EM(T − η)2,
+∆n,m = sup
+T ∈T
+| bJ(T ) − J(T )|. (20)
+Proposition 3 (Fitted-critic error decomposition). If bJ( bT ) ≥
+supT ∈T bJ(T ) − εopt, then
+S − J( bT ) ≤ aT + 2∆n,m + εopt. (21)
+Under measurability and bounded-class assumptions, stan-
+dard symmetrization, contraction, and concentration yield a
+universal constant C such that
+∆n,m ≤ C
+
+Rn(P, T ) +Rm(Q, T )
++
+r
+log(4/δ )
+n +
+r
+log(4/δ )
+m
+ (22)
+with high probability [2]. Consistency requires the approxi-
+mation, sampling, and optimization terms to vanish. Bounded
+output alone guarantees neither vanishing network complexity
+nor successful optimization. Independent evaluation adds its
+own sampling error. A confidence interval for J( bT ) is not
+automatically a two-sided interval for S.
+4
+
+PAGE 5
+VCS-QMI Working manuscript v2 24 September 2026
+5.3 Interpreting stability in learning
+The estimator avoids exponential critic moments and has
+bounded sample terms. These are specific structural properties,
+not a universal variance ranking across different dependence
+targets. Neither ∇φ Tφ nor the encoder Jacobian is bounded
+merely because Tφ ∈ [−1,1]. Gradient behavior in end-to-end
+SSL is measured rather than inferred from Eq. (18).
+The bounded score can saturate near one, and its CS trans-
+form becomes sensitive there. A nearly constant score with
+low variance is not necessarily an informative estimator. Like-
+wise, stable arithmetic does not establish non-collapse or se-
+mantic usefulness. The empirical design therefore measures
+dependence resolution, fitted-critic generalization, feature vari-
+ation, and frozen linear accuracy separately.
+6 Evaluation Protocol
+Experimental status. All numerical results are pending. NR
+denotes an experiment for which no result has been supplied,
+not zero accuracy. The current server task is a CIFAR-10
+development pilot. Controlled estimator studies and multi-
+seed benchmark experiments remain in the paper plan but are
+not automatically launched by that task.
+6.1 Questions and experimental levels
+We organize the evaluation around four questions. Q1: does
+the neural estimator recover its specified dependence target?
+Q2: does it remain informative across sample counts and
+dependence strengths? Q3: does ordinary end-to-end training
+improve frozen visual features? Q4: how do feature quality,
+training sensitivity, and cost change with the implementation
+budget? These questions distinguish a useful estimator from a
+useful representation-learning system.
+Table 2 separates the current implementation check from
+the planned paper-level evidence. Short pilots are not used to
+rank fully tuned SSL methods. Formal benchmark settings are
+frozen after development, and the eventual final-evaluation
+policy is recorded before the official test data are accessed.
+6.2 Controlled dependence estimation
+We retain correlated Gaussians with d ∈ {1,5,20,50}, Gaus-
+sian mixtures with evaluable densities, and low-dimensional
+nonlinear channels. Gaussian pairs are generated as X,E ∼
+N (0,Id) independently and Y = ρX +
+p
+1 − ρ2E. Include
+independence, weak dependence, moderate dependence, and
+strong dependence. Nonlinear cases without an accurately
+computable marginal are labeled qualitative rather than as-
+signed an invented exact target.
+When p,q are evaluable, an independent, high-precision
+Monte Carlo reference estimates
+S = EM
+
+tanh2  1
+2 (log p − logq)
+
+. (23)
+Its standard error is recorded. Distinct fit, selection, evalua-
+tion, and reference pools prevent reuse of the critic’s training
+Table 2: Evaluation stages. Only the development pilot is
+currently specified for server execution. No row reports an
+experimental outcome.
+Stage Purpose and status
+Controlled esti-
+mation
+Known-density targets, independent fit/eval-
+uation pools. Planned; original simulation
+outputs still required.
+CIFAR-10 pi-
+lot
+Three 20-epoch runs, one seed, internal val-
+idation only. Current implementation task.
+CIFAR confir-
+mation
+Proposed 200-epoch, multi-seed evaluation
+on CIFAR-10/100 after recipe review.
+Visual scale Proposed ImageNet-100 with a fixed class
+manifest. ImageNet-1K is a resource-
+dependent extension.
+observations as oracle evidence. We measure bias, RMSE,
+variability across fitted critics, the exact regression gap when
+η is known, and fitting–evaluation gaps.
+Same-target estimators are compared against the same S.
+MINE/DV , NWJ, SMILE, and InfoNCE-based MI bounds are
+evaluated against their own KL/Shannon targets in separate
+analyses [3, 11, 13, 15]. Classical KDE-CS is a different-target
+learning comparator unless its reference measure is explicitly
+matched. Balanced RPC and affine-equivalent relative-ratio
+objectives are checked for numerical identity under match-
+ing parameterizations, not counted as independently superior
+methods.
+6.3 CIFAR-10 development pilot
+The pilot uses only the official CIFAR-10 training portion [7].
+A fixed, stratified image-identity split assigns 45,000 images
+to SSL fitting and 5,000 to development selection. Both views
+of an image stay in its assigned role. Labels are used only
+to construct the fixed split and for downstream evaluation;
+the SSL trainer receives views and image identities, not class
+labels. The official test split is not read.
+Three runs use the same backbone/projector initializa-
+tion, augmentations, data roles, and 20-epoch budget: VCS-
+QMI , a matched SimCLR implementation, and VICReg
+matched-128. The VCS and SimCLR inputs are L2-
+normalized, whereas VICReg receives the unnormalized pro-
+jector output. This matched 128-dimensional VICReg is a
+component-control experiment, not a substitute for a method-
+native VICReg baseline. SimCLR uses NT-Xent with tem-
+perature 0.2 and its 2B − 2 negative views per anchor; VCS
+uses K = 1. Their negative-sampling budgets are explicitly
+different.
+The VCS run uses one GPU, FP32, image batch B = 256,
+seed 0, and AdamW with a base learning rate of 10−3. It
+has two epochs of linear learning-rate warm-up followed by
+cosine decay to 1% of the base rate. Weight decay is 10−4
+on encoder/projector matrix weights and zero on their bias/-
+BatchNorm parameters and all critic parameters. There is no
+gradient clipping. These are frozen development defaults, not
+5
+
+PAGE 6
+VCS-QMI Working manuscript v2 24 September 2026
+validated optimal settings. Appendix D contains the exact
+implementation contract.
+The pilot is preceded by numerical, gradient-routing, data-
+split, and checkpoint tests, then separate 100-step real-data
+smoke runs. It stops after the three runs and their report.
+No tuning loop, second modality, or larger dataset is silently
+started. The supplied starter records local core tests, but no
+server integration or training result is inferred from those tests.
+6.4 Frozen-feature evaluation and diagnostics
+The primary representation is the 512-dimensional backbone
+output h, before the projector and critic. A separate check-
+point copy is set to evaluation mode, with parameters and
+BatchNorm buffers frozen. Clean image transforms generate
+cached features. The pilot fits a linear classifier on fitting-set
+labels and evaluates selection-set labels; the metric is linear
+validation top-1, not official test accuracy.
+Both the initialization checkpoint and epoch 20 receive
+the same probe. The probe uses a fixed 100-epoch SGD
+schedule and its final checkpoint, rather than selecting the best
+validation epoch. Weighted kNN at epochs 0, 5, 10, and 20
+is a secondary diagnostic. Independent evaluation random
+streams and model copies prevent monitoring from changing
+subsequent training. All probe details are in Appendix E.
+In addition to the probe, we log raw J, squared risk, pos-
+itive/negative score moments, endpoint-neighborhood frac-
+tions, and module-wise gradient norms. On the same fixed
+4,096-image subset, we measure the variance and covariance
+spectrum of h, the raw projector output, and its normalized
+version. Effective rank is computed from the centered covari-
+ance eigenvalues. Unit sample norm does not demonstrate
+non-collapse. Four selection-set augmentation/pairing repeats
+estimate the variability of the current held-out critic score
+without refitting the critic. This diagnostic is not a two-sided
+confidence interval for S.
+Table 3 is populated only from actual run artifacts. Improve-
+ment of pair discrimination without improvement of frozen
+features is reported as such. Failed or collapsed runs remain
+in the record. A 20-epoch run with no numerical error does
+not, by itself, establish stable representation learning or the
+final ordering of methods.
+6.5 Formal benchmarks and computational
+comparisons
+After pilot review, the planned confirmation uses CIFAR-10
+and CIFAR-100, 200 pretraining epochs, and at least three
+complete pretraining seeds. The protocol for retraining on
+the full training set and accessing the official test set is frozen
+for all methods before final evaluation. A formal 200-epoch
+run restarts from the documented initialization with its own
+schedule; it is not a continuation of the completed 20-epoch
+cosine schedule.
+The planned baseline set contains tuned RPC, SimCLR,
+method-native VICReg, and SSL-HSIC; FroSSL is included
+where a reliable implementation is available [1, 4, 8, 14, 17].
+Matched and native variants are named separately and receive
+comparable tuning opportunities. A longer training budget for
+key methods tests whether a short-budget advantage persists.
+Additional runs remain conditional on the previous stage’s
+review, not commitments already executed.
+ImageNet-100 uses a frozen, published image/class mani-
+fest and a ResNet-50 backbone [5, 6]. No universal 100-class
+subset is assumed. ImageNet-1K remains a possible scale
+extension after measuring resource requirements. Table 4 sep-
+arates these planned benchmark results from pilot validation.
+Cross-modal and EEG tasks remain outside the current main
+evaluation, rather than uncompleted empirical claims in the
+abstract.
+6.6 Sensitivity, ablations, and interpretation
+The main stability study varies batch size, learning rate, de-
+pendence strength in the controlled setting, and critic capac-
+ity. The initial batch grid is {64,128,256,512}, limited to
+key methods rather than a full Cartesian sweep. Learning
+rates vary around independently validated method defaults.
+Matched updates, seen examples, and wall-clock budgets an-
+swer different questions and are labeled separately; changing
+the batch at fixed epochs also changes the number of optimizer
+steps.
+For stochastic-gradient diagnostics, a checkpoint and its
+normalization state are fixed while fresh mini-batches are sam-
+pled. Absolute norms are reported together with scale-aware
+summaries, and normalized ratios are not interpreted when
+their denominators approach zero. An evaluation-mode gradi-
+ent diagnostic is distinguished from training-mode BatchNorm
+behavior. These measurements assess the ordinary update in
+Eq. (17); they do not introduce a different update method.
+Subsequent controlled ablations may vary tanh versus an
+unrestricted critic, the number of off-diagonal partners, crit-
+ic/projector capacity, and joint versus ordinary alternating
+updates. Only one declared factor changes at a time. The pilot
+does not optimize the CS transform or add anti-collapse terms.
+Any future loss extension requires its own configuration and
+component controls rather than being silently absorbed into
+VCS-QMI.
+The planned quantitative figures show target-specific esti-
+mation error, frozen-feature accuracy versus batch/learning-
+rate changes, and accuracy versus measured training time.
+They must be generated from logged runs. We do not draw
+illustrative performance curves or extrapolate GPU time from
+hardware names. The numerical and visual conclusions are
+conditional on completed evidence, not the working title.
+7 Discussion
+This formulation connects a reference-measure choice for CS
+to a directly trainable neural dependence objective. The exact
+regression gap identifies what the critic is fitting. Independent-
+pool analysis isolates sampling uncertainty, while the SSL
+implementation tests whether the same objective can improve
+6
+
+PAGE 7
+VCS-QMI Working manuscript v2 24 September 2026
+Table 3: Development report template, not the benchmark table. All entries are pending. Initialization and epoch-20 scores use
+the same clean frozen-feature probe on the internal selection split. Jsel is the current critic’s diagnostic score, not the population
+optimum. A dash means not applicable.
+Method Init. linear val. Epoch-20 linear val. ∆ (pp) kNN val. Jsel Train hours Peak GB
+VCS-QMI NR NR NR NR NR NR NR
+SimCLR, matched NR NR NR NR — NR NR
+VICReg, matched-128 NR NR NR NR — NR NR
+Table 4: Planned formal visual benchmarks. NR means no result is available. Report mean ± standard deviation across complete
+pretraining seeds under the frozen official-test protocol. Exact training budgets and recipes accompany every result. This table
+must not be filled with 20-epoch pilot validation scores.
+Method / recipe CIFAR-10 linear CIFAR-100 linear ImageNet-100 linear GPU hours Peak memory
+VCS-QMI NR NR NR NR NR
+Tuned RPC NR NR NR NR NR
+SimCLR, native NR NR NR NR NR
+VICReg, native NR NR NR NR NR
+SSL-HSIC NR NR NR NR NR
+FroSSL, if implemented NR NR NR NR NR
+visual features through ordinary backpropagation.
+The distinctions matter. The target is not Shannon MI,
+and its quadratic functional overlaps with established relative-
+ratio objectives. A bounded score does not establish semantic
+selection, absence of collapse, or a universal gradient-variance
+advantage. Strong dependence can saturate S, and the CS
+transform can magnify errors near one. A powerful critic can
+improve pair discrimination without improving the backbone.
+The evaluation therefore keeps these outcomes separate and
+includes direct quadratic as well as standard visual baselines.
+The present scope is visual SSL. A later second application
+can test the same tool in another setting, but it is not needed to
+interpret the current pilot and is not claimed before a protocol
+and results exist. The complete collaborator proofs, original
+simulation outputs, and server reports remain required inputs
+to the final submission.
+8 Conclusion
+We study a mixture-reference CS dependence measure with
+an exact quadratic variational representation, a bounded PMI
+critic, and a squared regression gap. A conventional sample-
+based estimator and joint two-view SSL update connect this
+construction to visual representation learning. The revised
+evaluation distinguishes estimator behavior, development vali-
+dation, and formal frozen-feature benchmarks. Which statisti-
+cal properties translate into practical learning benefits remains
+an empirical question to be answered by the specified experi-
+ments.
+7
+
+PAGE 8
+VCS-QMI Working manuscript v2 24 September 2026
+References
+[1] Adrien Bardes, Jean Ponce, and Yann LeCun. VI-
+CReg: Variance-invariance-covariance regularization for self-
+supervised learning. In International Conference on Learn-
+ing Representations, 2022. URL https://arxiv.org/abs/
+2105.04906.
+[2] Peter L. Bartlett and Shahar Mendelson. Rademacher and Gaus-
+sian complexities: Risk bounds and structural results. Journal
+of Machine Learning Research, 3:463–482, 2002. URL https:
+//www.jmlr.org/papers/v3/bartlett02a.html.
+[3] Mohamed Ishmael Belghazi, Aristide Baratin, Sai Rajeshwar,
+Sherjil Ozair, Yoshua Bengio, Aaron Courville, and R. Devon
+Hjelm. Mutual information neural estimation. In Interna-
+tional Conference on Machine Learning, 2018. URL https:
+//proceedings.mlr.press/v80/belghazi18a.html.
+[4] Ting Chen, Simon Kornblith, Mohammad Norouzi, and Ge-
+offrey Hinton. A simple framework for contrastive learning
+of visual representations. In International Conference on Ma-
+chine Learning, 2020. URL https://arxiv.org/abs/2002.
+05709.
+[5] Kaiming He, Xiangyu Zhang, Shaoqing Ren, and Jian Sun.
+Deep residual learning for image recognition. In Proceedings
+of the IEEE Conference on Computer Vision and Pattern Recog-
+nition, pages 770–778, 2016. URL https://arxiv.org/
+abs/1512.03385.
+[6] ImageNet. ImageNet large scale visual recognition challenge
+2012. Official dataset documentation, n.d. URL https:
+//www.image-net.org/challenges/LSVRC/2012/. Ac-
+cessed September 2026.
+[7] Alex Krizhevsky, Vinod Nair, and Geoffrey Hinton. CIFAR-10
+and CIFAR-100 datasets. Official dataset documentation, n.d.
+URL https://www.cs.toronto.edu/~kriz/cifar.html.
+Accessed September 2026.
+[8] Yazhe Li, Roman Pogodin, Danica J. Sutherland, and Arthur
+Gretton. Self-supervised learning with kernel dependence max-
+imization. In Advances in Neural Information Processing Sys-
+tems, 2021. URL https://arxiv.org/abs/2106.08320.
+[9] Yiwei Lu, Guojun Zhang, Sun Sun, Hongyu Guo, and Yaoliang
+Yu. f-MICL: Understanding and generalizing InfoNCE-based
+contrastive learning. Transactions on Machine Learning Re-
+search, 2023. URL https://arxiv.org/abs/2402.10150.
+[10] Youssef Mroueh and Tom Sercu. Fisher GAN. In Advances
+in Neural Information Processing Systems, 2017. URL https:
+//arxiv.org/abs/1705.09675.
+[11] XuanLong Nguyen, Martin J. Wainwright, and Michael I. Jor-
+dan. Estimating divergence functionals and the likelihood ratio
+by convex risk minimization. IEEE Transactions on Informa-
+tion Theory, 56(11):5847–5861, 2010. doi: 10.1109/TIT.2010.
+2068870. URL https://arxiv.org/abs/0809.0853.
+[12] Sebastian Nowozin, Botond Cseke, and Ryota Tomioka. f-
+GAN: Training generative neural samplers using variational
+divergence minimization. In Advances in Neural Information
+Processing Systems, 2016. URL https://arxiv.org/abs/
+1606.00709.
+[13] Ben Poole, Sherjil Ozair, Aaron van den Oord, Alexander
+Alemi, and George Tucker. On variational bounds of mutual
+information. In International Conference on Machine Learn-
+ing, 2019. URL https://proceedings.mlr.press/v97/
+poole19a.html.
+[14] Oscar Skean, Aayush Dhakal, Nathan Jacobs, and Luis Gon-
+zalo Sanchez Giraldo. FroSSL: Frobenius norm minimiza-
+tion for efficient multiview self-supervised learning. In Eu-
+ropean Conference on Computer Vision, 2024. URL https:
+//arxiv.org/abs/2310.02903.
+[15] Jiaming Song and Stefano Ermon. Understanding the limita-
+tions of variational mutual information estimators. In Interna-
+tional Conference on Learning Representations, 2020. URL
+https://arxiv.org/abs/1910.06222.
+[16] Taiji Suzuki, Masashi Sugiyama, Takafumi Kanamori, and
+Jun Sese. Mutual information estimation reveals global as-
+sociations between stimuli and biological processes. BMC
+Bioinformatics, 10(Suppl 1):S52, 2009. doi: 10.1186/
+1471-2105-10-S1-S52. URL https://link.springer.
+com/article/10.1186/1471-2105-10-S1-S52 .
+[17] Yao-Hung Hubert Tsai, Martin Q. Ma, Muqiao Yang, Han
+Zhao, Louis-Philippe Morency, and Ruslan Salakhutdinov. Self-
+supervised representation learning with relative predictive cod-
+ing. In International Conference on Learning Representations,
+2021. URL https://arxiv.org/abs/2103.11275.
+[18] Michael Tschannen, Josip Djolonga, Paul K. Rubenstein, Syl-
+vain Gelly, and Mario Lucic. On mutual information max-
+imization for representation learning. In International Con-
+ference on Learning Representations , 2020. URL https:
+//arxiv.org/abs/1907.13625.
+[19] Makoto Yamada, Taiji Suzuki, Takafumi Kanamori, Hi-
+rotaka Hachiya, and Masashi Sugiyama. Relative
+density-ratio estimation for robust distribution com-
+parison. In Advances in Neural Information Process-
+ing Systems , 2011. URL https://proceedings.
+neurips.cc/paper_files/paper/2011/file/
+d1f255a373a3cef72e03aa9d980c7eca-Paper.pdf.
+[20] Salimeh Yasaei Sekeh and Alfred O. Hero. Geomet-
+ric estimation of multivariate dependency. arXiv preprint
+arXiv:1905.08594, 2019. URL https://arxiv.org/abs/
+1905.08594.
+[21] Wenzhe Yin, Zehao Xiao, Pan Zhou, Shujian Yu, Jiayi Shen,
+Jan-Jakob Sonke, and Efstratios Gavves. Distributional vision-
+language alignment by Cauchy–Schwarz divergence. In Inter-
+national Conference on Learning Representations, 2026. URL
+https://arxiv.org/abs/2502.17028.
+[22] Shujian Yu, Xi Yu, Sigurd Løkse, Robert Jenssen, and José C.
+Príncipe. Cauchy–Schwarz divergence information bottleneck
+for regression. In International Conference on Learning Rep-
+resentations, 2024. URL https://arxiv.org/abs/2404.
+17951.
+[23] Shujian Yu, Hongming Li, Sigurd Løkse, Robert Jenssen, and
+José C. Príncipe. The conditional Cauchy–Schwarz divergence
+with applications to time-series data and sequential decision
+making. IEEE Transactions on Pattern Analysis and Machine
+Intelligence, 2025. URL https://arxiv.org/abs/2301.
+08970.
+8
+
+PAGE 9
+VCS-QMI Working manuscript v2 24 September 2026
+A Proofs of the Retained Identities
+A.1 Mixture-reference decomposition
+Since M = (P + Q)/2 dominates both distributions, pM +
+qM = 2 M-almost everywhere. With η = (pM − qM)/2, we
+have
+R
+η dM = 0 and
+Z
+p2
+MdM =
+Z
+(1 + 2η + η2)dM = 1 + S, (24)
+Z
+q2
+MdM = 1 + S, (25)
+Z
+pMqMdM =
+Z
+(1 − η2)dM = 1 − S. (26)
+Substituting into the squared-ratio CS definition proves Eq.(5).
+Boundedness of η gives 0 ≤ S ≤ 1. At S = 1 the cross-overlap
+vanishes, giving the extended value +∞.
+A.2 Variational representation and classifica-
+tion
+For every measurable bounded T ,
+EPT − EQT = 2EM[T η], (27)
+1
+2 EPT 2 + 1
+2 EQT 2 = EMT 2. (28)
+Consequently,
+J(T ) =2EM[T η] − EMT 2 (29)
+= EMη2 − EM(T − η)2. (30)
+The maximum is attained by T = η in the full measurable
+bounded class. Equality implies T = η M-almost everywhere,
+proving uniqueness in L2(M).
+For the balanced label C, E[C | Z] =η(Z). Expanding its
+risk gives
+R(T ) =E[C2] − 2E[CT ] +E[T 2] (31)
+= 1 − 2EM[ηT ] +EMT 2 = 1 − J(T ). (32)
+This also explains why positive and negative losses must retain
+equal total weights even if their sample counts differ.
+On the support where p,q > 0, let r = p/q. Then
+η = r − 1
+r + 1 = tanh( 1
+2 logr). (33)
+At zero-density boundaries use the corresponding limiting
+values. The finite network tanh fφ lies in (−1,1); equality
+with a boundary-valued optimal function is interpreted through
+approximation or closure. The inverse r = (1 + η)/(1 − η) is
+valid on its domain, but is sensitive as η → 1 and is not used
+to claim stable density-ratio recovery.
+A.3 Independence and local data processing
+For any common dominating measureµ, substitution of dM =
+(p + q)dµ/2 yields Eq. (13). Nonnegativity and zero integral
+imply p = q almost everywhere, hence S = 0 exactly when
+P = Q. With P = PXY and Q = PXPY , this is independence.
+The associated convex function is
+f (r) =(r − 1)2
+2(r + 1) , r ≥ 0, f ′′(r) = 4
+(r + 1)3 > 0. (34)
+The usual f -divergence contraction under a common Markov
+kernel applies, including the limiting contribution on singular
+support. For a dependence statement, take separate kernels
+KX and KY . The pushforward of Q under KX ⊗ KY is again
+the product of the transformed marginals, so IVQ(X ′;Y ′) ≤
+IVQ(X;Y ). Monotonicity of g gives the corresponding CS
+ordering. This does not establish additivity of S under inde-
+pendent products.
+B Statistical Analysis: Assumptions
+and Proofs
+The statements in this section are carried over from the pre-
+vious working draft as a standard completion of the original
+plan’s proposed finite-sample analysis. They are not newly
+attributed to an unseen collaborator proof, and require author
+review before submission.
+B.1 Independent evaluation
+Assume a critic T is fixed before drawing independent sam-
+ples U1, . . . ,Un ∼ P and V1, . . . ,Vm ∼ Q, with the two pools
+independent. The same statement holds conditionally on a
+randomly fitted critic when evaluation data are independent of
+its fit. Since a±(T ) have range width two, each variance is at
+most one. Independence of the pools gives Eq. (18).
+Hoeffding’s inequality gives
+Pr
+ 
+1
+n ∑
+i
+a+(T (Ui)) − EPa+(T )
+ > t
+!
+≤ 2e−nt2/2. (35)
+Apply the analogous bound underQ and a union bound, setting
+each failure probability to δ /2, to obtain Eq. (19).
+If τn,m(δ ) denotes its right-hand side, then
+S ≥ max{0, bJ − τn,m(δ )} (36)
+with the same probability. This is a one-sided statement using
+J(T ) ≤ S, not a two-sided confidence interval for the optimum.
+It does not remove approximation bias. With a random fitted
+critic, total evaluation variance also contains Var(J( bT )); the
+conditional bound alone does not bound run-to-run training
+variability by 1/n + 1/m.
+B.2 Empirical-risk oracle inequality
+Let T be a class of measurable functions into [−1,1] and
+assume the relevant suprema are measurable, or use their
+standard outer-probability formulation. Define aT and ∆n,m
+9
+
+PAGE 10
+VCS-QMI Working manuscript v2 24 September 2026
+as in the main text. For any ε > 0, choose Tε ∈ T satisfying
+S − J(Tε ) ≤ aT + ε. Then
+J(Tε ) − J( bT ) ≤ bJ(Tε ) − bJ( bT ) +2∆n,m (37)
+≤ εopt + 2∆n,m. (38)
+Adding S − J(Tε ) and taking ε ↓ 0 proves Eq. (21). This
+argument does not require the infimum to be attained.
+For an independent evaluation sample with deviation at the
+fitted critic at most τ, one obtains
+|S − bJeval( bT )| ≤aT + 2∆n,m + εopt + τ. (39)
+The quantities on the right are a theoretical decomposition, not
+all directly measurable on images. In particular, the unknown
+Bayes risk prevents treating raw held-out squared risk as the
+exact gap.
+B.3 Complexity control
+Define the expected absolute Rademacher complexity by
+Rn(P, T ) =EU,ε sup
+T ∈T
+
+1
+n
+n
+∑
+i=1
+εiT (Ui)
+ . (40)
+The signs are independent Rademacher variables and the obser-
+vations are i.i.d. from P. Symmetrization bounds the expected
+uniform deviation for the positive-score class a+ ◦ T by its
+Rademacher complexity up to a universal factor. Because
+a+(0) =0 and it is 2-Lipschitz on [−1,1], contraction bounds
+this complexity by a universal multiple of Rn(P, T ). The
+same argument applies to a− under Q.
+Changing one sample changes the relevant uniform devia-
+tion by at most 2/n or 2/m. Bounded-differences concentra-
+tion and a union bound therefore give Eq. (22), for a universal
+numerical constant C. This is a direct application of standard
+complexity tools [2], not a special property that distinguishes
+the balanced criterion from every relative-ratio estimator. A
+practical network-specific bound requires specifying architec-
+ture, norm constraints, or another effective complexity control.
+For a sequence of classes TN, consistency follows when
+aTN → 0, the complexity and concentration terms vanish, and
+εopt,N → 0. Independent evaluation sample sizes must also
+grow. A proof for a fixed encoder does not by itself show uni-
+form convergence over a concurrently trained encoder class.
+B.4 In-batch product sampling
+When base observations (Xi,Yi) are i.i.d. and i ̸= j, (Xi,Yj) has
+law PXPY . This gives correct expectations for a fixed pairwise
+critic. However, (Xi,Yj) and (Xk,Yi) may share variables and
+are not generally independent. A permutation of one batch and
+all-off-diagonal pairing must therefore be analyzed with their
+actual dependence structure. The independent-pool formulas
+above are not quoted with an artificial sample size B(B − 1).
+For theory-aligned checks, obtain independent Q samples
+from independent source-observation pools, or use disjoint
+pairs of base observations. For efficient SSL, retain the docu-
+mented in-batch rule and test it empirically. Critic selection
+on the same data further precludes interpreting the training
+estimate as an unbiased estimate at a fixed function.
+C Precise Relationships to Prior Objec-
+tives
+C.1 RPC
+The equality between Eq. (6) and RPC at (1,1,1) follows
+directly from Eq. (1). The optimal unrestricted RPC function
+can be obtained by pointwise maximization:
+T ∗
+RPC = p − αq
+β p + γq . (41)
+Its balanced instance is η. Consequently, a matched imple-
+mentation should agree numerically when the function class,
+parameterization, weights, samples, normalization, optimizer,
+and update schedule also agree. Different parameter settings
+or method-native recipes are meaningful practical compar-
+isons, but cannot be described as the same target with all other
+factors fixed [17].
+C.2 Relative least-squares fitting
+At equal mixture weight, RuLSIF fits
+r1/2 = p
+(p + q)/2 = 1 + η. (42)
+Ignoring target-independent constants, its population quadratic
+criterion is
+L(g) =1
+2 EMg2 − EPg. (43)
+Under g = 1 + T , direct expansion gives
+L(1 + T ) =− 1
+2 − 1
+2J(T ). (44)
+Thus these objectives are affinely related under matched
+classes and without added unequal regularization [19]. LSMI’s
+ordinary density-ratio target should be distinguished from this
+relative-mixture case [16].
+C.3 Variational f -divergence expression
+For f (r) = (r − 1)2/[2(r + 1)], take U = T − T 2/2 with
+−1 ≤ T ≤ 1. The conjugate on this image satisfies f ∗(U) =
+T +T 2/2. Substitution into EPU −EQ f ∗(U) reproduces J(T ).
+This locates the construction within the established variational
+f -divergence framework [11, 12]. The CS-reference interpre-
+tation and its evaluation are the focus of this paper; the general
+Fenchel device is not newly invented here.
+D Exact Pilot Implementation
+This appendix translates Server Agent Spec v1 into
+manuscript-level implementation details. It fixes the current
+10
+
+PAGE 11
+VCS-QMI Working manuscript v2 24 September 2026
+development experiment, not the final multi-seed recipe. The
+packaged configurations are copied unchanged from the ex-
+isting starter. No current server run, software version, GPU
+model, or integration result is assumed.
+D.1 Data identities and transformations
+Use stable indices of the official CIFAR-10 training set. A
+NumPy generator with seed 20260924 processes class IDs in
+order, permutes that class’s indices, and assigns the first 500
+to selection and the remainder to fitting. Sort indices within
+each resulting split and save a manifest with the original data
+checksums, generation rule, class counts, disjointness checks,
+and a SHA-256 digest. All methods share this manifest. La-
+bels are available only for its construction and downstream
+evaluation; they are absent from the SSL batch.
+The fitting loader shuffles image identities without replace-
+ment each epoch, uses B = 256, and drops the incomplete last
+batch. Thus each epoch has 175 updates and 44,800 image
+presentations. A completed 20-epoch run has 3,500 updates
+and 896,000 base-image presentations. These counts are dis-
+tinguished from twice as many augmented views. Each image
+invokes the augmentation pipeline independently twice.
+Table 5: Frozen CIFAR pilot transforms. Both views use
+independent random draws from the same pipeline. These
+are development settings, not a claim to reproduce the full
+ImageNet SimCLR recipe.
+Operation Parameters, in execution order
+Random resized
+crop
+32 × 32; scale (0.2,1); aspect ratio
+(3/4,4/3); bilinear interpolation; an-
+tialiasing enabled
+Horizontal flip Probability 0 .5
+Color jitter Applied with probability 0.8; bright-
+ness/contrast/saturation 0.4, hue 0.1
+Grayscale Probability 0 .2
+Tensor conversion Floating-point tensor
+Normalization Channel mean (0.5,0.5,0.5) and stan-
+dard deviation (0.5,0.5,0.5)
+Clean evaluation uses only tensor conversion and the same
+fixed normalization, without a crop or random color operation.
+No statistics are estimated on selection or test images. There
+is no Gaussian blur, solarization, mixup, cutmix, or additional
+representation noise in the pilot. Sixteen example image/view
+triplets are saved to inspect the actual loader, without choosing
+method-specific augmentations.
+D.2 Model and initialization
+The backbone is a standard ResNet-18 initialized without
+pretrained weights. Replace its first convolution by a 3 × 3,
+stride-one, padding-one convolution with 64 output channels
+and no bias. Replace the initial max-pool and final classifier
+by identities, retaining global average pooling. The output is
+h ∈ R512.
+The projector consists of a bias-free 512 → 512 linear layer,
+BatchNorm, ReLU, and a 512 → 128 linear layer with bias.
+No final BatchNorm is used. VCS and SimCLR apply L2
+normalization with norm floor 10−8 after projection. VICReg
+receives the raw, unnormalized 128-dimensional output. The
+2B views pass through the backbone and projector together so
+that their BatchNorm policy is identical across the matched
+runs.
+The critic is 256 → 512 → 512 → 1, with ReLU at both
+hidden layers and tanh at the output. Its input is the ordered
+pair concatenation. Hidden layers retain standard linear-layer
+initialization; the last weight uses Xavier uniform initialization
+with gain 0.1 and bias zero. It is not initialized to an all-zero
+weight matrix. Critic initialization, data loading, and pairing
+use separate random streams so that an extra module does not
+change the common encoder/projector initialization or image
+order. Initial state-dictionary hashes are recorded.
+D.3 Objective reference
+The numerical computation is
+J = (t_pos.mean() - t_neg.mean()
+- 0.5 * t_pos.square().mean()
+- 0.5 * t_neg.square().mean())
+loss = -J
+R = (0.5 * (1 - t_pos).square().mean()
++ 0.5 * (-1 - t_neg).square().mean())
+The square is inside the sample mean. Both terms use the
+same critic, and positive/negative classes retain equal total
+weight. The raw J can be negative: with bounded scores its
+empirical range is [−3,1]. Its nonnegativity is not enforced,
+and no logarithmic CS transform is evaluated during pilot
+training.
+At K = 1, a concatenated balanced mean-squared error
+equals R, so it differs from −J by a constant one. Multiply-
+ing that loss by another half changes gradients and is not an
+equivalent unrecorded implementation. Repeating an identical
+negative-score list does not change its mean or the target prior.
+A dedicated CPU pairing generator draws one nonzero
+cyclic shift per update. Its state is checkpointed. No self-
+pair, label-based exclusion, selection-set partner, or detached
+negative branch is allowed. The extension to multiple shifts
+uses different nonzero shifts with K ≤ B − 1, but the current
+run fixes K = 1.
+D.4 Optimizer and schedule
+For step index s = 0, . . . ,T − 1, the rate multiplier is
+λ (s) =
+
+
+
+(s + 1)/W, s < W,
+0.01 + 0.99
+1 + cos
+
+π s −W
+T − 1 −W
+
+2 , s ≥ W.
+(45)
+For the pilot,T = 3500 and W = 350. The rate is set before the
+update. Short smoke runs use a separately defined horizon and
+are not prepended to the pilot. Formal 200-epoch experiments
+11
+
+PAGE 12
+VCS-QMI Working manuscript v2 24 September 2026
+Table 6: Pilot optimization settings. The same base recipe is
+used by the matched controls; only VCS has critic parameters.
+Setting Value
+Optimizer AdamW
+Base learning rate, all mod-
+ules
+10−3
+Adam coefficients and ep-
+silon
+(0.9,0.999); 10−8
+Encoder/projector matrix de-
+cay
+10−4
+Bias/BatchNorm/critic de-
+cay
+0
+Training budget 20 epochs, seed 0
+Warm-up 2 epochs, stepwise linear
+Cosine endpoint 0 .01 times base rate
+Gradient clipping None
+Precision FP32; TF32 disabled
+Parallelism One GPU, no accumulation
+Loader 4 workers; pinned memory; no
+persistent workers
+use a separately frozen schedule, provisionally a ten-epoch
+warm-up, and restart rather than continuing this finished cosine
+schedule.
+No mixed precision, distributed training, compilation,
+queue, accumulation, or automatic batch reduction is part of
+the initial contract. An out-of-memory event is recorded rather
+than silently changing the batch. Parameter weight decay is
+an optimizer choice, so the method is described as having
+no auxiliary representation loss, not as having no parameter
+regularization of any kind.
+D.5 Matched controls
+SimCLR uses the same encoder/projector, data roles, and
+augmentation schedule. Its normalized 2B vectors enter NT-
+Xent with temperature 0.2. Each anchor masks itself and
+keeps its actual positive in the denominator; the positive index
+is (i + B) mod 2B. Its negative count is not matched to VCS’s
+single shifted partner.
+VICReg matched-128 uses the raw projector outputs and
+coefficients (25,25,1) for invariance, variance, and covariance
+[1]. The variance epsilon is 10−4 and the variance/covariance
+normalization uses B − 1. This configuration is labeled as a
+matched small-projector control throughout. It is not silently
+substituted for the native recipe in the formal table.
+Balanced RPC is evaluated only as a value-and-gradient
+identity test at (1,1,1) under the same scores. A separately
+tuned RPC training recipe belongs to the next-stage experi-
+ment. Neither SimCLR nor VICReg creates an unused critic.
+E Frozen Evaluation and Training Di-
+agnostics
+E.1 Primary linear probe
+Load a separate encoder copy from the initialization or fi-
+nal pilot checkpoint. Set evaluation mode, disable parameter
+gradients, and use no-gradient feature extraction. Verify that
+all parameters and BatchNorm running statistics remain un-
+changed. Cache clean, raw 512-dimensional h features as
+float32 together with checkpoint, split, and transform hashes
+and image-identity order. The projector and critic are not part
+of the primary classifier.
+A linear layer with bias maps 512 features to 10 classes. It
+is trained on the 45,000 fitting labels with SGD, learning rate
+0.1, momentum 0.9, zero weight decay, batch 256, and seed
+20260925. The 100-epoch learning rate decays by cosine to
+0.001 of its base rate. Features are neither L2-normalized nor
+standardized for this probe. Both the SSL model and probe
+use their fixed final checkpoints, not their highest selection
+accuracy. Record selection top-1 accuracy and cross-entropy.
+The initialization probe is not assumed to equal ten-percent
+chance performance. It is the directly measured reference for
+whether the backbone improves. Formal benchmark evalu-
+ation is separately locked after development; it may retrain
+on the full official training portion, but it does so consistently
+across methods and without test-driven selection.
+E.2 kNN and critic diagnostics
+Weighted kNN uses clean L2-normalized h, the fitting set as
+the labeled memory bank, and selection images as queries.
+Use k = 200 and temperature 0.1 at epochs 0, 5, 10, and
+20. Weight neighbors by exp((s j − smax)/0.1) and process
+queries in blocks rather than materializing an unnecessarily
+large similarity matrix.
+For VCS critic diagnostics, all modules are in evaluation
+mode. Generate two independent training-distribution aug-
+mentations of each selection image and use the documented
+nonzero-shift pairing. Make four augmentation/pairing re-
+peats with an isolated evaluation random stream. Each repeat
+reports J, R, and score moments. Accumulate sums and counts
+over actual positive and negative samples; do not take an un-
+weighted mean of unequal-size batch means. A final singleton
+is merged rather than paired with itself.
+The held-out score evaluates the current critic without refit-
+ting. Its repeated-estimation standard deviation reflects that
+evaluation procedure; it is not an estimate of total training-
+seed variance or an exact gap to the Bayes critic. Repeated
+development use of the selection set is acknowledged. A final
+test protocol remains separate.
+E.3 Representation and gradient diagnostics
+The diagnostic feature subset consists of the first 4,096 selec-
+tion identities in sorted order, shared by all runs. Evaluate h,
+raw projector features, and L2-normalized features separately.
+12
+
+PAGE 13
+VCS-QMI Working manuscript v2 24 September 2026
+For centered covariance eigenvalues λ j ≥ 0, let
+p j = λ j/∑
+k
+λk, reff = exp
+ 
+−∑
+j
+p j log p j
+!
+. (46)
+Report mean per-dimension variance, covariance trace, sample
+norms, the spectrum, leading-eigenvalue fraction, and effec-
+tive rank. At zero trace, record rank zero and a zero-covariance
+flag rather than assigning entropy to an undefined distribution.
+Only small numerical negative eigenvalues are clipped; larger
+violations are recorded as numerical problems.
+Before each optimizer step at the documented logging in-
+terval, record module-wise raw gradient norms along with
+score moments and learning rates. The pilot does not clip
+these gradients. It does not equate a smaller norm with a
+better direction. Later multi-batch gradient studies hold the
+same model and BatchNorm state fixed, and explicitly iden-
+tify whether they measure evaluation-mode or training-mode
+behavior.
+A saturated critic, low feature rank, or no gain over initial-
+ization is a reported research outcome, not authorization to
+add a new loss. A nonfinite loss/gradient, incorrect pairing, or
+data-role contamination is an implementation failure requiring
+a stop and diagnosis. Both categories remain visible in the
+report.
+E.4 Cost, randomness, and recovery
+Record train time and evaluation time separately, along
+with peak allocated/reserved GPU memory, model parameter
+counts, optimizer steps, view counts, and pair counts. Images
+per second refers to base images; views per second counts both
+augmentations. A fixed-budget comparison and a fixed-time
+comparison are both labeled with their actual budgets.
+Checkpoints include model, optimizer, and scheduler states;
+intended schedule horizon; configuration and manifest digests;
+and Python, NumPy, CPU/CUDA, loader, pairing, and evalu-
+ation random-generator states. Save initialization, final, and
+declared intermediate checkpoints. Epoch-boundary recovery
+is the default. Exact mid-epoch replay is not claimed without
+restoring sampler positions, worker prefetch, and augmenta-
+tion states. Evaluation does not permanently disable training
+gradients or consume training randomness. A recovery test is
+separate from any downstream-accuracy claim.
+F Evidence, Provenance, and Revision
+Boundaries
+This revision uses three supplied project sources. The collabo-
+rator’s Variational CS-QMI Research Planfixes the reference
+measure, variational functional, critic optimum, classification
+interpretation, and desired theory. The previous VCS-QMI
+CVPR Framework supplies the statistical proof drafts and
+planned controlled/large-scale experiments. Server Agent Spec
+v1, dated 24 September 2026, supplies the exact current SSL
+pilot. No unseen server implementation or result is treated as
+evidence.
+Table 7: Source-to-draft mapping. Mathematical foundations,
+prior proof drafts, and current engineering settings remain
+distinguishable.
+Source material Role in this revision
+Original plan, Sec-
+tions 2–8
+Reference measure, CS decomposi-
+tion, quadratic objective, PMI critic,
+squared risk, known divergence rela-
+tion
+Original plan, Sec-
+tions 9–11
+Sampling/optimization intent and sta-
+tistical questions
+Previous framework,
+statistics
+Conditional bounds and oracle de-
+composition retained for author re-
+view
+Agent Spec v1, Sec-
+tions 3–9
+Numerical loss, exact architecture,
+pairing, optimizer, matched controls
+Agent Spec v1, Sec-
+tions 10–16
+Data roles, frozen evaluation, diag-
+nostics, recovery and pilot stopping
+point
+Previous formal ex-
+periment plan
+Conditional 200-epoch/multi-
+seed/scale evaluation, not a replace-
+ment for the pilot
+The supplied starter records 29 passed local CPU core tests.
+That historical record covers loss identities, pairing, gradient
+routing, and related checks. This manuscript revision does not
+report an additional training run, CUDA validation, or server
+test pass. Server-side integration tests and original collaborator
+simulation artifacts are still required. No observed accuracy,
+variance reduction, speedup, or failure rate is available for
+insertion in the result tables.
+The new manuscript narrows the application commitment
+to image SSL. Previously discussed EEG and visual–language
+tasks remain possible extensions in the research roadmap, not
+deleted theory or implied completed benchmarks. The earlier
+critic-value/two-point-gradient research branch is not part of
+this manuscript, implementation, or claimed contribution.
+The current document uses the previous two-column devel-
+opment layout. It is not an anonymized, final-template CVPR
+submission. The final author kit, page budget, author informa-
+tion, and submission policies must be checked again before
+submission. No accepted-paper status or completed empirical
+claim is implied by the working title.
+Completion rule. Populate tables only from attributable run
+artifacts with configuration, split, code, and checkpoint hashes.
+Preserve failed runs, report complete pretraining seeds, and
+keep pilot validation separate from official-test results. Con-
+firm the complete theory with the collaborator. Revise the
+abstract’s empirical sentence only after the experiments estab-
+lish which stability and representation claims are supported.
+13

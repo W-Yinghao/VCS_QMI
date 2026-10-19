@@ -1,0 +1,33 @@
+{
+  "user_instruction": "能拆开吗？",
+  "scope": "Split the two serial critical-path groups 903_1 and903_2 into four independent full40-epoch units.",
+  "science_freeze_sha256": "ae8d1e55d7ec5ae9439950d776a2c5efa122de45a58490aadcde0f6046fe1907",
+  "original_protocol_sha256": "21a3d02147866f890f14dee5f4bf57bbd8d6dad359e91479de92694bfae2b04e",
+  "overrides": [
+    "Only these two groups no longer execute SUM and MEAN serially in the same GPU allocation. All model/data/seed/optimizer/40epoch/CAL-DEV rules remain unchanged.",
+    "Intentional checkpoint migration is recorded separately from the one unchanged infrastructure retry. No new scientific units;18groups/33trainings remain the target."
+  ],
+  "migration": "Preflight checkpoint/model/optimizer/RNG under CPU Slurm; prequeue4held replacements; stop1045056; acquire sameFEED.lock; after next committed epoch stop only1045063/1045064; archive and revalidate checkpoints; release replacements only when original writer gone.",
+  "recovery": "New single V9 dispatcher retains one unchanged infrastructure resume on exit137/143 for all groups, including1044282. Scientific failures never auto-retry.",
+  "hardware": "Original allowed partitions RTX6000PRO,L40S,H100,exclude node51,node60 unchanged. Split units may use different physical GPUs/models;903 SUM-MEAN is no longer strict same-GPU pairing. Report original and resumed hardware explicitly; no hardware-invariant/bitwise-equivalence claim.",
+  "quota": {
+    "shared_normal_gpus": 8,
+    "pending_target": 8,
+    "max_v9_live_gpu_jobs": 16,
+    "normal_expanded_jobs_max": 29
+  },
+  "cost": "Archive original worker exits; preserve each new unit exit and hardware. Group SCHED_EXIT is explicitly aggregated with actual last successful GPUworker job_id/utc plus both real exits. Existing closeout cost remains partial allocation accounting; unit proofs carry all final worker exits.",
+  "unchanged_jobs": [
+    "1044282",
+    "1045065",
+    "1045066",
+    "1045426",
+    "1045453",
+    "1046189",
+    "1046165"
+  ],
+  "v10": "Existing V10 running and pending jobs remain active, no new holds/dependencies; shared quota enforced by Slurm.",
+  "no_new_test_read": true,
+  "no_expansion": true,
+  "original_outputs_preserved": true
+}

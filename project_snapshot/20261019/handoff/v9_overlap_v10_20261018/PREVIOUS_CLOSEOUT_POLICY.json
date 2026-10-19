@@ -1,0 +1,74 @@
+{
+  "schema": "cs_qmi.v9_closeout_before_v10.v1",
+  "updated_utc": "2026-10-18T09:40:11Z",
+  "user_instruction": "让这些都结束吧，V9干净了再启动V10",
+  "status": "V10_PREQUEUED_WAIT_V9_CLOSEOUT",
+  "supersedes_priority_record": "handoff/v10_bf1_20261017/RESTORE_V9_PRIORITY.json",
+  "v9_feeder_job": "1045056",
+  "v9_groups_total": 18,
+  "v9_training_units_total": 33,
+  "snapshot_groups_submitted": 8,
+  "snapshot_groups_not_submitted": [
+    "902_3",
+    "902_4",
+    "902_or",
+    "902_ru",
+    "903_1",
+    "903_2",
+    "903_3",
+    "903_4",
+    "903_or",
+    "903_ru"
+  ],
+  "snapshot_training_units_not_submitted": 18,
+  "additional_legacy_v9_jobs": [
+    "1042382"
+  ],
+  "v10_held_jobs": [],
+  "v10_release_conditions": [
+    "All 18 frozen N2F groups (33 full training units), including currently unsubmitted groups, have been dispatched and accounted for.",
+    "The existing legacy V9 job 1042382 and all jobs in this N2F round have ended; no associated V9 training or evaluation job remains pending or running.",
+    "The N2F feeder has completed. Any failure or partial run has been investigated and resolved or explicitly closed with evidence; an empty queue alone is not completion.",
+    "Full-result identities and artifacts are checked; the V9 closeout records per-seed results, MEAN/SUM effects, Oracle comparisons, collapse/failure counts, actual cost, and the research conclusion.",
+    "V10 gate is prequeued afterok of the new CPU closeout job; its array is afterok of the new gate. GPU execution starts only after all preceding closeout conditions pass. Old IDs stay cancelled."
+  ],
+  "preserve_original_wave1_pause": true,
+  "new_v9_expansion_grids": false,
+  "preserve_results_checkpoints_and_logs": true,
+  "restart_old_v10_priority_watcher": false,
+  "dispatch_policy": {
+    "updated_utc": "2026-10-17T19:58:18.184408+00:00",
+    "feeder_job": "1045056",
+    "retired_feeder": "1043940",
+    "target_pending": 8,
+    "max_own_live": 16,
+    "max_normal_jobs": 29,
+    "poll_seconds": 30,
+    "array_tasks_counted_separately": true,
+    "transition": "handoff/v9_dispatch_pending8_20261017/TRANSITION.json"
+  },
+  "dispatch_updated_utc": "2026-10-17T19:58:18.184408+00:00",
+  "v10_cancelled_jobs": [
+    "1044420",
+    "1044424"
+  ],
+  "v10_resubmission_plan": "handoff/v10_bf1_20261017/RESUBMISSION_PLAN.json",
+  "v10_queue_cleanup": "handoff/v10_bf1_20261017/CANCELLED_PENDING.json",
+  "auto_handoff": {
+    "status": "SUBMITTED",
+    "utc": "2026-10-18T09:40:11Z",
+    "control_job": "1045973",
+    "closeout_job": "1045974",
+    "gate_job": "1045975",
+    "array_job": "1045976",
+    "gate_dependency": "afterok:1045974",
+    "array_dependency": "afterok:1045975",
+    "array": "0-3%2",
+    "gpu_tasks_added": 5,
+    "v10_freeze_sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+    "source_commit": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "scope": "Queue V10 now; GPU execution only after full V9 closeout. No V9 hold/cancel or new V9 grid."
+  },
+  "latest_user_instruction": "也别只排4个任务，V9完成后可以提交V10",
+  "submission_authorization": "V10 may be prequeued with afterok dependencies now; GPU execution remains gated by V9 closeout."
+}

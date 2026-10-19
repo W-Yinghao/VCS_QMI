@@ -1,0 +1,666 @@
+{
+  "schema": "vcs_qmi.protocol_decision_contract.v1",
+  "decision_id": "V10-phase1-decisions-20261017",
+  "decision_date": "2026-10-17",
+  "project": "VCS_QMI",
+  "authority": "Current project main conversation; user requested these decisions and ongoing preservation of project artifacts.",
+  "status": "DECIDED_REQUIRES_SERVER_IMPLEMENTATION_VALIDATION_AND_FREEZE",
+  "artifact_role": "Decision contract for implementation; not a drop-in runtime configuration.",
+  "report_accepted": true,
+  "remote_actions_in_this_review": {
+    "github_push": false,
+    "server_code_change": false,
+    "job_submission": false,
+    "gpu_experiment_rerun": false
+  },
+  "supersedes": {
+    "original_package": "VCS_V10_Server_Package_v1_20261016",
+    "clauses": [
+      "M1 primary absolute tolerance",
+      "InfoNCE registration energy label",
+      "MF K x lr primary tuning grid",
+      "T03 target mode and repetition grid",
+      "fp32 dense-MLP gradient gate role",
+      "data-role activation details"
+    ]
+  },
+  "reviewed_provenance": {
+    "repository": "https://github.com/W-Yinghao/VCS_QMI",
+    "branch": "v10/mf-vcs",
+    "head": "15b1c548a7dbeb8ee043fecfee209b118657202b",
+    "measured_results_commit": "11746ddb914e1fb370215f13026fadb2dd4c571c",
+    "code_hash": "bf8942645f0167b0",
+    "host_code_hash": "6c6f094684fbc50a",
+    "backend_sha256": "cdf5df2e43bacb74b963f7b6b519a962f91fc8e41f28b4f6a4e2696816024973",
+    "package_manifest_matching_files": 134,
+    "T01": {
+      "total": 2078,
+      "required_pass": 2031,
+      "required_fail": 0,
+      "diagnostic_pass": 27,
+      "diagnostic_fail": 20,
+      "host_adapter_verified_for_reviewed_code_only": true
+    },
+    "not_run": [
+      "T03",
+      "T04",
+      "T05"
+    ],
+    "no_scientific_performance_results": true
+  },
+  "m1": {
+    "report_option": "A",
+    "primary_gap_mode": "relative_to_current_batch_zero_head",
+    "relative_tolerance": 0.01,
+    "reference_formula": "gap_ref_zero = G_b(0) = l1_norm(QuadraticHead.delta) for the same current-batch fixed-feature objective",
+    "stop_formula": "gap_final <= relative_tolerance * gap_ref_zero OR iteration cap reached",
+    "reference_is_warm_start_gap": false,
+    "max_iterations_CAL": [
+      10,
+      30,
+      100
+    ],
+    "require_converged": false,
+    "initial_W": "zeros",
+    "later_W": "previous training batch warm start",
+    "ridge": 0,
+    "absolute_floor": false,
+    "strict_absolute_mode_retained_for_numerical_audit": true,
+    "zero_reference_behavior": {
+      "condition": "computed delta exactly zero",
+      "W": "zeros",
+      "status": "zero_reference_gap",
+      "relative_gap": "not applicable; do not divide by zero",
+      "do_not_pass_zero_tolerance_to_existing_solver": true
+    },
+    "near_zero_reference_diagnostic": "Same-input fp64 diagnostic; no automatic global dtype change.",
+    "reuse_same_quadratic_snapshot_for_reference_and_solve": true,
+    "log_fields": [
+      "gap_ref_zero",
+      "gap_start",
+      "gap_final",
+      "gap_relative_to_zero",
+      "tolerance_effective",
+      "iterations",
+      "stop_reason",
+      "converged",
+      "hvp_calls",
+      "moments_passes",
+      "W_update",
+      "encoder_gradient_diagnostic"
+    ],
+    "gap_scope": "Current fixed-feature empirical head objective before the outer feature update.",
+    "encoder_W_checkpoint_pair_indivisible": true,
+    "final_FIT_refit": false,
+    "new_code_requires_all_T01_parts": true,
+    "new_T02_scope": "Affected relative-rule M1 configurations and resulting budget changes."
+  },
+  "precision": {
+    "report_option": "A",
+    "primary_policy": "Common actual effective Torch configuration, pinned by environment and recorded after imports.",
+    "observed": {
+      "torch_version": "2.9.0+cu128",
+      "cuda_version": "12.8",
+      "cudnn_version": 91002,
+      "gpu_name": "NVIDIA L40S",
+      "compute_capability": "8.9",
+      "float32_matmul_precision": "highest",
+      "cudnn_conv_fp32_precision": "tf32",
+      "cuda_matmul_fp32_precision_raw": "none",
+      "deterministic_algorithms": false,
+      "cudnn_benchmark": false,
+      "cudnn_deterministic": false,
+      "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+    },
+    "previously_unrecorded_must_capture": [
+      "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE",
+      "NVIDIA_TF32_OVERRIDE"
+    ],
+    "do_not_assume_unrecorded_env_unset": true,
+    "avoid_mixing_old_and_new_tf32_apis": true,
+    "diagnostic_only_variants": [
+      "IEEE cuDNN convolution",
+      "fp64 numerical reference"
+    ],
+    "external_native_constraints": "Disclose any additional precision requirement with method identity and full cost."
+  },
+  "infonce": {
+    "report_option": "A",
+    "main_table_name": "InfoNCE_host[J_perm1]",
+    "training": "V9 host InfoNCE",
+    "registration_energy": "J(tanh f) ordinary perm1",
+    "reference": "within-scene V; fixed ordinary permutation within a registration",
+    "checkpoint": "fully frozen same encoder and critic checkpoint",
+    "table_disclosure": "InfoNCE-trained critic evaluated through common J readout; differs from original package native-objective/candidate-normalization description.",
+    "native_InfoNCE_registration_variant": {
+      "primary_batch_blocker": false,
+      "requires": [
+        "explicit energy and normalization definition",
+        "numerical checks",
+        "complete timing"
+      ],
+      "status": "NOT_IMPLEMENTED_NOT_SCHEDULED_AS_PRIMARY"
+    }
+  },
+  "rollout": {
+    "report_option": "B",
+    "first_natural_families": [
+      "MF_VCS_perm1",
+      "MF_VCS_M0",
+      "MF_VCS_M1",
+      "MLP_VCS_perm1"
+    ],
+    "remaining_required": [
+      "MLP_VCS_perm8 registration",
+      "InfoNCE_host[J_perm1] adapter",
+      "MI_native adapter",
+      "NMI_native adapter",
+      "CoMIR_native adapter and full cost",
+      "RuLSIF exact moments",
+      "MIND_2D_adapted"
+    ],
+    "every_new_adapter_requires": [
+      "targeted T01 validation",
+      "T02 training and registration timing as applicable",
+      "frozen method attachment",
+      "same common protocol"
+    ],
+    "no_comparative_conclusions_until_required_baselines_complete": true,
+    "technical_progress_failures_and_costs_can_be_reported": true,
+    "freeze_before_primary_runs": [
+      "manifest",
+      "preprocessing",
+      "seeds and RNG stream policy",
+      "geometry",
+      "CAL rules",
+      "precision",
+      "candidate order",
+      "cost ceilings"
+    ],
+    "material_shared_bug": "New protocol version and matched reruns of affected methods.",
+    "native_CoMIR_geometry_flow": "encode-then-register; include training and latent generation costs",
+    "rulsif_v9_rff_perm1_is_not_exact_moments_baseline": true,
+    "T03_rulsif_followup": true,
+    "parallel_development": "Independent worktree or fixed commit; BF jobs run an accepted immutable code snapshot. New merges require provenance-consistent validation; remeasure only affected T02 paths."
+  },
+  "data": {
+    "current_primary": "BF_SHG",
+    "roles": {
+      "FIT": 32,
+      "CAL": 8,
+      "DEV": 32,
+      "CONFIRM": 0
+    },
+    "DEV_label": "development benchmark",
+    "TEST_REPEAT": {
+      "core_count": 134,
+      "current_status": "HOLD_EXCLUDED",
+      "activation": "Only after complete V10 common protocol and all method selections are frozen; new manifest version.",
+      "prior_exposure": "V9-G1; reading began 2026-10-15T23:36:09Z",
+      "label": "separate repeated benchmark",
+      "do_not_pool_with_DEV_as_independent_confirmation": true
+    },
+    "BF_sensitivity": {
+      "source": "v10/T00/V10_DATA_MANIFEST.csv",
+      "position_rule": "record_id.split('_', 1)[1]",
+      "relation_status": "same_position_across_slides_possible_not_verified_same_specimen",
+      "fitcal_filter": "dataset=BF_SHG AND inclusion=include AND role in {FIT,CAL}",
+      "fitcal_position_count": 37,
+      "DEV_filter": "dataset=BF_SHG AND inclusion=include AND role=DEV AND original_split!=test",
+      "TEST_REPEAT_metadata_filter": "dataset=BF_SHG AND original_split=test; does not activate image access",
+      "sensitivity_rule": "exclude evaluation core if its position occurs in current included FIT or CAL",
+      "DEV": {
+        "full_core_count": 32,
+        "full_position_group_count": 32,
+        "sensitivity_core_count": 24,
+        "sensitivity_position_group_count": 24,
+        "excluded_fitcal_same_position_ids": [
+          "1B_F4",
+          "1B_H4",
+          "1B_H9",
+          "2B_D5",
+          "2B_G3",
+          "2B_G5",
+          "2B_H2",
+          "2B_I5"
+        ]
+      },
+      "TEST_REPEAT": {
+        "full_core_count": 134,
+        "full_position_group_count": 97,
+        "sensitivity_core_count": 112,
+        "sensitivity_position_group_count": 75,
+        "excluded_fitcal_same_position_ids": [
+          "1B_A3",
+          "1B_B1",
+          "1B_B8",
+          "1B_C3",
+          "1B_D4",
+          "1B_D7",
+          "1B_F6",
+          "1B_G2",
+          "1B_G4",
+          "1B_G6",
+          "1B_G7",
+          "1B_H8",
+          "2B_A5",
+          "2B_B2",
+          "2B_E3",
+          "2B_E4",
+          "2B_F2",
+          "2B_F9",
+          "2B_H3",
+          "2B_I1",
+          "2B_I6",
+          "2B_I7"
+        ]
+      },
+      "original_manifest_roles_unchanged": true,
+      "statistics": {
+        "primary_unit": "core",
+        "paired_across_methods": true,
+        "perturbations_not_independent_specimens": true,
+        "additional_sensitivity_unit": "TMA position cluster"
+      }
+    },
+    "EPFL": {
+      "current_status": "NOT_ACTIVATED",
+      "pair_count": 477,
+      "fixed_alignment_exclusions": 33,
+      "fixed_size_exclusions": 24,
+      "retained_windows": 420,
+      "activation_gates": [
+        "V10 file hash/decode/shape/modality/range checks",
+        "replay fixed P3 exclusions and window construction",
+        "9 categories x 3 deterministic representative overlays plus all flagged exceptions",
+        "cross-category/shape near-duplicate candidate review and frozen group record where needed",
+        "V10 G2/P3 host replay and geometry/support/frozen-checkpoint checks",
+        "actual full EPFL timing"
+      ],
+      "metadata_only_alignment_audit_sufficient": false,
+      "strict_threshold_native_px": 2.25,
+      "strict_threshold_interpretation": "Recovery of known imposed perturbations; not proof of true RGB-NIR alignment error below 2 pixels.",
+      "proxy_cost_is_not_measured_cost": true
+    }
+  },
+  "fp32_gradient_gate": {
+    "confirmed_commit": "a8f4c5d",
+    "scope": "Dense-MLP input-descriptor and critic-parameter gradient gate only",
+    "tested_path": "blocked/checkpointed actual fp32 implementation",
+    "reference": "Full fp64 recomputation from identical fp32-rounded input values and identical fp32-rounded model weights",
+    "required": [
+      "fp32 blocked gradients vs fp64 reference",
+      "fp64 blocked gradients vs fp64 full gradients",
+      "objective values blocked vs full at both dtypes",
+      "all other previously required checks"
+    ],
+    "diagnostic": [
+      "fp32 full gradients vs fp64 reference",
+      "fp32 blocked gradients vs fp32 full gradients"
+    ],
+    "tolerances_unchanged": {
+      "fp32": {
+        "atol": 0.00001,
+        "rtol": 0.0001
+      },
+      "fp64": {
+        "atol": 1e-10,
+        "rtol": 1e-8
+      }
+    },
+    "max_abs_errors": {
+      "cpu": {
+        "full_fp32_vs_fp64": 0.0000291217,
+        "blocked_fp32_vs_fp64": 2.94138e-7,
+        "blocked_fp32_vs_full_fp32": 0.0000293627
+      },
+      "cuda": {
+        "full_fp32_vs_fp64": 4.13737e-8,
+        "blocked_fp32_vs_fp64": 1.64116e-8,
+        "blocked_fp32_vs_full_fp32": 2.98023e-8
+      }
+    },
+    "old_failures_retained": true,
+    "report_wording_correction": "fp64 gradient reference, not merely fp64 objective value",
+    "CPU_full_fp32_scientific_path_approved": false,
+    "if_CPU_full_fp32_enters_formal_runs": "Make it required and pass; or explicit higher-precision accumulation with measured cost and revalidation.",
+    "gradient_tensors": {
+      "input_descriptors": [
+        "du",
+        "dv"
+      ],
+      "critic_parameter_tensor_count": 6,
+      "total_tensor_count": 8,
+      "total_element_count": 71873
+    }
+  },
+  "natural_registration": {
+    "q_mode": "within_scene_v",
+    "negative_sampling": "ordinary uniform permutations, fixed points allowed",
+    "MF_K": 16,
+    "MF_temperature": 1,
+    "ridge": 0,
+    "W_weight_decay": 0,
+    "non_W_weight_decay": 0.0001,
+    "optimizer": "AdamW",
+    "clip_norm": 1,
+    "scenes_per_step": 16,
+    "positions_per_scene": 128,
+    "crop": 160,
+    "architecture": "Current audited V9 host encoder and MLP critic; MFHead.",
+    "learning_rate_candidates": [
+      0.0001,
+      0.0003,
+      0.001
+    ],
+    "tie_learning_rates_across_optimizer_learned_modules": true,
+    "MF_K8_K32": "Named future natural-image capacity extension; not implicit primary CAL candidates.",
+    "candidate_order": "learning rate ascending; for M1, cap ascending within each learning rate",
+    "candidate_counts": {
+      "MF_VCS_perm1": 3,
+      "MF_VCS_M0": 3,
+      "MF_VCS_M1": 9,
+      "MLP_VCS_perm1": 3,
+      "total": 18
+    },
+    "training_steps": 3000,
+    "checkpoint_interval": 250,
+    "checkpoints_per_fit": 12,
+    "tuning_algorithm_seed": 1017,
+    "final_algorithm_seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "CAL": {
+      "cores": 8,
+      "perturbations_per_core": 10,
+      "selection_lexicographic": [
+        "success strictly below 42 native px descending",
+        "success strictly below 9 native px descending",
+        "median corner error ascending",
+        "checkpoint step ascending",
+        "frozen candidate ordinal ascending"
+      ]
+    },
+    "DEV": {
+      "cores": 32,
+      "perturbations_per_core": 10
+    },
+    "tuning_budget_per_family": {
+      "max_candidates": 9,
+      "max_L40S_allocated_GPU_hours": 8,
+      "stopping": "first limit reached",
+      "includes": [
+        "training",
+        "checkpoint",
+        "CAL registration",
+        "in-job overhead"
+      ],
+      "queue_wait_reported_separately": true,
+      "actual_spending_reported": true,
+      "no_outcome_dependent_extension": true
+    },
+    "old_measured_cost_projection_only": {
+      "tuning_GPU_hours": {
+        "MF_VCS_perm1": 0.8934,
+        "MF_VCS_M0": 0.9798,
+        "MF_VCS_M1": 6.4345,
+        "MLP_VCS_perm1": 1.3575,
+        "total": 9.6651
+      },
+      "tuning_plus_3_final_seeds_per_family_GPU_hours_by_selected_M1_cap": {
+        "10": 15.3618,
+        "30": 15.85,
+        "100": 17.5608
+      },
+      "excludes": [
+        "new validation",
+        "additional IO and failures",
+        "missing baselines",
+        "T03",
+        "TEST_REPEAT",
+        "EPFL"
+      ],
+      "must_replace_with_relative_M1_measurement": true
+    },
+    "reporting": {
+      "fixed_steps_table": "same-data / fixed-steps",
+      "same_total_cost_view": "actual cumulative cost and budget-eligible checkpoints selected only using CAL",
+      "equal_ceiling_not_equal_spending": true
+    }
+  },
+  "T03": {
+    "primary_q_mode": "u",
+    "population_reference": "P_X product P_Y",
+    "primary_empirical_reference": "sum_{i != j} delta_(x_i,y_j) / [n(n-1)]",
+    "perm1_perm8_sampler": "uniform derangement",
+    "sampler_implementation": "rejection from ordinary uniform permutations or validated equivalent uniform sampler",
+    "sampler_gate": "Small-n enumeration mean of values and gradients equals complete U; not biased fixed-point repair.",
+    "V_diagnostic": "Evaluate U and V on the same frozen trained critic and data; no complete V training grid.",
+    "natural_registration_V_unchanged": true,
+    "conditions": {
+      "families": [
+        "two_block",
+        "diagonal_mixture"
+      ],
+      "m": [
+        8,
+        32
+      ],
+      "rho": [
+        0,
+        0.25,
+        0.75
+      ],
+      "count": 12
+    },
+    "observations_per_condition": {
+      "FIT": 4096,
+      "CAL": 2048,
+      "EVAL": 8192
+    },
+    "input": "integer observations as one-hot",
+    "MF": {
+      "implementation": "SimplexBilinearCritic(m,m,K,K)",
+      "architecture": "Linear+softmax per side",
+      "main_K": 16,
+      "temperature": 1,
+      "initial_W": "zeros",
+      "linear_initialization": "pinned current Torch defaults; same initial state across MF variants"
+    },
+    "MLP": {
+      "input_dim": "2*m",
+      "hidden_dims": [
+        64,
+        64
+      ],
+      "hidden_activation": "GELU",
+      "output_dim": 1,
+      "critic_transform": "tanh",
+      "same_initial_state_across_perm1_perm8": true
+    },
+    "main_families": [
+      "MF_VCS_perm1",
+      "MF_VCS_M0",
+      "MF_VCS_M1",
+      "MLP_VCS_perm1",
+      "MLP_VCS_perm8"
+    ],
+    "optimizer": {
+      "name": "AdamW",
+      "learning_rates": [
+        0.0001,
+        0.0003,
+        0.001
+      ],
+      "tied": true,
+      "non_W_weight_decay": 0.0001,
+      "W_weight_decay": 0,
+      "ridge": 0,
+      "clip_norm": 1
+    },
+    "training": {
+      "full_FIT_batch": true,
+      "steps": 2000,
+      "checkpoint_interval": 250,
+      "checkpoints_per_fit": 8
+    },
+    "M1_caps": [
+      10,
+      30,
+      100
+    ],
+    "CAL": {
+      "independent_data_root_seed": 1017,
+      "algorithm_seed": 1017,
+      "candidate_order": "learning rate ascending; M1 cap ascending within each learning rate",
+      "candidates_per_condition": {
+        "MF_VCS_perm1": 3,
+        "MF_VCS_M0": 3,
+        "MF_VCS_M1": 9,
+        "MLP_VCS_perm1": 3,
+        "MLP_VCS_perm8": 3,
+        "total": 21
+      },
+      "fit_count": 252,
+      "criterion": "Complete empirical U-J on sample-only CAL",
+      "tie_break": [
+        "earliest checkpoint",
+        "frozen candidate ordinal"
+      ],
+      "oracle_access": false,
+      "hyperparameters_frozen_from_tuning_suite": true,
+      "each_final_replicate_checkpoint_selected_only_from_its_own_CAL_samples": true
+    },
+    "RNG_policy": "Record generator and sample hashes; separate data, model, and permutation streams; match observations across methods.",
+    "main_repetitions": {
+      "data_root_seeds": [
+        2026101700,
+        2026101701,
+        2026101702,
+        2026101703,
+        2026101704,
+        2026101705,
+        2026101706,
+        2026101707,
+        2026101708,
+        2026101709
+      ],
+      "algorithm_seed": 1001,
+      "fit_count": 600
+    },
+    "conditional_algorithm_repetitions": {
+      "data_root_seed": 2026101700,
+      "additional_algorithm_seeds": [
+        1002,
+        1003
+      ],
+      "extra_fit_count": 120,
+      "do_not_pool_with_10_data_replicates": true
+    },
+    "capacity_diagnostic": {
+      "conditions": [
+        {
+          "family": "two_block",
+          "m": 32,
+          "rho": 0.25
+        },
+        {
+          "family": "two_block",
+          "m": 32,
+          "rho": 0.75
+        },
+        {
+          "family": "diagonal_mixture",
+          "m": 32,
+          "rho": 0.25
+        },
+        {
+          "family": "diagonal_mixture",
+          "m": 32,
+          "rho": 0.75
+        }
+      ],
+      "families": [
+        "MF_VCS_perm1",
+        "MF_VCS_M0",
+        "MF_VCS_M1"
+      ],
+      "additional_K": [
+        8,
+        32
+      ],
+      "hyperparameters": "Inherit corresponding K16 tuning-suite-selected lr/cap",
+      "training_steps": 2000,
+      "checkpoint_interval": 250,
+      "checkpoint_selection": "Same sample-only CAL U-J criterion and tie rules",
+      "data_root_seeds": [
+        2026101700,
+        2026101701,
+        2026101702,
+        2026101703,
+        2026101704,
+        2026101705,
+        2026101706,
+        2026101707,
+        2026101708,
+        2026101709
+      ],
+      "algorithm_seed": 1001,
+      "fit_count": 240,
+      "no_extra_tuning_or_algorithm_repetitions": true,
+      "interpretation": "Capacity response under fixed training rules; includes optimization effects."
+    },
+    "fit_counts": {
+      "main": 600,
+      "conditional_algorithm_extra": 120,
+      "capacity": 240,
+      "final_and_diagnostic": 960,
+      "CAL": 252,
+      "total_excluding_smoke_and_followup_baselines": 1212
+    },
+    "smoke_before_full_grid": true,
+    "runtime_status": "UNMEASURED; replace old head-only estimates with full T03 training measurements before resource projection.",
+    "metrics": [
+      "population E_M[(T-eta)^2]",
+      "S-J_population identity check",
+      "held-out empirical U-J bias/variance/RMSE across independent data repetitions",
+      "conditional permutation variance on fixed observations",
+      "fixed-feature head gap",
+      "full cost"
+    ],
+    "evaluation_truth_only": true,
+    "keep_negative_empirical_J": true,
+    "saturated_FIT_table_diagnostic": {
+      "p": "Nxy/n",
+      "q_U": "(Nx*Ny-Nxy)/(n*(n-1))",
+      "q_V": "Nx*Ny/(n*n)",
+      "T_star": "(p-q)/(p+q); zero when denominator zero",
+      "training_truth_access": false,
+      "interpretation": "Empirical optimum in the saturated table function class."
+    },
+    "discrete_support_cost_caveat": "Any critic, including MLP, can aggregate over at most m*m<=1024 cells; no universal MF-vs-MLP speed conclusion.",
+    "rulsif_exact_moments_followup": true,
+    "no_S_RMSE_for_non_S_outputs": true
+  },
+  "server_next_steps": [
+    "Materialize these decisions in versioned protocol/configuration, correction notes, candidate ledger and sensitivity definitions.",
+    "Implement relative M1 and targeted checks; rerun all T01 parts at new code hash; remeasure affected M1 T02 and budget.",
+    "Freeze first-batch common protocol; run BF CAL/DEV four families; implement T03 and begin generation/check/smoke before full grid.",
+    "Complete baseline adapters and numerical/timing checks, freeze method attachments, then matched supplemental runs.",
+    "Activate EPFL only after image and adapter gates; activate TEST_REPEAT only after complete method/protocol freeze."
+  ],
+  "sources": {
+    "stage_report": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/v10/V10_PHASE1_STAGE_REPORT_20261017.md",
+    "T01": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/v10/T01/TORCH_VALIDATION.json",
+    "adapter": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/src/v10/adapter.py",
+    "core": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/src/v10/mf_vcs.py",
+    "gate": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/scripts/v10/t01_validate.py",
+    "manifest": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/v10/T00/V10_DATA_MANIFEST.csv",
+    "exposure": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/v10/T00/EXPOSURE_NOTES.md",
+    "budget": "https://github.com/W-Yinghao/VCS_QMI/blob/15b1c548a7dbeb8ee043fecfee209b118657202b/v10/T02/BUDGET.json",
+    "Torch_CUDA": "https://docs.pytorch.org/docs/2.9/notes/cuda.html",
+    "Torch_accuracy": "https://docs.pytorch.org/docs/2.9/notes/numerical_accuracy.html"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "utc": "2026-10-17T20:03:46.759099+00:00",
+  "status": "WAIT_V9_CLOSEOUT_DO_NOT_SUBMIT_NOW",
+  "closeout_conditions": "handoff/V9_CLOSEOUT_BEFORE_V10_20261017.json",
+  "source_commit": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+  "freeze_sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+  "gate_command": [
+    "sbatch",
+    "--parsable",
+    "--job-name=v10bf_gate",
+    "--time=00:45:00",
+    "--export=ALL,V10_BF1_EXPECT_FREEZE=a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2,V10_BF1_SOURCE_COMMIT=b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/slurm/v10_bf1/gpu.sbatch",
+    "gate"
+  ],
+  "array_command_template": [
+    "sbatch",
+    "--parsable",
+    "--job-name=v10bf_full",
+    "--array=0-3%2",
+    "--dependency=afterok:<NEW_GATE_JOB_ID>",
+    "--time=23:59:00",
+    "--export=ALL,V10_BF1_EXPECT_FREEZE=a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2,V10_BF1_SOURCE_COMMIT=b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/slurm/v10_bf1/gpu.sbatch",
+    "array"
+  ],
+  "requirements": [
+    "Verify the source/data/protocol identities before submission.",
+    "Replace <NEW_GATE_JOB_ID> with the successfully submitted new gate ID and record both new job IDs in LAUNCH.json.",
+    "Check for existing live or ambiguously submitted BF1 jobs before resubmission.",
+    "Use monitoring that does not hold V9 jobs; do not restart the old priority watcher."
+  ],
+  "training_matrix": {
+    "CAL": 18,
+    "FINAL_DEV": 12
+  },
+  "old_gate_job": "1044420",
+  "old_array_job": "1044424"
+}

@@ -1,0 +1,29 @@
+{
+  "utc": "2026-10-19T02:14:35Z",
+  "status": "VALIDATION_CRITERION_REPAIRED_REQUIRES_NEW_TESTS",
+  "families": [
+    "MI_native",
+    "CoMIR_native"
+  ],
+  "failed_gpu_jobs": [
+    "1047324",
+    "1047326"
+  ],
+  "diagnostic_job": "1047351",
+  "diagnostic": {
+    "path": "/home/infres/yinwang/CS_QMI/handoff/v10_geometry_audit_20261019/DIAGNOSTIC.json",
+    "sha256": "a8ad7c4a4adc2b7ffb4967f8599cb5055f340ad60a45e26904e6010448f19244"
+  },
+  "root_cause": "The fp32 central difference at h=.01 crosses bilinear cell boundaries (178 coordinates within .01 of an integer). Decreasing h in fp32 introduces cancellation; accurate fp64 local differences agree with autograd.",
+  "measured_max_gradient_fp32_fp64_difference": {
+    "MI_native": 2.0131746247382953e-05,
+    "CoMIR_native": 1.812762037900137e-06
+  },
+  "repair": "Copy native cached tensors to fp64 for validation only. Use two boundary-aware local difference steps, require both to match reference autograd at atol1e-6/rtol1e-3; compare actual fp32 gradient using unchanged atol5e-4/rtol.05 and verify energy-value agreement.",
+  "execution_precision_changed": false,
+  "training_or_registration_algorithm_changed": false,
+  "old_failures_preserved": true,
+  "old_acceptance_reused": false,
+  "scope": "Only retry the two diagnosed failed families; parent controller1047321 keeps the other five methods and all running jobs.",
+  "source_commit": "ddd3bcb09d75c3d6560ef8f1a5b52fa150e14060"
+}

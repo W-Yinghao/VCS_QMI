@@ -1,0 +1,40 @@
+{
+  "schema": "cs_qmi.handoff.control_flow_reproduction.v1",
+  "scope": "AST-isolated functions with inert stubs; not a training rerun",
+  "source": "ssl_pilot_v10_t03/scripts/v10_t03/t03_run.py",
+  "source_sha256": "90d00b18222a0c889cb0e1aa27a40295552030ddeac0eadcfe074492a14451a2",
+  "findings": [
+    {
+      "id": "CR-01",
+      "line": 279,
+      "reproduced": true,
+      "trigger": "Existing COMPLETE result with old code and float32; request new code and float64 using same unit ID.",
+      "actual": "COMPLETE",
+      "expected": "Refuse reuse or validate matching identity/configuration and artifacts."
+    },
+    {
+      "id": "CR-03",
+      "line": 406,
+      "reproduced": true,
+      "trigger": "All CAL groups are BLOCKED by missing dependencies.",
+      "actual": {
+        "exit_code": 0,
+        "n_selected": 0,
+        "n_groups": 1
+      },
+      "expected": "Nonzero exit code when any required group is not SELECTED."
+    },
+    {
+      "id": "CR-02",
+      "source": "ssl_pilot_v10_t03/v10/tools/t03_aggregate.py",
+      "source_sha256": "14f649e7d9b47c8a44ffb2a76efee6c9fd0e3d1e26c47b6da135ada6a563fdfe",
+      "line": 62,
+      "reproduced": true,
+      "trigger": "COMPLETE result with wrong evaluation digest, evaluator status FAIL, and a different evaluator unit ID.",
+      "actual": {
+        "n_complete": 1
+      },
+      "expected": "Refuse aggregation until evaluator digest, status and unit identity match."
+    }
+  ]
+}

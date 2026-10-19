@@ -1,0 +1,75 @@
+{
+  "schema": "v10.bf1.scheduling-amendment.v2",
+  "utc": "2026-10-18T13:28:11Z",
+  "user_instruction": "能不能改成最多八个并行？",
+  "continuing_instruction": "按“V9尾部释放的GPU立即接V10”来调度",
+  "base_protocol_sha256": "de4c0c3943d5a54b3a7de73a84785f240f7ee5b1396d173fd2109999a5555e9d",
+  "science_freeze_sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+  "source_commit": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+  "supersedes_scheduling_amendment": "handoff/v9_overlap_v10_20261018/SCHEDULING_AMENDMENT.json",
+  "overrides": {
+    "execution.gpu_concurrency": {
+      "frozen_base": 2,
+      "previous_operational_limit": 4,
+      "new": 8
+    },
+    "execution.job_grouping": {
+      "old": "4 array tasks: each CAL then 3 serial FINAL seeds",
+      "new": "4 sequential-within-family CAL jobs; 12 independent full FINAL seed jobs"
+    }
+  },
+  "gpu_limit": {
+    "shared_normal_gpu_limit": 8,
+    "enforcement": "Existing normal QoS per-user GPU limit, shared with V9.",
+    "live_evidence": "8 normal GPU jobs RUNNING; additional no-dependency GPU jobs PENDING/QOSMaxGRESPerUser.",
+    "gpu_type": "NVIDIA L40S",
+    "cal_phase_max_parallel": 4,
+    "cal_and_ready_final_or_final_only_max_parallel": 8
+  },
+  "dispatch": {
+    "pending_target": 8,
+    "max_own_live_including_gate": 16,
+    "max_all_user_normal_submitted": 29,
+    "poll_seconds": 30,
+    "array_tasks_counted_separately": true,
+    "runfill_not_counted_as_normal": true,
+    "final_eligibility": "Only after own CAL leaves queue, exit=0, cost END/COMPLETE and full selection/artifact verification.",
+    "initial_work": "4 CAL family jobs afterok:1045975; no duplicate all-mode tasks.",
+    "quota_limit_basis": "Existing project MaxSubmitJobsPerUser=30 record, one slot reserved; definite QoS submission rejection defers."
+  },
+  "unchanged": {
+    "cal_candidates": 18,
+    "cal_candidate_order": "same per family, never parallelized within a family",
+    "cal_allocated_L40S_gpu_hours_per_family": 8,
+    "final_units": 12,
+    "final_seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "steps_per_training": 3000,
+    "checkpoint_interval": 250,
+    "full_cal_checkpoints": 12,
+    "selection": "frozen CAL-only lexicographic rule; each final seed chooses own CAL checkpoint",
+    "data_roles": {
+      "FIT": 32,
+      "CAL": 8,
+      "DEV": 32,
+      "TEST134": "HOLD",
+      "CONFIRM": 0,
+      "EPFL": "NOT_ACTIVATED"
+    },
+    "gpu_gate_job": "1045975",
+    "v9_feeder_job": "1045056",
+    "independent_v9_audit_job": "1046165"
+  },
+  "identity_review": {
+    "runner": "Existing frozen run.py cal / final --seed CLI; no scientific source changes.",
+    "rng": "Trainer resets torch.manual_seed(cfg.seed); HostBatchSampler and MLP stream are seed-local.",
+    "outputs": "Unique FINAL_DEV/family/seed directory, per-unit RUN.lock, same verified selection hash.",
+    "cost": "Additional per-seed job startup and full allocation are charged to FINAL_DEV, never to the CAL cap.",
+    "numerics": "Same seed/config/precision; no new claim of bitwise determinism."
+  },
+  "failure_handling": "Nonzero exits, missing END/COMPLETE, corrupt artifacts or failed selection block new work for the affected family; retain outputs and require review. Already running independent seeds retain their own verification records.",
+  "not_expanded": "No new candidates, new seeds or reduced-length scientific runs."
+}

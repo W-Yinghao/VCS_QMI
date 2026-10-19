@@ -1,0 +1,293 @@
+{
+ "stage": "T00",
+ "artifact": "host_map.json",
+ "describes": "current source of the V9 registration host (G1 BF-SHG, G2 EPFL RGB-NIR) mapped onto every row of package docs/HOST_ADAPTER_CN.md; companion of HOST_ADAPTER_AUDIT.md (same facts, prose there)",
+ "generated_utc": "2026-10-16T20:14:25Z",
+ "location_convention": "file:Lstart-Lend on branch v10/mf-vcs at f652f1e (byte-identical to the V9 worktree ssl_pilot_v9 at 5f08b2f for every src/v9/reg file); P = src/v9/reg/r6_reg_pilot.py, Q = src/v9/reg/r6_reg_p2.py, P3 = src/v9/reg/r6_reg_p3.py, G = src/v9/reg/g1.py, G2 = src/v9/reg/g2.py",
+ "status": {
+  "T00_host_source_map": "WRITTEN_REQUIRES_REVIEW",
+  "host_adapter_verified": false,
+  "host_adapter_verified_reason": "T00 maps source only. Values, A/B/W gradients and continuous-warp geometric gradients on the real host are T01 work (NOT_RUN).",
+  "preflight_py_run_by_this_task": "NOT_RUN (separate T00 item)",
+  "jobs_submitted_by_this_task": 0,
+  "v9_files_or_outputs_modified": 0,
+  "image_or_label_data_read": false,
+  "bf_shg_test_archive_or_test_root_read": false,
+  "what_was_read": "source code, sbatch files, slurm log header lines, manifests (roles / ids / hashes / shapes), perturbation lists, one checkpoint's key/shape metadata (pickle stub, no tensor bytes), cost fields of two DEV result files (no error / success values)"
+ },
+ "evidence_dir": {
+  "path": "/projects/EEG-foundation-model/yinghao/outputs_v10/T00/host_audit_evidence",
+  "files": {
+   "commands.log": "4982bb498c06887fe664b6aacc89a7fd60f445a108659423126f810389d1521e",
+   "perm_fixed_points.py": "ac10491893332cd6cf00d615ad95f6c45a2f4da58a230791f28bff52599976b8",
+   "perm_fixed_points.json": "b33fc592f414647210cdd091781b7e3c90ed22e7fccbd08a765db2fa96649290",
+   "ckpt_keys.py": "b1f4a5d4a409719842326d330f48d74b2858c0dce5eccec83cae3e19cfb009bd",
+   "ckpt_keys_V9-G1-vcs-frac1-eps0-s901_ckpt_03000.json": "6e4cf05d9a44178bb285ffc00840409ad3165e402be05c9622ddad18388d1723"
+  },
+  "note": "login-node-weight utilities (numpy / zipfile only, < 1 s each); not committed; not jobs"
+ },
+ "repos": {
+  "v10": {"path": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10", "branch": "v10/mf-vcs", "head_at_audit_snapshot": "f652f1eb734522504085e19585b7084b02b9f6f9", "head_parent": "5f08b2fb378b739367191b6968006c526d4a3741", "dirty_at_audit_snapshot": [], "other_files_not_in_this_commit": ["v10/T00/EXPOSURE_NOTES.md (M)", "v10/T00/MANIFEST_BUILD_SUMMARY.json (M)", "v10/T00/MANIFEST_SHA256.txt (M)", "v10/T00/PREFLIGHT.json (??)", "v10/T00/PREFLIGHT_RUN.log (??)"], "head_moves_during_audit": "parallel V10 T00 commits (seen: 97119bd, d8364a5, ac7eb7d, 78e019f) touching scripts/v10, tests/v10, v10/T00 only", "host_paths_unchanged_check": "git diff --quiet f652f1e HEAD -- src/v9 scripts/v9 slurm/v9, run immediately before this commit: clean (the commit's parent is recorded by git)"},
+  "v9": {"path": "/home/infres/yinwang/CS_QMI/ssl_pilot_v9", "branch": "v9/reliable-correspondence", "head": "5f08b2fb378b739367191b6968006c526d4a3741",
+         "dirty": [" M reports/V9/V9_N2_units/launch_ledger.jsonl", "?? data/DATA_MANIFEST.json.lock", "?? reports/V9/V9_N2_units/release/"], "touched_by_this_task": false},
+  "package_historical_host_commit": {"commit": "27117c9ae78d64d39a6548c40b00ff58f70cc4d4", "present_in_repo": true, "commit_time": "2026-10-16 03:49:26 +0200",
+    "diff_to_head_over_src_v9_reg": "none",
+    "diff_to_head_over_scripts_v9_and_slurm_v9": "only scripts/v9/reg_g1_test_report.py (+37 / -8; sealed-test report writer, changed in 95aac1c / 5f08b2f; not on any training / registration path)"}
+ },
+ "package": {
+  "dir": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10/v10/package_v10_server_v1_20261016",
+  "zip_sha256": {"VCS_V10_Server_Package_v1_20261016.zip": "004b13f9808bc1301c914728a07f0c184a9fa2ad02582f821c3e2aa5951cffcf", "VCS_V10_Moment_Factorized_Design_v0_1_20261016.zip": "2d796fdcb684b7a25fd4c5b14c49178971c0a69fb4e01a7f9b0453b015cc91f6"},
+  "file_sha256": {"docs/HOST_ADAPTER_CN.md": "9f38b633200abdd47ab1ac23b203c68fb981825d39abcc06a954a195311f1e01", "V10_DESIGN_CN.md": "6459d92fd4d3635c5e86a3ba959f3203cf001df1184726ed640aa60017281fc0", "configs/V10_PROTOCOL.json": "d9a52694f2b6738cfcc302658b13cdff9c4547c3f9b77e004183d3fe58d03b53", "core/mf_vcs.py": "cdf5df2e43bacb74b963f7b6b519a962f91fc8e41f28b4f6a4e2696816024973"}
+ },
+ "host_files": [
+  {"path": "src/v9/reg/g1.py", "lines": 305, "sha256": "b6122bc731d3d6b5b72e9fca15963da5d206b71f8e3b9174992e68ae44adbfff", "last_commit": "7b32284", "role": "G1: FIT-fraction sampler, mismatch generator, critic / CoMIR / kernel training, registration wrapper (calls Q.cmd_register)"},
+  {"path": "src/v9/reg/r6_reg_pilot.py", "lines": 465, "sha256": "c044adca00034853ab508e33f57f87c5aff55dcd5070e8ecb45bf0ca5f71791d", "last_commit": "7b32284", "role": "P = REG-P1 verbatim copy (main 2d171a6): data / cache, encoders, critic, J, losses, sample_map, kernel fit, CoMIR models; its own translation-only registration (Energy.__call__, optimise, register_images, cmd_register) is NOT on the G1/G2 path"},
+  {"path": "src/v9/reg/r6_reg_p2.py", "lines": 373, "sha256": "0e248cac8cd5c72b0707b32f7e3de3ecd0b3d160764d1c188b418d2ad43c974c", "last_commit": "7b32284", "role": "Q = REG-P2 verbatim copy: rigid geometry, perturbations, Inputs, RigidEnergy, shared optimiser, register_images, CAL selection, summaries"},
+  {"path": "src/v9/reg/g2.py", "lines": 242, "sha256": "08231e880130a00b55009d74373b9d1e5ad36a29ea16c960d3d6e132a0f18aaf", "last_commit": "709e0cf", "role": "G2: g1 training reused in-process via activate() hooks on EPFL objects; REG-P3 registration"},
+  {"path": "src/v9/reg/r6_reg_p3.py", "lines": 551, "sha256": "5bbc3ebaf11b0cdca37663e0f0205bf00ab797fb523b3f8c7a38dd48b2e9c7a2", "last_commit": "709e0cf", "role": "P3 = REG-P3 verbatim copy: EPFL checks / units / roles / windows, Inputs3, unit-pooled register_one"},
+  {"path": "src/v9/reg/g1_test.py", "lines": 381, "sha256": "6b2dd6dc195c51abb8d61b83c857cce68b58ab0527c7266277cdf5e1f7c70b75", "last_commit": "f19865e", "role": "V9-G1 sealed-test read (done 2026-10-15/16); same Q.register_images path; V10 phase 1 must not run it"},
+  {"path": "src/v9/reg/g1_aggregate.py", "lines": 123, "sha256": "21ff827d58f1c9aa56474f0f63431d799504eee0893539fcc6dcae374f47ed65", "last_commit": "7b32284", "role": "G1 readings: unit(core)-macro success, seed t, core bootstrap 2000 (rng 20261016), Holm over 4"},
+  {"path": "src/v9/reg/g2_aggregate.py", "lines": 128, "sha256": "0c0da8a444af19c32323242e547b0177fb525421683d3285bfe6eb3121372505", "last_commit": "9b7ced2", "role": "G2 readings: unit-pooled success, unit bootstrap 2000"},
+  {"path": "src/v9/reg/__init__.py", "lines": 1, "sha256": "458a701ac93ddd9a4541546787c8481b7d47593297ff536b1bc14b9658059db4", "last_commit": "7b32284", "role": "package docstring only"},
+  {"path": "scripts/v9/reg_g1.py", "lines": 92, "sha256": "76c0fbbcef65f434d216355f7328255007c076f393480140dd17ed97f77e2d25", "last_commit": "c129c64", "role": "G1 CLI: run --unit (train if needed, then G.cmd_register), units, reuse-check, aggregate"},
+  {"path": "scripts/v9/reg_g2.py", "lines": 91, "sha256": "7601469b42bf02e2a90c30ed46ac099cb24a4ba965c8494b7881b9bffc8c6149", "last_commit": "709e0cf", "role": "G2 CLI (same shape)"},
+  {"path": "scripts/v9/reg_g1_test.py", "lines": 98, "sha256": "6af24d12f6815072ddb0bf8a166346f0beb1064cbb8819f832da5be37a220626", "last_commit": "f19865e", "role": "sealed-test CLI (inventory / perturb / predictors / prepare / run / aggregate)"},
+  {"path": "scripts/v9/reg_g1_test_fixture_diag.py", "lines": 46, "sha256": "949aaa4cf85cd9e142e4bbb586bda098492eb3434ff88e92562e32f6455be746", "last_commit": "d743705", "role": "non-test repeatability diagnostic of REG-P2 registration"},
+  {"path": "scripts/v9/reg_g1_test_report.py", "lines": 137, "sha256": "681ddb0b2e8aea1663ca55eccbfe3883daf4387749371cdaa09b4b6011db3995", "last_commit": "5f08b2f", "role": "report writer only (the one file changed since 27117c9)"},
+  {"path": "scripts/v9/reg_g2_report.py", "lines": 104, "sha256": "cd5653d4a320adbbab25c40076ac59bece8e687f682065d25840c3e02432124b", "last_commit": "b755b05", "role": "report writer only"},
+  {"path": "slurm/v9/reg_g1.sbatch", "lines": 19, "sha256": "f3e688bb6e5e91da34eaef6a0c9da13d5abc014d66ce423ceabfc3ba6e801882", "last_commit": "7b32284", "role": "G1 grouped GPU job; cd /home/infres/yinwang/CS_QMI/ssl_pilot_v9 (L13); header L14 prints host, GPU, start, commit, code = sha256(g1.py + r6_reg_pilot.py + r6_reg_p2.py)[:16]"},
+  {"path": "slurm/v9/reg_g2.sbatch", "lines": 19, "sha256": "4c78a2481483217f1411b39ebc510457ce36d903ed0787949716873bbe0c1efb", "last_commit": "6757d67", "role": "G2 grouped GPU job; same layout; code = sha256(g2 + g1 + r6_reg_p3 + r6_reg_pilot + r6_reg_p2)[:16]"},
+  {"path": "slurm/v9/reg_g1_test.sbatch", "lines": 21, "sha256": "54332edba1f0a3e2dfac4281cb140fc36ce3cee08eca86fffd43c5d9ef79b90b", "last_commit": "f19865e", "role": "sealed-test registration job"},
+  {"path": "slurm/v9/reg_g1_gate_cpu.sbatch, reg_g1_timing_gpu.sbatch, reg_g1_resmoke_gpu.sbatch, reg_g1_aggregate_cpu.sbatch, reg_g1_test_{prepare_cpu,fixture_gpu,fixture_diag_gpu,aggregate_cpu}.sbatch, reg_g2_{gate_cpu,timing_gpu,aggregate_cpu}.sbatch, reg_g1_feed.txt, reg_g1_test_feed.txt, reg_g2_feed.txt, reg_g2_feed_deferred.txt", "role": "gates / timing / aggregate / feeds; all cd into ssl_pilot_v9 and write under outputs_v9 or reports/V9 -- not usable for V10 jobs"}
+ ],
+ "identity_checks": {
+  "v10_branch_vs_v9_worktree": "sha256 identical for src/v9/reg/{g1,r6_reg_pilot,r6_reg_p2,r6_reg_p3,g2,g1_test,g1_aggregate,g2_aggregate,__init__}.py, scripts/v9/reg_{g1,g2,g1_test}.py, slurm/v9/reg_{g1,g2,g1_test}.sbatch",
+  "g1_code_hash_current": "6c6f094684fbc50a",
+  "g1_code_hash_printed_by_formal_jobs": {"1041930": "6c6f094684fbc50a", "1041932": "6c6f094684fbc50a", "1041935": "6c6f094684fbc50a", "1041937": "6c6f094684fbc50a", "1041939": "6c6f094684fbc50a"},
+  "g2_code_hash_current": "99c942022c5164f3",
+  "g2_code_hash_printed_by_formal_jobs": {"1042139": "99c942022c5164f3", "1042143": "99c942022c5164f3", "1042154": "99c942022c5164f3"},
+  "g1_inspect_code_hash_in_train_json": "c7b42961a804db05 (G.code_hash L99-100 = sha256(source of cmd_train + cmd_comir + fit_kernel_g1)[:16]; V9-G1-vcs-frac1-eps0-s901/run/train.json)",
+  "module_identity": "G inserts src/v9/reg into sys.path (G L35-36) and imports r6_reg_pilot / r6_reg_p2 as TOP-LEVEL modules (G L37-38); P3 does the same (P3 L60-62); G2 asserts P3.P is P and P3.Q is Q (G2 L38-39). A V10 adapter must use G.P / G.Q (or the top-level names after importing g1); importing v9.reg.r6_reg_p2 separately creates a second module object."
+ },
+ "sbatch_environment": {
+  "common_sh": "/home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh: PYTHON=/home/infres/yinwang/CS_QMI/env/bin/python, PYTHONUNBUFFERED=1, OMP/MKL threads 4, CUBLAS_WORKSPACE_CONFIG=:4096:8, cd ssl_pilot, mkdir -p of its output roots",
+  "override_in_v9_sbatch": "R=/home/infres/yinwang/CS_QMI/ssl_pilot_v9; cd $R; PYTHONPATH=$R/src:$R (reg_g1.sbatch / reg_g2.sbatch L12-13)",
+  "reg_g1_sbatch_resources": "partition RTX6000PRO,H100,L40S; --exclude=node51 only; gres gpu:1; 8 CPUs; 64G; --time 10:00:00 default (feed: 08:00:00 critic groups, 02:00:00 CoMIR / kernel)",
+  "reg_g2_sbatch_resources": "partition RTX6000PRO,H100,L40S; --exclude=node51,node60; gres gpu:1; 8 CPUs; 64G; --time 08:00:00 default (feed: 06:00:00 critics, 02:30:00 CoMIR, 03:00:00 kernel)",
+  "v10_consequence": "a V10 sbatch must set its own R (ssl_pilot_v10), PYTHONPATH and --exclude=node51,node60; the V9 sbatch files cannot be reused"
+ },
+ "call_graph": {
+  "G1_train": "sbatch slurm/v9/reg_g1.sbatch <unit> -> scripts/v9/reg_g1.py cmd_run (L28-63) -> G.cmd_train (L140-182) | G.cmd_comir (L185-234) | kernel fit inside G.cmd_register (L268-277) -> G.fit_kernel_g1 (L237-253)",
+  "G1_register": "G.cmd_register (L262-278) -> G.ensure_layout (L129-136, symlinks R6_REG cache / manifest and R6_REG_P2 perturbations into outputs_v9/reg/units/<uid>) -> Q.cmd_register (L289-357) -> Q.Inputs (L113-130), Q.register_images (L250-265) -> Q.RigidEnergy (L150-219) + Q.optimise_rigid (L228-246) -> Q.corner_error_full (L93-97); CAL selection Q.sel_key (L268-271); Q.summarise (L279-286)",
+  "G2_train": "scripts/v9/reg_g2.py cmd_run (L32-60) -> G2.cmd_train (L179-183) = G.cmd_train inside G2.activate (L132-143: rebinds G.unit_root, G.V9_ROOT, G.P1_ROOT, G.P2_ROOT, G.sample_fit -> G2.sample_fit_units, G.state_hash -> G2.state_hash_epfl)",
+  "G2_register": "G2.cmd_register (L204-226) -> P3.register_one (L440-517) -> P3.Inputs3 (L408-418), Q.register_images, Q.RigidEnergy, Q.optimise_rigid; unit-pooled selection P3.pool_units (L421-427) + Q.sel_key",
+  "P_symbols_used_by_G1_G2_path": "SIZE DOWN TMAX RF_HALF OMEGA N_PERT N_POS GRID_STEP N_STARTS N_ADAM ADAM_LR THR_FULL load_manifest load_img learned_inputs build_models sample_map j_value loss_fn torch_mods comir_models comir_commit fit_kernel (replaced in G1 by fit_kernel_g1) Energy.patches (kernel fit only) perturbations success robust_norm",
+  "P_symbols_not_on_G1_G2_path": "P.cmd_train / P.cmd_comir (G1 has its own copies; P3.cmd_train/cmd_comir call them for REG-P3 only), P.Energy.__call__, P.optimise, P.register_images, P.cmd_register (REG-P1 translation-only registration)"
+ },
+ "contract": {
+  "data_loading": {
+   "bf_shg": {
+    "raw": "/projects/EEG-foundation-model/yinghao/data/bf_shg_4550300/{train,validation1,validation2}/<core>_WB.tif (BF RGB) + <core>_MI.tif (SHG); 40 / 25 / 7 pairs on disk; closed/test.zip = sealed TEST (134 cores; read once by V9-G1, ledger reports/V9/V9_TEST_READ_LEDGER.csv read_utc 2026-10-15T23:36:09Z; NOT to be read in V10 phase 1)",
+    "discovery_reader": "P.core_files L67-75, P.read_tiff L43-64 (uncompressed little-endian TIFF only)",
+    "native_size": "2048 x 2048; BF RGB uint8 x3, SHG uint8 (R6_REG/manifest.json files[*].full_shape and shg_dtype, 72 / 72)",
+    "working_size": "512 x 512 = x4 block-mean (P.area_down L84-86; SIZE, DOWN = 512, 4 at P L36)",
+    "cache": "/home/infres/yinwang/CS_QMI/outputs/R6_REG/cache/<core>.npz (72 files) by P.cmd_prepare L93-111; keys bf (robust-normalised luminance), shg (robust-normalised SHG), bf_rgb, shg_log (= log1p SHG), bf_rgb_n (robust-normalised RGB), shg_log_n (robust-normalised log1p SHG)",
+    "normalisation": "P.robust_norm L89-90: (a - median) / max(IQR, 1e-6) over the whole array; for RGB one median / IQR jointly over pixels and 3 channels (no per-channel statistics)",
+    "learned_inputs": "P.learned_inputs L156-159 -> (U = bf_rgb_n as [3,512,512], V = shg_log_n as [1,512,512]), float32 tensors on device",
+    "manifest": "/home/infres/yinwang/CS_QMI/outputs/R6_REG/manifest.json (sha256[:16] b8a9e3e7bce6abca): roles, files{split, role, sha256_bf, sha256_shg, full_shape, shg_dtype}, omega [117,394], size 512, down 4",
+    "roles_split_source": "P.roles L78-81: official train sorted by sha256(core id) -> first 8 CAL, rest FIT; validation1 + validation2 -> DEV. Counts: FIT 32 (train), CAL 8 (train), DEV 32 (25 validation1 + 7 validation2)",
+    "ids": "core id = file stem before _WB.tif (format '<slide>_<position>', e.g. 1B_A2) = TMA core = one image pair; stratum = slide prefix 1B / 2B (G.specimen_stratum L62-63; 38 / 34 of the 72 cores); patient relation not available in the host",
+    "fit_fraction_sampler": "G.sample_fit L66-76: round(frac x 32) cores, stratified by slide, largest remainder, rng = default_rng(int(sha256('V9-G1|fit|<seed>|<frac:g>')[:16], 16))",
+    "training_batch_tensors": "no Dataset / DataLoader class: all sampled FIT images held on device (G.cmd_train L143); per step (G L147-166): crops stacked to [n_sc,3,160,160] / [n_sc,1,160,160]; DU, DV = eU / eV(...) [n_sc,16,160,160]; yx [n_sc,128,2] float32 crop coordinates (y, x); yx_v moving-side positions (= yx at eps 0); perm [n_sc,128] int64; du, dv = sampled descriptors [n_sc,128,16]; dvq = dv[s, perm[s]]",
+    "registration_inputs": "Q.Inputs L113-130: reference(c) = (bf [1,512,512], bf_rgb_n [3,512,512]) from cache; moving(c,i) = (robust_norm(V_p), robust_norm(log1p(V_p))) with V_p = Q.perturb_map(expm1(shg_log), theta*, t*) (bilinear, reflection); robust normalisation recomputed on the perturbed image as given",
+    "perturbations": "/home/infres/yinwang/CS_QMI/outputs/R6_REG_P2/perturbations.json (sha256[:16] ca59e51ef36f60e1): 40 images (8 CAL + 32 DEV) x 10 [theta_deg, ty, tx]; Q.perturbations_p2 L101-104 (t* = P.perturbations L127-132 strata 0-17 / 17-34 / 34-51 px at 512, seeded 'R6-REG-P1|<core>'; theta* U(-30, 30) deg seeded 'R6-REG-P2|<core>')"
+   },
+   "epfl_rgb_nir": {
+    "raw": "/projects/EEG-foundation-model/yinghao/data/epfl_rgb_nir/nirscene1/<category>/<id>_rgb.tiff + <id>_nir.tiff (uint8)",
+    "prepare": "P3.prepare_epfl L213-251: P3.alignment_check L133-146 + P3.misaligned L148-150 (33 excluded), size exclusion min(H,W) < 512 (24 excluded), P3.near_duplicate_links L153-167 (13 links), P3.units_epfl L170-189, P3.roles_epfl L192-200 (per category, units by sha256('R6-REG-P3|EPFL|unit|' + unit): 8 DEV, 1 CAL, rest FIT), one centred 512 window per kept pair (P3.centred_window L203-206)",
+    "counts": "477 pairs; 420 kept; 411 units (8 multi-pair units); windows FIT 336 / CAL 10 / DEV 74; units FIT 330 / CAL 9 / DEV 72; 9 categories; official split none",
+    "native_size": "e.g. 682 x 1024 (H x W, most frequent); window 512 x 512 at native resolution (manifest down = 1)",
+    "cache": "/home/infres/yinwang/CS_QMI/outputs/R6_REG_P3/cache/<window>.npz (420) by P3.cache_arrays L85-90: bf = robust-normalised luminance, bf_rgb_n = robust-normalised RGB, shg = shg_log_n = robust-normalised LINEAR NIR (no log), nir = raw NIR / 255",
+    "manifest": "/home/infres/yinwang/CS_QMI/outputs/R6_REG_P3/manifest.json (sha256[:16] 3ecf9fe8e7652413)",
+    "registration_inputs": "P3.Inputs3 L408-418: moving = robust_norm(Q.perturb_map(nir)) used for both paths",
+    "ids": "window id '<category>_<id>' -> unit ('+'-joined pair ids) -> category; statistical unit = unit",
+    "fit_fraction_sampler": "G2.sample_fit_units L84-98 (by unit, categories as strata, rng tag 'V9-G2|fit|<seed>|<frac:g>')",
+    "perturbations": "/home/infres/yinwang/CS_QMI/outputs/R6_REG_P3/perturbations.json: 84 windows (10 CAL + 74 DEV) x 10 (P3.cmd_perturb L384-390 = Q.perturbations_p2 seeded by window id)"
+   }
+  },
+  "image_encoders": {
+   "critics_vcs_logistic_infonce": {
+    "builder": "P.build_models L148-153",
+    "reference_side_eU": "enc(3): BF RGB (U), input [B,3,H,W] = bf_rgb_n",
+    "moving_side_eV": "enc(1): SHG log1p (V) [B,1,H,W] = shg_log_n (EPFL: linear NIR in the same key)",
+    "layers": "Conv2d(cin,32,7,padding=3) GELU Conv2d(32,32,9,padding=4) GELU Conv2d(32,32,9,padding=4) GELU Conv2d(32,16,9,padding=4); stride 1, zero padding (default), no BatchNorm, no dropout, no coordinates / ids",
+    "receptive_field": "31 px (1 + 6 + 8 + 8 + 8; half-width RF_HALF = 15, P L36 / L149)",
+    "output_shape": "[B,16,H,W] (same spatial size)",
+    "critic": "Linear(32,64) GELU Linear(64,64) GELU Linear(64,1) on cat(du, dv) (P L152); vcs uses T = tanh(f)",
+    "train_eval_mode": "training never calls train()/eval() (module default = train; no BN/dropout so no effect); registration: eU, eV, critic .eval() and requires_grad_(False) on every parameter (Q L333-337; P3 L489-494)",
+    "init": "torch.manual_seed(seed) (G L141) then build order enc(3), enc(1), critic (P L153) -> encoder initialisation does not depend on the critic",
+    "checkpoint": "run/ckpt_<step:05d>.pt = {'eU': state_dict, 'eV': state_dict, 'critic': state_dict, 'step': int} (G L175); every 250 steps -> 12 (Q L331-332 / P3 L487-488 refuse != 12 outside smoke); no optimiser or RNG state. Verified on V9-G1-vcs-frac1-eps0-s901/run/ckpt_03000.pt (1,718,005 bytes): eU.0.weight [32,3,7,7], eU.{2,4}.weight [32,32,9,9], eU.6.weight [16,32,9,9], biases [32]/[16]; eV.0.weight [32,1,7,7], rest as eU; critic.0.weight [64,32], critic.2.weight [64,64], critic.4.weight [1,64]; step 3000"
+   },
+   "comir": {
+    "builder": "P.comir_models L305-317: official DenseUNet (/projects/EEG-foundation-model/yinghao/third_party/CoMIR, commit 1750b11e29532cd4096bd3060d086ecac9b9291c, models/tiramisu.py), init_conv_filters 32, down/up blocks (4,)*6, bottleneck 4, upsample, max pooling, dropout 0.2, compression 0.75, efficient True, final 1x1 conv to 1 channel (no bias)",
+    "sides": "mA in_channels 1 (SHG log1p; EPFL NIR) = moving; mB in_channels 3 (BF RGB) = reference",
+    "bn_dropout": "BatchNorm2d in DenseLayer and TransitionDown (tiramisu.py L41, L120); F.dropout(p=0.2, training=self.training) in DenseLayer (L61-62); Dropout2d(0.2) in TransitionDown (L133-134)",
+    "mode": "mA.train(); mB.train() each epoch (G L198); eval() before latent export (G L223) and at registration (Q L313); efficient=False set on mA modules at registration (Q L316-318)",
+    "checkpoint": "run/comir.pt = {'A': mA.state_dict(), 'B': mB.state_dict(), 'args': args} (G L223); latents run/latents/<core>.npz {shg, bf} for CAL / DEV (G L224-229)"
+   },
+   "kernel": "no encoder: raw 9 x 9 patches of 'bf' (luminance) and 'shg' (intensity) maps, RFF features (G.fit_kernel_g1 L237-253)",
+   "mi_nmi": "no encoder: 'bf' and 'shg' intensity maps, Parzen 64-bin soft histogram (Q.soft_mi_batch L139-147)"
+  },
+  "pair_sampling": {
+   "training_critics": {
+    "scenes_per_step": "n_sc = min(16, len(fit)) (G L146): 16 at fraction 1 (32 cores), 8 at fraction 0.25 (8 cores); replace = len(fit) < n_sc is never true, so the n_sc crops of a step come from distinct cores (G L149; replicated 200 steps, seed 901)",
+    "scene": "one aligned random 160 x 160 crop, y0, x0 ~ integers[0, 352) (G L150), identical rot90 k in {0,1,2,3} and horizontal flip for both modalities (G L152-154); training is at phi = 0 (no geometric transform)",
+    "positions_per_scene": "n_pos = 128 continuous uniform on [16, 143)^2 in the augmented crop frame (y, x), pixel-centre coordinates (G L146, L157; inner = RF_HALF + 1)",
+    "P_pairs": "(du_i, dv_i) at the same position (eps 0) (G L165-166)",
+    "Q_pairs": "(du_i, dv_{pi_s(i)}), pi_s = numpy Generator.permutation(128), one fresh draw per scene per step (G L157, L171) -> single-draw ordinary permutation (perm1)",
+    "fixed_points": "allowed (no derangement); replicated first 200 steps of seed 901, fraction 1: 3200 permutations, mean 1.053 fixed points, 65.3 % with >= 1",
+    "forbidden_edges": "none",
+    "rng": "data rng default_rng(1000 + seed) (G L141) consumed identically by vcs / logistic / infonce: perm is drawn every step before the objective branch (G L157) even though infonce does not use it",
+    "eps_gt_0_only": "exactly round(eps n) rows per scene get a displaced moving position (G.mismatch_positions L88-96, G.displaced L79-85): uniform on the same crop interior, rejected if L2 distance to the true one < 2 x 15 = 30 px; Q is then built from these observed moving descriptors. The spatial exclusion acts on the P corruption only, never on Q. V10 primary train_mismatch = 0."
+   },
+   "training_infonce": "full within-scene n x n score matrix f(du_i, dv_j), target j = i, U anchors only (G L167-169; P.loss_fn L178-179); no permutation",
+   "training_kernel": "per FIT core 2048 positions uniform on the REG-P1 square OMEGA [117, 394)^2, one permutation pm per core (G L242-247)",
+   "training_comir": "32 crops per step (182 px, flip, rotation U(-180,180) with reflection, central 128); NT-Xent over 2N latents on MSE similarity / tau 0.5 with the self-similarity diagonal masked (G L200-219)",
+   "registration": {
+    "positions": "N_POS = 4096 continuous uniform on the disk Omega of radius 129 about c = (255.5, 255.5): r = 129 sqrt(U(0,1)), angle U(0, 2 pi) (Q L157-158)",
+    "permutation": "one rng.permutation(4096) (Q L159) fixed for the whole search (grid, Adam, F_true, profiles) of one (image, perturbation)",
+    "rng": "default_rng(seed_of('R6-REG-P2|pos|<core>|<i>')) (Q L255, seed_of L64-65): identical x and pi for every method and every checkpoint",
+    "fixed_points": "allowed; replicated for the 40 CAL/DEV images x 10: 400 permutations, mean 1.05 fixed points, max 6, 66.25 % with >= 1 (theory 1, 63.2 %)",
+    "forbidden_edges": "none (no spatial neighbourhood or diagonal exclusion)"
+   }
+  },
+  "training_objective": {
+   "J_host": "P.j_value L169-170: J = mean_P(T - T^2/2) + mean_Q(-T - T^2/2) = E_P T - E_Q T - 1/2 E_P T^2 - 1/2 E_Q T^2",
+   "vcs": "loss = -J(tanh f_P, tanh f_Q) (P.loss_fn L174-175): bounded by an output tanh on an MLP critic",
+   "logistic": "softplus(-2 f_P).mean() + softplus(2 f_Q).mean() (P.loss_fn L176-177)",
+   "infonce": "cross_entropy(f_mat.reshape(S n, n), arange(n).repeat(S)) (P.loss_fn L178-179)",
+   "P_Q_coefficients": "P: +1 T, -1/2 T^2; Q: -1 T, -1/2 T^2 (same as package J)",
+   "scene_weights": "implicit equal 1/n_sc: .mean() over the flattened [n_sc, n_pos] tensors with equal n_pos = 128 per scene; positions 1/n_pos",
+   "sign": "training minimises -J (vcs); registration maximises F (J for critics and kernel, MI, NMI, -MSE for CoMIR)",
+   "optimiser": "AdamW(lr 1e-3, weight_decay 1e-4, default betas / eps) over eU + eV + critic jointly (G L144-145); clip_grad_norm_(all params, 1.0) (G L173); 3000 steps (smoke 200); no LR schedule; checkpoint every 250 steps",
+   "amp": "none: no autocast / GradScaler / half / bfloat16 anywhere in src/v9/reg or scripts/v9/reg_*; float32 tensors",
+   "regularisation": "AdamW decoupled weight decay 1e-4 on all parameters incl. biases and critic; gradient-norm clipping 1.0; crop / rot90 / flip augmentation; no dropout, BatchNorm or ridge on the critic path",
+   "comir": "SGD lr 1e-2 momentum 0.9 weight_decay 1e-5 per network; L1 and L2 activation decay 1e-4; clip 1.0 per network; 23 epochs x 32 steps x 32 crops; p4 rot90 equivariance (G L192-221)",
+   "kernel": "closed form w = (A + 1e-3 mean(diag A) I)^-1 d, A = E_P psi psi^T + E_Q psi psi^T, d = E_P psi - E_Q psi, psi = sqrt(2/1024) cos(z W + b), T = w . psi (no tanh); bandwidth h = mult x median pairwise distance, mult in {0.5, 1, 2} selected on CAL (G.fit_kernel_g1 L237-253; Q L304-310)"
+  },
+  "geometry": {
+   "transform": "Q.apply_T L69-72: T_{theta,t}(z) = R(theta)(z - c) + c + t maps reference coordinates z = (y, x) to moving coordinates; R(theta) = [[cos, -sin], [sin, cos]] acting on (y - c, x - c); c = 255.5 (Q L52); rotation about c first, then translation",
+   "perturbation": "Q.perturb_map L86-90: V_p = V o T*^-1, V_p(y) = V(R(-theta*)(y - c - t*) + c); bilinear, reflection padding",
+   "units": "theta in radians inside apply_T, degrees in perturbations.json and in result records; t in working px (512 grid)",
+   "pixel_convention": "integer coordinates are pixel centres; normalised grid = (coord + 0.5) / size * 2 - 1 with align_corners=False (P.sample_map L162-166, Q.sample_pts L75-78)",
+   "interpolation": "bilinear everywhere (grid_sample mode='bilinear')",
+   "padding": "zeros in Q.sample_pts default (critic warps, MI / kernel / CoMIR sampling) and P.sample_map; reflection in Q.perturb_map (V_p creation) and comir_wte full-frame warps; by the support bound neither padding reaches a sampled value of the critic / MI / kernel energies",
+   "warp_order_critics": "warp-then-encode (Q.RigidEnergy.batch L194-198): for every candidate the moving image is resampled onto BOX1 [110, 401]^2 (292 x 292) of the reference frame, encoded by eV, descriptors sampled at x - 110",
+   "grid_stage_critics": "Q.RigidEnergy.grid_values L200-211: rotation-only warp of BOX2 [59, 452]^2 (394 x 394) encoded once per angle, translations applied as descriptor shifts R(-theta) t (translation-equivariance approximation; exact energies only in the refinement)",
+   "warp_order_comir": "encode-once (Q L319-325, P3 L475-481): latents of V_p as given sampled at T(x); comir_wte (warp-then-encode) is a DEV-only sensitivity row",
+   "warp_order_kernel_mi": "kernel: 9 x 9 patch offsets added in the reference frame then mapped by T (warp-then-extract, Q L164-167, L185-187); MI / NMI: intensities sampled at T(x) (Q L180-182)",
+   "support_visibility": "fixed interior disk Omega, radius R_OMEGA = 129 about c (Q L54) shared by all methods; bound 129 + 16 sqrt2 + 51 + 51 + sqrt2 = 255.042 <= 255.5 so every sample (critic receptive field and bilinear neighbours included) stays inside V for all allowed (theta, t) and (theta*, t*); RF reach inside BOX1 local [0.5, 290.5] of [0, 291] and inside BOX2 local [0.5, 392.5] of [0, 393]; no visibility mask and no per-candidate support change",
+   "search": "Q.optimise_rigid L228-246: grid theta in {-30, -27, ..., 30} deg (21) x 4-px translation disk |t| <= 51 (axis values -51, -47, ..., 49: 26 values, 508 disk points; asymmetric, +51 not on the grid) = 10,668 candidates (= n_grid recorded in G1 / G2 results), evaluated under no_grad, NaN -> -inf; best N_STARTS = 3 refined by N_ADAM = 100 Adam steps (lr ADAM_LR = 0.5) on p = (u, ty, tx), u = theta rho, rho = 129 / sqrt2 = 91.2168 (Q L55), after every step u clamped to +-UMAX = 47.761 and t projected onto |t| <= 51; result = best exact energy among the 3 starts",
+   "initialisation": "grid argmax (top 3); no other initial guess",
+   "gradient_flow": "refinement not under no_grad: p.requires_grad -> theta = p0 / rho, t = p1:3 -> Q.apply_T -> Q.sample_pts on V_p (grid gradient) -> eV (frozen weights, input gradient) -> P.sample_map at fixed x - 110 -> dv -> j_critic: P term cr(cat(u, dv)), Q term cr(cat(u, dv[:, perm])); both terms depend on (theta, t) through the same dv"
+  },
+  "evaluation": {
+   "error": "Q.corner_error_full L93-97: mean over the 4 corners at (+-104.125, +-104.125) working px about c (HALF834 = 833 / 2 / 4, Q L59) of |T_hat(corner) - T*(corner)|, x P.DOWN = 4",
+   "native_px_bf_shg": "err_full x 1 = full-resolution (2048-px) px; corners = CoMIR's central 834 x 834 full-resolution patch",
+   "native_px_epfl": "err_full / 4 = native px (P3 L74 ERR_UNIT; G2.THRESHOLDS_NATIVE L46); corner patch 208.25 native px about the window centre",
+   "thresholds": "success = err_full < 42 and < 9 (P.THR_FULL L39) = BF-SHG 42 / 9 native px; EPFL 10.5 / 2.25 native px; strict inequality",
+   "also_recorded": "rot_err_deg = |theta_hat - theta*|, trans_err_full = |t_hat - t*| x 4, F_hat, F_true (exact energy at the truth), n_grid, seconds (Q.register_images L257-259); profiles for dv[:5] cores (Q L261-264)",
+   "success_aggregation": "BF-SHG: P.success L396-397 = mean over images of the per-image success fraction (image = core = unit); EPFL: unit-pooled success (P3.pool_units L421-427, P3 L507-510) besides REG-P2's window macro",
+   "failure_states": "Q.summarise L279-286: failures42 = err_full >= 42; energy failure if F_hat >= F_true, else search failure; NaN grid energies set to -inf (Q L234); no per-registration numerical-failure, timeout or non-convergence status exists; a missing unit = absent result file (aggregates list it)",
+   "fixed_model": "chosen checkpoint loaded once, eval() and requires_grad_(False) (Q L334-337); reference descriptors cached per core per checkpoint (Q L338-342); no refit per candidate",
+   "fixed_sampling": "positions and permutation fixed per (image, perturbation index) for every method / checkpoint (Q L255); perturbations fixed in perturbations.json",
+   "selection": "CAL, lexicographic max of (success<42, success<9, -median corner error, -checkpoint step) over the 12 checkpoints (Q.sel_key L268-271; EPFL on unit-pooled CAL records, P3 L448); then DEV with the chosen checkpoint",
+   "statistics_v9": "G1: unit = core, seed t + core bootstrap 2000 resamples (g1_aggregate.contrast L51-68, rng 20261016 L92); G2: unit = EPFL unit, bootstrap 2000 (g2_aggregate L50-66)"
+  }
+ },
+ "q_mode_audit": {
+  "question": "is the current G1 negative term the package's V mode (ordinary permutation incl. fixed points), and are there forbidden edges?",
+  "answer_reference": "YES for the reference: Q is within-scene and built from an ordinary uniform permutation with fixed points allowed; its conditional expectation over the permutation is exactly the package V mode (all n^2 within-scene pairs incl. the diagonal, denominator n^2): E_pi[(1/n) sum_i g(a_i, b_pi(i))] = (1/n^2) sum_{i,j} g(a_i, b_j) for any pair function g",
+  "answer_estimator": "the host evaluates ONE draw (perm1), not the V moments: training draws a fresh permutation per scene per step (G L157); registration keeps one permutation of 4096 for the whole search (Q L159). This is the package comparator sampled_permutation_terms / MLP_VCS_perm1, not product_moments / M0",
+  "forbidden_edges": "none in any Q (training, registration, kernel fit). The only spatial exclusion in the host is the eps > 0 mismatch generator (>= 2 patch radii), which corrupts P and does not remove Q edges",
+  "infonce_and_comir": "InfoNCE training uses the n x n within-scene matrix with diagonal targets (no Q permutation); CoMIR's NT-Xent masks only the self-similarity diagonal of its 2N latents (native, not a VCS Q)",
+  "target_change_needed": "no change of reference: V mode = the host's conditional target. Recorded differences are listed under target_differences_vs_package; nothing was changed"
+ },
+ "target_differences_vs_package": [
+  {"id": "D1", "item": "critic function class", "host": "T = tanh(MLP(cat(du, dv))) (P L152, L174-175)", "package": "T = a^T W b, a, b simplex features, W in [-1, 1]^{r x s}, no output tanh", "note": "intended MLP -> bilinear axis; the package states tanh robustness results do not carry over"},
+  {"id": "D2", "item": "negative estimator", "host": "perm1 (one ordinary permutation per scene per step; one fixed permutation per registration)", "package": "V moments (M0 / M1); perm1 / perm8 only as comparators", "note": "same reference V; the host has no perm8 or exact-V option, both must be implemented on the V10 side"},
+  {"id": "D3", "item": "registration energy of logistic- and InfoNCE-trained critics", "host": "the same J(tanh f) perm1 energy as vcs (Q.cmd_register critic branch L329-348 passes kind 'critic' for vcs / logistic / infonce; j_critic L173-176)", "package": "lists InfoNCE_host with its native objective / candidate normalisation", "note": "a V10 InfoNCE row reusing the host scores InfoNCE critics with J(tanh f); a native InfoNCE energy would be a new definition (decision not taken here)"},
+  {"id": "D4", "item": "training scene and size", "host": "scene = one 160-px aligned crop of one core (distinct cores within a step), n_pos = 128, 16 scenes (8 at fraction 0.25), equal scene weights", "package": "per-scene J with locked fixed scene weights; partition by scene id", "note": "for exact host parity the V10 scene id is the crop index s within the step (equivalently the core, since cores are distinct per step) and weights = 1 / n_sc"},
+  {"id": "D5", "item": "registration scene size", "host": "N = 4096 positions per (image, perturbation) on the disk Omega", "package": "T02 grid N = 128 / 512 / 2048 / 8192", "note": "training N = 128 and registration N = 4096 both inside the T02 grid"},
+  {"id": "D6", "item": "mismatch axis", "host": "G1 / G2 run eps in {0, 0.2}; at eps > 0 Q uses the displaced (observed) moving positions", "package": "train_mismatch = 0.0", "note": "V10 primary uses only the eps = 0 path"},
+  {"id": "D7", "item": "W regularisation", "host": "AdamW weight decay 1e-4 on every parameter; grad-norm clip 1.0 over all parameters", "package": "W weight decay 0, projection to the box after each step; other modules keep the host rule", "note": "V10 needs a separate parameter group for W; whether W enters the clip norm is a V10 choice to record"},
+  {"id": "D8", "item": "grid stage", "host": "translation applied as descriptor shifts of a rotation-only encoding (approximate warp-then-encode), refinement exact", "package": "shared searcher inherited", "note": "same approximation must apply to every method in the shared-searcher table"},
+  {"id": "D9", "item": "dtype", "host": "float32; RigidEnergy positions float32 (Q L158), grid_coords float32 (Q L82), optimise_rigid p float32 (Q L237)", "package": "fp64 small checks, fp32 primary", "note": "an fp64 geometric check must cast positions / boxes / maps / modules; grid_sample needs input and grid of the same dtype"}
+ ],
+ "adapter_reuse": {
+  "import": "PYTHONPATH=/home/infres/yinwang/CS_QMI/ssl_pilot_v10/src:/home/infres/yinwang/CS_QMI/ssl_pilot_v10; from v9.reg import g1 as G; P, Q = G.P, G.Q; (EPFL: from v9.reg import g2 as G2; P3 = G2.P3)",
+  "reusable_read_only_functions": [
+   "P.torch_mods()", "P.load_manifest(root, smoke)", "P.load_img(root, core, keys)", "P.learned_inputs(torch, root, core, dev)", "P.build_models(nn, desc=16) -> (eU, eV, critic)",
+   "P.sample_map(torch, F, m [C,H,W], yx [N,2]) -> [N,C]", "P.j_value(torch, T_p, T_q)", "P.loss_fn(torch, F, kind, f_p, f_q, f_mat)", "P.success(recs, thr)", "P.robust_norm(a)",
+   "Q.seed_of(tag)", "Q.apply_T(torch, th [K], t [K,2], z [N,2]) -> [K,N,2]", "Q.sample_pts(torch, F, M [C,H,W], pts [K,N,2], padding) -> [K,N,C]", "Q.perturb_map(...)", "Q.corner_error_full(th_hat, t_hat, th_star, t_star)",
+   "Q.Inputs(torch, F, p1_root, pert, dev)", "Q.RigidEnergy(torch, F, kind, ref, mov, rng, **kw)", "Q.grid_points()", "Q.optimise_rigid(torch, energy, dev)", "Q.register_images(torch, F, cores, pert, maps_fn, kind, dev, kw, n_pert, profile_cores)", "Q.sel_key(recs, order)", "Q.sel_row(recs)", "Q.summarise(res, part)",
+   "G.sample_fit(fit_cores, frac, seed)", "G.specimen_stratum(core)",
+   "P3.Inputs3", "P3.pool_units(recs, unit_of)", "P3.profile_windows(m, dv)", "G2.sample_fit_units(fit_windows, frac, seed, manifest)", "G2.window_unit(manifest)"
+  ],
+  "do_not_call_from_v10": {
+   "G.ensure_layout, G.cmd_train, G.cmd_comir, G.cmd_register, G.unit_table, G2.ensure_layout, G2.cmd_train, G2.cmd_comir, G2.cmd_register, G2.make_smoke_root": "create directories / symlinks / results under V9_ROOT = outputs_v9/reg or outputs_v9/reg_epfl (G L42, L125-136; G2 L41, L62-63, L147-171)",
+   "G2.activate": "rebinds module globals of the shared g1 module object",
+   "Q.cmd_register, P3.register_one, P.cmd_*": "write results under the given root and hard-code the host checkpoint keys eU / eV / critic and the 12-checkpoint rule; a V10 run needs its own register command with V10 roots",
+   "slurm/v9/*.sbatch": "cd into ssl_pilot_v9 and run V9 code"
+  },
+  "training_descriptors_before_critic": "no callable returns them: the batch is assembled inline in G.cmd_train L147-166. A V10 trainer must reproduce that block (same RNG call order: choice(fit, n_sc, replace=False); per crop integers(0, 352, 2), integers(4), integers(2); uniform(16, 143, (n_sc, 128, 2)); n_sc x permutation(128); eps > 0 mismatch draws) and then: DU, DV = eU(stack crops), eV(stack crops); du[s] = P.sample_map(torch, F, DU[s], yx[s]), dv[s] = P.sample_map(torch, F, DV[s], yx_v[s]) -> [n_sc, 128, 16] each. MF features: A = softmax(left(du) / tau), B = softmax(right(dv) / tau) per side; mf_vcs.partition_scenes(A.reshape(-1, r), B.reshape(-1, s), torch.arange(n_sc).repeat_interleave(128), q_mode='v') with weights [1 / n_sc] * n_sc reproduces the host's scene weighting; mf_vcs.sampled_permutation_terms(..., permutations=[perm[s][None] for s in range(n_sc)]) reproduces the host's perm1 pairing (same (a_i, b_perm(i)) convention, host perm is int64 on the feature device). Draw the permutations even for M0 so crops / positions stay identical across MLP_perm1 / MF_perm1 / MF_M0.",
+  "registration_descriptors_before_critic": "reference: DU[c] = eU(Q.Inputs.reference(c)[1][None])[0] [16,512,512] (as Q L338-342), sampled once at the fixed x by RigidEnergy.__init__ into self.u [4096,16] (Q L168-169); moving: per candidate inside RigidEnergy.batch (exact, Q L194-198) and grid_values (shifts, Q L209-211), both ending in self.j_critic(dv) with dv [K, 4096, 16] -> [K]",
+  "override_point": "subclass Q.RigidEnergy and override j_critic(self, dv): A = feat_a(self.u) [N, r] (constant per registration), B = feat_b(dv) [K, N, s]; fixed W; V mode t_ki = a_i^T W b_ki, q1_k = (sum A)^T W (sum_i B_k) / N^2, q2_k = <W, G_A W G_Bk> / N^2, J_k = mean_i(t_ki - t_ki^2 / 2) - q1_k - q2_k / 2; MF_perm1 uses self.perm. Keep the constructor (rng consumption -> identical x / perm for all methods)",
+  "construction_without_editing_v9": "Q.register_images (L255) instantiates RigidEnergy by module-global name: either a V10 copy of register_images (16 lines) that builds the subclass, or a context manager that temporarily rebinds Q.RigidEnergy (pattern of G2.activate). Q.optimise_rigid, Q.sel_key, Q.summarise, Q.corner_error_full are reusable unchanged",
+  "kw_contract": "RigidEnergy(**kw) receives {'eV': eV, 'critic': cr} for kind 'critic' (Q L344, L348); the subclass can carry the MF head in kw"
+ },
+ "warp_chain_gradient_path": {
+  "entry": "Q.optimise_rigid L237-239: p = tensor([theta0 rho, ty0, tx0], float32, requires_grad=True); Adam([p], lr 0.5); (-energy(p)).backward()",
+  "steps": [
+   "RigidEnergy.__call__(p) L213-214 -> batch(p[0:1] / RHO, p[1:3][None])",
+   "apply_T(torch, th[k:k+1], t[k:k+1], box1) L69-72 (cos / sin / affine; differentiable in theta, t)",
+   "sample_pts(torch, F, mov, pts) L75-78 -> Wk [1,1,292,292] (bilinear grid_sample, gradient w.r.t. the grid; V_p itself has no grad)",
+   "eV(Wk)[0] -> D [16,292,292] (parameters requires_grad False; gradient w.r.t. the input)",
+   "P.sample_map(torch, F, D, x - 110) L162-166 -> dv [4096,16] (bilinear at fixed positions; gradient w.r.t. D)",
+   "j_critic(dv[None]) L173-176: P term uses dv, Q term uses dv[:, perm] -> J; both carry d/d(theta, t)"
+  ],
+  "no_grad_regions": "grid stage (Q L232-233), final energy per start (L244-245), RigidEnergy.value (L216-219), reference descriptors (Q L340-341); never the refinement",
+  "v10_requirement_mapping": "package 3.3.3 (P and Q moving side under the same transform, gradient through first and second moments) is met by overriding j_critic on the same dv; package rule 'no_grad must not wrap the registration energy' is already the host behaviour"
+ },
+ "environment_numerics": {
+  "python": "/home/infres/yinwang/CS_QMI/env/bin/python (torch 2.9.0+cu128 per torch/version.py)",
+  "slurm_env": "/home/infres/yinwang/CS_QMI/ssl_pilot/slurm/common.sh: PYTHON, PYTHONUNBUFFERED=1, OMP/MKL threads 4, CUBLAS_WORKSPACE_CONFIG=:4096:8; no torch precision / determinism flag",
+  "tf32": "no TF32 / precision / determinism switch in any host file (grep autocast|GradScaler|tf32|half|bfloat16|float16|set_float32_matmul_precision|fp32_precision|deterministic|benchmark: no code hit); installed defaults (torch/include/ATen/Context.h L452-459): allow_tf32_cudnn = true (L459) (fp32 convolutions may run in TF32 on RTX PRO 6000 / H100 / L40S), float32_matmul_precision = HIGHEST unless TORCH_ALLOW_TF32_CUBLAS_OVERRIDE (L454-457), benchmark_cudnn = false (L452)",
+  "repeatability_v9_finding": "reports/V9/V9_G1_TEST_READ_PROTOCOL_FROZEN_20261015.yaml L101-128: MI / NMI / kernel / CoMIR registrations repeat bitwise on the same GPU type; the learned critics do not (largest same-device repeat difference 1.7608 px on RTX PRO 6000, 0.9817 px on L40S); cross-GPU-type differences also exist. Cause not localised in V9",
+  "device_selection": "cuda if available else cpu, in every command (G L141, Q L290)"
+ },
+ "host_cost_facts": {
+  "G1_unit_V9-G1-vcs-frac1-eps0-s901": {"job": "1041939 (node59, NVIDIA RTX PRO 6000 Blackwell)", "train_seconds_3000_steps": 82.96, "train_peak_alloc_gib": 0.967, "registration_seconds_total": 955.37, "registrations": "12 checkpoints x 8 CAL x 10 + 32 DEV x 10 = 1280", "cal_sec_per_registration": 0.7666, "dev_sec_per_registration": 0.7343, "registration_peak_alloc_gib": 1.698},
+  "G2_unit_V9-G2-vcs-frac1-eps0-s901": {"job": "1042139 (node39, NVIDIA L40S)", "registration_seconds_total": 2886.24, "registrations": "12 x 10 CAL x 10 + 74 DEV x 10 = 1940", "cal_sec_per_registration": 1.4768, "dev_sec_per_registration": 1.4789, "registration_peak_alloc_gib": 2.615},
+  "grid_candidates_per_registration": 10668,
+  "source": "train.json / result JSON cost fields only; GPU from the job log header"
+ },
+ "v9_jobs_snapshot": {
+  "utc": "2026-10-16T20:14:25Z (identical set at 20:02:59Z)",
+  "command": "squeue -u yinwang (read-only); normal-QOS count = 27",
+  "running_v9": {"1042343": "v9n2_t06 L40S node52", "1042345": "v9n2_t08 L40S node50", "1042346": "v9n2_t09 L40S node50", "1042347": "v9n2_t10 RTX6000PRO node58", "1042348": "v9n2_t11 RTX6000PRO node59", "1042349": "v9n2_t12 L40S node57", "1042350": "v9n2_t13 RTX6000PRO node58", "1042351": "v9n2_t14 H100 node53"},
+  "pending_v9": {"1042352": "v9n2_t15", "1042355": "v9n2_t16", "1042382": "v9n2_t17", "1042417": "v9n2_t18", "1042476": "v9g2_infonce_rerun (registration-only rerun of the two G2 infonce eps0.2 s903 units, 3 h limit)", "1042474": "v9n2_f02", "1042475": "v9n2_f03", "1042550": "v9n2_f04", "1042630": "v9n2_f05", "1042729": "v9n2_f06", "1043044": "v9n2_f07", "1043080": "v9n2_f08", "1043126": "v9n2_f09", "1043258": "v9n2_f10", "1043335": "v9n2_f11", "1043495": "v9n2_f12", "1043575": "v9n2_f13"},
+  "other_normal_qos_jobs_not_v9": {"1040276": "c3_ckptoff CPU", "1039458": "no-shell CPU"},
+  "g1_state": "formal 52 / 52 unit result files present (outputs_v9/reg/units/*/p2/results); aggregate and sealed-test read done (results commit 411248e, report 95aac1c / 5f08b2f); no G1 job queued",
+  "g2_state": "50 / 52 unit result files present; missing V9-G2-infonce-frac0.25-eps0.2-s903 and V9-G2-infonce-frac1-eps0.2-s903 (cut by the 6 h limit; rerun 1042476 pending on QOSMaxGRESPerUser)"
+ },
+ "not_certified_open_items": [
+  "T01: value + A / B / W gradient agreement of a V10 MF energy on a real host batch (dense vs moments, fp64 then fp32) -- NOT_RUN",
+  "T01: continuous-warp geometric gradient (central differences, >= 2 non-zero transforms, two step sizes, away from bilinear kinks) through the subclassed RigidEnergy for both P and Q -- NOT_RUN",
+  "T01: fixed-W test check (model / W hash unchanged across candidates) and checkpoint round trip of the V10 (encoder, feature maps, W) pair -- NOT_RUN; the host checkpoint has no W and no optimiser state",
+  "Critic registrations are not bitwise repeatable in V9 (up to 1.76 px same device); a V10 repeat check must report its own spread rather than expect bitwise equality",
+  "BF-SHG patient / specimen relations are not in the host; the core is the finest verifiable unit",
+  "Whether the V10 InfoNCE row keeps the host's J(tanh f) registration energy (D3) is a protocol decision, not taken here",
+  "V10 seeds 1001-1003 / 1017 differ from G1 (901-903) and R6 (0-2): no V9 unit is reusable as a V10 unit by the V9 reuse rule (G.r6_reusable)"
+ ]
+}

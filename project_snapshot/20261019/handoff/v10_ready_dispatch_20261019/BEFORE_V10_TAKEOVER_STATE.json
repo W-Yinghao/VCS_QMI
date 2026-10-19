@@ -1,0 +1,696 @@
+{
+  "schema": "cs_qmi.v10.takeover.v1",
+  "generated_utc": "2026-10-17T09:16:21.929379+00:00",
+  "status": "V9_PRIORITY_BF1_FILLS_SLOTS_SUPPLEMENT_VALIDATION_AUTHORIZED",
+  "ready_to_submit_bf1": false,
+  "heads": {
+    "ssl_pilot_v10": "4336bb6c1ce8fdb1838ad5deae02b258f67b9592",
+    "ssl_pilot_v10_bf1": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "ssl_pilot_v10_t03": "0518984db074826f2976afdff4b441a7ff190b22",
+    "ssl_pilot_v10_remaining": "5c047198bef744c28452ee65f8a09ea83a6ea857"
+  },
+  "accepted_identities": {
+    "t03_code_hash": "54606921cdd2bf15",
+    "t03_job_pin": "64478d332c0a115a",
+    "bf_code_hash": "e9b4239450c4e2eb",
+    "ledger_sha256": "fa05019200f6f7ecb40c3467e4504ade0a5583c5fcfaa9f327d0f3c6ea0d86a2",
+    "backend_sha256": "cdf5df2e43bacb74b963f7b6b519a962f91fc8e41f28b4f6a4e2696816024973"
+  },
+  "bf1_evidence_synced": true,
+  "bf1_core_hash": "e9b4239450c4e2eb",
+  "sources": [
+    {
+      "path": "ssl_pilot_v10/v10/protocol/V10_PROTOCOL_P2_20261017.json",
+      "sha256": "c750b23baab14b24ec5928383bc47f985e866c932178c49d9e1395410af5bcdc"
+    },
+    {
+      "path": "ssl_pilot_v10/v10/T02/BUDGET.json",
+      "sha256": "5dad0d41cb52bcac2c53d8b3b3c273497f619b3e88ff4b0dfd5578469e8e93b7"
+    },
+    {
+      "path": "V10_PROTOCOL_DECISIONS_20261017.json",
+      "sha256": "65f5e063f93eb0f8769eb9e9d6731bc3583705f80a1c71002008aa98b3f9533d"
+    }
+  ],
+  "queue": {
+    "path": "handoff/BF1_NEXT_UNITS.csv",
+    "sha256": "facd83f923bd38dc92af18238fce50ae42d407650af8ed7b59372ed2480af3d0",
+    "CAL": 18,
+    "FINAL_DEV": 12
+  },
+  "budget": {
+    "status": "MEASURED_PROJECTION",
+    "tuning_gpu_h": 9.728794863269044,
+    "tuning_and_final_gpu_h_by_M1_cap": {
+      "10": 15.431107842898928,
+      "30": 15.928493438707665,
+      "100": 17.675137767521665
+    },
+    "actual_BF1_spending": "not established by this audit; no BF1 result artifact located"
+  },
+  "closed_evidence": [
+    "T00 role/exposure decision recorded",
+    "T01 required records PASS",
+    "relative-M1 T02 measurement accepted",
+    "T03 smoke 7, CAL 252, formal 960 artifacts and descriptive aggregation audited"
+  ],
+  "next_required_work": [
+    {
+      "id": "BF1-01",
+      "action": "Bring accepted 4336bb6 validation/timing records into BF1 worktree and confirm unchanged core hash.",
+      "state": "COMPLETE"
+    },
+    {
+      "id": "BF1-02",
+      "action": "Implement full train/checkpoint/CAL/DEV driver, append-only actual family cost ledger and safe resume checks.",
+      "state": "IMPLEMENTED_GPU_GATE_PASS_FULL_RUNS_ACTIVE"
+    },
+    {
+      "id": "BF1-03",
+      "action": "Freeze the eight common protocol items and accepted immutable driver snapshot; smoke the real path under Slurm.",
+      "state": "GPU_GATE_PASS"
+    },
+    {
+      "id": "BF1-04",
+      "action": "Run 18 CAL candidates in frozen within-family order; select with the recorded lexicographic rule.",
+      "state": "ALL_FOUR_CAL_FAMILIES_COMPLETE_VERIFIED"
+    },
+    {
+      "id": "BF1-05",
+      "action": "Run the 12 final training units and DEV32 readouts, including DEV24 sensitivity and core/group uncertainty.",
+      "state": "EIGHT_FINAL_COMPLETE_FOUR_FINAL_SUBMITTED"
+    },
+    {
+      "id": "BF1-06",
+      "action": "Complete required remaining baseline adapters, targeted gates, timing and attachments before comparative claims.",
+      "state": "SEVEN_ADAPTERS_WRITTEN_VALIDATION_AUTHORIZED_NOW"
+    }
+  ],
+  "held_data": {
+    "TEST134": "HOLD; later TEST_REPEAT only after complete V10 freeze and a new manifest",
+    "CONFIRM": 0,
+    "EPFL": "NOT_ACTIVATED"
+  },
+  "cluster": {
+    "utc": "2026-10-17 09:15:07 UTC",
+    "command": [
+      "squeue",
+      "-u",
+      "yinwang",
+      "-h",
+      "-o",
+      "%i|%j|%T|%M|%R"
+    ],
+    "status": "QUERY_SUCCEEDED",
+    "returncode": 0,
+    "stdout": "1043770|c3_aln3fm|RUNNING|4:07:24|node03\n1043768|c3_aln3fm|RUNNING|6:55:25|node07\n1043587|c3_aln3fm|RUNNING|13:11:27|node01\n1043452|c3_aln3fm|RUNNING|16:51:30|node54\n1043890|c3_aln3fm|PENDING|0:00|(QOSMaxGRESPerUser)\n1043886|c3_aln34cf|RUNNING|17:35|node22\n1043887|c3_aln34cf|PENDING|0:00|(QOSMaxGRESPerUser)\n1043911|c3_p33freeze|PENDING|0:00|(Dependency)\n1043871|c3_watchcodex|RUNNING|38:49|nodecpu10\n1040276|c3_ckptoff|RUNNING|2-16:46:06|nodecpu05\n1039458|no-shell|RUNNING|3-00:48:54|nodecpu10\n1043898|c3_p33fixc2|RUNNING|6:38|nodecpu12\n1042475|v9n2_f03|RUNNING|5:43:55|node50\n1042474|v9n2_f02|RUNNING|6:58:31|node50\n1042382|v9n2_t17|RUNNING|10:25:19|node52\n1042630|v9n2_f05|RUNNING|5:09:44|node57\n1043799|v9_ncr_eval|RUNNING|13:32|node50\n1043806|v9n2_diag2|PENDING|0:00|(QOSMaxGRESPerUser)\n1043807|v9n2_ncrhealth|PENDING|0:00|(QOSMaxGRESPerUser)\n1042550|v9n2_f04|RUNNING|5:26:34|node58\n1042729|v9n2_f06|RUNNING|4:13:05|node59\n1043805|v9n2_diag1|RUNNING|40:19|node61\n1043800|v9_n2_offsmoke|PENDING|0:00|(QOSMaxGRESPerUser)\n1043637|c3_aln3fm|RUNNING|10:54:26|node11\n1043635|c3_aln3fm|RUNNING|11:12:26|node11\n1043454|c3_aln3fm|RUNNING|16:50:29|node10\n1042249|c3_aln3fm|RUNNING|17:51:29|node43\n1040509|c3_aln3fm|RUNNING|18:15:30|node43\n",
+    "jobs": [
+      {
+        "id": "1043770",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "4:07:24",
+        "reason": "node03"
+      },
+      {
+        "id": "1043768",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "6:55:25",
+        "reason": "node07"
+      },
+      {
+        "id": "1043587",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "13:11:27",
+        "reason": "node01"
+      },
+      {
+        "id": "1043452",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "16:51:30",
+        "reason": "node54"
+      },
+      {
+        "id": "1043890",
+        "name": "c3_aln3fm",
+        "state": "PENDING",
+        "elapsed": "0:00",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1043886",
+        "name": "c3_aln34cf",
+        "state": "RUNNING",
+        "elapsed": "17:35",
+        "reason": "node22"
+      },
+      {
+        "id": "1043887",
+        "name": "c3_aln34cf",
+        "state": "PENDING",
+        "elapsed": "0:00",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1043911",
+        "name": "c3_p33freeze",
+        "state": "PENDING",
+        "elapsed": "0:00",
+        "reason": "(Dependency)"
+      },
+      {
+        "id": "1043871",
+        "name": "c3_watchcodex",
+        "state": "RUNNING",
+        "elapsed": "38:49",
+        "reason": "nodecpu10"
+      },
+      {
+        "id": "1040276",
+        "name": "c3_ckptoff",
+        "state": "RUNNING",
+        "elapsed": "2-16:46:06",
+        "reason": "nodecpu05"
+      },
+      {
+        "id": "1039458",
+        "name": "no-shell",
+        "state": "RUNNING",
+        "elapsed": "3-00:48:54",
+        "reason": "nodecpu10"
+      },
+      {
+        "id": "1043898",
+        "name": "c3_p33fixc2",
+        "state": "RUNNING",
+        "elapsed": "6:38",
+        "reason": "nodecpu12"
+      },
+      {
+        "id": "1042475",
+        "name": "v9n2_f03",
+        "state": "RUNNING",
+        "elapsed": "5:43:55",
+        "reason": "node50"
+      },
+      {
+        "id": "1042474",
+        "name": "v9n2_f02",
+        "state": "RUNNING",
+        "elapsed": "6:58:31",
+        "reason": "node50"
+      },
+      {
+        "id": "1042382",
+        "name": "v9n2_t17",
+        "state": "RUNNING",
+        "elapsed": "10:25:19",
+        "reason": "node52"
+      },
+      {
+        "id": "1042630",
+        "name": "v9n2_f05",
+        "state": "RUNNING",
+        "elapsed": "5:09:44",
+        "reason": "node57"
+      },
+      {
+        "id": "1043799",
+        "name": "v9_ncr_eval",
+        "state": "RUNNING",
+        "elapsed": "13:32",
+        "reason": "node50"
+      },
+      {
+        "id": "1043806",
+        "name": "v9n2_diag2",
+        "state": "PENDING",
+        "elapsed": "0:00",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1043807",
+        "name": "v9n2_ncrhealth",
+        "state": "PENDING",
+        "elapsed": "0:00",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1042550",
+        "name": "v9n2_f04",
+        "state": "RUNNING",
+        "elapsed": "5:26:34",
+        "reason": "node58"
+      },
+      {
+        "id": "1042729",
+        "name": "v9n2_f06",
+        "state": "RUNNING",
+        "elapsed": "4:13:05",
+        "reason": "node59"
+      },
+      {
+        "id": "1043805",
+        "name": "v9n2_diag1",
+        "state": "RUNNING",
+        "elapsed": "40:19",
+        "reason": "node61"
+      },
+      {
+        "id": "1043800",
+        "name": "v9_n2_offsmoke",
+        "state": "PENDING",
+        "elapsed": "0:00",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1043637",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "10:54:26",
+        "reason": "node11"
+      },
+      {
+        "id": "1043635",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "11:12:26",
+        "reason": "node11"
+      },
+      {
+        "id": "1043454",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "16:50:29",
+        "reason": "node10"
+      },
+      {
+        "id": "1042249",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "17:51:29",
+        "reason": "node43"
+      },
+      {
+        "id": "1040509",
+        "name": "c3_aln3fm",
+        "state": "RUNNING",
+        "elapsed": "18:15:30",
+        "reason": "node43"
+      }
+    ],
+    "comparison": {
+      "direct_squeue": "two consecutive successful calls",
+      "timeout_wrapper": {
+        "exit_code": 124,
+        "seconds": 5
+      },
+      "python_subprocess": {
+        "result": "TIMEOUT",
+        "timeout_seconds": 5,
+        "stderr": null
+      }
+    },
+    "interpretation": "Direct approved squeue works; wrappers time out. This supports a command-authorization/sandbox-path explanation; it is not evidence of Slurm controller outage.",
+    "current_rule": "Call squeue directly through exec_command; do not wrap it in timeout or Python subprocess for routine queries."
+  },
+  "policy": "Do not use completed T03 EVAL/truth to revise BF1 choices; do not silently reuse COMPLETE with different identity/configuration.",
+  "priority_updated_utc": "2026-10-17T17:20:23.255462+00:00",
+  "priority_decision": "handoff/V9_CLOSEOUT_BEFORE_V10_20261017.json",
+  "execution_priority": "Preserve running V9; existing BF1 full finals fill released slots. New supplement numerical/GPU tests authorized now; formal new methods still require successful validation and frozen release.",
+  "updated_utc": "2026-10-19T00:00:26.372751+00:00",
+  "ready_to_submit_bf1_note": "All 16 BF1 phase jobs already submitted by dispatcher1046189. Do not duplicate.",
+  "bf1_launch": "handoff/v10_bf1_20261017/LAUNCH.json",
+  "bf1_freeze_sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+  "bf1_scheduling": {
+    "gate_job": "1045975",
+    "array_job": null,
+    "closeout_job": "1046165",
+    "status": "ALL_CAL_AND_EIGHT_FINALS_VERIFIED_FOUR_FINALS_SUBMITTED",
+    "gate_dependency": null,
+    "array_dependency": null,
+    "active_gpu_jobs": [
+      "1046917",
+      "1047185",
+      "1047186",
+      "1047187"
+    ],
+    "old_watch_job": "1044425",
+    "old_watch_status": "STOPPED_DO_NOT_RESTART",
+    "closeout_blocks_v10": false,
+    "array": null,
+    "scheduling_amendment": "/home/infres/yinwang/CS_QMI/handoff/v10_parallel8_20261018/SCHEDULING_AMENDMENT.json",
+    "retired_array_job": "1045976",
+    "dispatcher_job": "1046189",
+    "max_gpu_concurrency": 8,
+    "cal_jobs": [
+      "1046190",
+      "1046191",
+      "1046192",
+      "1046193"
+    ],
+    "cal_dependency": "afterok:1045975",
+    "final_phase_jobs_planned": 12,
+    "dispatch_ledger": "/home/infres/yinwang/CS_QMI/handoff/v10_parallel8_20261018/LEDGER.json",
+    "dispatch_status": "/home/infres/yinwang/CS_QMI/handoff/v10_parallel8_20261018/STATUS.json",
+    "gate_status": "PASS",
+    "new_submissions_paused": false
+  },
+  "latest_scheduling_snapshot": {
+    "utc": "2026-10-18T18:49:50.907Z",
+    "evidence": "/home/infres/yinwang/CS_QMI/handoff/v9_unit_split_20261018/QUEUE_VERIFIED.json",
+    "v9_gpu_running": 6,
+    "gate_job": "1045975",
+    "gate_dependency": null,
+    "gate_status": "PASS",
+    "dispatcher_job": "1046189",
+    "max_v10_gpu_concurrency": 8,
+    "cal_jobs": [
+      "1046190",
+      "1046191",
+      "1046192",
+      "1046193"
+    ],
+    "cal_dependency": "afterok:1045975",
+    "final_phase_jobs_planned": 12,
+    "final_submission_rule": "verified successful family CAL; dynamic IDs in dispatch LEDGER.json",
+    "retired_array": "1045976",
+    "independent_v9_audit_job": "1046165",
+    "v9_pending_holds_by_v10": [],
+    "v10_gpu_running": 2,
+    "v10_gpu_pending": 6,
+    "v9_gpu_pending": 3
+  },
+  "v9_closeout_required_before_v10": false,
+  "v9_dispatch_policy": {
+    "updated_utc": "2026-10-18T18:51:00Z",
+    "feeder_job": "1046651",
+    "retired_feeder": "1045056",
+    "target_pending": 8,
+    "max_own_live": 16,
+    "max_normal_jobs": 29,
+    "poll_seconds": 30,
+    "array_tasks_counted_separately": true,
+    "transition": "/home/infres/yinwang/CS_QMI/handoff/v9_unit_split_20261018/ACTIVATION.json",
+    "unit_ledger": "/home/infres/yinwang/CS_QMI/handoff/v9_unit_split_20261018/UNIT_LEDGER.json"
+  },
+  "bf1_resubmission_plan": "handoff/v10_bf1_20261017/RESUBMISSION_PLAN.json",
+  "auto_handoff": {
+    "utc": "2026-10-18T13:26:35Z",
+    "status": "PARALLEL8_ACTIVE",
+    "dispatcher_job": "1046189",
+    "retired_array": "1045976",
+    "retired_array_controller": "JobId=1045976 ArrayJobId=1045976 ArrayTaskId=0-3%4 ArrayTaskThrottle=4 JobName=v10bf_full UserId=yinwang(34987) GroupId=comelec(13007) MCS_label=N/A Priority=0 Nice=0 Account=c2s QOS=normal JobState=CANCELLED Reason=JobHeldUser Dependency=afterok:1045975(unfulfilled) Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0 RunTime=00:00:00 TimeLimit=23:59:00 TimeMin=N/A SubmitTime=2026-10-18T09:40:11 EligibleTime=Unknown AccrueTime=Unknown StartTime=2026-10-18T13:28:21 EndTime=2026-10-18T13:28:21 Deadline=N/A PreemptEligibleTime=2026-10-18T13:28:21 PreemptTime=None SuspendTime=None SecsPreSuspend=0 LastSchedEval=2026-10-18T09:40:11 Scheduler=Main Partition=L40S AllocNode:Sid=nodecpu04:3788321 ReqNodeList=(null) ExcNodeList=node[51,60] NodeList= NumNodes=1 NumCPUs=8 NumTasks=N/A CPUs/Task=8 ReqB:S:C:T=0:0:*:* ReqTRES=cpu=8,mem=64G,node=1,billing=28,gres/gpu=1 AllocTRES=(null) Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=* MinCPUsNode=8 MinMemoryNode=64G MinTmpDiskNode=0 Features=(null) DelayBoot=00:00:00 OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null) Command=/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/slurm/v10_bf1/gpu.sbatch WorkDir=/home/infres/yinwang/CS_QMI/handoff/v9_to_v10_20261018 StdErr=/home/infres/yinwang/CS_QMI/slurm_logs/v10bf_full_1045976.out StdIn=/dev/null StdOut=/home/infres/yinwang/CS_QMI/slurm_logs/v10bf_full_1045976.out TresPerNode=gres/gpu:1 TresPerTask=cpu=8 \n",
+    "gate_job": "1045975",
+    "gate_dependency": null,
+    "max_gpu_concurrency": 8,
+    "enforcement": "shared normal QoS GPU limit",
+    "cal_jobs": 4,
+    "final_jobs": 12,
+    "formal_trainings": 30,
+    "cal_candidates": 18,
+    "v9_unchanged": true,
+    "v9_closeout_blocks_v10": false,
+    "science_freeze": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+    "source_commit": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "ledger": "/home/infres/yinwang/CS_QMI/handoff/v10_parallel8_20261018/LEDGER.json",
+    "amendment": "/home/infres/yinwang/CS_QMI/handoff/v10_parallel8_20261018/SCHEDULING_AMENDMENT.json",
+    "independent_v9_audit_job": "1046165",
+    "v9_feeder_job": "1045056",
+    "verification": "/home/infres/yinwang/CS_QMI/handoff/v10_parallel8_20261018/ACTIVATION_VERIFIED.json"
+  },
+  "historical_auto_handoffs": [
+    {
+      "utc": "2026-10-18T13:13:32Z",
+      "status": "OVERLAP_ACTIVE",
+      "control_job": "1046164",
+      "user_instruction": "按“V9尾部释放的GPU立即接V10”来调度",
+      "independent_v9_audit_job": "1046165",
+      "retired_closeout_gate_job": "1045974",
+      "gate_job": "1045975",
+      "gate_dependency": null,
+      "array_job": "1045976",
+      "array": "0-3%4",
+      "array_dependency": "afterok:1045975",
+      "v9_feeder_job": "1045056",
+      "v10_freeze_sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2",
+      "scheduling_amendment": "/home/infres/yinwang/CS_QMI/handoff/v9_overlap_v10_20261018/SCHEDULING_AMENDMENT.json",
+      "v9_closeout_blocks_v10": false,
+      "controller_after": {
+        "1045975": "JobId=1045975 JobName=v10bf_gate UserId=yinwang(34987) GroupId=comelec(13007) MCS_label=N/A Priority=2007 Nice=0 Account=c2s QOS=normal JobState=PENDING Reason=None Dependency=(null) Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0 RunTime=00:00:00 TimeLimit=00:45:00 TimeMin=N/A SubmitTime=2026-10-18T09:40:11 EligibleTime=2026-10-18T13:13:32 AccrueTime=Unknown StartTime=Unknown EndTime=Unknown Deadline=N/A SuspendTime=None SecsPreSuspend=0 LastSchedEval=2026-10-18T09:40:11 Scheduler=Main Partition=L40S AllocNode:Sid=nodecpu04:3788321 ReqNodeList=(null) ExcNodeList=node[51,60] NodeList= NumNodes=1 NumCPUs=8 NumTasks=1 CPUs/Task=8 ReqB:S:C:T=0:0:*:* ReqTRES=cpu=8,mem=64G,node=1,billing=28,gres/gpu=1 AllocTRES=(null) Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=* MinCPUsNode=8 MinMemoryNode=64G MinTmpDiskNode=0 Features=(null) DelayBoot=00:00:00 OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null) Command=/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/slurm/v10_bf1/gpu.sbatch WorkDir=/home/infres/yinwang/CS_QMI/handoff/v9_to_v10_20261018 StdErr=/home/infres/yinwang/CS_QMI/slurm_logs/v10bf_gate_1045975.out StdIn=/dev/null StdOut=/home/infres/yinwang/CS_QMI/slurm_logs/v10bf_gate_1045975.out TresPerNode=gres/gpu:1 TresPerTask=cpu=8 \n",
+        "1045976": "JobId=1045976 ArrayJobId=1045976 ArrayTaskId=0-3%4 ArrayTaskThrottle=4 JobName=v10bf_full UserId=yinwang(34987) GroupId=comelec(13007) MCS_label=N/A Priority=2007 Nice=0 Account=c2s QOS=normal JobState=PENDING Reason=None Dependency=afterok:1045975(unfulfilled) Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0 RunTime=00:00:00 TimeLimit=23:59:00 TimeMin=N/A SubmitTime=2026-10-18T09:40:11 EligibleTime=Unknown AccrueTime=Unknown StartTime=Unknown EndTime=Unknown Deadline=N/A SuspendTime=None SecsPreSuspend=0 LastSchedEval=2026-10-18T09:40:11 Scheduler=Main Partition=L40S AllocNode:Sid=nodecpu04:3788321 ReqNodeList=(null) ExcNodeList=node[51,60] NodeList= NumNodes=1 NumCPUs=8 NumTasks=1 CPUs/Task=8 ReqB:S:C:T=0:0:*:* ReqTRES=cpu=8,mem=64G,node=1,billing=28,gres/gpu=1 AllocTRES=(null) Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=* MinCPUsNode=8 MinMemoryNode=64G MinTmpDiskNode=0 Features=(null) DelayBoot=00:00:00 OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null) Command=/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/slurm/v10_bf1/gpu.sbatch WorkDir=/home/infres/yinwang/CS_QMI/handoff/v9_to_v10_20261018 StdErr=/home/infres/yinwang/CS_QMI/slurm_logs/v10bf_full_1045976.out StdIn=/dev/null StdOut=/home/infres/yinwang/CS_QMI/slurm_logs/v10bf_full_1045976.out TresPerNode=gres/gpu:1 TresPerTask=cpu=8 \n"
+      }
+    }
+  ],
+  "historical_scheduling_snapshots": [
+    {
+      "utc": "2026-10-18 13:16:15 UTC",
+      "evidence": "handoff/v9_overlap_v10_20261018/ACTIVATION_VERIFIED.json",
+      "v9_gpu_running": 8,
+      "gate_dependency": null,
+      "gate_job": "1045975",
+      "gate_status": "PENDING",
+      "array_dependency": "afterok:1045975",
+      "array_task_throttle": 4,
+      "independent_v9_audit_job": "1046165",
+      "v9_pending_holds_by_v10": []
+    }
+  ],
+  "latest_runtime_check": "handoff/evidence/runtime_20261018_1818/STAGE_SNAPSHOT.json",
+  "latest_runtime_summary": {
+    "observed_utc": "2026-10-18 18:19:11 UTC",
+    "gate": "PASS",
+    "cal_candidates_complete": 8,
+    "cal_candidates_planned": 18,
+    "cal_families_complete": 2,
+    "final_seeds_submitted": 6,
+    "final_seeds_complete": 0,
+    "gpu_running": 2,
+    "gpu_pending": 6,
+    "errors": [],
+    "gpu_counts_observed_utc": "2026-10-18T18:49:50.907Z"
+  },
+  "v9_unit_split": {
+    "status": "SPLIT_ACTIVE_VERIFIED",
+    "feeder_job": "1046651",
+    "retired_feeder": "1045056",
+    "unit_jobs": {
+      "903_1": {
+        "0": "1046652",
+        "1": "1046654"
+      },
+      "903_2": {
+        "0": "1046653",
+        "1": "1046655"
+      }
+    },
+    "activation_verified": "/home/infres/yinwang/CS_QMI/handoff/v9_unit_split_20261018/ACTIVATION_VERIFIED.json",
+    "unit_ledger": "/home/infres/yinwang/CS_QMI/handoff/v9_unit_split_20261018/UNIT_LEDGER.json",
+    "hardware_pairing_exception_groups": [
+      "903_1",
+      "903_2"
+    ],
+    "timeout_exit_guard_job": "1046660"
+  },
+  "active_scheduling_policy": "handoff/v10_fill_validate_20261019/POLICY.json",
+  "v9_first_policy": {
+    "status": "PASS_PRIORITY_ACTIVE",
+    "utc": "2026-10-18T21:48:32Z",
+    "policy_id": "v9_first_20261018_2143",
+    "controller_job": "1047062",
+    "running_jobs_cancelled": 0,
+    "running_before_still_running": [
+      "1046192",
+      "1046915",
+      "1046916",
+      "1046655",
+      "1045453",
+      "1045066",
+      "1045065",
+      "1045426"
+    ],
+    "v10_pending_held": [
+      "1046917"
+    ],
+    "v10_dispatcher_paused_new_submissions": true,
+    "v9_completed_units": 25,
+    "v9_total_units": 33,
+    "v9_gpu_running": 5,
+    "v9_gpu_pending": 3,
+    "automatic_resume_condition": "All33 complete, no V9 jobs live, independent V9 closeout PASS plus unchanged report/result identities.",
+    "control_test_methods": 6,
+    "freeze_sha256": "5de4bd678f73bb7324f46508fec428de9d4b144bfe76e3b23e6847f093a51f20",
+    "v10_implementation_work_order": "/home/infres/yinwang/CS_QMI/handoff/v9_first_20261018/V10_REMAINING_WORK.json",
+    "v10_remaining_adapters_implemented_by_this_change": false,
+    "policy_record": "/home/infres/yinwang/CS_QMI/handoff/v9_first_20261018/POLICY.json",
+    "status_file": "/home/infres/yinwang/CS_QMI/handoff/v9_first_20261018/STATUS.json"
+  },
+  "v9_closeout_required_before_new_v10_jobs": true,
+  "remaining_implementation_work_order": "/home/infres/yinwang/CS_QMI/handoff/v9_first_20261018/V10_REMAINING_WORK.json",
+  "implementation_authorization": {
+    "utc": "2026-10-18T21:58:52.745411+00:00",
+    "user_instruction": "V10的实现可以先开始吗，测试之后来",
+    "implementation": "AUTHORIZED_NOW",
+    "scientific_tests": "DEFERRED_UNTIL_V9_CLOSEOUT",
+    "new_gpu_jobs": "STILL_PAUSED",
+    "scheduling_policy_id": "v9_first_20261018_2143",
+    "worktree": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_remaining",
+    "branch": "v10/remaining-implementation-20261018",
+    "base_commit": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "frozen_work_order": "handoff/v9_first_20261018/V10_REMAINING_WORK.json",
+    "amendment": "Only implementation timing changes; frozen scheduling controls and current jobs remain unchanged."
+  },
+  "remaining_implementation": {
+    "utc": "2026-10-18T22:22:08.918432+00:00",
+    "status": "FIRST_IMPLEMENTATION_COMMITTED_UNTESTED",
+    "worktree": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_remaining",
+    "branch": "v10/remaining-implementation-20261018",
+    "commit": "d4b234fbbe0c31cac21e4afd4c67cb32822d6851",
+    "source_files": {
+      "scripts/v10_supplement/plan.py": "3ff4f1e06745e890b5292978d651af34a970e764bb62373360b8c5595c46ac70",
+      "scripts/v10_supplement/run.py": "4520bcf8e5956843d02ce35eea9f3be8a934c1bce0506d36c2839e34423ba5c8",
+      "slurm/v10_supplement/run.sbatch": "2d80e76436cd125456afe37c43d0cee44e8f8baa8c113d39a1962929dfe9dbde",
+      "src/v10/__init__.py": "1d84649b206398c3ae36b1ae3bf69159baf8fe01675603e1868672da1cc1c15a",
+      "src/v10/adapter.py": "9c2d1d968584b006d6c7d767e03bac335a8556d71cc462252dec6d1135699fa4",
+      "src/v10/mf_vcs.py": "cdf5df2e43bacb74b963f7b6b519a962f91fc8e41f28b4f6a4e2696816024973",
+      "src/v10/supplement/__init__.py": "c98f60c1c8fb8f23dda8576ebda9058c5105596f7bdd6b8aaad66680d983de01",
+      "src/v10/supplement/checkpoints.py": "adfd5eec830bdea7a043cd3951e6585c5db10de935c428cd05fa181a4c0922b6",
+      "src/v10/supplement/comir.py": "40ecebff8cca7923c9fe76f9e8c255570bc9f5df49d46bb4f8090830911693bd",
+      "src/v10/supplement/contract.py": "0687818d377011e149819c1bcfb08f5ac5358d41beb03fa912cc8fb95692fe91",
+      "src/v10/supplement/learned.py": "6776b1564a5da3332d81ddf834a62820ea327f8da51c955a06b80afd1bb2cc66",
+      "src/v10/supplement/mind.py": "ea0e45bfc1709a06c21b4a74d7ef784f90219b3e19b0e0bd7599a9f208a01a18",
+      "src/v10/supplement/records.py": "e9c2cef276cf64cc43bd12dd2febdddec8ac18308ae8944cd479e8b97be3dbcf",
+      "src/v10/supplement/registration.py": "7e125ff626d413cf2ab0cd2430231660c0c85dcf913a398b7ab94f5f0987b806",
+      "src/v10/supplement/rulsif.py": "cfc90545a7317a0a77164bc77278f832557e94c0d2cc480db14469126844bdcf",
+      "src/v10/supplement/training.py": "5403dceeb76a445a0cce9d329ae476d6a4015a3223837899fc0826ed23d263e2",
+      "src/v9/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "src/v9/reg/__init__.py": "458a701ac93ddd9a4541546787c8481b7d47593297ff536b1bc14b9658059db4",
+      "src/v9/reg/g1.py": "b6122bc731d3d6b5b72e9fca15963da5d206b71f8e3b9174992e68ae44adbfff",
+      "src/v9/reg/g1_aggregate.py": "21ff827d58f1c9aa56474f0f63431d799504eee0893539fcc6dcae374f47ed65",
+      "src/v9/reg/g1_test.py": "6b2dd6dc195c51abb8d61b83c857cce68b58ab0527c7266277cdf5e1f7c70b75",
+      "src/v9/reg/g2.py": "08231e880130a00b55009d74373b9d1e5ad36a29ea16c960d3d6e132a0f18aaf",
+      "src/v9/reg/g2_aggregate.py": "0c0da8a444af19c32323242e547b0177fb525421683d3285bfe6eb3121372505",
+      "src/v9/reg/r6_reg_aggregate.py": "c180ba757e2b69652e8b6008da7484673803583318cb870ec267d7a1fc095d5a",
+      "src/v9/reg/r6_reg_p2.py": "0e248cac8cd5c72b0707b32f7e3de3ecd0b3d160764d1c188b418d2ad43c974c",
+      "src/v9/reg/r6_reg_p3.py": "5bbc3ebaf11b0cdca37663e0f0205bf00ab797fb523b3f8c7a38dd48b2e9c7a2",
+      "src/v9/reg/r6_reg_pilot.py": "c044adca00034853ab508e33f57f87c5aff55dcd5070e8ecb45bf0ca5f71791d",
+      "v10/supplement/COMIR_SOURCE.json": "743b2f9abd01ddcc10db1e961d60102346efefd91523669992293902ae702c4b",
+      "v10/supplement/METHOD_ATTACHMENTS_DRAFT.json": "e57a423d5fe3bfc2c0f96ca4c76a04a852984276ab656f31806b6c907e70b3dc"
+    },
+    "code_sha256": "7fc6d301855ad8d44ebc32157f7f5748a558a833c2f03e3c0c49c57c32c6978a",
+    "methods": [
+      "MLP_VCS_perm8",
+      "InfoNCE_host[J_perm1]",
+      "MI_native",
+      "NMI_native",
+      "CoMIR_native",
+      "RuLSIF_exact",
+      "MIND_2D_adapted"
+    ],
+    "cal_candidates_draft": 19,
+    "final_units_draft": 15,
+    "static_checks": {
+      "python_ast_files": 13,
+      "bash_syntax": "PASS",
+      "git_diff_check": "PASS"
+    },
+    "scientific_tests": "DEFERRED_NOT_RUN",
+    "new_v10_jobs_submitted": 0,
+    "execution_release_created": false,
+    "existing_frozen_sources_verified_unchanged": {
+      "V9": 49,
+      "BF1": 58
+    },
+    "implementation_notes": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_remaining/v10/supplement/README_CN.md",
+    "still_required": [
+      "Targeted T01 and complete T02",
+      "Runner and resume validation",
+      "Method freeze and feeder integration",
+      "Full CAL and final DEV",
+      "T03 RuLSIF follow-up",
+      "EPFL activation QC and adapters",
+      "TEST_REPEAT conditional activation",
+      "Complete-method statistical analysis"
+    ],
+    "v9_recovery": {
+      "controller": "1047107",
+      "gpu_job": "1047108",
+      "status": "SUBMITTED_PENDING",
+      "bundle": "/home/infres/yinwang/CS_QMI/handoff/v9_ess_resume_20261018"
+    }
+  },
+  "new_tests_authorized_now": true,
+  "supplement_validation": {
+    "utc": "2026-10-18T23:59:49.380510+00:00",
+    "status": "CPU_PASS_GPU_GATE_SUBMITTED",
+    "controller": "1047202",
+    "gpu_gate": "1047204",
+    "cpu_tests_passed": 92,
+    "source_commit": "5c047198bef744c28452ee65f8a09ea83a6ea857",
+    "source_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_validation_20261019",
+    "code_sha256": "00c66b6531facf9b4561fc16925171d484ae19a856b23d8dc8bd210f82bb52b7",
+    "manifest_sha256": "4feb3509ce1d1d53ea9ebbe2e1f9e40ba0fbee8fce92790728439c3364d5f5d0",
+    "full_validation_jobs_after_gpu_gate": 7,
+    "complete_cal_registrations_planned": 2320,
+    "formal_scientific_release_created": false,
+    "scientific_results_claimed": false,
+    "normal_gpu_limit": 8,
+    "pending_target": 8,
+    "new_feeder_scope": "Validation only; original BF1 dispatcher1046189 unchanged"
+  },
+  "latest_runtime_20261019": {
+    "utc": "2026-10-19T00:00:26.372751+00:00",
+    "normal_gpu_running": 8,
+    "v9_full_complete": 27,
+    "v9_total": 33,
+    "v9_gpu_running": 6,
+    "bf1_running": 2,
+    "bf1_pending": 2,
+    "bf1_jobs": [
+      {
+        "id": "1047187",
+        "name": "v10p8_f2_1003",
+        "state": "PENDING",
+        "qos": "normal",
+        "gres": "gres/gpu:1",
+        "dependency": "(null)",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1047186",
+        "name": "v10p8_f2_1002",
+        "state": "PENDING",
+        "qos": "normal",
+        "gres": "gres/gpu:1",
+        "dependency": "(null)",
+        "reason": "(QOSMaxGRESPerUser)"
+      },
+      {
+        "id": "1047185",
+        "name": "v10p8_f2_1001",
+        "state": "RUNNING",
+        "qos": "normal",
+        "gres": "gres/gpu:1",
+        "dependency": "(null)",
+        "reason": "node52"
+      },
+      {
+        "id": "1046917",
+        "name": "v10p8_f3_1003",
+        "state": "RUNNING",
+        "qos": "normal",
+        "gres": "gres/gpu:1",
+        "dependency": "(null)",
+        "reason": "node52"
+      }
+    ],
+    "validation_controller": "1047202",
+    "validation_gpu_gate": "1047204",
+    "validation_cpu_tests": "92_PASS",
+    "validation_gpu_state": "PENDING_QOSMaxGRESPerUser",
+    "no_running_jobs_cancelled": true
+  }
+}

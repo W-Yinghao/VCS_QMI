@@ -1,0 +1,78 @@
+# V9 HOST_LOCK — filled from the real upstream code on the server (2026-10-15, fork A).  TO_VERIFY = not readable from code/README yet; nothing guessed.
+status: LOCKED_RECIPES_FILLED_FROM_CODE (timing fields pending job 1042033)
+host: SGR_single
+upstream:
+  sgraf_python3_branch: {repo: "https://github.com/Paranioar/SGRAF", branch: python3.6, commit: a19d1a9, path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3, licence: Apache-2.0 (README)}
+  sgraf_main_py27: {commit: 50d0c6f, path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF, note: "python 2.7 branch; opts.py defaults identical to python3.6 (diffed); not used"}
+  ncr: {repo: "https://github.com/XLearning-SCU/2021-NeurIPS-NCR", commit: 60256ba, path: /projects/EEG-foundation-model/yinghao/code_v9/2021-NeurIPS-NCR, licence: "LICENSE file = MIT; README says Apache-2.0 (recorded as-is)"}
+  l2rm: {repo: "https://github.com/hhc1997/L2RM", commit: a766c22, path: /projects/EEG-foundation-model/yinghao/code_v9/L2RM, licence: Apache-2.0 (README)}
+upstream_commit: a19d1a9   # the SGR host used for V9 timing and for the common student; NCR/L2RM wrap the same SGR modules (EncoderImage / EncoderText / EncoderSimilarity)
+code_path: /projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3
+environment: /projects/EEG-foundation-model/yinghao/envs/v9_sgr   # python 3.10.x, torch 2.9.0+cu128, numpy<2.3, scikit-learn, nltk (punkt, punkt_tab), tensorboard_logger + protobuf 3.20.3; L2RM runs in /projects/EEG-foundation-model/yinghao/envs/v9_l2rm (numpy 1.26.4 + rayleizhu pomegranate fork 0.14.8 + tensorboardX; main_L2RM imports OK)
+features:
+  source: "SCAN precomputed bottom-up-attention region features (NCR data release NCR-data.tar, 100,154,890,240 B); %s_ims.npy of shape (N_images, 36, 2048) float32 (SGRAF data.py: image tensor (36, 2048)); %s_caps.txt one caption per line, 5 per image"
+  feature_shapes: {image: [36, 2048], caption: "variable-length token ids from %s_precomp_vocab.json (SGRAF/vocab; f30k_precomp_vocab.json, coco_precomp_vocab.json)"}
+  layout_on_disk: "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/{data/{f30k_precomp,coco_precomp,cc152k_precomp}, vocab/{f30k,coco,cc152k}_precomp_vocab.json, noise_index/{f30k,coco}_precomp_{0.2,0.5}.npy} (tar listing 2026-10-15; 44 members)"
+  verified_f30k: "train_ims.npy (29000, 36, 2048) float32 (8,552,448,096 B), train_caps 145,000, train_ids 29,000; dev_ims (5070, 36, 2048) = 1,014 images x 5 captions; test_ims (5000, 36, 2048) = 1,000 images x 5 captions (verified 2026-10-15 after extraction)"
+  verified_coco: "train_ims.npy (113287, 36, 2048) float32, train_caps 566,435; dev (5000 rows = 1,000 images x 5); test (5000 rows); testall (25000 rows = 5,000 images x 5); cc152k train/dev/test (150000, 1000, 1000) x 36 x 2048 (verified 2026-10-15 after the full extraction; tar sha256 cafd6ff3…, data_fetch DONE 19:02:42Z)"
+model (SGR single, SGRAF opts.py defaults):
+  opts: "img_dim: 2048; word_dim: 300; embed_size: 1024; sim_dim: 256; num_layers_gru: 1; bi_gru: true; sgr_step: 3; module_name: SGR"
+  image_encoder: "Linear(2048 -> 1024) per region + l2norm (no_imgnorm=false)"
+  text_encoder: "Embedding(vocab, 300) + bi-GRU(1024) averaged directions + l2norm"
+  similarity: "EncoderSimilarity(SGR): SCAN attention (smooth 9) + VisualSA/TextSA global + GraphReasoning x sgr_step -> scalar similarity"
+training (native SGR, train.py):
+  batch_size: 128
+  native_epochs: {f30k_precomp: 40, coco_precomp: 20}
+  lr_update: {f30k_precomp: 30, coco_precomp: 10}   # lr = 2e-4 * 0.1 ** (epoch // lr_update)
+  optimizer: "Adam(lr=2e-4) over txt_enc + img_enc + sim_enc; grad_clip 2.0 (clip_grad_norm_)"
+  loss: "ContrastiveLoss(margin=0.2, max_violation=True by default): hinge on the in-batch similarity matrix, hardest negative per row and per column (cost_s.max(1) + cost_im.max(0)), summed over the batch"
+  native_margin: 0.2
+  negative_mining: in_batch_hardest_negative_per_query   # 'max_violation' store_false flag => True by default
+  warmup: "none in native SGR (NCR: warmup_epoch f30k 5 / coco 10 with the warm-up loss L_w; L2RM: warmup_epoch f30k 5 / coco 10)"
+  validation: "every epoch (and every val_step=1000 iterations) on dev: 1,000 images for f30k; coco dev truncated to 5,000 images (data.py); rsum = r1+r5+r10 (i2t) + r1+r5+r10 (t2i)"
+  checkpoint_selection: best_dev_rsum   # save_checkpoint(is_best) with best_rsum; the final model = model_best.pth.tar
+  seeds: "not fixed by SGRAF train.py (no seed argument); NCR run.py and L2RM main_L2RM.py take --seed; V9 sets torch/numpy/random seeds 901/902/903 in its own wrapper (to be added)"
+evaluation:
+  evaluation_commit: a19d1a9   # SGRAF_py3/evaluation.py: evalrank(model_path, data_path, split, fold5); encode_data + shard_attn_scores(shard 100) + i2t/t2i; fold5=True averages five 1K folds of coco testall, fold5=False = coco 5K or flickr 1K
+  flickr30k_gallery: "test split 1,000 images / 5,000 captions"
+  coco_gallery: "testall 5,000 images (5K, primary) and 5 x 1K folds (secondary column)"
+  i2t_rule: "any of the 5 GT captions in top-K"
+  t2i_rule: "GT image in top-K"
+noise_injection_conventions:
+  ncr: "PrecompDataset(train): t2i_index per caption; noise_ratio fraction of captions re-pointed to a shuffled subset of image indices; saved/loaded from --noise_file (NCR generates its own index if the file is absent)"
+  l2rm: "noise_index/{f30k,coco}_precomp_{0.2,0.4,0.6,0.8}.npy (DECL/RCL indices): t2i index per caption, f30k (145000,) int64 with 29000 unique images, coco (566435,) with 113287 unique"
+  v9: "B-table U injection is V9's own generator (anchors A kept clean, donors only from U; design_rho / realized_rho recorded) — not the DECL/RCL index; A-table native reproduction uses the official indices"
+teacher_epochs: 5                      # package §05 §2: SGR path on the anchor teacher-warmup role only
+extra_supervision_visible_to_all: true
+measured_epoch_seconds: "node60 (throttled) actuals from job 1042033: SGR step 0.596 s x 1,133 + 2 dev passes x 74 s = ~816 s per epoch after a 438 s startup; NCR warm-up 1,346 s per epoch (both networks); L2RM 914-1,166 s per rematching epoch; teacher 99 s per epoch on 1,160 images. Healthy-node estimate = node60 / 2.2 (2026-10-02: 0.252 vs 0.116 s/step): SGR step ~0.271 s, dev pass ~34 s; replaced by measured values when 1042195 runs on a healthy node"
+estimated_hours_from_measured_epoch: "production measurements (V9-N2 wave 1, 40-epoch SGR student, one dev pass per epoch): RTX PRO 6000 median 3.60 h (17 units), L40S 6.47 h (14), H100 NVL 7.21 h (3); NCR+A ~15.7 h on RTX (27.1 h L40S x 335/578) -> RTX only; L2RM+A 4.5-5.6 h healthy estimate (node60 / 2.2); node60 (throttled) actuals of 1042033 in V9_02 budget_measured"
+owner_resource_authorization_reference: "owner 2026-10-15 (prepare V9 in parallel with V8: code + smoke; GPU for timing only). Full N2 training (96 formal + <= 96 tuning + teacher runs) needs the owner's budget confirmation (package §09 §2, §05 §7)"
+
+locked_recipes:   # owner 2026-10-15: resolve the NCR-vs-L2RM schedule difference by locking the SGR single-model recipe NCR uses for the native A table; L2RM keeps its own schedule for its row
+  common_student_B_table: "SGR single (SGRAF_py3 a19d1a9 modules): batch 128, Adam lr 2e-4, lr x0.1 at epoch 30, 40 epochs (Flickr30K), grad_clip 2.0, margin 0.2, hardest in-batch negative, dev-rSum checkpoint; seeds 901/902/903 fixed by V9's wrapper; weights fixed before training (V9 §05 §5 loss); teacher = the same recipe for 5 epochs on the teacher role"
+  native_A_table_NCR: "NCR run.py defaults for f30k_precomp (README): warm-up 5 epochs (L_w), then 40 co-training epochs of two SGR networks, lr 2e-4 with lr_update 30, batch 128, margin 0.2, soft margin m = 10, p_threshold 0.5, GMM per-sample loss; inference = average of A and B; noise index = DECL/RCL f30k_precomp_0.4.npy (L2RM/noise_index) so the A rows are comparable to the L2RM table"
+  native_A_table_L2RM: "L2RM train_f30k.sh (its own schedule, stated for its row only): module SGR, batch 128, seed 0 (V9 seeds 901-903), reg 0.01, 35 epochs, lr 2e-4, lr_cost 2e-6, lr_update 15, queue_length 128, warm-up 5, same DECL/RCL index"
+  NCR_A_and_L2RM_A_in_B_table: "the same native schedules with the 10 % clean anchors (weight 1) added; cost counted as 2 x SGR for NCR; written as NCR+A / L2RM+A"
+  coco: "not locked in this block (COCO is a separate later decision; native: 20 epochs, lr_update 10, NCR warm-up 10, L2RM reg 0.07)"
+
+host_finding_20261015_timing_job_1042033:
+  sgraf_from_scratch_collapse: "native SGRAF_py3 train.py (hardest in-batch negative from step 0, max_violation default True) on clean Flickr30K precomp under torch 2.9.0+cu128: the loss falls from 51.49 to 51.2004 = 2 x 128 x 0.2 within the first epoch (all pair scores equal -> every hinge at the margin) and dev R@1 = 0.1 % (i2t) / 0.1 % (t2i), i.e. a collapsed similarity module; the NCR paper reports the same sensitivity of SGR and uses a vanilla-triplet (sum-violation) pre-training (SGR*)"
+  consequence_for_the_lock: "every SGR-based row (B-table student, teacher, native SGR row, NCR+A warm-up) uses NCR's warm-up: 5 epochs with the sum-violation triplet loss (NCR ContrastiveLoss, no max_violation) before the hard-negative phase; the native 'SGRAF from scratch with max_violation' recipe is recorded as not trainable in this environment (one measured attempt; no claim about other torch versions)"
+  evaluation_loader: "TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD=1 is exported for the host evaluators (torch >= 2.6 weights_only default rejects the pickled argparse.Namespace in the released / saved checkpoints); no host code is edited"
+  node_caveat: "the timing job ran on node60 = the throttled RTX PRO 6000 that cluster policy excludes (the fork-A sbatch headers excluded only node51; fixed in 6bd6297); numbers are labelled node60 (throttled) actuals with a healthy-node estimate = /2.2 (2026-10-02 measurement 0.252 vs 0.116 s/step)"
+
+host_patches:
+  ncr_py3_iterator: "code_v9/2021-NeurIPS-NCR/NCR/co_train.py lines 228 / 237: `unlabeled_train_iter.next()` -> `next(unlabeled_train_iter)` (python-3 DataLoader iterator; the released code is python-2 style); diff recorded in v9/patches/ncr_py3_iterator.patch; no change to any loss, schedule or data path"
+  evidence: "timing job 1042033 NCR stage: warm-up epoch (sum-violation triplet) learned (loss 50.8 -> ~26 over 800 steps, 0.59 s/step on node60, 1,133 steps per network per epoch), the GMM loss pass ran (0.394 s/batch), then co-training crashed on the iterator call; rerun of one co-training epoch from the saved warm-up = job 1042195"
+
+correction_20261017:
+  withdrawn: "the word 'collapsed' in host_finding_20261015_timing_job_1042033 (and in V9_03 §5c) was my reading and is withdrawn"
+  facts: "in the measured first epoch of native SGR (and the 5 epochs of the 1,160-image teacher run) the loss sat at the margin value 2 x 128 x 0.2 = 51.2 with dev R@1 0.1; the SGRAF author describes this plateau as expected — issue #2 (2021-03-17 / 2021-03-23 / 2021-04-14): 'The loss of the SAF module declines at 7-8 epoch, while for the SGR module it is at 12-13 epoch', 'The loss starts to decrease only when the margin between the nearest negative and the farthest positive exceeds 0', 'Yes, it is normal, occurring with both 0.4.1 (we recommended) and 1.2.0 (others tried)'; issue #13 (2021-12-11) repeats the 12-13 epoch statement; one measured epoch cannot distinguish that expected plateau from a non-starting run"
+  consequence: "the 5-epoch sum-violation warm-up in locked_recipes was justified by the withdrawn reading: for the 5-epoch teacher it remains needed (a hard-negative-only teacher would still be inside the plateau); for the 40-epoch SGR students native SGR (hard negatives from step 0) is expected to leave the plateau by epoch 12-13 — whether to keep the warm-up (a deviation from native SGR) or revert is a decision for the main session / N2 owner; locked_recipes is NOT edited here"
+  main_session_decision_20261017: "the warm-up's original rationale (\"SGR collapse\") is withdrawn per the SGRAF author (issues #2, #13); the recipe is kept unchanged for this block so all units share one recipe; its effect versus native SGR is not measured; a native-SGR student is only possible later as a separately named variant with its own cost"
+ncr_cotrain_timing_job_1042195:
+  node: "node50 (L40S), 2026-10-15 21:33:42 -> 22:14:39 UTC, exit 0, reloaded warm-up checkpoint of 1042033, py3 iterator patch, seed 917, noise 0.4 (DECL/RCL index)"
+  cotrain_epoch_seconds_L40S: "2,335 measured (config.json 21:34:04 -> checkpoint_0 22:12:59 UTC; includes data load, validation of the reloaded warm-up model, one GMM loss pass 1,133 x 0.241 s = 273 s, network A 697 steps x 1.244 s = 867 s on the labeled 89,148 + unlabeled 55,852 split, network B 705 steps x 1.240 s = 874 s on 90,148 / 54,852, validation of the average ~10 s)"
+  test_eval_seconds_L40S: 100
+  dev_trajectory: "after the 1-epoch warm-up (sum-violation): dev R@1 i2t 48.5 / t2i 43.2; after one co-training epoch: 13.0 / 0.8, test rsum 40.0; co-training loss flat at the margin-sum values (A 86.7, B 102.3 per batch) from step 100 on. Facts only: the native schedule uses 5 warm-up epochs, not 1; whether the 5-epoch warm-up avoids this drop is not tested here"
+  ncr_A_unit_hours: "L40S: 5 warm-up epochs x 823 s (estimate = node60 1,346 s / 1.63, the measured node60 / L40S ratio of the GMM loss-pass rate 0.394 / 0.241 s per batch) + 40 x 2,335 s measured + 100 s = 27.1 h > the 24 h partition limit; healthy RTX PRO 6000 estimate 20.2 h (= L40S / 1.35 from the 2.2 and 1.63 factors); NCR run.py has no co-training resume (only --warmup_model_path) -> NCR_A units must run on RTX6000PRO / H100 or need a resume patch"

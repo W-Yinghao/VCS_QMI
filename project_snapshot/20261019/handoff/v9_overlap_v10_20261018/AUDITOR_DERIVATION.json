@@ -1,0 +1,12 @@
+{
+  "utc": "2026-10-18T13:12:42.992955+00:00",
+  "base_bridge": "handoff/v9_to_v10_20261018/bridge.py",
+  "base_bridge_sha256": "5f8430a3178b96afdc0a90beb612b1bc76471f107d37b4737bad2390b0ba62b1",
+  "changes": {
+    "Close out the frozen V9 matrix before a dependent V10 GPU allocation starts.": "Audit the frozen V9 matrix independently while V10 uses released GPUs.",
+    "V9收尾核验通过后，本CPU作业退出0，Slurm释放依赖它的V10 GPU gate；gate成功后再运行冻结的四族数组。TEST134继续HOLD。": "本CPU作业独立完成V9核验与分析，不再限制V10启动。用户已授权V9尾部与V10交叠；V10正式数组仍须通过自己的GPU执行检查。TEST134继续HOLD。",
+    "auto_handoff_status='V9_CLOSEOUT_PASS'": "auto_handoff_status='V9_CLOSEOUT_PASS_INDEPENDENT'",
+    "'PASS_V10_DEPENDENCY_RELEASE'": "'PASS_V9_CLOSEOUT_INDEPENDENT'"
+  },
+  "scientific_verification_logic_changed": false
+}

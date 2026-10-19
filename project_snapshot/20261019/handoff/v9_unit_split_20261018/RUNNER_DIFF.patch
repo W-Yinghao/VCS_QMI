@@ -1,0 +1,94 @@
+--- frozen/run_full.py
++++ split/run_unit.py
+@@ -1,4 +1,4 @@
+-"""Full 40-epoch N2F groups, two units per GPU allocation; never reads TEST."""
++"""Single-unit execution of the frozen N2F recipe; scheduling amendment only."""
+ from __future__ import annotations
+ import argparse
+ import csv
+@@ -10,7 +10,10 @@
+ import time
+ import traceback
+ from pathlib import Path
++sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'v9_full_20261017'))
+ from common import ROOT, frozen, oracle_pool, read, sha, verify_input, write
++from split_common import BUNDLE, unit_path, verify_control, verify_identity, check_old_absent
++import fcntl
+ 
+ 
+ def verify_completed(path):
+@@ -22,9 +25,10 @@
+             raise ValueError(f'Completed artifact changed: {path/name}')
+ 
+ 
+-def main(group_id):
++def main(group_id, unit_index):
+     m = frozen(); groups = read(ROOT / 'GROUPS.json')
+     group = next(g for g in groups if g['id'] == group_id)
++    group = {**group, 'units': [group['units'][unit_index]]}
+     out = ROOT / 'results' / group_id
+     out.mkdir(parents=True, exist_ok=True)
+     if (out / 'DONE.json').exists():
+@@ -76,7 +80,7 @@
+     hardware = {'host': platform.node(), 'gpu': torch.cuda.get_device_name(), 'torch': torch.__version__,
+                 'cuda': torch.version.cuda, 'python': platform.python_version(), 'job_id': os.environ.get('SLURM_JOB_ID'),
+                 'deterministic_algorithms': True, 'tf32': False}
+-    write(out / 'hardware.json', hardware)
++    write(BUNDLE / 'units' / group_id / str(unit_index) / ('hardware_' + os.environ['SLURM_JOB_ID'] + '.json'), hardware)
+     units = []
+     for item in group['units']:
+         method, scale = item['method'], item['scale']
+@@ -89,6 +93,7 @@
+             raise ValueError(f'Unit identity mismatch: {ud}')
+         write(ud / 'identity.json', identity)
+         if (ud / 'full_result.json').exists():
++            verify_identity(ud, group_id, item)
+             verify_completed(ud)
+             units.append(str(ud / 'full_result.json'))
+             print('SKIP verified complete', method, scale, flush=True)
+@@ -117,8 +122,11 @@
+             raise ValueError('Incomplete weight coverage')
+         print('START', group_id, method, scale, 'n_pool', len(pool), hardware, flush=True)
+         t0 = time.time()
++        prior_manifest_sha = sha(ud / 'run_manifest.json') if (ud / 'last.pt').exists() else None
+         student = WeightedStudent(cfg, pool, weights, collate, dev_images, dev_captions, ud, seed, 1.0,
+                                   device='cuda', weight_lock=lock, formal=False, loss_scale=scale)
++        if prior_manifest_sha is not None and sha(ud / 'run_manifest.json') != prior_manifest_sha:
++            raise ValueError('Resume recipe differs from the saved checkpoint manifest')
+         done = student.fit(40)
+         if not np.isfinite(done['best']['rsum']):
+             raise ValueError('Nonfinite validation result')
+@@ -132,14 +140,28 @@
+         units.append(str(ud / 'full_result.json'))
+         del student; gc.collect(); torch.cuda.empty_cache()
+         print('COMPLETE', method, scale, done, flush=True)
+-    write(out / 'DONE.json', {'group': group_id, 'freeze_sha256': sha(ROOT / 'FROZEN.json'), 'units': units})
++    write(BUNDLE / 'units' / group_id / str(unit_index) / 'DONE.json',
++          {'group': group_id, 'unit_index': unit_index, 'freeze_sha256': sha(ROOT / 'FROZEN.json'),
++           'job_id': os.environ['SLURM_JOB_ID'], 'units': units})
+ 
+ 
+ if __name__ == '__main__':
+-    ap = argparse.ArgumentParser(); ap.add_argument('--group', required=True); a = ap.parse_args()
++    ap = argparse.ArgumentParser()
++    ap.add_argument('--group', required=True)
++    ap.add_argument('--unit-index', required=True, type=int)
++    a = ap.parse_args()
+     try:
+-        main(a.group)
++        cfg = verify_control()
++        if a.group not in cfg['split_groups'] or a.unit_index not in (0, 1):
++            raise ValueError('Unregistered split unit')
++        check_old_absent(cfg['split_groups'][a.group]['old_job'])
++        ud = unit_path(a.group, a.unit_index)
++        ud.mkdir(parents=True, exist_ok=True)
++        with (ud / 'RUN.lock').open('a') as lock:
++            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
++            main(a.group, a.unit_index)
+     except Exception:
+-        write(ROOT / 'results' / a.group / 'FAILED.json', {'group': a.group, 'utc': time.strftime('%FT%TZ', time.gmtime()),
+-              'job_id': os.environ.get('SLURM_JOB_ID'), 'traceback': traceback.format_exc()})
++        write(BUNDLE / 'units' / a.group / str(a.unit_index) / ('FAILED_' + os.environ.get('SLURM_JOB_ID', 'unknown') + '.json'),
++              {'group': a.group, 'unit_index': a.unit_index, 'utc': time.strftime('%FT%TZ', time.gmtime()),
++               'job_id': os.environ.get('SLURM_JOB_ID'), 'traceback': traceback.format_exc()})
+         raise

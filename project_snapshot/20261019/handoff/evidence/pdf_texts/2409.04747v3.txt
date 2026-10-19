@@ -1,0 +1,1014 @@
+PAGE 1
+Explicit Mutual Information Maximization for
+Self-Supervised Learning
+Lele Chang 1, Peilin Liu 1, Qinghai Guo 2, Fei Wen 1
+1School of Electronic Information and Electrical Engineering, Shanghai Jiao Tong University, Shanghai, China
+2Advanced Computing and Storage Laboratory, Huawei Technologies Co., Ltd., Shenzhen, China
+Abstract—Recently, self-supervised learning (SSL) has been
+extensively studied. Theoretically, mutual information maximiza-
+tion (MIM) is an optimal criterion for SSL, with a strong
+theoretical foundation in information theory. However, it is
+difficult to directly apply MIM in SSL since the data distribution
+is not analytically available in applications. In practice, many
+existing methods can be viewed as approximate implementations
+of the MIM criterion. This work shows that, based on the
+invariance property of MI, explicit MI maximization can be
+applied to SSL under a generic distribution assumption, i.e., a
+relaxed condition of the data distribution. We further illustrate
+this by analyzing the generalized Gaussian distribution. Based on
+this result, we derive a loss function based on the MIM criterion
+using only second-order statistics. We implement the new loss for
+SSL and demonstrate its effectiveness via extensive experiments.
+Index Terms —self-supervised learning, computer vision, mu-
+tual information
+I. I NTRODUCTION
+Self-supervised learning (SSL) is a powerful technique
+aims to learn task-agnostic representations without relying on
+annotated training data. SSL methods commonly utilize pretext
+tasks to learn representation-extracting models, which can be
+generally categorized into generative-based and contrastive-
+based ones [1, 2]. In generative-based methods, the pretext
+tasks are designed to predict or reconstruct the input data
+[3, 4]. In comparison, contrastive-based methods construct pre-
+text tasks in the embedding space, and learn a representation-
+extracting model by discriminating between positive and neg-
+ative pairs in the embedding space.
+Recently, Siamese networks [5] based SSL methods have
+shown great promise, which utilize weight-sharing networks
+to process distorted versions of the samples [6, 7, 8, 9, 10].
+An issue of Siamese networks is that the two branches may
+collapse to constant representation. To prevent this problem,
+contrastive based methods construct positive and negative
+pairs and contrast between them using contrastive losses, such
+as InfoNCE loss [11], NT-Xent loss [6], Circle loss [12],
+and Triplet loss [13]. Besides, online clustering, asymmetric
+structure and momentum encoder have been shown to be
+effective for preventing collapsing [9, 10, 14, 15]. Further-
+more, redundancy reduction of the embeddings and variance
+regularization can naturally avoid collapsing [7, 8]. Generally,
+the primary objective of these methods is to maximize the
+similarity between the two-branch embeddings of the Siamese
+networks while avoiding the collapsing problem.
+Mutual information (MI) is an information-theoretic mea-
+sure that can capture non-linear statistical dependencies be-
+tween random variables and thereby serve as a measure of
+true dependence [16]. Theoretically, under the framework of
+Siamese networks based SSL, MI is an optimal metric to mea-
+sure the dependence between the embeddings of the Siamese
+networks. However, directly constructing an objective based on
+MI is challenging as it relies on the analytic expression of the
+data distribution. Consequently, many existing methods can be
+seen as approximate implementations of the MI maximization
+criterion. For example, the InfoNCE loss based methods [6]
+employ a noise contrastive estimation (NCE) of MI [17],
+which is shown to be a lower bound of MI [18]. Besides, it has
+been shown in [19] that the VICReg method [8] implements
+an approximation of the MI maximization criterion. In [20],
+the minimal coding length in lossy coding is used to construct
+a maximum entropy coding objective for SSL. Meanwhile,
+MI maximization is considered in [21] for SSL using a log-
+determinant approximation of the MI, which is simplified to
+derive a Euclidean distance-based objective.
+In this work, based on the invariance property of MI, we
+show that the explicit MI maximization objective based on
+second-order statistics can be applied to SSL under a generic
+condition of the data distribution. This objective involves
+intractable determinant calculation of high-dimensional matri-
+ces, we propose reformulation and optimization strategies to
+make it adequate for stable and efficient end-to-end training.
+The main contributions are as follows:
+• We provide a new perspective for SSL objective design
+from the invariance property of MI established in infor-
+mation theory, which shows that explicit MI optimization
+based on second-order statistics can be applied to SSL
+under a generic condition of the data distribution.
+• We implement the second-order statistics based MI ob-
+jective for SSL, for which optimization strategies have
+been proposed to make it adequate for end-to-end self-
+supervised learning on practical tasks.
+• We demonstrate the effectiveness of the proposed method
+by evaluation on CIFAR-10/100 and ImageNet-100/1K in
+comparison with state-of-the-art methods.
+arXiv:2409.04747v3  [cs.CV]  12 Sep 2024
+
+PAGE 2
+Fig. 1. The MMI objective explicitly measures the MI I(Z; Z′) between the
+embeddings Z and Z′ generated by two identical networks fω(·) that are fed
+transformed versions of sample S. Maximizing I(Z; Z′) not only maximizes
+the dependency between the embeddings Z and Z′ by minimizing their joint
+entropy H(Z, Z′), but also maximizes their marginal entropy H(Z) and
+H(Z′), respectively, which naturally avoids trivial constant solutions.
+II. M ETHOD
+We consider a Siamese network architecture that processes
+two augmented versions of the same input through parallel
+identical networks [22], as illustrated in Fig. 1. Denote the
+two embeddings by Z = [Z1, Z2, · · ·, Zd]T ∈ Rd and Z ′ =
+[Z ′
+1, Z′
+2, · · ·, Z′
+d]T ∈ Rd, respectively, which are generated
+from two distorted views X and X ′ of the same image S
+by the network fω(·) with trainable parameters ω.
+A. The Maximum Mutual Information Criterion
+As shown in Fig. 1, we consider a maximum mutual
+information (MMI) criterion as
+maximize I (Z; Z ′) . (1)
+The MI can be expressed as I (Z; Z ′) = H(Z) + H(Z ′) −
+H(Z, Z′), where H(Z, Z′) is the joint entropy of (Z, Z′),
+H(Z) and H(Z ′) are the marginal entropy of Z and Z ′,
+respectively. The MMI criterion not only maximizes the de-
+pendency between the embeddings Z and Z ′ by minimizing
+their joint entropy, but also maximizes the marginal entropy
+of Z and Z ′, respectively, which promotes decorrelating the
+features in the embeddings Z and Z ′ and naturally avoids the
+collapse problem of converging to trivial constant solutions.
+However, MI is difficult to explicitly compute except for
+certain simple specific distributions. Accordingly, Gaussian
+distribution assumption is used to derive MI based objectives
+for SSL [19, 21]. The next result shows that I (Z; Z ′) can be
+explicitly computed based only on second-order statistics un-
+der a more generic distribution condition. In the following, we
+denote the covariance matrices of Z, Z′ and ˜Z :=
+
+Z T , Z′T T
+by CZZ , CZ′Z′ and C ˜Z ˜Z, respectively.
+Theorem 1 : If there exist two homeomorphisms maps
+F : Rd → Rd and G : Rd → Rd (i.e. F and G are
+smooth and uniquely invertible maps) such thatY = F (Z) and
+Y ′ = G (Z ′) are Gaussian distributed, let ˜Y = [ Y T , Y′T ]T
+and denote the covariance matrices of Y , Y ′ and ˜Y by CY Y,
+CY ′Y ′ and C ˜Y ˜Y , respectively, then
+I (Z; Z ′) = I (Y ; Y ′) = 1
+2 log det (CY Y) det (CY ′Y ′)
+det (C ˜Y ˜Y ) . (2)
+The proof is given in the supplemental material (SM) [23].
+This result is derived from the invariance property of MI [24]
+and the MI of multivariate Gaussian distribution. It relaxes
+the condition of data distribution required for explicit MI
+expression. It implies that we can compute the MI only based
+on second-order statistics even if the distributions of Z and
+Z ′ are not Gaussian. To verify this result, we investigate
+the MI under a class of distributions, namely generalized
+Gaussian distribution (GGD). Generally, there does not appear
+to exist an agree on multivariate GGD, we use a definition as
+a particular case of the Kotz-type distribution [25, 26]
+GN (X; µX , ΣXX , β) :=
+Φ(β, n)
+[det (ΣXX )]1/2 exp
+
+− 1
+2
+h
+(X − µX )T Σ−1
+XX (X − µX )
+iβ
+,
+(3)
+where Γ is the gamma function, Φ(β, n) =
+βΓ(n/2)/
+
+2n/(2β)πn/2Γ(n/(2β)], µX and ΣXX are
+the mean and dispersion matrix of X, respectively, β > 0
+is a shape parameter. GGD has a flexible parametric form,
+which can adapt to a large family of distributions by choosing
+the shape parameter β, from super-Gaussian when β < 1 to
+sub-Gaussian when β > 1, including the Gamma, Laplacian
+and Gaussian distributions as special cases.
+Theorem 2 : Suppose that Z and Z ′ follow multivariate
+GGD, Z ∼ GN(µZ, ΣZZ , β) , Z′ ∼ GN(µZ′, ΣZ′Z′, β),
+where ΣZZ and ΣZ′Z′ are dispersion matrices. Let ˜Z =
+Z T , Z′T T
+∈ R2d and denote the dispersion matrix of ˜Z
+by Σ ˜Z ˜Z. Then, for any β >0, the MI between Z and Z ′ is
+given by
+I (Z; Z ′) = 1
+2 log det (ΣZZ ) det (ΣZ′Z′)
+det (Σ˜Z ˜Z)
+= 1
+2 log det (CZZ ) det (CZ′Z′)
+det (C ˜Z ˜Z) .
+(4)
+The proof is given in the SM [23]. The above result implies
+that MI can be explicitly computed based only on second-
+order statistics for any distribution that can be marginally
+reparameterized as multivariate norm distribution under a
+homeomorphism condition.
+Based on the above results, we propose to use the second-
+order statistics based explicit MI expression for SSL, with
+which the MMI criterion (1) can be formulated as
+minimize log det (C ˜Z ˜Z) − log det (CZZ ) − log det (CZ′Z′) .
+(5)
+Minimizing formulation (5) is equivalent to maximizing
+det (CZZ ) and det (CZ′Z′) while minimizing det (C ˜Z ˜Z).
+Maximizing det (CZZ ) (resp. det (CZ′Z′) ) would promote
+the features in Z (resp. Z ′ ) to be less correlated, there-
+fore decorrelates the features in the output embedding. This
+decorrelation reduces the redundant information of the output
+embedding and promotes extracting information from the sam-
+ple as much as possible, which also helps avoid the collapse
+problem of converging to a trivial constant solution.
+B. Implementation of the MMI Criterion for SSL
+It is difficult to directly optimize the MMI formulation (5)
+as it involves computing the determinant of high-dimensional
+
+PAGE 3
+covariance matrices, e.g., CZZ ∈ Rd×d, CZ′Z′ ∈ Rd×d, and
+C ˜Z ˜Z ∈ R2d×2d. Typically, m < d in the self-supervised
+learning setting, e.g., d = 4096, m∈ {512, 1024, 2048}. The
+MMI formulation can be reformulated to reduce the compu-
+tational complexity. Specifically, since the two transformation
+operators X = t (S) and X ′ = t′ (S) are sampled from the
+same distribution of augmentations, i.e. t ∼ T and t′ ∼ T, Z=
+fω(X) and Z ′ = fω (X ′) are the representations extracted by
+the same network fω, and without loss of generality assuming
+that Z and Z ′ having zero-mean, it follows that
+CZZ = E
+
+ZZ T 	
+= CZ′Z′ = E
+
+Z ′Z ′T 	
+,
+CZZ ′ = E
+
+ZZ ′T 	
+= CZ′Z = E
+
+Z ′Z T 	
+.
+Then, using det
+ A B
+B A
+
+= det(A + B) det(A − B), we
+have
+det (C ˜Z ˜Z) = det
+
+CZZ CZZ ′
+CZ′Z CZ′Z′
+
+= det (CZZ + CZZ ′) det (CZZ − CZZ ′) .
+Therefore, the objective of the MMI formulation (5) can be
+reformulated as
+L = log det (CZZ + CZZ ′) + log det (CZZ − CZZ ′)
+− log det (CZZ ) − log det (CZ′Z′) . (6)
+In the following without loss of generality we assume
+that Z and Z ′ are normalized such that diag {CZZ } =
+diag {CZ′Z′} = I. Then, it is easy to see that, the desired
+optimal solution of minimizing (6) is CZZ = ±CZZ ′ and
+CZZ = CZ′Z′ = I. That is Z = ±Z ′, and, at meantime, Z and
+Z ′ have the maximum entropy given by CZZ = CZ′Z′ = I.
+However, from the above analysis, since X = t (S) and
+X ′ = t′ (S) with t(·) and t′(·) following the same distribution,
+Z = fω(X) and Z ′ = fω (X ′) are the outputs of the same
+network fω, the solution CZZ = −CZZ ′ given by Z = −Z ′
+is invalid. Hence, we can drop the first term in (6) to obtain
+L = log det (CZZ − CZZ ′)−log det (CZZ )−log det (CZ′Z′) .
+(7)
+It is problematic to directly optimize the objective (7). First,
+the MI is formulated for multivariate continuous variables,
+which would be infinite when any two components are lin-
+early correlated, e.g., I (Z; Z ′) = ∞ if Zi = ϕZ ′
+i for any
+i ∈ {1, · · ·, d} and any ϕ ̸= 0. This means L = −∞ when any
+pair (Zi, Z′
+i) is linearly correlated, regardless the correlation
+between other feature pairs
+ 
+Zj, Z′
+j
+	
+j̸=i. Second, the high-
+dimensional determinant is intractable to compute, and direct
+minimization of (7) has a degeneration problem when m < d
+since the covariance matrices are rank-deficient in this case.
+To achieve stable optimization for end-to-end training, we
+consider further reformulation and approximation of (7) as
+follows. Specifically, in implementation the covariance matri-
+ces are estimated from m samples, and an empirical loss of
+(7) is used as
+L = log det( ˆCZZ − ˆCZZ ′) − log det( ˆCZZ ) − log det( ˆCZ′Z′).
+(8)
+With m < d , the matrices ˆCZZ , ˆCZZ ′, ˆCZ′Z′ are rank-
+deficient and their determinants are constantly zero, which
+makes (8) an inadequate objective for optimizing the network.
+In this case, recalling that the determinant of a matrix is
+equivalent to the product of its eigenvalues, we turn to
+optimize the product of its nonzero eigenvalues. Under the
+assumption that Z and Z ′ have zero-mean, and let ¯Z ∈ Rd×m
+and ¯Z ′ ∈ Rd×m denote the matrices containing the embed-
+dings of m samples, this can be implemented by replacing
+ˆCZZ = 1
+d
+¯Z ¯Z T , ˆCZZ ′ = 1
+d
+¯Z ¯Z ′T , ˆCZ′Z′ = 1
+d
+¯Z ′ ¯Z ′T by
+˘CZZ = 1
+m
+¯Z T ¯Z, ˘CZZ ′ = 1
+m
+¯Z T ¯Z ′, and ˘CZ′Z′ = 1
+m
+¯Z ′T ¯Z ′,
+respectively, to get
+L = log det
+  ¯Z T ¯Z − ¯Z T ¯Z ′
+−log det
+  ¯Z T ¯Z
+
+−log det
+  ¯Z ′T ¯Z ′
+.
+(9)
+Besides, since the determinant of a high dimensional matrix
+is expensive to compute and unstable, we consider a Tylor
+expansion of the log-determinant log det(M ) for a matrix
+M ∈ Rn×n as
+log det(M ) =
+nX
+i=1
+log λi(M )
+=
+nX
+i=1
+∞X
+k=1
+(−1)k+1 (λi(M ) − 1)k
+k
+=
+∞X
+k=1
+(−1)k+1 tr
+ 
+(M − I)k
+k tr
+ ∞X
+k=1
+(−1)k+1 (M − I)k
+k
+!
+,
+(10)
+where we used Pn
+i=1 (λi(M ) − 1)k = tr
+ 
+(M − I)k
+, and
+λi(M ) denotes the i-th eigenvalue of M. The series (10) only
+converges under the condition of ∥M −I∥ < 1, or equivalently
+0 < λi(M ) < 2 for any i. We seek to use a low-order
+approximation of (10) to facilitate the optimization. From (10),
+since a lower-order approximation is more accurate when the
+eigenvalues {λi(M )}i=1,...,n are closer to 1, we rescale the
+matrix as
+˜M = M − µλI
+α + I, (11)
+where µλ = λmax(M )+λmin(M )
+2 and α = β (µλ − λmin (M )),
+such that ∥ ˜M − I∥ ≤1
+β < 1 for some β > 1. λmin (·) and
+λmax (·) denote the minimum and maximum eigenvalues of a
+matrix, respectively. In implementing the loss (9), the three
+log-determinant terms are expanded as (10), and only a p-th
+order approximation is kept, e.g., p = 4 in the experiments of
+this work. A fourth-order approximation of the log function
+in (10) is sufficiently accurate around the value of 1.
+Notice that using the diagonal-loading like rescaling in
+(11) is equivalent to using a noise injection regularization of
+the MI calculation. Specifically, it is equivalent to replacing
+I (Z; Z ′) by I (Z + ε; Z ′ + ε′), where ε and ε′ are additive
+Gaussian noise. With this regularization the MI becomes finite.
+Otherwise, the MI would be infinite when any two components
+are linearly correlated, e.g., I (Z; Z ′) = ∞ if Zi = ϕZ ′
+i for
+any i ∈ {1, · · ·, d} and any ϕ ̸= 0, and correspondingly with
+
+PAGE 4
+TABLE I
+LINEAR PROBING RESULTS ON CIFAR-10/100 AND IMAGE NET-100.
+TOP-1 ACCURACY IS REPORTED WITH RESNET18.
+Method CIFAR-10 CIFAR-100 ImageNet-100
+Barlow Twins [7] 92.1 70.9 80.4
+BYOL[14] 92.6 70.5 80.2
+DeepCluster V2 [9] 88.9 63.6 75.4
+DINO [28] 89.5 66.8 74.8
+MoCo V2+ [29] 92.9 69.9 78.2
+MoCo V3 [30] 93.1 68.8 80.4
+NNCLR [31] 91.9 69.6 79.8
+ReSSL [32] 90.6 65.9 76.9
+SimCLR [6] 90.7 65.8 77.6
+Simsiam [15] 90.5 66.0 74.5
+SwA V [33] 89.2 64.9 74.0
+VICReg [8] 92.1 68.5 79.2
+W-MSE [34] 88.7 61.3 67.6
+CorInfoMax [21] 93.2 71.6 80.5
+Ours 93.1 70.5 81.1
+TABLE II
+LINEAR PROBING RESULTS ON IMAGE NET-1K. TOP-1 ACCURACY IS
+REPORTED AT 100, 400, AND 800 EPOCHS WITH RESNET50.
+Method 100 eps 400 eps 800 eps
+SimCLR [6] 66.5 69.8 70.4
+MoCo v2 [29] 67.4 71.0 72.2
+BYOL [14] 66.5 73.2 74.3
+SwA V [33] 66.5 70.7 71.8
+SimSiam [15] 68.1 70.8 71.3
+Barlow Twins [7] 67.3 71.8 73.0
+Ours 70.6 72.6 73.1
+the first term of the objective (5) becoming minus infinite,
+which makes the objective in (5) difficult to optimize directly.
+III. E XPERIMENTS
+We follow the standard training protocol in Solo-learn
+benchmark [27]. ResNet18 is used as the backbone for
+CIFAR-10/100 and ImageNet-100, whilst ResNet50 is used for
+ImageNet-1K. The results on CIFAR-10/100 and ImageNet-
+100 in Table I are compared with a batch size of 256. The
+experiments are conducted on a computing platform with three
+A100 GPUs, each with 40 GB of memory. On ImageNet-1K,
+it supports a maximum batch size of 1020 when using 16-
+bit precision (FP16). Therefore, on ImageNet-1K, our method
+is run with a precision of FP16 and a batch size of 1020.
+Meanwhile, to enhance stability and expedite the training
+process, we use gradient accumulation across four batches
+(1020 × 4) on ImageNet-1K. Detailed experiment settings are
+provided in the SM [23].
+a) LINEAR PROBING: Linear probing is a standard
+evaluation protocol in SSL, in which a linear classifier is
+trained on top of frozen representations of a pretrained model.
+Table I shows the linear probing results on CIFAR-10/100 and
+ImageNet-100. Following strictly the protocol of the Solo-
+learn benchmark [27], ResNet18 is used with the last fully
+connected layer replaced with a three-layer MLP interleaved
+with Batch Normalization (BN) and ReLU as projector. We
+keep the projector’s hidden dimension and output dimension as
+TABLE III
+ROBUSTNESS TO BATCH SIZE . WE USE THE SAME SETUP AS IN TABLE I
+BUT VARY THE BATCH SIZE . “O URS -M” DENOTES OUR METHOD WITH A
+MOMENTUM ENCODER .
+Batch
+size
+CIFAR-100 ImageNet-100
+Ours Ours-M Barlow Twins Ours Ours-M Barlow Twins
+1024 68.9 70.4 65.9 79.8 81.4 77.5
+512 70.0 70.5 68.7 79.5 81.1 79.6
+256 70.5 70.4 70.9 81.1 81.7 80.4
+128 70.2 70.2 71.5 80.7 81.8 80.2
+64 70.1 71.1 70.2 79.1 81.2 78.4
+2048. The modified backbone and projector act as encoder. For
+CIFAR, we adapt the architecture by removing the first max-
+pooling layer and modifying the first convolutional layer to fit
+the 32×32 input size, in line with [6, 27]. The results for other
+methods in Table I are sourced from the Solo-learn benchmark
+[27]. It can be seen that our method achieves competitive
+performance on all three datasets. Notably, on ImageNet-100,
+our method achieves the highest accuracy of 81.1%. Table II
+compares the top-1 accuracy of the methods on ImageNet-
+1K with different pretraining epochs. On ImageNet-1K, the
+results of our method are reported with a momentum encoder
+[14, 15]. As shown in Table III, our method achieves better
+performance with a momentum encoder. From Table II, our
+method achieves competitive performance on ImageNet-1K,
+which is especially noteworthy under small training epochs.
+b) ABLATION ON BATCH SIZE: We evaluate the ro-
+bustness of our method against batch size, following the
+same setting as Table I. We consider two variants of our
+method, one is standard and the other uses a momentum
+encoder [14, 15]. As shown in Table III, both our method
+and Barlow Twins reach a saturation point as batch size
+increases, which is consistent with the results in [7]. Our
+method has better robustness across varying batch sizes, with a
+maximum accuracy variation of 1.6% on CIFAR-100 and 2.0%
+on ImageNet-100, respectively, while Barlow Twins shows
+5.6% and 2.9% accuracy variation on the two datasets. For
+our method, using a momentum encoder helps to enhance
+performance across different batch sizes. More ablation studies
+can refer to the SM [23].
+IV. C ONCLUSIONS
+This work seeks to construct an objective for SSL from the
+information theoretic view. Based on the invariance property of
+mutual information, we showed that the maximum MI criterion
+can be applied to SSL for a relaxed condition on the data
+distribution. We illustrated this through analyzing the explicit
+MI of generalized Gaussian distribution. Then, the derived
+second-order statistics based formulation of MI is employed
+for SSL, and optimization strategies have been proposed to
+efficiently implement it for end-to-end training. Experiments
+on the CIFAR and ImageNet benchmarks demonstrated the
+effectiveness of the derived MI based loss.
+
+PAGE 5
+REFERENCES
+[1] S. Kim, S. Kang, F. Bu et al. , “Hypeboy: Generative
+self-supervised representation learning on hypergraphs,”
+arXiv preprint arXiv:2404.00638 , 2024.
+[2] A. Jaiswal, A. R. Babu, M. Z. Zadeh et al. , “A survey
+on contrastive self-supervised learning,” Technologies,
+vol. 9, no. 1, p. 2, 2020.
+[3] Z. Liu, A. Alavi, M. Li et al., “Self-supervised learning
+for time series: Contrastive or generative?”arXiv preprint
+arXiv:2403.09809, 2024.
+[4] K. He, X. Chen, S. Xie et al., “Masked autoencoders are
+scalable vision learners,” in CVPR, 2022, pp. 16 000–
+16 009.
+[5] J. Bromley, I. Guyon, Y . LeCun et al. , “Signature ver-
+ification using a” siamese” time delay neural network,”
+NeurIPS, vol. 6, 1993.
+[6] T. Chen, S. Kornblith, M. Norouzi et al. , “A simple
+framework for contrastive learning of visual represen-
+tations,” in ICML, 2020, pp. 1597–1607.
+[7] J. Zbontar, L. Jing, I. Misra et al. , “Barlow Twins:
+Self-Supervised Learning via Redundancy Reduction,” in
+ICML, Jul. 2021, pp. 12 310–12 320.
+[8] A. Bardes, J. Ponce, and Y . LeCun, “Vicreg: Variance-
+invariance-covariance regularization for self-supervised
+learning,” in ICLR, 2022.
+[9] M. Caron, I. Misra, J. Mairal et al. , “Unsupervised
+Learning of Visual Features by Contrasting Cluster As-
+signments,” in NeurIPS, vol. 33, 2020, pp. 9912–9924.
+[10] K. He, H. Fan, Y . Wu et al. , “Momentum Contrast for
+Unsupervised Visual Representation Learning,” inCVPR,
+Jun. 2020, pp. 9726–9735.
+[11] A. van den Oord, Y . Li, and O. Vinyals, “Represen-
+tation Learning with Contrastive Predictive Coding,”
+arXiv:1807.03748, Jan. 2019.
+[12] Y . Sun, C. Cheng, Y . Zhang et al. , “Circle Loss: A
+Unified Perspective of Pair Similarity Optimization,” in
+CVPR, Jun. 2020, pp. 6397–6406.
+[13] E. Hoffer and N. Ailon, “Deep metric learning using
+triplet network,” in Similarity-Based Pattern Recognition,
+A. Feragen, M. Pelillo, and M. Loog, Eds. Cham:
+Springer International Publishing, 2015, pp. 84–92.
+[14] J.-B. Grill, F. Strub, F. Altch ´e et al. , “Bootstrap Your
+Own Latent - A New Approach to Self-Supervised Learn-
+ing,” in NeurIPS, 2020.
+[15] X. Chen and K. He, “Exploring simple siamese repre-
+sentation learning,” in CVPR, 2021, pp. 15 750–15 758.
+[16] J. B. Kinney and G. S. Atwal, “Equitability, mutual
+information, and the maximal information coefficient,”
+PNAS, vol. 111, no. 9, pp. 3354–3359, 2014.
+[17] M. Gutmann and A. Hyv ¨arinen, “Noise-contrastive es-
+timation: A new estimation principle for unnormalized
+statistical models,” in Thirteenth International Confer-
+ence on Artificial Intelligence and Statistics , 2010, pp.
+297–304.
+[18] B. Poole, S. Ozair, A. Van Den Oord et al. , “On vari-
+ational bounds of mutual information,” in International
+Conference on Machine Learning, 2019, pp. 5171–5180.
+[19] R. Shwartz-Ziv, R. Balestriero, K. Kawaguchi et al., “An
+information-theoretic perspective on variance-invariance-
+covariance regularization,” NeurIPS, 2023.
+[20] X. Liu, Z. Wang, Y .-L. Liet al., “Self-supervised learning
+via maximum entropy coding,” NeurIPS, vol. 35, pp.
+34 091–34 105, 2022.
+[21] S. Ozsoy, S. Hamdan, S. Arik et al. , “Self-supervised
+learning with an information maximization criterion,”
+NeurIPS, vol. 35, pp. 35 240–35 253, 2022.
+[22] D. Chicco, “Siamese Neural Networks: An Overview,”
+in Artificial Neural Networks , H. Cartwright, Ed. New
+York, NY: Springer US, 2021, pp. 73–94.
+[23] L. Chang, P. Liu, Q. Guo et al., “Explicit mutual infor-
+mation maximization for self-supervised learning,” arXiv
+preprint arXiv:2409.04747, 2024.
+[24] A. Kraskov, H. St ¨ogbauer, and P. Grassberger, “Estimat-
+ing mutual information,” Physical Review E , vol. 69,
+no. 6, p. 066138, 2004.
+[25] K. W. Fang, S. Kotz, and K. W. Ng, Symmetric multivari-
+ate and related distributions . Chapman and Hall/CRC,
+1990.
+[26] G. Verdoolaege and P. Scheunders, “On the geometry
+of multivariate generalized gaussian models,” Journal of
+Mathematical Imaging and Vision, vol. 43, pp. 180–193,
+2012.
+[27] V . G. T. da Costa, E. Fini, M. Nabi et al. , “Solo-
+learn: A Library of Self-supervised Methods for Visual
+Representation Learning,” Journal of Machine Learning
+Research, vol. 23, no. 56, pp. 1–6, 2022.
+[28] M. Caron, H. Touvron, I. Misra et al., “Emerging Prop-
+erties in Self-Supervised Vision Transformers,” arXiv
+preprint arXiv:2104.14294, May 2021.
+[29] X. Chen, H. Fan, R. Girshick et al., “Improved baselines
+with momentum contrastive learning,” arXiv preprint
+arXiv:2003.04297, 2020.
+[30] X. Chen, S. Xie, and K. He, “An empirical study of
+training self-supervised vision transformers,” in ICCV,
+2021, pp. 9640–9649.
+[31] D. Dwibedi, Y . Aytar, J. Tompson et al. , “With a little
+help from my friends: Nearest-neighbor contrastive learn-
+ing of visual representations,” in ICCV, October 2021,
+pp. 9588–9597.
+[32] M. Zheng, S. You, F. Wang et al. , “Ressl: Relational
+self-supervised learning with weak augmentation,” arXiv
+preprint arXiv:2107.09282, 2021.
+[33] L. Jing and Y . Tian, “Self-supervised visual feature
+learning with deep neural networks: A survey,” IEEE
+Trans. PAMI, vol. 43, no. 11, pp. 4037–4058, 2020.
+[34] A. Ermolov, A. Siarohin, E. Sangineto et al., “Whitening
+for Self-Supervised Representation Learning,” in ICML,
+Jul. 2021, pp. 3015–3024.
+[35] I. Misra and L. van der Maaten, “Self-Supervised Learn-
+ing of Pretext-Invariant Representations,” arXiv preprint
+arXiv:1912.01991, Dec. 2019.
+
+PAGE 6
+[36] Z. Wu, Y . Xiong, S. X. Yu et al., “Unsupervised feature
+learning via non-parametric instance discrimination,” in
+CVPR, 2018, pp. 3733–3742.
+[37] C. Feng and I. Patras, “Adaptive Soft Contrastive Learn-
+ing,” in International Conference on Pattern Recognition
+(ICPR), Aug. 2022, pp. 2721–2727.
+[38] F. Wang, T. Kong, R. Zhang et al. , “Self-Supervised
+Learning by Estimating Twin Class Distributions,” arXiv
+preprint arXiv:2110.07402, Dec. 2021.
+[39] M. I. Belghazi, A. Baratin, S. Rajeshwar et al., “Mutual
+information neural estimation,” in International Confer-
+ence on Machine Learning , 2018, pp. 531–540.
+[40] A. v. d. Oord, Y . Li, and O. Vinyals, “Representa-
+tion learning with contrastive predictive coding,” arXiv
+preprint arXiv:1807.03748, 2018.
+[41] G. Verdoolaege and P. Scheunders, “On the Geometry
+of Multivariate Generalized Gaussian Models,” Journal
+of Mathematical Imaging and Vision , vol. 43, no. 3, pp.
+180–193, Jul. 2012.
+
+PAGE 7
+SUPPLEMENTARY MATERIAL
+A. Related Work
+While there exists a large number of SSL methods developed in the last years, here we mainly review recent contrastive-
+based methods closely related to ours. Besides, while our method is based on MI optimization, we particularly review the
+works related to MI.
+1) Siamese Networks Based Self-Supervised Representation Learning: Siamese networks [5] have become a prevalent
+structure in recent SSL models and achieved great performance [6, 7, 9, 10, 14]. Siamese structure-based methods utilize
+two weight-sharing network encoders to process distinct views of the same input image, which facilitates comparing and
+contrasting entities. Typically, these models are designed to maximize the similarity between two different augmentations
+of the same image, while employing various regulations to avoid the collapse problem of converging to a trivial constant
+solution. Contrastive learning is an effective approach to avoid undesired trivial solutions. Techniques such as SimCLR, MoCo,
+PIRL leverage this approach by contrasting between positive and negative pairs, e.g., pulling positive pairs closer while
+pushing negative pairs farther apart [6, 10, 35, 36]. Another approach SwA V [9] utilizes online clustering to prevent trivial
+solutions, which clusters features to prototypes while enforcing consistency between cluster assignments of different views of
+the same image. Without using negative pairs for explicit contrasting, asymmetric structure and momentum encoder have been
+considered for preventing collapsing [10, 14, 15, 32, 37, 38]. For example, BYOL uses a Siamese network with one branch
+being a momentum encoder and directly predicts the output representation of one branch from another [14]. Then, it has
+been recognized in [15] that the momentum encoder in BYOL is unnecessary for preventing collapsing, rather a stop-gradient
+operation is crucial for avoiding collapsing. Furthermore, the Barlow Twins method [7] shows that, without using negative pairs
+and asymmetry structure, the collapse problem can be naturally avoided by feature-wise contrastive learning. It maximizes the
+similarity between the embeddings of distorted versions of the same sample, while minimizing the redundancy between the
+features of the embeddings. Moreover, VICReg [8] explicitly avoids the collapse problem using a regularization term on feature
+variance and combining it with redundancy reduction and covariance regularization to form a variance-invariance-covariance
+regularization formulation.
+2) Mutual Information Maximization For Self-Supervised Learning: MI is a fundamental quantity for measuring the
+dependence between random variables based on Shannon entropy. While calculating MI has traditionally been challenging,
+neural network-based methods have been recently developed to estimate MI for high-dimensional random variables [17, 39].
+For SSL, many early methods [6, 10, 36, 40] use a contrastive loss function called InfoNCE or its variants. These methods
+commonly employ an NCE estimation of MI based on discriminating between positive and negative pairs [17]. These methods
+are linked to MI maximization as the NCE loss is a lower bound of MI [18]. As the NCE estimator of MI is low-variance
+but high-bias, a large batch size is required at test time for accurate MI estimation when the MI is large. Moreover, in
+[20], the minimal coding length in lossy coding is used as a surrogate to construct a maximum entropy coding objective for
+SSL. Additionally, the recent work [19] has shown that the VICReg method [8] in fact implements an approximation of MI
+maximization criterion. Besides, MI maximization is considered in [21] for SSL using a log-determinant approximation of the
+MI, which is then simplified to derive a Euclidean distance-based objective. While these methods can be viewed as approximate
+implementations of the MI maximization criterion, we consider explicit MI maximization for SSL.
+B. Proof of Theorem 1
+We first recall the result on the invariance property of mutual information. Specifically, if Y = F (Z) and Y ′ = G(Z ′) are
+homeomorphisms, then I(Z; Z ′) = I(Y ; Y ′) [24]. Denote ˜Y = [ Y T , Y′T ]T , if Y = F (Z) and Y ′ = G(Z ′) are Gaussian
+distributed, i.e. Y ∼ N(Y ; µY , CY Y) and Y ′ ∼ N(Y ′; µY ′, CY ′Y ′), we have ˜Y ∼ N( ˜Y ; µ ˜Y , C˜Y ˜Y ) with
+C ˜Y ˜Y =
+ CY Y CY Y′
+CY ′Y CY ′Y ′
+
+.
+Then, the mutual information I(Y ; Y ′) = H(Y ) + H(Y ′) − H(Y, Y′) is given by
+I(Y ; Y ′) = 1
+2 log det(CY Y) det(CY ′Y ′)
+det(C ˜Y ˜Y ) ,
+where H(Y ) and H(Y ′) are the marginal entropy of Y and Y ′, respectively, H(Y, Y′) is the joint entropy of Y and Y ′.
+This together with the invariance property of mutual information, i.e. I(Z; Z ′) = I(Y ; Y ′) under homeomorphisms condition,
+results in Theorem 1.
+C. Proof of Theorem 2
+Theorem 1 implies that we can compute the MI only based on second-order statistics even if the distributions of Z and Z ′
+are not Gaussian. We investigate the MI under the generalized Gaussian distribution (GGD) as defined in (3) of the main paper.
+The GGD offers a flexible parametric form that can adapt to a wide range of distributions by varying the shape parameter
+
+PAGE 8
+β in (3), from super-Gaussian when β < 1 to sub-Gaussian when β > 1, including the Gamma, Laplacian and Gaussian
+distributions as special cases. Figure 2 provides an illustration of univariate GGD with different values.
+Let ˜Z =
+
+Z T , Z′T T
+∈ R2d, and from (3) in main paper, the joint distribution pZ,Z ′(z, z′) is ˜Z ∼ GN
+
+˜Z; µ ˜Z, Σ ˜Z ˜Z, β
+
+,
+where µ ˜Z is the mean, and Σ ˜Z ˜Z is the dispersion matrix. The MI between Z and Z ′ is given by
+I (Z, Z′)
+=
+Z Z
+pZ,Z ′ (z, z′) log pZ,Z ′ (z, z′)
+pZ(z)pZ′ (z′) dzdz ′ (12)
+= E [log pZ,Z ′ (z, z′)] − E [log pZ(z)] − E [log pZ′ (z′)] .
+Then, it follows that
+E [log pZ,Z ′ (z, z′)]
+= log Φ(β, 2n)
+[det (Σ˜Z ˜Z)]1/2 − 1
+2 E
+(
+˜Z − µ ˜Z
+T
+Σ−1
+˜Z ˜Z
+
+˜Z − µ ˜Z
+β)
+,
+where the expectation over the parameter space Rn of a function φ
+
+( ˜Z − µ ˜Z)T Σ−1
+˜Z ˜Z
+
+˜Z − µ ˜Z
+
+= φ
+  ¯Z T ¯Z
+
+≡ φ(w) (with
+w >0 for ˜Z − µ ˜Z ̸= 0
+
+is essentially type 1 Dirichlet integral, which can be converted into integral over R+ [41]. Specifically,
+let φ(w) = wβ, then
+E
+(
+˜Z − µ ˜Z
+T
+Σ−1
+˜Z ˜Z
+
+˜Z − µ ˜Z
+β)
+= Φ(β, 2n)
+[det (Σ˜Z ˜Z)]1/2
+Z
+R2n
+
+˜Z − µ ˜Z
+T
+Σ−1
+˜Z ˜Z
+
+˜Z − µ ˜Z
+β
+× exp
+ 
+− 1
+2
+
+˜Z − µ ˜Z
+T
+Σ−1
+˜Z ˜Z
+
+˜Z − µ ˜Z
+β!
+d˜z
+(a)
+= β
+2n/βΓ(n/β)
+Z
+R+
+φ(w)wn−1 exp
+
+− 1
+2 wβ
+
+dw
+= β
+2n/βΓ(n/β)
+22+n/βΓ ((β + n)/β)
+2β
+= 2Γ((β + n)/β)
+Γ(n/β)
+= 2n
+β
+,
+where (a) is due to the fact that the density function of the positive variable w =
+
+˜Z − µ ˜Z
+T
+Σ−1
+˜Z ˜Z
+
+˜Z − µ ˜Z
+
+is given by
+[41]
+p(w; β) = β
+Γ
+
+n
+β
+
+2
+n
+β
+wn−1 exp
+
+− 1
+2 wβ
+
+.
+Fig. 2. Univariate generalized Gaussian distribution with different values of the shape parameter.
+
+PAGE 9
+TABLE IV
+ABLATION ON LOSS FUNCTION . THE EXPERIMENT FOLLOWS THE SAME SETUP AS IN TABLE I IN MAIN PAPER , WITH TOP-1 ACCURACY IS REPORTED .
+Method CIFAR-100 ImageNet-100
+Original 70.5 81.1
+w/o log detCZZ 66.6 76.5
+w/o log detCZ′Z′ 67.7 78.8
+w/o both 3.55 4.01
+Using ∥Z − Z′∥2 69.8 79.6
+w/o µλ in rescaling 70.6 80.3
+Therefore,
+E [log pZ,Z ′ (z, z′)] = log Φ(β, 2n)
+[det (Σ˜Z ˜Z)]1/2 − 2n
+β .
+Similarly,
+E [log pZ(z)] = log Φ(β, n)
+[det (ΣZZ )]1/2 − n
+β ,
+E [log pZ′ (z′)] = log Φ(β, n)
+[det (ΣZ′Z′)]1/2 − n
+β .
+Substituting these expectations into (7) in main paper leads to
+I (Z, Z′)
+= 1
+2 log det (ΣZZ ) det (ΣZ′Z′)
+det (Σ˜Z ˜Z) + log Φ(β, 2n)
+[Φ(β, n)]2 (13)
+= 1
+2 log det (ΣZZ ) det (ΣZ′Z′)
+det (Σ˜Z ˜Z) ,
+where we used Φ(β, n) = βΓ(n/2)
+2n/(2β)πn/2Γ(n/(2β)) and the following relation
+Φ(β, 2n)
+[Φ(β, n)]2 = βΓ(n)
+Γ(n/β)
+h
+Γ
+
+n
+2β
+i2
+
+βΓ
+  n
+2
+2 = 1
+β
+2n− 1
+2
+2
+n
+β − 1
+2
+Γ
+  n
+2 + 1
+2
+
+Γ
+
+n
+2β + 1
+2
+
+Γ
+
+n
+2β
+
+Γ
+  n
+2
+ = 1.
+Then, using the relation between the dispersion matrix and covariance matrix
+Σ ˜X ˜X = nΓ(n/(2β))
+21/βΓ((n + 2)/(2β)) C ˜X ˜X ,
+it follows that
+I (Z; Z ′) = 1
+2 log det (ΣZZ ) det (ΣZ′Z′)
+det (Σ˜Z ˜Z) = 1
+2 log det (CZZ ) det (CZ′Z′)
+det (C ˜Z ˜Z) .
+D. Ablation Study
+1) Loss Function: We investigate the effectiveness of each term of the loss function. Specifically, we remove one of
+log detCZZ term (w/o log detCZZ ) and the log detCZ′Z′ term (w/o log detCZ′Z′) or both terms (w/o both) from the
+loss function. Additionally, we replace the log det(CZZ − CZ′Z′) term with ∥Z − Z ′∥2 since both terms aim to align the
+representations Z and Z ′. Furthermore, we simplify the rescaling operation from ˜M = M −µλI
+α + I to ˜M = M
+α + I (w/o µλ).
+Results in Table IV show that removing either log detCZZ or log detCZ′Z′ leads to performance decrease, yet the training
+still succeed. However, removing both leads to training failure. The reason behind this is straightforward. By minimizing the
+term log det(CZZ − CZ′Z′), we aim to align the representations Z and Z ′. The terms log detCZZ and log detCZ′Z′ play a
+crucial role in ensuring that these representations are informative enough to prevent representation collapse. When one of these
+terms is removed, the remaining term is expected to partially fulfill this, but becomes less effective.
+It can be seen from Table IV that replacing the log det(CZZ − CZ′Z′) term with ∥Z − Z ′∥2 decreases the performance.
+Although both log det(CZZ − CZ′Z′) and ∥Z − Z ′∥2 encourage consistency between Z and Z ′, their mathematical properties
+
+PAGE 10
+differ significantly. The term log det(CZZ − CZ′Z′) encourages a holistic consistency in the structural properties of the feature
+spaces. Meanwhile, our derived loss function obviates the need to tune the balance ratio between the terms. Moreover, the
+results show that removing µλ term in the Taylor approximation, i.e. adding a fixed Id to the three terms in the loss function
+does not affect the performance on CIFAR-100 but decreases the performance on ImageNet-100.
+2) Projector Hidden Dimension and Projector Output Dimension: We evaluate the effect of the projector’s hidden dimension
+and projector output dimension in Table V. For both our method and Barlow Twins, there’s a tendency that the increase of
+projector hidden dimension generally improves the performance on both the CIFAR-100 and ImageNet-100 datasets. Compared
+with CIFAR-100, both our method and Barlow Twins need a larger hidden dimension to achieve high performance on the
+more complex ImageNet-100 dataset. Using a momentum encoder, our method can achieve better performance and becomes
+more robust to projector hidden dimension. Moreover, similar to the results on the hidden dimension, both our method and
+Barlow Twins exhibit a trend that increasing the projector output dimension generally improves performance. The performance
+of Barlow Twins is particularly sensitive to projector output dimension, whereas our method performs well even with a very
+small projector output dimension of 256.
+TABLE V
+IMPACT OF PROJECTOR HIDDEN /OUTPUT DIMENSION ON ACCURACY .
+CIFAR100 ImageNet100
+Proj. hidden dim Ours Ours-M Barlow Twins Ours Ours-M Barlow Twins
+2048 70.5 70.4 70.9 81.1 81.7 80.4
+1024 70.8 70.4 70.2 80.2 81.5 79.3
+512 69.1 70.1 69.6 79.5 81.4 78.3
+256 67.9 70.0 68.0 78.7 80.6 76.9
+Proj. output dim Ours Ours-M Barlow Twins Ours Ours-M Barlow Twins
+2048 70.5 70.4 70.9 81.1 81.7 80.4
+1024 70.3 70.4 69.7 80.6 81.1 79.6
+512 70.6 70.5 66.5 80.4 81.7 77.4
+256 70.5 71.1 62.1 80.3 81.2 73.6
+E. Experiment Implementation Details
+For experiments on ImageNet-1K, we use a batch size of 1020 on 3 A100 GPUs for 100, 400, and 800 epochs. Training
+is conducted using 16-bit precision (FP16) and 4 batches of gradient accumulation to stabilize model updating and accelerate
+the training process. We use the LARS optimizer with a base learning rate of 0.8 for the backbone pretraining and 0.2 for
+the classifier training. The learning rate is scaled by lr = base lr × batch size/256 × num gpu. We use a weight decay of
+1.5E-6 for backbone parameters. The linear classifier is trained on top of frozen backbone. We follow the default setting as in
+Solo-learn benchmark [27] for the rest of the training hyper-parameters.
+Recall that in implementing the loss function (9) from the main paper, the three log-determinant terms are expanded as
+log det(M ) =
+nX
+i=1
+log λi(M )
+=
+nX
+i=1
+∞X
+k=1
+(−1)k+1 (λi(M ) − 1)k
+k
+=
+∞X
+k=1
+(−1)k+1 tr
+ 
+(M − I)k
+k = tr
+ ∞X
+k=1
+(−1)k+1 (M − I)k
+k
+!
+, (10)
+retaining only a p-th order approximation is kept, e.g., p = 4 in the experiments of this work. As shown in Figure 3, a
+fourth-order approximation of the log function in (10) is sufficiently accurate around the value of 1.
+For our method with a momentum encoder, we follow the setting of [14, 15] and use a two-layer predictor with hidden
+dimension 1024 for all datasets. For ImageNet-100, we set the base learning rate as 0.2 for backbone pretraining and 0.3
+for the classifier. We set the weight decay of backbone parameters as 0.0001. For CIFAR-100, we set the base learning
+rate for backbone pretraining as 0.3 and the classifier as 0.2. The weight decay is set as 6E-5. For the rescaling operation
+( ˜M = M −µλI
+α + I), we track the eigenvalues of CZZ with an update interval of 100 batches with a moving average coefficient
+ρ of 0.99. Table VI shows the ablation study on the update interval and moving average coefficient ρ. Generally, a larger update
+interval should be used with a smaller moving average coefficient, and vice versa. This is reasonable as the two parameters
+together control the speed of the eigenvalue tracking. Overall, our method is insensitive to these two hyperparameters. Table
+
+PAGE 11
+Fig. 3. Illustration of a fourth-order approximation of the log function in (10) in main paper.
+TABLE VI
+ABLATION STUDY ON THE UPDATE INTERVAL AND MOVING AVERAGE COEFFICIENT ρ FOR EIGENVALUES TRACKING USED FOR THE RESCALING
+OPERATION .
+update interval ρ CIFAR-100
+1000 0 69.45
+1000 0.1 70.22
+1000 0.99 68.69
+100 0.99 70.54
+1 0.99 69.17
+1 0 69.37
+I in main paper and Figure 4 depict the ablation study on the parameter β used for the rescaling operation. We adhere to the
+experimental setup described in Table I and report the Top-1 accuracy on CIFAR-100. As shown in Table VII and Figure 4,
+a smaller β results in faster convergence during training. However, excessively small values may lead to training failure. We
+set β = 5 for all the experiments.
+TABLE VII
+ABLATION STUDY ON THE PARAMETER β USED FOR THE RESCALING OPERATION .
+β CIFAR-100
+7 69.85
+6 70.10
+5 70.17
+4 70.09
+3 69.46
+1 NaN
+Fig. 4. The convergence curves of our method on CIFAR-100 for different values of the parameter β used for the rescaling operation.
