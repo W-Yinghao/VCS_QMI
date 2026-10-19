@@ -113,13 +113,32 @@ def require_release(path, family):
         if (report.get("status") != "PASS" or report.get("code_sha256") != digest(inventory)
                 or report.get("family") != family):
             raise RuntimeError("Acceptance is not PASS for this exact code: " + stage)
-    audit_ref = release["v9_closeout"]
-    audit_path = Path(audit_ref["path"])
-    if sha(audit_path) != audit_ref["sha256"]:
-        raise RuntimeError("V9 closeout changed")
-    audit = read(audit_path)
-    if audit.get("status") != "PASS" or len(audit.get("units", [])) != 33:
-        raise RuntimeError("V9 full closeout is not complete")
+    # The user's 2026-10-19 instruction releases ready V10 methods during the
+    # V9 tail. This changes scheduling only; method acceptance above remains
+    # mandatory. Keep the original strict path for releases without this
+    # explicit, pinned scheduling authorization.
+    authorization = release.get("scheduling_authorization")
+    if authorization is None:
+        audit_ref = release["v9_closeout"]
+        audit_path = Path(audit_ref["path"])
+        if sha(audit_path) != audit_ref["sha256"]:
+            raise RuntimeError("V9 closeout changed")
+        audit = read(audit_path)
+        if audit.get("status") != "PASS" or len(audit.get("units", [])) != 33:
+            raise RuntimeError("V9 full closeout is not complete")
+    else:
+        policy_path = Path(authorization["path"])
+        if sha(policy_path) != authorization["sha256"]:
+            raise RuntimeError("Scheduling authorization changed")
+        policy = read(policy_path)
+        active = read(PROJECT / "handoff/ACTIVE_SCHEDULING_POLICY.json")
+        if (policy.get("policy_id") != "v10_ready_dispatch_20261019"
+                or active.get("policy_id") != policy["policy_id"]
+                or Path(active.get("policy", "")).resolve() != policy_path.resolve()
+                or policy.get("validated_supplement_overlap") is not True
+                or policy.get("v9_closeout_independent_obligation") is not True
+                or policy.get("normal_gpu_limit") != 8):
+            raise RuntimeError("Active policy does not authorize validated V10 overlap")
     if (PROJECT / "handoff/v10_parallel8_20261018/PAUSE_SUBMISSIONS").exists():
         raise RuntimeError("The current scheduling policy still pauses new V10 work")
     for key in ("data_lock", "comir_source"):
