@@ -160,3 +160,49 @@ def test_fixed_checkpoint_configuration_identity_and_content_guards(tmp_path):
     with pytest.raises(RuntimeError): CP.load(FixedTrainer('MIND_2D_adapted', bad, 1117, DEVICE), path, identity)
     path.write_bytes(path.read_bytes() + b'changed')
     with pytest.raises(RuntimeError): CP.load(trainer, path, identity)
+
+
+@pytest.mark.parametrize('optimizer_name', ['adamw', 'sgd'])
+def test_optimizer_checkpoint_preserves_mixed_devices_and_next_update(tmp_path, optimizer_name):
+    class SmallTrainer(FixedTrainer):
+        def __init__(self):
+            super().__init__('CHECKPOINT_REGRESSION', {}, 17, DEVICE)
+            self.model = nn.Linear(3, 2).to(DEVICE)
+            if optimizer_name == 'adamw':
+                optimizer = torch.optim.AdamW(self.model.parameters(), lr=.01, foreach=False)
+            else:
+                optimizer = torch.optim.SGD(self.model.parameters(), lr=.01, momentum=.9)
+            self.optimizers = [optimizer]
+
+        def modules(self):
+            return (self.model,)
+
+        def step(self):
+            self.optimizers[0].zero_grad(set_to_none=True)
+            x = torch.randn(4, 3, device=self.device)
+            self.model(x).square().mean().backward()
+            self.optimizers[0].step(); self.n_steps += 1
+
+    torch.manual_seed(17)
+    trainer = SmallTrainer()
+    trainer.step()
+    path = tmp_path/'optimizer.pt'; ident = {'phase': 'REGRESSION', 'optimizer': optimizer_name}
+    CP.save(trainer, path, ident)
+    trainer.step()
+    expected_model = copy.deepcopy(trainer.model.state_dict())
+    expected_optimizer = copy.deepcopy(trainer.optimizers[0].state_dict())
+    expected_rng = torch.get_rng_state().clone()
+    expected_cuda = torch.cuda.get_rng_state_all() if trainer.device.type == 'cuda' else []
+    CP.load(trainer, path, ident)
+    trainer.step()
+    actual = trainer.optimizers[0].state_dict()
+    for name, value in trainer.model.state_dict().items():
+        torch.testing.assert_close(value, expected_model[name], atol=0, rtol=0)
+    for param_id, states in expected_optimizer['state'].items():
+        for name, value in states.items():
+            torch.testing.assert_close(actual['state'][param_id][name], value, atol=0, rtol=0)
+            if optimizer_name == 'adamw' and name == 'step':
+                assert actual['state'][param_id][name].device.type == 'cpu'
+    assert torch.equal(torch.get_rng_state(), expected_rng)
+    if expected_cuda:
+        assert all(torch.equal(a, b) for a, b in zip(torch.cuda.get_rng_state_all(), expected_cuda))

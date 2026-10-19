@@ -132,7 +132,7 @@ def require_release(path, family):
             raise RuntimeError("Scheduling authorization changed")
         policy = read(policy_path)
         active = read(PROJECT / "handoff/ACTIVE_SCHEDULING_POLICY.json")
-        if (policy.get("policy_id") != "v10_ready_dispatch_20261019"
+        if (policy.get("policy_id") not in {"v10_ready_dispatch_20261019", "v10_method_pipeline_20261019"}
                 or active.get("policy_id") != policy["policy_id"]
                 or Path(active.get("policy", "")).resolve() != policy_path.resolve()
                 or policy.get("validated_supplement_overlap") is not True

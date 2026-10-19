@@ -48,7 +48,7 @@ def expect_failure(call, errors=(RuntimeError,)):
     raise AssertionError('Invalid input was silently accepted')
 
 
-def gate(root, manifest):
+def gate(root, manifest, family=None):
     import numpy as np
     import torch
     import run as R
@@ -67,7 +67,8 @@ def gate(root, manifest):
     require(rc == 0, 'CUDA numerical identities failed; see ' + str(output))
     data = read(manifest['data_lock']['path'])
     reports = []
-    for family in FAMILIES:
+    selected_families = (family,) if family is not None else FAMILIES
+    for family in selected_families:
         directory = root / family; directory.mkdir(parents=True, exist_ok=True)
         guard = A.DataGuard(); R.check_data(data, guard, {'FIT', 'CAL'})
         candidate = candidates(family)[0]
@@ -165,6 +166,7 @@ def gate(root, manifest):
         del trainer, session, energy, value, grad
         gc.collect(); torch.cuda.empty_cache()
     write(root / 'GATE.json', {**report_base(manifest), 'status': 'PASS', 'families': reports,
+                              'requested_families': list(selected_families),
                               'cuda_numerics_sha256': sha(output)})
 
 
@@ -214,7 +216,7 @@ def main():
     root = pin.parent/'runs'/os.environ['SLURM_JOB_ID']
     root.mkdir(parents=True, exist_ok=True)
     try:
-        if args.stage == 'gate': gate(root, manifest)
+        if args.stage == 'gate': gate(root, manifest, args.family)
         else:
             require(args.family is not None, 'Full validation requires family')
             full(root, manifest, args.family)

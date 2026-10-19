@@ -46,7 +46,11 @@ def metadata(path, identity):
 
 def load(trainer, path, identity):
     meta = metadata(path, identity)
-    state = torch.load(path, map_location=trainer.device, weights_only=True)
+    # Optimizers contain mixed-device state: ordinary AdamW keeps its scalar
+    # step on CPU even when parameters and moments live on CUDA. Loading the
+    # entire archive onto CUDA moves that counter incorrectly. Load on CPU;
+    # module/optimizer.load_state_dict apply their own parameter-device policy.
+    state = torch.load(path, map_location="cpu", weights_only=True)
     if state["identity"] != identity or state["config"] != canonical_config(trainer):
         raise RuntimeError("Checkpoint configuration differs from the current unit")
     if state["schema"] != "v10.supplement.checkpoint.v1" or state["step"] != meta["step"]:
