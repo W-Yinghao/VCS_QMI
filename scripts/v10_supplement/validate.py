@@ -55,6 +55,7 @@ def gate(root, manifest, family=None):
     from v10.supplement import checkpoints as CP
     from v10.supplement.learned import MLPRigidEnergy
     from v10.supplement.registration import RegistrationSession
+    from v10.supplement.geometry_validation import native_gradient_check
     from v10.supplement.training import new_trainer, rng_state
     R.initialize_science(); A = R.A
     environment = R.runtime_environment()
@@ -129,10 +130,15 @@ def gate(root, manifest, family=None):
             p = torch.tensor([.37, .23, -.41], device='cuda', requires_grad=True)
             value = energy(p); grad = torch.autograd.grad(value, p)[0]
             require(torch.isfinite(grad).all().item(), 'Non-finite geometry gradient')
-            h = .01; eye = torch.eye(3, device='cuda') * h
-            with torch.no_grad():
-                fd = torch.stack([(energy(p.detach()+e) - energy(p.detach()-e))/(2*h) for e in eye])
-            torch.testing.assert_close(grad, fd, atol=5e-4, rtol=.05)
+            if family in ('MI_native', 'NMI_native', 'CoMIR_native'):
+                geometry_check = native_gradient_check(energy.energy, p, grad)
+                fd = p.new_tensor(geometry_check['fd_half_fp64'])
+            else:
+                h = .01; eye = torch.eye(3, device='cuda') * h
+                with torch.no_grad():
+                    fd = torch.stack([(energy(p.detach()+e) - energy(p.detach()-e))/(2*h) for e in eye])
+                torch.testing.assert_close(grad, fd, atol=5e-4, rtol=.05)
+                geometry_check = {'method': 'fp32_central_difference', 'step': .01, 'atol': 5e-4, 'rtol': .05}
             if family in ('MLP_VCS_perm8', 'InfoNCE_host[J_perm1]'):
                 raw = energy.energy
                 rng1 = np.random.default_rng(8117); rng2 = np.random.default_rng(8117)
@@ -158,7 +164,7 @@ def gate(root, manifest, family=None):
         report = {**report_base(manifest, family), 'status': 'PASS', 'stage': 'T01_AND_EXECUTION_GATE',
                   'environment': environment, 'resume': resume, 'full_search_timing': timing, 'preparation': prep,
                   'geometry_gradient': grad.detach().cpu().tolist(), 'finite_difference': fd.cpu().tolist(),
-                  'geometry_fd_tolerance': {'step': .01, 'atol': 5e-4, 'rtol': .05},
+                  'geometry_fd_tolerance': geometry_check,
                   'peak_gpu_gib': torch.cuda.max_memory_allocated()/2**30, 'data_reads': guard.reads}
         write(directory / 'GATE.json', report); reports.append({'family': family, 'path': str(directory/'GATE.json'),
                                                                'sha256': sha(directory/'GATE.json')})

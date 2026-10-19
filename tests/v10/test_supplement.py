@@ -21,6 +21,7 @@ from v10.supplement.mind import mind2d
 from v10.supplement.registration import FiniteEnergy, intensity_range
 from v10.supplement.rulsif import ExactRuLSIF, gaussian_features, kernel_moments
 from v10.supplement.training import FixedTrainer
+from v10.supplement.geometry_validation import native_gradient_check
 
 DEVICE = os.environ.get('V10_TEST_DEVICE', 'cpu')
 
@@ -206,3 +207,23 @@ def test_optimizer_checkpoint_preserves_mixed_devices_and_next_update(tmp_path, 
     assert torch.equal(torch.get_rng_state(), expected_rng)
     if expected_cuda:
         assert all(torch.equal(a, b) for a, b in zip(torch.cuda.get_rng_state_all(), expected_cuda))
+
+
+@pytest.mark.parametrize('kind', ['mi', 'nmi', 'comir'])
+def test_native_geometry_reference_preserves_execution_and_rejects_bad_gradient(kind):
+    axis = torch.arange(A.Q.S, device=DEVICE, dtype=torch.float32)
+    y, x = torch.meshgrid(axis, axis, indexing='ij')
+    ref = (.5 + .2*torch.sin(x/13.) + .1*torch.cos(y/17.))[None]
+    mov = (.5 + .2*torch.sin((x-1.)/13.) + .1*torch.cos((y+2.)/17.))[None]
+    energy = A.Q.RigidEnergy(torch, F, kind, ref, mov, np.random.default_rng(8117),
+                             ranges=((0., 1.), (0., 1.)))
+    pointers = {name: getattr(energy, name).data_ptr() for name in ('x', 'u', 'mov')}
+    p = torch.tensor([.37, .23, -.41], device=DEVICE, requires_grad=True)
+    grad = torch.autograd.grad(energy(p), p)[0]
+    report = native_gradient_check(energy, p, grad)
+    assert report['step'] <= 1e-5 and report['execution_precision_unchanged'] == 'fp32'
+    for name in pointers:
+        assert getattr(energy, name).dtype == torch.float32
+        assert getattr(energy, name).data_ptr() == pointers[name]
+    with pytest.raises(AssertionError):
+        native_gradient_check(energy, p, grad+.1)
