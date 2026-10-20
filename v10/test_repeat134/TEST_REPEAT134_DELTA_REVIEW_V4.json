@@ -1,0 +1,340 @@
+{
+ "schema": "v10.test_repeat134.delta_review.v4",
+ "v2_commit": "ca9f517cd89a61190bf7315489d2515e02807c37",
+ "v1_commit": "a85cc21be97770c76f3930fbd913705367d7d9d9",
+ "protocol": {
+  "v2_sha256": "31897806539f6d5b066599e0e41ef38833a29b3b976152ceac4e82462a8d79e7",
+  "changed_paths": [
+   {
+    "path": "cost_estimate.basis",
+    "change": "changed"
+   },
+   {
+    "path": "cost_estimate.gate_gpu_h",
+    "change": "removed"
+   },
+   {
+    "path": "cost_estimate.test_gpu_h",
+    "change": "removed"
+   },
+   {
+    "path": "cost_estimate.total_gpu_h",
+    "change": "changed"
+   },
+   {
+    "path": "cost_estimate.unit_jobs_gpu_h",
+    "change": "added"
+   },
+   {
+    "path": "dev_gate.role_v4",
+    "change": "added"
+   },
+   {
+    "path": "evaluation_noise",
+    "change": "added"
+   },
+   {
+    "path": "hardware.rule",
+    "change": "changed"
+   },
+   {
+    "path": "id",
+    "change": "changed"
+   },
+   {
+    "path": "in_job_check",
+    "change": "added"
+   },
+   {
+    "path": "inputs.precondition",
+    "change": "changed"
+   },
+   {
+    "path": "jobs.execution_root",
+    "change": "changed"
+   },
+   {
+    "path": "jobs.order",
+    "change": "changed"
+   },
+   {
+    "path": "jobs.test_units",
+    "change": "changed"
+   },
+   {
+    "path": "reporting.rules",
+    "change": "changed"
+   },
+   {
+    "path": "schema",
+    "change": "changed"
+   },
+   {
+    "path": "sets.DEV24_cores",
+    "change": "added"
+   },
+   {
+    "path": "statistics.dev_beside",
+    "change": "changed"
+   },
+   {
+    "path": "statistics.same_job_dev_contrasts",
+    "change": "added"
+   },
+   {
+    "path": "status",
+    "change": "changed"
+   },
+   {
+    "path": "version.amendment",
+    "change": "changed"
+   },
+   {
+    "path": "version.change",
+    "change": "changed"
+   },
+   {
+    "path": "version.delta_review",
+    "change": "changed"
+   },
+   {
+    "path": "version.number",
+    "change": "changed"
+   },
+   {
+    "path": "version.owner_decision",
+    "change": "added"
+   },
+   {
+    "path": "version.supersedes.commit",
+    "change": "changed"
+   },
+   {
+    "path": "version.supersedes.path",
+    "change": "changed"
+   },
+   {
+    "path": "version.supersedes.sha256",
+    "change": "changed"
+   },
+   {
+    "path": "version.void_draft",
+    "change": "added"
+   }
+  ]
+ },
+ "code": {
+  "scripts/v10_test_repeat/tr_common.py": {
+   "v2_sha256": "6550ffb957561c9b3904956be002a846634764812b1465d7d92a047451b6c049",
+   "v4_sha256": "4da2ed634b989078db0528b7ec10798809d276edb28f19af2ebbaf88f9c64800",
+   "identical": [
+    "Budget",
+    "TestRepeatGuard",
+    "_quantile",
+    "append",
+    "canonical",
+    "committed_bytes",
+    "compare_rows",
+    "dumps",
+    "gate_diagnostics",
+    "gate_passed",
+    "gate_spec",
+    "gate_verdict",
+    "git",
+    "input_lock",
+    "lines",
+    "lock",
+    "metrics",
+    "read",
+    "receipt_ok",
+    "require",
+    "require_slurm",
+    "sha",
+    "sha_bytes",
+    "unit",
+    "utc",
+    "verify_code",
+    "write",
+    "write_once"
+   ],
+   "changed": [
+    "gate_accepted",
+    "records"
+   ],
+   "added": [
+    "in_job_check",
+    "test_plan"
+   ],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/evaluate.py": {
+   "v2_sha256": "89f73aef4d87dfc783e1cdcd5f62c29b1de1099443ffc6287a42dd33745d753e",
+   "v4_sha256": "bae7fa2ebfdd6ac7d47fdff5c57d4433d942021645c2e906902422785bb38d77",
+   "identical": [
+    "check_session_replica",
+    "environment",
+    "evaluate_unit",
+    "import_path",
+    "init_body",
+    "load_source",
+    "main",
+    "make_session",
+    "pins",
+    "stage_gate",
+    "verify_unit_files"
+   ],
+   "changed": [
+    "stage_test"
+   ],
+   "added": [
+    "dev_pass"
+   ],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/prepare_inputs.py": {
+   "v2_sha256": "f0b35947ca4bcab21504d8ba8d9478768480dcaff1e0c0c0b93894077f1a1cb2",
+   "v4_sha256": "5ae236e3a3ed18491bc5761b4056733b12db03e302879d841243283eaa1b2566",
+   "identical": [
+    "compare_cache",
+    "host_modules",
+    "prepare"
+   ],
+   "changed": [
+    "main"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "slurm/v10_test_repeat/gpu.sbatch": {
+   "v2_sha256": "5f21832486b0dd508985c97d318a7e4f2677c24a9c5a564d41120417ca984380",
+   "v4_sha256": "257677d97994db63c622d20e21b1a5f289d309d985b2d5e6f2d760bbda7214f8",
+   "changed_lines": [
+    {
+     "v2": "R=/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v2_20261020",
+     "v4": "R=/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v4_20261020"
+    }
+   ]
+  },
+  "scripts/v10_test_repeat/analyze.py": {
+   "v2_sha256": "1a46b1066f263976529efb06fe7e877af156b75d2eb42b8bce15ecef414c0fad",
+   "v4_sha256": "f2e2d77bc4ed0f162ed369373383abe1f62d7109962f103e9d0889517036f673",
+   "identical": [
+    "f3",
+    "f4",
+    "groups_of",
+    "load_phase2",
+    "s4",
+    "slim",
+    "table"
+   ],
+   "changed": [
+    "analyse",
+    "collect",
+    "main",
+    "render",
+    "sidecar"
+   ],
+   "added": [
+    "pair_summary"
+   ],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/build_freeze.py": {
+   "v2_sha256": "a624588a9ab98229f93315dfcc0f0122f20e3022c06bc753e93817142fc56f81",
+   "v4_sha256": "6893f6521ff5690e84b2ec78ed572d5aac5260dee4fffe6414d95e6f10f479d2",
+   "identical": [
+    "activation",
+    "activation_v2",
+    "build",
+    "build_units",
+    "build_v2",
+    "calibration",
+    "ceil_minutes",
+    "code_bf1",
+    "code_supp",
+    "delta_review",
+    "evidence",
+    "family_key",
+    "hhmm",
+    "json_diff",
+    "load_phase2",
+    "render",
+    "render_v2",
+    "test_metadata",
+    "top_defs",
+    "unit_record",
+    "v1_bytes"
+   ],
+   "changed": [
+    "main"
+   ],
+   "added": [
+    "activation_v4",
+    "build_v4",
+    "delta_review_v4",
+    "git_bytes",
+    "observed_pairs_v4",
+    "render_v4"
+   ],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/submit_lines.py": {
+   "v2_sha256": "3e10cf6c4fea62e0328bcd6218d0a810daa2acf7ad86dc1595a0419c5312f542",
+   "v4_sha256": "b7fb42c8d7a6c53ba1715103735ec152a82a0c1f11dfffb7858c21a13375d5df",
+   "identical": [
+    "short"
+   ],
+   "changed": [
+    "main"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/status.py": {
+   "v2_sha256": "40b82241d099ed681c964f4604dfdeb0b01045c783c7696a38b9263f91aab66f",
+   "v4_sha256": "92fc9c8d4fb71b217629d299ae59d148dfb96bcc7eb7e247e40e3a74d2e15cbb",
+   "identical": [],
+   "changed": [
+    "main",
+    "status"
+   ],
+   "added": [],
+   "removed": []
+  }
+ },
+ "evaluator_definitions_identical_to_v1": {
+  "scripts/v10_test_repeat/evaluate.py": [
+   "import_path",
+   "make_session",
+   "init_body",
+   "check_session_replica",
+   "load_source",
+   "environment",
+   "verify_unit_files",
+   "evaluate_unit",
+   "pins"
+  ],
+  "scripts/v10_test_repeat/tr_common.py": [
+   "TestRepeatGuard",
+   "Budget",
+   "compare_rows",
+   "metrics",
+   "require",
+   "require_slurm",
+   "unit",
+   "gate_spec",
+   "receipt_ok",
+   "input_lock",
+   "verify_code",
+   "sha",
+   "read",
+   "write",
+   "lines",
+   "lock",
+   "append",
+   "committed_bytes",
+   "git"
+  ]
+ },
+ "conclusion": "same-job pairing: the unit job re-evaluates DEV32, checks (a) (e) (f) and only then reads TEST; gates become noise samples; prepare no longer waits for gates; evaluators unchanged"
+}

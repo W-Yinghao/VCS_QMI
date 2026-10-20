@@ -1,0 +1,168 @@
+{
+ "schema": "v10.test_repeat134.gate_amendment.v2",
+ "id": "V10-TEST-REPEAT134-GATE-AMENDMENT-V2-20261020",
+ "label": "PRE-REGISTERED before any RTX6000PRO / H100 DEV gate and before any TEST read: fallback criterion for the RTX6000PRO and H100 DEV gates only; L40S stays bitwise and unchanged",
+ "state_when_registered": "the 12 L40S DEV gates were submitted under v1 (jobs 1051029-1051040, all pending, no gate record); no RTX6000PRO / H100 gate, no prepare and no TEST job had been submitted; no TEST data had been read",
+ "reason": "fp32 values after reload are not bitwise on RTX PRO 6000 or H100 (T01 cross-hardware diagnostics, D3, the EPFL gates); a bitwise DEV-reproduction gate would fail on that ground alone, before saying anything about the evaluator",
+ "revision_before_freeze": "an earlier draft of (b)-(d) (exact counts, median within 0.05, >= 99 % of rows within 0.05) was replaced before anything was frozen or run: the calibration evidence shows a benign cross-hardware rerun with only a minority of registrations within 0.05",
+ "calibration": {
+  "record": "/home/infres/yinwang/CS_QMI/handoff/v10_rulsif_v2_20261019/hw_replicates/AGREEMENT_seed_1001.json",
+  "sha256": "078322019ca66ae92bc288409b4b802eb5c8083858279700d857ffeff3cc27ed",
+  "kind": "POST_HOC_HARDWARE_SENSITIVITY_DIAGNOSTIC",
+  "primary": {
+   "job": "1050357",
+   "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+  },
+  "replicate": {
+   "job": "1050945",
+   "gpu": "NVIDIA L40S"
+  },
+  "same_identity": true,
+  "fitted_model_equal": true,
+  "perturbation_truths_bitwise": true,
+  "DEV32_replicate_minus_primary": {
+   "success42": 0.0,
+   "success9": -0.0031250000000000444,
+   "median_err": 0.00312617628577172
+  },
+  "computed_here_from_the_two_DEV_records": {
+   "abs_delta_err_full": {
+    "q50": 0.06070729785375395,
+    "q90": 0.7667565537324931,
+    "q95": 1.9171175694273228,
+    "q99": 3.6056167430183677,
+    "max": 8.918084181352782,
+    "within_0.05": 142,
+    "identical": 0
+   },
+   "flips": {
+    "success42": 0,
+    "success9": 1
+   },
+   "counts": {
+    "recorded": {
+     "lt42": 252,
+     "lt9": 186
+    },
+    "new": {
+     "lt42": 252,
+     "lt9": 185
+    }
+   },
+   "median": {
+    "recorded": 7.601939848519709,
+    "new": 7.605066024805481,
+    "abs_difference": 0.00312617628577172
+   },
+   "verdict_under_v2": {
+    "status": "PASS_TOLERANCE",
+    "reason": "not bitwise; tolerance criteria (a)-(d) all hold",
+    "criteria": {
+     "a": true,
+     "b": true,
+     "c": true,
+     "d": true
+    }
+   }
+  }
+ },
+ "criterion": {
+  "RTX6000PRO_and_H100": "PASS if bitwise (the L40S criterion); otherwise PASS_TOLERANCE iff (a)-(d) all hold; otherwise FAIL",
+  "tolerance": {
+   "a": "every identity (evaluation identity file), configuration (trainer rebuild and checkpoint load), checkpoint-hash, input-hash (DATA_LOCK) and perturbation-truth field (theta, t per registration; also core, perturbation, role, checkpoint_sha256, n_grid) is bitwise identical, and every value is finite",
+   "b": "|delta DEV32 success<42| <= 3/320 and |delta DEV32 success<9| <= 3/320",
+   "c": "|delta DEV32 median err_full| <= 0.25 (full-resolution px)",
+   "d": "the median over the 320 registrations of |delta err_full| <= 0.25",
+   "thresholds": {
+    "count_abs": 3,
+    "median_abs": 0.25,
+    "median_of_row_abs": 0.25
+   },
+   "intent": "catch a wrong checkpoint, wrong inputs or wrong perturbations (they shift the aggregates and the typical error by whole pixels) while admitting benign cross-hardware numerical differences, which move single pose estimates but barely the aggregate metrics (calibration: the amendment record)"
+  },
+  "fail": "FAIL keeps that family's units on that GPU type blocked (v1 on_fail rule)",
+  "L40S": "bitwise, unchanged; the v1 L40S gate records of a85cc21b are accepted (identical evaluator and criterion)"
+ },
+ "reporting": "every TEST unit carries the status of the gate it ran under (PASS or PASS_TOLERANCE); no cross-hardware equivalence is claimed",
+ "owner_rules": [
+  {
+   "quote": "final 放开，CAL 留 L40S",
+   "date": "2026-10-19",
+   "record": "handoff/v10_capacity_ext_20261019/hw_amendment_20261019/HARDWARE_AMENDMENT.json authority.owner_choice_verbatim",
+   "sha256": "aa56b440c821f4e39715b09eefa2b0b47fe8e42515b9efc3af0179b49c2b33f1"
+  },
+  {
+   "quote": "什么快什么来吧",
+   "date": "2026-10-20",
+   "record": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_epfl_release_hw2_20261020/v10/epfl/EPFL_XHW_GATE_AMENDMENT_20261020.json owner.words_verbatim",
+   "sha256": "cd673b7cbd5b87bb974be3b797d8686b6efe3c0a59ff497d7be2707484bdc7c1"
+  }
+ ],
+ "precedents": {
+  "T01_tolerance": {
+   "float32_atol_rtol": "{\"float64\": (1e-10, 1e-8), \"float32\": (1e-5, 1e-4)}",
+   "source": "src/v10/adapter.py TOLERANCES (package V10_DESIGN 6.1), the accepted V10 T01 numeric tolerance (BF1 frozen source)"
+  },
+  "EPFL_XHW_GATE_AMENDMENT_20261020": {
+   "path": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_epfl_release_hw2_20261020/v10/epfl/EPFL_XHW_GATE_AMENDMENT_20261020.json",
+   "sha256": "cd673b7cbd5b87bb974be3b797d8686b6efe3c0a59ff497d7be2707484bdc7c1",
+   "label": "POST-FAILURE CRITERION CHANGE, owner-approved: made after the H100 cross-hardware gate 1050341 failed only the two checkpoint energy / gradient bitwise rows; disclosed in every EPFL report",
+   "failed_gate": "1050341",
+   "rows_judged_with_T01_tolerance": [
+    "checkpoint.energy_and_gradient_bitwise_T1_rot+16.26deg",
+    "checkpoint.energy_and_gradient_bitwise_T2_rot-22.62deg"
+   ]
+  }
+ },
+ "non_bitwise_observations": {
+  "EPFL_amended_gates_checkpoint_rows": [
+   {
+    "job": "1050460",
+    "gpu": "NVIDIA H100 NVL",
+    "row": "checkpoint.energy_and_gradient_bitwise_T1_rot+16.26deg",
+    "gradient_bitwise": false,
+    "gradient_max_rel": 1.919905755666266e-07,
+    "energy_bitwise": true,
+    "gate_status": "PASS",
+    "record_sha256": "49f49a8be2b31ae841fe9387d1faee1787cc202270da53b96776b57cbb779e9a"
+   },
+   {
+    "job": "1050460",
+    "gpu": "NVIDIA H100 NVL",
+    "row": "checkpoint.energy_and_gradient_bitwise_T2_rot-22.62deg",
+    "gradient_bitwise": false,
+    "gradient_max_rel": 3.621108946963362e-05,
+    "energy_bitwise": true,
+    "gate_status": "PASS",
+    "record_sha256": "49f49a8be2b31ae841fe9387d1faee1787cc202270da53b96776b57cbb779e9a"
+   },
+   {
+    "job": "1050459",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "row": "checkpoint.energy_and_gradient_bitwise_T1_rot+16.26deg",
+    "gradient_bitwise": false,
+    "gradient_max_rel": 7.709100683296139e-07,
+    "energy_bitwise": true,
+    "gate_status": "PASS",
+    "record_sha256": "feaff646cab118591513feb9e4f075c113afa1540ea83f408b6273b3367001f9"
+   },
+   {
+    "job": "1050459",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "row": "checkpoint.energy_and_gradient_bitwise_T2_rot-22.62deg",
+    "gradient_bitwise": false,
+    "gradient_max_rel": 0.00010858855925847915,
+    "energy_bitwise": true,
+    "gate_status": "PASS",
+    "record_sha256": "feaff646cab118591513feb9e4f075c113afa1540ea83f408b6273b3367001f9"
+   }
+  ],
+  "D3_1048684_MLP_VCS_perm8_RTX6000PRO_resume": {
+   "record": "/home/infres/yinwang/CS_QMI/handoff/v10_sensitivity_20261019/D3/validation/runs/1048684/MLP_VCS_perm8/GATE.json",
+   "sha256": "b5a550c0f1c758b02a5d85b5150ade156442913d6d4ecce71b3c98fd4bb67fff",
+   "expected_second_grad_norm_preclip": 0.08783930540084839,
+   "resumed_second_grad_norm_preclip": 0.08783931285142899,
+   "loss_bitwise": true
+  }
+ }
+}

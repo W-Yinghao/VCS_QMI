@@ -1,0 +1,697 @@
+{
+ "schema": "v10.test_repeat134.protocol.v1",
+ "status": "FROZEN_BEFORE_ANY_TEST_READ",
+ "id": "V10-TEST-REPEAT134-PROTOCOL-20261020",
+ "rules": {
+  "owner_decision": {
+   "question_verbatim": "BF 上 V10 全部方法和 seed 的选择已经齐全，可以做 TEST_REPEAT134（读 held-out 的 TEST134）。现在开始吗？",
+   "chosen_option_verbatim": "开始 (Recommended)",
+   "chosen_option_text_verbatim": "先把所有方法和 seed 选中的 checkpoint 冻结成新 manifest，冻结完成前不读 TEST；然后在 TEST134 上评估。结果单独报告为重复测试，另附 112 个 core 的敏感性集，不当作独立确认。"
+  },
+  "decision_6_1": "134 个官方 TEST core 已由 G1 读过，当前仍 HOLD；V10 完整协议冻结后，以新 manifest 版本启用单独的 TEST_REPEAT134 表。DEV 与 TEST_REPEAT 不合并成 166 个独立确认样本。",
+  "decision_5": "完整方法集合和方法内选择全部固定以后才能启用 TEST 重复块。",
+  "decision_5_claims": "必需基线补齐之前不发布方法优劣、强基线优势或新颖性比较结论。",
+  "protocol_p2_TEST": {
+   "cores": 134,
+   "status": "HOLD",
+   "this_workflow": "never read",
+   "prior_exposure": "V9-G1; reading began 2026-10-15T23:36:09Z",
+   "activation": "TEST_REPEAT134: a separate repeated-benchmark table, only after the complete V10 freeze (common protocol, complete method set and every within-method selection), with a new manifest version",
+   "pooling": "DEV and TEST_REPEAT are never pooled into 166 independent confirmation samples"
+  },
+  "project_memory": "BF TEST134 曾在 V9-G1 读取，当前仍 HOLD。须完整 V10 方法集合、共同协议及所有方法内选择全部冻结后，创建新 manifest，以 TEST_REPEAT134 单独报告；不能与 DEV32 合并为独立 confirmation。排除 FIT/CAL 同 position 的未来 TEST_REPEAT 敏感性集为112 cores；不能提前读取它来选方法。",
+  "evaluator_only": "TEST_REPEAT134 rows and summaries are evaluator-only: never used for training, CAL selection, checkpoint choice, grid / candidate / protocol changes or method re-selection"
+ },
+ "data": {
+  "benchmark": "BF/SHG official test split (Zenodo 4550300 test.zip), 134 cores; prior exposure: V9-G1; reading began 2026-10-15T23:36:09Z",
+  "cores_sha256": "58681663df2d2f6ebdc7003f0338c9fec3ec5ae0cef2710f6daccb587c3e4ae2",
+  "sensitivity112_sha256": "007cd25b46a5a8e0952039395aa5fed352fee341fa63f850201b2392d61a7b84",
+  "unit": "core (one TMA core = one BF/SHG pair)",
+  "perturbations_per_core": 10,
+  "registrations_per_unit": 1340
+ },
+ "perturbations": {
+  "rule": "the frozen DEV rule, applied to the TEST core ids: Q.perturbations_p2(core) = REG-P1 translations (seed sha256('R6-REG-P1|<core>')[:16], magnitude strata) with theta uniform on [-30, 30] deg (seed sha256('R6-REG-P2|<core>')[:16]); per-registration position stream seed_of('R6-REG-P2|pos|<core>|<i>'); MLP extra stream seed_of('V10|MLP-extra-registration-perms|<core>|<i>')",
+  "code": {
+   "r6_reg_p2.py": "0e248cac8cd5c72b0707b32f7e3de3ecd0b3d160764d1c188b418d2ad43c974c",
+   "r6_reg_pilot.py": "c044adca00034853ab508e33f57f87c5aff55dcd5070e8ecb45bf0ca5f71791d",
+   "host_code_hash": "6c6f094684fbc50a"
+  },
+  "computed": "only inside the TEST jobs (the guard gates each core like a read); every TEST row records (theta, t) and all units must share them (analysis check)",
+  "difference_from_V9_G1": "V9-G1's sealed-test read used new seed tags (V9-G1-TEST-20261015|P1 / |P2); TEST_REPEAT134 uses V10's DEV rule unchanged, so the perturbations are not V9-G1's"
+ },
+ "searcher": "unchanged R6-REG-P2 (Q.optimise_rigid: coarse grid, top 3 starts, 100 Adam steps), as every V10 DEV evaluation",
+ "metrics": {
+  "err_full": "corner error at full resolution (px), Q.corner_error_full",
+  "success42": "mean(err_full < 42)",
+  "success9": "mean(err_full < 9)",
+  "median": "median(err_full)",
+  "same_as": "DEV32 (BF1 common.metrics == supplement records.metrics)"
+ },
+ "sets": {
+  "TEST134": "all 134 cores x 10 perturbations",
+  "TEST112": "112 cores without a FIT/CAL TMA position (sensitivity set; the 22 excluded ids are frozen)",
+  "position_groups": {
+   "TEST134": 97,
+   "TEST112": 75
+  }
+ },
+ "statistics": {
+  "primary_unit": "core; methods paired by core; the 10 perturbations of a core are not independent",
+  "per_unit": "TEST134 and TEST112 metrics and per-core metrics of every frozen unit",
+  "families": "primary seeds 1001-1003 summarised as seed means (hardware strata where mixed); secondary replication seeds 1004/1005 reported per unit and by hardware, never pooled with the primary seeds",
+  "paired_contrasts": [
+   [
+    "MF_VCS_M1",
+    "MF_VCS_M0",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "MF_VCS_perm1",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "MLP_VCS_perm1",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "MLP_VCS_perm8",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "InfoNCE_host[J_perm1]",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "CoMIR_native",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "MI_native",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "NMI_native",
+    "ref"
+   ],
+   [
+    "MF_VCS_M1",
+    "MIND_2D_adapted",
+    "ref"
+   ],
+   [
+    "MF_VCS_M0",
+    "MF_VCS_perm1",
+    "mech"
+   ],
+   [
+    "MLP_VCS_perm1",
+    "MF_VCS_perm1",
+    "mech"
+   ],
+   [
+    "MLP_VCS_perm8",
+    "MLP_VCS_perm1",
+    "mech"
+   ],
+   [
+    "InfoNCE_host[J_perm1]",
+    "MLP_VCS_perm1",
+    "mech"
+   ]
+  ],
+  "paired_rule": "phase2_report.paired: core score = mean over the method's primary units of the per-core success fraction (median error: median over cores of the per-core difference); RuLSIF_exact (v1) and RuLSIF_exact_v2 (A1, mixed hardware) are not contrast arms",
+  "bootstrap": {
+   "B": 10000,
+   "resampled": "cores with replacement; sensitivity: TMA position groups with replacement",
+   "seed": "int(sha256('v10-phase2|TEST_REPEAT134|<A>|<B>|<set>|<comma-joined core list>')[:16], 16), numpy.random.default_rng",
+   "interval": "percentile 2.5 / 97.5",
+   "tests": "none"
+  },
+  "dev_beside": "each unit's recorded DEV32 / DEV24 (and phase-2 DEV contrasts) printed beside, never pooled"
+ },
+ "reporting": {
+  "label": "TEST_REPEAT134 (repeated benchmark; BF/SHG official test cores read once before by V9-G1; not an independent confirmation)",
+  "rules": [
+   "reported as its own table, separate from DEV32; DEV32 / DEV24 shown beside it",
+   "DEV and TEST_REPEAT are never pooled (no 166-sample confirmation)",
+   "no independent-confirmation claim; prior exposure V9-G1 stated",
+   "TEST112 sensitivity reported beside TEST134",
+   "RuLSIF_exact (v1) carries its failed-adaptation label; RuLSIF_exact_v2 carries amendment A1's label",
+   "hardware recorded per unit; secondary replication by hardware",
+   "no method-superiority, strong-baseline or novelty claim while the required baselines are not confirmed complete (decision 5)",
+   "intervals are descriptive; no significance tests"
+  ]
+ },
+ "precision": {
+  "settings": {
+   "float32_matmul_precision": "highest",
+   "cuda_matmul_fp32_precision_raw": "none",
+   "backends_fp32_precision_raw": "none",
+   "cudnn_fp32_precision_raw": "none",
+   "cudnn_conv_fp32_precision": "tf32",
+   "cudnn_rnn_fp32_precision_raw": "tf32",
+   "deterministic_algorithms": false,
+   "deterministic_algorithms_warn_only": false,
+   "cudnn_benchmark": false,
+   "cudnn_deterministic": false
+  },
+  "env": {
+   "CUBLAS_WORKSPACE_CONFIG": {
+    "set": true,
+    "value": ":4096:8"
+   },
+   "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": {
+    "set": false,
+    "value": null
+   },
+   "NVIDIA_TF32_OVERRIDE": {
+    "set": false,
+    "value": null
+   }
+  },
+  "environment": {
+   "torch": "2.9.0+cu128",
+   "cuda_runtime": "12.8",
+   "cudnn": 91002,
+   "torch_threads": 4
+  }
+ },
+ "hardware": {
+  "rule": "matched hardware: each unit is TEST-evaluated on the GPU type that produced its recorded DEV32 (L40S / RTX6000PRO / H100), only after the DEV gate of (family, that GPU type) PASSed",
+  "owner_quotes": [
+   "final 放开，CAL 留 L40S",
+   "什么快什么来吧"
+  ],
+  "exclude_nodes": "node51,node53,node60",
+  "cross_hardware_equivalence": "not claimed"
+ },
+ "dev_gate": {
+  "criterion": "bitwise: re-evaluate the gate unit's frozen selected checkpoint on DEV32 (32 cores x 10) with the TEST-stage evaluator on the GPU type that produced its record; every (core, perturbation) row present once, the same field names, and every non-timing field equal (==); DEV32 metrics equal the recorded COMPLETE DEV32; data read only FIT / CAL / DEV",
+  "timing_fields_excluded": [
+   "seconds",
+   "preparation_seconds",
+   "reference_preparation_seconds",
+   "moving_and_energy_preparation_seconds",
+   "full_registration_seconds",
+   "job"
+  ],
+  "scope": "one gate per (family, GPU type) used by a TEST unit; a TEST unit runs only if its gate PASSed",
+  "on_fail": "a FAIL is reported with its first mismatches; that family's units on that GPU type are not TEST-evaluated under this protocol; no tolerance is substituted after the fact (a criterion change needs a new protocol version and activation before any TEST read of those units); other gates and units are unaffected",
+  "plan": [
+   {
+    "gate_id": "L40S__MF_VCS_perm1",
+    "family": "MF_VCS_perm1",
+    "gpu_type": "L40S",
+    "unit": "MF_VCS_perm1__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 545.0633561611176,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__MF_VCS_M0",
+    "family": "MF_VCS_M0",
+    "gpu_type": "L40S",
+    "unit": "MF_VCS_M0__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 507.60795617103577,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__MF_VCS_M1",
+    "family": "MF_VCS_M1",
+    "gpu_type": "L40S",
+    "unit": "MF_VCS_M1__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 618.8345649242401,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__MLP_VCS_perm1",
+    "family": "MLP_VCS_perm1",
+    "gpu_type": "L40S",
+    "unit": "MLP_VCS_perm1__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 815.3664350509644,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__MLP_VCS_perm8",
+    "family": "MLP_VCS_perm8",
+    "gpu_type": "L40S",
+    "unit": "MLP_VCS_perm8__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 2119.9558279038174,
+    "time_limit": "01:30:00"
+   },
+   {
+    "gate_id": "L40S__InfoNCE_host_J_perm1",
+    "family": "InfoNCE_host[J_perm1]",
+    "gpu_type": "L40S",
+    "unit": "InfoNCE_host_J_perm1__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 722.8770949989557,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__MI_native",
+    "family": "MI_native",
+    "gpu_type": "L40S",
+    "unit": "MI_native__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 563.0865179318935,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__NMI_native",
+    "family": "NMI_native",
+    "gpu_type": "L40S",
+    "unit": "NMI_native__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 435.7380343442783,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__CoMIR_native",
+    "family": "CoMIR_native",
+    "gpu_type": "L40S",
+    "unit": "CoMIR_native__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 357.20216210663784,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__RuLSIF_exact",
+    "family": "RuLSIF_exact",
+    "gpu_type": "L40S",
+    "unit": "RuLSIF_exact__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 1851.5870223697275,
+    "time_limit": "01:30:00"
+   },
+   {
+    "gate_id": "L40S__MIND_2D_adapted",
+    "family": "MIND_2D_adapted",
+    "gpu_type": "L40S",
+    "unit": "MIND_2D_adapted__1001",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 348.6853334022453,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "L40S__RuLSIF_exact_v2",
+    "family": "RuLSIF_exact_v2",
+    "gpu_type": "L40S",
+    "unit": "RuLSIF_exact_v2__1003",
+    "unit_recorded_gpu": "NVIDIA L40S",
+    "estimated_seconds": 2286.023742442485,
+    "time_limit": "01:30:00"
+   },
+   {
+    "gate_id": "H100__MF_VCS_M0",
+    "family": "MF_VCS_M0",
+    "gpu_type": "H100",
+    "unit": "MF_VCS_M0__1004",
+    "unit_recorded_gpu": "NVIDIA H100 NVL",
+    "estimated_seconds": 583.786431312561,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "H100__MLP_VCS_perm1",
+    "family": "MLP_VCS_perm1",
+    "gpu_type": "H100",
+    "unit": "MLP_VCS_perm1__1005",
+    "unit_recorded_gpu": "NVIDIA H100 NVL",
+    "estimated_seconds": 633.4078884124756,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__MF_VCS_perm1",
+    "family": "MF_VCS_perm1",
+    "gpu_type": "RTX6000PRO",
+    "unit": "MF_VCS_perm1__1004",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 362.5208230018616,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__MF_VCS_M0",
+    "family": "MF_VCS_M0",
+    "gpu_type": "RTX6000PRO",
+    "unit": "MF_VCS_M0__1005",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 388.86477494239807,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__MF_VCS_M1",
+    "family": "MF_VCS_M1",
+    "gpu_type": "RTX6000PRO",
+    "unit": "MF_VCS_M1__1004",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 390.5000183582306,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__MLP_VCS_perm1",
+    "family": "MLP_VCS_perm1",
+    "gpu_type": "RTX6000PRO",
+    "unit": "MLP_VCS_perm1__1004",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 425.8538610935211,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__MLP_VCS_perm8",
+    "family": "MLP_VCS_perm8",
+    "gpu_type": "RTX6000PRO",
+    "unit": "MLP_VCS_perm8__1004",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 800.683368318947,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__InfoNCE_host_J_perm1",
+    "family": "InfoNCE_host[J_perm1]",
+    "gpu_type": "RTX6000PRO",
+    "unit": "InfoNCE_host_J_perm1__1004",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 441.56893339706585,
+    "time_limit": "01:00:00"
+   },
+   {
+    "gate_id": "RTX6000PRO__RuLSIF_exact_v2",
+    "family": "RuLSIF_exact_v2",
+    "gpu_type": "RTX6000PRO",
+    "unit": "RuLSIF_exact_v2__1001",
+    "unit_recorded_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "estimated_seconds": 1456.0868940877263,
+    "time_limit": "01:00:00"
+   }
+  ]
+ },
+ "inputs": {
+  "raw_root": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg_test/raw",
+  "raw_rule": "V9-G1 byte copies of the sealed archive members; sha256 must equal the frozen member list",
+  "v9_prepared_root": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg_test",
+  "root": "/projects/EEG-foundation-model/yinghao/outputs_v10/test_repeat134_20261020/inputs",
+  "builder": "REG-P1 cmd_prepare verbatim (V9-G1's prepare path: core discovery and role assignment pointed at the test files, role TEST)",
+  "host_source_root": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source",
+  "host_code_hash": "6c6f094684fbc50a",
+  "lock": "INPUT_LOCK.json (sha256 per prepared file); PASS requires the arrays to equal V9-G1's prepared cache",
+  "precondition": "every L40S family gate PASS"
+ },
+ "jobs": {
+  "resume": "a TEST job that stops (time limit, node fault) is resubmitted with the same line; the frozen evaluator resumes from the completed rows of the same output, which are never replaced; COMPLETE is written once",
+  "order": [
+   "gate (all plan entries)",
+   "prepare (after every L40S gate PASS)",
+   "test (one job per unit, after its gate PASS and INPUT_LOCK PASS)"
+  ],
+  "sbatch": "slurm/v10_test_repeat/gpu.sbatch",
+  "execution_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_20261020",
+  "outputs": {
+   "gate": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/gate/<gate_id>/<job>",
+   "inputs": "/projects/EEG-foundation-model/yinghao/outputs_v10/test_repeat134_20261020/inputs",
+   "test": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/results/TEST_REPEAT/<unit>",
+   "exits": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/exits/<job>.json",
+   "failures": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/failures/<job>.json"
+  },
+  "test_units": [
+   {
+    "unit": "MF_VCS_perm1__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1708.7028039246798
+   },
+   {
+    "unit": "MF_VCS_perm1__1002",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1420.4607060104609
+   },
+   {
+    "unit": "MF_VCS_perm1__1003",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1747.0834426879883
+   },
+   {
+    "unit": "MF_VCS_M0__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1551.8583164662123
+   },
+   {
+    "unit": "MF_VCS_M0__1002",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 2041.040635511279
+   },
+   {
+    "unit": "MF_VCS_M0__1003",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1552.0631236881018
+   },
+   {
+    "unit": "MF_VCS_M1__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 2017.6197406202555
+   },
+   {
+    "unit": "MF_VCS_M1__1002",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 2010.1110300421715
+   },
+   {
+    "unit": "MF_VCS_M1__1003",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 2007.8130089491606
+   },
+   {
+    "unit": "MLP_VCS_perm1__1001",
+    "gpu_type": "L40S",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2840.5969467759132
+   },
+   {
+    "unit": "MLP_VCS_perm1__1002",
+    "gpu_type": "L40S",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2794.197216719389
+   },
+   {
+    "unit": "MLP_VCS_perm1__1003",
+    "gpu_type": "L40S",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2862.8324806839228
+   },
+   {
+    "unit": "MLP_VCS_perm8__1001",
+    "gpu_type": "L40S",
+    "time_limit": "04:00:00",
+    "estimated_seconds": 8303.565029347235
+   },
+   {
+    "unit": "MLP_VCS_perm8__1002",
+    "gpu_type": "L40S",
+    "time_limit": "04:00:00",
+    "estimated_seconds": 8241.538544640396
+   },
+   {
+    "unit": "MLP_VCS_perm8__1003",
+    "gpu_type": "L40S",
+    "time_limit": "04:00:00",
+    "estimated_seconds": 8266.106136112641
+   },
+   {
+    "unit": "InfoNCE_host_J_perm1__1001",
+    "gpu_type": "L40S",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2453.297835308127
+   },
+   {
+    "unit": "InfoNCE_host_J_perm1__1002",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 2378.8342671466526
+   },
+   {
+    "unit": "InfoNCE_host_J_perm1__1003",
+    "gpu_type": "L40S",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2933.5759465800147
+   },
+   {
+    "unit": "MI_native__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1784.174793839804
+   },
+   {
+    "unit": "NMI_native__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1250.9030188166653
+   },
+   {
+    "unit": "CoMIR_native__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 922.034053821546
+   },
+   {
+    "unit": "CoMIR_native__1002",
+    "gpu_type": "L40S",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 912.7657046558452
+   },
+   {
+    "unit": "CoMIR_native__1003",
+    "gpu_type": "L40S",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 925.2099833315369
+   },
+   {
+    "unit": "RuLSIF_exact__1001",
+    "gpu_type": "L40S",
+    "time_limit": "03:30:00",
+    "estimated_seconds": 7179.770656173234
+   },
+   {
+    "unit": "RuLSIF_exact__1002",
+    "gpu_type": "L40S",
+    "time_limit": "05:30:00",
+    "estimated_seconds": 10952.575732393358
+   },
+   {
+    "unit": "RuLSIF_exact__1003",
+    "gpu_type": "L40S",
+    "time_limit": "03:30:00",
+    "estimated_seconds": 6277.795943800127
+   },
+   {
+    "unit": "MIND_2D_adapted__1001",
+    "gpu_type": "L40S",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 886.3698336219022
+   },
+   {
+    "unit": "RuLSIF_exact_v2__1001",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "03:00:00",
+    "estimated_seconds": 5523.613868992354
+   },
+   {
+    "unit": "RuLSIF_exact_v2__1002",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "03:00:00",
+    "estimated_seconds": 5524.103679887878
+   },
+   {
+    "unit": "RuLSIF_exact_v2__1003",
+    "gpu_type": "L40S",
+    "time_limit": "04:30:00",
+    "estimated_seconds": 8998.974421477906
+   },
+   {
+    "unit": "MF_VCS_perm1__1004",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 944.3059463202953
+   },
+   {
+    "unit": "MF_VCS_perm1__1005",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 943.8161940872669
+   },
+   {
+    "unit": "MF_VCS_M0__1004",
+    "gpu_type": "H100",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1870.8556811213493
+   },
+   {
+    "unit": "MF_VCS_M0__1005",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 1054.621245071292
+   },
+   {
+    "unit": "MF_VCS_M1__1004",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 1061.4688268750906
+   },
+   {
+    "unit": "MF_VCS_M1__1005",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:00:00",
+    "estimated_seconds": 1041.0229221135378
+   },
+   {
+    "unit": "MLP_VCS_perm1__1004",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1209.5130433291197
+   },
+   {
+    "unit": "MLP_VCS_perm1__1005",
+    "gpu_type": "H100",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 2078.6455327272415
+   },
+   {
+    "unit": "MLP_VCS_perm8__1004",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2779.1116048355907
+   },
+   {
+    "unit": "MLP_VCS_perm8__1005",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "02:00:00",
+    "estimated_seconds": 2797.8451567146403
+   },
+   {
+    "unit": "InfoNCE_host_J_perm1__1004",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1275.3199086002132
+   },
+   {
+    "unit": "InfoNCE_host_J_perm1__1005",
+    "gpu_type": "RTX6000PRO",
+    "time_limit": "01:30:00",
+    "estimated_seconds": 1282.3285256300442
+   }
+  ]
+ },
+ "cost_estimate": {
+  "basis": "recorded DEV registration seconds of the same unit x 1340 / 320, plus a fixed per-job overhead of 180 s; native allocated GPU-h on the matched GPU type; prepare 0.25 h",
+  "test_gpu_h": {
+   "L40S": 27.006075375874033,
+   "RTX6000PRO": 7.065853034015922,
+   "H100": 1.0970836705134976
+  },
+  "gate_gpu_h": {
+   "L40S": 3.103341124390944,
+   "H100": 0.3381095332569546,
+   "RTX6000PRO": 1.1850218536665973
+  },
+  "prepare_gpu_h": 0.25,
+  "total_gpu_h": 40.04548459171795
+ }
+}

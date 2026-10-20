@@ -1,0 +1,38 @@
+{
+ "schema": "v10.test_repeat134.activation.v1",
+ "status": "ACTIVE_FOR_FROZEN_CHECKPOINT_EVALUATION_ONLY",
+ "id": "V10-TEST-REPEAT134-ACTIVATION-20261020",
+ "owner_decision": {
+  "path": "v10/test_repeat134/OWNER_DECISION.json",
+  "sha256": "bd84057928a49b48f101ca8f92e2d53437f493435956c50c1826b651527d648c"
+ },
+ "records": {
+  "OWNER_DECISION.json": "bd84057928a49b48f101ca8f92e2d53437f493435956c50c1826b651527d648c",
+  "TEST_REPEAT134_MANIFEST.json": "9dfda63905998413999743f2f7b7e5424903d5a32b78dd8f6f177ab308d1dcab",
+  "TEST_REPEAT134_PROTOCOL.json": "cdcba1e7d578ab3524945e005c0a3214ac41c46712a32a4af430edb568d18506"
+ },
+ "code": {
+  "files": {
+   "scripts/v10_test_repeat/tr_common.py": "8e33928b7335e6f9e2f73513746c4281eda216b9cb76c7dd3cf2570b3c8dff6b",
+   "scripts/v10_test_repeat/evaluate.py": "81ea18efc982d43ad61f4c11fb310ef92ed8c74b1dc09dd010727e241241010e",
+   "scripts/v10_test_repeat/prepare_inputs.py": "b966a426907aca37625826a161facff82f1174246f7b933ca6dadacd4116f13f",
+   "slurm/v10_test_repeat/gpu.sbatch": "23fe0c52d9a2315b8642dc78698b9eecd4ffdee36656ca1ef8a98178de1031f6"
+  },
+  "execution_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_20261020"
+ },
+ "permits": "reading the 134 BF/SHG TEST cores (their raw members once in the prepare job, then the locked prepared inputs) solely to evaluate the frozen selected checkpoints of the manifest with the frozen evaluators",
+ "conditions": [
+  "inside a Slurm GPU job submitted with V10_TR_EXPECT_ACTIVATION = sha256 of this file and V10_TR_EXPECT_COMMIT = the execution worktree commit; the records, the code files above and the bundle copies are byte-identical",
+  "prepare: every planned L40S DEV gate PASS; raw member sha256 == the manifest; prepared arrays == V9-G1's prepared cache",
+  "test: the (family, GPU type) DEV gate PASS; the job's GPU type == the unit's recorded DEV32 GPU type; INPUT_LOCK PASS; frozen checkpoint sha256 == the manifest",
+  "results are written once and never overwritten; every TEST read is logged"
+ ],
+ "forbidden": [
+  "any TEST access outside these jobs (login node, CPU tests, interactive use)",
+  "training, CAL selection, checkpoint choice, grid / candidate / protocol changes from TEST content",
+  "pooling TEST_REPEAT with DEV or calling it an independent confirmation",
+  "re-running a unit to replace a result"
+ ],
+ "supersedes": "TEST134 HOLD (protocol P2 data_roles.BF_SHG.TEST) for this evaluation only; the V10 data manifest is unchanged",
+ "evaluator_only": true
+}
