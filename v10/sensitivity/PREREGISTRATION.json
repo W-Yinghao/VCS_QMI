@@ -1,0 +1,220 @@
+{
+  "schema": "v10.sensitivity.preregistration.v1",
+  "id": "V10-POSTDEV-SENSITIVITY-20261019",
+  "status": "PREREGISTERED_BEFORE_ANY_D1_D2_D3_JOB",
+  "written_utc": "2026-10-19T12:10:00Z",
+  "label": "post-DEV sensitivity",
+  "label_cn": "看过DEV结果之后设计的敏感性诊断",
+  "branch": "v10/sensitivity-diagnostics (from ddd3bcb09d75c3d6560ef8f1a5b52fa150e14060)",
+  "design_context": {
+    "seen_before_design": [
+      "frozen DEV32/DEV24 rows of all seven supplemental methods (handoff/v10_method_pipeline_20261019, handoff/v10_native_geometry_recovery_20261019)",
+      "independent review handoff/review_claude_20261019/REVIEW_CN.md: CoMIR CAL read only at epoch 23 although 23 epoch checkpoints were saved; CoMIR DEV32 below the earlier host CoMIR; MIND success<42 falling with |theta*|; seed-replication units on RTX PRO 6000 / H100 without a supplement CUDA gate on those GPU types",
+      "R6 REG-P2 and V9-G1 CoMIR CAL/DEV result records (for the records-only gap audit)"
+    ],
+    "consequence": "Every D1/D2/D3 record is a post-DEV sensitivity diagnostic. None replaces, re-ranks or re-selects a frozen main-table row; none is a method-selection input, a TEST_REPEAT freeze input, or evidence for a method-superiority / novelty claim (owner decision 2026-10-17 section 5)."
+  },
+  "hard_rules": {
+    "frozen_rows_unchanged": "CoMIR_native, MIND_2D_adapted, MLP_VCS_perm8 and InfoNCE_host[J_perm1] main-table rows stay exactly as frozen; diagnostics are reported next to them, labelled post-DEV sensitivity",
+    "no_new_training": "D1 and D2 train nothing; D1 only loads the saved CoMIR epoch checkpoints; D2 is training-free; D3 runs the supplement gate, which by its own definition takes three optimiser steps on FIT32 for its resume check (validation only, never a scientific seed)",
+    "data_roles": "FIT (only through the unchanged trainer constructors and the D3 gate), CAL8, DEV32; DEV24 is a derived subset of DEV32 rows",
+    "held": {"TEST134": "HOLD, never read", "EPFL": "NOT_ACTIVATED, never read", "evaluator_only": "never read", "CONFIRM": 0},
+    "data_gate": "frozen v10.adapter.DataGuard with V10 manifest sha256 cc309cece34b574b2a518b5775a1e30987ebd9015693cca1543d5610f13564f6 and the BF1 data lock",
+    "frozen_code": "reused supplement code is imported read-only from the frozen trees after per-file sha256 verification against the frozen RELEASE.json / validation MANIFEST source_files; the frozen trees and bundles are never written",
+    "outputs": {
+      "bundle": "/home/infres/yinwang/CS_QMI/handoff/v10_sensitivity_20261019",
+      "rows": "/projects/EEG-foundation-model/yinghao/outputs_v10/sensitivity_20261019",
+      "d3_gate": "<bundle>/D3/validation (byte copy of the pipeline validation manifest, so the unchanged gate writes only there)"
+    },
+    "fail_loud": "any identity, hash, coverage or data-role mismatch stops the unit with a non-zero exit and a failure record; no blind retry; no partial result is reported as complete"
+  },
+  "frozen_inputs": {
+    "data_lock": {"path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/DATA_LOCK.json", "sha256": "e65c60a33f095933e673613fc58f2754485933524259e548c6a0f5dc380f72c5"},
+    "parent_protocol": {"path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/PROTOCOL.json", "sha256": "de4c0c3943d5a54b3a7de73a84785f240f7ee5b1396d173fd2109999a5555e9d"},
+    "comir_release": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_native_geometry_recovery_20261019/families/4/RELEASE.json",
+      "sha256": "a8cd6bf3521af38c5ecd090d8a0d5b6c284bc08fca5760aefeda22cde22eef8d",
+      "source_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_native_recovery_20261019",
+      "source_commit": "ddd3bcb09d75c3d6560ef8f1a5b52fa150e14060",
+      "code_sha256": "3ec64cb5e7d545b94b88b5b1558d5591057c06fb2d8c446aa597ca96c9fb572e",
+      "cal_selection_sha256": "277fa807c73ad82a7338e144bf7fbaf01585c4b7dc4c36202a8e97be6d1bf695",
+      "units": {
+        "CAL_1017": {"dir": "results/CAL/CoMIR_native/candidate_00", "seed": 1017, "phase": "CAL", "complete_sha256": "21725b2a775d7e33e15aeeee12d544cfea89094568407e954c21ee6dccd46841"},
+        "FINAL_1001": {"dir": "results/FINAL_DEV/CoMIR_native/seed_1001", "seed": 1001, "phase": "FINAL_DEV", "complete_sha256": "cadb433c460dcb75e875847b23763c392fc02acb1dee8b15642f35b0a6a8fc53"},
+        "FINAL_1002": {"dir": "results/FINAL_DEV/CoMIR_native/seed_1002", "seed": 1002, "phase": "FINAL_DEV", "complete_sha256": "2f1fb6909edd24ff1d91dc118874a62413939496918b21e42d80a0f5fc69a381"},
+        "FINAL_1003": {"dir": "results/FINAL_DEV/CoMIR_native/seed_1003", "seed": 1003, "phase": "FINAL_DEV", "complete_sha256": "310d062a4044b816fd5c8482975156b5697de15e299de2eaaffa6b6220ab688b"}
+      }
+    },
+    "mind_release": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_method_pipeline_20261019/families/6/RELEASE.json",
+      "sha256": "188204c353a7526121f7286d7a22f0a6adca8b5e3517f31c8ac414b43cb8f961",
+      "source_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_pipeline_20261019",
+      "source_commit": "ecd8a95cb73f66fc54f10350bb8474b12c9665f4",
+      "code_sha256": "3f1405ed4272d54935f7d9ccc42cdb9e41e55469f154c5a2961fe6b9f36072ac",
+      "unit": {"dir": "results/FINAL_DEV/MIND_2D_adapted/seed_1001", "seed": 1001, "phase": "FINAL_DEV", "complete_sha256": "124f0a1372b406febad77f53308a817cb1948478cb78f0704c3e42c78d7697a9"}
+    },
+    "pipeline_validation_manifest": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_method_pipeline_20261019/validation/MANIFEST.json",
+      "sha256": "8befdabb0c2b6823e8c04c86763090fd2b383b28b5c02250c34fcae15eb1292b",
+      "source_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_pipeline_20261019",
+      "accepted_l40s_gates": {
+        "MLP_VCS_perm8": {"job": "1047322", "path": "/home/infres/yinwang/CS_QMI/handoff/v10_method_pipeline_20261019/validation/runs/1047322/MLP_VCS_perm8/GATE.json", "sha256": "d86ff365de19b3d2071b4be692a0843afbb3592efd474919830ff844e4ec2e06"},
+        "InfoNCE_host[J_perm1]": {"job": "1047323", "path": "/home/infres/yinwang/CS_QMI/handoff/v10_method_pipeline_20261019/validation/runs/1047323/InfoNCE_host[J_perm1]/GATE.json", "sha256": "590db6c64e4a6af9fbc3118e8e164005ddf4ace3c1739200b0ab4efefb4d7082"}
+      }
+    }
+  },
+  "common": {
+    "searcher": "unchanged R6-REG-P2 Q.optimise_rigid: 21 angles (3 deg, |theta|<=30) x 508 translations (4 px disk, |t|<=51), top 3 refined by 100 Adam steps lr 0.5 on (u=theta*rho, ty, tx), final = best exact energy",
+    "perturbations": "Q.perturbations_p2(core): 10 per core, identical to every frozen row",
+    "positions": "per (core, perturbation) default_rng(seed_of('R6-REG-P2|pos|core|i')): 4096 positions on the support disk, shared with the frozen rows",
+    "error": "Q.corner_error_full (mean corner error of the central 834-px patch, full-resolution px)",
+    "metrics": "frozen records.metrics: success<42, success<9 (fractions of registrations), median corner error",
+    "selection_rule": ["success42 descending", "success9 descending", "median_err ascending", "checkpoint step ascending (earlier)"],
+    "selection_rule_source": "owner decision 2026-10-17 section 8.1 items 1-4 (item 5, candidate order, is moot: CoMIR_native has one frozen candidate); implemented by the frozen records.selection_key",
+    "dev24": {"rule": "frozen runner rule: drop DEV cores whose TMA position (record_id after the first underscore) equals a FIT or CAL position", "excluded": ["1B_F4", "1B_H4", "1B_H9", "2B_D5", "2B_G3", "2B_G5", "2B_H2", "2B_I5"]},
+    "statistics": "descriptive; the core is the unit (10 perturbations of a core are not independent); paired over cores across variants; 95% percentile bootstrap over cores, 10000 resamples, numpy default_rng(20261019); DEV32 has 32 cores in 32 TMA position groups, so core and position-group resampling coincide",
+    "rotation_strata_deg": [[0, 10], [10, 20], [20, 30]],
+    "rotation_strata_rule": "|theta*| in [0,10), [10,20), [20,30] (upper bound of the last stratum inclusive), theta* = the row's 'theta'"
+  },
+  "D1": {
+    "name": "D1_CoMIR_native_CAL_checkpoint_selection",
+    "question": "Had CoMIR_native selected its epoch checkpoint on CAL with the common rule (as the learned host critics select among 12 checkpoints), instead of reading only the final epoch 23, would its DEV32/DEV24 change?",
+    "hardware": "L40S (the frozen CoMIR rows ran on L40S node52); frozen run.runtime_environment unchanged (L40S name, torch/CUDA/cuDNN/threads, precision settings and override variables)",
+    "units": ["CAL_1017", "FINAL_1001", "FINAL_1002", "FINAL_1003"],
+    "epochs": [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 23],
+    "steps": [64, 128, 192, 256, 320, 384, 448, 512, 576, 640, 704, 736],
+    "epoch_rule": "every second epoch plus the final epoch: 12 checkpoints spread over training like BF1's 12 (250..3000 steps, every 1/12 of training); epoch 23 = step 736 is the frozen choice; 32 steps per epoch",
+    "checkpoints": "the frozen unit's checkpoints/step_XXXX.pt, loaded with the frozen checkpoints.load (identity, file sha256, resolved configuration and restored model hash must match); never modified",
+    "cal": "for each of the 12 steps: frozen run.evaluate on CAL8 x 10 (RegistrationSession: encode-then-register, reference latent once per core, moving latent once per perturbation, both timed and counted in full_registration_seconds)",
+    "selection": "per unit, min over the 12 CAL rows of the frozen records.selection_key; written to SELECTION.json before any DEV read",
+    "dev": "FINAL_1001/1002/1003 only, and only at that unit's CAL-selected step: DEV32 x 10 with the same frozen evaluate; DEV24 and per-core metrics from those rows; CAL_1017 has no DEV evaluation",
+    "dev_when_selected_is_736": "DEV is still evaluated (it is the CAL-selected checkpoint); the rows double as a replay check of the frozen DEV rows",
+    "qc": {
+      "Q1_identity": "frozen release sha256, all release source files, git HEAD of the frozen tree, frozen unit COMPLETE (records.verified_complete), CONFIG equality, checkpoint identity/sha/model hash",
+      "Q2_coverage": "12 complete CAL readouts of 80 registrations each; DEV 320 rows; DEV24 = 240 rows on 24 cores",
+      "Q3_replay_cal": "D1 step-736 CAL rows vs the frozen CAL/step_0736.jsonl rows of the same unit: count of rows with identical err_full, theta_hat, t_hat, F_hat, F_true and the maximum absolute differences; expected identical on L40S; a mismatch is disclosed, does not stop D1, and D1 selects on its own 12 readouts",
+      "Q4_roles": "DATA_READS roles subset of {FIT, CAL, DEV}; DEV reads only after SELECTION.json exists and only for the selected checkpoint; no held core"
+    },
+    "report": [
+      "per unit: the 12 CAL rows (success42, success9, median), selected epoch",
+      "per final seed: DEV32 and DEV24 (success42, success9, median) at the selected epoch vs the frozen epoch-23 rows",
+      "paired per-core difference of DEV32 success<42 (selected minus frozen) per seed and averaged over the three seeds, with the bootstrap CI over the 32 cores; same for success<9",
+      "rotation strata of DEV32 success<42 for both readouts",
+      "QC Q1-Q4 and measured cost"
+    ],
+    "interpretation_grid": {
+      "G1_all_select_23": "All three finals select epoch 23: CAL-based epoch selection would not have changed the frozen CoMIR row; the final-epoch rule is not the cause of the lower CoMIR DEV.",
+      "G2_material_gain": "At least one final selects an earlier epoch and the three-seed mean paired DEV32 success<42 difference is >= +0.03 with a CI above 0: under CAL-based epoch selection (post-DEV) CoMIR's DEV32 would be higher by that amount; the single-epoch readout disadvantaged CoMIR; report next to the frozen row, never replace it.",
+      "G3_no_material_change": "Earlier epochs are selected but the mean difference is within (-0.03, +0.03) or its CI contains 0: the procedural asymmetry exists but is not material for this DEV readout.",
+      "G4_material_loss": "Mean difference <= -0.03 with a CI below 0: CAL8 epoch choice would have hurt CoMIR on DEV (CAL8 is a weak predictor here); keep the frozen row and disclose.",
+      "gap_clause": "If every final's D1 DEV32 success<42 is >= 0.89 (the earlier R6 host CoMIR range 0.891-0.9125), checkpoint timing accounts for the gap to the earlier host CoMIR; otherwise the gap stays unexplained by checkpoint timing and is reported with the records audit (no causal claim)."
+    }
+  },
+  "D1_records_audit": {
+    "name": "D1b_CoMIR_gap_records_audit",
+    "scope": "records and code only; no new training, registration or GPU job",
+    "questions": [
+      "same DEV cores as the earlier host CoMIR (R6 REG-P2 comir_s0..s2; V9-G1 comir frac1 eps0 s901..s903)?",
+      "same CAL/DEV perturbation truths?",
+      "same preprocessing and input cache?",
+      "same training/registration code path and recipe?",
+      "what differs (seeds, hardware, software, nondeterminism), and where on DEV the difference sits (per-core pattern)?"
+    ],
+    "output": "<bundle>/D1/COMIR_GAP_RECORDS.json and v10/sensitivity/COMIR_GAP_RECORDS_CN.md (written after this pre-registration)"
+  },
+  "D2": {
+    "name": "D2_MIND_2D_warp_then_describe",
+    "variant": "MIND_2D_warp_then_describe",
+    "question": "Is the frozen MIND_2D_adapted row's fall of success<42 with |theta*| caused by describing the moving image once in its own axis frame (describe-then-warp)?",
+    "frozen_comparator": "MIND_2D_adapted FINAL_DEV seed_1001 rows (CAL step 0 and DEV32), unchanged",
+    "definition": {
+      "reference": "frozen: mind2d(BF luminance reference, frozen MINDConfig) once per core, sampled at the support positions x",
+      "grid_stage": "for each of the 21 search angles theta: the moving SHG intensity image (the frozen MIND input) is resampled by the rotation-only warp R(theta) over the host grid box BOX2=[59,452]; its descriptor is computed once (mind2d, frozen config); all 508 translations t at that angle reuse it, sampled at x + R(-theta) t (the host critic's grid machinery)",
+      "exact_stage": "refinement steps, final F_hat and F_true: the moving image is resampled by the full (theta, t) over the host exact box BOX1=[110,401], then described, then sampled at x (differentiable for the Adam refinement)",
+      "identical": "MINDConfig radius 1, sigma 0.8, offset 1, variance floor 1e-6 (same neighbourhood, Gaussian patch, variance rule, max normalisation); energy F = -mean over the 4096 positions and 4 channels of squared descriptor difference; same support, positions, perturbations, searcher, bilinear sampling convention, input normalisation and data roles",
+      "only_change": "the moving descriptor is computed after warping into the reference frame (per grid angle, and per exact candidate) instead of once before warping"
+    },
+    "hardware": "L40S (frozen MIND rows ran on L40S); frozen run.runtime_environment unchanged",
+    "runs": "one deterministic training-free configuration, no seeds: (a) QC replay of the frozen MIND CAL readout with the unchanged session; (b) variant CAL8 x 10 readout; (c) variant DEV32 x 10 with DEV24 and per-core metrics",
+    "qc": {
+      "Q1_identity": "frozen MIND release, sources, unit COMPLETE, fixed checkpoint step_0000 identity",
+      "Q2_replay": "frozen-variant CAL replay vs the frozen CAL/step_0000.jsonl rows: identical expected; a mismatch is disclosed",
+      "Q3_coverage": "CAL 80, DEV 320, DEV24 240 rows",
+      "Q4_roles": "reads only CAL and DEV; no FIT, no held core"
+    },
+    "report": [
+      "overall CAL and DEV32/DEV24 success42, success9, median for both variants",
+      "DEV32 (and CAL, DEV24) success42/success9/median per |theta*| stratum for both variants",
+      "paired per-core DEV32 success<42 difference (variant minus frozen) with the bootstrap CI",
+      "failures (err>=42) split by F_hat >= F_true (energy optimum wrong) vs F_hat < F_true (search missed a higher F)",
+      "measured cost"
+    ],
+    "interpretation_grid": {
+      "G1_orientation_explains": "Variant DEV32 success<42 in [20,30] >= frozen + 0.10 and the variant's stratum spread (max-min over the three strata) <= half the frozen spread (frozen 0.804-0.577=0.227): the rotation dependence is largely due to the axis-frame descriptor; warp-then-describe removes most of it.",
+      "G2_partial": "[20,30] improves by >= 0.03 but G1 is not met: orientation explains part of the trend.",
+      "G3_not_orientation": "[20,30] changes by < 0.03: the trend is not explained by channel orientation.",
+      "G4_overall_worse": "Overall DEV32 success<42 lower by >= 0.03 with a CI below 0: report the variant as worse overall, whatever the strata show.",
+      "always": "MIND_2D_adapted stays the main-table row; the variant is a named post-DEV sensitivity variant and is not a reproduction of the original 3D MIND or of MIND-SSC."
+    }
+  },
+  "D3": {
+    "name": "D3_cross_hardware_supplement_gpu_gate",
+    "question": "Do the supplement's own GPU gate checks (CUDA numerics, full FIT32 trainer with checkpoint/optimizer/RNG resume, geometry gradient, full common search) pass for MLP_VCS_perm8 and InfoNCE_host[J_perm1] on RTX PRO 6000 and on H100, the GPU types used by some seed-replication units?",
+    "code": "frozen pipeline tree ssl_pilot_v10_pipeline_20261019 @ ecd8a95 scripts/v10_supplement/validate.py stage gate --family F, imported unchanged; the same code produced the accepted L40S gates 1047322 / 1047323",
+    "manifest": "byte copy of the pipeline validation MANIFEST.json (sha256 8befdabb...) at <bundle>/D3/validation/MANIFEST.json; the unchanged gate writes runs/<job> next to it and nowhere else",
+    "only_change": "run.runtime_environment's 'gpu_name == NVIDIA L40S' condition is replaced, in the job process only, by: SLURM partition in {RTX6000PRO, H100} and gpu_name starting with 'NVIDIA RTX PRO 6000' / 'NVIDIA H100' respectively (the seed replication hardware.py approach); torch, cuda_runtime, cudnn, torch_threads, the ten precision settings and the CUBLAS/TF32 override variables are checked exactly as before against the parent protocol",
+    "jobs": [
+      {"family": "MLP_VCS_perm8", "partition": "RTX6000PRO"},
+      {"family": "InfoNCE_host[J_perm1]", "partition": "RTX6000PRO"},
+      {"family": "MLP_VCS_perm8", "partition": "H100"},
+      {"family": "InfoNCE_host[J_perm1]", "partition": "H100"}
+    ],
+    "verdict": "the gate's own PASS/FAIL; a CUDA device that cannot be initialised (e.g. 'busy or unavailable') is recorded as INFRA_CUDA_UNAVAILABLE before the gate starts, not as a gate FAIL",
+    "comparison": "descriptive deltas against the accepted L40S gate of the same family (same seed 1117, first candidate lr 1e-4): step-1/step-2/resumed step-2 loss and grad norm, geometry gradient and its finite difference, full-search F_hat, theta_hat, t_hat, timing, peak memory",
+    "interpretation": {
+      "PASS": "the supplement's implementation-level numerical identities, resume and search mechanics hold on that GPU type; it does not establish bitwise or task-level equivalence with L40S and does not make mixed-hardware replication seeds exchangeable",
+      "FAIL": "replication units of these families on that GPU type lack this gate; report and do not treat them as hardware-equivalent"
+    }
+  },
+  "jobs_and_cost": {
+    "partitions": {"D1": "L40S", "D2": "L40S", "D3": "RTX6000PRO and H100"},
+    "sbatch_common": "--qos=normal --gres=gpu:1 --exclude=node51,node60 --nice=0, job names v10d_*",
+    "measured_basis": {
+      "CoMIR_CAL_job_1047391": "326.8 s allocated = 0.091 GPU-h, of which ~273 s training (736 steps) and 45.1 s for the 80 CAL registrations",
+      "CoMIR_CAL_registrations_per_checkpoint_set": "45.1 s measured complete-registration time for 80 (FINAL_1001 step 736)",
+      "CoMIR_DEV320": "177.2 s (FINAL_1001)",
+      "MIND_CAL_job_1047344": "31.0 s allocated = 0.0086 GPU-h (26.0 s for 80 registrations)",
+      "MIND_FINAL_job_1047348": "218.6 s allocated (CAL 43.8 s + DEV 168.7 s)",
+      "accepted_gates": "1047322 / 1047323: 15.0 s / 12.9 s batch time"
+    },
+    "expected_gpu_hours": {
+      "D1": "4 jobs; 12 x ~46 s CAL (+ 180 s DEV for finals) + start-up: ~10-14 min each, ~0.8 GPU-h total; conservative bound with 0.091 GPU-h per checkpoint set and 0.364 GPU-h per DEV: 4.37 + 1.09 = 5.5 GPU-h",
+      "D2": "1 job; variant cost up to ~3x the frozen MIND registration (refined by a CPU micro-benchmark before submission): <= ~0.3 GPU-h",
+      "D3": "4 jobs, ~1-3 min each: ~0.1-0.2 GPU-h including start-up",
+      "total": "~1.2 GPU-h expected; ~6 GPU-h bound"
+    }
+  },
+  "claims": {
+    "required_wording": [
+      "post-DEV sensitivity (designed after the frozen DEV results were seen)",
+      "development data (DEV32 / DEV24), not TEST, not confirmation",
+      "D2 is a named variant MIND_2D_warp_then_describe, an adaptation, not MIND/MIND-SSC",
+      "D3 is a gate on another GPU type, not an equivalence result"
+    ],
+    "forbidden": [
+      "replacing or re-ranking any frozen main-table row with a D1/D2 result",
+      "method-superiority, strong-baseline or novelty conclusions from D1/D2",
+      "'CoMIR's gap is caused by hardware/seed' (records give association only)",
+      "'RTX PRO 6000 / H100 are numerically equivalent to L40S'",
+      "using any D1/D2/D3 output for TEST_REPEAT freezing or for another method's selection"
+    ]
+  },
+  "order_and_stop_rules": [
+    "1 this pre-registration is committed before any D1/D2/D3 job or real-data dry run",
+    "2 implementation and CPU tests (synthetic inputs) on the branch; CPU dry runs with real FIT/CAL inputs only through Slurm cpu-high, never DEV",
+    "3 bundle FREEZE.json pins every diagnostics source file sha256 and the frozen inputs; jobs refuse on any mismatch",
+    "4 the main session reviews and submits; D1 units, D2 and D3 jobs are independent",
+    "5 a failed unit is reported with its failure record; no blind resubmission; a resubmission reuses completed rows only after identity checks",
+    "6 the analysis script writes neutral RESULTS; framing waits for the owner"
+  ]
+}
