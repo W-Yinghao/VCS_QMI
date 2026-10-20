@@ -17,7 +17,7 @@ import traceback
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 from v10.supplement.contract import (FAMILIES, PARENT, candidates, digest, read,
-                                    require_release, schedule, sha)
+                                    require_release, require_release_v2, schedule, sha)
 from v10.supplement.records import (Allocation, BudgetExceeded, append, lock, metrics,
                                    require_identity, rows, selection_key, utc,
                                    verified_complete, write)
@@ -320,7 +320,8 @@ def main():
     if args.phase == "cal" and args.seed is not None:
         parser.error("CAL seed is fixed at 1017")
     # Pure-record validation before importing Torch or touching any images.
-    release = require_release(args.release, args.family)
+    release = (require_release_v2(args.release) if args.family == "RuLSIF_exact_v2"
+               else require_release(args.release, args.family))
     base = args.release.resolve().parent
     root = base / "results"
     release_sha = sha(args.release)

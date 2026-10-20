@@ -144,6 +144,10 @@ class RegistrationSession:
             energy = DescriptorRigidEnergy(self.reference, descriptor, rng)
         elif self.family == "RuLSIF_exact":
             energy = RuLSIFRigidEnergy(self.reference, intensity, rng, ratio=self.trainer.ratio)
+        elif self.family == "RuLSIF_exact_v2":
+            from .rulsif_v2 import RuLSIFV2RigidEnergy, moving_input  # separate registered variant
+            energy = RuLSIFV2RigidEnergy(self.reference, moving_input(self.candidate, intensity, learned), rng,
+                                         ratio=self.trainer.ratio)
         else:
             raise ValueError("Unknown supplemental family: " + self.family)
         A.synchronize(self.device)
