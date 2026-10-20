@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "protocol_id": "VCS_V9_N2M_v1_20261019",
+  "status": "PACKAGE_FROZEN_SERVER_EXECUTION_PENDING",
+  "question": "Separate A/U mass rebalancing from informative allocation of locked VCS sample weights in the full N2F SGR student.",
+  "source_repository": "https://github.com/W-Yinghao/VCS_QMI",
+  "review_branch": "research/v9-v10-progress-20261019",
+  "review_commit": "87480e2f1dd8da509e85f23002bc9cbb6d19b151",
+  "source_git": "abd281b855e7159de38d7207b083b62142b0921f",
+  "baseline_path_in_repo": "project_snapshot/20261019/handoff/v9_full_20261017",
+  "baseline_freeze_sha256": "ae8d1e55d7ec5ae9439950d776a2c5efa122de45a58490aadcde0f6046fe1907",
+  "dataset": {
+    "name": "f30k_precomp",
+    "n_train_images": 29000,
+    "n_pool": 145000,
+    "n_A": 14500,
+    "n_U": 130500,
+    "n_dev_images": 1014,
+    "n_dev_captions": 5070,
+    "design_rho": 0.4,
+    "anchor_fraction": 0.1,
+    "TEST_read": false
+  },
+  "seeds": [
+    901,
+    902,
+    903
+  ],
+  "arms": [
+    "VCS",
+    "ConstantU",
+    "ShuffleVCS"
+  ],
+  "reference": {
+    "policy": "auto",
+    "reuse_only_if_complete_verified_and_environment_match": true,
+    "missing_historical_precision_or_environment_fields_means_replay": true,
+    "maximum_new_full_runs": 9,
+    "minimum_new_full_runs": 6,
+    "replay_order": {
+      "901": [
+        "VCS",
+        "ConstantU",
+        "ShuffleVCS"
+      ],
+      "902": [
+        "ConstantU",
+        "ShuffleVCS",
+        "VCS"
+      ],
+      "903": [
+        "ShuffleVCS",
+        "VCS",
+        "ConstantU"
+      ]
+    }
+  },
+  "student": {
+    "model": "SGR_single",
+    "batch_size": 128,
+    "optimizer": "torch.optim.Adam",
+    "learning_rate": 0.0002,
+    "lr_mult": 1.0,
+    "grad_clip": 2.0,
+    "margin": 0.2,
+    "epochs": 40,
+    "warmup_epochs": 5,
+    "lr_update": 30,
+    "loss_scale": "sum",
+    "last_batch_size": 104,
+    "steps_per_epoch": 1133,
+    "total_updates": 45320,
+    "epoch_shuffle_seed_sequence": [
+      "seed",
+      9020,
+      "epoch"
+    ],
+    "weights_from_update": 0,
+    "negative_pool": "all batch rows retained",
+    "global_normalizer": "(n_A + sum_U w) / n_pool",
+    "loss": "sum_i(v_i * (row_hinge_i + column_hinge_i)) / mean_v_full_pool",
+    "selection": "best full DEV rSum; earliest epoch on an exact tie"
+  },
+  "precision": {
+    "deterministic_algorithms": true,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false,
+    "cuda_matmul_tf32": false,
+    "cudnn_tf32": false,
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "mixed_precision": false
+  },
+  "controls": {
+    "constant": "float64 mean of saved VCS CSV U values; A=1",
+    "shuffle": {
+      "block_key": "observed_image_id",
+      "block_size": 5,
+      "sort": "numeric ID first, then lexicographic; numeric ties broken lexicographically",
+      "within_block_sort": "caption_id",
+      "rng": "Generator(PCG64(SeedSequence([seed,20261019,9101])))",
+      "permutation": "target block k receives source block pi[k]",
+      "fixed_points_allowed": true,
+      "draws": 1,
+      "frozen_across_epochs": true,
+      "evaluator_labels_forbidden": true
+    }
+  },
+  "analysis": {
+    "primary": "best full DEV rSum",
+    "contrasts": [
+      "VCS-ConstantU",
+      "VCS-ShuffleVCS"
+    ],
+    "paired_unit": "seed (three); reused DEV is developmental",
+    "uncertainty": "report per-seed differences, mean, range and sign count; no n=3 significance or equivalence claim",
+    "calibration_bins": [
+      0.0,
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.5,
+      0.6,
+      0.7,
+      0.8,
+      0.9,
+      1.0
+    ],
+    "logloss_clip": 1e-12,
+    "severe_collapse": {
+      "consecutive_hard_epochs": 2,
+      "dev_fraction_of_own_epoch4": 0.5,
+      "last_updates_in_epoch": 200,
+      "sampled_U_risk_threshold": 0.39,
+      "sampled_fraction_at_or_above": 0.9,
+      "missing_evidence": "UNKNOWN",
+      "early_stop": false
+    },
+    "investment_rule": {
+      "mean_rsum_difference_each_at_least": 3.0,
+      "positive_seeds_each_at_least": 2,
+      "complete_pairs_required": 3,
+      "no_more_severe_collapse": true,
+      "purpose": "resource allocation only; not significance/equivalence; does not exclude any run"
+    }
+  },
+  "telemetry": {
+    "step_log_every": 20,
+    "grad_log_window": [
+      200,
+      200
+    ],
+    "resume_count": "sum completed epochs steps_in_epoch and stored global_step consistency",
+    "attempt_cost": "each attempt ledger incl failed/interrupted allocation; missing cost is unknown"
+  },
+  "execution": {
+    "unit": "one seed/arm per invocation; optional sequential seed group",
+    "default_new_output": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2m_20261019_v1",
+    "shared_normal_gpu_limit": 8,
+    "do_not_create_second_global_feeder": true,
+    "old_N2F_closeout_before_new_full_runs": true,
+    "extra_full_runs_forbidden": [
+      "new learning rates",
+      "MEAN",
+      "new rho",
+      "new anchor budget",
+      "COCO",
+      "REG",
+      "Unweighted replay",
+      "teacher or critic refit"
+    ]
+  },
+  "software": {
+    "torch": "2.9.0+cu128",
+    "cuda": "12.8",
+    "python": "3.12.12",
+    "basis": "Actual N2F full_result.hardware (not the stale Python3.10 comment in HOST_LOCK). NumPy/cuDNN/driver/threads are captured and equal across the new three arms; do not upgrade the inherited server environment."
+  }
+}

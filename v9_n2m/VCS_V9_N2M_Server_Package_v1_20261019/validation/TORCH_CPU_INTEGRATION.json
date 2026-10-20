@@ -1,0 +1,369 @@
+{
+  "schema_version": 1,
+  "status": "PASS",
+  "started_utc": "2026-10-19T09:24:20.146105+00:00",
+  "scope": "synthetic actual-SGR code/resume equivalence; no scientific performance evidence",
+  "runtime_root": "/tmp/n2m_cpu_integration_xoo_q_mr/runtime",
+  "baseline_root": "/workspace/scratch/28c8bcecf9af/vcs_qmi_v9_review_20261019/project_snapshot/20261019/handoff/v9_full_20261017/source",
+  "baseline_train_sha256": "cafac01f989b0bbdd88f4d21c51e7475227367d8d4750057897b77832a61302c",
+  "patched_train_sha256": "2b3fb040238d247d46da0bac8ac470e231c5b588ad7be1c7db84a25956532a2f",
+  "patch": {
+    "version": "V9-N2M-telemetry-v1",
+    "baseline_train_sha256": "cafac01f989b0bbdd88f4d21c51e7475227367d8d4750057897b77832a61302c",
+    "scope": [
+      "actual completed update counts and epoch-relative sparse logs",
+      "atomic train-log and completion JSON writes",
+      "epoch-boundary STOP_REQUESTED without premature completion",
+      "checkpoint binding to this execution identity and run manifest",
+      "nonfinite refusal and existing-completion integrity checks"
+    ],
+    "scientific_loop_changes": false,
+    "gpu_equivalence": "requires the separately recorded verify_runtime result"
+  },
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "requested_device": "cpu",
+    "torch": "2.9.0+cpu",
+    "cuda": null,
+    "gpu": null,
+    "device": "cpu",
+    "deterministic_algorithms": true,
+    "cudnn_deterministic": true,
+    "cudnn_benchmark": false,
+    "tf32": {
+      "matmul": false,
+      "cudnn": false
+    },
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8",
+    "fixture_torch_num_threads": 1
+  },
+  "checks": {
+    "pinned_runtime_source": {
+      "status": "PASS",
+      "baseline_train_sha256": "cafac01f989b0bbdd88f4d21c51e7475227367d8d4750057897b77832a61302c",
+      "patched_train_sha256": "2b3fb040238d247d46da0bac8ac470e231c5b588ad7be1c7db84a25956532a2f",
+      "identical_dependency_sha256": {
+        "src/v9/n2/teacher.py": "5e6081cc115860ac1417074c3834ca830bd2aabc89983da39095ad1d17909ce3",
+        "src/v9/n2/sgr_host.py": "ff010fda4ad08ec6a76308dbe66c04e60fd9cb324d1a11d9c84509b193caa2d5",
+        "src/v9/n2/eval.py": "19e7a8f1506c63281188f727666a75ceb4bbe730fedeb64e958dac8088d16d86",
+        "src/v9/n2/fixtures.py": "67c212a0eb50db0cafd3bea97e4dccfccd2accb381894c57f85131a00fcf6bf5",
+        "src/v9/n2/weights.py": "25fe738bf167b7c6d697acfaeea5dc9fd56da2a0a26802f9123116bd87b75d3e",
+        "src/v9/n2/noise.py": "11f09e82b7629254003021227a787a40d5178ac6481da054d5a453c126ff97af",
+        "v9/package_v9_20261016/reference/core.py": "f559158bc80a4f16ad641418252259b5d9b4b5cd88d93edad8d74afa35492745",
+        "v9/package_v9_20261016/reference/torch_losses.py": "d1b7afef3df7ba5660d916d865a966a13c0d99d250341829448baebead6f6af9"
+      }
+    },
+    "stop_at_saved_epoch_boundary": {
+      "status": "PASS",
+      "returned": {
+        "status": "INTERRUPTED",
+        "best": {
+          "rsum": 353.33333333333337,
+          "epoch": 0
+        },
+        "epochs_run": 2,
+        "target_epochs": 4,
+        "global_step": 8,
+        "reason": "STOP_REQUESTED at epoch boundary"
+      }
+    },
+    "baseline_vs_patched_model": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 45,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_patched_opt": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 117,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_patched_rng": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 1,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_patched_best": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 0,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_patched_scientific_history": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 0,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_resumed_model": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 45,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_resumed_opt": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 117,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_resumed_rng": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 1,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_resumed_best": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 0,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_resumed_scientific_history": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 0,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_legacy_resumed_model": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 45,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_legacy_resumed_opt": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 117,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_legacy_resumed_rng": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 1,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_legacy_resumed_best": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 0,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "baseline_vs_legacy_resumed_scientific_history": {
+      "status": "PASS",
+      "comparison": "exact on one deterministic runtime/device",
+      "tensors_compared": 0,
+      "max_abs_tensor_difference": 0.0,
+      "difference_count": 0,
+      "first_differences": []
+    },
+    "checkpoint_execution_and_manifest_binding": {
+      "status": "PASS",
+      "identified_fixtures": {
+        "patched": true,
+        "resumed": true
+      },
+      "legacy_compatibility_fixture_has_identity": false
+    },
+    "copied_wrong_unit_and_legacy_production_checkpoint_refused": {
+      "status": "PASS",
+      "cases": {
+        "wrong_identity": {
+          "rejected": true,
+          "reason": "checkpoint execution identity is missing or differs from this unit"
+        },
+        "production_legacy": {
+          "rejected": true,
+          "reason": "checkpoint execution identity is missing or differs from this unit"
+        }
+      }
+    },
+    "actual_update_and_epoch_telemetry": {
+      "status": "PASS",
+      "expected": 16,
+      "checkpoint_global_steps": {
+        "patched": 16,
+        "resumed": 16,
+        "legacy_resumed": 16
+      },
+      "legacy_sparse_rows_before_resume": 2,
+      "legacy_actual_updates_before_resume": 8,
+      "legacy_epoch_records_without_global_step": 2
+    },
+    "actual_first_sgr_batch_weight_coefficients": {
+      "status": "PASS",
+      "meaning": "d(loss)/d(each row/column hinge) equals v_i / mean_v_full_pool; SUM, detached weights",
+      "batch_indices": [
+        22,
+        10,
+        16,
+        17,
+        21,
+        9,
+        3,
+        8
+      ],
+      "batch_weights": [
+        0.6729166666666666,
+        0.19791666666666666,
+        0.4354166666666667,
+        0.475,
+        0.6333333333333333,
+        0.15833333333333333,
+        1.0,
+        0.11875
+      ],
+      "mean_v_full_pool": 0.5625,
+      "expected_coefficients": [
+        1.1962962680392795,
+        0.3518518606821696,
+        0.7740740776062012,
+        0.8444444338480631,
+        1.1259259117974176,
+        0.2814814779493544,
+        1.7777777777777777,
+        0.21111110846201578
+      ],
+      "reference_dtype": "float64 after the trainer's explicit float32 weight conversion",
+      "allowed_absolute_error_per_coefficient": [
+        5.704385128208539e-07,
+        4.76837158203125e-07,
+        4.76837158203125e-07,
+        4.76837158203125e-07,
+        5.36883312128743e-07,
+        4.76837158203125e-07,
+        8.477105034722222e-07,
+        4.76837158203125e-07
+      ],
+      "max_abs_row_gradient_error": 6.622738313311061e-08,
+      "max_abs_column_gradient_error": 6.622738313311061e-08,
+      "zero_weight_pairs_retained_in_batch_pool": true
+    },
+    "actual_sgr_parameters_updated": {
+      "status": "PASS",
+      "changed_modules": {
+        "img_enc": true,
+        "txt_enc": true,
+        "sim_enc": true
+      }
+    },
+    "warmup_hard_lr_and_nonfull_last_batch": {
+      "status": "PASS",
+      "phases": [
+        "warmup_mean_hinge",
+        "warmup_mean_hinge",
+        "max_violation",
+        "max_violation"
+      ],
+      "learning_rates": [
+        0.0002,
+        0.0002,
+        0.0002,
+        2e-05
+      ],
+      "batch_sizes": [
+        8,
+        8,
+        8,
+        6
+      ]
+    },
+    "completion_is_idempotent_and_invalid_target_refused": {
+      "status": "PASS",
+      "fresh_host_called": false,
+      "checkpoint_unchanged": true
+    }
+  },
+  "original_data_read": false,
+  "test_read": false,
+  "fixture": {
+    "synthetic_only": true,
+    "seed": 901,
+    "data_seed": 20261019,
+    "cfg": {
+      "vocab_size": 40,
+      "img_dim": 8,
+      "word_dim": 8,
+      "embed_size": 16,
+      "sim_dim": 8,
+      "num_layers": 1,
+      "bi_gru": true,
+      "num_region": 3,
+      "sgr_step": 1,
+      "margin": 0.2,
+      "learning_rate": 0.0002,
+      "grad_clip": 2.0,
+      "batch_size": 8,
+      "lr_update": 3,
+      "num_epochs": 4,
+      "teacher_epochs": 5,
+      "warmup_epochs": 2,
+      "to_verify": [],
+      "lock_notes": []
+    },
+    "n_pool": 30,
+    "n_A": 5,
+    "n_U": 25,
+    "batch_sizes": [
+      8,
+      8,
+      8,
+      6
+    ],
+    "expected_updates": 16,
+    "log_every": 3,
+    "stop_after_epoch": 1,
+    "note": "Reduced dimensions/schedule exercise warmup, hard negatives, LR change, final nonfull batch, sparse logs, and resume."
+  },
+  "completion_best": {
+    "baseline": {
+      "rsum": 353.33333333333337,
+      "epoch": 0
+    },
+    "patched": {
+      "rsum": 353.33333333333337,
+      "epoch": 0
+    },
+    "resumed": {
+      "rsum": 353.33333333333337,
+      "epoch": 0
+    },
+    "legacy_resumed": {
+      "rsum": 353.33333333333337,
+      "epoch": 0
+    }
+  },
+  "checkpoint_payload_note": "Model/optimizer/RNG tensors and scientific histories are compared; whole .pt bytes differ because telemetry and serialization identities differ.",
+  "finished_utc": "2026-10-19T09:24:24.512652+00:00"
+}
