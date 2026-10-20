@@ -1,0 +1,288 @@
+{
+  "schema": "v10.rulsif_exact_v2.preregistration.v1",
+  "family": "RuLSIF_exact_v2",
+  "status": "FROZEN_BEFORE_CAL",
+  "stage_history": [
+    {
+      "stage": "GATE_DEFINED_GRID_PENDING",
+      "utc": "2026-10-19T11:56:20Z",
+      "note": "Gate data, statistics and thresholds fixed before any v2 quantity was computed. Candidate grid to be frozen from FIT-only design evidence (seed-1117 streams) before the formal gate (seed 1017) and before any v2 CAL job."
+    },
+    {
+      "stage": "FROZEN_BEFORE_CAL",
+      "utc": "2026-10-19T13:55:25Z",
+      "note": "Definition and 9-candidate grid frozen from FIT-only design evidence (15 CPU jobs, 230 cross-fit configurations, seed-1117 streams). No CAL or DEV row of v2 exists. Gate data, statistics, thresholds and required levels unchanged from stage 1."
+    }
+  ],
+  "base_commit": "ddd3bcb09d75c3d6560ef8f1a5b52fa150e14060",
+  "branch": "v10/rulsif-exact-v2",
+  "designed_after": {
+    "family": "RuLSIF_exact",
+    "family_index": 5,
+    "report_as": "failed adaptation; kept unchanged with its CAL and final results",
+    "v1_cal": "handoff/v10_method_pipeline_20261019/families/5/results/CAL/RuLSIF_exact (9 candidates; success<42 0-1/80; success<9 0/80; median 246-292 full-res px)",
+    "v1_cal_evidence_used": [
+      "F_true < 0 in all 720 CAL rows; max F_true per candidate (ridge 1e-4/1e-3/1e-2): x0.5 -0.193/-0.156/-0.143, x1 -0.048/-0.037/-0.044, x2 -0.0055/-0.0070/-0.0097",
+      "F_hat >= F_true in all 720 CAL rows (the search always finds a higher-energy wrong pose)",
+      "registration formula = brute-force N^2 V-mode J(g-1) to 7.8e-16; solve = stationary point of J(g-1) - lambda |theta|^2"
+    ],
+    "dev_rows_read_for_design": false
+  },
+  "kept_from_v1": {
+    "ratio_model": "RuLSIF, alpha = 1/2, unconstrained (no sign constraint), H = 1/2 H_P + 1/2 H_Q, float64 solve of (H + lambda D) theta = h_P with D = diag(0, 1, ..., 1) (change a)",
+    "reference_moments": "exact within-scene V moments of the declared scene-V reference (U moments implemented, not used for BF)",
+    "readout": "J(g - 1) = 2 E_P g - (E_P g^2 + E_Q g^2)/2 - 1, exact V moments over the registration positions",
+    "postprocessing": "none: no clipping of theta, g or T",
+    "precision": "float64 moment accumulation and solve; float32 features and registration (common precision record)",
+    "inputs": "9 x 9 patches from the host intensity path (robust-normalised BF luminance and SHG intensity), then v2's per-image empirical-CDF transform (change e)",
+    "centres": "paired (cx, cy) centres drawn from aligned FIT patch pairs, equal count per FIT core, without replacement",
+    "bandwidth": "FIT-only median rule over the preselected paired centres times a candidate multiplier, applied per modality (change c)",
+    "common_protocol": "FIT32 / CAL8 / DEV32 through the V10 DataGuard; tuning seed 1017; final seeds 1001-1003; R6-REG-P2 search, support and perturbations; lexicographic CAL selection; DEV24 sensitivity; TEST134 and EPFL never read"
+  },
+  "changes_from_v1": [
+    {
+      "id": "a_constant_basis",
+      "definition": "g = theta_0 + sum_l theta_l a_l(x) b_l(y); the constant is a paired centre whose two kernels are identically 1, so the exact V/U moments are unchanged; theta_0 is not under the ridge, so E_{(P+Q)/2}[g] = 1 exactly on FIT and the ridge shrinks the kernel part towards T = 0 (v1's (H + lambda I) shrinks g towards 0, i.e. T towards -1)",
+      "fit_evidence": "Without a constant every variant has held-out J < 0 at the truth (v1 rule: mean -0.11 to -0.42, 0% positive; disk-only: -0.05 to -0.24; per-modality widths without constant: -0.09 to -0.38) and v1's rule is negative even in-sample (-0.07 to -0.26). Penalised vs unpenalised theta_0 is numerically indistinguishable at ridge <= 1e-2 (abc_c4 vs abc_c4_pen: |delta mean J| <= 0.0006, same fractions within 0.02); the unpenalised form is kept for the normalisation property"
+    },
+    {
+      "id": "b_fit_support",
+      "definition": "FIT positions on the registration support: radius-129 disk about the image centre with Q.RigidEnergy's law and draw order; 4096 positions per FIT core (the number of positions of one registration energy); centres drawn from these positions",
+      "fit_evidence": "Square support vs disk with (a)+(c), 4 centres/core: truth > imposed 0.29-0.65 vs 0.22-0.74 (x0.5: 0.52-0.65 vs 0.68-0.74), local test 0.11-0.38 vs 0.12-0.59; 4096 vs 2048 positions (32 centres, x0.25): truth > imposed 0.83/0.81 vs 0.81/0.77, local 0.75/0.75 vs 0.73/0.72 at ridge 1e-3/1e-2"
+    },
+    {
+      "id": "c_per_modality_widths",
+      "definition": "h_x = multiplier x median pairwise distance of the BF centres, h_y = multiplier x median pairwise distance of the SHG centres (each side's own FIT-only median rule)",
+      "fit_evidence": "Scale diagnostic (job 1048602, disk): median BF patch distance 6.77, SHG 46.8, SHG share of the joint squared distance 0.87; under the joint rule the BF kernel is nearly flat (median value 0.965 at x0.5, 0.991 at x1). Joint width with constant: truth > imposed 0.23-0.48 (below chance); per-modality: 0.59-0.80"
+    },
+    {
+      "id": "e_ecdf_transform",
+      "definition": "Each whole image (each FIT image, the reference and each moving image as given) is replaced by its own mid-rank empirical CDF (ties averaged) before patch extraction",
+      "fit_evidence": "Per-core marginal shift: the fold holding the SHG-bright cores trains with SHG median distance 29-34 vs 40-45 and is negative at the truth (-0.03); log1p SHG does not help (abcd_c16 x0.5 1e-4 = abc_c16 within 0.002). With the ECDF transform (16 centres): x0.25 ridge 1e-2 mean J -0.0011 -> +0.0011, J > 0 0.57 -> 0.72, truth > imposed 0.71 -> 0.76, local 0.53 -> 0.70, all four folds positive"
+    },
+    {
+      "id": "f_centre_count",
+      "definition": "32 paired centres per FIT core (1024 total; v1: 4 per core, 128)",
+      "fit_evidence": "With (a)+(b)+(c)+(e) at x0.25 ridge 1e-3: 8/16/32 centres per core truth > imposed 0.79/0.79/0.83, local 0.73/0.74/0.75 (32 with 4096 positions)"
+    }
+  ],
+  "functional_gate": {
+    "purpose": "FIT-only functional check that must PASS before any v2 CAL job; also reported for v1",
+    "data": "FIT cores only through DataGuard role FIT; no CAL, DEV, TEST or EPFL image",
+    "sample": "(FIT core, perturbation index i), i = 0..9: registration position rule seed R6-REG-P2|pos|core|i; BF luminance reference; aligned moving SHG intensity from the host moving-image pipeline at the zero perturbation; imposed perturbation Q.perturbations_p2(core)[i]",
+    "statistics": {
+      "F_true": "energy at the true alignment (identity pose)",
+      "F_imposed": "energy with the moving image misaligned by the imposed perturbation (theta*, t*)",
+      "F_local": "energies at +-6 deg and +-8 px (y, x) about the truth; diagnostic only"
+    },
+    "levels": {
+      "deployed_position_heldout": "the deployed fit (all 32 FIT cores, the CAL seed stream) evaluated on all 32 FIT cores at registration positions, which are independent of the solve's FIT positions",
+      "crossfit4_core_heldout": "4 core folds sorted(FIT)[j::4]; for each fold the identical fitting procedure on the other 24 cores (same centres per core, positions per core, median rule, candidate multiplier and ridge), evaluated on the 8 held-out cores"
+    },
+    "thresholds": {
+      "mean_F_true_gt": 0.0,
+      "F_true_positive_fraction_min": 0.75,
+      "true_beats_imposed_fraction_min": 0.75
+    },
+    "pass_rule": "A level passes iff mean F_true > 0, F_true > 0 for >= 75% of samples, and F_true > F_imposed for >= 75% of samples. The gate passes iff every pre-registered candidate passes both levels at the tuning seed 1017. Any failure blocks every v2 CAL job; no candidate is dropped or added after the gate.",
+    "v1_reported_with_same_gate": "v1's nine candidates at seed 1017 with v1's own fitting rule (no constant, square support, 4 centres per core)",
+    "required_levels": [
+      "deployed_position_heldout",
+      "crossfit4_core_heldout"
+    ]
+  },
+  "design_evidence_plan": {
+    "data": "FIT only, 4-fold core cross-fit, seed-1117 streams (distinct from the gate/CAL seed 1017)",
+    "variants": "v1 rule; (a) only; (b) only; (a)+(b) with 4, 8 and 16 centres per FIT core",
+    "hyperparameters": "bandwidth multiplier {0.5, 1, 2} x ridge {1e-4, 1e-3, 1e-2}; extensions only if the evidence is at a grid edge",
+    "use": "justify (a), (b) and any further change, and fix the candidate grid; never DEV"
+  },
+  "candidate_grid": [
+    {
+      "order": 0,
+      "bandwidth_multiplier": 0.25,
+      "ridge": 0.0001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 1,
+      "bandwidth_multiplier": 0.25,
+      "ridge": 0.001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 2,
+      "bandwidth_multiplier": 0.25,
+      "ridge": 0.01,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 3,
+      "bandwidth_multiplier": 0.35,
+      "ridge": 0.0001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 4,
+      "bandwidth_multiplier": 0.35,
+      "ridge": 0.001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 5,
+      "bandwidth_multiplier": 0.35,
+      "ridge": 0.01,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 6,
+      "bandwidth_multiplier": 0.5,
+      "ridge": 0.0001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 7,
+      "bandwidth_multiplier": 0.5,
+      "ridge": 0.001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 8,
+      "bandwidth_multiplier": 0.5,
+      "ridge": 0.01,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    }
+  ],
+  "budget": {
+    "cal_cap": "at most 9 candidates and 8 L40S allocated GPU-hours, whichever comes first (runner-enforced, with 30 s accounting margin)",
+    "v1_measured_cost": {
+      "cal_9_candidates_gpu_h": 1.63,
+      "final_3_seeds_gpu_h": 1.962,
+      "registration_seconds_mean": 8.1
+    },
+    "v2_expected_cost": {
+      "registration_seconds_estimate": "about 10-11 s on L40S (v1 8.1 s; extra 1025 x 1025 quadratic per candidate pose); the GPU gate measures it",
+      "cal_9_candidates_gpu_h": 2.2,
+      "final_per_seed_gpu_h": 1.2,
+      "gpu_gate_gpu_h": 0.1,
+      "total_gpu_h": 5.9,
+      "cap": "CAL stops at 8 L40S allocated GPU-h (runner-enforced); finals are not under the CAL cap"
+    }
+  },
+  "reporting_rule": "RuLSIF_exact (v1) stays in every table as a failed adaptation with its own CAL/DEV results. RuLSIF_exact_v2 is a new registered variant designed after v1's CAL failure, from FIT-only evidence and v1 CAL diagnostics; it is not a re-tuning of v1 and must be labelled as such.",
+  "tested_not_adopted": {
+    "log1p_shg": "host log1p SHG path: no gain over the intensity path (rounds 3-4)",
+    "large_ridge": "ridge >= 3e-2: discrimination falls (truth > imposed 0.23-0.75) and the dependence term at the truth turns negative at >= 0.1",
+    "narrow_width_x0.125": "J at the truth ~0 and truth > imposed 0.32-0.60",
+    "joint_width_with_ecdf": "abe_joint_c8 below abce_c8 on J > 0 fraction and local test",
+    "penalised_constant": "indistinguishable at ridge <= 1e-2 (see a_constant_basis)"
+  },
+  "definition": {
+    "alpha": 0.5,
+    "constant_basis": true,
+    "penalize_constant": false,
+    "fit_support": "disk_r129",
+    "fit_positions_per_core": 4096,
+    "centres_per_core": 32,
+    "bandwidth_rule": "per_modality_median",
+    "input_transform": "copula",
+    "shg_input": "intensity",
+    "patch_radius": 4
+  },
+  "candidate_grid_sha256": "09777dbf195aa20dece4ed36cced09b92fe9f383ef7e134d29dd117180de3791",
+  "candidate_grid_rule": "bandwidth multiplier {0.25, 0.35, 0.5} (FIT-supported range: x0.125 is uninformative, x1 and x2 discriminate less) x ridge {1e-4, 1e-3, 1e-2} (v1's ridge grid; >= 3e-2 worse); order multiplier ascending then ridge ascending (v1's convention); CAL rule picks among them",
+  "design_evidence": {
+    "summary": "v10/supplement/rulsif_v2/DESIGN_EVIDENCE.json",
+    "summary_sha256": "fd200324b9dd58bed6e0ea4e28cec1c8aaa0534a47b0b20a2460094bc4b22d37",
+    "raw_outputs": "/projects/EEG-foundation-model/yinghao/outputs_v10/rulsif_v2/design/EXPLORE_[A-O].json, SCALES.json",
+    "jobs": "CPU Slurm 1048595 1048598 1048602 1048606 1048607 1048608 1048631 1048632 1048633 1048644 1048645 1048659 1048660 1048760 1048761 1048762",
+    "roles_read": [
+      "FIT"
+    ],
+    "cal_read": false,
+    "dev_read": false,
+    "held_test_read": false,
+    "expected_gate_outcome": "Across every FIT-supported configuration the cross-fit fraction of held-out samples with J > 0 at the truth is 0.57-0.72 (best: ECDF, 16 centres, x0.25, ridge 1e-2), below the pre-registered 0.75, while truth > imposed reaches 0.76-0.83. The formal gate is therefore expected to FAIL its crossfit4_core_heldout J-sign condition. The grid is chosen for registration discrimination; no threshold, level or rule is changed after seeing these numbers."
+  }
+}

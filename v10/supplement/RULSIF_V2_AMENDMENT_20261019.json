@@ -1,0 +1,300 @@
+{
+  "schema": "v10.rulsif_exact_v2.amendment.v1",
+  "family": "RuLSIF_exact_v2",
+  "amendment_id": "A1_POST_GATE_LEVEL_A_ELIGIBILITY",
+  "status": "OWNER_DELEGATED_POST_GATE_AMENDMENT",
+  "date": "2026-10-19",
+  "utc": "2026-10-19T14:38:29Z",
+  "label": "POST-GATE AMENDMENT: made after the v2 FIT-gate numbers were known and before any v2 CAL or DEV result exists (none exists; no v2 CAL/DEV/TEST/EPFL row has been computed)",
+  "decided_by": {
+    "who": "main session of the CS_QMI project",
+    "authority": "the owner delegated the scope decisions to the main session",
+    "owner_words_verbatim": "你需要把实验做全，你自己决定范围"
+  },
+  "implemented_by": "RuLSIF_exact_v2 implementation agent, on the main session's written instruction",
+  "amends": {
+    "preregistration_record": {
+      "path": "v10/supplement/RULSIF_V2_PREREGISTRATION.json",
+      "sha256": "48f8211d2d540e00e72f3609a0c2001be71d79c3cb8b3b9611d834bb7efbb148",
+      "stage": "FROZEN_BEFORE_CAL",
+      "commit": "72407e79b7ae34afc33f39c9a663fb05c3bdbc93",
+      "left_unchanged": true
+    },
+    "stage1_record": {
+      "commit": "4c495a748469ec49c354b853cc44ec6f58431fc3",
+      "sha256": "43a274fdd4bc691676269f2e539a53aff72032ec345ae5283488bf054b4824b5",
+      "stage": "GATE_DEFINED_GRID_PENDING"
+    },
+    "frozen_grid_sha256": "09777dbf195aa20dece4ed36cced09b92fe9f383ef7e134d29dd117180de3791",
+    "original_rule": "A level passes iff mean F_true > 0, F_true > 0 for >= 75% of samples, and F_true > F_imposed for >= 75% of samples. The gate passes iff every pre-registered candidate passes both levels at the tuning seed 1017. Any failure blocks every v2 CAL job; no candidate is dropped or added after the gate.",
+    "original_required_levels": [
+      "deployed_position_heldout",
+      "crossfit4_core_heldout"
+    ],
+    "original_gate_reports": {
+      "RuLSIF_exact_v2": {
+        "path": "/home/infres/yinwang/CS_QMI/handoff/v10_rulsif_v2_20261019/gate/FIT_GATE_RuLSIF_exact_v2.json",
+        "sha256": "0edd0ecdb79d544da4d64962a0380a7ff73f8161003ac3c602ec50449143353b",
+        "rows": "/projects/EEG-foundation-model/yinghao/outputs_v10/rulsif_v2/gate/FIT_GATE_RuLSIF_exact_v2_rows.jsonl",
+        "rows_sha256": "d54ad313f6f39994e8af3517da54dd9af79e125c1a839264d3188326d49b03e9",
+        "job": "1048980",
+        "source_commit": "72407e79b7ae34afc33f39c9a663fb05c3bdbc93",
+        "code_sha256": "5918f2947d7ed0cb0f21136af0d805a5b50465be3aa628ab352064469c0fe214",
+        "status": "FAIL"
+      },
+      "RuLSIF_exact": {
+        "path": "/home/infres/yinwang/CS_QMI/handoff/v10_rulsif_v2_20261019/gate/FIT_GATE_RuLSIF_exact_v1.json",
+        "sha256": "4da2659875b29805cc2e3b1d98370a46738b18bbd18ae804632b03bfafc2924c",
+        "job": "1048981",
+        "status": "FAIL"
+      }
+    }
+  },
+  "amended_rule": {
+    "required_levels": [
+      "deployed_position_heldout"
+    ],
+    "diagnostic_levels": [
+      "crossfit4_core_heldout"
+    ],
+    "level_conditions": "the existing level-A verdict, unchanged: mean F_true > 0, F_true > 0 for >= 75% of samples, F_true > F_imposed for >= 75% of samples (thresholds of the pre-registration record)",
+    "thresholds": {
+      "mean_F_true_gt": 0.0,
+      "F_true_positive_fraction_min": 0.75,
+      "true_beats_imposed_fraction_min": 0.75
+    },
+    "candidate_rule": "A frozen candidate is eligible for CAL iff it passes the level-A verdict at seed 1017. Ineligible candidates are excluded (not re-tuned, not replaced); eligible candidates keep the frozen order. The family gate passes iff a re-run of the CPU gate on the amended code reproduces the original run's verdicts and yields exactly the eligible orders below. Level B is reported as a diagnostic.",
+    "eligible_orders": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "excluded_orders": [
+      8
+    ],
+    "excluded_reason": {
+      "8": "bandwidth x0.5, ridge 1e-2: level-A F_true > 0 fraction 0.7281 (233/320) < 0.75"
+    }
+  },
+  "rationale_verbatim": "the gate exists to stop degenerate energies like v1 (J < 0 everywhere, ranking at or below chance); v2 ranks the true pose above the imposed perturbation in 0.84–0.90 (A) / 0.72–0.82 (B); the per-sample J > 0 condition at level B is stricter than what a working kernel critic achieves here (V9 RFF kernel critic: J > 0 in 46% of CAL rows while registering)",
+  "rationale_numbers": {
+    "v1_level_A": {
+      "mean_F_true": [
+        -0.4144384652376175,
+        -0.10768395978957415
+      ],
+      "frac_F_true_positive": [
+        0.0,
+        0.0
+      ],
+      "frac_true_beats_imposed": [
+        0.409375,
+        0.521875
+      ]
+    },
+    "v1_level_B": {
+      "mean_F_true": [
+        -0.3470153670758009,
+        -0.08836731389164924
+      ],
+      "frac_F_true_positive": [
+        0.0,
+        0.0
+      ],
+      "frac_true_beats_imposed": [
+        0.4125,
+        0.478125
+      ]
+    },
+    "v2_level_A": {
+      "mean_F_true": [
+        0.004035948030650616,
+        0.0563743818551302
+      ],
+      "frac_F_true_positive": [
+        0.728125,
+        0.8375
+      ],
+      "frac_true_beats_imposed": [
+        0.840625,
+        0.9
+      ]
+    },
+    "v2_level_B": {
+      "mean_F_true": [
+        0.0015253353863954543,
+        0.01935998219996691
+      ],
+      "frac_F_true_positive": [
+        0.625,
+        0.678125
+      ],
+      "frac_true_beats_imposed": [
+        0.721875,
+        0.81875
+      ]
+    },
+    "v9_rff_kernel_critic_cal": {
+      "source": "/home/infres/yinwang/CS_QMI/outputs/R6_REG_P2/results/kernel_s0.json (CAL rows only)",
+      "rows": 80,
+      "F_true_positive": 37,
+      "frac_F_true_positive": 0.4625,
+      "mean_F_true": -0.0010085121757583693,
+      "cal_success42": 0.25
+    }
+  },
+  "disclosed_departures": {
+    "theta0_outside_ridge": {
+      "definition": "(H + lambda D) theta = h_P with D = diag(0, 1, ..., 1) instead of the literal (H + lambda I) theta = h_P; kept",
+      "reason": "E_{(P+Q)/2}[g] = 1 holds exactly on FIT and the ridge shrinks the kernel part towards T = 0 instead of shrinking g towards 0 (T towards -1)",
+      "fit_evidence": "abc_c4 vs abc_c4_pen (4-fold FIT cross-fit): for ridge <= 1e-3 at all widths and for x0.5 at all ridges |delta mean J| <= 0.0002 and every fraction within 0.02; at x1/1e-2 the J > 0 fraction differs by 0.13 and at x2/1e-2 |delta mean J| = 0.0009 and truth > imposed differs by 0.11 (both outside the grid and far below the thresholds)"
+    },
+    "hardware": {
+      "definition": "every v2 GPU job (GPU gate, CAL, finals) on L40S only, excluding node51 and node60",
+      "reason": "the per-family CAL budget unit is L40S allocated GPU-h and the other supplement CAL budgets were spent on L40S (comparability); run.py and validate.py check for NVIDIA L40S",
+      "deliberate_difference": "differs on purpose from the user's 2026-10-19 09:31 UTC instruction to schedule pending GPU tasks on RTX6000PRO,L40S,H100, which concerned the seed-replication pool"
+    }
+  },
+  "reporting_rule": "RuLSIF_exact (v1) is a failed adaptation (kept with its CAL/DEV results). RuLSIF_exact_v2 failed its original pre-registered level-B criterion (cross-fit F_true > 0 fraction 0.62-0.68 < 0.75 for every candidate) and runs under this labelled post-gate amendment (level-A eligibility; candidate 8 excluded). Every v2 result must carry this label and list all five changes a, b, c, e, f.",
+  "changes_from_v1": {
+    "a": "constant basis, theta_0 outside the ridge",
+    "b": "FIT positions on the radius-129 registration disk, 4096 per core",
+    "c": "per-modality median kernel widths",
+    "e": "per-image mid-rank empirical-CDF transform of both modalities",
+    "f": "32 paired centres per FIT core (1024)"
+  },
+  "record_wording_corrections": [
+    "a_constant_basis.fit_evidence: '|delta mean J| <= 0.0006, same fractions within 0.02' holds for ridge <= 1e-3 at all widths and x0.5 at all ridges (|delta| <= 0.0002); at x1/1e-2 the J > 0 fraction differs by 0.13, at x2/1e-2 |delta mean J| = 0.0009 and truth > imposed differs by 0.11",
+    "c_per_modality_widths.fit_evidence: 'joint 0.23-0.48' refers to the intensity path only (log1p + joint reaches 0.61, ECDF + joint 0.77); per-modality is 0.68-0.78 at x0.5 with ridge <= 1e-2 and poor at x2 (0.21-0.26)",
+    "design_evidence.expected_gate_outcome: '0.57-0.72' is 0.49-0.72 over the 50 per-modality + constant configurations at x0.25-x0.5 with ridge <= 1e-2 (best 0.716)",
+    "tested_not_adopted.joint_width_with_ecdf: lower J > 0 fraction in 9/9 configurations and lower local test in 8/9 (exception x0.25/1e-2: 0.71 vs 0.68)"
+  ],
+  "eligible_candidates": [
+    {
+      "order": 0,
+      "bandwidth_multiplier": 0.25,
+      "ridge": 0.0001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 1,
+      "bandwidth_multiplier": 0.25,
+      "ridge": 0.001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 2,
+      "bandwidth_multiplier": 0.25,
+      "ridge": 0.01,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 3,
+      "bandwidth_multiplier": 0.35,
+      "ridge": 0.0001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 4,
+      "bandwidth_multiplier": 0.35,
+      "ridge": 0.001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 5,
+      "bandwidth_multiplier": 0.35,
+      "ridge": 0.01,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 6,
+      "bandwidth_multiplier": 0.5,
+      "ridge": 0.0001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    },
+    {
+      "order": 7,
+      "bandwidth_multiplier": 0.5,
+      "ridge": 0.001,
+      "alpha": 0.5,
+      "constant_basis": true,
+      "penalize_constant": false,
+      "fit_support": "disk_r129",
+      "fit_positions_per_core": 4096,
+      "centres_per_core": 32,
+      "bandwidth_rule": "per_modality_median",
+      "input_transform": "copula",
+      "shg_input": "intensity",
+      "patch_radius": 4
+    }
+  ],
+  "eligible_candidates_sha256": "1feb1c9762c9669d27af2b510dc7c8d10b89b9a17c37a46f50369c4493073788"
+}

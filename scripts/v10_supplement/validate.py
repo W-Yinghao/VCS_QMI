@@ -58,12 +58,13 @@ def gate(root, manifest, family=None):
     from v10.supplement.geometry_validation import native_gradient_check
     from v10.supplement.training import new_trainer, rng_state
     R.initialize_science(); A = R.A
-    environment = R.runtime_environment()
+    # Accepted GPU models come from the pinned validation manifest (default: the original L40S-only gate).
+    environment = R.runtime_environment(tuple(manifest.get('accepted_gpu_names', ['NVIDIA L40S'])))
     env = dict(os.environ, V10_TEST_DEVICE='cuda')
     output = root / 'CUDA_NUMERICS.txt'
     with output.open('w') as stream:
         rc = subprocess.run([sys.executable, '-m', 'pytest', '-q', '-p', 'no:cacheprovider',
-                             'tests/v10/test_supplement.py'], cwd=REPO, env=env,
+                             'tests/v10/test_supplement.py', 'tests/v10/test_rulsif_v2.py'], cwd=REPO, env=env,
                              stdout=stream, stderr=subprocess.STDOUT).returncode
     require(rc == 0, 'CUDA numerical identities failed; see ' + str(output))
     data = read(manifest['data_lock']['path'])
@@ -112,7 +113,7 @@ def gate(root, manifest, family=None):
             resume.update(first=first, expected_second=expected, resumed_second=actual,
                           optimizer_and_rng_restored=True, full_fit_cores=32)
             del model, optimizers
-        elif family == 'RuLSIF_exact':
+        elif family in ('RuLSIF_exact', 'RuLSIF_exact_v2'):
             trainer.step(); CP.save(trainer, cp, ident); CP.load(trainer, cp, ident)
             require(len(trainer.fit_metadata['fit_cores']) == 32, 'Kernel FIT incomplete')
             resume.update(kernel_fit=trainer.fit_metadata)

@@ -17,10 +17,12 @@ import traceback
 REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO / "src"))
 from v10.supplement.contract import (FAMILIES, PARENT, candidates, digest, read,
-                                    require_release, schedule, sha)
+                                    require_release, require_release_v2, schedule, sha)
 from v10.supplement.records import (Allocation, BudgetExceeded, append, lock, metrics,
                                    require_identity, rows, selection_key, utc,
                                    verified_complete, write)
+import rulsif_v2_xhw as XHW  # noqa: E402  (cross-hardware RuLSIF_exact_v2 finals; stdlib only)
+import rulsif_v2_hwrep as HWREP  # noqa: E402  (post-hoc seed-1001 L40S hardware replicate; stdlib only)
 
 
 def identity(release_sha, family, candidate, seed, phase, data_sha, dependency=None):
@@ -46,11 +48,13 @@ def check_data(data_lock, guard, allowed):
                 raise RuntimeError("Locked image cache changed: " + item["core"])
 
 
-def runtime_environment():
+def runtime_environment(gpu_names=("NVIDIA L40S",)):
+    """Common runtime/precision checks; only the accepted GPU models depend on the phase/release."""
     environment = A.environment("cuda")
     expected = read(PARENT / "PROTOCOL.json")["precision"]
-    if environment.get("gpu_name") != "NVIDIA L40S":
-        raise RuntimeError("Supplemental BF budget is defined on L40S")
+    if environment.get("gpu_name") not in tuple(gpu_names):
+        raise RuntimeError("Supplemental BF budget is defined on L40S" if tuple(gpu_names) == ("NVIDIA L40S",)
+                           else "GPU model outside the release's accepted set: " + repr(environment.get("gpu_name")))
     for key in ("torch", "cuda_runtime", "cudnn", "torch_threads"):
         if environment[key] != expected["environment"][key]:
             raise RuntimeError("Common runtime environment mismatch: " + key)
@@ -320,10 +324,24 @@ def main():
     if args.phase == "cal" and args.seed is not None:
         parser.error("CAL seed is fixed at 1017")
     # Pure-record validation before importing Torch or touching any images.
-    release = require_release(args.release, args.family)
+    hwrep = args.family == "RuLSIF_exact_v2" and HWREP.is_hwrep_release(args.release)
+    xhw = args.family == "RuLSIF_exact_v2" and not hwrep and XHW.is_xhw_release(args.release)
+    if (xhw or hwrep) and args.phase != "final":
+        parser.error("The cross-hardware release runs final seeds only; CAL stays on the L40S release")
+    if hwrep and args.seed != HWREP.SEED:
+        parser.error("The hardware replicate release reruns seed 1001 only")
+    if hwrep:
+        release = HWREP.require_hwrep_release(args.release)
+    elif xhw:
+        release = XHW.require_xhw_release(args.release)
+    else:
+        release = (require_release_v2(args.release) if args.family == "RuLSIF_exact_v2"
+                   else require_release(args.release, args.family))
     base = args.release.resolve().parent
     root = base / "results"
     release_sha = sha(args.release)
+    # Under the cross-hardware release the CAL selection of the L40S release is consumed, never redone.
+    selection_release_sha = XHW.BASE_RELEASE_SHA256 if (xhw or hwrep) else release_sha
     data_lock_path = base / release["data_lock"]["path"]
     data_sha, data_lock = sha(data_lock_path), read(data_lock_path)
     initialize_science()
@@ -340,7 +358,8 @@ def main():
         allocation = Allocation(base, args.family, "CAL" if args.phase == "cal" else "FINAL_DEV")
         status = "FAIL"
         try:
-            environment = runtime_environment()
+            environment = runtime_environment(release["final_gpu_names"] if xhw else
+                                              HWREP.GPU_NAMES if hwrep else XHW.CAL_GPU_NAMES)
             if args.phase == "cal":
                 def budget_alarm(signum, frame):
                     raise BudgetExceeded("CAL wall-time alarm reached")
@@ -350,11 +369,25 @@ def main():
                     signal.setitimer(signal.ITIMER_REAL, remaining)
                 run_cal(root, args.family, release_sha, data_sha, data_lock, allocation, environment)
             else:
-                selection, dependency = checked_selection(root, args.family, release_sha, data_sha, require_exit=True)
+                # The replicate reads the primary bundle's CAL selection and rebuilds the primary unit's identity.
+                selection, dependency = checked_selection(XHW.BUNDLE / "results" if hwrep else root, args.family,
+                                                          selection_release_sha, data_sha, require_exit=True)
                 candidate = selection["selected"]["candidate"]
-                ident = identity(release_sha, args.family, candidate, args.seed, "FINAL_DEV", data_sha, dependency)
-                run_unit(root / "FINAL_DEV" / args.family / f"seed_{args.seed}", ident,
-                         data_lock, allocation, environment)
+                ident = identity(HWREP.XHW_RELEASE_SHA256 if hwrep else release_sha, args.family, candidate,
+                                 args.seed, "FINAL_DEV", data_sha, dependency)
+                unit = root / "FINAL_DEV" / args.family / f"seed_{args.seed}"
+                if hwrep:
+                    unit, hardware = HWREP.prepare_replicate(ident, environment, release)
+                    allocation.record("RUNTIME_VERIFIED", unit=str(unit), release_kind="hw_replicate_diagnostic", **hardware)
+                elif xhw:
+                    if dependency != XHW.SELECTION_SHA256:
+                        raise RuntimeError("CAL selection hash differs from the pinned selection")
+                    gate = XHW.gate_for(environment["gpu_name"], release)
+                    hardware = XHW.prepare_final_dir(unit, ident, environment, gate)
+                    allocation.record("RUNTIME_VERIFIED", unit=unit.name, release_kind="cross_hardware_final", **hardware)
+                run_unit(unit, ident, data_lock, allocation, environment)
+                if hwrep:
+                    HWREP.write_agreement_after_run()
             status = "COMPLETE"
         except BaseException as error:
             write(base / "failures" / f"{os.environ['SLURM_JOB_ID']}.json",

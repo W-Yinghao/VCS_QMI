@@ -105,6 +105,9 @@ def new_trainer(family, candidate, seed, guard, device):
         return CoMIRTrainer(config, guard, device)
     if family == "RuLSIF_exact":
         return KernelTrainer(candidate, seed, guard, device)
+    if family == "RuLSIF_exact_v2":
+        from .rulsif_v2 import KernelTrainerV2  # separate registered variant; v1 above unchanged
+        return KernelTrainerV2(candidate, seed, guard, device)
     if family in ("MI_native", "NMI_native", "MIND_2D_adapted"):
         return FixedTrainer(family, candidate, seed, device)
     raise ValueError("Unknown supplemental family: " + family)
@@ -130,7 +133,7 @@ def restore_rng(trainer, state):
 
 def configuration(trainer):
     config = asdict(trainer.cfg)
-    if isinstance(trainer, KernelTrainer):
+    if isinstance(trainer, KernelTrainer) or getattr(trainer, "kernel_v2", False):
         config["resolved_kernel"] = trainer.fit_metadata
     if isinstance(trainer, CoMIRTrainer):
         config["official_architecture"] = trainer.architecture
