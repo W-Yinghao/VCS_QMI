@@ -1,0 +1,862 @@
+{
+  "schema": "v10.bf1_capacity_extension.preregistration.v1",
+  "name": "BF1_CAPACITY_EXT_K8_K32",
+  "status": "PREREGISTERED_BEFORE_ANY_RUN",
+  "utc": "2026-10-19T12:20:24Z",
+  "generated_by": "main-session delegate (Claude)",
+  "generator": {
+    "script": "scripts/v10_capacity/preregister.py",
+    "sha256": "e3ea39f483fe12906fd8737d520a04e9083079190739aff4c34f3cc9e5f9a344",
+    "code_commit": "ebcafa6a23dbef398c444e2a11b5cde8a5a57dbc"
+  },
+  "authority": {
+    "decision": {
+      "path": "/home/infres/yinwang/CS_QMI/V10_PHASE1_DECISIONS_20261017_CN.md",
+      "sha256": "2e60f963ad0cf874c35689ebec88da8a03854cec6156ff06850c6924279711dd",
+      "sections": [
+        "8.1",
+        "9.4"
+      ],
+      "quotes": {
+        "decision_8_1_fixed": "本批 MF 主表固定 **K=16、temperature=1、ridge=0、W weight decay=0**。",
+        "decision_8_1_extension": "这是对原包 K×lr 网格的明确修改：先用共同 K16 回答机制问题。K8/K32 如用于自然图像，另记容量扩展，不暗中并入主表，也不增加没有入账的 27 格。",
+        "decision_9_4_design": "三个 MF 族增加 K8 和 K32，继承各自 K16 在独立调参套选定的 lr/cap；同为 2000 步、每 250 步 checkpoint，按该重复的 CAL 样本 U-J 选 checkpoint，不访问 oracle。使用相同 10 个 data seed 和算法 seed1001，不另加算法重复或调参网格。",
+        "decision_9_4_meaning": "其含义是**固定训练规则下的容量响应**，包含优化因素，不称为每个 K 独立充分优化后的最优容量曲线。"
+      }
+    },
+    "protocol_p2": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/v10/protocol/V10_PROTOCOL_P2_20261017.json",
+      "sha256": "c750b23baab14b24ec5928383bc47f985e866c932178c49d9e1395410af5bcdc",
+      "bf_batch1.capacity_extension": "K8 / K32 on natural images only as a separately named capacity extension, never mixed into the main table and never 27 unbudgeted cells",
+      "t03.capacity.interpretation": "capacity response under fixed training rules (includes optimisation effects); not an independently optimised capacity curve"
+    },
+    "scope": "The owner asked for the experiments to be completed and left the scope to the main session, which decided (2026-10-19) to run this separately named natural-image capacity extension, modelled on the T03 capacity block (decision 9.4): fixed training rule, hyperparameters inherited from K16, no new tuning grid, checkpoint chosen on each run's own CAL."
+  },
+  "design_context": "Designed on 2026-10-19 after the BF1 K16 CAL selections, the twelve K16 final DEV32/DEV24 readouts and the 1004/1005 seed replication had been seen. A secondary, separately named DEV capacity extension: not part of the BF1 primary table, not a confirmation, not an input to any method or K selection.",
+  "question": "Under the fixed BF1 training rule, with each MF family's K16 CAL-selected learning rate (and M1 cap), how do DEV registration outcomes respond when the MF head width K is 8 or 32 instead of 16, paired by training seed with the existing K16 finals?",
+  "interpretation_scope": "固定训练规则下的容量响应 / capacity response under a fixed training rule: includes optimisation effects (learning rate and M1 cap tuned at K16; M1 solver convergence at a fixed cap; the same 3000 steps); not an optimal-capacity curve and not evidence about independently tuned K.",
+  "bf1_basis": {
+    "source": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source",
+    "source_commit": "b8f59ea825dc7a2064457d47a628bef09ca4e185",
+    "core_hash": "e9b4239450c4e2eb",
+    "host_hash": "6c6f094684fbc50a",
+    "freeze": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/FROZEN.json",
+      "sha256": "a03e88277ba61159d4cd70255d72bf13515b8cac9843465329f6f9bcb15f58a2"
+    },
+    "gpu_gate": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/GPU_GATE.json",
+      "sha256": "27d6b0e1e2d55ce240b3e57e1e5090b563f532df6f38a6769dda8c95e13dd6e3"
+    },
+    "protocol": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/PROTOCOL.json",
+      "sha256": "de4c0c3943d5a54b3a7de73a84785f240f7ee5b1396d173fd2109999a5555e9d"
+    },
+    "data_lock": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/DATA_LOCK.json",
+      "sha256": "e65c60a33f095933e673613fc58f2754485933524259e548c6a0f5dc380f72c5"
+    },
+    "use": "scientific code imported only from this frozen tree; BF1 freeze(), GPU gate, runtime_check and checked_selection run in every job"
+  },
+  "families": {
+    "MF_VCS_perm1": {
+      "method": "MF_perm1",
+      "selection": {
+        "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/CAL/MF_VCS_perm1/SELECTION.json",
+        "sha256": "af9a46a3b500d3d264300c1bbb706f9645d63051f7d72fe49bb13a7f53a98a81"
+      },
+      "candidate": {
+        "family": "MF_VCS_perm1",
+        "lr": 0.0003,
+        "cap": null,
+        "order": 1
+      },
+      "k16_selected_cal_candidate_unit": "results/CAL/MF_VCS_perm1/candidate_01",
+      "inherited": "lr (and M1 cap) of the K16 CAL selection on tuning seed 1017; no K8/K32 candidate"
+    },
+    "MF_VCS_M0": {
+      "method": "MF_M0",
+      "selection": {
+        "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/CAL/MF_VCS_M0/SELECTION.json",
+        "sha256": "a571492e24fd3fa6724d74b37fed2a28a5f24d73c7363edee7f8dc92e8eef6fe"
+      },
+      "candidate": {
+        "family": "MF_VCS_M0",
+        "lr": 0.0001,
+        "cap": null,
+        "order": 0
+      },
+      "k16_selected_cal_candidate_unit": "results/CAL/MF_VCS_M0/candidate_00",
+      "inherited": "lr (and M1 cap) of the K16 CAL selection on tuning seed 1017; no K8/K32 candidate"
+    },
+    "MF_VCS_M1": {
+      "method": "MF_M1",
+      "selection": {
+        "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/CAL/MF_VCS_M1/SELECTION.json",
+        "sha256": "f351a479739cf93679b2e61a41861bdcdabcf727b51c442d79e1f9581b0dca08"
+      },
+      "candidate": {
+        "family": "MF_VCS_M1",
+        "lr": 0.0003,
+        "cap": 100,
+        "order": 5
+      },
+      "k16_selected_cal_candidate_unit": "results/CAL/MF_VCS_M1/candidate_05",
+      "inherited": "lr (and M1 cap) of the K16 CAL selection on tuning seed 1017; no K8/K32 candidate"
+    }
+  },
+  "K": [
+    8,
+    32
+  ],
+  "K_reference": {
+    "K": 16,
+    "source": "existing BF1 FINAL_DEV units of the same family and seed (not rerun)",
+    "units": {
+      "MF_VCS_perm1": {
+        "1001": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1001/COMPLETE.json",
+          "sha256": "82f5589f4b72fb0ff64b98a3c2fd5eb055e33307ceb312cc99d4b7dd1c735279",
+          "job": "1046404"
+        },
+        "1002": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1002/COMPLETE.json",
+          "sha256": "4cdb303aa2da0c3ae619c10d796aa8e8a66857fbcd98dadaa72929cdba614ee6",
+          "job": "1046405"
+        },
+        "1003": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1003/COMPLETE.json",
+          "sha256": "6fa1132006bdef58b842740d652bce24089ed90f481d6759bb2de323cd32a884",
+          "job": "1046406"
+        }
+      },
+      "MF_VCS_M0": {
+        "1001": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1001/COMPLETE.json",
+          "sha256": "04180c86683d78cd9420ec06cd289e898afb29f57e166d88d7236a125eaa2174",
+          "job": "1046509"
+        },
+        "1002": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1002/COMPLETE.json",
+          "sha256": "253b9ed332f7417d01ba4736943d8228c6cb81f54ca1e53cd17a3dab6f15a602",
+          "job": "1046510"
+        },
+        "1003": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1003/COMPLETE.json",
+          "sha256": "2a79d6e8e942ec0a9a54437fb14141613e9ecde0c11040974399e5fd734dcc7c",
+          "job": "1046511"
+        }
+      },
+      "MF_VCS_M1": {
+        "1001": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1001/COMPLETE.json",
+          "sha256": "2eb2b3af166090502dd3c2fd21051a7c345c644499eb66def9b7a6f0cac350cd",
+          "job": "1047185"
+        },
+        "1002": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1002/COMPLETE.json",
+          "sha256": "bd8e06ea6e21cb3d349c237693e4011a2b5d68d2c0f00a4e478516d6776d2992",
+          "job": "1047186"
+        },
+        "1003": {
+          "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1003/COMPLETE.json",
+          "sha256": "da9a3485a682c5a9f280562861ab0fa055e4cb3ef049e3cbba7c4db9e171dcd0",
+          "job": "1047187"
+        }
+      }
+    }
+  },
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "pairing": "Same algorithm seed => same host encoder initialisation (built before the head under torch.manual_seed(seed)), same HostBatchSampler stream (numpy default_rng(1000 + seed)): identical crops, positions and permutations at every K. Only the feature-map widths, W and everything they influence differ. Same L40S model; nodes may differ; CUDA kernels are not deterministic, so pairs are not bitwise replays.",
+  "tuning": {
+    "new_candidates": 0,
+    "K_specific_tuning": false,
+    "rule": "K8/K32 inherit the K16 selection; there are no K8/K32 tuning candidates (never 27 unbudgeted cells)"
+  },
+  "fixed_identical_to_bf1": {
+    "protocol": {
+      "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/PROTOCOL.json",
+      "sha256": "de4c0c3943d5a54b3a7de73a84785f240f7ee5b1396d173fd2109999a5555e9d"
+    },
+    "temperature": 1.0,
+    "ridge": 0.0,
+    "W_weight_decay": 0.0,
+    "optimizer": "AdamW, one learning rate tied across encoders, feature maps and (perm1/M0) W",
+    "non_W_weight_decay": 0.0001,
+    "clip_norm": 1.0,
+    "scenes_per_step": 16,
+    "positions_per_scene": 128,
+    "crop": 160,
+    "w_init": "zeros",
+    "dtype": "float32",
+    "M1": "relative_zero_head: tau_b = 0.01 G_b(0), warm start from the previous batch W, W0 = 0, no floor, cap from the K16 selection",
+    "steps": 3000,
+    "checkpoint_interval": 250,
+    "checkpoints": 12,
+    "reference": "within-scene V, ordinary permutations including fixed points",
+    "registration": "unchanged R6-REG-P2 searcher; MF_VCS_perm1 J_perm1 energy, M0/M1 exact V moments; frozen encoder/feature/W pair",
+    "precision": "BF1 PROTOCOL precision settings and environment variables, enforced by BF1 runtime_check on NVIDIA L40S"
+  },
+  "k_override": {
+    "only_change": "BF1 run.config hard-codes TrainConfig(K=16); the capacity runner takes K from the unit identity",
+    "how_K_enters": [
+      "TrainConfig.K -> Trainer: MFHead(16, 16, K, K) = per-side Linear(16, K) + softmax and W zeros(K, K)",
+      "perm1/M0: W in its own AdamW group (lr tied, decay 0), clipped with all parameters, projected to [-1, 1] after every step",
+      "M1: QuadraticHead/solve_box_head shapes follow the features (K x K); the zero-head reference, threshold and fp64-diagnostic trigger are K-independent",
+      "registration: MFRigidEnergy features_a/features_b of width K and W K x K; mf_energy_rows is width-generic",
+      "checkpoints: K-shaped state dicts loaded strictly; identity and CONFIG carry K"
+    ],
+    "verification": [
+      "run.py: dataclasses.asdict(capacity config) == BF1 config with only K replaced, at runtime for every unit",
+      "smoke_k.py (CPU Slurm, FIT data through the DataGuard): one real training step per family at K8/K16/K32"
+    ],
+    "resume_fix": "BF1 run.load_checkpoint used with map_location='cpu' (only token changed); step log cut to the checkpoint on resume"
+  },
+  "selection_rule": {
+    "scope": "each run on its own CAL (8 cores x 10 perturbations at each of the 12 checkpoints)",
+    "lexicographic": [
+      "success < 42 native px, descending",
+      "success < 9 native px, descending",
+      "median corner error, ascending",
+      "earlier checkpoint step"
+    ],
+    "items": "1-4 of the common rule (item 5, candidate order, is constant within a run)"
+  },
+  "evaluation": {
+    "DEV32": "32 DEV cores x 10 perturbations, only at the selected checkpoint",
+    "DEV24": {
+      "rule": "exclude DEV cores whose TMA position occurs in the included FIT or CAL roles",
+      "excluded": [
+        "1B_F4",
+        "1B_H4",
+        "1B_H9",
+        "2B_D5",
+        "2B_G3",
+        "2B_G5",
+        "2B_H2",
+        "2B_I5"
+      ],
+      "cores": 24
+    }
+  },
+  "units": [
+    {
+      "order": 0,
+      "key": "MF_VCS_perm1_K8_seed1001",
+      "family": "MF_VCS_perm1",
+      "method": "MF_perm1",
+      "K": 8,
+      "seed": 1001,
+      "job_name": "v10k_p1_k8_1001",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1001"
+    },
+    {
+      "order": 1,
+      "key": "MF_VCS_perm1_K32_seed1001",
+      "family": "MF_VCS_perm1",
+      "method": "MF_perm1",
+      "K": 32,
+      "seed": 1001,
+      "job_name": "v10k_p1_k32_1001",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1001"
+    },
+    {
+      "order": 2,
+      "key": "MF_VCS_M0_K8_seed1001",
+      "family": "MF_VCS_M0",
+      "method": "MF_M0",
+      "K": 8,
+      "seed": 1001,
+      "job_name": "v10k_m0_k8_1001",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1001"
+    },
+    {
+      "order": 3,
+      "key": "MF_VCS_M0_K32_seed1001",
+      "family": "MF_VCS_M0",
+      "method": "MF_M0",
+      "K": 32,
+      "seed": 1001,
+      "job_name": "v10k_m0_k32_1001",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1001"
+    },
+    {
+      "order": 4,
+      "key": "MF_VCS_M1_K8_seed1001",
+      "family": "MF_VCS_M1",
+      "method": "MF_M1",
+      "K": 8,
+      "seed": 1001,
+      "job_name": "v10k_m1_k8_1001",
+      "time_limit_seconds": 10800,
+      "time_limit": "03:00:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1001"
+    },
+    {
+      "order": 5,
+      "key": "MF_VCS_M1_K32_seed1001",
+      "family": "MF_VCS_M1",
+      "method": "MF_M1",
+      "K": 32,
+      "seed": 1001,
+      "job_name": "v10k_m1_k32_1001",
+      "time_limit_seconds": 10800,
+      "time_limit": "03:00:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1001"
+    },
+    {
+      "order": 6,
+      "key": "MF_VCS_perm1_K8_seed1002",
+      "family": "MF_VCS_perm1",
+      "method": "MF_perm1",
+      "K": 8,
+      "seed": 1002,
+      "job_name": "v10k_p1_k8_1002",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1002"
+    },
+    {
+      "order": 7,
+      "key": "MF_VCS_perm1_K32_seed1002",
+      "family": "MF_VCS_perm1",
+      "method": "MF_perm1",
+      "K": 32,
+      "seed": 1002,
+      "job_name": "v10k_p1_k32_1002",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1002"
+    },
+    {
+      "order": 8,
+      "key": "MF_VCS_M0_K8_seed1002",
+      "family": "MF_VCS_M0",
+      "method": "MF_M0",
+      "K": 8,
+      "seed": 1002,
+      "job_name": "v10k_m0_k8_1002",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1002"
+    },
+    {
+      "order": 9,
+      "key": "MF_VCS_M0_K32_seed1002",
+      "family": "MF_VCS_M0",
+      "method": "MF_M0",
+      "K": 32,
+      "seed": 1002,
+      "job_name": "v10k_m0_k32_1002",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1002"
+    },
+    {
+      "order": 10,
+      "key": "MF_VCS_M1_K8_seed1002",
+      "family": "MF_VCS_M1",
+      "method": "MF_M1",
+      "K": 8,
+      "seed": 1002,
+      "job_name": "v10k_m1_k8_1002",
+      "time_limit_seconds": 10800,
+      "time_limit": "03:00:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1002"
+    },
+    {
+      "order": 11,
+      "key": "MF_VCS_M1_K32_seed1002",
+      "family": "MF_VCS_M1",
+      "method": "MF_M1",
+      "K": 32,
+      "seed": 1002,
+      "job_name": "v10k_m1_k32_1002",
+      "time_limit_seconds": 10800,
+      "time_limit": "03:00:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1002"
+    },
+    {
+      "order": 12,
+      "key": "MF_VCS_perm1_K8_seed1003",
+      "family": "MF_VCS_perm1",
+      "method": "MF_perm1",
+      "K": 8,
+      "seed": 1003,
+      "job_name": "v10k_p1_k8_1003",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1003"
+    },
+    {
+      "order": 13,
+      "key": "MF_VCS_perm1_K32_seed1003",
+      "family": "MF_VCS_perm1",
+      "method": "MF_perm1",
+      "K": 32,
+      "seed": 1003,
+      "job_name": "v10k_p1_k32_1003",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_perm1/seed_1003"
+    },
+    {
+      "order": 14,
+      "key": "MF_VCS_M0_K8_seed1003",
+      "family": "MF_VCS_M0",
+      "method": "MF_M0",
+      "K": 8,
+      "seed": 1003,
+      "job_name": "v10k_m0_k8_1003",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1003"
+    },
+    {
+      "order": 15,
+      "key": "MF_VCS_M0_K32_seed1003",
+      "family": "MF_VCS_M0",
+      "method": "MF_M0",
+      "K": 32,
+      "seed": 1003,
+      "job_name": "v10k_m0_k32_1003",
+      "time_limit_seconds": 5400,
+      "time_limit": "01:30:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M0/seed_1003"
+    },
+    {
+      "order": 16,
+      "key": "MF_VCS_M1_K8_seed1003",
+      "family": "MF_VCS_M1",
+      "method": "MF_M1",
+      "K": 8,
+      "seed": 1003,
+      "job_name": "v10k_m1_k8_1003",
+      "time_limit_seconds": 10800,
+      "time_limit": "03:00:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1003"
+    },
+    {
+      "order": 17,
+      "key": "MF_VCS_M1_K32_seed1003",
+      "family": "MF_VCS_M1",
+      "method": "MF_M1",
+      "K": 32,
+      "seed": 1003,
+      "job_name": "v10k_m1_k32_1003",
+      "time_limit_seconds": 10800,
+      "time_limit": "03:00:00",
+      "paired_k16_final": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/results/FINAL_DEV/MF_VCS_M1/seed_1003"
+    }
+  ],
+  "hardware": {
+    "partition": "L40S",
+    "exclude": [
+      "node51",
+      "node60"
+    ],
+    "gpu_name_required": "NVIDIA L40S",
+    "gres": "gpu:1",
+    "cpus_per_task": 8,
+    "mem": "64G",
+    "requeue": false,
+    "job_name_prefix": "v10k_",
+    "k16_reference_nodes": "node52 and node57 (L40S); K8/K32 may run on any non-excluded L40S node"
+  },
+  "execution": {
+    "one_job_per_unit": true,
+    "units": 18,
+    "dispatcher": null,
+    "submission": "by the main session after review, in the frozen unit order (bundle SUBMISSION.json)",
+    "automatic_retry": false,
+    "why_one_job_per_unit": "per-unit limits of 1.5 h / 3 h keep backfill short and isolate failures; a family-K job with three sequential seeds would need 4.5-9 h limits"
+  },
+  "budget": {
+    "unit": "allocated L40S GPU-seconds (1 GPU per job), from the Slurm StartTime",
+    "k16_measured_basis": {
+      "per_unit": {
+        "MF_VCS_perm1": {
+          "1001": {
+            "job": "1046404",
+            "node": "node52",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 1736.048053741455,
+            "start_unix": 1792352306.0,
+            "start_event_node_utc": "2026-10-18T19:38:30Z",
+            "start_event_allocated_seconds": 4.742729902267456,
+            "training_seconds": 215.7258064516129,
+            "registration_seconds_logged": 1467.398919582367,
+            "node_clock_lag_correction_seconds": 0.0,
+            "corrected_allocated_seconds": 1736.048053741455,
+            "remainder_seconds": 1520.3222472898422
+          },
+          "1002": {
+            "job": "1046405",
+            "node": "node57",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 1314.2354953289032,
+            "start_unix": 1792353944.0,
+            "start_event_node_utc": "2026-10-18T20:04:13Z",
+            "start_event_allocated_seconds": 0,
+            "training_seconds": 173.38709677419357,
+            "registration_seconds_logged": 1192.1358103752136,
+            "node_clock_lag_correction_seconds": 95.75883734226227,
+            "corrected_allocated_seconds": 1409.9943326711655,
+            "remainder_seconds": 1236.6072358969718
+          },
+          "1003": {
+            "job": "1046406",
+            "node": "node52",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 1767.9067385196686,
+            "start_unix": 1792354044.0,
+            "start_event_node_utc": "2026-10-18T20:07:27Z",
+            "start_event_allocated_seconds": 3.9091989994049072,
+            "training_seconds": 214.71774193548387,
+            "registration_seconds_logged": 1498.5032517910004,
+            "node_clock_lag_correction_seconds": 0.0,
+            "corrected_allocated_seconds": 1767.9067385196686,
+            "remainder_seconds": 1553.1889965841847
+          }
+        },
+        "MF_VCS_M0": {
+          "1001": {
+            "job": "1046509",
+            "node": "node57",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 1460.8750190734863,
+            "start_unix": 1792355367.0,
+            "start_event_node_utc": "2026-10-18T20:27:56Z",
+            "start_event_allocated_seconds": 0,
+            "training_seconds": 195.56451612903226,
+            "registration_seconds_logged": 1314.330560207367,
+            "node_clock_lag_correction_seconds": 95.75883734226227,
+            "corrected_allocated_seconds": 1556.6338564157486,
+            "remainder_seconds": 1361.0693402867164
+          },
+          "1002": {
+            "job": "1046510",
+            "node": "node52",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 2087.6802048683167,
+            "start_unix": 1792355824.0,
+            "start_event_node_utc": "2026-10-18T20:37:08Z",
+            "start_event_allocated_seconds": 4.031067371368408,
+            "training_seconds": 250.0,
+            "registration_seconds_logged": 1784.067370891571,
+            "node_clock_lag_correction_seconds": 0.0,
+            "corrected_allocated_seconds": 2087.6802048683167,
+            "remainder_seconds": 1837.6802048683167
+          },
+          "1003": {
+            "job": "1046511",
+            "node": "node57",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 1462.8060586452484,
+            "start_unix": 1792356922.0,
+            "start_event_node_utc": "2026-10-18T20:53:52Z",
+            "start_event_allocated_seconds": 0,
+            "training_seconds": 197.5806451612903,
+            "registration_seconds_logged": 1315.6709039211273,
+            "node_clock_lag_correction_seconds": 94.75883734226227,
+            "corrected_allocated_seconds": 1557.5648959875107,
+            "remainder_seconds": 1359.9842508262204
+          }
+        },
+        "MF_VCS_M1": {
+          "1001": {
+            "job": "1047185",
+            "node": "node52",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 5620.14666223526,
+            "start_unix": 1792367951.0,
+            "start_event_node_utc": "2026-10-18T23:59:16Z",
+            "start_event_allocated_seconds": 5.782128572463989,
+            "training_seconds": 3810.483870967742,
+            "registration_seconds_logged": 1756.8005900382996,
+            "m1_mean_iterations": 81.65,
+            "m1_cap_hit_fraction": 0.159,
+            "step_seconds_fit_fixed": 0.1449415786275683,
+            "step_seconds_fit_per_iteration": 0.013776840099744746,
+            "step_seconds_at_cap100": 1.5226255886020428,
+            "node_clock_lag_correction_seconds": 0.0,
+            "corrected_allocated_seconds": 5620.14666223526,
+            "remainder_seconds": 1809.662791267518
+          },
+          "1002": {
+            "job": "1047186",
+            "node": "node52",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 5489.887172460556,
+            "start_unix": 1792369032.0,
+            "start_event_node_utc": "2026-10-19T00:17:17Z",
+            "start_event_allocated_seconds": 5.309945344924927,
+            "training_seconds": 3687.5,
+            "registration_seconds_logged": 1744.7744386196136,
+            "m1_mean_iterations": 78.69033333333333,
+            "m1_cap_hit_fraction": 0.101,
+            "step_seconds_fit_fixed": 0.07164434671067799,
+            "step_seconds_fit_per_iteration": 0.014714706752051526,
+            "step_seconds_at_cap100": 1.5431150219158307,
+            "node_clock_lag_correction_seconds": 0.0,
+            "corrected_allocated_seconds": 5489.887172460556,
+            "remainder_seconds": 1802.387172460556
+          },
+          "1003": {
+            "job": "1047187",
+            "node": "node52",
+            "gpu": "NVIDIA L40S",
+            "recorded_allocated_seconds": 5379.920128583908,
+            "start_unix": 1792370233.0,
+            "start_event_node_utc": "2026-10-19T00:37:17Z",
+            "start_event_allocated_seconds": 4.77494478225708,
+            "training_seconds": 3582.6612903225805,
+            "registration_seconds_logged": 1744.7467806339264,
+            "m1_mean_iterations": 77.20433333333334,
+            "m1_cap_hit_fraction": 0.132,
+            "step_seconds_fit_fixed": 0.06621788611444601,
+            "step_seconds_fit_per_iteration": 0.014611317441744726,
+            "step_seconds_at_cap100": 1.5273496302889187,
+            "node_clock_lag_correction_seconds": 0.0,
+            "corrected_allocated_seconds": 5379.920128583908,
+            "remainder_seconds": 1797.2588382613276
+          }
+        }
+      },
+      "family_summary": {
+        "MF_VCS_perm1": {
+          "recorded_mean_seconds": 1606.0634291966755,
+          "corrected_mean_seconds": 1637.9830416440964,
+          "corrected_max_seconds": 1767.9067385196686
+        },
+        "MF_VCS_M0": {
+          "recorded_mean_seconds": 1670.4537608623505,
+          "corrected_mean_seconds": 1733.9596524238586,
+          "corrected_max_seconds": 2087.6802048683167
+        },
+        "MF_VCS_M1": {
+          "recorded_mean_seconds": 5496.651321093242,
+          "corrected_mean_seconds": 5496.651321093242,
+          "corrected_max_seconds": 5620.14666223526
+        }
+      },
+      "startup_seconds_median_unlagged": 4.758837342262268,
+      "note": "BF1 receipts = node end clock - controller StartTime; node57 lagged the controller (~90 s), so its receipts were low; corrected = recorded + lag + median unlagged startup."
+    },
+    "k_scaling_basis": {
+      "source": {
+        "path": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source/v10/T02/T02_TIMING_cuda.json",
+        "sha256": "c3b493c73bd2da81fb65475c2ed48377e07a52907497c030feda2f90159027f8"
+      },
+      "measured_on": {
+        "job": "1043695",
+        "gpu": "NVIDIA L40S",
+        "node": "node50"
+      },
+      "train_step_ratio_vs_K16": {
+        "MF_VCS_perm1": {
+          "8": 1.0021364064736558,
+          "32": 0.9993786142583885
+        },
+        "MF_VCS_M0": {
+          "8": 1.0004042115575118,
+          "32": 1.003203627796464
+        },
+        "MF_VCS_M1": {
+          "8": 0.997733536446807,
+          "32": 1.0120206899310902
+        }
+      },
+      "registration_ratio_vs_K16": {
+        "8": 1.0011959053578279,
+        "32": 1.0270624113909883
+      },
+      "raw": {
+        "train_median_ms": {
+          "MF_M0_K16": 64.25469694659114,
+          "MF_M0_K32": 64.4605450797826,
+          "MF_M0_K8": 64.28066943772137,
+          "MF_M1_K16_it100_capbound": 1051.5967125538737,
+          "MF_M1_K16_it10_capbound": 171.99070029892027,
+          "MF_M1_K16_it30_capbound": 367.256824625656,
+          "MF_M1_K32_it30_capbound": 371.6715050395578,
+          "MF_M1_K8_it30_capbound": 366.42445041798055,
+          "MF_perm1_K16": 56.02489458397031,
+          "MF_perm1_K32": 55.99008151330054,
+          "MF_perm1_K8": 56.144586531445384
+        },
+        "registration_seconds_median": {
+          "MF_moments_K16": 1.023924969136715,
+          "MF_perm1_K16": 0.941631028894335,
+          "MF_moments_K8": 1.0251494864933193,
+          "MF_moments_K32": 1.0516348478849977,
+          "MLP_perm1_host": 1.5740305790677667
+        }
+      },
+      "argument": "K enters only the per-side Linear(16, K) feature maps, the K x K head W and the head moments; the host encoders (K-independent) dominate every training step and every registration energy. T02 measured train-step time at K8/K16/K32 within 0.4% (perm1, M0) and 1.2% (M1 at a fixed 30 iterations), and the moments registration energy within 2.7% (K32). perm1 registration has a smaller K-dependent part (O(CNK), moments O(CNK^2)), so the moments ratio bounds it. The unbounded quantity is the M1 relative-rule iteration count per batch, which may change with K; it is bounded by the inherited cap 100 (K16 finals: mean 77-82 iterations, 10-16% of batches at the cap)."
+    },
+    "per_family_K": {
+      "MF_VCS_perm1": {
+        "8": {
+          "expected_seconds": 1640.131215471478,
+          "pessimistic_seconds": 1770.2229299362825,
+          "pessimistic_rule": "max over K16 seeds of training x max(1, T02 K ratio) + remainder x max(1, registration ratio)",
+          "time_limit_seconds": 5400,
+          "time_limit_over_pessimistic": 3.050463254475168,
+          "train_ratio_vs_K16": 1.0021364064736558,
+          "registration_ratio_vs_K16": 1.0011959053578279
+        },
+        "32": {
+          "expected_seconds": 1676.7387042075006,
+          "pessimistic_seconds": 1809.939778113186,
+          "pessimistic_rule": "max over K16 seeds of training x max(1, T02 K ratio) + remainder x max(1, registration ratio)",
+          "time_limit_seconds": 5400,
+          "time_limit_over_pessimistic": 2.9835246814837983,
+          "train_ratio_vs_K16": 0.9993786142583885,
+          "registration_ratio_vs_K16": 1.0270624113909883
+        }
+      },
+      "MF_VCS_M0": {
+        "8": {
+          "expected_seconds": 1735.8635793834842,
+          "pessimistic_seconds": 2089.978949360671,
+          "pessimistic_rule": "max over K16 seeds of training x max(1, T02 K ratio) + remainder x max(1, registration ratio)",
+          "time_limit_seconds": 5400,
+          "time_limit_over_pessimistic": 2.5837580812246324,
+          "train_ratio_vs_K16": 1.0004042115575118,
+          "registration_ratio_vs_K16": 1.0011959053578279
+        },
+        "32": {
+          "expected_seconds": 1775.7698947987644,
+          "pessimistic_seconds": 2138.213169526655,
+          "pessimistic_rule": "max over K16 seeds of training x max(1, T02 K ratio) + remainder x max(1, registration ratio)",
+          "time_limit_seconds": 5400,
+          "time_limit_over_pessimistic": 2.525473174031297,
+          "train_ratio_vs_K16": 1.003203627796464,
+          "registration_ratio_vs_K16": 1.0270624113909883
+        }
+      },
+      "MF_VCS_M1": {
+        "8": {
+          "expected_seconds": 5490.436368751413,
+          "pessimistic_seconds": 6441.172042442949,
+          "pessimistic_rule": "every one of the 3000 batches at the iteration cap 100 (fit of step time on mean iterations per interval, max over K16 seeds) x max(1, T02 K ratio) + max K16 remainder x max(1, registration ratio)",
+          "time_limit_seconds": 10800,
+          "time_limit_over_pessimistic": 1.6767134814650713,
+          "train_ratio_vs_K16": 0.997733536446807,
+          "registration_ratio_vs_K16": 1.0011959053578279
+        },
+        "32": {
+          "expected_seconds": 5589.84663438012,
+          "pessimistic_seconds": 6543.629617570629,
+          "pessimistic_rule": "every one of the 3000 batches at the iteration cap 100 (fit of step time on mean iterations per interval, max over K16 seeds) x max(1, T02 K ratio) + max K16 remainder x max(1, registration ratio)",
+          "time_limit_seconds": 10800,
+          "time_limit_over_pessimistic": 1.6504601622011699,
+          "train_ratio_vs_K16": 1.0120206899310902,
+          "registration_ratio_vs_K16": 1.0270624113909883
+        }
+      }
+    },
+    "expected_total_seconds": 53726.359190978284,
+    "expected_total_gpu_hours": 14.923988664160635,
+    "pessimistic_total_seconds": 62379.46946085111,
+    "pessimistic_total_gpu_hours": 17.327630405791975,
+    "ceiling_seconds": 108000,
+    "ceiling_gpu_hours": 30.0,
+    "time_limit_seconds": {
+      "MF_VCS_perm1": 5400,
+      "MF_VCS_M0": 5400,
+      "MF_VCS_M1": 10800
+    },
+    "reserve_margin_seconds": 120,
+    "sum_of_time_limits_gpu_hours": 36.0,
+    "max_concurrent_reservation_gpu_hours": 21.266666666666666,
+    "admission_rule": "At each job start, under one bundle lock: committed = sum over every other job of this extension of its receipt allocated seconds if it has exited, else its reservation (Slurm limit + 120 s) if admitted, else 300 s; the job runs only if committed + its own reservation <= the ceiling. Otherwise the unit is marked INCOMPLETE_BUDGET_CEILING (budget/<unit>.json) and the job exits 3.",
+    "refused_unit_rule": "A unit refused only because of outstanding reservations may be resubmitted after those jobs exit; it is final INCOMPLETE_BUDGET_CEILING if refused when no other job of the extension is running. Resubmission never depends on CAL/DEV results.",
+    "resume_rule": "A unit interrupted by its time limit or infrastructure may be resubmitted once, unconditionally on results, subject to admission; it resumes from its last verified checkpoint (step log cut to that step, checkpoint deserialised on CPU). A second interruption leaves the unit INCOMPLETE.",
+    "never_extended": "No time limit, ceiling, step count or seed is increased after any CAL/DEV result is seen.",
+    "queue_wait": "reported separately, not budgeted"
+  },
+  "qc": [
+    "all 3000 training steps logged exactly once (verify_result)",
+    "12 CAL readouts x 80 registrations, finite",
+    "selected checkpoint = CAL lexicographic minimum (recomputed)",
+    "DEV32 = 320 rows at the selected checkpoint; DEV24 = 240 rows / 24 cores",
+    "CONFIG.K equals the unit K; lr/cap equal the inherited selection",
+    "every ENV: NVIDIA L40S, partition L40S, BF1 precision settings",
+    "data reads only FIT/CAL/DEV through the DataGuard; TEST134 and EPFL never read",
+    "all artifact hashes recorded in COMPLETE.json verified",
+    "exit receipt exit_code 0 for the completing job"
+  ],
+  "data_access": {
+    "roles": [
+      "FIT",
+      "CAL",
+      "DEV"
+    ],
+    "TEST134": "never read",
+    "EPFL": "never read",
+    "evaluator_only": "never read"
+  },
+  "test_repeat": "TEST_REPEAT remains HOLD. This extension is not an input to any method or K selection; any held-out use of K8/K32 would need its own pre-registration before images are read.",
+  "reporting": {
+    "table": "BF1 capacity extension (fixed training rule): separate table, never merged into the BF1 main table or the seed-replication table",
+    "rows": "family x K in {8, 16 (existing paired BF1 finals, reference), 32}",
+    "per_unit": [
+      "selected checkpoint step",
+      "DEV32 success42 / success9 / median error",
+      "DEV24 same",
+      "allocated L40S GPU-h and node",
+      "M1: fraction of batches at the cap, median iterations"
+    ],
+    "paired": "per seed: K minus K16 of the same family and seed; seed mean",
+    "incomplete": "a family-K cell with fewer than 3 complete seeds is reported as INCOMPLETE with its available seeds only"
+  },
+  "statistics": {
+    "primary_metric": "DEV32 success42 (as the BF1 primary readout)",
+    "secondary": [
+      "DEV32 success9",
+      "DEV32 median corner error",
+      "DEV24 sensitivity of each"
+    ],
+    "contrast": "Delta_s = metric(K, seed s) - metric(K16, seed s), s in 1001..1003; Delta_bar = mean over seeds",
+    "uncertainty": "success rates: core-cluster bootstrap of Delta_bar using per-core success fractions (each core keeps its 10 perturbations), B = 10000 resamples of the 32 (DEV24: 24) cores with replacement, numpy default_rng(20261019), percentile 95% interval; seeds are not resampled (n = 3, shown individually); median error: per-seed paired differences only",
+    "multiplicity": "3 families x 2 K x 2 rates x 2 core sets, descriptive; no family-wise error control and no significance wording",
+    "implementation": "scripts/v10_capacity/capacity_table.py (frozen with the runner)"
+  },
+  "interpretation_grid": {
+    "applies_to": "each family x K, DEV32 success42 primary; the same grid is reported descriptively for success9 and DEV24",
+    "A_consistent_response": "the 95% interval excludes 0 and all three Delta_s share its sign (none zero): \"K differs from K16 under the fixed training rule (includes optimisation effects)\", with the direction",
+    "B_no_detectable_response": "the 95% interval includes 0: \"no capacity response detectable at this sample size under the fixed rule\"",
+    "C_mixed": "the interval excludes 0 but the three Delta_s disagree in sign or one is 0: \"mixed: core-level difference not consistent across seeds\"",
+    "all_outcomes": "no optimal-K claim; the BF1 K16 main table, its selections and the method comparison rules (decision 5) are unchanged"
+  },
+  "forbidden_claims": [
+    "optimal or best K",
+    "capacity curve independent of optimisation",
+    "K16 is optimal",
+    "merging K8/K32 into the BF1 main table or ranking families with them",
+    "significance wording for any cell",
+    "independent confirmation",
+    "cross-hardware equivalence",
+    "completed matrix when any unit is INCOMPLETE"
+  ],
+  "limitations": [
+    "3 training seeds; DEV is a development benchmark (32 cores; perturbations are not independent cores)",
+    "designed after K16 DEV readouts were seen (see design_context)",
+    "CAL is saturated for many K16 checkpoints (success42 = success9 = 1), so the checkpoint choice is driven by the median error",
+    "K16 hyperparameters may favour K16; a K8/K32 difference can reflect optimisation, not capacity alone"
+  ]
+}
