@@ -1,0 +1,55 @@
+{
+ "schema": "v10.test_repeat134.diagnostic_authorization.v4d",
+ "id": "V10-TEST-REPEAT134-INPUT-DIAGNOSTIC-20261020",
+ "requested_by": "the coordinating session, 2026-10-20, after the v4 prepare job 1051404 wrote INPUT_LOCK FAIL_V9_CACHE_MISMATCH (133 of 134 cores identical to V9-G1's prepared arrays)",
+ "v4_activation_sha256": "b477870e323353561732d2bf359dd74bbfc498a2d96d4da1629f11928c3d1e80",
+ "failed_input_lock_sha256": "fe7e40a570f8d1ac9c36d4089bbe380782979aacf10143ab92b6727d3ea3faf6",
+ "cores": [
+  "1B_D8"
+ ],
+ "scope": "numbers only, for the cores listed: per-array and per-channel differences (count, max and mean abs, float32 ULP distance, positions) between the V10 rebuild and V9-G1's prepared arrays; the raw members' sha256 against the TEST_REPEAT134 manifest, V9-G1's frozen member CSV, the V10 data manifest and both prepare manifests; the cache files' provenance (sha256, mtime, ctime, zip member times and CRC, mtimes of all 134 cache files against the two prepare windows, whether V9-G1's prepare manifest pins the cache sha256); rebuilds of the core with REG-P1's frozen cmd_prepare in fresh processes under numpy's default CPU dispatch (twice) and with X86_V4 or all SIMD targets disabled, compared with both prepared files",
+ "not_permitted": [
+  "evaluating any checkpoint or method",
+  "computing perturbations or truths",
+  "reading any registration result, label or V9-G1 result",
+  "reporting element values",
+  "changing any record, lock or prepared input",
+  "keeping a rebuilt copy after the job"
+ ],
+ "v4_status": "unchanged: INPUT_LOCK.json stays FAIL_V9_CACHE_MISMATCH and every v4 unit job refuses at input_lock before any DEV or TEST read; v4 pre-registered no exception or fallback for an input mismatch",
+ "windows": {
+  "v9_g1_prepare": {
+   "job": "1042418",
+   "node": "nodecpu10",
+   "commit": "90e2d7b",
+   "code_hash": "642a169e5e1e11e9",
+   "start_utc": "2026-10-15T23:36:07Z",
+   "end_utc": "2026-10-15T23:41:35Z",
+   "start_unix": 1792107367,
+   "end_unix": 1792107695,
+   "source": "/home/infres/yinwang/CS_QMI/slurm_logs/v9_g1test_prepare_1042418.out",
+   "source_sha256": "524cca4c22ab03391ef7a8e1e74ccb1e35300cf19b06360576dd0a1f211a9f13"
+  },
+  "v10_prepare": {
+   "job": "1051404",
+   "node": "node57",
+   "partition": "L40S",
+   "start_utc": "2026-10-20T09:49:39Z",
+   "end_utc": "2026-10-20T09:54:00Z",
+   "start_unix": 1792489779,
+   "end_unix": 1792490041,
+   "source": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/exits/1051404.json",
+   "source_sha256": "f42bb117508c9ae1de2dc3d516216fa3cb8b4bdd254239daadc264ffff4d42e6"
+  }
+ },
+ "code": {
+  "files": {
+   "scripts/v10_test_repeat/diagnose_inputs.py": "e92d3ec13e37bf8e40a683d309b286197b1ac7fb8bf30d7c300302fd91e6379d",
+   "slurm/v10_test_repeat/diag.sbatch": "f39d4e9cf3758f15a7e473cff74705af51fab171249fd4f3a018a5566526a025",
+   "scripts/v10_test_repeat/tr_common.py": "4da2ed634b989078db0528b7ec10798809d276edb28f19af2ebbaf88f9c64800",
+   "scripts/v10_test_repeat/prepare_inputs.py": "5ae236e3a3ed18491bc5761b4056733b12db03e302879d841243283eaa1b2566"
+  },
+  "execution_root": "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v4diag_20261020"
+ },
+ "job": "pinned Slurm CPU job (cpu-high, no GPU): V10_TR_EXPECT_ACTIVATION = the v4 activation sha256, V10_TR_EXPECT_DIAG = sha256 of this file, V10_TR_EXPECT_COMMIT = the diagnostic execution commit; output <bundle>/diagnostics/<core>/<job>/DIAG.json, receipt <bundle>/diagnostics/exits/<job>.json"
+}

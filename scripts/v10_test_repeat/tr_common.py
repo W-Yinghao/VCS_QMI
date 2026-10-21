@@ -28,17 +28,28 @@ V1_PROTOCOL, V1_ACTIVATION = "TEST_REPEAT134_PROTOCOL.json", "TEST_REPEAT134_ACT
 V2_PROTOCOL, V2_ACTIVATION = "TEST_REPEAT134_PROTOCOL_V2.json", "TEST_REPEAT134_ACTIVATION_V2.json"  # v2 (ca9f517c), unchanged
 V2_AMENDMENT, V2_DELTA = "TEST_REPEAT134_GATE_AMENDMENT_V2.json", "TEST_REPEAT134_DELTA_REVIEW_V2.json"
 DECISION_V4 = "OWNER_DECISION_V4.json"
-PROTOCOL, ACTIVATION = "TEST_REPEAT134_PROTOCOL_V4.json", "TEST_REPEAT134_ACTIVATION_V4.json"     # current version (v4)
-AMENDMENT, DELTA = "TEST_REPEAT134_AMENDMENT_V4.json", "TEST_REPEAT134_DELTA_REVIEW_V4.json"
-FROZEN_RECORDS = (DECISION, DECISION_V4, MANIFEST, PROTOCOL, AMENDMENT, DELTA, V2_PROTOCOL, V2_ACTIVATION, V2_AMENDMENT,
-                  V2_DELTA, V1_PROTOCOL, V1_ACTIVATION)                                         # hashed into ACTIVATION
+V4_PROTOCOL, V4_ACTIVATION = "TEST_REPEAT134_PROTOCOL_V4.json", "TEST_REPEAT134_ACTIVATION_V4.json"  # v4 (827099d9), unchanged
+V4_AMENDMENT, V4_DELTA = "TEST_REPEAT134_AMENDMENT_V4.json", "TEST_REPEAT134_DELTA_REVIEW_V4.json"
+DIAG_AUTH = "DIAGNOSTIC_AUTHORIZATION_V4D.json"                   # the input diagnostic's scope record (af7c0798), unchanged
+DECISION_V5 = "OWNER_DECISION_V5.json"
+PROTOCOL = "TEST_REPEAT134_PROTOCOL_V5.json"                     # the protocol in force (v5; v6 changes no protocol rule)
+AMENDMENT, DELTA = "TEST_REPEAT134_AMENDMENT_V5.json", "TEST_REPEAT134_DELTA_REVIEW_V5.json"
+V5_ACTIVATION = "TEST_REPEAT134_ACTIVATION_V5.json"              # v5 (5fdcb942): the inputs and 39 of the 42 units
+DECISION_V6, AMENDMENT_V6 = "OWNER_DECISION_V6.json", "TEST_REPEAT134_AMENDMENT_V6.json"
+ACTIVATION = "TEST_REPEAT134_ACTIVATION_V6.json"                 # current activation (v6: the 3 CoMIR_native units only)
+FROZEN_RECORDS = (DECISION, DECISION_V4, DECISION_V5, DECISION_V6, MANIFEST, PROTOCOL, AMENDMENT, DELTA, V5_ACTIVATION,
+                  AMENDMENT_V6, V4_PROTOCOL, V4_ACTIVATION, V4_AMENDMENT, V4_DELTA, DIAG_AUTH, V2_PROTOCOL, V2_ACTIVATION,
+                  V2_AMENDMENT, V2_DELTA, V1_PROTOCOL, V1_ACTIVATION)                           # hashed into ACTIVATION
+RESULTS_V6 = "results/TEST_REPEAT_V6"                            # v6 unit outputs (a fresh DEV + TEST in one job)
+V4_LOCK, LOCK = "INPUT_LOCK.json", "INPUT_LOCK_V5.json"   # v4's FAIL lock (kept as written) and the v5 input lock
 IN_JOB = {"count_abs": 12, "median_abs": 0.5}        # v4 (f): coarse gross-error band of the in-job DEV check
 TOLERANCE_GPU_TYPES = ("RTX6000PRO", "H100")         # v2: bitwise PASS, else PASS_TOLERANCE (a)-(d), else FAIL
 TOLERANCE = {"count_abs": 3, "median_abs": 0.25, "median_of_row_abs": 0.25}   # v2 (b), (c), (d)
 PASSING = {"L40S": ("PASS",), "RTX6000PRO": ("PASS", "PASS_TOLERANCE"), "H100": ("PASS", "PASS_TOLERANCE")}
 ROLE = "TEST_REPEAT"
 CODE_FILES = ("scripts/v10_test_repeat/tr_common.py", "scripts/v10_test_repeat/evaluate.py",
-              "scripts/v10_test_repeat/prepare_inputs.py", "slurm/v10_test_repeat/gpu.sbatch")
+              "scripts/v10_test_repeat/prepare_inputs.py", "slurm/v10_test_repeat/gpu.sbatch",
+              "slurm/v10_test_repeat/cpu.sbatch")
 # Fields that measure time or name the job; every other field of a registration row must agree bitwise in the DEV gate.
 TIMING_FIELDS = ("seconds", "preparation_seconds", "reference_preparation_seconds",
                  "moving_and_energy_preparation_seconds", "full_registration_seconds", "job")
@@ -142,8 +153,9 @@ def committed_bytes(rel: str) -> bytes:
 
 # ---------------------------------------------------------------------------------------------------------- frozen pins
 def records(expect_activation: str | None = None) -> dict:
-    """The four frozen records, read from the bundle; each equals its committed repo copy at HEAD, the activation lists the
-    sha256 of the other three, and (in a job) the activation sha256 equals the value pinned at submission."""
+    """The frozen records, read from the bundle; each equals its committed repo copy at HEAD, the activation lists the
+    sha256 of the others and of the bundle-only evidence files (v5: the v4 FAIL lock, the input diagnostic and their exit
+    receipts), and (in a job) the activation sha256 equals the value pinned at submission."""
     out = {}
     for name in FROZEN_RECORDS + (ACTIVATION,):
         b = (BUNDLE / name).read_bytes()
@@ -155,7 +167,10 @@ def records(expect_activation: str | None = None) -> dict:
         require(sha_bytes(act_b) == expect_activation, "activation record differs from the submission pin")
     for name in FROZEN_RECORDS:
         require(act["records"][name] == sha_bytes(out[name][0]), f"activation does not pin the current {name}")
-    return {"decision": out[DECISION][1], "decision_v4": out[DECISION_V4][1], "manifest": out[MANIFEST][1],
+    for rel, value in act.get("evidence", {}).items():
+        require(sha(BUNDLE / rel) == value, f"activation evidence changed: {rel}")
+    return {"decision": out[DECISION][1], "decision_v4": out[DECISION_V4][1], "decision_v5": out[DECISION_V5][1],
+            "decision_v6": out[DECISION_V6][1], "amendment_v6": out[AMENDMENT_V6][1], "manifest": out[MANIFEST][1],
             "protocol": out[PROTOCOL][1], "amendment": out[AMENDMENT][1], "delta": out[DELTA][1], "activation": act,
             "activation_sha256": sha_bytes(act_b),
             "shas": {name: sha_bytes(v[0]) for name, v in out.items()}}
@@ -236,6 +251,20 @@ def input_lock(activation_sha: str) -> dict:
     lk = read(p)
     require(lk.get("status") == "PASS" and lk.get("activation_sha256") == activation_sha and receipt_ok(lk["job"]),
             "INPUT_LOCK.json is not a PASS of this activation from a job that exited 0")
+    return lk
+
+
+def input_lock_v5(activation_sha: str, protocol: dict) -> dict:
+    """v5: the TEST inputs are those of INPUT_LOCK_V5.json (v4's INPUT_LOCK.json stays the FAIL record it is); a PASS of
+    this activation, written by an inputs job that exited 0, for the protocol's variant and input root."""
+    p = BUNDLE / LOCK
+    require(p.exists(), "TEST_REPEAT inputs are not locked under v5 (INPUT_LOCK_V5.json missing)")
+    lk = read(p)
+    require(lk.get("status") == "PASS" and lk.get("activation_sha256") == activation_sha and receipt_ok(lk["job"]),
+            "INPUT_LOCK_V5.json is not a PASS of this activation from a job that exited 0")
+    spec = protocol["inputs"]
+    require(lk.get("variant") == spec["v5"]["variant"] and lk.get("root") == spec["root"],
+            "INPUT_LOCK_V5.json variant / root differ from the v5 protocol")
     return lk
 
 

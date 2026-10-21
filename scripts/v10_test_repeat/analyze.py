@@ -1,10 +1,10 @@
-"""V10 TEST_REPEAT134 analysis, v4 same-job pairing (CPU, re-runnable, deterministic; run only on recorded outputs).
+"""V10 TEST_REPEAT134 analysis, v5 (v4 same-job pairing; v5 inputs) (CPU, re-runnable, deterministic; recorded outputs only).
 
     analyze.py           write <bundle>/analysis/TEST_REPEAT134_RESULTS.json and v10/test_repeat134/V10_TEST_REPEAT134_REPORT_CN.md
     analyze.py --check   render in memory and compare with both files
 
 Reads the frozen records (bundle == committed), each unit's recorded DEV rows, the unit jobs' outputs (same-job DEV32
-re-evaluation, in-job check, TEST rows) when present, INPUT_LOCK.json, the exit receipts and every DEV re-evaluation pair
+re-evaluation, in-job check, TEST rows) when present, INPUT_LOCK_V5.json (and v4's FAIL lock), the exit receipts and every DEV re-evaluation pair
 (gate records of v1 / v2 and the in-job re-evaluations) for the evaluation-noise section.  Every TEST unit is verified
 before its numbers are used; anything absent is "pending".  Paired differences use phase2_report.paired unchanged.
 """
@@ -46,6 +46,10 @@ def s4(x):
     return PR.s4(x)
 
 
+def g3(x):
+    return "n/a" if x is None else f"{x:.3g}"
+
+
 def table(head, rows):
     out = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     out += ["| " + " | ".join(str(c) for c in r) + " |" for r in rows]
@@ -66,9 +70,12 @@ def collect() -> dict:
     man, prot = rec["manifest"], rec["protocol"]
     act_sha = rec["activation_sha256"]
     test_cores, kept = man["test"]["cores"], set(man["test"]["sensitivity112"]["cores"])
+    sens = {k: set(v["cores"]) for k, v in prot["sets"].get("sensitivity", {}).items()}
+    v6_units, act_v5 = rec["activation"]["v6"]["units"], rec["activation"]["supersedes"]["activation_sha256"]
     by_key = {u["key"]: u for u in man["units"]}
-    lock_path = C.BUNDLE / "INPUT_LOCK.json"
+    lock_path = C.BUNDLE / C.LOCK
     lock = C.read(lock_path) if lock_path.exists() else None
+    v4_lock = C.read(C.BUNDLE / C.V4_LOCK)
     receipts = {p.stem: C.read(p) for p in sorted((C.BUNDLE / "exits").glob("*.json"))}
     units, truths, noise = [], {}, []
     for u in man["units"]:
@@ -78,11 +85,12 @@ def collect() -> dict:
         C.require(C.metrics(dev) == u["dev"]["DEV32"], f"{u['key']}: DEV32 recomputation")
         plan = C.test_plan(rec, u["key"])
         entry = {"u": u, "plan": plan, "dev_rows": dev, "test": None, "blocked": None, "reeval_rows": None}
-        out = C.BUNDLE / "results" / "TEST_REPEAT" / u["key"]
+        v6 = u["key"] in v6_units                                    # v6: the 3 CoMIR units, fresh outputs; the rest v5
+        out = C.BUNDLE / (C.RESULTS_V6 if v6 else "results/TEST_REPEAT") / u["key"]
         if (out / "COMPLETE.json").exists():
             comp = C.read(out / "COMPLETE.json")
             C.require(comp["status"] == "COMPLETE" and comp["identity"] == u["identity"] and comp["checkpoint"] == u["checkpoint"]
-                      and comp["activation_sha256"] == act_sha, f"{u['key']}: TEST record identity")
+                      and comp["activation_sha256"] == (act_sha if v6 else act_v5), f"{u['key']}: TEST record identity")
             for name, value in comp["artifacts"].items():
                 C.require(C.sha(out / name) == value, f"{u['key']}/{name}: artifact hash")
             rows = C.lines(out / "TEST_REPEAT.jsonl")
@@ -90,7 +98,8 @@ def collect() -> dict:
                       == {(c, i) for c in test_cores for i in range(10)}, f"{u['key']}: TEST coverage")
             C.require(all(r["role"] == C.ROLE and r["checkpoint_sha256"] == u["checkpoint"]["sha256"] for r in rows),
                       f"{u['key']}: TEST role / checkpoint")
-            C.require(C.metrics(rows) == comp["TEST134"] and C.metrics([r for r in rows if r["core"] in kept]) == comp["TEST112"],
+            C.require(C.metrics(rows) == comp["TEST134"] and C.metrics([r for r in rows if r["core"] in kept]) == comp["TEST112"]
+                      and all(C.metrics([r for r in rows if r["core"] in cs]) == comp[k] for k, cs in sens.items()),
                       f"{u['key']}: TEST metrics recomputation")
             C.require(comp["hardware"]["gpu_type"] == plan["gpu_type"] == u["hardware"]["gpu_type"], f"{u['key']}: hardware")
             ref = comp["dev_reevaluation"]
@@ -130,7 +139,8 @@ def collect() -> dict:
         noise.append({"source": f"gate ({g.get('status')})", "unit": u["key"], "family": u["family"],
                       "gpu_type": g["gpu_type"], "job": g["job"], **pair_summary(diag)})
     noise.sort(key=lambda x: (x["family"], x["gpu_type"], x["source"], x["job"]))
-    return {"rec": rec, "lock": lock, "receipts": receipts, "units": units, "truth_keys": len(truths), "noise": noise}
+    return {"rec": rec, "lock": lock, "v4_lock": v4_lock, "receipts": receipts, "units": units, "truth_keys": len(truths),
+            "noise": noise}
 
 
 # ------------------------------------------------------------------------------------------------------------ analyse
@@ -149,7 +159,8 @@ def analyse(D: dict, pr) -> dict:
     man = D["rec"]["manifest"]
     tc = man["test"]["cores"]
     sets = {"TEST134": (tc, man["test"]["position_groups"]),
-            "TEST112": (man["test"]["sensitivity112"]["cores"], man["test"]["sensitivity112"]["position_groups"])}
+            "TEST112": (man["test"]["sensitivity112"]["cores"], man["test"]["sensitivity112"]["position_groups"]),
+            **{k: (v["cores"], v["position_groups"]) for k, v in D["rec"]["protocol"]["sets"].get("sensitivity", {}).items()}}
     fam = defaultdict(list)
     for e in D["units"]:
         fam[e["u"]["family"]].append(e)
@@ -159,7 +170,7 @@ def analyse(D: dict, pr) -> dict:
         done = all(e["test"] is not None for e in prim)
         row = {"n": len(prim), "gpus": sorted({e["plan"]["gpu_type"] for e in prim}),
                "DEV32_recorded": {k: statistics.fmean(e["u"]["dev"]["DEV32"][k] for e in prim) for k in MK}}
-        for s in ("TEST134", "TEST112"):
+        for s in sets:
             row[s] = ({k: statistics.fmean(e["test"]["comp"][s][k] for e in prim) for k in MK} if done else None)
         row["DEV32_same_job"] = ({k: statistics.fmean(e["test"]["comp"]["dev_reevaluation"]["DEV32"][k] for e in prim)
                                   for k in MK} if done else None)
@@ -200,7 +211,7 @@ def analyse(D: dict, pr) -> dict:
     for e in D["units"]:
         if e["test"]:
             cost[e["test"]["comp"]["hardware"]["gpu_type"]] += e["test"]["alloc_s"] / 3600
-    return {"means": means, "contrasts": contrasts, "noise_summary": noise_summary, "cost": dict(cost),
+    return {"sets": list(sets), "means": means, "contrasts": contrasts, "noise_summary": noise_summary, "cost": dict(cost),
             "done": sum(e["test"] is not None for e in D["units"]), "blocked": sum(e["blocked"] is not None for e in D["units"])}
 
 
@@ -208,11 +219,12 @@ def analyse(D: dict, pr) -> dict:
 def render(D: dict, A: dict) -> str:
     rec = D["rec"]
     man, prot, dec = rec["manifest"], rec["protocol"], rec["decision"]
-    dec4 = rec["decision_v4"]
+    dec4, dec5 = rec["decision_v4"], rec["decision_v5"]
+    extra = [x for x in A["sets"] if x not in ("TEST134", "TEST112")]
     L = []
     w = L.append
     cell = lambda m: f"{f4(m['success42'])} / {f4(m['success9'])} / {f3(m['median_err'])}" if m else "pending"
-    w("# V10 TEST_REPEAT134：BF 重复基准（单独报告，不是独立确认；v4 同作业配对）")
+    w("# V10 TEST_REPEAT134：BF 重复基准（单独报告，不是独立确认；v4 同作业配对，v5 输入）")
     w("")
     w(f"**状态：最终单元 {A['done']}/42 完成，{A['blocked']} 个 BLOCKED，其余 pending。** 本文由 "
       "`scripts/v10_test_repeat/analyze.py` 从冻结记录与已完成的作业输出生成；同一输入两次运行逐字节相同。")
@@ -225,6 +237,13 @@ def render(D: dict, A: dict) -> str:
       f"——「{dec['chosen_option_text_verbatim']}」")
     w(f"- v4（{dec4['date']}）问题原文：「{dec4['question_verbatim']}」选项：「{dec4['chosen_option_verbatim']}」——"
       f"「{dec4['chosen_option_text_verbatim']}」未选方案：" + "；".join(x["option"] for x in dec4["options_not_chosen"]) + "。")
+    dec6 = rec["decision_v6"]
+    w(f"- v6（{dec6['date']}）选项：「{dec6['chosen_option_verbatim']}」——「{dec6['chosen_option_text_verbatim']}」"
+      f"适用单元：{'、'.join(rec['activation']['v6']['units'])}（在 results/TEST_REPEAT_V6 中重新同作业重评 DEV 再评 TEST）；"
+      "其余 39 个单元仍属 v5。")
+    w(f"- v5（{dec5['date']}）问题原文：「{dec5['question_verbatim']}」选项：「{dec5['chosen_option_verbatim']}」——"
+      f"「{dec5['chosen_option_text_verbatim']}」未选方案：" + "；".join(x["option"] for x in dec5["options_not_chosen"]) + "。"
+      f"规则在诊断结果之前确定；按规则得到变体 {prot['inputs']['v5']['variant']}：{prot['inputs']['v5']['statement']}")
     for name, value in rec["shas"].items():
         w(f"- `{C.RECORDS}/{name}` sha256 `{value}`")
     t = man["test"]
@@ -233,12 +252,25 @@ def render(D: dict, A: dict) -> str:
     ij = prot["in_job_check"]
     w(f"- 作业内检查：(a) {ij['a']}；(e) {ij['e']}；(f) {ij['f']}。{ij['band_note']}")
     w("")
-    lk = D["lock"]
-    w("## 2 TEST 输入锁")
+    lk, l4 = D["lock"], D["v4_lock"]
+    spec = prot["inputs"]
+    dg = spec["diagnostic"]["summary"]
+    w("## 2 TEST 输入")
     w("")
-    w("pending（INPUT_LOCK.json 尚不存在）。" if lk is None else
-      f"状态 {lk['status']}（作业 {lk['job']}；{lk['raw_members_verified']} 个原始成员 sha256 核对；与 V9-G1 预处理缓存"
-      f"{'逐位相同' if lk['v9_cache_comparison']['identical'] else '不同'}）。")
+    w(f"- v4 输入锁（作业 {l4['job']}）：{l4['status']}；{l4['raw_members_verified']} 个原始成员 sha256 核对；"
+      f"{l4['v9_cache_comparison']['cores'] - len(l4['v9_cache_comparison']['differing'])}/{l4['v9_cache_comparison']['cores']} "
+      f"个 core 与 V9-G1 预处理缓存逐位相同，不同：{'、'.join(l4['v9_cache_comparison']['differing'])}。该锁按原样保留。")
+    w(f"- 输入诊断（作业 {spec['diagnostic']['job']}，{spec['diagnostic']['node']}；只有数字，不评估）：原始成员与全部清单一致 "
+      f"{'是' if all(dg['raw_members_match'].values()) else '否'}；两次重建逐位相同 {'是' if dg['rebuild_deterministic'] else '否'}；"
+      "与 V9-G1 不同的数组：" + ("；".join(f"{k} {v['n_differ']} 个元素（最大 {v['max_ulp']} ULP，最大绝对差 {g3(v['max_abs'])}）"
+                                   for k, v in dg["v10_vs_v9_differing_arrays"].items()) or "无")
+      + f"；与 V9-G1 文件逐位相同的重建：{'、'.join(dg['rebuilds_equal_to_v9_g1']) or '无'}；与 V10 文件逐位相同的重建："
+      f"{'、'.join(dg['rebuilds_equal_to_v10']) or '无'}；V9-G1 文件在其预处理时间窗内 "
+      f"{'是' if dg['v9_cache_inside_v9_g1_prepare_window'] else '否'}。")
+    w(f"- v5 变体 {spec['v5']['variant']}：{spec['v5']['statement']}")
+    w("- v5 输入锁：" + ("pending（INPUT_LOCK_V5.json 尚不存在）。" if lk is None else
+                       f"状态 {lk['status']}（作业 {lk['job']}，{lk.get('nodelist')}；{lk['raw_members_verified']} 个原始成员 sha256 核对；"
+                       f"与 V9-G1 预处理缓存不同的 core：{'、'.join(lk['v9_cache_comparison']['differing']) or '无'}）。"))
     w("")
     w("## 3 逐单元：TEST 与同作业 DEV32 并列，并附记录的 DEV32（不合并）")
     w("")
@@ -248,18 +280,21 @@ def render(D: dict, A: dict) -> str:
         c = tr["comp"] if tr else None
         st = "BLOCKED" if e["blocked"] else "pending"
         rows.append([u["family"], u["seed"], u["tier"].replace("secondary_replication", "secondary"), u["row_label"],
-                     e["plan"]["gpu_type"], cell(c["TEST134"]) if c else st, cell(c["TEST112"]) if c else st,
-                     cell(c["dev_reevaluation"]["DEV32"]) if c else st, cell(u["dev"]["DEV32"]),
-                     c["job"] if c else (e["blocked"]["job"] if e["blocked"] else "")])
-    for line in table(["族", "seed", "层", "标签", "GPU", "TEST134 s<42 / s<9 / 中位", "TEST112", "DEV32（同作业重评）",
-                       "DEV32（记录）", "作业"], rows):
+                     e["plan"]["gpu_type"], cell(c["TEST134"]) if c else st, cell(c["TEST112"]) if c else st]
+                    + [cell(c[x]) if c else st for x in extra]
+                    + [cell(c["dev_reevaluation"]["DEV32"]) if c else st, cell(u["dev"]["DEV32"]),
+                       (c["job"] if c else (e["blocked"]["job"] if e["blocked"] else ""))
+                       + ("（v6）" if u["key"] in rec["activation"]["v6"]["units"] else "")])
+    for line in table(["族", "seed", "层", "标签", "GPU", "TEST134 s<42 / s<9 / 中位", "TEST112"] + [f"{x}（敏感性）" for x in extra]
+                      + ["DEV32（同作业重评）", "DEV32（记录）", "作业"], rows):
         w(line)
     w("")
     w("## 4 族的 seed 均值（主体 seeds 1001–1003）")
     w("")
-    rows = [[f, m["n"], "，".join(m["gpus"]), cell(m["TEST134"]), cell(m["TEST112"]), cell(m["DEV32_same_job"]),
-             cell(m["DEV32_recorded"])] for f, m in A["means"].items()]
-    for line in table(["族", "seed 数", "GPU", "TEST134", "TEST112", "DEV32（同作业）", "DEV32（记录）"], rows):
+    rows = [[f, m["n"], "，".join(m["gpus"]), cell(m["TEST134"]), cell(m["TEST112"])] + [cell(m[x]) for x in extra]
+            + [cell(m["DEV32_same_job"]), cell(m["DEV32_recorded"])] for f, m in A["means"].items()]
+    for line in table(["族", "seed 数", "GPU", "TEST134", "TEST112"] + [f"{x}（敏感性）" for x in extra]
+                      + ["DEV32（同作业）", "DEV32（记录）"], rows):
         w(line)
     w("")
     w("## 5 以 core 为单位的配对差（success<42，A − B；描述性）")
@@ -270,16 +305,21 @@ def render(D: dict, A: dict) -> str:
             return "pending"
         return (f"{s4(p['point']['s42'])} [{s4(p['core_ci']['s42'][0])}, {s4(p['core_ci']['s42'][1])}] · 位置组 "
                 f"[{s4(p['group_ci']['s42'][0])}, {s4(p['group_ci']['s42'][1])}]")
-    rows = [[f"{c['A']} − {c['B']}" + ("（机制）" if c["group"] == "mech" else ""), pc(c["TEST134"]), pc(c["TEST112"]),
-             pc(c["DEV32_same_job"]), pc(c["DEV32_recorded"])] for c in A["contrasts"]]
-    for line in table(["对照", "TEST134 [core 95%] · 位置组", "TEST112", "DEV32（同作业）", "DEV32（记录，与第二阶段报告相同的键）"], rows):
+    rows = [[f"{c['A']} − {c['B']}" + ("（机制）" if c["group"] == "mech" else ""), pc(c["TEST134"]), pc(c["TEST112"])]
+            + [pc(c[x]) for x in extra] + [pc(c["DEV32_same_job"]), pc(c["DEV32_recorded"])] for c in A["contrasts"]]
+    for line in table(["对照", "TEST134 [core 95%] · 位置组", "TEST112"] + [f"{x}（敏感性）" for x in extra]
+                      + ["DEV32（同作业）", "DEV32（记录，与第二阶段报告相同的键）"], rows):
         w(line)
     w("")
     w("这些区间不是检验，不能读作优劣；RuLSIF_exact（v1）与 RuLSIF_exact_v2（A1）不进入配对。")
     w("")
-    w("## 6 评估噪声（同一冻结 checkpoint 的 DEV32 重评，对照记录的 DEV32）")
+    w("## 6 同一 checkpoint 重评的观察变动（DEV32 重评，对照记录的 DEV32）")
     w("")
-    w(prot["evaluation_noise"]["statement"])
+    w("冻结协议的原文：" + prot["evaluation_noise"]["statement"])
+    w("")
+    w("**更正（2026-10-20 审查包 V10 第 4 节）**：下表是有限几次重评的观察值，不是已标定的噪声分布、噪声下限、等价界或显著性阈值；"
+      "不能据此把较小的方法差判为不可解释，也不能把较大的差判为显著。同一阈值下的双向翻转和净变化要一起看，两个阈值分开解释；"
+      "固定 checkpoint 的重评不是新的训练 seed。逐配准审计见 v10/review-actions-20261020 的 v10/review_20261020/repeat_with_v5/。")
     w("")
     rows = [[n["family"], n["gpu_type"], n["source"], n["job"], f"{n['d_lt42']:+d}", f"{n['d_lt9']:+d}",
              f"{n['flips']['success42']} / {n['flips']['success9']}", f"{n['d_median']:+.4f}",
@@ -307,25 +347,30 @@ def render(D: dict, A: dict) -> str:
     w("## 8 局限")
     w("")
     w("- TEST134 已在 V9-G1 读过一次；这是重复基准，不是独立确认；不与 DEV 合并；不作方法优劣、强基线或新颖性结论（决定 §5）。")
-    w("- 评估本身有噪声（第 6 节）：小于该噪声的方法差，在 TEST 和 DEV（包括 V10 主 DEV 表）上都不可解释。")
+    w("- 同一 checkpoint 重评时，单次配准和成功计数会变动（第 6 节）。观察到的变动只是描述，不作为判定方法差能否解释的阈值（审查包 2026-10-20）。")
     w("- 每个单元在产生其 DEV32 的 GPU 型号上评估；不声称跨硬件等价。")
+    w("- 输入：" + spec["v5"]["limitation"])
     w("")
     return "\n".join(L) + "\n"
 
 
 def sidecar(D: dict, A: dict) -> dict:
     rec = D["rec"]
-    return {"schema": "v10.test_repeat134.results.v4", "scope": "evaluator_only", "records": rec["shas"],
+    return {"schema": "v10.test_repeat134.results.v5", "scope": "evaluator_only", "records": rec["shas"],
+            "input_variant": rec["protocol"]["inputs"]["v5"]["variant"], "sets": A["sets"],
+            "v6_units": rec["activation"]["v6"]["units"],
             "done": A["done"], "blocked": A["blocked"],
             "units": [{"key": e["u"]["key"], "family": e["u"]["family"], "seed": e["u"]["seed"], "tier": e["u"]["tier"],
                        "row_label": e["u"]["row_label"], "gpu_type": e["plan"]["gpu_type"], "DEV32_recorded": e["u"]["dev"]["DEV32"],
                        "DEV32_same_job": e["test"]["comp"]["dev_reevaluation"]["DEV32"] if e["test"] else None,
                        "TEST134": e["test"]["comp"]["TEST134"] if e["test"] else None,
                        "TEST112": e["test"]["comp"]["TEST112"] if e["test"] else None,
+                       **{x: (e["test"]["comp"][x] if e["test"] else None) for x in A["sets"] if x not in ("TEST134", "TEST112")},
                        "blocked": e["blocked"]["check"] if e["blocked"] else None,
                        "job": e["test"]["comp"]["job"] if e["test"] else None} for e in D["units"]],
             "family_means": A["means"], "contrasts": A["contrasts"], "noise": D["noise"], "noise_summary": A["noise_summary"],
-            "cost": A["cost"], "input_lock": None if D["lock"] is None else D["lock"]["status"], "truth_keys": D["truth_keys"]}
+            "cost": A["cost"], "input_lock": None if D["lock"] is None else D["lock"]["status"],
+            "v4_input_lock": D["v4_lock"]["status"], "truth_keys": D["truth_keys"]}
 
 
 def main(argv=None) -> int:
@@ -347,7 +392,7 @@ def main(argv=None) -> int:
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(text)
             print("wrote", path)
-    print(f"TEST_REPEAT134 v4: {A['done']}/42 complete, {A['blocked']} blocked, {len(D['noise'])} DEV re-evaluation pairs")
+    print(f"TEST_REPEAT134 v5: {A['done']}/42 complete, {A['blocked']} blocked, {len(D['noise'])} DEV re-evaluation pairs")
     return 0 if ok else 1
 
 

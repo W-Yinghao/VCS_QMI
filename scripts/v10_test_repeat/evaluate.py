@@ -3,8 +3,8 @@
     evaluate.py gate <gate_id>    DEV-reproduction gate: re-evaluate the gate unit's frozen checkpoint on DEV32 on the gate's
                                   GPU type and require bitwise agreement with its recorded DEV rows and DEV32 metrics.
     evaluate.py test <unit_key>   TEST_REPEAT134: evaluate one frozen final checkpoint on the 134 TEST cores, on the GPU type
-                                  that produced its recorded DEV32, after that (family, GPU type) gate PASSed and the TEST
-                                  inputs are locked.
+                                  that produced its recorded DEV32, after the same-job DEV32 re-evaluation passed the in-job
+                                  check and the TEST inputs are locked (v5: INPUT_LOCK_V5.json).
 
 Science is imported unchanged from the unit's frozen execution source, verified byte-identical first:
   bf1   handoff/v10_bf1_20261017/source scripts/v10_bf1/run.py: freeze(), new_trainer, load_checkpoint, evaluate
@@ -225,6 +225,35 @@ def stage_gate(gate_id: str) -> int:
 BLOCKING_ERRORS = ("onfiguration", "changed", "differs", "mismatch")   # deterministic identity / config / input failures
 
 
+COMIR_MODULE = "v10.supplement.comir"
+
+
+def comir_check_v6(mod) -> None:
+    """v6 (owner 2026-10-20): the frozen CoMIR verify_official_source refuses every models.* module without __file__,
+    but the official package's models/layers has no __init__.py, so once one trainer has imported it a second trainer in
+    the same process (the TEST trainer after the DEV re-evaluation) always failed.  For the duration of the frozen check
+    only, the wrapper hides the models.* modules without __file__ whose every __path__ entry resolves inside the pinned
+    CoMIR root; every other condition is the frozen function itself."""
+    frozen = mod.verify_official_source
+    if getattr(frozen, "v6_wrapped", False):
+        return
+
+    def verify_official_source():
+        root = Path(json.loads((mod.A.REPO / "v10/supplement/COMIR_SOURCE.json").read_text())["root"]).resolve()
+        hidden = {}
+        for name, module in tuple(sys.modules.items()):
+            if (name == "models" or name.startswith("models.")) and getattr(module, "__file__", None) is None:
+                paths = [Path(x).resolve() for x in (getattr(module, "__path__", None) or [])]
+                if paths and all(x.is_relative_to(root) for x in paths):
+                    hidden[name] = sys.modules.pop(name)
+        try:
+            return frozen()
+        finally:
+            sys.modules.update(hidden)
+    verify_official_source.v6_wrapped = True
+    mod.verify_official_source = verify_official_source
+
+
 def dev_pass(run, u: dict, out: Path, budget, protocol: dict) -> dict:
     """v4: the same-job DEV32 re-evaluation and the in-job check (a), (e), (f) against the recorded DEV32 rows."""
     try:
@@ -251,13 +280,15 @@ def dev_pass(run, u: dict, out: Path, budget, protocol: dict) -> dict:
 def stage_test(key: str) -> int:
     rec = pins()
     man, prot = rec["manifest"], rec["protocol"]
+    v6 = rec["activation"]["v6"]
+    C.require(key in v6["units"], f"the v6 activation covers only {', '.join(v6['units'])}; {key} stays under v5")
     u = C.unit(man, key)
     plan = C.test_plan(rec, key)
     verify_unit_files(u)
     gpu_type = plan["gpu_type"]
     C.require(gpu_type == u["hardware"]["gpu_type"], "v4 evaluates each unit on the GPU type of its recorded DEV32")
-    lock_record = C.input_lock(rec["activation_sha256"])
-    out = C.BUNDLE / "results" / "TEST_REPEAT" / key
+    lock_record = C.input_lock_v5(v6["input_lock_activation_sha256"], prot)     # the v5 inputs, locked under v5
+    out = C.BUNDLE / C.RESULTS_V6 / key
     with C.lock(out / "RUN.lock"):
         if (out / "COMPLETE.json").exists():
             C.require(C.read(out / "COMPLETE.json")["status"] == "COMPLETE", "existing TEST record is not COMPLETE")
@@ -275,6 +306,9 @@ def stage_test(key: str) -> int:
                                            "diagnostics": ref.get("vs_recorded")})
             print("BLOCKED", key, ref["check"]["reason"], flush=True)
             return 3
+        if u["family"] == "CoMIR_native":                                        # v6: before the TEST trainer
+            C.require(COMIR_MODULE in sys.modules, "the CoMIR module is not loaded after the DEV re-evaluation")
+            comir_check_v6(sys.modules[COMIR_MODULE])
         guard = C.TestRepeatGuard(man, lock_record, rec["activation_sha256"])
         try:
             summary, reads = evaluate_unit(run, u, C.ROLE, guard, out / "TEST_REPEAT.jsonl", budget)
@@ -290,17 +324,20 @@ def stage_test(key: str) -> int:
         C.require(all(r["role"] == C.ROLE and r["checkpoint_sha256"] == u["checkpoint"]["sha256"] for r in rows),
                   "mixed role or checkpoint in TEST rows")
         retained = set(man["test"]["sensitivity112"]["cores"])
+        sensitivity = prot["sets"].get("sensitivity", {})                       # v5 B1: pre-registered TEST133 / TEST111
         jobs = sorted(p.stem[len("ENV_"):] for p in out.glob("ENV_*.json"))
         result = {
-            "schema": "v10.test_repeat134.unit.v4", "status": "COMPLETE", "scope": "evaluator_only",
+            "schema": "v10.test_repeat134.unit.v6", "status": "COMPLETE", "scope": "evaluator_only", "version": 6,
             "label": prot["reporting"]["label"], "unit": key, "family": u["family"], "seed": u["seed"], "tier": u["tier"],
             "row_label": u["row_label"], "identity": u["identity"], "checkpoint": u["checkpoint"],
             "TEST134": C.metrics(rows), "TEST112": C.metrics([r for r in rows if r["core"] in retained]),
+            **{name: C.metrics([r for r in rows if r["core"] in set(x["cores"])]) for name, x in sensitivity.items()},
             "per_core": {c: C.metrics([r for r in rows if r["core"] == c]) for c in man["test"]["cores"]},
             "summary_metrics": summary["metrics"],
             "dev_reevaluation": {k: v for k, v in ref.items() if k != "per_core"},
             "dev_reevaluation_per_core": ref["per_core"], "jobs": jobs, "single_job": len(jobs) == 1,
-            "input_lock_sha256": C.sha(C.BUNDLE / "INPUT_LOCK.json"), "activation_sha256": rec["activation_sha256"],
+            "input_lock_sha256": C.sha(C.BUNDLE / C.LOCK), "input_variant": lock_record["variant"],
+            "activation_sha256": rec["activation_sha256"],
             "code_commit": rec["code"]["commit"], "source": source, "job": rec["job"], "utc": C.utc(),
             "hardware": {"gpu_name": env["gpu_name"], "gpu_type": gpu_type, "host": env["host"],
                          "partition": env["slurm_partition"], "recorded_dev32_gpu": u["hardware"]["gpu_name"]},

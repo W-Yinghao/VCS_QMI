@@ -47,15 +47,21 @@ REAL_BUNDLE = C.HAND / "v10_test_repeat134_20261020"
 
 @pytest.fixture(scope="module")
 def recs4(pr):
-    """The v4 records, built read-only against the real bundle (it holds the observed DEV re-evaluations)."""
-    saved = C.BUNDLE
-    C.BUNDLE = REAL_BUNDLE
-    try:
-        b4 = B.build_v4(pr)
-        texts = B.render_v4(pr)
-    finally:
-        C.BUNDLE = saved
-    return {**b4, "texts": texts}
+    """The frozen v4 records exactly as committed at the v4 freeze (827099d9); v5 leaves them untouched."""
+    texts = {n: B.git_bytes(B.V4_COMMIT, f"{C.RECORDS}/{n}").decode() for n in B.V4_FILES.values()}
+    return {"protocol": json.loads(texts[C.V4_PROTOCOL]), "amendment": json.loads(texts[C.V4_AMENDMENT]),
+            "decision_v4": json.loads(texts[C.DECISION_V4]),
+            "v2_protocol": json.loads((REPO / C.RECORDS / C.V2_PROTOCOL).read_text()), "texts": texts}
+
+
+def v5_protocol(p4: dict, root, variant="A", sensitivity=None) -> dict:
+    """A v5-shaped protocol for the stage plumbing: the v4 protocol with a v5 inputs block (and B1 sensitivity sets)."""
+    import copy
+    p = copy.deepcopy(p4)
+    p["inputs"] = {**p["inputs"], "root": str(root), "v5": {"variant": variant, "statement": "s", "limitation": "l"}}
+    if sensitivity:
+        p["sets"]["sensitivity"] = sensitivity
+    return p
 
 
 def run(code: str, cwd=None, env=None) -> str:
@@ -258,7 +264,7 @@ def test_stages_refuse_outside_slurm():
         E.main(["gate", "L40S__MF_VCS_M1"])
     import prepare_inputs as PI
     with pytest.raises(RuntimeError):
-        PI.main()
+        PI.main([])
 
 
 def test_sbatch():
@@ -266,17 +272,21 @@ def test_sbatch():
     subprocess.run(["bash", "-n", str(REPO / "slurm/v10_test_repeat/gpu.sbatch")], check=True)
     for needle in ("--exclude=node51,node53,node60", "V10_TR_EXPECT_ACTIVATION:?", "V10_TR_EXPECT_COMMIT:?",
                    "CUBLAS_WORKSPACE_CONFIG=:4096:8", "unset TORCH_ALLOW_TF32_CUBLAS_OVERRIDE NVIDIA_TF32_OVERRIDE",
-                   "OMP_NUM_THREADS=4", '"exit_code"', "ssl_pilot_v10_test_repeat_exec_v4_20261020"):
+                   "OMP_NUM_THREADS=4", '"exit_code"', "ssl_pilot_v10_test_repeat_exec_v6_20261020"):
         assert needle in text
 
 
 # ------------------------------------------------------------------------------------------------------------ analysis
-def test_analysis_dev_beside_reproduces_phase2(recs, recs4, pr):
+@pytest.mark.parametrize("variant", ["A", "B1"])
+def test_analysis_dev_beside_reproduces_phase2(recs, recs4, pr, variant):
     """With synthetic TEST rows for two families, the v4 analysis computes TEST and same-job DEV contrasts, and its
     recorded-DEV32 contrasts equal the committed phase-2 sidecar (same function, same keys)."""
     AN.PR = pr
     man = recs["manifest"]
     rng = np.random.default_rng(0)
+    import test_v5 as T5
+    prot5 = T5.protocol_for(recs4["protocol"], man, variant)
+    sens = prot5["sets"].get("sensitivity", {})
     plan = {t["unit"]: t for t in recs4["protocol"]["jobs"]["test_units"]}
     units = []
     for u in man["units"]:
@@ -288,12 +298,15 @@ def test_analysis_dev_beside_reproduces_phase2(recs, recs4, pr):
             kept = set(man["test"]["sensitivity112"]["cores"])
             e["reeval_rows"] = dev
             e["test"] = {"comp": {"TEST134": C.metrics(rows), "TEST112": C.metrics([r for r in rows if r["core"] in kept]),
+                                  **{k: C.metrics([r for r in rows if r["core"] in set(x["cores"])]) for k, x in sens.items()},
                                   "dev_reevaluation": {"DEV32": C.metrics(dev)}, "job": "0",
                                   "hardware": {"gpu_type": u["hardware"]["gpu_type"]}}, "rows": rows, "alloc_s": 0}
         units.append(e)
     shas = {n: "0" * 64 for n in C.FROZEN_RECORDS + (C.ACTIVATION,)}
-    D = {"rec": {"manifest": man, "protocol": recs4["protocol"], "decision": recs["decision"], "decision_v4": recs4["decision_v4"],
-                 "shas": shas}, "lock": None, "receipts": {}, "units": units, "truth_keys": 0, "noise": []}
+    D = {"rec": {"manifest": man, "protocol": prot5, "decision": recs["decision"], "decision_v4": recs4["decision_v4"],
+                 "decision_v5": B.decision_v5(), "decision_v6": B.decision_v6(), "shas": shas,
+                 "activation": {"v6": {"units": list(B.V6_UNITS)}}}, "lock": None, "v4_lock": C.read(REAL_BUNDLE / C.V4_LOCK),
+         "receipts": {}, "units": units, "truth_keys": 0, "noise": []}
     A = AN.analyse(D, pr)
     side = json.loads((pr.REPO / "v10/V10_PHASE2_RESULTS_20261019.json").read_text())
     ref = {(c["A"], c["B"]): c for c in side["contrasts"]}
@@ -306,6 +319,9 @@ def test_analysis_dev_beside_reproduces_phase2(recs, recs4, pr):
             assert c["TEST134"] is None and c["DEV32_same_job"] is None
     md = AN.render(D, A)
     assert "pending" in md and "TEST_REPEAT134" in md and "不是独立确认" in md and "不可解释" in md
+    assert A["sets"] == ["TEST134", "TEST112"] + list(sens) and f"变体 {variant}" in md
+    m1 = next(c for c in A["contrasts"] if {c["A"], c["B"]} == {"MF_VCS_M1", "MF_VCS_M0"})
+    assert all(m1[k] is not None for k in sens) and ("TEST133（敏感性）" in md) == (variant == "B1")
 
 
 # ------------------------------------------------------------------------------------------- stage plumbing (no GPU)
@@ -316,11 +332,12 @@ def synthetic_rows(cores, role, ck, seed=1):
              "checkpoint_sha256": ck} for c in cores for i in range(10)]
 
 
-def plumbing(monkeypatch, recs, key, protocol=None):
+def plumbing(monkeypatch, recs, key, protocol=None, v6_units=None):
     man, prot = recs["manifest"], protocol or recs["protocol"]
     u = next(x for x in man["units"] if x["key"] == key)
+    v6 = {"units": v6_units or [x["key"] for x in man["units"]], "input_lock_activation_sha256": "a" * 64}
     rec = {"manifest": man, "protocol": prot, "decision": recs["decision"], "activation_sha256": "a" * 64,
-           "shas": {C.MANIFEST: "m" * 64}, "code": {"commit": "c" * 40}, "job": "777"}
+           "activation": {"v6": v6}, "shas": {C.MANIFEST: "m" * 64}, "code": {"commit": "c" * 40}, "job": "777"}
     monkeypatch.setattr(E, "pins", lambda: rec)
     monkeypatch.setattr(E, "load_source", lambda unit: (type("R", (), {"A": None})(), {"kind": unit["code"]["kind"]}))
     gpu = {"L40S": "NVIDIA L40S", "RTX6000PRO": "NVIDIA RTX PRO 6000 Blackwell Server Edition", "H100": "NVIDIA H100 NVL"}
@@ -352,12 +369,13 @@ def test_stage_gate_plumbing(monkeypatch, recs, recs4):
     assert C.read(C.BUNDLE / "gate" / g["gate_id"] / "778" / "GATE.json")["status"] == "FAIL"
 
 
-def v4_setup(monkeypatch, recs, recs4, tmp_path, key):
+def v4_setup(monkeypatch, recs, recs4, tmp_path, key, variant="A", sensitivity=None, v6_units=None):
     monkeypatch.setattr(C, "BUNDLE", tmp_path / "bundle")                         # one isolated bundle per test
-    u, rec = plumbing(monkeypatch, recs, key, recs4["protocol"])
     man = recs["manifest"]
-    lock = {**fake_lock(tmp_path, man["test"]["cores"]), "status": "PASS", "job": "700", "activation_sha256": "a" * 64}
-    C.write(C.BUNDLE / "INPUT_LOCK.json", lock)
+    lock = {**fake_lock(tmp_path, man["test"]["cores"]), "status": "PASS", "job": "700", "activation_sha256": "a" * 64,
+            "variant": variant}
+    u, rec = plumbing(monkeypatch, recs, key, v5_protocol(recs4["protocol"], lock["root"], variant, sensitivity), v6_units)
+    C.write(C.BUNDLE / C.LOCK, lock)
     C.write(C.BUNDLE / "exits" / "700.json", {"job": "700", "exit_code": 0})
     monkeypatch.setenv("SLURM_JOB_ID", "777")
     monkeypatch.setenv("V10_TR_EXPECT_ACTIVATION", "a" * 64)
@@ -395,7 +413,7 @@ def test_unit_job_pairs_dev_and_test(monkeypatch, recs, recs4, tmp_path, key):
     seen = []
     monkeypatch.setattr(E, "evaluate_unit", v4_evaluator(seen, moved))
     assert E.stage_test(key) == 0 and seen == ["DEV", "TEST_REPEAT"]               # DEV first, then TEST, one job
-    out = C.BUNDLE / "results" / "TEST_REPEAT" / key
+    out = C.BUNDLE / C.RESULTS_V6 / key
     comp = C.read(out / "COMPLETE.json")
     rows = C.lines(out / "TEST_REPEAT.jsonl")
     ref = comp["dev_reevaluation"]
@@ -424,7 +442,7 @@ def test_unit_job_blocks_before_test(monkeypatch, recs, recs4, tmp_path, what):
     seen = []
     monkeypatch.setattr(E, "evaluate_unit", v4_evaluator(seen, rows, err))
     assert E.stage_test(key) == 3 and seen == ["DEV"]                                  # TEST is never read
-    out = C.BUNDLE / "results" / "TEST_REPEAT" / key
+    out = C.BUNDLE / C.RESULTS_V6 / key
     blk = C.read(out / "BLOCKED.json")
     assert blk["status"] == "BLOCKED" and blk["test_read"] is False and not (out / "TEST_REPEAT.jsonl").exists()
     with pytest.raises(RuntimeError, match="BLOCKED"):
@@ -437,25 +455,70 @@ def test_unit_job_transient_error_is_not_blocked(monkeypatch, recs, recs4, tmp_p
     monkeypatch.setattr(E, "evaluate_unit", v4_evaluator([], None, RuntimeError("CUDA error: an illegal memory access")))
     with pytest.raises(RuntimeError, match="CUDA error"):
         E.stage_test(key)
-    assert not (C.BUNDLE / "results" / "TEST_REPEAT" / key / "BLOCKED.json").exists()   # resumable, not blocked
+    assert not (C.BUNDLE / C.RESULTS_V6 / key / "BLOCKED.json").exists()   # resumable, not blocked
 
 
-def test_prepare_main_has_no_gate_precondition(monkeypatch, recs, recs4, tmp_path):
+def test_inputs_main_has_no_gate_precondition(monkeypatch, recs, recs4, tmp_path):
     import prepare_inputs as PI
     monkeypatch.setattr(C, "BUNDLE", tmp_path / "bundle")
     monkeypatch.setenv("SLURM_JOB_ID", "999")
     monkeypatch.setenv("V10_TR_EXPECT_ACTIVATION", "a" * 64)
     monkeypatch.setenv("V10_TR_EXPECT_COMMIT", "c" * 40)
-    rec = {"manifest": recs["manifest"], "protocol": recs4["protocol"], "activation": {}, "activation_sha256": "a" * 64,
-           "shas": {C.MANIFEST: "m" * 64}}
+    rec = {"manifest": recs["manifest"], "protocol": v5_protocol(recs4["protocol"], tmp_path / "root", "B1"), "activation": {},
+           "activation_sha256": "a" * 64, "shas": {C.MANIFEST: "m" * 64}}
     monkeypatch.setattr(C, "records", lambda pin=None: rec)
     monkeypatch.setattr(C, "verify_code", lambda a, c: {"commit": c})
 
     class Reached(Exception):
         pass
-    monkeypatch.setattr(PI, "host_modules", lambda *a: (_ for _ in ()).throw(Reached()))
+    monkeypatch.setattr(PI, "stage_b1", lambda *a: (_ for _ in ()).throw(Reached()))
     with pytest.raises(Reached):                                                      # no gate is consulted first
-        PI.main()
+        PI.main([])
+    C.write(C.BUNDLE / C.LOCK, {"status": "PASS"})
+    with pytest.raises(RuntimeError, match="locked once"):                             # the v5 lock is written once
+        PI.main([])
+
+
+def test_v6_scope_and_comir_check_before_the_test_trainer(monkeypatch, recs, recs4, tmp_path):
+    """v6 runs only its 3 CoMIR units; for them the wrapped CoMIR check is installed after DEV and before TEST."""
+    import types
+    v6_units = list(B.V6_UNITS)
+    u, man = v4_setup(monkeypatch, recs, recs4, tmp_path, "MF_VCS_M1__1001", v6_units=v6_units)
+    with pytest.raises(RuntimeError, match="stays under v5"):
+        E.stage_test("MF_VCS_M1__1001")
+    key = "CoMIR_native__1001"
+    u, man = v4_setup(monkeypatch, recs, recs4, tmp_path / "comir", key, v6_units=v6_units)
+    fake = types.ModuleType(E.COMIR_MODULE)
+    fake.A, fake.verify_official_source = types.SimpleNamespace(REPO=tmp_path), lambda: {"pin": 1}
+    monkeypatch.setitem(sys.modules, E.COMIR_MODULE, fake)
+    seen, wrapped = [], {}
+    inner = v4_evaluator(seen)
+
+    def spy(run, unit, role, guard, out_path, budget):
+        wrapped[role] = getattr(sys.modules[E.COMIR_MODULE].verify_official_source, "v6_wrapped", False)
+        return inner(run, unit, role, guard, out_path, budget)
+    monkeypatch.setattr(E, "evaluate_unit", spy)
+    assert E.stage_test(key) == 0 and seen == ["DEV", "TEST_REPEAT"] and wrapped == {"DEV": False, "TEST_REPEAT": True}
+    comp = C.read(C.BUNDLE / C.RESULTS_V6 / key / "COMPLETE.json")
+    assert comp["version"] == 6 and comp["single_job"] is True and comp["jobs"] == ["777"]
+
+
+def test_unit_job_b1_sensitivity_sets(monkeypatch, recs, recs4, tmp_path):
+    """B1: the unit record carries TEST133 / TEST111 recomputed from its rows; TEST134 / TEST112 are unchanged."""
+    import test_v5 as T5
+    man = recs["manifest"]
+    sens = T5.protocol_for(recs4["protocol"], man, "B1")["sets"]["sensitivity"]
+    key = "MF_VCS_M1__1001"
+    u, man = v4_setup(monkeypatch, recs, recs4, tmp_path, key, "B1", sens)
+    seen = []
+    monkeypatch.setattr(E, "evaluate_unit", v4_evaluator(seen))
+    assert E.stage_test(key) == 0 and seen == ["DEV", "TEST_REPEAT"]
+    out = C.BUNDLE / C.RESULTS_V6 / key
+    comp, rows = C.read(out / "COMPLETE.json"), C.lines(out / "TEST_REPEAT.jsonl")
+    assert sorted(sens) == ["TEST111", "TEST133"] and comp["input_variant"] == "B1"
+    for name, x in sens.items():
+        assert comp[name] == C.metrics([r for r in rows if r["core"] in set(x["cores"])]) and "1B_D8" not in x["cores"]
+    assert comp["TEST134"] == C.metrics(rows) and comp["input_lock_sha256"] == C.sha(C.BUNDLE / C.LOCK)
 
 
 # ----------------------------------------------------------------------------------------------- v2 gate amendment
@@ -546,11 +609,14 @@ def test_in_job_check_rules():
 
 
 def test_v4_records_and_delta(recs4, recs):
+    """v4 stays as frozen: the committed records and the bundle copies equal the v4 freeze commit byte for byte."""
     texts = recs4["texts"]
-    delta = json.loads(texts[C.DELTA])
+    for name, text in texts.items():
+        assert (REPO / C.RECORDS / name).read_text() == text == (REAL_BUNDLE / name).read_text()
+    delta = json.loads(texts[C.V4_DELTA])
     for rel, names in B.EVALUATOR_DEFS.items():
         assert set(names) <= set(delta["code"][rel]["identical"])
-    p4 = json.loads(texts[C.PROTOCOL])
+    p4 = json.loads(texts[C.V4_PROTOCOL])
     plan = {t["unit"]: t for t in p4["jobs"]["test_units"]}
     assert len(plan) == 42
     assert all(plan[u["key"]]["gpu_type"] == u["hardware"]["gpu_type"] for u in recs["manifest"]["units"])
@@ -560,8 +626,8 @@ def test_v4_records_and_delta(recs4, recs):
         recs4["v2_protocol"]["statistics"]["paired_contrasts"]
     dec = json.loads(texts[C.DECISION_V4])
     assert dec["chosen_option_verbatim"] == "同作业配对，评一次 (Recommended)" and len(dec["options_not_chosen"]) == 2
-    am = json.loads(texts[C.AMENDMENT])
+    am = json.loads(texts[C.V4_AMENDMENT])
     assert len(am["observed_dev_reevaluations"]) == 9 and all(x["F_true_bitwise"] for x in am["observed_dev_reevaluations"])
     assert max(abs(x["d_lt9"]) for x in am["observed_dev_reevaluations"]) <= 12
-    act = json.loads(texts[C.ACTIVATION])
+    act = json.loads(texts[C.V4_ACTIVATION])
     assert act["status"] == "ACTIVE_FOR_FROZEN_CHECKPOINT_EVALUATION_ONLY" and "v4" in act["owner_decisions"]

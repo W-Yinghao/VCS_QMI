@@ -1,0 +1,155 @@
+{
+ "schema": "v10.test_repeat134.amendment.v6",
+ "id": "V10-TEST-REPEAT134-AMENDMENT-V6-20261020",
+ "label": "owner decision 2026-10-20 after the 3 CoMIR_native units failed in v5 before any CoMIR TEST read; scope: those 3 units only; criteria unchanged",
+ "owner_decision": {
+  "path": "v10/test_repeat134/OWNER_DECISION_V6.json",
+  "chosen_option_verbatim": "修复后补跑这 3 个单元 (Recommended)",
+  "chosen_option_text_verbatim": "在任何 CoMIR TEST 读取之前冻结 v6：只修这个检查，允许路径在固定 CoMIR 目录下的命名空间子包；模型、checkpoint、评估器和判定标准都不变。这 3 个单元仍在同一作业里先重评 DEV 再评 TEST，在 L40S 上跑。",
+  "also_said_verbatim": "控制一下harness程度，稍微有些过了",
+  "question": "not relayed verbatim (the 3 CoMIR_native units whose v5 TEST-stage trainer was refused by the CoMIR source check)"
+ },
+ "failure": {
+  "error": "CoMIR model namespace already belongs to another package",
+  "where": "evaluate.stage_test -> evaluate_unit -> run.new_trainer -> CoMIRTrainer.__init__ -> verify_official_source (ssl_pilot_v10_native_recovery_20261019/src/v10/supplement/comir.py:51), at the TEST-stage trainer",
+  "cause": "the DEV re-evaluation's trainer imported the official CoMIR models package; models/layers has no __init__.py, so models.layers is a namespace package whose __file__ is None, which the frozen check refuses; a second CoMIR trainer in one process (v4 same-job pairing) therefore always failed",
+  "attempts": {
+   "CoMIR_native__1001": {
+    "v5_jobs": [
+     "1051911",
+     "1052059",
+     "1052145"
+    ],
+    "test_guard_reads": 0,
+    "test_rows_written": false,
+    "dev_reevaluation_vs_recorded": {
+     "status": "PASS",
+     "rows_recorded": 320,
+     "rows_new": 320,
+     "n_mismatches": 0
+    },
+    "dev_rows_job": [
+     "1051911"
+    ],
+    "records_sha256": {
+     "results/TEST_REPEAT/CoMIR_native__1001/READS_INCOMPLETE_1051911.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1051911.json": "1253017e1da628b66d82920897d2114a1e89b0c18a5044cd67eaad01166548ac",
+     "exits/1051911.json": "abd314bf7cad81f7a897bb747ba6cb170a21eda0a6bc5d44cf231c580a457709",
+     "results/TEST_REPEAT/CoMIR_native__1001/READS_INCOMPLETE_1052059.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1052059.json": "9cfdeedf49c2dd6be87a3c0731d95ddef59d3e6c5c259ce078b4340b13d8e556",
+     "exits/1052059.json": "ebc6a946d13f4256f18b7db64f3db87bd9f2bae895296cecf03ff947c26dc794",
+     "results/TEST_REPEAT/CoMIR_native__1001/READS_INCOMPLETE_1052145.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1052145.json": "c1282220da466fe3b0235941611ada1f6250e3e1c70ce90a7c5b00d16b4aad8a",
+     "exits/1052145.json": "28786b26dee2fc4335fedd106c0d3126e8900a3723b50f34a4156fda6010b90a"
+    }
+   },
+   "CoMIR_native__1002": {
+    "v5_jobs": [
+     "1051925",
+     "1052066",
+     "1052146"
+    ],
+    "test_guard_reads": 0,
+    "test_rows_written": false,
+    "dev_reevaluation_vs_recorded": {
+     "status": "PASS",
+     "rows_recorded": 320,
+     "rows_new": 320,
+     "n_mismatches": 0
+    },
+    "dev_rows_job": [
+     "1051925"
+    ],
+    "records_sha256": {
+     "results/TEST_REPEAT/CoMIR_native__1002/READS_INCOMPLETE_1051925.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1051925.json": "5f1a46eb1698323dcc8312d9fa22ef1b011a12791082e043a8b32145c97578b0",
+     "exits/1051925.json": "1e60c70cd8c1a835050a34ed4756f8c7609718252f3680ae3b268c45856b5976",
+     "results/TEST_REPEAT/CoMIR_native__1002/READS_INCOMPLETE_1052066.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1052066.json": "6cc434e2aaf52f8b82a8fdc77e60962345a77d362e887558570467806155356f",
+     "exits/1052066.json": "f1cc09207a22f808dc897b9d2f5945cc0c501323edaa41a9a67bcb8e578cfa07",
+     "results/TEST_REPEAT/CoMIR_native__1002/READS_INCOMPLETE_1052146.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1052146.json": "f806a602a03e622eaa47329798dd9978f81d9e9d1056396cc61d9dc433165885",
+     "exits/1052146.json": "c55f815f4fb653c23c1a8690c478dd270d42a2130f09576f10ae23d2ff15bc5f"
+    }
+   },
+   "CoMIR_native__1003": {
+    "v5_jobs": [
+     "1051928",
+     "1052070",
+     "1052153"
+    ],
+    "test_guard_reads": 0,
+    "test_rows_written": false,
+    "dev_reevaluation_vs_recorded": {
+     "status": "PASS",
+     "rows_recorded": 320,
+     "rows_new": 320,
+     "n_mismatches": 0
+    },
+    "dev_rows_job": [
+     "1051928"
+    ],
+    "records_sha256": {
+     "results/TEST_REPEAT/CoMIR_native__1003/READS_INCOMPLETE_1051928.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1051928.json": "c70fbb5aca48d1a8d35f1899aa0f58da578aa7afcbf6b4a0aae2b132183e6540",
+     "exits/1051928.json": "c5f4f324f95569e41f04868d7c7772ed3d03f1ab1da3372455a1e4a087923bd9",
+     "results/TEST_REPEAT/CoMIR_native__1003/READS_INCOMPLETE_1052070.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1052070.json": "03c79e60bd1fcd1845e4c6be34461a7587ad0b9dd3e002e233e05677c1eb24f8",
+     "exits/1052070.json": "b0bc2e2635518f1953f1ce61a9a5ae7aede0ec74eeb2545a83bb73c7adb483cf",
+     "results/TEST_REPEAT/CoMIR_native__1003/READS_INCOMPLETE_1052153.json": "8621fb1a5f366d7aa6cdb913af03b7e0e35fe305f3c114045b89d4bbc0fe3719",
+     "failures/1052153.json": "7eb6937ed2b25bf5eeac5690dc002df173f846dcbac548f6324be88c1e7ab2b2",
+     "exits/1052153.json": "fa9cdbb2febf1c3f08ca6e502b1549b5c9a72567d0008e95529eaf6b6218bece"
+    }
+   }
+  }
+ },
+ "change": "TEST_REPEAT execution layer only (evaluate.comir_check_v6, installed for CoMIR units after the DEV re-evaluation and before the TEST-stage trainer): while the frozen verify_official_source runs, the models.* modules without __file__ whose every __path__ entry resolves inside the pinned CoMIR root are hidden from sys.modules; every other condition is the frozen function itself (the frozen native-recovery tree is untouched)",
+ "scope": {
+  "units": [
+   "CoMIR_native__1001",
+   "CoMIR_native__1002",
+   "CoMIR_native__1003"
+  ],
+  "gpu": "L40S (each unit's recorded DEV32 GPU type), v5 time limits",
+  "outputs": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/results/TEST_REPEAT_V6/<unit>: a fresh output, so that the DEV32 re-evaluation and TEST run in the same job (the v5 attempt directories are kept as written)",
+  "inputs": "INPUT_LOCK_V5.json (job 1051656, v5 activation), unchanged"
+ },
+ "code": {
+  "scripts/v10_test_repeat/tr_common.py": {
+   "changed": [
+    "records"
+   ],
+   "added": [],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/evaluate.py": {
+   "changed": [
+    "stage_test"
+   ],
+   "added": [
+    "comir_check_v6"
+   ],
+   "removed": []
+  },
+  "scripts/v10_test_repeat/prepare_inputs.py": {
+   "changed": [],
+   "added": [],
+   "removed": []
+  },
+  "slurm/v10_test_repeat/gpu.sbatch": {
+   "changed_lines": [
+    {
+     "v5": "R=/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v5_20261020",
+     "v6": "R=/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v6_20261020"
+    }
+   ]
+  },
+  "slurm/v10_test_repeat/cpu.sbatch": {
+   "changed_lines": []
+  }
+ },
+ "unchanged": [
+  "model, checkpoint, evaluator, perturbations, metrics and criteria (in-job check (a) (e) (f))",
+  "the v5 records, inputs and the other 39 units (they stay under v5)"
+ ]
+}

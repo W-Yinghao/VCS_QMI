@@ -1,0 +1,177 @@
+{
+ "schema": "v10.test_repeat134.amendment.v5",
+ "id": "V10-TEST-REPEAT134-AMENDMENT-V5-20261020",
+ "label": "owner decision 2026-10-20 after v4's INPUT_LOCK failure (1B_D8); the rule was fixed before the diagnostic result and is applied mechanically; pre-registered before any TEST evaluation (no TEST result exists)",
+ "owner_decision": {
+  "path": "v10/test_repeat134/OWNER_DECISION_V5.json",
+  "question_verbatim": "TEST_REPEAT 的输入锁卡在 1B_D8（另外 133 个 core 与 V9-G1 缓存逐位一致），最可能是 CPU 不同导致 numpy 走了不同的 SIMD 路径。继续需要读 1B_D8 的 TEST 原始文件做诊断（不做评估），并冻结 v5。怎么处理？",
+  "chosen_option_verbatim": "先诊断，按结果处理 (Recommended)",
+  "chosen_option_text_verbatim": "诊断确认是 CPU 路径造成的，就按 V9-G1 的 CPU 路径重新准备输入，判定标准不变，预计 134/134 通过。不是的话，就采用原始哈希已核对的 V10 重建版 1B_D8，另加一个排除它的 TEST133 敏感性集。",
+  "options_not_chosen": [
+   {
+    "option": "直接排除 1B_D8",
+    "source": "option label as relayed (its text was not relayed)"
+   },
+   {
+    "option": "先停在这里",
+    "source": "option label as relayed (its text was not relayed)"
+   }
+  ],
+  "decision_rule_as_relayed": {
+   "fixed": "before the diagnostic result (the diagnostic job 1051581 was submitted after this decision)",
+   "A": "if DIAG.json shows a CPU-dispatch artifact - one rebuild variant reproduces V9-G1's file bitwise, the raw members match, and V9-G1's file lies inside its prepare window - re-prepare into a new root with the numpy dispatch pinned to V9-G1's path; the criterion stays bitwise equality with V9-G1's cache; the sets and the 42 units are unchanged",
+   "B1": "otherwise accept the raw-verified, deterministic V10 rebuild of 1B_D8, keep TEST134 as primary and add a pre-registered TEST133 sensitivity set (1B_D8 excluded); TEST112 is unaffected unless 1B_D8 is in it, in which case add the corresponding TEST111 sensitivity",
+   "C": "if the rebuild is not deterministic or the raw files mismatch, stop and report: not covered by the owner's choice"
+  }
+ },
+ "v4_input_lock": {
+  "path": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/INPUT_LOCK.json",
+  "sha256": "fe7e40a570f8d1ac9c36d4089bbe380782979aacf10143ab92b6727d3ea3faf6",
+  "job": "1051404",
+  "status": "FAIL_V9_CACHE_MISMATCH",
+  "root": "/projects/EEG-foundation-model/yinghao/outputs_v10/test_repeat134_20261020/inputs",
+  "differing": [
+   "1B_D8"
+  ],
+  "kept": "as written; never rewritten"
+ },
+ "diagnostic": {
+  "job": "1051581",
+  "partition": "cpu-high",
+  "node": "nodecpu01",
+  "code_commit": "af7c0798c886886db18ce6973c5a0111bd97c305",
+  "authorization": {
+   "path": "v10/test_repeat134/DIAGNOSTIC_AUTHORIZATION_V4D.json",
+   "sha256": "fe4e6093dfbaf85ece802d620346ec66bc6e37972230e66dee373a0ba5ad660a"
+  },
+  "result": {
+   "path": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/diagnostics/1B_D8/1051581/DIAG.json",
+   "sha256": "465d5e2f06a06b50c9d923679f0b9608c060e0aed4beb00be565ecfbc2c1f7d5"
+  },
+  "summary": {
+   "raw_members_match": {
+    "v10_test_repeat_manifest": true,
+    "v9_g1_frozen_member_csv": true,
+    "v10_data_manifest": true,
+    "v9_g1_prepared_manifest": true,
+    "v10_prepared_manifest": true
+   },
+   "v10_vs_v9_identical": false,
+   "v10_vs_v9_differing_arrays": {
+    "shg_log_n": {
+     "n_differ": 2,
+     "max_ulp": 604353734,
+     "max_abs": 2.8992898845665334e-17,
+     "mean_abs": 2.2119826389820354e-22
+    }
+   },
+   "rebuild_deterministic": true,
+   "rebuilds_equal_to_v10": [
+    "default_1",
+    "default_2"
+   ],
+   "rebuilds_equal_to_v9_g1": [
+    "no_X86_V4",
+    "baseline_X86_V2"
+   ],
+   "node_has_X86_V4": true,
+   "v9_cache_written_in_original_sequence": true,
+   "v9_cache_inside_v9_g1_prepare_window": true,
+   "v9_manifest_pins_cache_sha256": false
+  }
+ },
+ "rule": {
+  "reads": "summary of DIAG.json of the input diagnostic (the single diagnostic job of the core)",
+  "C_stop": "any value of summary.raw_members_match is not true, or summary.rebuild_deterministic is not true",
+  "A": "not C, summary.rebuilds_equal_to_v9_g1 is non-empty and summary.v9_cache_inside_v9_g1_prepare_window is true",
+  "A_pin": "the first of default_1, default_2, no_X86_V4, baseline_X86_V2 in summary.rebuilds_equal_to_v9_g1: its numpy float64 log1p and add kernels (the only CPU-dispatched kernels of REG-P1's builder); NPY_DISABLE_CPU_FEATURES disables X86_V4 when that log1p kernel is the baseline one and X86_V3 when that add kernel is; the build process checks both kernels before reading any raw member",
+  "B1": "not C and not A"
+ },
+ "selection": {
+  "variant": "A",
+  "conditions": {
+   "raw_members_match_all": true,
+   "rebuild_deterministic": true,
+   "a_rebuild_reproduces_v9_g1": true,
+   "v9_g1_file_inside_its_prepare_window": true
+  },
+  "reproducing_rebuild": "no_X86_V4"
+ },
+ "variant": "A",
+ "inputs": {
+  "raw_root": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg_test/raw",
+  "raw_rule": "V9-G1 byte copies of the sealed archive members; sha256 must equal the frozen member list",
+  "v9_prepared_root": "/projects/EEG-foundation-model/yinghao/outputs_v9/reg_test",
+  "builder": "REG-P1 cmd_prepare verbatim (V9-G1's prepare path: core discovery and role assignment pointed at the test files, role TEST)",
+  "host_source_root": "/home/infres/yinwang/CS_QMI/handoff/v10_bf1_20261017/source",
+  "host_code_hash": "6c6f094684fbc50a",
+  "v4_lock": {
+   "path": "/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020/INPUT_LOCK.json",
+   "sha256": "fe7e40a570f8d1ac9c36d4089bbe380782979aacf10143ab92b6727d3ea3faf6",
+   "job": "1051404",
+   "status": "FAIL_V9_CACHE_MISMATCH",
+   "root": "/projects/EEG-foundation-model/yinghao/outputs_v10/test_repeat134_20261020/inputs",
+   "differing": [
+    "1B_D8"
+   ],
+   "kept": "as written; never rewritten"
+  },
+  "root": "/projects/EEG-foundation-model/yinghao/outputs_v10/test_repeat134_20261020/inputs_v5",
+  "numpy_dispatch": {
+   "log1p_float64": "baseline(X86_V2)",
+   "add_float64": "X86_V3",
+   "NPY_DISABLE_CPU_FEATURES": "X86_V4",
+   "reproduced_by": "no_X86_V4",
+   "rebuild_setting": "X86_V4",
+   "observed_on": {
+    "host": "nodecpu01",
+    "cpu_model": "AMD EPYC 9274F 24-Core Processor",
+    "numpy": "2.5.2",
+    "node_has_X86_V4": true,
+    "X86_V3_enabled_in_that_rebuild": true,
+    "X86_V4_enabled_in_that_rebuild": false
+   }
+  },
+  "lock": "INPUT_LOCK_V5.json (sha256 per prepared file); PASS requires the arrays of all 134 cores to equal V9-G1's prepared cache bitwise (criterion unchanged from v1 / v4)",
+  "job": {
+   "stage": "slurm/v10_test_repeat/cpu.sbatch inputs",
+   "partition": "cpu-high",
+   "nodelist": "nodecpu01",
+   "time_limit": "01:00:00",
+   "why": "the node on which the pinned kernels reproduced V9-G1's file; the build process also checks the two kernels before reading any raw member"
+  },
+  "v5": {
+   "variant": "A",
+   "selection": {
+    "variant": "A",
+    "conditions": {
+     "raw_members_match_all": true,
+     "rebuild_deterministic": true,
+     "a_rebuild_reproduces_v9_g1": true,
+     "v9_g1_file_inside_its_prepare_window": true
+    },
+    "reproducing_rebuild": "no_X86_V4"
+   },
+   "rule": {
+    "reads": "summary of DIAG.json of the input diagnostic (the single diagnostic job of the core)",
+    "C_stop": "any value of summary.raw_members_match is not true, or summary.rebuild_deterministic is not true",
+    "A": "not C, summary.rebuilds_equal_to_v9_g1 is non-empty and summary.v9_cache_inside_v9_g1_prepare_window is true",
+    "A_pin": "the first of default_1, default_2, no_X86_V4, baseline_X86_V2 in summary.rebuilds_equal_to_v9_g1: its numpy float64 log1p and add kernels (the only CPU-dispatched kernels of REG-P1's builder); NPY_DISABLE_CPU_FEATURES disables X86_V4 when that log1p kernel is the baseline one and X86_V3 when that add kernel is; the build process checks both kernels before reading any raw member",
+    "B1": "not C and not A"
+   },
+   "statement": "A (CPU-dispatch artefact): REG-P1's frozen builder rebuilds all 134 cores into /projects/EEG-foundation-model/yinghao/outputs_v10/test_repeat134_20261020/inputs_v5 with numpy's float64 log1p / add kernels pinned to baseline(X86_V2) / X86_V3 (NPY_DISABLE_CPU_FEATURES='X86_V4'), the kernels of the diagnostic rebuild 'no_X86_V4' that reproduced V9-G1's 1B_D8 file bitwise; criterion unchanged (all 134 cores bitwise equal to V9-G1's prepared cache); TEST134, TEST112 and the 42 units unchanged",
+   "limitation": "输入按 V9-G1 的 CPU 路径重建（numpy float64 log1p / add 内核固定为 baseline(X86_V2) / X86_V3），134 个 core 与 V9-G1 预处理缓存逐位相同才放行；v4 的输入（1B_D8 不同）不使用。"
+  },
+  "precondition": "none beyond the frozen v5 records (the inputs job may run as soon as v5 is frozen)"
+ },
+ "sets": {},
+ "unchanged": [
+  "manifest and units",
+  "perturbation rule, searcher, metrics, unit, TEST134 / TEST112, statistics",
+  "in-job check (a) (e) (f) and its thresholds",
+  "hardware rule and the 42 unit jobs",
+  "the TEST guard and the evaluator definitions (AST-identical to v1)",
+  "REG-P1's builder (host_modules / prepare / compare_cache identical to v4)"
+ ],
+ "v1_v2_v4": "v1, v2 and v4 records and execution trees, v4's INPUT_LOCK.json and the v4 input root are untouched; the v3 draft stays void"
+}

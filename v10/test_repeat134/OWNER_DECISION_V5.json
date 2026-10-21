@@ -1,0 +1,25 @@
+{
+ "schema": "v10.owner_decision.v1",
+ "id": "V10-TEST-REPEAT134-V5-DECISION-20261020",
+ "date": "2026-10-20",
+ "question_verbatim": "TEST_REPEAT 的输入锁卡在 1B_D8（另外 133 个 core 与 V9-G1 缓存逐位一致），最可能是 CPU 不同导致 numpy 走了不同的 SIMD 路径。继续需要读 1B_D8 的 TEST 原始文件做诊断（不做评估），并冻结 v5。怎么处理？",
+ "chosen_option_verbatim": "先诊断，按结果处理 (Recommended)",
+ "chosen_option_text_verbatim": "诊断确认是 CPU 路径造成的，就按 V9-G1 的 CPU 路径重新准备输入，判定标准不变，预计 134/134 通过。不是的话，就采用原始哈希已核对的 V10 重建版 1B_D8，另加一个排除它的 TEST133 敏感性集。",
+ "options_not_chosen": [
+  {
+   "option": "直接排除 1B_D8",
+   "source": "option label as relayed (its text was not relayed)"
+  },
+  {
+   "option": "先停在这里",
+   "source": "option label as relayed (its text was not relayed)"
+  }
+ ],
+ "decision_rule_as_relayed": {
+  "fixed": "before the diagnostic result (the diagnostic job 1051581 was submitted after this decision)",
+  "A": "if DIAG.json shows a CPU-dispatch artifact - one rebuild variant reproduces V9-G1's file bitwise, the raw members match, and V9-G1's file lies inside its prepare window - re-prepare into a new root with the numpy dispatch pinned to V9-G1's path; the criterion stays bitwise equality with V9-G1's cache; the sets and the 42 units are unchanged",
+  "B1": "otherwise accept the raw-verified, deterministic V10 rebuild of 1B_D8, keep TEST134 as primary and add a pre-registered TEST133 sensitivity set (1B_D8 excluded); TEST112 is unaffected unless 1B_D8 is in it, in which case add the corresponding TEST111 sensitivity",
+  "C": "if the rebuild is not deterministic or the raw files mismatch, stop and report: not covered by the owner's choice"
+ },
+ "relayed": "by the coordinating session to the TEST_REPEAT lead, who records it verbatim; this record and both v5 code paths were committed before the v5 builder opened DIAG.json"
+}

@@ -14,7 +14,7 @@ export OMP_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 MKL_NUM_THREADS=4 CUBLAS_WORKSPA
 unset TORCH_ALLOW_TF32_CUBLAS_OVERRIDE NVIDIA_TF32_OVERRIDE
 : "${V10_TR_EXPECT_ACTIVATION:?activation sha256 pin required at submission}"
 : "${V10_TR_EXPECT_COMMIT:?execution commit pin required at submission}"
-R=/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v4_20261020
+R=/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v6_20261020
 BUNDLE=/home/infres/yinwang/CS_QMI/handoff/v10_test_repeat134_20261020
 PYTHON=/home/infres/yinwang/CS_QMI/env/bin/python
 export V10_TR_START

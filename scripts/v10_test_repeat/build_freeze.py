@@ -35,6 +35,8 @@ EXEC_ROOT_V2 = C.CS / "ssl_pilot_v10_test_repeat_exec_v2_20261020"
 V1_COMMIT = "a85cc21be97770c76f3930fbd913705367d7d9d9"
 V1_FILES = {"protocol": "TEST_REPEAT134_PROTOCOL.json", "activation": "TEST_REPEAT134_ACTIVATION.json"}
 EXEC_ROOT_V4 = C.CS / "ssl_pilot_v10_test_repeat_exec_v4_20261020"
+V4_CODE_FILES = ("scripts/v10_test_repeat/tr_common.py", "scripts/v10_test_repeat/evaluate.py",
+                 "scripts/v10_test_repeat/prepare_inputs.py", "slurm/v10_test_repeat/gpu.sbatch")     # v4's pinned code
 V2_COMMIT = "ca9f517cd89a61190bf7315489d2515e02807c37"
 V2_FILES = {"protocol": "TEST_REPEAT134_PROTOCOL_V2.json", "activation": "TEST_REPEAT134_ACTIVATION_V2.json",
             "amendment": "TEST_REPEAT134_GATE_AMENDMENT_V2.json", "delta": "TEST_REPEAT134_DELTA_REVIEW_V2.json"}
@@ -727,8 +729,8 @@ def build_v4(pr) -> dict:
     p4["version"] = {"number": 4, "supersedes": {"path": f"{C.RECORDS}/{V2_FILES['protocol']}", "sha256": C.sha_bytes(v2p_b),
                                                  "commit": V2_COMMIT},
                      "void_draft": "v3 (branch v10/test-repeat134-v3-draft, e136bd6a) was never frozen and is void",
-                     "owner_decision": f"{C.RECORDS}/{C.DECISION_V4}", "amendment": f"{C.RECORDS}/{C.AMENDMENT}",
-                     "delta_review": f"{C.RECORDS}/{C.DELTA}",
+                     "owner_decision": f"{C.RECORDS}/{C.DECISION_V4}", "amendment": f"{C.RECORDS}/{C.V4_AMENDMENT}",
+                     "delta_review": f"{C.RECORDS}/{C.V4_DELTA}",
                      "change": "same-job pairing: one job per unit re-evaluates DEV32, runs the in-job check and only then "
                                "reads TEST134; the DEV gates no longer license TEST and become evaluation-noise samples"}
     p4["in_job_check"] = {
@@ -791,7 +793,7 @@ def build_v4(pr) -> dict:
 
 def delta_review_v4(b4: dict) -> dict:
     files = {}
-    for rel in C.CODE_FILES + ("scripts/v10_test_repeat/analyze.py", "scripts/v10_test_repeat/build_freeze.py",
+    for rel in V4_CODE_FILES + ("scripts/v10_test_repeat/analyze.py", "scripts/v10_test_repeat/build_freeze.py",
                                 "scripts/v10_test_repeat/submit_lines.py", "scripts/v10_test_repeat/status.py"):
         new, old = (C.REPO / rel).read_bytes(), git_bytes(V2_COMMIT, rel)
         entry = {"v2_sha256": C.sha_bytes(old), "v4_sha256": C.sha_bytes(new)}
@@ -842,12 +844,464 @@ def activation_v4(shas: dict, code_files: dict) -> dict:
 
 def render_v4(pr) -> dict:
     b4 = build_v4(pr)
-    out = {C.DECISION_V4: C.dumps(b4["decision_v4"]), C.PROTOCOL: C.dumps(b4["protocol"]),
-           C.AMENDMENT: C.dumps(b4["amendment"]), C.DELTA: C.dumps(delta_review_v4(b4))}
+    out = {C.DECISION_V4: C.dumps(b4["decision_v4"]), C.V4_PROTOCOL: C.dumps(b4["protocol"]),
+           C.V4_AMENDMENT: C.dumps(b4["amendment"]), C.V4_DELTA: C.dumps(delta_review_v4(b4))}
     shas = {**{k: C.sha_bytes(v.encode()) for k, v in out.items()},
             **{n: C.sha(C.REPO / C.RECORDS / n) for n in (C.DECISION, C.MANIFEST, C.V2_PROTOCOL, C.V2_ACTIVATION,
                                                           C.V2_AMENDMENT, C.V2_DELTA, C.V1_PROTOCOL, C.V1_ACTIVATION)}}
-    out[C.ACTIVATION] = C.dumps(activation_v4(shas, {rel: C.sha(C.REPO / rel) for rel in C.CODE_FILES}))
+    out[C.V4_ACTIVATION] = C.dumps(activation_v4(shas, {rel: C.sha(C.REPO / rel) for rel in V4_CODE_FILES}))
+    return out
+
+
+# ================================================================================================================ v5
+V4_COMMIT = "827099d95702204352b589e4a9d1801429f68080"
+V4_FILES = {"decision": C.DECISION_V4, "protocol": C.V4_PROTOCOL, "amendment": C.V4_AMENDMENT, "delta": C.V4_DELTA,
+            "activation": C.V4_ACTIVATION}
+DIAG_COMMIT = "af7c0798c886886db18ce6973c5a0111bd97c305"           # the input diagnostic's execution commit
+DIAG_AUTH_SHA = "fe4e6093dfbaf85ece802d620346ec66bc6e37972230e66dee373a0ba5ad660a"
+V4_LOCK_SHA = "fe7e40a570f8d1ac9c36d4089bbe380782979aacf10143ab92b6727d3ea3faf6"
+V4_PREPARE_JOB, DIAG_JOB = "1051404", "1051581"
+EXEC_ROOT_V5 = C.CS / "ssl_pilot_v10_test_repeat_exec_v5_20261020"
+INPUTS_V5 = C.OUT / "inputs_v5"
+REBUILD_ORDER = ("default_1", "default_2", "no_X86_V4", "baseline_X86_V2")   # the diagnostic's rebuilds, in its order
+DECISION_V5_TEXT = {
+    "question_verbatim": "TEST_REPEAT 的输入锁卡在 1B_D8（另外 133 个 core 与 V9-G1 缓存逐位一致），最可能是 CPU 不同导致 numpy 走了不同的 "
+                         "SIMD 路径。继续需要读 1B_D8 的 TEST 原始文件做诊断（不做评估），并冻结 v5。怎么处理？",
+    "chosen_option_verbatim": "先诊断，按结果处理 (Recommended)",
+    "chosen_option_text_verbatim": "诊断确认是 CPU 路径造成的，就按 V9-G1 的 CPU 路径重新准备输入，判定标准不变，预计 134/134 通过。不是的话，"
+                                   "就采用原始哈希已核对的 V10 重建版 1B_D8，另加一个排除它的 TEST133 敏感性集。",
+    "options_not_chosen": [{"option": "直接排除 1B_D8", "source": "option label as relayed (its text was not relayed)"},
+                           {"option": "先停在这里", "source": "option label as relayed (its text was not relayed)"}],
+    "decision_rule_as_relayed": {
+        "fixed": "before the diagnostic result (the diagnostic job 1051581 was submitted after this decision)",
+        "A": "if DIAG.json shows a CPU-dispatch artifact - one rebuild variant reproduces V9-G1's file bitwise, the raw members "
+             "match, and V9-G1's file lies inside its prepare window - re-prepare into a new root with the numpy dispatch pinned "
+             "to V9-G1's path; the criterion stays bitwise equality with V9-G1's cache; the sets and the 42 units are unchanged",
+        "B1": "otherwise accept the raw-verified, deterministic V10 rebuild of 1B_D8, keep TEST134 as primary and add a "
+              "pre-registered TEST133 sensitivity set (1B_D8 excluded); TEST112 is unaffected unless 1B_D8 is in it, in which "
+              "case add the corresponding TEST111 sensitivity",
+        "C": "if the rebuild is not deterministic or the raw files mismatch, stop and report: not covered by the owner's choice"}}
+V5_RULE = {
+    "reads": "summary of DIAG.json of the input diagnostic (the single diagnostic job of the core)",
+    "C_stop": "any value of summary.raw_members_match is not true, or summary.rebuild_deterministic is not true",
+    "A": "not C, summary.rebuilds_equal_to_v9_g1 is non-empty and summary.v9_cache_inside_v9_g1_prepare_window is true",
+    "A_pin": "the first of " + ", ".join(REBUILD_ORDER) + " in summary.rebuilds_equal_to_v9_g1: its numpy float64 log1p and "
+             "add kernels (the only CPU-dispatched kernels of REG-P1's builder); NPY_DISABLE_CPU_FEATURES disables X86_V4 when "
+             "that log1p kernel is the baseline one and X86_V3 when that add kernel is; the build process checks both kernels "
+             "before reading any raw member",
+    "B1": "not C and not A"}
+
+
+def decision_v5() -> dict:
+    return {"schema": "v10.owner_decision.v1", "id": "V10-TEST-REPEAT134-V5-DECISION-20261020", "date": "2026-10-20",
+            **DECISION_V5_TEXT,
+            "relayed": "by the coordinating session to the TEST_REPEAT lead, who records it verbatim; this record and both v5 "
+                       "code paths were committed before the v5 builder opened DIAG.json"}
+
+
+def select_v5(diag: dict) -> dict:
+    """The owner's rule, applied mechanically to the diagnostic summary."""
+    s = diag["summary"]
+    rm = s.get("raw_members_match") or {}
+    cond = {"raw_members_match_all": bool(rm) and all(v is True for v in rm.values()),
+            "rebuild_deterministic": s.get("rebuild_deterministic") is True,
+            "a_rebuild_reproduces_v9_g1": bool(s.get("rebuilds_equal_to_v9_g1")),
+            "v9_g1_file_inside_its_prepare_window": s.get("v9_cache_inside_v9_g1_prepare_window") is True}
+    if not (cond["raw_members_match_all"] and cond["rebuild_deterministic"]):
+        return {"variant": "C", "conditions": cond}
+    if cond["a_rebuild_reproduces_v9_g1"] and cond["v9_g1_file_inside_its_prepare_window"]:
+        return {"variant": "A", "conditions": cond,
+                "reproducing_rebuild": next(t for t in REBUILD_ORDER if t in s["rebuilds_equal_to_v9_g1"])}
+    return {"variant": "B1", "conditions": cond}
+
+
+def dispatch_pin(diag: dict, tag: str) -> dict:
+    run = diag["rebuilds"][tag]
+    d = run["dispatch"]
+    kernels = {"log1p_float64": d["log1p_float64"], "add_float64": d["add_float64"]}
+    off = [f for f, k in (("X86_V3", "add_float64"), ("X86_V4", "log1p_float64")) if kernels[k].startswith("baseline")]
+    return {**kernels, "NPY_DISABLE_CPU_FEATURES": " ".join(off), "reproduced_by": tag,
+            "rebuild_setting": run["NPY_DISABLE_CPU_FEATURES"],
+            "observed_on": {"host": d["host"], "cpu_model": d["cpu_model"], "numpy": d["numpy"],
+                            "node_has_X86_V4": diag["summary"]["node_has_X86_V4"],
+                            "X86_V3_enabled_in_that_rebuild": d["X86_V3"], "X86_V4_enabled_in_that_rebuild": d["X86_V4"]}}
+
+
+def minus(cores, groups, drop) -> dict:
+    keep = sorted(c for c in cores if c not in drop)
+    g = {k: sorted(c for c in v if c not in drop) for k, v in sorted(groups.items())}
+    return {"cores": keep, "cores_sha256": C.sha_bytes(C.canonical(keep)), "excluded": sorted(drop),
+            "position_groups": {k: v for k, v in g.items() if v}}
+
+
+def v5_evidence() -> dict:
+    """The bundle-only files v5 rests on (pinned by sha256 in the activation and checked by every v5 job)."""
+    auth_b = (C.BUNDLE / C.DIAG_AUTH).read_bytes()
+    C.require(C.sha_bytes(auth_b) == DIAG_AUTH_SHA and auth_b == (C.REPO / C.RECORDS / C.DIAG_AUTH).read_bytes()
+              == git_bytes(DIAG_COMMIT, f"{C.RECORDS}/{C.DIAG_AUTH}"), "the diagnostic authorization differs from af7c0798")
+    auth = json.loads(auth_b)
+    C.require(auth["cores"] == ["1B_D8"], "the diagnostic scope is not the one failed core")
+    core = auth["cores"][0]
+    runs = sorted(p.parent.name for p in (C.BUNDLE / "diagnostics" / core).glob("*/DIAG.json"))
+    C.require(runs == [DIAG_JOB], f"expected exactly the diagnostic job {DIAG_JOB} for {core}, found {runs}")
+    rel = {"v4_lock": C.V4_LOCK, "v4_prepare_receipt": f"exits/{V4_PREPARE_JOB}.json",
+           "diagnostic": f"diagnostics/{core}/{DIAG_JOB}/DIAG.json", "diagnostic_receipt": f"diagnostics/exits/{DIAG_JOB}.json"}
+    lock, rcp4 = C.read(C.BUNDLE / rel["v4_lock"]), C.read(C.BUNDLE / rel["v4_prepare_receipt"])
+    diag, rcp = C.read(C.BUNDLE / rel["diagnostic"]), C.read(C.BUNDLE / rel["diagnostic_receipt"])
+    v4act = C.sha(C.REPO / C.RECORDS / C.V4_ACTIVATION)
+    C.require(C.sha(C.BUNDLE / rel["v4_lock"]) == V4_LOCK_SHA and lock["status"] == "FAIL_V9_CACHE_MISMATCH"
+              and lock["job"] == V4_PREPARE_JOB and lock["activation_sha256"] == v4act
+              and lock["v9_cache_comparison"]["differing"] == [core], "v4's INPUT_LOCK.json is not the recorded failure")
+    C.require(rcp4["job"] == V4_PREPARE_JOB and rcp4["exit_code"] == 3 and rcp4["stage"] == "prepare", "v4 prepare receipt")
+    C.require(rcp["job"] == DIAG_JOB and rcp["exit_code"] == 0 and rcp["stage"] == "diagnose" and rcp["target"] == core
+              and rcp["diagnostic_authorization_sha256"] == DIAG_AUTH_SHA and rcp["commit"] == DIAG_COMMIT,
+              "the diagnostic exit receipt")
+    C.require(diag["core"] == core and diag["job"] == DIAG_JOB and diag["authorization_sha256"] == DIAG_AUTH_SHA
+              and diag["activation_sha256"] == v4act and diag["code_commit"] == DIAG_COMMIT
+              and diag["input_lock_sha256"] == V4_LOCK_SHA and diag["evaluated"] is False
+              and diag["labels_or_results_read"] is False and diag["v10_rebuild_matches_lock"] is True,
+              "DIAG.json is not the pinned diagnostic of the failed lock")
+    v4file = next(f["sha256"] for f in lock["files"] if f["core"] == core)
+    C.require(diag["provenance"]["v10_rebuild"]["sha256"] == v4file, "the diagnosed V10 file is not the locked one")
+    return {"core": core, "lock": lock, "diag": diag, "receipt": rcp, "v4_file_sha256": v4file, "paths": rel,
+            "shas": {r: C.sha(C.BUNDLE / r) for r in rel.values()}}
+
+
+def protocol_v5(p4: dict, man: dict, sel: dict, ev: dict) -> dict:
+    core, lock, diag, rcp = ev["core"], ev["lock"], ev["diag"], ev["receipt"]
+    variant = sel["variant"]
+    C.require(variant in ("A", "B1"), "case C: the rebuild is not deterministic or the raw members mismatch; v5 is not "
+                                      "built (not covered by the owner's decision)")
+    p5 = copy.deepcopy(p4)
+    p5["schema"] = "v10.test_repeat134.protocol.v5"
+    p5["id"] = "V10-TEST-REPEAT134-PROTOCOL-V5-20261020"
+    p5["status"] = "FROZEN_BEFORE_ANY_TEST_EVALUATION"
+    s = diag["summary"]
+    inputs = {k: p4["inputs"][k] for k in ("raw_root", "raw_rule", "v9_prepared_root", "builder", "host_source_root",
+                                          "host_code_hash")}
+    inputs["v4_lock"] = {"path": str(C.BUNDLE / C.V4_LOCK), "sha256": ev["shas"][C.V4_LOCK], "job": lock["job"],
+                         "status": lock["status"], "root": lock["root"], "differing": lock["v9_cache_comparison"]["differing"],
+                         "kept": "as written; never rewritten"}
+    inputs["diagnostic"] = {"job": rcp["job"], "partition": rcp["partition"], "node": rcp["nodelist"], "code_commit": DIAG_COMMIT,
+                            "authorization": {"path": f"{C.RECORDS}/{C.DIAG_AUTH}", "sha256": DIAG_AUTH_SHA},
+                            "result": {"path": str(C.BUNDLE / ev["paths"]["diagnostic"]), "sha256": ev["shas"][ev["paths"]["diagnostic"]]},
+                            "summary": s}
+    if variant == "A":
+        pin = dispatch_pin(diag, sel["reproducing_rebuild"])
+        inputs["root"] = str(INPUTS_V5)
+        inputs["numpy_dispatch"] = pin
+        inputs["lock"] = ("INPUT_LOCK_V5.json (sha256 per prepared file); PASS requires the arrays of all 134 cores to equal "
+                          "V9-G1's prepared cache bitwise (criterion unchanged from v1 / v4)")
+        inputs["job"] = {"stage": "slurm/v10_test_repeat/cpu.sbatch inputs", "partition": rcp["partition"],
+                         "nodelist": rcp["nodelist"], "time_limit": "01:00:00",
+                         "why": "the node on which the pinned kernels reproduced V9-G1's file; the build process also checks "
+                                "the two kernels before reading any raw member"}
+        statement = (f"A (CPU-dispatch artefact): REG-P1's frozen builder rebuilds all 134 cores into {INPUTS_V5} with numpy's "
+                     f"float64 log1p / add kernels pinned to {pin['log1p_float64']} / {pin['add_float64']} "
+                     f"(NPY_DISABLE_CPU_FEATURES='{pin['NPY_DISABLE_CPU_FEATURES']}'), the kernels of the diagnostic rebuild "
+                     f"'{pin['reproduced_by']}' that reproduced V9-G1's {core} file bitwise; criterion unchanged (all 134 cores "
+                     "bitwise equal to V9-G1's prepared cache); TEST134, TEST112 and the 42 units unchanged")
+        limitation = (f"输入按 V9-G1 的 CPU 路径重建（numpy float64 log1p / add 内核固定为 {pin['log1p_float64']} / "
+                      f"{pin['add_float64']}），134 个 core 与 V9-G1 预处理缓存逐位相同才放行；v4 的输入（{core} 不同）不使用。")
+    else:
+        exc = {core: {"file_sha256": ev["v4_file_sha256"],
+                      "basis": "raw members equal every frozen inventory; two fresh-process rebuilds are bitwise identical; "
+                               "the file is the v4 prepare job's output recorded in v4's INPUT_LOCK.json",
+                      "differs_from_v9_g1": s["v10_vs_v9_differing_arrays"]}}
+        inputs["root"] = lock["root"]
+        inputs["accepted_exceptions"] = exc
+        inputs["lock"] = ("INPUT_LOCK_V5.json (sha256 per prepared file); PASS requires: the 268 raw members' sha256 equal the "
+                          "manifest; every prepared file of the v4 root equals its v4 lock entry; the cores whose arrays differ "
+                          "from V9-G1's prepared cache are exactly the accepted exceptions, at their accepted sha256")
+        inputs["job"] = {"stage": "slurm/v10_test_repeat/cpu.sbatch inputs", "partition": "cpu-high", "time_limit": "01:00:00"}
+        t = man["test"]
+        s133 = minus(t["cores"], t["position_groups"], {core})
+        sens = {f"TEST{len(s133['cores'])}": {**s133, "base": "TEST134", "rule": f"TEST134 without {core} (accepted V10 rebuild input)"}}
+        if core in t["sensitivity112"]["cores"]:
+            s111 = minus(t["sensitivity112"]["cores"], t["sensitivity112"]["position_groups"], {core})
+            sens[f"TEST{len(s111['cores'])}"] = {**s111, "base": "TEST112", "rule": f"TEST112 without {core}"}
+        for name, x in sens.items():
+            p5["sets"][name] = f"{len(x['cores'])} cores: {x['rule']} (pre-registered sensitivity set; reported beside {x['base']})"
+            p5["sets"]["position_groups"][name] = len(x["position_groups"])
+        p5["sets"]["sensitivity"] = sens
+        names = " / ".join(sens)
+        statement = (f"B1: the raw-verified, deterministic V10 rebuild in the v4 root is accepted for {core}; TEST134 stays "
+                     f"primary; {names} ({core} excluded) are pre-registered sensitivity sets reported beside TEST134 / TEST112")
+        limitation = (f"{core} 的输入是 V10 重建版（原始哈希已核对、两次重建逐位相同），与 V9-G1 预处理缓存在 "
+                      + "、".join(s["v10_vs_v9_differing_arrays"]) + f" 上不同；与 V9-G1 的逐 core 比较对 {core} 不是同一输入；"
+                      f"{names} 敏感性集排除 {core}，与 TEST134 / TEST112 并列报告，不替代。")
+    inputs["v5"] = {"variant": variant, "selection": sel, "rule": V5_RULE, "statement": statement, "limitation": limitation}
+    inputs["precondition"] = "none beyond the frozen v5 records (the inputs job may run as soon as v5 is frozen)"
+    p5["inputs"] = inputs
+    p5["version"] = {"number": 5, "supersedes": {"path": f"{C.RECORDS}/{C.V4_PROTOCOL}",
+                                                 "sha256": C.sha(C.REPO / C.RECORDS / C.V4_PROTOCOL), "commit": V4_COMMIT},
+                     "void_draft": p4["version"]["void_draft"], "owner_decision": f"{C.RECORDS}/{C.DECISION_V5}",
+                     "amendment": f"{C.RECORDS}/{C.AMENDMENT}", "delta_review": f"{C.RECORDS}/{C.DELTA}",
+                     "change": "v5 inputs after v4's INPUT_LOCK failure (variant " + variant + "); everything else as v4"}
+    p5["jobs"]["execution_root"] = str(EXEC_ROOT_V5)
+    p5["jobs"]["sbatch"] = "slurm/v10_test_repeat/gpu.sbatch (unit jobs); slurm/v10_test_repeat/cpu.sbatch (the inputs job)"
+    p5["jobs"]["outputs"] = {**p4["jobs"]["outputs"], "inputs": inputs["root"], "input_lock": str(C.BUNDLE / C.LOCK)}
+    p5["jobs"]["order"] = [f"inputs (CPU, cpu.sbatch inputs, variant {variant}): writes INPUT_LOCK_V5.json once",
+                           "one job per unit after INPUT_LOCK_V5 PASS: DEV32 re-evaluation, in-job check, TEST134 (on the "
+                           "unit's recorded DEV32 GPU type)"]
+    p5["reporting"]["rules"] = p4["reporting"]["rules"] + [
+        f"the TEST inputs follow v5 variant {variant}; v4's INPUT_LOCK failure and the input diagnostic are reported",
+        *([f"{' / '.join(p5['sets']['sensitivity'])} are pre-registered sensitivity sets without {core}; reported beside "
+           "TEST134 / TEST112, never instead of them"] if variant == "B1" else [])]
+    est = p4["cost_estimate"]
+    p5["cost_estimate"] = {"basis": est["basis"].replace("; prepare 0.25 h", "") + "; the v5 inputs job runs on CPU",
+                           "unit_jobs_gpu_h": est["unit_jobs_gpu_h"], "prepare_gpu_h": 0.0, "inputs_cpu_job_h": 0.25,
+                           "total_gpu_h": sum(est["unit_jobs_gpu_h"].values())}
+    return p5
+
+
+def build_v5() -> dict:
+    for commit, files in ((V1_COMMIT, {**V1_FILES, "decision": C.DECISION, "manifest": C.MANIFEST}), (V2_COMMIT, V2_FILES),
+                          (V4_COMMIT, V4_FILES)):
+        for name in files.values():
+            b = (C.REPO / C.RECORDS / name).read_bytes()
+            C.require(b == git_bytes(commit, f"{C.RECORDS}/{name}") == (C.BUNDLE / name).read_bytes(),
+                      f"{name} differs from its freeze commit {commit[:8]} or from its bundle copy")
+    C.require(not (C.BUNDLE / C.LOCK).exists() and not (C.BUNDLE / "results").exists(),
+              "v5 inputs or TEST results exist: v5 must be frozen before any TEST evaluation")
+    ev = v5_evidence()
+    sel = select_v5(ev["diag"])
+    p4_b = (C.REPO / C.RECORDS / C.V4_PROTOCOL).read_bytes()
+    p4 = json.loads(p4_b)
+    man = C.read(C.REPO / C.RECORDS / C.MANIFEST)
+    p5 = protocol_v5(p4, man, sel, ev)
+    dec5 = decision_v5()
+    am = {"schema": "v10.test_repeat134.amendment.v5", "id": "V10-TEST-REPEAT134-AMENDMENT-V5-20261020",
+          "label": "owner decision 2026-10-20 after v4's INPUT_LOCK failure (1B_D8); the rule was fixed before the diagnostic "
+                   "result and is applied mechanically; pre-registered before any TEST evaluation (no TEST result exists)",
+          "owner_decision": {"path": f"{C.RECORDS}/{C.DECISION_V5}", **DECISION_V5_TEXT},
+          "v4_input_lock": p5["inputs"]["v4_lock"], "diagnostic": p5["inputs"]["diagnostic"], "rule": V5_RULE,
+          "selection": sel, "variant": sel["variant"], "inputs": {k: v for k, v in p5["inputs"].items() if k != "diagnostic"},
+          "sets": {k: {kk: vv for kk, vv in v.items() if kk != "cores"} for k, v in p5["sets"].get("sensitivity", {}).items()},
+          "unchanged": ["manifest and units", "perturbation rule, searcher, metrics, unit, TEST134 / TEST112, statistics",
+                        "in-job check (a) (e) (f) and its thresholds", "hardware rule and the 42 unit jobs",
+                        "the TEST guard and the evaluator definitions (AST-identical to v1)",
+                        "REG-P1's builder (host_modules / prepare / compare_cache identical to v4)"],
+          "v1_v2_v4": "v1, v2 and v4 records and execution trees, v4's INPUT_LOCK.json and the v4 input root are untouched; "
+                      "the v3 draft stays void"}
+    return {"protocol": p5, "amendment": am, "decision_v5": dec5, "v4_protocol": p4, "v4_protocol_bytes": p4_b,
+            "selection": sel, "evidence_shas": ev["shas"]}
+
+
+def delta_review_v5(b5: dict) -> dict:
+    files = {}
+    for rel in C.CODE_FILES + ("scripts/v10_test_repeat/analyze.py", "scripts/v10_test_repeat/build_freeze.py",
+                                "scripts/v10_test_repeat/submit_lines.py", "scripts/v10_test_repeat/status.py"):
+        new = (C.REPO / rel).read_bytes()
+        try:
+            old = git_bytes(V4_COMMIT, rel)
+        except subprocess.CalledProcessError:
+            files[rel] = {"v4_sha256": None, "v5_sha256": C.sha_bytes(new), "added": True}
+            continue
+        entry = {"v4_sha256": C.sha_bytes(old), "v5_sha256": C.sha_bytes(new)}
+        if rel.endswith(".py"):
+            a, b = top_defs(old.decode()), top_defs(new.decode())
+            entry.update(identical=sorted(k for k in a if b.get(k) == a[k]), changed=sorted(k for k in a if k in b and b[k] != a[k]),
+                         added=sorted(set(b) - set(a)), removed=sorted(set(a) - set(b)))
+        else:
+            entry["changed_lines"] = [{"v4": x, "v5": y} for x, y in zip(old.decode().splitlines(), new.decode().splitlines()) if x != y]
+        files[rel] = entry
+    for rel, names in EVALUATOR_DEFS.items():
+        v1defs, now = top_defs(git_bytes(V1_COMMIT, rel).decode()), top_defs((C.REPO / rel).read_text())
+        C.require(all(v1defs[n] == now[n] for n in names), f"{rel}: evaluator definitions differ from v1")
+    C.require({"host_modules", "prepare", "compare_cache"} <= set(files["scripts/v10_test_repeat/prepare_inputs.py"]["identical"]),
+              "REG-P1's builder path changed")
+    sb = files["slurm/v10_test_repeat/gpu.sbatch"]["changed_lines"]
+    C.require(len(sb) == 1 and sb[0]["v5"].startswith("R=") and str(EXEC_ROOT_V5) in sb[0]["v5"], "gpu.sbatch changed beyond the root")
+    return {"schema": "v10.test_repeat134.delta_review.v5", "v4_commit": V4_COMMIT, "v1_commit": V1_COMMIT,
+            "protocol": {"v4_sha256": C.sha_bytes(b5["v4_protocol_bytes"]),
+                         "changed_paths": json_diff(b5["v4_protocol"], b5["protocol"])},
+            "code": files, "evaluator_definitions_identical_to_v1": {rel: list(n) for rel, n in EVALUATOR_DEFS.items()},
+            "conclusion": "v5 changes only the TEST inputs (variant " + b5["selection"]["variant"] + ": a CPU inputs job writes "
+                          "INPUT_LOCK_V5.json; unit jobs read it through input_lock_v5) and, for B1, adds the pre-registered "
+                          "sensitivity sets; the guard, evaluators, in-job check and unit plan are unchanged"}
+
+
+def activation_v5(shas: dict, code_files: dict, evidence: dict, variant: str) -> dict:
+    reads = ("rebuilding all 134 cores from their 268 raw members into the v5 root and comparing them with V9-G1's prepared "
+             "cache" if variant == "A" else
+             "hashing the 268 raw members and the v4-prepared inputs and comparing them with V9-G1's prepared cache")
+    return {
+        "schema": "v10.test_repeat134.activation.v5", "status": "ACTIVE_FOR_FROZEN_CHECKPOINT_EVALUATION_ONLY",
+        "id": "V10-TEST-REPEAT134-ACTIVATION-V5-20261020",
+        "supersedes": {"activation_sha256": shas[C.V4_ACTIVATION], "commit": V4_COMMIT, "for": "the inputs stage and every unit job"},
+        "owner_decisions": {"start": {"path": f"{C.RECORDS}/{C.DECISION}", "sha256": shas[C.DECISION]},
+                            "v4": {"path": f"{C.RECORDS}/{C.DECISION_V4}", "sha256": shas[C.DECISION_V4]},
+                            "v5": {"path": f"{C.RECORDS}/{C.DECISION_V5}", "sha256": shas[C.DECISION_V5]}},
+        "records": shas, "evidence": evidence, "code": {"files": code_files, "execution_root": str(EXEC_ROOT_V5)},
+        "input_variant": variant,
+        "permits": f"in the v5 inputs job, {reads} to write INPUT_LOCK_V5.json once; then reading the locked prepared inputs "
+                   "solely to evaluate the frozen selected checkpoints of the manifest with the frozen evaluators, after the "
+                   "unit's same-job DEV32 re-evaluation passed the in-job check",
+        "conditions": [
+            "inside a Slurm job submitted with V10_TR_EXPECT_ACTIVATION = sha256 of this file and V10_TR_EXPECT_COMMIT = the v5 "
+            "execution worktree commit; the records, the evidence files, the code files above and the bundle copies are "
+            "byte-identical",
+            "inputs job (CPU): " + ("the build process runs under the pinned numpy kernels; all 134 cores bitwise equal "
+                                    "V9-G1's prepared cache" if variant == "A" else
+                                    "raw members, prepared files and the accepted exceptions as the protocol states"),
+            "unit job: on the unit's recorded DEV32 GPU type; INPUT_LOCK_V5 PASS under this activation; frozen checkpoint "
+            "sha256 == the manifest; DEV32 re-evaluated first and in-job check (a), (e), (f) passed before TEST is read",
+            "results are written once and never overwritten; every TEST read is logged"],
+        "forbidden": ["any TEST access outside these jobs (login node, CPU tests, interactive use)",
+                      "training, CAL selection, checkpoint choice, grid / candidate / protocol changes from TEST content",
+                      "pooling TEST_REPEAT with DEV or calling it an independent confirmation",
+                      "re-running a unit to replace a result", "rewriting v4's INPUT_LOCK.json or the v4 input root"],
+        "evaluator_only": True}
+
+
+def render_v5() -> dict:
+    b5 = build_v5()
+    out = {C.DECISION_V5: C.dumps(b5["decision_v5"]), C.PROTOCOL: C.dumps(b5["protocol"]),
+           C.AMENDMENT: C.dumps(b5["amendment"]), C.DELTA: C.dumps(delta_review_v5(b5))}
+    shas = {**{k: C.sha_bytes(v.encode()) for k, v in out.items()},
+            **{n: C.sha(C.REPO / C.RECORDS / n) for n in C.FROZEN_RECORDS if n not in out}}
+    out[C.ACTIVATION] = C.dumps(activation_v5(shas, {rel: C.sha(C.REPO / rel) for rel in C.CODE_FILES}, b5["evidence_shas"],
+                                              b5["selection"]["variant"]))
+    return out
+
+
+# ================================================================================================================ v6
+V5_COMMIT = "5fdcb942a085580f88c8e038ed4ed92fed22cf99"
+V5_ACTIVATION_SHA = "c724c56b5ec37edddddf52dc1ff4f30d1dd2197c6735c947d63db6d148f2d926"
+V5_FILES = {"decision": C.DECISION_V5, "protocol": C.PROTOCOL, "amendment": C.AMENDMENT, "delta": C.DELTA,
+            "activation": C.V5_ACTIVATION}
+V5_INPUTS_JOB = "1051656"
+EXEC_ROOT_V6 = C.CS / "ssl_pilot_v10_test_repeat_exec_v6_20261020"
+V6_UNITS = {"CoMIR_native__1001": ("1051911", "1052059", "1052145"), "CoMIR_native__1002": ("1051925", "1052066", "1052146"),
+            "CoMIR_native__1003": ("1051928", "1052070", "1052153")}      # unit -> its three failed v5 attempts
+COMIR_ERROR = "CoMIR model namespace already belongs to another package"
+DECISION_V6_TEXT = {
+    "chosen_option_verbatim": "修复后补跑这 3 个单元 (Recommended)",
+    "chosen_option_text_verbatim": "在任何 CoMIR TEST 读取之前冻结 v6：只修这个检查，允许路径在固定 CoMIR 目录下的命名空间子包；模型、checkpoint、"
+                                   "评估器和判定标准都不变。这 3 个单元仍在同一作业里先重评 DEV 再评 TEST，在 L40S 上跑。",
+    "also_said_verbatim": "控制一下harness程度，稍微有些过了",
+    "question": "not relayed verbatim (the 3 CoMIR_native units whose v5 TEST-stage trainer was refused by the CoMIR source check)"}
+
+
+def decision_v6() -> dict:
+    return {"schema": "v10.owner_decision.v1", "id": "V10-TEST-REPEAT134-V6-DECISION-20261020", "date": "2026-10-20",
+            **DECISION_V6_TEXT, "relayed": "by the coordinating session to the TEST_REPEAT lead, who records it verbatim"}
+
+
+def comir_attempts(man: dict) -> dict:
+    """From the records: each of the 9 v5 attempts failed at the TEST-stage trainer with the CoMIR namespace error, logged no
+    TEST read and wrote no TEST row; the one DEV re-evaluation per unit equals the recorded DEV32 rows."""
+    out = {}
+    for key, jobs in V6_UNITS.items():
+        d, u = C.BUNDLE / "results/TEST_REPEAT" / key, C.unit(man, key)
+        C.require(not any((d / n).exists() for n in ("TEST_REPEAT.jsonl", "COMPLETE.json", "BLOCKED.json")), f"{key}: TEST output exists")
+        C.require(sorted(p.stem[len("ENV_"):] for p in d.glob("ENV_*.json")) == sorted(jobs), f"{key}: attempt jobs differ")
+        files = {}
+        for j in jobs:
+            reads, fail, rcp = d / f"READS_INCOMPLETE_{j}.json", C.BUNDLE / "failures" / f"{j}.json", C.BUNDLE / "exits" / f"{j}.json"
+            C.require(C.read(reads)["test_guard"] == [], f"{key} {j}: a TEST read was logged")
+            C.require(COMIR_ERROR in C.read(fail)["exception"], f"{key} {j}: another failure")
+            r = C.read(rcp)
+            C.require(r["exit_code"] != 0 and r["activation_sha256"] == V5_ACTIVATION_SHA, f"{key} {j}: receipt")
+            files.update({str(x.relative_to(C.BUNDLE)): C.sha(x) for x in (reads, fail, rcp)})
+        cmp = C.compare_rows(C.lines(Path(u["unit_dir"]) / "DEV.jsonl"), C.lines(d / "DEV_REEVAL.jsonl"))
+        C.require(cmp["status"] == "PASS" and cmp["n_mismatches"] == 0, f"{key}: DEV re-evaluation differs from the record")
+        out[key] = {"v5_jobs": list(jobs), "test_guard_reads": 0, "test_rows_written": False,
+                    "dev_reevaluation_vs_recorded": {k: cmp[k] for k in ("status", "rows_recorded", "rows_new", "n_mismatches")},
+                    "dev_rows_job": sorted({r["job"] for r in C.lines(d / "DEV_REEVAL.jsonl")}), "records_sha256": files}
+    return out
+
+
+def build_v6() -> dict:
+    for commit, files in ((V1_COMMIT, {**V1_FILES, "decision": C.DECISION, "manifest": C.MANIFEST}), (V2_COMMIT, V2_FILES),
+                          (V4_COMMIT, V4_FILES), (V5_COMMIT, V5_FILES), (DIAG_COMMIT, {"auth": C.DIAG_AUTH})):
+        for name in files.values():
+            b = (C.REPO / C.RECORDS / name).read_bytes()
+            C.require(b == git_bytes(commit, f"{C.RECORDS}/{name}") == (C.BUNDLE / name).read_bytes(),
+                      f"{name} differs from its freeze commit {commit[:8]} or from its bundle copy")
+    C.require(C.sha(C.BUNDLE / C.V5_ACTIVATION) == V5_ACTIVATION_SHA, "the v5 activation is not c724c56b")
+    C.require(not (C.BUNDLE / C.RESULTS_V6).exists(), "v6 outputs exist: v6 must be frozen before any CoMIR TEST read")
+    lock = C.read(C.BUNDLE / C.LOCK)
+    C.require(lock["status"] == "PASS" and lock["activation_sha256"] == V5_ACTIVATION_SHA and lock["job"] == V5_INPUTS_JOB
+              and C.read(C.BUNDLE / "exits" / f"{V5_INPUTS_JOB}.json")["exit_code"] == 0, "INPUT_LOCK_V5 is not the v5 PASS")
+    for rel, names in EVALUATOR_DEFS.items():
+        v1defs, now = top_defs(git_bytes(V1_COMMIT, rel).decode()), top_defs((C.REPO / rel).read_text())
+        C.require(all(v1defs[n] == now[n] for n in names), f"{rel}: evaluator definitions differ from v1")
+    code = {}
+    for rel in C.CODE_FILES:
+        old, new = git_bytes(V5_COMMIT, rel).decode(), (C.REPO / rel).read_text()
+        if rel.endswith(".py"):
+            a, b = top_defs(old), top_defs(new)
+            code[rel] = {"changed": sorted(k for k in a if k in b and b[k] != a[k]), "added": sorted(set(b) - set(a)),
+                         "removed": sorted(set(a) - set(b))}
+        else:
+            code[rel] = {"changed_lines": [{"v5": x, "v6": y} for x, y in zip(old.splitlines(), new.splitlines()) if x != y]}
+    C.require(code["slurm/v10_test_repeat/cpu.sbatch"]["changed_lines"] == [] and code["scripts/v10_test_repeat/prepare_inputs.py"]
+              == {"changed": [], "added": [], "removed": []}, "v6 changes the inputs stage")
+    man = C.read(C.REPO / C.RECORDS / C.MANIFEST)
+    attempts = comir_attempts(man)
+    am = {"schema": "v10.test_repeat134.amendment.v6", "id": "V10-TEST-REPEAT134-AMENDMENT-V6-20261020",
+          "label": "owner decision 2026-10-20 after the 3 CoMIR_native units failed in v5 before any CoMIR TEST read; scope: "
+                   "those 3 units only; criteria unchanged",
+          "owner_decision": {"path": f"{C.RECORDS}/{C.DECISION_V6}", **DECISION_V6_TEXT},
+          "failure": {"error": COMIR_ERROR, "where": "evaluate.stage_test -> evaluate_unit -> run.new_trainer -> "
+                      "CoMIRTrainer.__init__ -> verify_official_source (ssl_pilot_v10_native_recovery_20261019/src/v10/"
+                      "supplement/comir.py:51), at the TEST-stage trainer",
+                      "cause": "the DEV re-evaluation's trainer imported the official CoMIR models package; models/layers has "
+                               "no __init__.py, so models.layers is a namespace package whose __file__ is None, which the frozen "
+                               "check refuses; a second CoMIR trainer in one process (v4 same-job pairing) therefore always failed",
+                      "attempts": attempts},
+          "change": "TEST_REPEAT execution layer only (evaluate.comir_check_v6, installed for CoMIR units after the DEV "
+                    "re-evaluation and before the TEST-stage trainer): while the frozen verify_official_source runs, the "
+                    "models.* modules without __file__ whose every __path__ entry resolves inside the pinned CoMIR root are "
+                    "hidden from sys.modules; every other condition is the frozen function itself (the frozen "
+                    "native-recovery tree is untouched)",
+          "scope": {"units": list(V6_UNITS), "gpu": "L40S (each unit's recorded DEV32 GPU type), v5 time limits",
+                    "outputs": f"{C.BUNDLE / C.RESULTS_V6}/<unit>: a fresh output, so that the DEV32 re-evaluation and TEST "
+                               "run in the same job (the v5 attempt directories are kept as written)",
+                    "inputs": f"INPUT_LOCK_V5.json (job {V5_INPUTS_JOB}, v5 activation), unchanged"},
+          "code": code,
+          "unchanged": ["model, checkpoint, evaluator, perturbations, metrics and criteria (in-job check (a) (e) (f))",
+                        "the v5 records, inputs and the other 39 units (they stay under v5)"]}
+    return {"decision_v6": decision_v6(), "amendment_v6": am}
+
+
+def activation_v6(shas: dict, code_files: dict, evidence: dict) -> dict:
+    return {
+        "schema": "v10.test_repeat134.activation.v6", "status": "ACTIVE_FOR_THE_3_CoMIR_NATIVE_UNITS_ONLY",
+        "id": "V10-TEST-REPEAT134-ACTIVATION-V6-20261020",
+        "supersedes": {"activation_sha256": V5_ACTIVATION_SHA, "commit": V5_COMMIT,
+                       "for": "the 3 CoMIR_native units only; the inputs and the other 39 units stay under v5"},
+        "owner_decisions": {n: {"path": f"{C.RECORDS}/{f}", "sha256": shas[f]} for n, f in
+                            (("start", C.DECISION), ("v4", C.DECISION_V4), ("v5", C.DECISION_V5), ("v6", C.DECISION_V6))},
+        "records": shas, "evidence": evidence, "code": {"files": code_files, "execution_root": str(EXEC_ROOT_V6)},
+        "v6": {"units": list(V6_UNITS), "input_lock_activation_sha256": V5_ACTIVATION_SHA,
+               "outputs": f"{C.BUNDLE / C.RESULTS_V6}/<unit>"},
+        "permits": "for the 3 CoMIR_native units only: reading the v5-locked prepared TEST inputs solely to evaluate the unit's "
+                   "frozen selected checkpoint with the frozen evaluator, after the same-job DEV32 re-evaluation passed the "
+                   "in-job check, on the unit's recorded DEV32 GPU type (L40S)",
+        "conditions": [
+            "inside a Slurm GPU job submitted with V10_TR_EXPECT_ACTIVATION = sha256 of this file and V10_TR_EXPECT_COMMIT = the "
+            "v6 execution worktree commit; the records, the evidence files, the code files above and the bundle copies are "
+            "byte-identical",
+            "INPUT_LOCK_V5 PASS under the v5 activation; frozen checkpoint sha256 == the manifest; DEV32 re-evaluated first in the "
+            "same job and in-job check (a), (e), (f) passed before TEST is read",
+            "results are written once and never overwritten; every TEST read is logged"],
+        "forbidden": ["any TEST access outside these jobs", "running any of the other 39 units under v6",
+                      "rewriting v5 records, the v5 attempt directories or INPUT_LOCK_V5.json",
+                      "training, CAL selection, checkpoint choice or criterion changes from TEST content",
+                      "pooling TEST_REPEAT with DEV or calling it an independent confirmation"],
+        "evaluator_only": True}
+
+
+def render_v6() -> dict:
+    b6 = build_v6()
+    out = {C.DECISION_V6: C.dumps(b6["decision_v6"]), C.AMENDMENT_V6: C.dumps(b6["amendment_v6"])}
+    shas = {**{k: C.sha_bytes(v.encode()) for k, v in out.items()},
+            **{n: C.sha(C.REPO / C.RECORDS / n) for n in C.FROZEN_RECORDS if n not in out}}
+    evidence = {r: C.sha(C.BUNDLE / r) for r in (C.LOCK, f"exits/{V5_INPUTS_JOB}.json")}
+    out[C.ACTIVATION] = C.dumps(activation_v6(shas, {rel: C.sha(C.REPO / rel) for rel in C.CODE_FILES}, evidence))
     return out
 
 
@@ -855,9 +1309,16 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--dry-run", type=Path, help="write the records into this directory only (development)")
+    ap.add_argument("--decision-only", action="store_true", help="write OWNER_DECISION_V6.json to the repo records only")
     a = ap.parse_args(argv)
-    pr = load_phase2()
-    texts = render_v4(pr)            # v1 (a85cc21b) and v2 (ca9f517c) records are frozen; this commit adds the v4 records
+    if a.decision_only:                 # the owner's v6 decision
+        path = C.REPO / C.RECORDS / C.DECISION_V6
+        text = C.dumps(decision_v6())
+        C.require(not path.exists() or path.read_text() == text, f"{path} exists with different content")
+        path.write_text(text)
+        print("wrote", path, "sha256", C.sha_bytes(text.encode()))
+        return 0
+    texts = render_v6()              # v1, v2, v4 and v5 (5fdcb942) records are frozen; this adds the v6 records
     ok = True
     if a.dry_run:
         a.dry_run.mkdir(parents=True, exist_ok=True)
