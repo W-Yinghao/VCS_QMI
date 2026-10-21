@@ -1,0 +1,28 @@
+{
+ "schema": "v10.review.t03_rulsif_adapter_contract.v1",
+ "status": "CONTRACT_ONLY",
+ "micro_numeric_check": "UNRUN",
+ "scope": "How a RuLSIF control would enter T03 (synthetic tables with known eta). This is an integration contract, not a run experiment: no T03 RuLSIF unit exists and none is scheduled in this round (no new grid without a frozen pre-registration).",
+ "reference": {
+  "primary": "complete empirical U, as for the T03 main target (Q = P_X P_Y built from all within-sample cross pairs)",
+  "V": "the fixed-critic V reading stays a diagnostic only, as for the other T03 methods"
+ },
+ "output_scale_and_common_J": {
+  "estimator": "RuLSIF with alpha = 0.5 estimates the relative ratio r = p / (0.5 p + 0.5 q) = p / M",
+  "mapping": "T = g - 1 with g the fitted ratio; at the population optimum g = 2p/(p+q) = 1 + eta, so T = eta, the same target as the VCS critics",
+  "common_J": "J(T) = E_P[T] - E_Q[T] - 0.5 (E_P[T^2] + E_Q[T^2]), read by the unchanged T03 evaluator, so that S - J_pop(T) = E_M[(T - eta)^2] applies without rescaling",
+  "constraint": "E_M[g] = 1 must hold for the fitted g (checked as in tests/v10/test_rulsif_v2.py); the constant basis is not ridge-penalised (lambda D, D = diag(0, 1, ..., 1))"
+ },
+ "data_and_selection_isolation": {
+  "fit": "FIT samples only (P pairs and the U product reference of the same FIT sample)",
+  "selection": "bandwidth multiplier and ridge selected by maximum CAL U-J, ties to the earlier candidate; eta and S never read",
+  "evaluation": "EVAL U-J, population MSE and EVAL - J_pop computed only by the evaluator-only channel, after the critic is frozen",
+  "truth": "eta / S stay in evaluator_only, exactly as for the existing T03 methods"
+ },
+ "capacity_disclosure": "kernel dictionary size, centre allocation and bandwidth rule must be fixed before any T03 table is read; a natural-image setting (BF/EPFL 1024 centres) is not transferred without a frozen choice",
+ "micro_numeric_check_plan": "small-n exhaustive enumeration of U pairs on a T03 two_block table: moments, normal-equation solution, J value and the E_M[g] = 1 identity against float64 references (the existing tests/v10/test_rulsif_v2.py checks, run on a T03 table)",
+ "not_claimed": [
+  "the natural-image RuLSIF v2 completion does not make the T03 synthetic baseline set complete",
+  "InfoNCE raw outputs are not converted to an RMSE against eta"
+ ]
+}
