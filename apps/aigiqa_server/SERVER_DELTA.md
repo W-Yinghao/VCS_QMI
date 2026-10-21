@@ -59,3 +59,21 @@ Seed pairs may land on different GPU types; this is recorded and reported, not p
   evaluated under this lock if they are listed at `register` (or in a pre-training amendment, which is free while no job has
   started); adding them after any TEST look is forbidden (EXPERIMENT_LOCK §4).
 * The first round is labelled DEV / pilot (`scope=pilot`, release `PILOT_DIAGNOSTIC_ONLY`).
+
+## TEST stage, owner approval 2026-10-21 (verbatim, relayed by the coordinator)
+「开始 (Recommended)」 for the option 「AIGIQA：18 个选中的模型和原生 ImageReward 先在 TEST 输入上预测，再解封 MOS 标签评估一次。两边结果都标为
+pilot/诊断，看过 TEST 后不再做任何选择。」
+* `test_predict.sbatch` (GPU): the package's §4 sequence only: `check-release`, `predict-aigiqa` for the 18 run keys of the
+  native freeze, `native_imagereward` + `import_scores` (package provenance file with the staged checkpoint hash filled in).
+  Label-free; writes `results/test/PREDICTIONS_DONE.json`. Each `predict-aigiqa` re-runs the package's full release check.
+* `test_evaluate.py` / `.sbatch` (CPU): checks predictions against PREDICTIONS_DONE, then unseals only `sealed/test_labels.csv`
+  (verified against prepare's manifest hash), runs the package's `evaluate` (19) and `compare` (VCS-exact vs BCE, each seed,
+  prompt bootstrap), reseals in a `finally`, records `TEST_UNSEALED.json`; a second run is refused. No selection code exists.
+
+## G0 diagnostic naming (correction, 2026-10-21)
+
+In `g0_preflight.py`, the `mean_diagnostics` block mixes two kinds of value:
+- **Loss diagnostics** are averaged over every step of the timed FIT epoch.
+- **`fusion_task_grad_norm` and `fusion_dependence_grad_norm`** are measured on one pre-set minibatch per epoch (step 1). They are not epoch-average gradients.
+
+A small dependence-gradient value in G0 therefore does not show that the dependence term is ineffective over training, and it is no reason to raise λ. (Found by the owner-side review; verified in the code.)
