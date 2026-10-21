@@ -343,6 +343,17 @@ def render(D: dict, A: dict) -> str:
     w(f"- 预估（{est['basis']}）：" + "，".join(f"{k} {v:.2f}" for k, v in est["unit_jobs_gpu_h"].items())
       + f" GPU-h；输入准备 {est['prepare_gpu_h']:.2f}；合计 {est['total_gpu_h']:.2f} GPU-h。")
     w("- 实际（exit receipt 的已分配时间）：" + ("，".join(f"{k} {v:.3f}" for k, v in sorted(A["cost"].items())) or "pending") + "。")
+    import json as _json
+    allc, alln = defaultdict(float), Counter()
+    for _f in sorted((C.BUNDLE / "exits").glob("*.json")):
+        _r = _json.loads(_f.read_text()); _k = (_r.get("stage", "?"), _r.get("partition", "?"), "ok" if _r.get("exit_code") == 0 else "fail")
+        allc[_k] += (_r.get("allocated_seconds") or 0) / 3600; alln[_k] += 1
+    _gpu = defaultdict(float)
+    for (_st, _pa, _ok), _h in allc.items():
+        _gpu[_pa] += _h
+    w("- 全部尝试（exit receipts 全部 " + str(sum(alln.values())) + " 份，含失败、门禁、prepare 与输入作业）：" + "，".join(f"{k} {v:.3f}" for k, v in sorted(_gpu.items()))
+      + "。分项：" + "；".join(f"{st}/{pa}/{ok} {alln[(st, pa, ok)]} 个 {h:.3f} h" for (st, pa, ok), h in sorted(allc.items()))
+      + "。与预算比较须用全部尝试，不能只用上一行的完成单元。")
     w("")
     w("## 8 局限")
     w("")

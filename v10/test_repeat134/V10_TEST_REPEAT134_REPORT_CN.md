@@ -216,6 +216,7 @@
 
 - 预估（recorded DEV seconds of the unit on its own GPU type x (1340 TEST + 320 DEV) / 320 + 2 x 180 s trainer rebuilds; native allocated GPU-h; the v5 inputs job runs on CPU）：L40S 34.52，RTX6000PRO 9.21，H100 1.44 GPU-h；输入准备 0.00；合计 45.17 GPU-h。
 - 实际（exit receipt 的已分配时间）：H100 1.266，L40S 29.953，RTX6000PRO 10.522。
+- 全部尝试（exit receipts 全部 70 份，含失败、门禁、prepare 与输入作业）：H100 1.266，L40S 30.572，RTX6000PRO 11.392，cpu-high 0.068。分项：gate/L40S/fail 4 个 0.395 h；gate/RTX6000PRO/fail 2 个 0.115 h；gate/RTX6000PRO/ok 5 个 0.755 h；inputs_v5/cpu-high/ok 1 个 0.068 h；prepare/L40S/fail 1 个 0.073 h；test/H100/ok 2 个 1.266 h；test/L40S/fail 9 个 0.149 h；test/L40S/ok 33 个 29.955 h；test/RTX6000PRO/fail 1 个 3.443 h；test/RTX6000PRO/ok 12 个 7.079 h。与预算比较须用全部尝试，不能只用上一行的完成单元。
 
 ## 8 局限
 
