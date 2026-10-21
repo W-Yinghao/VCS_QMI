@@ -1,0 +1,3933 @@
+{
+  "amendment": null,
+  "app": "kd",
+  "assets": [
+    {
+      "kind": "python_tree",
+      "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/RepDistiller",
+      "sha256": "bb7dd9067985d51b7a5284adaf61fc2279d0b4fb55c2e36fc09253a2c7b8f987"
+    },
+    {
+      "kind": "python_tree",
+      "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller",
+      "sha256": "1ed456ea232883a37e0915a1d62bae3369dcd485423b69e4fed05a44045f9bae"
+    },
+    {
+      "kind": "file",
+      "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+      "sha256": "fcc9d350493a7acdbc425e3d7cca89ca8904139d28b5edd442b23aeb76333f41"
+    },
+    {
+      "kind": "file",
+      "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+      "sha256": "0ede03483f9008b76c2f96315df10aa5c9f1fd5a946d1e958e3b55d7b3066ca6"
+    }
+  ],
+  "claim_scope": "DIAGNOSTIC_ONLY",
+  "created_unix_time": 1792514472.4641333,
+  "evaluation_inputs": [],
+  "external_status_at_registration": {},
+  "family_budgets": {
+    "crd_original": {
+      "candidate_count": 1,
+      "run_count": 1,
+      "seed_count": 1
+    },
+    "dkd": {
+      "candidate_count": 1,
+      "run_count": 1,
+      "seed_count": 1
+    },
+    "dkd_bce": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_cosine": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_crd_uniform": {
+      "candidate_count": 1,
+      "run_count": 1,
+      "seed_count": 1
+    },
+    "dkd_infonce": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_itrd": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_mse": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_vcs_exact": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_vcs_m1": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_vcs_sampled": {
+      "candidate_count": 5,
+      "run_count": 5,
+      "seed_count": 1
+    },
+    "dkd_vid_pooled": {
+      "candidate_count": 4,
+      "run_count": 4,
+      "seed_count": 1
+    },
+    "itrd_reference": {
+      "candidate_count": 1,
+      "run_count": 1,
+      "seed_count": 1
+    },
+    "kd": {
+      "candidate_count": 1,
+      "run_count": 1,
+      "seed_count": 1
+    },
+    "student": {
+      "candidate_count": 1,
+      "run_count": 1,
+      "seed_count": 1
+    }
+  },
+  "grid": {
+    "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/grid_manifest.json",
+    "sha256": "87e4376f0b2ce3af92b9ce03e4e23e5fe00898d79b73f7c1ebb1176b1da6e19e"
+  },
+  "jobs": [
+    {
+      "candidate": "e00c00bcf5c93a752a448365d23355da6a512ae2baaa5a35af3e79e09d199e89",
+      "config_file_sha256": "25bae9ac81e8e45c49787b28651db220e9f5fcb181b11e5a75495afc328c516f",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/crd_original_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "none",
+          "ce_weight": 1.0,
+          "crd": {
+            "feat_dim": 128,
+            "momentum": 0.5,
+            "negative_mode": "class_excluding_original",
+            "negatives": 16384,
+            "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/RepDistiller",
+            "temperature": 0.07
+          },
+          "crd_weight": 0.8,
+          "feature": "none"
+        },
+        "name": "crd_original",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "17fafddbb4ea5c75ce24cc60cfba9cfb66c7c1f950a1e834bc905e20de076760",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "crd_original",
+      "job_id": "crd_original__e00c00bcf5c93a75__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/crd_original_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "9a80478917510d21411108176eaa8a037df6db6f90c21fb63a360bd50d5a6680",
+      "config_file_sha256": "ba5377c01ac3c200ba43cffe6944050b0017f2715cba7eecc68c0afd42d0280f",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "5fd8c5e4c09ea19f9a8d8d9a3777e376ba85bea1883bf01252027353f0346774",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd",
+      "job_id": "dkd__9a80478917510d21__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "71b2f5bfd17e474eb5d064fa3dd4a14bd60c409d2cc9eab866e3c667b3be5ff2",
+      "config_file_sha256": "11842c09a941ed8fc0439977b0880ea8e54ed5d9b2b3939a4de009af0db57aba",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_bce_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "bce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_bce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "70406e9521585ab03876109b72322af9cbd644b5b8f435105d240539be0e472d",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_bce",
+      "job_id": "dkd_bce__71b2f5bfd17e474e__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_bce_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "784c0e863ff6fdaf9e583cb35fc747282557cc9cb314607108c886f23d870f2e",
+      "config_file_sha256": "62a3c73816ea2a08de5853d9e917a4948de5734b77c8f7a90b8c9e4e47329dd6",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_bce_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "bce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 100.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_bce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "d5ec826e62d7655bf1b90b1ce50fd9d5cf46a718e159d2b85aff0c8d56a4def9",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_bce",
+      "job_id": "dkd_bce__784c0e863ff6fdaf__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_bce_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "983f8f3b6ec82ac5206fa46f597e2a7cf7eddcc516ea7deb9b27b20a8dd7a163",
+      "config_file_sha256": "fec92b3197a851a628da1c34d650c794e9d5cb8e6085bcd6d609edde7e1bd489",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_bce_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "bce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 10.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_bce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "611b68a2b12125f0c5f29f95db04e73e6308f4690a83e40d4f2b948d95c2845a",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_bce",
+      "job_id": "dkd_bce__983f8f3b6ec82ac5__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_bce_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "b4e146fca141a80b626a8524455d6f76c29f550d903db5508a248113713b4705",
+      "config_file_sha256": "46d095975b623b9dd9b9a2e5df50715e43a9ad14175133b4a7246e77d317d377",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_bce_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "bce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.1,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_bce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "b3f00b6b051249291a75891d77a5c7741dd9d3f85e73b49d0bfc4bb80889e7ab",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_bce",
+      "job_id": "dkd_bce__b4e146fca141a80b__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_bce_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "d3ea6ce3a73b2835983e745174737ea09807c4fb0ab759eaf5033dff76971986",
+      "config_file_sha256": "9871bf94517d61588248e1f658b95184c120a41c57c0ce94e42dfd0a9e79da37",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_bce_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "bce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.01,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_bce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "e01c5f2535ba47aa90b2d3b1c540cc269c2843329bc51c4929526f327ac23798",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_bce",
+      "job_id": "dkd_bce__d3ea6ce3a73b2835__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_bce_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "95bc9a93af0dc664a6f63ffd0ada5c19183fb13a0919c731c46ab4eddc2b8ff2",
+      "config_file_sha256": "07faf8412777211aea9058b0cdf755983032d69d495a2b555194bed4d232ea7a",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_cosine_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "cosine",
+          "feature_weight": 0.01,
+          "temperature": 4.0
+        },
+        "name": "dkd_cosine",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "14c3472e9a834a45970de1c9bfb9a265505ee906903c88cc22859c4b672e3d82",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_cosine",
+      "job_id": "dkd_cosine__95bc9a93af0dc664__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_cosine_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "ad11e0003f4ce2e2b0235bad24fe2396a9406f282bab122588e139500212680c",
+      "config_file_sha256": "84dad079b862aa9a5c2cca3e3d296897e8baefe8556596072a10b9e7d54a287a",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_cosine_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "cosine",
+          "feature_weight": 0.1,
+          "temperature": 4.0
+        },
+        "name": "dkd_cosine",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "61a285abb6da43d361cf7e1eb2f3404cf3cb1e347424f819e1ba26d3cf50ae18",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_cosine",
+      "job_id": "dkd_cosine__ad11e0003f4ce2e2__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_cosine_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "bae61b9ec895d6b0d389297593e278a46a8db5f1e2ba417816131760a5e860d6",
+      "config_file_sha256": "de837a24e5c352b7d8faf7e2c5e021ba57e0fbda7038be96b52516b325de9a8a",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_cosine_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "cosine",
+          "feature_weight": 10.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_cosine",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "31dc34faaaf898341f952c119f7911baeb89e9b15e1520a2603a9488b8a81545",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_cosine",
+      "job_id": "dkd_cosine__bae61b9ec895d6b0__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_cosine_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "d74a3aa053bab4ea14120b3125d952e5d399e1e6d4a4fb9a0028a6ca5db34575",
+      "config_file_sha256": "59da301a7944ad071c08fd48933b2379f01b1ea6ee64eb8832971620c7781690",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_cosine_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "cosine",
+          "feature_weight": 100.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_cosine",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "73d49c537b7adf2cdabab513cd6743994f2f1377c63766bc4131a48d8333f6b8",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_cosine",
+      "job_id": "dkd_cosine__d74a3aa053bab4ea__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_cosine_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "d9f73f29b2c71e1e7d5d90fcfc64986f00dc2f2ed95512cf96b02bd3fc26efb9",
+      "config_file_sha256": "f48d8dd67d03e5d6ea5488dc5f15f3bb1b1a13d0edd172d0f95cfaf2feeab37a",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_cosine_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "cosine",
+          "feature_weight": 1.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_cosine",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "8bf5a8afe68275a10de25b4f804cf2d43609a78ac0d4cc17f0a9ae7e29ce3360",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_cosine",
+      "job_id": "dkd_cosine__d9f73f29b2c71e1e__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_cosine_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "b8804aa19a0739bd0fa5cee66bf576c98b7a3c743d37eb6e8c2ce6575d64cd75",
+      "config_file_sha256": "4b5b7ecf8abf0835ed50539b5719bb243eb89c43ed4f4ab4b5071451b463f0e2",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_crd_uniform_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "crd": {
+            "feat_dim": 128,
+            "momentum": 0.5,
+            "negative_mode": "uniform_other_instances",
+            "negatives": 16384,
+            "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/RepDistiller",
+            "temperature": 0.07
+          },
+          "crd_weight": 0.8,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_crd_uniform",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "d3a21be5d0ba104437f4e569541f39663d3d2b0c45c6e5bbe2ede8f8782e02cd",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_crd_uniform",
+      "job_id": "dkd_crd_uniform__b8804aa19a0739bd__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_crd_uniform_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "24dd024887e48c5669eefd5476f9cf457ad115a01933454793a550d4954ec099",
+      "config_file_sha256": "be79e319a7c6e04670f3184e241427183d2b82a352f8074b6d68a47600cf5b38",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_infonce_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "infonce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.01,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_infonce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "266bf6e402397753edfa35bda8b44c12e021766ecfec31887a6673912a368d0a",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_infonce",
+      "job_id": "dkd_infonce__24dd024887e48c56__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_infonce_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "92e05dda81d38e96d944d134db292fa98ce9049d101b19b1eca6dae06699a3a5",
+      "config_file_sha256": "82db95c2bc8bbb659116b1c23a612ff2796c7b885acda272e86457d9283eb153",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_infonce_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "infonce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_infonce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "cabc8b1828103698118955b44ce9258d61c5eac76e0712599b566e872ac4a7db",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_infonce",
+      "job_id": "dkd_infonce__92e05dda81d38e96__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_infonce_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "b710c4ce412a63ec0ff0d393197016febf0c1dd12c3cead8889072df9a160fad",
+      "config_file_sha256": "fab9295230261dedd8e85441a987a71f7b40bf473cd9a0543021a305dcb1e7b7",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_infonce_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "infonce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.1,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_infonce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "1b7aacc18e7e1d42b6fa9d1d51ea81a09cdcdecb88cdf6b8e6a0abf7ee1d2870",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_infonce",
+      "job_id": "dkd_infonce__b710c4ce412a63ec__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_infonce_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "d89595b5820d21e357541cb53b80d803ee687c219f016151190f138250a4fcde",
+      "config_file_sha256": "e7c6539d32aa23765805d1d4ea4d5cc56b7660dbd9f5b449038f7ae14f74fd42",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_infonce_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "infonce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 10.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_infonce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "f3d27e0b4691e13414555050f930a188369f30bcbc6cb2f9c50265fcab26d24f",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_infonce",
+      "job_id": "dkd_infonce__d89595b5820d21e3__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_infonce_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "e827ea08c30fc9a3013511fa4c0e9506ad124ac797296511f1f9cd78be3073e8",
+      "config_file_sha256": "0bd1123568bef62074823fdf864c73752277cb7269edbfd3d50af96f87a94199",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_infonce_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "infonce",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 100.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_infonce",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "e768eec158e2816561ac8f66618c444015639705fe2d9b99b17521b9a7887043",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_infonce",
+      "job_id": "dkd_infonce__e827ea08c30fc9a3__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_infonce_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "0d5f7f045782c4db6abeca716fffd4f3ba2d2846b947a675b43ff4c5b65940c8",
+      "config_file_sha256": "eb7b63f2e2fe6e9dd3b6a1e407c32801210f9319a6e0f84bb78990b28d6d4c51",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_itrd_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "itrd",
+          "feature_weight": 100.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_itrd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "5590e3453d6e392634ddce30815140504b22e3df6d7d3de11ed07f0cd0bf3e50",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_itrd",
+      "job_id": "dkd_itrd__0d5f7f045782c4db__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_itrd_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "173c6246eafdd47f31f1dfed372e4696d20fab4813ab771d140fecac65254109",
+      "config_file_sha256": "7665d343e6fd8bcaeff69f61520056174d1342b595ef96c5bfe54092345df02d",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_itrd_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "itrd",
+          "feature_weight": 0.1,
+          "temperature": 4.0
+        },
+        "name": "dkd_itrd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "2b6661b79fbb9470f4ea65cae4889af75af4de3f401305e8304822f2c83a10d2",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_itrd",
+      "job_id": "dkd_itrd__173c6246eafdd47f__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_itrd_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "221968dadd80262956dcb64fced8f239d3541c464482126f31b2b6198f30d498",
+      "config_file_sha256": "f7c979b61779e354ce31a21627a43a60c259398dabc0affcb02467af8321cc9d",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_itrd_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "itrd",
+          "feature_weight": 0.01,
+          "temperature": 4.0
+        },
+        "name": "dkd_itrd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "5130f59ae117a269bb1b68df9f763846eb33784dfc640abadbfc669af7cf3051",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_itrd",
+      "job_id": "dkd_itrd__221968dadd802629__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_itrd_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "629a0d4185cc6f014be9a1c5c1b48f53ec4647dae7550e1add21e1ba2f019a08",
+      "config_file_sha256": "8303753bf3fcf8f323ff5fa7bf0e199c4205c30a94be9c46317be38784f86d16",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_itrd_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "itrd",
+          "feature_weight": 1.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_itrd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "a2cfbc7473c1a6fefba9edf475ef7518858b3f5f8db871d5358c3cc664cb3d7c",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_itrd",
+      "job_id": "dkd_itrd__629a0d4185cc6f01__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_itrd_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "b081e50fd2b9e719bb3a3db64b868fdea6c6aa89f1668d904756c5c5b98f2e17",
+      "config_file_sha256": "15721c38e5c6b2a5df8d8da990453caccea84de933077198c7109112044f37ac",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_itrd_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "itrd",
+          "feature_weight": 10.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_itrd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "a1c1f00aed4b5f52bfc12a6a88fa5122125438f9a91c9f0cb7e9734f364c5004",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_itrd",
+      "job_id": "dkd_itrd__b081e50fd2b9e719__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_itrd_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "56f99654a8f6f45bdd41b991d22b10921ff5db32fbea86e4e5e8763d538b162f",
+      "config_file_sha256": "1fb79a5c14768ca3bab3982a057387f1a5f94c974feac6c08af9a506d96c011d",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_mse_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "mse",
+          "feature_weight": 10.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_mse",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "9b2d6d0189014731d9cf94c0fed0e7cad6be638f7726d92fecb747032d8e483c",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_mse",
+      "job_id": "dkd_mse__56f99654a8f6f45b__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_mse_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "5e2b0f01bade2921da7c1fbc9276f47702979ce30e3af9d75425706e13b1395d",
+      "config_file_sha256": "e5e0d1de6aef75f2aebe187d22bb7279af4261055b0858cd631a152fbc2bf536",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_mse_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "mse",
+          "feature_weight": 1.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_mse",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "34ba24ccf153786a84d82080472e6f500e8c08d9c556481270cda6d0606f156c",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_mse",
+      "job_id": "dkd_mse__5e2b0f01bade2921__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_mse_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "6d1b5033b52142cd99733dc0942e2d8743c24c0adad8c8f6b6e7bd74f4dde4f6",
+      "config_file_sha256": "7063a5db4fe35e969cdcf8698b8182f436911a663b973fd939051c81d77f30ef",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_mse_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "mse",
+          "feature_weight": 0.1,
+          "temperature": 4.0
+        },
+        "name": "dkd_mse",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "2d853f851a3034079ebe59bddc7baa9ab2e87f62f538c5bfe18a8a88c30ba913",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_mse",
+      "job_id": "dkd_mse__6d1b5033b52142cd__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_mse_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "96d9829c7e251dcb705875890b9c1493fe8bd47e94e6ca753e26d9266fd1743d",
+      "config_file_sha256": "add3d7a54435edbfeb7f7ba2ba442a343e221b475a583a05588305c2540d0e54",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_mse_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "mse",
+          "feature_weight": 0.01,
+          "temperature": 4.0
+        },
+        "name": "dkd_mse",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "75fbf073ee272624c2b4ea3720ef643f754b6b182f0bcdddc35e6c65b59ed72a",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_mse",
+      "job_id": "dkd_mse__96d9829c7e251dcb__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_mse_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "d3979ada489dc918712b70d22f0792a4da1b5ee8df4eead665a99083e7bc2a8b",
+      "config_file_sha256": "12da163aec310d0c231804e7d97d98b730af7d7c4cf6d0c1e5d5022bd47a8cff",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_mse_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "mse",
+          "feature_weight": 100.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_mse",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "6fbceae2feedd251c61b9b4d8f266709ece5560fb905df887d4441e6c2739643",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_mse",
+      "job_id": "dkd_mse__d3979ada489dc918__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_mse_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "24ff5ee25cd128a7b00b45d816c142148d829cc82f198ae2f80e04cc11d2319a",
+      "config_file_sha256": "a5edfec5070d6114085f5c951ceec13b53bd06ba0237a009f79ca5066378c2bd",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_exact_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_exact",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 100.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_exact",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "16d7db745466546ee36864f359313bbb28d20abfb56632d4269270ee0177823f",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_exact",
+      "job_id": "dkd_vcs_exact__24ff5ee25cd128a7__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_exact_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "2645a5a7ad0086359be428fec0cab763aa5e9795547078263b8a9b215f62da39",
+      "config_file_sha256": "90b928fb26fb8bda52ad408b541f9eeffa0b88dfe2976928ef76c00e5d5be214",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_exact_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_exact",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_exact",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "d83b170f9d098c44159ca846e32017d3bd02574774a9a58c01b9b0466d8b189a",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_exact",
+      "job_id": "dkd_vcs_exact__2645a5a7ad008635__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_exact_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "38d2b3b6b1042618f3ec7a17dd2b22ea7b6ed538dfc224cb662aea100bf62100",
+      "config_file_sha256": "0312bb2a039b286974d297ee4ad696e28b11e6e3cff6a8e8ac9e90e2491caff6",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_exact_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_exact",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.1,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_exact",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "d1bdc79459341808e1e50fcc5b3f9b5297eceaaf12e47a9d77fa79b1d24fe09d",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_exact",
+      "job_id": "dkd_vcs_exact__38d2b3b6b1042618__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_exact_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "547f9c80b9418490d604728b962f119fea6674f90b39eb4625907e3e8fdd5b25",
+      "config_file_sha256": "afe17dafd03889126b572121c52b264617ec805e5304171e50963e42733386a9",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_exact_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_exact",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.01,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_exact",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "51b886b6a7f86a04a4538c57ca14e30329b9d8dbc4f9b16dd3046b3d5eb48488",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_exact",
+      "job_id": "dkd_vcs_exact__547f9c80b9418490__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_exact_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "5eff90dc5ff7993416204765f509f555f014d1177249dc429d567e4b54e2f32f",
+      "config_file_sha256": "6ad0cc97ba6c67ea8d0a8a5da9c0457b8411fd797e4bf185a56712dc9838bc74",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_exact_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_exact",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 10.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_exact",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "fc66218ebc54a18557161c4814c9c0433ba11b185668972339a9ae26fae6d8c4",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_exact",
+      "job_id": "dkd_vcs_exact__5eff90dc5ff79934__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_exact_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "01f074e7332de929d0be87f10c7da16df2bf7e92e2eaf4c44c994f813b50e670",
+      "config_file_sha256": "3ff973f292a2f073e29894bbba469876baf15d6c4f60cccacfac8f964b9b5250",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_m1_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_m1",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 10.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_m1",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "3fc429cd1bca6167ece6bcd0da7395aec9450f02b6bff666a0d5dd09ffdf31f9",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_m1",
+      "job_id": "dkd_vcs_m1__01f074e7332de929__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_m1_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "53cc6d1ea8a45574021aaf3e3eb4b8c26266cf4e19760f0118da4a36532b59f5",
+      "config_file_sha256": "c1ea33b919ec9ea2ae0ec170bcf769744dfff7845016f5c2e158996b74a25425",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_m1_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_m1",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 100.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_m1",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "b077339d57c03f8a33eb42fa3496f087479e02ed0f79be154d8c8e80c269bb2e",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_m1",
+      "job_id": "dkd_vcs_m1__53cc6d1ea8a45574__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_m1_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "8370ca36033ee761d03d9154fb8da46f5c866274d7330d96ce082940d3acd554",
+      "config_file_sha256": "44d50366090819869f954d48d6cfd7a927db4e4b7a2ffc68b9a66359bdb8f03f",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_m1_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_m1",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_m1",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "8d6e683eed28bfa1f71666adf254541719ebf377fdc5c04787e326de2e6373b4",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_m1",
+      "job_id": "dkd_vcs_m1__8370ca36033ee761__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_m1_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "9665e1810f628037a1ad5cf0014355c77569d0010faacd262e400ea05a77e30f",
+      "config_file_sha256": "bc14c372449ca259efb2dc4a758d5745cabb6b5e2db7ea9d8a4df4239c10d889",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_m1_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_m1",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.1,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_m1",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "673dc3ea7adeba88743d9c04d59ac545cb9fc03bcd27f3deb06d550b63062228",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_m1",
+      "job_id": "dkd_vcs_m1__9665e1810f628037__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_m1_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "f8313edeb5fa26faec63b8f002bfa8d61a7e618a5d93a7611971b56f6eef3ab3",
+      "config_file_sha256": "a1e04f90520af99b99355c722e1c7971645e714a83a65c2c2c82745af0aee5eb",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_m1_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_m1",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.01,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_m1",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "70424004c57993792af4c2cc3443026804e5792c6fb294be6c436686b2082690",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_m1",
+      "job_id": "dkd_vcs_m1__f8313edeb5fa26fa__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_m1_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "42e24251ed7d617718557416ecb6b1f48146bc9f07c4ae96735b88edec0892bf",
+      "config_file_sha256": "290beb62356138d0049be7bd10a2fa66bfa75f2694eb7a3c75915928bd325ba8",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_sampled_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_sampled",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.1,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_sampled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "77f45b802a2919fd7909a2c1f878fca10b0ba6426593d9400c1ace3e0ccf8991",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_sampled",
+      "job_id": "dkd_vcs_sampled__42e24251ed7d6177__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_sampled_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "66334ae5986fe030511a700dab7f12a476aae3c9b3ceab94706f77e1e078f854",
+      "config_file_sha256": "2950dc641d0d6a692002ee449f58f87f286204abf445870dfb9fa618a3ae17be",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_sampled_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_sampled",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 10.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_sampled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "0d27377ece2d094b9f3fb1a623a024887240032231a56eeac1bb14860494d63e",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_sampled",
+      "job_id": "dkd_vcs_sampled__66334ae5986fe030__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_sampled_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "899a9d7e0611042a867199438a1c943cc1c1c623d8aa83cfc22baa87a289afd0",
+      "config_file_sha256": "ae7b99c72e99f3d7642289d922ff02f4932c42fad4e2eecb725d5821954450ff",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_sampled_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_sampled",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 0.01,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_sampled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "7cbe6fabe629603ea4250c3e0837657bb30df97a33b4f5b2de81ccf829d0d296",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_sampled",
+      "job_id": "dkd_vcs_sampled__899a9d7e0611042a__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_sampled_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "94dac02b4d0004d3ea0e1315fd894aeabc7d93bcdf896d217e36f78688249c3d",
+      "config_file_sha256": "ac9abf3bce2532de01532f259911c98bcb43466edea1ec33a283de96dd3bb653",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_sampled_w100_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_sampled",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 100.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_sampled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "f3f0135f865b0b5967e4ef4296233833c42fec89196b6e85d5be7609f97c61bb",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_sampled",
+      "job_id": "dkd_vcs_sampled__94dac02b4d0004d3__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_sampled_w100_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "b9c1391d5208594899a59f8c6c12127610e45d774f199bdba0d9fdf90373ed80",
+      "config_file_sha256": "eedd7c9bc9ad475deadea8aac90cc3394e47b801f60a9517910beadd5a54c3ea",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vcs_sampled_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dependence": {
+            "method": "vcs_sampled",
+            "nce_temperature": 0.1,
+            "q_mode": "u",
+            "rank": 32,
+            "sampled_draws": 8,
+            "solver_max_iter": 30,
+            "solver_relative_tol": 0.01,
+            "temperature": 1.0
+          },
+          "dependence_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "dkd_vcs_sampled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.001,
+          "head_optimizer": "adamw",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "656a1693640f242c19f52903282a78bd249cee88db524e941c548470ed33ca4a",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vcs_sampled",
+      "job_id": "dkd_vcs_sampled__b9c1391d52085948__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vcs_sampled_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "20df2f9c93fd2e0bccbf2b7ca739d0edf3d7b13bd5293b4d7921799905ca4eaa",
+      "config_file_sha256": "f19d443e8a0b147456d93532a020e8b4aaf21690f0334376fecfcfe6fa9d5abe",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vid_pooled_w10_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "vid_pooled",
+          "feature_weight": 10.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_vid_pooled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "3994bf4f45f3f49783ec4f20195d9016d4a1dcb979dbd7ac13c4b32a6e1ee57a",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vid_pooled",
+      "job_id": "dkd_vid_pooled__20df2f9c93fd2e0b__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vid_pooled_w10_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "4100f0fa2cd0773cb97a13cb88d1cb27bbd84a25d4bb77948027c8a62d6c9aad",
+      "config_file_sha256": "00780c6870f2efed2ab86b899c1a35b7ac4daa9d1933815850b45bfcd1671149",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vid_pooled_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "vid_pooled",
+          "feature_weight": 1.0,
+          "temperature": 4.0
+        },
+        "name": "dkd_vid_pooled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "f6af46d375979d1089963ca28dd0b82d2d431ef5a96322728edef277d3ccce5c",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vid_pooled",
+      "job_id": "dkd_vid_pooled__4100f0fa2cd0773c__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vid_pooled_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "575ceb08a40e183c933f1625e2c0ba3878961683703a1e9b072b479aaa213f42",
+      "config_file_sha256": "7bc5948f018d4153300cab0384a997cf00e19e3d05ac8037998615387a75c095",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vid_pooled_w0.1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "vid_pooled",
+          "feature_weight": 0.1,
+          "temperature": 4.0
+        },
+        "name": "dkd_vid_pooled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "83220a0278b3254d61fbe06eb2c00778a9ce34504fe8616b97ff86ab1c88a6cb",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vid_pooled",
+      "job_id": "dkd_vid_pooled__575ceb08a40e183c__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vid_pooled_w0.1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "82a320bee3f565c3e04c6199303d7f6baf10b03c2fa4a1a7d8643f52b2a3c230",
+      "config_file_sha256": "456ffd4b2f31bf5c095ca4caa81a91e841e4250b0ba7b66b525aa7235987e5c0",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/dkd_vid_pooled_w0.01_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "dkd",
+          "anchor_weight": 1.0,
+          "ce_weight": 1.0,
+          "dkd_alpha": 1.0,
+          "dkd_beta": 6.0,
+          "dkd_warmup": 20,
+          "feature": "vid_pooled",
+          "feature_weight": 0.01,
+          "temperature": 4.0
+        },
+        "name": "dkd_vid_pooled",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "6bb39c56eb38f44ab4ca213ac9fd2f3516ca60ad1547c03342ad352fd2eb123e",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "dkd_vid_pooled",
+      "job_id": "dkd_vid_pooled__82a320bee3f565c3__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/dkd_vid_pooled_w0.01_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "6bfbac7408e71894a0a695a203a40d04ca74b25a4ef514d4ad3339e4b43a15f5",
+      "config_file_sha256": "c9ec330f19be41ce2ecb4597a59cf4a11546ce2bbe94925e4c572aec66736d35",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/itrd_reference_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "none",
+          "ce_weight": 1.0,
+          "feature": "itrd",
+          "feature_weight": 1.0,
+          "itrd": {
+            "alpha": 1.01,
+            "correlation_weight": 2.0,
+            "mutual_weight": 1.0,
+            "std_floor": 0.0
+          }
+        },
+        "name": "itrd_reference",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "3877d3a326275ded0c3f0ba93adb0584eea2833ffedf91d7dea0cb15472ea2b9",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "itrd_reference",
+      "job_id": "itrd_reference__6bfbac7408e71894__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/itrd_reference_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "b7a1003f01e442eb643f478c8e0b3ced9637b68f97890bfc16fc8b7f827322ab",
+      "config_file_sha256": "27f7644d385039d564303b376c3ada1870226f6c00e201b923637d466d4ff23e",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/kd_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "kd",
+          "anchor_weight": 0.9,
+          "ce_weight": 0.1,
+          "feature": "none",
+          "temperature": 4.0
+        },
+        "name": "kd",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "c899bbea9421477a3afbe66d06b760ae423dd3c2ded0c3b850ed0adce5caaf35",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "kd",
+      "job_id": "kd__b7a1003f01e442eb__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/kd_w1_seed27182",
+      "seed": 27182
+    },
+    {
+      "candidate": "0482155bb09df373ab8c811e805a99aa1900d0e0cb22ffef38482387691c9cf9",
+      "config_file_sha256": "18150d4036dcd4311d9b23bf5de80e3aed6a4192fb6fea72f6a2e056f72e3b63",
+      "config_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid50/student_w1_seed27182.json",
+      "effective_config": {
+        "data": {
+          "manifest": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+          "root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100"
+        },
+        "device": "cuda",
+        "loss": {
+          "anchor": "none",
+          "ce_weight": 1.0,
+          "feature": "none"
+        },
+        "name": "student",
+        "notes": [
+          "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+          "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+          "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+        ],
+        "optimizer": {
+          "gamma": 0.1,
+          "head_lr": 0.05,
+          "head_optimizer": "sgd",
+          "head_weight_decay": 0.0,
+          "lr": 0.05,
+          "milestones": [
+            150,
+            180,
+            210
+          ],
+          "momentum": 0.9,
+          "weight_decay": 0.0005
+        },
+        "schema": "kd_config_v1",
+        "seed": 27182,
+        "student": {
+          "backend": "mdistiller",
+          "name": "wrn_16_2",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "teacher": {
+          "backend": "mdistiller",
+          "checkpoint": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher.pt",
+          "name": "wrn_40_2",
+          "provenance": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/teacher_wrn40_2/teacher_provenance.json",
+          "source_root": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller"
+        },
+        "track": "strict_fit_teacher",
+        "training": {
+          "batch_size": 64,
+          "epochs": 240,
+          "workers": 4
+        }
+      },
+      "effective_config_sha256": "678e36d30304b30a09414717e645de767d2d4b3ebda12feda50787b1e498f83c",
+      "expected_split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+      "family": "student",
+      "job_id": "student__0482155bb09df373__seed27182",
+      "run_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/runs/kd_cal/student_w1_seed27182",
+      "seed": 27182
+    }
+  ],
+  "launch_cwd": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020",
+  "limitations": [
+    "No filesystem access control or proof of unseen labels.",
+    "Equal candidate counts do not by themselves establish equal gradient scale or GPU cost.",
+    "Changing this lock after TEST creates a new exploratory study, not a fresh confirmation set."
+  ],
+  "lock_sha256": "4a3b5ced8dff994a95e6036d2058e8084811178680e4cbd9630fa5869f6092d4",
+  "matched_family_groups": [
+    [
+      "dkd_bce",
+      "dkd_vcs_exact",
+      "dkd_vcs_sampled",
+      "dkd_infonce"
+    ]
+  ],
+  "primary_metric": {
+    "direction": "maximize",
+    "name": "top1",
+    "selection": "mean_CAL_across_all_preregistered_seeds",
+    "tie_break": "mean_CAL_nll_then_candidate_hash"
+  },
+  "prior_cal_selection": null,
+  "required_external": [],
+  "required_native": [
+    "crd_original",
+    "dkd",
+    "dkd_bce",
+    "dkd_cosine",
+    "dkd_crd_uniform",
+    "dkd_infonce",
+    "dkd_itrd",
+    "dkd_mse",
+    "dkd_vcs_exact",
+    "dkd_vcs_m1",
+    "dkd_vcs_sampled",
+    "dkd_vid_pooled",
+    "itrd_reference",
+    "kd",
+    "student"
+  ],
+  "schema": "vcs_global_experiment_lock_v1",
+  "scope": "pilot",
+  "source": {
+    "files": [
+      {
+        "path": "kd/__init__.py",
+        "sha256": "29e1224cb1494155d1e02b7ca6272188e1d3bb74fe1155d9559e1bd3d0e6b9e5"
+      },
+      {
+        "path": "kd/__main__.py",
+        "sha256": "63857b78a8aa965dc07f72dee5033d6e1297619e8b47e30acf103c65bef8a114"
+      },
+      {
+        "path": "kd/crd_adapter.py",
+        "sha256": "24f0e9bc19092d679d88a83b74d260f0f7d039faa6e5a61bd7ebfb0cb7e44bcb"
+      },
+      {
+        "path": "kd/data.py",
+        "sha256": "5b1ebdefb533e8955e4bb036346619188be572be0140e21b422e31aa34c8d117"
+      },
+      {
+        "path": "kd/itrd_reference.py",
+        "sha256": "26af3b6be837d7d1b71006c76256a18f7af6841ccb67b8c4037fb0e7df600ca2"
+      },
+      {
+        "path": "kd/losses.py",
+        "sha256": "57b09fa736c14b713b08e01bff6dab36784c530eee3377b7eb7de62a8b4c5795"
+      },
+      {
+        "path": "kd/models.py",
+        "sha256": "4322d8589b8fb6096f2588e261b78435c69acf9d6e6b2a02cab9995b47910af6"
+      },
+      {
+        "path": "kd/runner.py",
+        "sha256": "17dc5d8bd217c055a9e47849b564895b13fbf572445c68b32e408ae1b84aa09c"
+      },
+      {
+        "path": "kd/scripts/bootstrap_external.py",
+        "sha256": "4783da16fdbe7095d257341a197359b834cd447035903d40254922edf2262d68"
+      },
+      {
+        "path": "shared/vcs_common/__init__.py",
+        "sha256": "cf505db216d3b1fa7e0b24aa1007fe514f493447c1332bf7a286920768747e3f"
+      },
+      {
+        "path": "shared/vcs_common/dependence.py",
+        "sha256": "72d2285508604c6563e1daf29c348ac354f9e8f830005ffb116c4e86f753a1da"
+      },
+      {
+        "path": "shared/vcs_common/experiment.py",
+        "sha256": "a30b0dcca082275850f389a05e0f007b062de99c068ef67acf2f860f39d7dfcb"
+      },
+      {
+        "path": "shared/vcs_common/mf_backend.py",
+        "sha256": "cdf5df2e43bacb74b963f7b6b519a962f91fc8e41f28b4f6a4e2696816024973"
+      },
+      {
+        "path": "shared/vcs_common/probes.py",
+        "sha256": "7b030d374740065b60d76deb67a183a6695408ceae75d46014750115ce02fdb5"
+      },
+      {
+        "path": "shared/vcs_common/runtime.py",
+        "sha256": "2b3bba1c91cce56280d61e6b4216569f6aa96de87fa85beb55eed0459676757f"
+      },
+      {
+        "path": "shared/vcs_common/verify_package.py",
+        "sha256": "50a0249680a69227154f2f517c18535d7a84218e7102008bdf75f30fbe0b288e"
+      }
+    ],
+    "root": "/home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/VCS_QMI_KD_AIGIQA_Server_Package_v1_20261019",
+    "sha256": "df7c218caa93dcdd562a0b28c712a64193e6deeaadf9649a19ca40a6caa6e84d"
+  },
+  "source_manifest": {
+    "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+    "sha256": "297f93512af8cd3e810b2f0cef0153ac51f0e3fb9ef10ad3524e1242a706d7ef"
+  },
+  "training_seeds": [
+    27182
+  ]
+}

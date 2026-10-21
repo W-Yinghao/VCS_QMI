@@ -1,0 +1,78 @@
+{
+  "schema": "kd_server_s1_summary_v1",
+  "where": "interactive, inside the main session's Slurm CPU allocation 1045941 (partition CPU, nodecpu08, 2 CPUs); same commands as sbatch/kd_validate_cpu.sbatch",
+  "env_check": "PASS",
+  "verify_package_before": "PASS",
+  "verify_package_after": "PASS",
+  "package_validation": {
+    "status": "PASS",
+    "commands": [
+      [
+        "dependence_tests",
+        true,
+        10,
+        3.9
+      ],
+      [
+        "experiment_tests",
+        true,
+        20,
+        1.2
+      ],
+      [
+        "math",
+        true,
+        null,
+        3.9
+      ],
+      [
+        "variance",
+        true,
+        null,
+        2.6
+      ],
+      [
+        "kd_tests",
+        true,
+        7,
+        4.2
+      ],
+      [
+        "aigiqa_tests",
+        true,
+        6,
+        2.6
+      ],
+      [
+        "kd_smoke",
+        true,
+        null,
+        6.8
+      ],
+      [
+        "aigiqa_smoke",
+        true,
+        null,
+        6.1
+      ]
+    ],
+    "unit_tests_total": 43,
+    "skipped": 0,
+    "summary_sha256": "37dcaf226d0bf0606ea6550d3c5d0d609349865209544d8affc2dac3f20f5473"
+  },
+  "driver_selftest": {
+    "overall": "PASS",
+    "stages": {
+      "cuda_math": "PASS",
+      "env": "PASS",
+      "gpu_smoke": "PASS",
+      "instrument": "PASS",
+      "microbench": "PASS",
+      "resume": "PASS",
+      "stability": "REPORTED",
+      "timing": "PASS"
+    },
+    "meaning": "G0 driver mechanics on the synthetic CPU fixture (incl. SIGKILL + native --resume: exact equality on CPU); not CIFAR evidence"
+  },
+  "exit_code": 0
+}

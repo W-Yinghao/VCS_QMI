@@ -1,0 +1,61 @@
+{
+  "data": {
+    "manifest": "protocol/cifar100_roles.json",
+    "root": "data/cifar100"
+  },
+  "device": "cuda",
+  "loss": {
+    "anchor": "none",
+    "ce_weight": 1.0,
+    "crd": {
+      "feat_dim": 128,
+      "momentum": 0.5,
+      "negative_mode": "class_excluding_original",
+      "negatives": 16384,
+      "source_root": "external/RepDistiller",
+      "temperature": 0.07
+    },
+    "crd_weight": 0.8,
+    "feature": "none"
+  },
+  "name": "crd_original",
+  "notes": [
+    "Primary pair; matches pinned mdistiller DKD solver recipe and beta6, except clean FIT/CAL role separation and explicit auxiliary objective.",
+    "This coefficient is an executable example, not a tuned recommendation. Use equal-budget CAL grid.",
+    "Teacher trained from scratch on FIT, final epoch fixed; official TEST is never loaded during training."
+  ],
+  "optimizer": {
+    "gamma": 0.1,
+    "head_lr": 0.05,
+    "head_optimizer": "sgd",
+    "head_weight_decay": 0.0,
+    "lr": 0.05,
+    "milestones": [
+      150,
+      180,
+      210
+    ],
+    "momentum": 0.9,
+    "weight_decay": 0.0005
+  },
+  "schema": "kd_config_v1",
+  "seed": 27182,
+  "student": {
+    "backend": "mdistiller",
+    "name": "wrn_16_2",
+    "source_root": "external/mdistiller"
+  },
+  "teacher": {
+    "backend": "mdistiller",
+    "checkpoint": "runs/teacher_wrn40_2/teacher.pt",
+    "name": "wrn_40_2",
+    "provenance": "runs/teacher_wrn40_2/teacher_provenance.json",
+    "source_root": "external/mdistiller"
+  },
+  "track": "strict_fit_teacher",
+  "training": {
+    "batch_size": 64,
+    "epochs": 240,
+    "workers": 4
+  }
+}

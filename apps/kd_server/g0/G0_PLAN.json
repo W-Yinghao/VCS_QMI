@@ -1,0 +1,31 @@
+{
+  "schema": "kd_server_g0_plan_v1",
+  "declared": "2026-10-20, before any KD GPU job ran",
+  "purpose": "SERVER_HANDOFF §七 G0 and kd/docs/VALIDATION_AND_LIMITS_CN.md first-server checklist: GPU smoke (CPU smoke config with an explicit cuda device), then short real FIT/CAL instrumentation on the strict FIT teacher. Run once per GPU type (RTX6000PRO, L40S, H100) as the cross-hardware gate of each type and as the per-stratum timing table (INSTALL §2/§5: timings from different environments are never mixed).",
+  "instrumentation_seed": 1729,
+  "seed_note": "1729 is not a CAL (27182) or final (31415/16180/57721) seed. G0 runs are not CAL candidates, are never registered in a lock, and are not used for ranking, lambda choice or grid changes.",
+  "base_config": "apps/VCS_QMI_KD_AIGIQA_Server_Package_v1_20261019/kd/configs/primary_wrn40_2_to_wrn16_2.json",
+  "config_generation": "python -m kd make-grid on the base config (the package's own expansion); the only change in these G0-only copies is training.epochs",
+  "data_roles": "FIT for training, CAL metrics only as instrumentation records; the official CIFAR-100 TEST is never loaded (the gpu_smoke stage evaluates only its synthetic fixture TEST)",
+  "stages": {
+    "env": "vcs_common.runtime.runtime_record + device properties",
+    "gpu_smoke": "kd smoke recipe (synthetic fixture, tiny models, 2 epochs, rank 4, M1 cap 10) with device=<type>; 13 non-CRD arms as in the package smoke plus crd_original and dkd_crd_uniform (official RepDistiller CRD on CUDA); native freeze -> synthetic TEST evaluate -> compare",
+    "cuda_math": "exact MF moments (objective_terms) and dense reference (dense_objective_terms) in float32 on the device vs an independent float64 dense formula on the same float32-rounded inputs; J and a/b/W gradients; n in {64, 256, 1024}, rank 32, U mode",
+    "instrument": "dkd, dkd_bce (w1), dkd_vcs_exact (w1); 3 epochs each; real FIT/CAL",
+    "resume": "dkd_vcs_exact (w1), same config as instrument: SIGKILL right after the epoch-1 checkpoint/history write, then native `kd train --resume` to epoch 3; compare with the uninterrupted instrument run",
+    "timing": "the other 12 families at w1 (student, kd, dkd_mse, dkd_cosine, dkd_vid_pooled, dkd_vcs_sampled, dkd_vcs_m1, dkd_infonce, crd_original, dkd_crd_uniform, itrd_reference, dkd_itrd); 2 epochs each",
+    "stability": "the 9 lambda families at w100 (the grid maximum); 2 epochs each; finiteness only",
+    "microbench": "python -m vcs_common.probes benchmark --device <type> (package microbenchmark, defaults)"
+  },
+  "gates": {
+    "gpu_smoke": "every arm completes; teacher frozen verified for distillation arms; bounded heads |W|<=1; M1 solver statistics present; gradient probes finite; synthetic TEST evaluate + compare complete",
+    "instrument": "3 runs complete 3 epochs; teacher frozen verified; identical student initial state hash across the 3 rows; for dkd_bce and dkd_vcs_exact the weighted representation gradient at the first batch of epochs 1 and 2 (after nonzero head updates) is > 0, W max|.| > 0 after epoch 0, J finite. A zero representation gradient at epoch 0 (W=0) is expected and is NOT a failure",
+    "resume": "kill happened mid-run, resumed run completes 3 epochs, its first 2 history entries equal the pre-kill entries exactly, learning-rate schedule equals the uninterrupted run; metric differences vs the uninterrupted run are reported, not gated (GPU nondeterminism)",
+    "timing": "all 12 families complete 2 epochs (no OOM/nonfinite)",
+    "cuda_math": "reported; WARN (not FAIL) if |dJ|>1e-5 or a relative gradient error >1e-4",
+    "stability": "reported only: a nonfinite failure at w100 is recorded as evidence for the owner before lock registration (a FAILED candidate blocks seal and needs an amendment)",
+    "overall": "PASS iff env, gpu_smoke, instrument, resume and timing pass"
+  },
+  "cleanup": "after sizes and SHA256 are recorded, G0 run checkpoints (last.pt, best.pt) and CAL prediction CSVs are deleted (storage rule); run.json, history.json, best_cal_metrics.json and logs are kept",
+  "outputs": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/g0/<type>_slurm<jobid>/G0_SUMMARY.json"
+}

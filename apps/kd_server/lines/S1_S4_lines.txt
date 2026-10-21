@@ -1,0 +1,32 @@
+# KD server stage lines, 2026-10-20. No --dependency anywhere: submit a line only after its prerequisite succeeded.
+# Logs: /home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out ; per-job hardware/provenance: outputs_apps/kd_20261020/ledger/<kind>/
+#
+# S1  CPU validation (env lock, verify_package before/after, scripts/run_validation.py --with-smokes, G0-driver CPU selftest)
+#     Prerequisite: none.  Success: exit 0; read outputs_apps/kd_20261020/validation/s1_slurm<ID>/S1_SUMMARY.json
+sbatch --job-name=kd_validate_cpu --qos=normal --partition=cpu-high --cpus-per-task=4 --mem=16G --time=00:45:00 --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/sbatch/kd_validate_cpu.sbatch
+#
+# S2  Strict FIT teacher WRN-40-2 (240 epochs, FIT only, fixed final epoch). Starts with a GPU-smoke gate on its GPU type.
+#     Prerequisite: S1 exit 0.  Success: exit 0 and ledger/teacher/teacher_wrn40_2__slurm<ID>.post.json status PASS.
+#     After a timeout/node failure resubmit the SAME line: it resumes from the epoch-boundary last.pt.
+sbatch --job-name=kd_teacher_wrn40_2 --qos=normal --partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60 --gres=gpu:1 --cpus-per-task=8 --mem=24G --time=10:00:00 --nice=0 --no-requeue --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/sbatch/kd_teacher.sbatch /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/VCS_QMI_KD_AIGIQA_Server_Package_v1_20261019/kd/configs/primary_wrn40_2_to_wrn16_2.json runs/teacher_wrn40_2
+#
+# S2b OPTIONAL, not part of round 1 (README_CN priority 3 / SERVER_HANDOFF §八: second architecture only after the
+#     primary pair shows a stable effect). ResNet32x4 strict FIT teacher for the later ResNet32x4 -> ShuffleV2 pair.
+#     Prerequisite: S1 exit 0. Low priority (nice 50).
+sbatch --job-name=kd_teacher_resnet32x4 --qos=normal --partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60 --gres=gpu:1 --cpus-per-task=8 --mem=24G --time=14:00:00 --nice=50 --no-requeue --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/sbatch/kd_teacher.sbatch /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/VCS_QMI_KD_AIGIQA_Server_Package_v1_20261019/kd/configs/secondary_resnet32x4_to_shufflev2.json runs/teacher_resnet32x4
+#
+# S3  G0 CUDA preflight, ONE job per GPU type (pinned on purpose: per-type cross-hardware gate + per-stratum timing table;
+#     INSTALL_CN §2 forbids mixing timings across environments). The three may run at the same time.
+#     Prerequisite: S2 PASS.  Success: exit 0 and g0/<type>_slurm<ID>/G0_SUMMARY.json "overall": "PASS".
+sbatch --job-name=kd_g0_rtx6000pro --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --gres=gpu:1 --cpus-per-task=8 --mem=24G --time=03:00:00 --nice=0 --no-requeue --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/sbatch/kd_g0.sbatch rtx6000pro
+sbatch --job-name=kd_g0_l40s --qos=normal --partition=L40S --exclude=node51,node53,node60 --gres=gpu:1 --cpus-per-task=8 --mem=24G --time=03:00:00 --nice=0 --no-requeue --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/sbatch/kd_g0.sbatch l40s
+sbatch --job-name=kd_g0_h100 --qos=normal --partition=H100 --exclude=node51,node53,node60 --gres=gpu:1 --cpus-per-task=8 --mem=24G --time=03:00:00 --nice=0 --no-requeue --output=/home/infres/yinwang/CS_QMI/slurm_logs/%x_%j.out /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/sbatch/kd_g0.sbatch h100
+#
+# S4  Lock registration (50-candidate grid protocol/kd_cal_grid50; owner 2026-10-20, see DELTA_NOTE.md). Login node,
+#     standard-library hashing. Prerequisite: teacher PASS (1051614) and G0 PASS on RTX6000PRO (1051708) and L40S (1051709).
+#     Writes protocol/kd_cal_lock.json and lines/S5_cal_lines.txt (50 lines, IDs from the lock, --partition=RTX6000PRO,L40S,
+#     nice 50, kd_cal_*, risk-first, --time = 3x the larger RTX/L40S G0 estimate).
+# bash /home/infres/yinwang/CS_QMI/ssl_pilot_app_kd/apps/kd_server/tools/register_cal_lock.sh /home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/g0/rtx6000pro_slurm1051708/G0_SUMMARY.json /home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/g0/l40s_slurm1051709/G0_SUMMARY.json
+#
+# S5  50 CAL candidates: lines/S5_cal_lines.txt (prerequisite S4). lines/S5_cal_lines_PROVISIONAL.txt previews the same
+#     lines from pre-computed IDs; do not submit the provisional file.

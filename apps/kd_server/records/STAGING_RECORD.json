@@ -1,0 +1,102 @@
+{
+  "cal_grid": {
+    "coefficients": [
+      0.01,
+      0.1,
+      1,
+      10,
+      100
+    ],
+    "command": "cd KD_ROOT && python -m kd make-grid --base <pkg>/kd/configs/primary_wrn40_2_to_wrn16_2.json --out protocol/kd_cal_grid --arms student kd dkd dkd_mse dkd_cosine dkd_vid_pooled dkd_bce dkd_vcs_exact dkd_vcs_sampled dkd_vcs_m1 dkd_infonce crd_original dkd_crd_uniform itrd_reference dkd_itrd --seeds 27182 --coefficients 0.01 0.1 1 10 100",
+    "configs": 51,
+    "design_dry_run": "vcs_common.experiment._validate_design with --match dkd_bce,dkd_vcs_exact,dkd_vcs_sampled,dkd_infonce: PASS (1 seed, 15 families, 51 runs, one benchmark)",
+    "equivalence": "all 51 configs byte-identical to the README's three documented invocations (kd_cal_grid 33 + kd_reference_grid 13 + kd_m1_grid 5)",
+    "families": 15,
+    "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_grid/grid_manifest.json",
+    "seed": 27182,
+    "sha256": "de9ab63d8943f110a7b807ae4bae8e865e4a82cc2a036eabaedfc04da071b899"
+  },
+  "created_utc": "2026-10-20T10:41:42+00:00",
+  "data": {
+    "files": {
+      "meta": {
+        "bytes": 1473,
+        "md5": "7973b15100ade9c7d40fb424638fde48",
+        "mode": "0o444",
+        "official_md5_match": null,
+        "sha256": "a5d4786345c961390f865e93b434dbd5c6904ce880667e0cb888c97d449f28b9",
+        "source_sha256_identical": true
+      },
+      "test": {
+        "bytes": 31049707,
+        "md5": "f0ef6b0ae62326f3e7ffdfab6717acfc",
+        "mode": "0o444",
+        "official_md5_match": true,
+        "sha256": "4b67687d9933c4db8f0831104447f15b93774f4f464bd0516f0f0f2ac83b7864",
+        "source_sha256_identical": true
+      },
+      "train": {
+        "bytes": 155249918,
+        "md5": "16019d7e3df5f24257cddd939b257f8d",
+        "mode": "0o444",
+        "official_md5_match": true,
+        "sha256": "735e79b04f092ca3d2e6d07f368c0a7d70d48c48d28865950cc24454cf45129b",
+        "source_sha256_identical": true
+      }
+    },
+    "method": "byte copy (cp --preserve=timestamps) then chmod 444; source untouched; no download (--download never used)",
+    "source_dir": "/projects/EEG-foundation-model/yinghao/FMCA-AV/cifar100",
+    "staged_dir": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/data/cifar100/cifar-100-python",
+    "test_handling": "TEST bytes were hashed only; no TEST label was parsed. TEST is opened only by kd.runner.evaluate via vcs_common.experiment evaluate-kd after seal (package flow)."
+  },
+  "external": {
+    "RepDistiller": {
+      "head": "b84f547c5db6a35318d4671d7d5c4de74c822403",
+      "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/RepDistiller",
+      "python_tree_sha256_as_lock_binds": "bb7dd9067985d51b7a5284adaf61fc2279d0b4fb55c2e36fc09253a2c7b8f987",
+      "remote": "https://github.com/HobbitLong/RepDistiller.git",
+      "tracked_changes": "",
+      "tracked_files": 41
+    },
+    "command": "cd KD_ROOT && python <pkg>/kd/scripts/bootstrap_external.py --out external",
+    "mdistiller": {
+      "head": "a08d46f10d6102bd6e3f258ca5ac880b020ea259",
+      "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/external/mdistiller",
+      "python_tree_sha256_as_lock_binds": "1ed456ea232883a37e0915a1d62bae3369dcd485423b69e4fed05a44045f9bae",
+      "remote": "https://github.com/megvii-research/mdistiller.git",
+      "tracked_changes": "",
+      "tracked_files": 120
+    },
+    "reference_snapshot_check": "23/23 files in kd/references/* byte-identical to the checkouts"
+  },
+  "lock": {
+    "planned_path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/kd_cal_lock.json",
+    "status": "NOT_REGISTERED_YET (needs the strict FIT teacher checkpoint + provenance as hashed assets)"
+  },
+  "package": {
+    "commit": "ae692a96",
+    "kd_source_sha256_as_lock_binds": "df7c218caa93dcdd562a0b28c712a64193e6deeaadf9649a19ca40a6caa6e84d",
+    "package_manifest_sha256": "4c41e86b77e6ff061625d32f304739eee62dba89fd5d786572a4f02046e5a020",
+    "verify_package": "PASS (114 files, 0 errors) on the login node",
+    "zip": "/home/infres/yinwang/CS_QMI/VCS_QMI_KD_AIGIQA_Server_Package_v1_20261019.zip",
+    "zip_sha256": "d77aee1d2d22effc25bd070e8dd7863648d556d3544a120d7b26dccd96710765"
+  },
+  "roles_manifest": {
+    "cal_ids_json_sha256": "c9559310be0ad4a600c3d3c5f8a6c25a6df742dde20ef33d3a9111cd8dce778e",
+    "cal_n": 5000,
+    "cal_per_class": 50,
+    "command": "cd KD_ROOT && python -m kd prepare --data-root data/cifar100 --manifest protocol/cifar100_roles.json",
+    "file_sha256": "297f93512af8cd3e810b2f0cef0153ac51f0e3fb9ef10ad3524e1242a706d7ef",
+    "fit_ids_json_sha256": "9c64fab538c35a4d063c1906f5fb7e6940a6eb0f52412904401ceed4fdd76f46",
+    "fit_n": 45000,
+    "fit_per_class": 450,
+    "independent_check": "45,000/5,000, exactly 450/50 per class for 100 classes, disjoint, union = all 50,000 train indices; stored split_sha256 recomputed",
+    "path": "/home/infres/yinwang/CS_QMI/outputs_apps/kd_20261020/protocol/cifar100_roles.json",
+    "seed": 20261019,
+    "split_sha256": "33b493806be6ac34ec94da3ecc649d1e94fcbdd9b40d44f0bc7f8089ffc45432",
+    "test_ids_n": 10000,
+    "test_labels_read_during_prepare": false,
+    "train_data_sha256": "735e79b04f092ca3d2e6d07f368c0a7d70d48c48d28865950cc24454cf45129b"
+  },
+  "schema": "kd_server_staging_record_v1"
+}
