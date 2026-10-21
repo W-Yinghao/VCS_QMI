@@ -101,7 +101,8 @@ def prepare(a, frozen, unit):
             "shared_stage": shared, "patch_sha256": {p.name: sha(p) for p in patches},
             "effective_code_sha256": {str(p.relative_to(code)): sha(p) for p in sorted(code.rglob("*.py"))},
             "export_manifest": jload(unit / "v9_export/v9_export_manifest.json"), "schedule_values": sched,
-            "lr_multiplier": frozen["lr_multiplier"]["value"], "frozen_config_sha256": sha(unit / "adapter/B0_FROZEN.json")}
+            "lr_multiplier": frozen["lr_multiplier"]["value"], "frozen_config_sha256": sha(unit / "adapter/B0_FROZEN.json"),
+            "gate_report": {"path": a.gate_report, "sha256": sha(a.gate_report)} if a.schedule == "full" else None}
     jdump(unit / "unit.json", info)
     return info
 
@@ -236,7 +237,11 @@ def select(a, frozen, unit):
               "read_trace": {s: trace_summary(unit, f"{s}_trace.jsonl") for s in ("export", "train", "forward", "score")}}
     jdump(unit / "RESULT.json", result)
     if a.schedule == "gate":
-        gate_report(a, frozen, unit, result, rows, fwd)
+        status, health_pass = gate_report(a, frozen, unit, result, rows, fwd)
+        if not health_pass:
+            return 6
+        if status != "B0_PASS":
+            return 5
     return 0
 
 
@@ -294,6 +299,42 @@ def gate_report(a, frozen, unit, result, rows, fwd):
                                                 "method": frozen["families"][a.baseline]["method"], "unit": str(unit), "checks": checks,
                                                 "item6_note": "costs are recorded for the B1 time check; not a pass/fail item"})
     print(status)
+    return status, h["pass"]
+
+
+def check_gate(a, frozen):
+    """full schedule: the same family's B0 gate must be B0_PASS with the same frozen config, patch layer and forward/guard scripts.
+    The driver itself is not compared (its gate-control lines changed after the gates ran); its hash is printed."""
+    if not a.gate_report:
+        print("[n2p] full schedule requires --gate-report")
+        return 7
+    rp = Path(a.gate_report)
+    try:
+        rep, gu = jload(rp), jload(rp.parent / "unit.json")
+    except (OSError, ValueError) as e:
+        print(f"[n2p] gate report unreadable: {e}")
+        return 7
+    b = a.baseline
+    bad = []
+    if rep.get("status") != "B0_PASS":
+        bad.append(f"status {rep.get('status')}")
+    if rep.get("baseline") != b or gu.get("baseline") != b or gu.get("schedule") != "gate":
+        bad.append("not this family's gate unit")
+    if gu.get("frozen_config_sha256") != hashlib.sha256(json.dumps(frozen, indent=1).encode()).hexdigest():
+        bad.append("frozen config differs")
+    for name, path in ((f"{b}_anchor_assisted.diff", REPO / f"v9/patches/{b}_anchor_assisted.diff"),
+                       (f"{b}_n2p_devonly.diff", REPO / f"v9_n2p/ab/patches/{b}_n2p_devonly.diff")):
+        if (gu.get("patch_sha256") or {}).get(name) != sha(path):
+            bad.append(f"patch {name} differs")
+    for f in ("n2p_forward.py", "n2p_guard.py"):
+        g = rp.parent / "adapter" / f
+        if not g.exists() or sha(g) != sha(HERE / f):
+            bad.append(f"{f} differs")
+    if bad:
+        print("[n2p] gate check FAILED: " + "; ".join(bad))
+        return 7
+    print(f"[n2p] gate check PASS: {rp} (driver sha256 {sha(HERE / 'n2p_baseline.py')[:16]})")
+    return 0
 
 
 def main():
@@ -305,10 +346,13 @@ def main():
     ap.add_argument("--rho", type=float, default=0.4)
     ap.add_argument("--unit", required=True)
     ap.add_argument("--frozen", default=str(HERE / "B0_FROZEN.json"), help="frozen config (default: the committed B0_FROZEN.json)")
+    ap.add_argument("--gate-report", default="", help="full schedule: the family's B0GATE_<M>_s917_r04/B0_DEV_ADAPTER_REPORT.json")
     a = ap.parse_args()
     frozen = jload(a.frozen)
     if a.schedule not in frozen["candidate_maps"][a.baseline]:
         raise SystemExit("unknown schedule " + a.schedule)
+    if a.schedule == "full" and check_gate(a, frozen):              # before anything is written
+        return 7
     unit = Path(a.unit)
     print(f"[n2p] {utc()} {a.step} {a.baseline} {a.schedule} s{a.seed} rho{a.rho} host={socket.gethostname()} job={os.environ.get('SLURM_JOB_ID')}", flush=True)
     steps = {"prepare": lambda: (prepare(a, frozen, unit), 0)[1], "train": lambda: train(a, frozen, unit), "forward": lambda: forward(a, frozen, unit),

@@ -6,6 +6,8 @@
   4. read guard: TEST and EVAL_ONLY opens refused, train_* refused under the dev policy, dev_* allowed, trace written
   5. CPU fixture smoke of the real driver (prepare + train) for NCR and L2RM with anchors ON: co-training / rematching epoch runs
      through the patched split path, every candidate saved, native TEST skipped, no TEST / EVAL_ONLY file opened
+  6. gate control (L2RM smoke unit): (a) a gate whose health fails returns non-zero from select; (b) a full unit is refused before
+     anything is written unless --gate-report is this family's B0_PASS gate with the same frozen config / patches / forward+guard
 
     python -I run_cpu_checks.py --work <empty scratch dir> --out <CPU_CHECKS.json>
 """
@@ -144,6 +146,38 @@ def check_smoke(work, data):
     return res
 
 
+def check_gate_control(work):
+    env = {**os.environ, "N2P_CPU_SMOKE": "1", "CUDA_VISIBLE_DEVICES": ""}
+    fz, gate = work / "frozen_l2rm.json", work / "unit_l2rm"
+    drv = lambda step, sched, unit, *extra: subprocess.run([PY, "-I", str(AB / "b0/n2p_baseline.py"), step, "--baseline", "l2rm", "--schedule", sched,
+                                                            "--seed", "901", "--rho", "0.4", "--unit", str(unit), "--frozen", str(fz), *extra],
+                                                           capture_output=True, text=True, env=env).returncode
+    rc = {s: drv(s, "gate", gate) for s in ("forward", "score", "select")}
+    rep_status = json.loads((gate / "B0_DEV_ADAPTER_REPORT.json").read_text())["status"] if (gate / "B0_DEV_ADAPTER_REPORT.json").exists() else None
+    t1 = {"rc": rc, "report_status": rep_status, "pass": rc["forward"] == 0 and rc["score"] == 0 and rc["select"] == 6 and rep_status == "B0_FAIL"}
+    copy = work / "gate_copy"                                         # same gate unit with its status set to B0_PASS
+    shutil.copytree(gate / "adapter", copy / "adapter")
+    shutil.copy(gate / "unit.json", copy / "unit.json")
+    r = json.loads((gate / "B0_DEV_ADAPTER_REPORT.json").read_text())
+    r["status"] = "B0_PASS"
+    (copy / "B0_DEV_ADAPTER_REPORT.json").write_text(json.dumps(r))
+    cases = {}
+    def case(name, unit, *extra, expect):
+        code = drv("prepare", "full", unit, *extra)
+        cases[name] = {"rc": code, "unit_written": unit.exists(), "pass": (code == 0 and unit.exists()) if expect == "accept" else (code == 7 and not unit.exists())}
+    case("no_gate_report", work / "full_a", expect="refuse")
+    case("gate_report_B0_FAIL", work / "full_b", "--gate-report", str(gate / "B0_DEV_ADAPTER_REPORT.json"), expect="refuse")
+    case("gate_B0_PASS_same_identity", work / "full_c", "--gate-report", str(copy / "B0_DEV_ADAPTER_REPORT.json"), expect="accept")
+    u = json.loads((copy / "unit.json").read_text())
+    (copy / "unit.json").write_text(json.dumps(dict(u, frozen_config_sha256="0" * 64)))
+    case("gate_B0_PASS_other_frozen_config", work / "full_d", "--gate-report", str(copy / "B0_DEV_ADAPTER_REPORT.json"), expect="refuse")
+    (copy / "unit.json").write_text(json.dumps(u))
+    (copy / "adapter/n2p_forward.py").write_text((copy / "adapter/n2p_forward.py").read_text() + "\n# changed\n")
+    case("gate_B0_PASS_other_forward_script", work / "full_e", "--gate-report", str(copy / "B0_DEV_ADAPTER_REPORT.json"), expect="refuse")
+    t2 = {"cases": cases, "pass": all(c["pass"] for c in cases.values())}
+    return {"select_nonzero_on_failed_gate": t1, "full_requires_matching_B0_PASS": t2}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--work", required=True)
@@ -154,8 +188,9 @@ def main():
     data = fixture_data(work)
     res = {"frozen_maps": check_maps(), "patches_and_native_path": check_patches_and_native(work), "guard": check_guard(work, data),
            "cpu_smoke": check_smoke(work, data)}
+    res["gate_control"] = check_gate_control(work)
     flat = [res["frozen_maps"]["pass"], res["guard"]["pass"]] + [v["pass"] for v in res["patches_and_native_path"].values()] + \
-           [v["pass"] for v in res["cpu_smoke"].values()]
+           [v["pass"] for v in res["cpu_smoke"].values()] + [v["pass"] for v in res["gate_control"].values()]
     res["status"] = "PASS" if all(flat) else "FAIL"
     res["scope"] = "CPU fixture checks only; not a GPU gate, not B0 PASS"
     Path(a.out).write_text(json.dumps(res, indent=1, default=str))
