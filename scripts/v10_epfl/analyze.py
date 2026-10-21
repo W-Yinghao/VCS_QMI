@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import itertools
 import json
 import os
 import statistics
@@ -50,6 +51,9 @@ REPLICATES = BUNDLES["d9d67cf2"] / "hw_replicates"          # post-hoc hardware 
 REPLICATE_SCHEMA = "v10.epfl.release_hw_replicate.v1"
 CONTROLS = BUNDLES["d9d67cf2"] / "hw_controls"              # its L40S-vs-L40S control (its own release and results root)
 CONTROL_SCHEMA = "v10.epfl.release_hw_control.v1"
+EVAL_NOISE = HANDOFF / "v10_epfl_eval_noise_20261020"        # post-hoc evaluation-noise diagnostic (RELEASE_<ref8>.json, results/, exits/)
+EVAL_NOISE_SCHEMA, EVN_LABEL = "v10.epfl.release_eval_noise.v1", "POST-HOC EVALUATION-NOISE DIAGNOSTIC"
+RULSIF_T1024 = "RuLSIF_exact_v2[T1024]"
 DIAG_LABEL = "POST-HOC HARDWARE SENSITIVITY DIAGNOSTIC"
 
 
@@ -214,6 +218,7 @@ def _q(x):
 
 
 UM = ("success42", "success9", "median_err_full")
+ROW_FIELDS = ("theta", "t", "theta_hat", "t_hat", "err_full", "rot_err_deg", "trans_err_full", "F_hat", "F_true", "n_grid")   # a bitwise row
 
 
 def unit_macro_difference(prim_units, rep_units, units, idx):
@@ -250,7 +255,8 @@ def per_registration(fam, seed, prim_rows, rep_rows):
                     "success9_rerun": y["err_full"] < 9, "theta_hat_primary": x["theta_hat"], "theta_hat_rerun": y["theta_hat"],
                     "delta_theta_hat_deg": y["theta_hat"] - x["theta_hat"], "t_hat_primary": x["t_hat"], "t_hat_rerun": y["t_hat"],
                     "delta_t_hat_norm": math.hypot(*dt), "F_hat_primary": x["F_hat"], "F_hat_rerun": y["F_hat"],
-                    "estimate_bitwise_equal": x["theta_hat"] == y["theta_hat"] and x["t_hat"] == y["t_hat"]})
+                    "estimate_bitwise_equal": x["theta_hat"] == y["theta_hat"] and x["t_hat"] == y["t_hat"], "F_true_equal": x["F_true"] == y["F_true"],
+                    "row_bitwise_equal": all(x[f] == y[f] for f in ROW_FIELDS)})
     return out
 
 
@@ -264,6 +270,7 @@ def agreement(rows):
         return {"both": both, "neither": neither, "primary_only": p_only, "rerun_only": r_only, "disagree": p_only + r_only,
                 "agreement": (both + neither) / n}
     return {"n_registrations": n, "estimate_bitwise_equal": sum(r["estimate_bitwise_equal"] for r in rows),
+            "F_true_equal": sum(r["F_true_equal"] for r in rows), "row_bitwise_equal": sum(r["row_bitwise_equal"] for r in rows),
             "delta_err_full": {"mean": float(d.mean()), "median": float(np.median(d)), "median_abs": float(np.median(ad)),
                                "p95_abs": float(np.percentile(ad, 95)), "max_abs": float(ad.max())},
             "abs_delta_err_full_at_most": {"0.1": int(np.sum(ad <= 0.1)), "1": int(np.sum(ad <= 1.0)), "9": int(np.sum(ad <= 9.0))},
@@ -376,6 +383,112 @@ def control_pairs(inp, group, sets_units, families, problems):
     return diagnostic_pairs(inp, CONTROLS, CONTROL_SCHEMA, group, sets_units, families, problems)
 
 
+def eval_noise_unit(inp, rsha, rel, key, spec, group, sets_units, draws, rec, problems):
+    """One recorded final vs its re-evaluation (eval-noise diagnostic); PENDING / FAIL until a verified COMPLETE re-evaluation exists."""
+    fam, seed = spec["family"], spec["seed"]; u = Path(spec["recorded_unit"]); out = Path(spec["out"])
+    rec_c = inp.json(u / "COMPLETE.json")
+    if inp.files[str(u / "COMPLETE.json")] != spec["complete_sha256"]:
+        problems.append(f"eval noise {key}: the recorded COMPLETE.json changed since the release")
+    base = {"family": fam, "seed": seed, "release": rsha[:8], "recorded_job": spec["recorded_job"], "gpu_name": spec["gpu_name"],
+            "recorded_selected_step": spec["selected_step"]}
+    fails = sorted(out.glob("FAIL_*.json")) if out.exists() else []
+    for f in fails:
+        inp.json(f)
+    if fails:                                         # a failed bitwise check: no result of this unit is used (sticky, no retry)
+        return {**base, "status": "FAIL (no result used): " + ", ".join(f.stem for f in fails)}, None
+    if not (out / "COMPLETE.json").exists():
+        return {**base, "status": "PENDING (started)" if out.exists() else "PENDING"}, None
+    c = inp.json(out / "COMPLETE.json"); idn = c["identity"]; dg = idn.get("diagnostic") or {}
+    new = inp.jsonl(out / "DEV.jsonl"); old = inp.jsonl(u / "DEV.jsonl")
+    dev_w = set(group["roles"]["DEV"]); keys = {(r["window"], r["perturbation"]) for r in new}
+    ok = (c.get("status") == "COMPLETE" and dg.get("kind") == EVN_LABEL and dg.get("release_sha256") == rsha
+          and {k: v for k, v in idn.items() if k != "diagnostic"} == rec_c["identity"] and (c.get("hardware") or {}).get("gpu_name") == spec["gpu_name"]
+          and all(x["status"] == "PASS" for x in c.get("checks", [])) and c["artifacts"].get("DEV.jsonl") == inp.files[str(out / "DEV.jsonl")]
+          and len(new) == len(keys) == 740 and {w for w, _ in keys} == dev_w
+          and {r["checkpoint_sha256"] for r in new} == {spec["selected_checkpoint_sha256"]})
+    receipt = rec.get(c["job"]) or {}
+    if not ok or receipt.get("exit_code") != 0:
+        problems.append(f"eval noise {key}: the re-evaluation is not a verified COMPLETE unit (identity, checks, rows, GPU or exit receipt)")
+        return {**base, "status": "UNVERIFIED (not used)"}, None
+    stats_old = {name: set_stats(old, group["sensitivity_sets"][name], group["window_unit"]) for name in SETS}
+    stats_new = {name: set_stats(new, group["sensitivity_sets"][name], group["window_unit"]) for name in SETS}
+    rows = per_registration(fam, seed, old, new)
+    ag = agreement(rows)
+    if ag["F_true_equal"] != 740:
+        problems.append(f"eval noise {key}: F_true differs in {740 - ag['F_true_equal']} rows despite the job's bitwise checks")
+    text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+    fpath = EVAL_NOISE / "analysis" / f"EVN_{fam}_seed_{seed}.jsonl"
+    entry = {**base, "status": "COMPLETE", "job": c["job"], "hardware": c.get("hardware"), "allocated_hours": (receipt.get("allocated_seconds") or 0) / 3600,
+             "unit_macro_difference": {name: unit_macro_difference(stats_old[name]["_units"], stats_new[name]["_units"], sets_units[name], draws[name])
+                                       for name in SETS},
+             "registration_level_difference": {name: {k: stats_new[name]["registration_level"][k] - stats_old[name]["registration_level"][k] for k in
+                                                      ("success42", "success9", "median_err_full")} for name in SETS},
+             "per_registration_agreement": ag, "per_registration_file": {"path": str(fpath), "sha256": hashlib.sha256(text.encode()).hexdigest(), "rows": len(rows)}}
+    return entry, (str(fpath), text)
+
+
+def eval_noise(inp, group, sets_units, families, rulsif, problems):
+    """Post-hoc evaluation-noise diagnostic (EPFL_EVAL_NOISE_20261020): recorded vs re-evaluated DEV of every final; per family the noise floor
+    (max |re-evaluated - recorded| unit-macro over its finals, each metric and set) beside the between-family differences of the seed means."""
+    rels = sorted(EVAL_NOISE.glob("RELEASE_*.json"))
+    if not rels:
+        return {"status": "NO_RELEASE"}, {}
+    rec = {}
+    for p in sorted((EVAL_NOISE / "exits").glob("*.json")) if (EVAL_NOISE / "exits").exists() else []:
+        r = inp.json(p); rec[r["job"]] = r
+    draws = boot_draws(sets_units); units, files, releases = {}, {}, {}
+    for rp in rels:
+        rel = inp.json(rp); rsha = inp.files[str(rp)]
+        if rel.get("schema") != EVAL_NOISE_SCHEMA:
+            raise RuntimeError(f"{rp} is not an eval-noise release")
+        releases[rp.name] = {"sha256": rsha, "reference_commit": rel["reference_commit"], "recorded_release": rel["recorded_release"]["sha256"],
+                             "units": len(rel["units"])}
+        for key, spec in rel["units"].items():
+            units[key], f = eval_noise_unit(inp, rsha, rel, key, spec, group, sets_units, draws, rec, problems)
+            if f:
+                files[f[0]] = f[1]
+    fams = sorted({v["family"] for v in units.values()})
+    floors = {}
+    for fam in fams:
+        mine = [v for v in units.values() if v["family"] == fam]; done = [v for v in mine if v["status"] == "COMPLETE"]
+        name = RULSIF_T1024 if fam == "RuLSIF_exact_v2" else fam
+        if not done:
+            floors[name] = {"status": "PENDING", "n_finals": len(mine), "n_reevaluated": 0}; continue
+        um = lambda f: {n: {k: f(abs(v["unit_macro_difference"][n]["difference_rerun_minus_primary"][k]) for v in done) for k in UM} for n in SETS}   # noqa: E731
+        ags = [v["per_registration_agreement"] for v in done]
+        floors[name] = {"status": "COMPLETE" if len(done) == len(mine) else f"PARTIAL ({len(done)}/{len(mine)})", "n_finals": len(mine),
+                        "n_reevaluated": len(done), "floor_max_abs": um(max), "mean_abs": um(lambda xs: statistics.fmean(list(xs))),
+                        "per_registration": {"max_disagree42": max(a["success42"]["disagree"] for a in ags), "max_disagree9": max(a["success9"]["disagree"] for a in ags),
+                                             "max_median_abs_delta_err_full": max(a["delta_err_full"]["median_abs"] for a in ags),
+                                             "max_p95_abs_delta_err_full": max(a["delta_err_full"]["p95_abs"] for a in ags),
+                                             "max_abs_delta_err_full": max(a["delta_err_full"]["max_abs"] for a in ags),
+                                             "min_row_bitwise_equal": min(a["row_bitwise_equal"] for a in ags), "min_F_true_equal": min(a["F_true_equal"] for a in ags)}}
+    means = {fam: v["summary"]["seed_mean"] for fam, v in families.items() if v["summary"]["seed_mean"]}
+    r1024 = (rulsif.get("1024") or {}).get("summary") or {}
+    if r1024.get("seed_mean"):
+        means[RULSIF_T1024] = r1024["seed_mean"]
+    between = {}
+    for n in SETS:
+        between[n] = {}
+        for k in UM:
+            rows = []
+            for a, b in itertools.combinations(sorted(means), 2):
+                d = means[a][n]["unit_macro"][k] - means[b][n]["unit_macro"][k]
+                fl = [floors.get(x, {}).get("floor_max_abs", {}).get(n, {}).get(k) for x in (a, b)]
+                floor = max(fl) if all(x is not None for x in fl) else None
+                rows.append({"a": a, "b": b, "difference": d, "observed_repeat_change_max": floor})
+            between[n][k] = rows
+    complete = bool(floors) and all(v["status"] == "COMPLETE" for v in floors.values())
+    return {"status": "COMPLETE" if complete else "PENDING", "label": EVN_LABEL, "releases": releases, "units": units, "family_floors": floors,
+            "family_seed_means": {fam: {n: means[fam][n]["unit_macro"] for n in SETS} for fam in means},
+            "between_family_differences": between,
+            "rule": "observed repeat change of a family = the largest |re-evaluated - recorded| unit-macro value over its re-evaluated finals "
+                    "(each metric, each set; one re-evaluation per final); shown beside each between-family difference",
+            "statement": "an observed change from one re-evaluation per final, not a calibrated noise distribution, noise floor, "
+                         "equivalence bound or significance threshold (review package 2026-10-20 section 4); differences are not "
+                         "declared interpretable or uninterpretable from it", "owner_context_verbatim": "什么快什么来吧"}, files
+
+
 def replicate_vs_control(rep, ctl):
     """Per family: the RTX-vs-L40S pair beside the L40S-vs-L40S pair - |delta| of the unit-macro values (every set) and the per-registration
     agreement.  Numbers only."""
@@ -468,7 +581,8 @@ def analyse(inp):
                                                      for n, r in (g.get("checkpoint_rows_measured") or {}).items() if r.get("energy")}}
     hw_rep, pair_files = replicate_pairs(inp, group, sets_units, families, problems)
     hw_ctl, ctl_files = control_pairs(inp, group, sets_units, families, problems)
-    pair_files = {**pair_files, **ctl_files}
+    evn, evn_files = eval_noise(inp, group, sets_units, families, rulsif, problems)
+    pair_files = {**pair_files, **ctl_files, **evn_files}
     m1 = families["MF_VCS_M1"]["cal"]
     disclosures = {
         "benchmark": "EPFL is a development benchmark (DEV, 72 scene units), reported separately from BF and never pooled with it; no method-superiority "
@@ -489,6 +603,10 @@ def analyse(inp):
                                "with the same science, CAL selection and seed in their own results root; reported beside the primary results, "
                                "never pooled into them; deterministic algorithms are off, so each pair measures hardware together with run-to-run "
                                "non-determinism",
+        "evaluation_noise": "post-hoc evaluation-noise diagnostic (EPFL_EVAL_NOISE_20261020): every final's CAL-selected checkpoint re-evaluated once "
+                            "on DEV with the unchanged evaluator on its recorded GPU type (deterministic algorithms off, so the pose search is not "
+                            "bitwise repeatable; BF TEST_REPEAT134 DEV gates); per family the noise floor beside the between-family differences; "
+                            "differences below the evaluation noise are not interpretable",
         "hardware_controls": "its L40S-vs-L40S control (EPFL_HW_CONTROL_20261020): two L40S finals (seed 1002) rerun on L40S the same way in a "
                              "third results root, shown beside the RTX-vs-L40S pairs; one pair of each kind per family, at different seeds; no "
                              "claim beyond the numbers",
@@ -506,7 +624,7 @@ def analyse(inp):
             "bootstrap": {"B": B_BOOT, "seed": BOOT_SEED, "generator": "numpy.random.default_rng", "resampled": "units, with replacement, the same draws for "
                           "every family within a set", "interval": "percentile 2.5 / 97.5"},
             "families": families, "rulsif_v2": rulsif, "sensitivity_deltas_vs_primary": deltas, "hardware_replicates": hw_rep,
-            "hardware_controls": hw_ctl, "hardware_replicate_vs_control": replicate_vs_control(hw_rep, hw_ctl),
+            "hardware_controls": hw_ctl, "hardware_replicate_vs_control": replicate_vs_control(hw_rep, hw_ctl), "evaluation_noise": evn,
             "disclosures": disclosures, "problems": problems}, pair_files
 
 
@@ -610,12 +728,51 @@ def markdown(res) -> str:
         for key, v in (hc.get("pairs") or {}).items():
             if v["status"].startswith("COMPLETE"):
                 L.append(f"- 对照 {v['family']} 种子 {v['seed']}：逐次配准差异见 `{v['per_registration_file']['path']}`（sha256 {v['per_registration_file']['sha256'][:12]}…）。")
+    ev = res.get("evaluation_noise") or {}
+    L += ["", "## 评估噪声（事后评估噪声诊断，EPFL_EVAL_NOISE_20261020；不改变任何主结果）", ""]
+    if ev.get("status", "NO_RELEASE") == "NO_RELEASE":
+        L.append("- 尚无评估噪声 release。")
+    else:
+        L += ["每个最终单元的 CAL 选中检查点在 DEV（74 × 10）上用不变的评估器、guard 与激活重评一次，在其记录 DEV 的 GPU 类型上；不重新训练。"
+              "观察到的重评变动 = 该族各最终单元 |重评 − 记录| 单元宏平均差的最大值（每个指标、每个集合）。它只是每个最终单元一次重评的观察值，不是已标定的噪声分布、噪声下限、等价界或显著性阈值，不据此判定族间差异能否解释。"
+              f"所有者背景「{ev['owner_context_verbatim']}」。状态：{ev['status']}。", "",
+              "### 各族观察到的重评变动（DEV72_primary 单元宏平均；逐次配准）", "",
+              "| 族 | 重评 / 最终 | 状态 | 最大 abs Δ<42 | 最大 abs Δ<9 | 最大 abs Δ单元中位 err_full | 均值 abs Δ<9 | 最多 <42 翻转 | 最多 <9 翻转 | 最大中位 abs Δerr_full | 最大 abs Δerr_full | 最少逐位相同行 / 740 |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for fam, f in ev["family_floors"].items():
+            if "floor_max_abs" not in f:
+                L.append(f"| {fam} | {f['n_reevaluated']} / {f['n_finals']} | {f['status']} | | | | | | | | | |"); continue
+            fl = f["floor_max_abs"]["DEV72_primary"]; mn = f["mean_abs"]["DEV72_primary"]; g = f["per_registration"]
+            L.append(f"| {fam} | {f['n_reevaluated']} / {f['n_finals']} | {f['status']} | {fl['success42']:.4f} | {fl['success9']:.4f} | {fl['median_err_full']:.3f} | "
+                     f"{mn['success9']:.4f} | {g['max_disagree42']} | {g['max_disagree9']} | {g['max_median_abs_delta_err_full']:.3f} | {g['max_abs_delta_err_full']:.2f} | "
+                     f"{g['min_row_bitwise_equal']} |")
+        L += ["", "### 每个最终单元（DEV72_primary，重评 − 记录）", "",
+              "| 族 | 种子 | GPU | 状态 | Δ<42 | Δ<9 | Δ单元中位 err_full | <42 翻转 | <9 翻转 | abs Δerr_full 中位 / p95 / 最大 | 逐位相同行 | F_true 相同 |",
+              "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        for key, v in sorted(ev["units"].items()):
+            g = (v["gpu_name"] or "").replace("NVIDIA ", "").replace(" Blackwell Server Edition", "")
+            if v["status"] != "COMPLETE":
+                L.append(f"| {v['family']} | {v['seed']} | {g} | {v['status']} | | | | | | | | |"); continue
+            d = v["unit_macro_difference"]["DEV72_primary"]["difference_rerun_minus_primary"]; a = v["per_registration_agreement"]; e = a["delta_err_full"]
+            L.append(f"| {v['family']} | {v['seed']} | {g} | {v['status']} | {d['success42']:+.4f} | {d['success9']:+.4f} | {d['median_err_full']:+.3f} | "
+                     f"{a['success42']['disagree']} | {a['success9']['disagree']} | {e['median_abs']:.3f} / {e['p95_abs']:.3f} / {e['max_abs']:.2f} | "
+                     f"{a['row_bitwise_equal']} | {a['F_true_equal']} |")
+        L += ["", "### 族间差异与观察到的重评变动（DEV72_primary 种子均值，A − B；并列给出，不作判定）", "",
+              "| A | B | Δ<9 | 两族中较大的重评变动 | Δ单元中位 err_full | 两族中较大的重评变动 |", "|---|---|---|---|---|---|"]
+        b9 = ev["between_family_differences"]["DEV72_primary"]["success9"]; bm = ev["between_family_differences"]["DEV72_primary"]["median_err_full"]
+        fm = lambda x, f: "待定" if x is None else format(x, f)       # noqa: E731
+        for x, y in zip(b9, bm):
+            L.append(f"| {x['a']} | {x['b']} | {x['difference']:+.4f} | {fm(x['observed_repeat_change_max'], '.4f')} | {y['difference']:+.3f} | "
+                     f"{fm(y['observed_repeat_change_max'], '.3f')} |")
+        L.append("")
+        L.append("规则：" + ev["rule"] + "；" + ev["statement"] + "。每个最终单元只重评一次；不作方差模型，不据此作进一步结论。")
     L += ["", "## RuLSIF_exact_v2（A1；核字典 10688 → 1024，「容量与成本共同受约束的核基线」；T2048 为预注册容量敏感性，并列、不替代）", ""]
     for T, v in res["rulsif_v2"].items():
         L.append(f"- T{T}（{v.get('role')}）：{v.get('status')}")
         if v.get("summary") and v["summary"]["seed_mean"]:
             u = v["summary"]["seed_mean"]["DEV72_primary"]["unit_macro"]
-            L.append(f"  - 已完成种子 {v['summary']['seeds_complete']}：<42 {u['success42']:.3f}，<9 {u['success9']:.3f}，单元中位 {u['median_err_full']:.2f}（部分结果，待全部完成）")
+            note = "3 个种子均值" if v.get("status") == "COMPLETE" else "部分结果，待全部完成"
+            L.append(f"  - 已完成种子 {v['summary']['seeds_complete']}：<42 {u['success42']:.3f}，<9 {u['success9']:.3f}，单元中位 {u['median_err_full']:.2f}（{note}）")
     L += ["", "## 披露", ""] + [f"- {k}: {json.dumps(v, ensure_ascii=False) if not isinstance(v, str) else v}" for k, v in res["disclosures"].items()]
     L += ["", "## 发现的问题", ""] + ([f"- {p}" for p in res["problems"]] or ["- 无"])
     return "\n".join(L) + "\n"

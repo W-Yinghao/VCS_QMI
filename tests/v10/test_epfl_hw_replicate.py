@@ -22,6 +22,8 @@ HW2 = PR.PROJECT / "handoff" / "v10_epfl_production_hw2_20261020"
 RTX = "NVIDIA RTX PRO 6000 Blackwell Server Edition"
 L40S = "NVIDIA L40S"
 OWNER = {"2026-10-19": "final 放开，CAL 留 L40S", "2026-10-20": "什么快什么来吧"}
+CONTROL_SOURCE_COMMIT = "095ffcb9238d037a29af19b882c34fdad7cbafb8"                      # the control release 5247ce5c (built from it)
+CONTROL_RELEASE_SHA256 = "5247ce5c0407e77ad3d40fe8dd4760801cb88f4410ecac5da355ffe197d96920"
 
 
 def sha(p):
@@ -73,9 +75,12 @@ def test_control_rule_and_records():
     assert review["science_identity"] == {f: v[0] for f, v in sci.items()} and review["science_identity_equal_to_replicate_release"]
     assert review["science_identity_equal_to_base_release"] and review["numerics_identical_to_item5_gate_commit"]
     assert review["base_source_commit"] == HW.REPLICATE_SOURCE_COMMIT
-    rh = load_script("release_hw")
-    assert set(rh.changed_since(HW.REPLICATE_SOURCE_COMMIT)) <= set(review["changed_files_since_base_source"])   # every change reviewed
+    upto = subprocess.run(["git", "-C", str(REPO), "diff", "--name-only", HW.REPLICATE_SOURCE_COMMIT, CONTROL_SOURCE_COMMIT],
+                          capture_output=True, text=True).stdout.split()
+    assert upto and set(upto) <= set(review["changed_files_since_base_source"])                  # every change up to the control's source
     assert all(f not in sci for f in review["changed_files_since_base_source"])
+    assert sha(HW2 / "hw_controls" / "RELEASE.json") == CONTROL_RELEASE_SHA256
+    assert json.loads((HW2 / "hw_controls" / "RELEASE.json").read_text())["source_commit"] == CONTROL_SOURCE_COMMIT
 
 
 def fixture_diag(tmp_path, schema):
