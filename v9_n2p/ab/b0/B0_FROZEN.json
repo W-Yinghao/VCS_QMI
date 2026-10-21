@@ -1,0 +1,890 @@
+{
+ "schema": "v9-n2p-ab-b0-frozen-v1",
+ "frozen_utc": "2026-10-20T14:30:00Z",
+ "status": "FROZEN_BEFORE_ANY_DEV_READ (no N2P forward has run; committed before any GPU job of this adapter)",
+ "package": {
+  "zip_sha256": "6d69b903be661c155e9c5a248a4f1907bdbb0d21364744894a84d838353ffa22",
+  "protocol": "config/ROUND_PROTOCOL.json",
+  "system_protocol_id": "V9_N2P_SYSTEM_FULLDEV_v1"
+ },
+ "source": {
+  "public_commit": "ea0535b516fb49acb5f860b715d87bcd0ad5e6bc",
+  "ncr_clone_commit": "60256ba",
+  "l2rm_clone_commit": "a766c22",
+  "patch_layers": [
+   "v9/patches/<b>_anchor_assisted.diff (unchanged, frozen V9 protocol)",
+   "v9_n2p/ab/patches/<b>_n2p_devonly.diff (N2P)"
+  ]
+ },
+ "paths": {
+  "data_dir": "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/f30k_precomp",
+  "vocab_dir": "/projects/EEG-foundation-model/yinghao/code_v9/SGRAF_py3/vocab",
+  "shared_stage": "/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho{rho}/s{seed}",
+  "envs": {
+   "ncr": "/projects/EEG-foundation-model/yinghao/envs/v9_sgr",
+   "l2rm": "/projects/EEG-foundation-model/yinghao/envs/v9_l2rm"
+  },
+  "clones": {
+   "ncr": "/projects/EEG-foundation-model/yinghao/code_v9/2021-NeurIPS-NCR",
+   "l2rm": "/projects/EEG-foundation-model/yinghao/code_v9/L2RM"
+  }
+ },
+ "families": {
+  "ncr": {
+   "method": "NCR_A",
+   "code_subdir": "NCR",
+   "model_module": "model",
+   "networks": [
+    "model_A",
+    "model_B"
+   ],
+   "validation_shard_size": 100,
+   "trainer": "NCR/run.py",
+   "native_selector": "official best_rsum over main epochs (strict >, earlier epoch keeps ties); warm-up is not a native candidate",
+   "row_label": "SGR x2 (NCR co-training, two-network averaged similarity)"
+  },
+  "l2rm": {
+   "method": "L2RM_A",
+   "code_subdir": "",
+   "model_module": "models",
+   "networks": [
+    "net"
+   ],
+   "validation_shard_size": 1000,
+   "trainer": "main_L2RM.py",
+   "native_selector": "official best_rsum over warm-up and main epochs (strict >, earlier keeps ties)",
+   "row_label": "SGR (L2RM rematching, cost network, image queue)"
+  }
+ },
+ "schedules": {
+  "ncr": {
+   "full": {
+    "warmup_epoch": 5,
+    "num_epochs": 40,
+    "lr_update": 30
+   },
+   "gate": {
+    "warmup_epoch": 5,
+    "num_epochs": 3,
+    "lr_update": 30
+   },
+   "fixed_args": [
+    "--gpu",
+    "0",
+    "--workers",
+    "4",
+    "--data_name",
+    "f30k_precomp",
+    "--learning_rate",
+    "0.0002",
+    "--batch_size",
+    "128",
+    "--noise_ratio",
+    "0"
+   ]
+  },
+  "l2rm": {
+   "full": {
+    "warmup_epoch": 5,
+    "num_epochs": 35,
+    "lr_update": 15
+   },
+   "gate": {
+    "warmup_epoch": 5,
+    "num_epochs": 3,
+    "lr_update": 15
+   },
+   "fixed_args": [
+    "--module_name",
+    "SGR",
+    "--gpu",
+    "0",
+    "--batch_size",
+    "128",
+    "--reg",
+    "0.01",
+    "--lr",
+    "0.0002",
+    "--lr_cost",
+    "2e-6",
+    "--workers",
+    "4",
+    "--data_name",
+    "f30k_precomp",
+    "--queue_length",
+    "128",
+    "--noise_ratio",
+    "0"
+   ]
+  }
+ },
+ "lr_multiplier": {
+  "value": 1.0,
+  "basis": "frozen root protocol tuning_rule x1 contingency: formal x1 runs may run before/without the seed-917 {0.5,1,2} tuning; if that tuning is later run and selects another multiplier, these rows become the x1 sensitivity row. Seed-917 tuning for NCR_A/L2RM_A has never been run, so x1 is NOT a verified optimum."
+ },
+ "candidate_maps": {
+  "ncr": {
+   "full": [
+    {
+     "order": 0,
+     "candidate_id": "warmup:0",
+     "phase": "warmup",
+     "epoch": 0,
+     "file": "warmup_00.pth.tar"
+    },
+    {
+     "order": 1,
+     "candidate_id": "warmup:1",
+     "phase": "warmup",
+     "epoch": 1,
+     "file": "warmup_01.pth.tar"
+    },
+    {
+     "order": 2,
+     "candidate_id": "warmup:2",
+     "phase": "warmup",
+     "epoch": 2,
+     "file": "warmup_02.pth.tar"
+    },
+    {
+     "order": 3,
+     "candidate_id": "warmup:3",
+     "phase": "warmup",
+     "epoch": 3,
+     "file": "warmup_03.pth.tar"
+    },
+    {
+     "order": 4,
+     "candidate_id": "warmup:4",
+     "phase": "warmup",
+     "epoch": 4,
+     "file": "warmup_04.pth.tar"
+    },
+    {
+     "order": 5,
+     "candidate_id": "main:0",
+     "phase": "main",
+     "epoch": 0,
+     "file": "main_00.pth.tar"
+    },
+    {
+     "order": 6,
+     "candidate_id": "main:1",
+     "phase": "main",
+     "epoch": 1,
+     "file": "main_01.pth.tar"
+    },
+    {
+     "order": 7,
+     "candidate_id": "main:2",
+     "phase": "main",
+     "epoch": 2,
+     "file": "main_02.pth.tar"
+    },
+    {
+     "order": 8,
+     "candidate_id": "main:3",
+     "phase": "main",
+     "epoch": 3,
+     "file": "main_03.pth.tar"
+    },
+    {
+     "order": 9,
+     "candidate_id": "main:4",
+     "phase": "main",
+     "epoch": 4,
+     "file": "main_04.pth.tar"
+    },
+    {
+     "order": 10,
+     "candidate_id": "main:5",
+     "phase": "main",
+     "epoch": 5,
+     "file": "main_05.pth.tar"
+    },
+    {
+     "order": 11,
+     "candidate_id": "main:6",
+     "phase": "main",
+     "epoch": 6,
+     "file": "main_06.pth.tar"
+    },
+    {
+     "order": 12,
+     "candidate_id": "main:7",
+     "phase": "main",
+     "epoch": 7,
+     "file": "main_07.pth.tar"
+    },
+    {
+     "order": 13,
+     "candidate_id": "main:8",
+     "phase": "main",
+     "epoch": 8,
+     "file": "main_08.pth.tar"
+    },
+    {
+     "order": 14,
+     "candidate_id": "main:9",
+     "phase": "main",
+     "epoch": 9,
+     "file": "main_09.pth.tar"
+    },
+    {
+     "order": 15,
+     "candidate_id": "main:10",
+     "phase": "main",
+     "epoch": 10,
+     "file": "main_10.pth.tar"
+    },
+    {
+     "order": 16,
+     "candidate_id": "main:11",
+     "phase": "main",
+     "epoch": 11,
+     "file": "main_11.pth.tar"
+    },
+    {
+     "order": 17,
+     "candidate_id": "main:12",
+     "phase": "main",
+     "epoch": 12,
+     "file": "main_12.pth.tar"
+    },
+    {
+     "order": 18,
+     "candidate_id": "main:13",
+     "phase": "main",
+     "epoch": 13,
+     "file": "main_13.pth.tar"
+    },
+    {
+     "order": 19,
+     "candidate_id": "main:14",
+     "phase": "main",
+     "epoch": 14,
+     "file": "main_14.pth.tar"
+    },
+    {
+     "order": 20,
+     "candidate_id": "main:15",
+     "phase": "main",
+     "epoch": 15,
+     "file": "main_15.pth.tar"
+    },
+    {
+     "order": 21,
+     "candidate_id": "main:16",
+     "phase": "main",
+     "epoch": 16,
+     "file": "main_16.pth.tar"
+    },
+    {
+     "order": 22,
+     "candidate_id": "main:17",
+     "phase": "main",
+     "epoch": 17,
+     "file": "main_17.pth.tar"
+    },
+    {
+     "order": 23,
+     "candidate_id": "main:18",
+     "phase": "main",
+     "epoch": 18,
+     "file": "main_18.pth.tar"
+    },
+    {
+     "order": 24,
+     "candidate_id": "main:19",
+     "phase": "main",
+     "epoch": 19,
+     "file": "main_19.pth.tar"
+    },
+    {
+     "order": 25,
+     "candidate_id": "main:20",
+     "phase": "main",
+     "epoch": 20,
+     "file": "main_20.pth.tar"
+    },
+    {
+     "order": 26,
+     "candidate_id": "main:21",
+     "phase": "main",
+     "epoch": 21,
+     "file": "main_21.pth.tar"
+    },
+    {
+     "order": 27,
+     "candidate_id": "main:22",
+     "phase": "main",
+     "epoch": 22,
+     "file": "main_22.pth.tar"
+    },
+    {
+     "order": 28,
+     "candidate_id": "main:23",
+     "phase": "main",
+     "epoch": 23,
+     "file": "main_23.pth.tar"
+    },
+    {
+     "order": 29,
+     "candidate_id": "main:24",
+     "phase": "main",
+     "epoch": 24,
+     "file": "main_24.pth.tar"
+    },
+    {
+     "order": 30,
+     "candidate_id": "main:25",
+     "phase": "main",
+     "epoch": 25,
+     "file": "main_25.pth.tar"
+    },
+    {
+     "order": 31,
+     "candidate_id": "main:26",
+     "phase": "main",
+     "epoch": 26,
+     "file": "main_26.pth.tar"
+    },
+    {
+     "order": 32,
+     "candidate_id": "main:27",
+     "phase": "main",
+     "epoch": 27,
+     "file": "main_27.pth.tar"
+    },
+    {
+     "order": 33,
+     "candidate_id": "main:28",
+     "phase": "main",
+     "epoch": 28,
+     "file": "main_28.pth.tar"
+    },
+    {
+     "order": 34,
+     "candidate_id": "main:29",
+     "phase": "main",
+     "epoch": 29,
+     "file": "main_29.pth.tar"
+    },
+    {
+     "order": 35,
+     "candidate_id": "main:30",
+     "phase": "main",
+     "epoch": 30,
+     "file": "main_30.pth.tar"
+    },
+    {
+     "order": 36,
+     "candidate_id": "main:31",
+     "phase": "main",
+     "epoch": 31,
+     "file": "main_31.pth.tar"
+    },
+    {
+     "order": 37,
+     "candidate_id": "main:32",
+     "phase": "main",
+     "epoch": 32,
+     "file": "main_32.pth.tar"
+    },
+    {
+     "order": 38,
+     "candidate_id": "main:33",
+     "phase": "main",
+     "epoch": 33,
+     "file": "main_33.pth.tar"
+    },
+    {
+     "order": 39,
+     "candidate_id": "main:34",
+     "phase": "main",
+     "epoch": 34,
+     "file": "main_34.pth.tar"
+    },
+    {
+     "order": 40,
+     "candidate_id": "main:35",
+     "phase": "main",
+     "epoch": 35,
+     "file": "main_35.pth.tar"
+    },
+    {
+     "order": 41,
+     "candidate_id": "main:36",
+     "phase": "main",
+     "epoch": 36,
+     "file": "main_36.pth.tar"
+    },
+    {
+     "order": 42,
+     "candidate_id": "main:37",
+     "phase": "main",
+     "epoch": 37,
+     "file": "main_37.pth.tar"
+    },
+    {
+     "order": 43,
+     "candidate_id": "main:38",
+     "phase": "main",
+     "epoch": 38,
+     "file": "main_38.pth.tar"
+    },
+    {
+     "order": 44,
+     "candidate_id": "main:39",
+     "phase": "main",
+     "epoch": 39,
+     "file": "main_39.pth.tar"
+    }
+   ],
+   "gate": [
+    {
+     "order": 0,
+     "candidate_id": "warmup:0",
+     "phase": "warmup",
+     "epoch": 0,
+     "file": "warmup_00.pth.tar"
+    },
+    {
+     "order": 1,
+     "candidate_id": "warmup:1",
+     "phase": "warmup",
+     "epoch": 1,
+     "file": "warmup_01.pth.tar"
+    },
+    {
+     "order": 2,
+     "candidate_id": "warmup:2",
+     "phase": "warmup",
+     "epoch": 2,
+     "file": "warmup_02.pth.tar"
+    },
+    {
+     "order": 3,
+     "candidate_id": "warmup:3",
+     "phase": "warmup",
+     "epoch": 3,
+     "file": "warmup_03.pth.tar"
+    },
+    {
+     "order": 4,
+     "candidate_id": "warmup:4",
+     "phase": "warmup",
+     "epoch": 4,
+     "file": "warmup_04.pth.tar"
+    },
+    {
+     "order": 5,
+     "candidate_id": "main:0",
+     "phase": "main",
+     "epoch": 0,
+     "file": "main_00.pth.tar"
+    },
+    {
+     "order": 6,
+     "candidate_id": "main:1",
+     "phase": "main",
+     "epoch": 1,
+     "file": "main_01.pth.tar"
+    },
+    {
+     "order": 7,
+     "candidate_id": "main:2",
+     "phase": "main",
+     "epoch": 2,
+     "file": "main_02.pth.tar"
+    }
+   ]
+  },
+  "l2rm": {
+   "full": [
+    {
+     "order": 0,
+     "candidate_id": "warmup:0",
+     "phase": "warmup",
+     "epoch": 0,
+     "file": "warmup_00.pth.tar"
+    },
+    {
+     "order": 1,
+     "candidate_id": "warmup:1",
+     "phase": "warmup",
+     "epoch": 1,
+     "file": "warmup_01.pth.tar"
+    },
+    {
+     "order": 2,
+     "candidate_id": "warmup:2",
+     "phase": "warmup",
+     "epoch": 2,
+     "file": "warmup_02.pth.tar"
+    },
+    {
+     "order": 3,
+     "candidate_id": "warmup:3",
+     "phase": "warmup",
+     "epoch": 3,
+     "file": "warmup_03.pth.tar"
+    },
+    {
+     "order": 4,
+     "candidate_id": "warmup:4",
+     "phase": "warmup",
+     "epoch": 4,
+     "file": "warmup_04.pth.tar"
+    },
+    {
+     "order": 5,
+     "candidate_id": "main:0",
+     "phase": "main",
+     "epoch": 0,
+     "file": "main_00.pth.tar"
+    },
+    {
+     "order": 6,
+     "candidate_id": "main:1",
+     "phase": "main",
+     "epoch": 1,
+     "file": "main_01.pth.tar"
+    },
+    {
+     "order": 7,
+     "candidate_id": "main:2",
+     "phase": "main",
+     "epoch": 2,
+     "file": "main_02.pth.tar"
+    },
+    {
+     "order": 8,
+     "candidate_id": "main:3",
+     "phase": "main",
+     "epoch": 3,
+     "file": "main_03.pth.tar"
+    },
+    {
+     "order": 9,
+     "candidate_id": "main:4",
+     "phase": "main",
+     "epoch": 4,
+     "file": "main_04.pth.tar"
+    },
+    {
+     "order": 10,
+     "candidate_id": "main:5",
+     "phase": "main",
+     "epoch": 5,
+     "file": "main_05.pth.tar"
+    },
+    {
+     "order": 11,
+     "candidate_id": "main:6",
+     "phase": "main",
+     "epoch": 6,
+     "file": "main_06.pth.tar"
+    },
+    {
+     "order": 12,
+     "candidate_id": "main:7",
+     "phase": "main",
+     "epoch": 7,
+     "file": "main_07.pth.tar"
+    },
+    {
+     "order": 13,
+     "candidate_id": "main:8",
+     "phase": "main",
+     "epoch": 8,
+     "file": "main_08.pth.tar"
+    },
+    {
+     "order": 14,
+     "candidate_id": "main:9",
+     "phase": "main",
+     "epoch": 9,
+     "file": "main_09.pth.tar"
+    },
+    {
+     "order": 15,
+     "candidate_id": "main:10",
+     "phase": "main",
+     "epoch": 10,
+     "file": "main_10.pth.tar"
+    },
+    {
+     "order": 16,
+     "candidate_id": "main:11",
+     "phase": "main",
+     "epoch": 11,
+     "file": "main_11.pth.tar"
+    },
+    {
+     "order": 17,
+     "candidate_id": "main:12",
+     "phase": "main",
+     "epoch": 12,
+     "file": "main_12.pth.tar"
+    },
+    {
+     "order": 18,
+     "candidate_id": "main:13",
+     "phase": "main",
+     "epoch": 13,
+     "file": "main_13.pth.tar"
+    },
+    {
+     "order": 19,
+     "candidate_id": "main:14",
+     "phase": "main",
+     "epoch": 14,
+     "file": "main_14.pth.tar"
+    },
+    {
+     "order": 20,
+     "candidate_id": "main:15",
+     "phase": "main",
+     "epoch": 15,
+     "file": "main_15.pth.tar"
+    },
+    {
+     "order": 21,
+     "candidate_id": "main:16",
+     "phase": "main",
+     "epoch": 16,
+     "file": "main_16.pth.tar"
+    },
+    {
+     "order": 22,
+     "candidate_id": "main:17",
+     "phase": "main",
+     "epoch": 17,
+     "file": "main_17.pth.tar"
+    },
+    {
+     "order": 23,
+     "candidate_id": "main:18",
+     "phase": "main",
+     "epoch": 18,
+     "file": "main_18.pth.tar"
+    },
+    {
+     "order": 24,
+     "candidate_id": "main:19",
+     "phase": "main",
+     "epoch": 19,
+     "file": "main_19.pth.tar"
+    },
+    {
+     "order": 25,
+     "candidate_id": "main:20",
+     "phase": "main",
+     "epoch": 20,
+     "file": "main_20.pth.tar"
+    },
+    {
+     "order": 26,
+     "candidate_id": "main:21",
+     "phase": "main",
+     "epoch": 21,
+     "file": "main_21.pth.tar"
+    },
+    {
+     "order": 27,
+     "candidate_id": "main:22",
+     "phase": "main",
+     "epoch": 22,
+     "file": "main_22.pth.tar"
+    },
+    {
+     "order": 28,
+     "candidate_id": "main:23",
+     "phase": "main",
+     "epoch": 23,
+     "file": "main_23.pth.tar"
+    },
+    {
+     "order": 29,
+     "candidate_id": "main:24",
+     "phase": "main",
+     "epoch": 24,
+     "file": "main_24.pth.tar"
+    },
+    {
+     "order": 30,
+     "candidate_id": "main:25",
+     "phase": "main",
+     "epoch": 25,
+     "file": "main_25.pth.tar"
+    },
+    {
+     "order": 31,
+     "candidate_id": "main:26",
+     "phase": "main",
+     "epoch": 26,
+     "file": "main_26.pth.tar"
+    },
+    {
+     "order": 32,
+     "candidate_id": "main:27",
+     "phase": "main",
+     "epoch": 27,
+     "file": "main_27.pth.tar"
+    },
+    {
+     "order": 33,
+     "candidate_id": "main:28",
+     "phase": "main",
+     "epoch": 28,
+     "file": "main_28.pth.tar"
+    },
+    {
+     "order": 34,
+     "candidate_id": "main:29",
+     "phase": "main",
+     "epoch": 29,
+     "file": "main_29.pth.tar"
+    },
+    {
+     "order": 35,
+     "candidate_id": "main:30",
+     "phase": "main",
+     "epoch": 30,
+     "file": "main_30.pth.tar"
+    },
+    {
+     "order": 36,
+     "candidate_id": "main:31",
+     "phase": "main",
+     "epoch": 31,
+     "file": "main_31.pth.tar"
+    },
+    {
+     "order": 37,
+     "candidate_id": "main:32",
+     "phase": "main",
+     "epoch": 32,
+     "file": "main_32.pth.tar"
+    },
+    {
+     "order": 38,
+     "candidate_id": "main:33",
+     "phase": "main",
+     "epoch": 33,
+     "file": "main_33.pth.tar"
+    },
+    {
+     "order": 39,
+     "candidate_id": "main:34",
+     "phase": "main",
+     "epoch": 34,
+     "file": "main_34.pth.tar"
+    }
+   ],
+   "gate": [
+    {
+     "order": 0,
+     "candidate_id": "warmup:0",
+     "phase": "warmup",
+     "epoch": 0,
+     "file": "warmup_00.pth.tar"
+    },
+    {
+     "order": 1,
+     "candidate_id": "warmup:1",
+     "phase": "warmup",
+     "epoch": 1,
+     "file": "warmup_01.pth.tar"
+    },
+    {
+     "order": 2,
+     "candidate_id": "warmup:2",
+     "phase": "warmup",
+     "epoch": 2,
+     "file": "warmup_02.pth.tar"
+    },
+    {
+     "order": 3,
+     "candidate_id": "warmup:3",
+     "phase": "warmup",
+     "epoch": 3,
+     "file": "warmup_03.pth.tar"
+    },
+    {
+     "order": 4,
+     "candidate_id": "warmup:4",
+     "phase": "warmup",
+     "epoch": 4,
+     "file": "warmup_04.pth.tar"
+    },
+    {
+     "order": 5,
+     "candidate_id": "main:0",
+     "phase": "main",
+     "epoch": 0,
+     "file": "main_00.pth.tar"
+    },
+    {
+     "order": 6,
+     "candidate_id": "main:1",
+     "phase": "main",
+     "epoch": 1,
+     "file": "main_01.pth.tar"
+    },
+    {
+     "order": 7,
+     "candidate_id": "main:2",
+     "phase": "main",
+     "epoch": 2,
+     "file": "main_02.pth.tar"
+    }
+   ]
+  }
+ },
+ "candidate_rule": "every complete epoch is a candidate, warm-up included; NCR candidate = both networks after both finished the same phase/epoch; order warmup:0..4 then main:0..; expected NCR 45, L2RM 40; missing candidates are recorded, never dropped by score",
+ "dev_identity": {
+  "image_ids": "dev_ids.txt rows 0,5,..,5065 (1014 unique strings); each block of five rows must share one ID and five byte-identical dev_ims.npy rows",
+  "caption_rows": "caption_id = dev_caps.txt row index as a decimal string (0..5069); image_id = dev_ids.txt of that row",
+  "order_hash": "SHA256(UTF8(JSON compact list)) as in the package scorer",
+  "native200": "official dev loader = caption rows 0..999 / images rows 0,5,..,995; verified to equal image_ids[:200] and caption rows [0:1000]"
+ },
+ "forward": "official encode_data + shard_attn_scores with the trainer's validation shard size, eval mode, no grad, official default backend flags (as the trainer); scores stored float32 (the official values are float32)",
+ "scoring": "package v9/evidence/evaluate_dev_scores.py per candidate (NCR: two matrices averaged before Recall)",
+ "selection": {
+  "primary": "max full-DEV rSum over all available frozen candidates; exact ties -> earlier in candidate order",
+  "native_sensitivity": [
+   "official native selector from the trainer's own native200 validations (separate row)",
+   "max native200 rSum recomputed on the ID-verified 200x1000 block (separate row)"
+  ],
+  "never_pooled": "native200 and fullDEV1014 values are never placed in one comparison"
+ },
+ "native200_parity": {
+  "tolerance_max_abs_similarity": 0.001,
+  "frozen_before_first_forward": true,
+  "rule": "same checkpoint, same process: official native path vs the ID-verified block of the full matrix; PASS if IDs/sample counts/shapes agree and max |delta similarity| <= tolerance for every network; every query whose rank differs is listed; the trainer-printed native recalls (0.1 precision) are reported beside them"
+ },
+ "health": {
+  "ncr": {
+   "status": "pre-registered (V9_N2_PROTOCOL_FROZEN_20261015.yaml diagnostic_preregistration_20261017.ncr_health); re-run because 1043807 crashed in the harness",
+   "run": "seed 917, rho 0.4, x1, warm-up 5 + co-training 3, RTX6000PRO only",
+   "fail_rule": "FAIL if the run does not finish, or any co-training dev validation has rSum < 0.5 x the post-warm-up rSum or t2i R@1 < 2.0; also requires the observed index loaded and >= 3 anchor-term lines (scripts/v9/n2_ncr_health.py verdict, reused unchanged)"
+  },
+  "l2rm": {
+   "status": "PROPOSED replacement gate (decision pending): the pre-registered gate was smoke 1043800 (1,000-image subset, collect on a TEST subset); collect/TEST is forbidden in N2P",
+   "run": "seed 917, rho 0.4, x1, warm-up 5 + main 3, any of RTX6000PRO/L40S/H100",
+   "fail_rule": "the NCR rule with the post-warm-up reference = validation after the last warm-up epoch; requires the observed index loaded and >= 3 anchor-term lines"
+  }
+ },
+ "test_isolation": [
+  "--n2p_dev_only removes the native end-of-training TEST evalrank (NCR run.py, L2RM main_L2RM.py)",
+  "the trainer and the forward get a data view containing only train_* / dev_* links (no TEST file reachable)",
+  "n2p_guard.py refuses any test* dataset file and any eval_only file (forward: only dev_* dataset files) and writes the read trace",
+  "n2_official.py collect is never called"
+ ],
+ "hardware": {
+  "ncr": "RTX6000PRO only: frozen protocol (NCR_A 'RTX6000PRO only, never L40S or H100'); a 5+40 unit (~15-16 h on RTX PRO 6000, ~27-31 h on L40S/H100) must fit one 24 h job because NCR has no co-training resume",
+  "l2rm": "RTX6000PRO,L40S,H100 (no pin)"
+ }
+}
