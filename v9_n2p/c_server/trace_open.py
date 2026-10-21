@@ -29,7 +29,8 @@ STAGE_FORBIDDEN = {"c0": COMMON_FORBIDDEN + (_SPLIT.format("dev"), r"_dev_caps_t
 
 
 def install(stage):
-    """Start recording open events; returns finish(out_path, extra) -> trace dict (also written)."""
+    """Start recording open events; returns finish(out_path, extra) -> trace dict (also written).
+    finish.forbidden_hits() lists forbidden paths opened so far, so completion records can wait for a clean trace."""
     if stage not in STAGE_FORBIDDEN:
         raise ValueError(f"unknown stage {stage}")
     opened, state = {}, {"on": True}
@@ -48,6 +49,10 @@ def install(stage):
 
     sys.addaudithook(hook)
     started = time.time()
+
+    def forbidden_hits():
+        return sorted({os.path.realpath(p) for p in list(opened)
+                       if any(re.search(pat, os.path.realpath(p)) for pat in STAGE_FORBIDDEN[stage])})
 
     def finish(out_path, extra=None):
         state["on"] = False
@@ -75,6 +80,7 @@ def install(stage):
             json.dump(trace, handle, indent=1)
         return trace
 
+    finish.forbidden_hits = forbidden_hits
     return finish
 
 

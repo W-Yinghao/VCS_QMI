@@ -100,8 +100,11 @@ def read_gate(root, need_acceptance):
     gate = {"decision": str(p), "decision_sha256": sha256(p), "decision_status": d["status"]}
     if need_acceptance:
         a = root / "c1" / "C1_ACCEPTANCE.json"
-        if not a.is_file() or json.loads(a.read_text()).get("status") != "PASS":
+        acc = json.loads(a.read_text()) if a.is_file() else {}
+        if acc.get("status") != "PASS":
             raise Refused(3, f"technical acceptance {a} is missing or not PASS")
+        if acc.get("gate", {}).get("decision_sha256") != gate["decision_sha256"]:
+            raise Refused(3, f"technical acceptance {a} was made under a different PILOT_DECISION")
         gate.update(acceptance=str(a), acceptance_sha256=sha256(a))
     return gate, verified
 
@@ -255,10 +258,23 @@ def pool_checks(student, rows, weights, seed, cfg, expect=None):
     return checks
 
 
-def train_arm(ctx, inputs, seed, out, epochs, device, stop_epoch_steps=None, expect=None, collate=None):
+def require_clean_trace(trace_hits):
+    hits = trace_hits() if trace_hits is not None else []
+    if hits:
+        raise Refused(9, f"forbidden file access before a completion record: {hits}")
+
+
+def train_arm(ctx, inputs, seed, out, epochs, device, stop_epoch_steps=None, expect=None, collate=None, trace_hits=None):
     from v9.n2.train import WeightedStudent
+
+    class Student(WeightedStudent):
+        def validate(self, host):              # runs before each epoch's checkpoints and before done.json
+            result = super().validate(host)
+            require_clean_trace(trace_hits)
+            return result
+
     spec = protocol()
-    student = WeightedStudent(ctx["cfg"], inputs["rows"], inputs["weights"], collate or ctx["collate"], ctx["dev_images"],
+    student = Student(ctx["cfg"], inputs["rows"], inputs["weights"], collate or ctx["collate"], ctx["dev_images"],
                               ctx["dev_captions"], out, seed, spec["lr_mult"], device=device, weight_lock=inputs["lock"],
                               formal=True, loss_scale=spec["loss_scale"], stop_epoch_steps=stop_epoch_steps)
     checks = pool_checks(student, inputs["rows"], inputs["weights"], seed, ctx["cfg"], expect)
@@ -285,7 +301,7 @@ def log_checks(out, epochs, steps_per_epoch):
 
 
 # ------------------------------------------------------------------------------------------- commands
-def accept(root, seed, steps, attempt_dir):
+def accept(root, seed, steps, attempt_dir, trace_hits=None):
     """Small real-stack check on one seed: both arms, `steps` updates of epoch 0, then one full DEV pass."""
     spec = protocol()
     gate, verified = read_gate(root, need_acceptance=False)
@@ -309,7 +325,8 @@ def accept(root, seed, steps, attempt_dir):
 
         t0 = time.time()
         checks, _ = train_arm(ctx, inputs, seed, out, 1, "cuda", stop_epoch_steps=steps,
-                              expect={**PROTOCOL_POOL, "updates": spec["updates"]}, collate=recording_collate)
+                              expect={**PROTOCOL_POOL, "updates": spec["updates"]}, collate=recording_collate,
+                              trace_hits=trace_hits)
         epoch0 = json.loads((out / "train_log.json").read_text())["epochs"][0]
         report["arms"][arm] = {"handoff_receipt": inputs["receipt"], "pool_checks": checks,
                                "initial_model_sha256": initial_model_sha256(ctx["cfg"], seed),
@@ -329,7 +346,7 @@ def accept(root, seed, steps, attempt_dir):
     return report
 
 
-def run_seed(root, seed):
+def run_seed(root, seed, trace_hits=None):
     spec = protocol()
     gate, verified = read_gate(root, need_acceptance=True)
     precision = configure_precision(spec["precision"])
@@ -356,10 +373,12 @@ def run_seed(root, seed):
         attempt_log(out, {"event": "start", "arm": arm, "environment": env, "precision_effective": precision,
                           "resumes_from_last_pt": (out / "last.pt").is_file()})
         try:
-            checks, _ = train_arm(ctx, inputs, seed, out, cfg.num_epochs, "cuda", expect={**PROTOCOL_POOL, "updates": spec["updates"]})
+            checks, _ = train_arm(ctx, inputs, seed, out, cfg.num_epochs, "cuda", expect={**PROTOCOL_POOL, "updates": spec["updates"]},
+                                  trace_hits=trace_hits)
             post, done = log_checks(out, cfg.num_epochs, PROTOCOL_POOL["steps_per_epoch"])
             if not post["ok"]:
                 raise Refused(4, f"s{seed}/{arm}: completed log fails the checks {post}")
+            require_clean_trace(trace_hits)                     # unit_result COMPLETE only after a clean trace
         except BaseException as exc:
             status = "INTERRUPTED" if isinstance(exc, (SystemExit, KeyboardInterrupt)) else "FAILED"
             attempt_log(out, {"event": "end", "status": status, "elapsed_s": round(time.time() - t0, 1), "error": repr(exc)})
@@ -381,6 +400,31 @@ def run_seed(root, seed):
             "test_read": False})
         results[arm] = "COMPLETE_VERIFIED"
     return results
+
+
+PAIR_VALIDITY = ("same_initial_model", "same_data_order", "same_backend", "same_gpu")
+
+
+def rich_gate(units, pairs):
+    """ROUND_PROTOCOL v9.analysis.new_rich_gate (investment signal only).  Computed only from three complete,
+    fully paired seeds whose severe-collapse status is known for all six units; otherwise null with a status."""
+    deltas = [p["vcs_minus_bce_best_rsum"] for p in pairs]
+    collapse = {arm: sum(units.get(f"s{s}__{arm}", {}).get("severe_collapse") == "YES" for s in SEEDS) for arm in ARMS}
+    unknown = sorted(f"s{s}__{a}" for s in SEEDS for a in ARMS if units.get(f"s{s}__{a}", {}).get("severe_collapse") not in ("YES", "NO"))
+    invalid = [p["seed"] for p in pairs if not all(p.get(k) is True for k in PAIR_VALIDITY)]
+    gate = {"complete_pairs": len(pairs), "invalid_pairs": invalid,
+            "mean_vcs_minus_bce_best_rsum": sum(deltas) / len(deltas) if deltas else None,
+            "positive_seeds": sum(d > 0 for d in deltas), "severe_collapse_yes": collapse,
+            "severe_collapse_unknown": len(unknown), "severe_collapse_unknown_units": unknown, "investment_signal": None}
+    if invalid:
+        gate["status"] = "PAIRING_INVALID"
+    elif len(pairs) < 3 or unknown:
+        gate["status"] = "INCOMPLETE"
+    else:
+        gate["status"] = "COMPUTED"
+        gate["investment_signal"] = gate["mean_vcs_minus_bce_best_rsum"] >= 3.0 and gate["positive_seeds"] >= 2 \
+            and collapse["RICH_VCS"] <= collapse["RICH_BCE"]
+    return gate
 
 
 def summarize(root):
@@ -420,15 +464,7 @@ def summarize(root):
                           **{f"vcs_minus_bce_{k}": v[k] - c[k] for k in RECALLS},
                           "vcs_minus_bce_last_rsum": v["last_rsum"] - c["last_rsum"],
                           "vcs_minus_bce_mean_last5_rsum": v["mean_last5_rsum"] - c["mean_last5_rsum"]})
-    deltas = [p["vcs_minus_bce_best_rsum"] for p in pairs]
-    collapse = {arm: sum(units[f"s{s}__{arm}"].get("severe_collapse") == "YES" for s in SEEDS) for arm in ARMS}
-    gate = None
-    if len(pairs) == 3:                    # ROUND_PROTOCOL v9.analysis.new_rich_gate: investment signal only
-        gate = {"mean_vcs_minus_bce_best_rsum": sum(deltas) / 3, "positive_seeds": sum(d > 0 for d in deltas),
-                "severe_collapse_yes": collapse,
-                "severe_collapse_unknown": sum(units[f"s{s}__{a}"].get("severe_collapse") == "UNKNOWN" for s in SEEDS for a in ARMS)}
-        gate["investment_signal"] = gate["mean_vcs_minus_bce_best_rsum"] >= 3.0 and gate["positive_seeds"] >= 2 \
-            and collapse["RICH_VCS"] <= collapse["RICH_BCE"]
+    gate = rich_gate(units, pairs)
     summary = {"schema": "v9-n2p-c1-summary-v1", "utc": utc(), "primary": spec["primary"], "units": units, "pairs": pairs,
                "new_rich_gate": gate, "gate_rule": json.loads((PKG / "config" / "ROUND_PROTOCOL.json").read_text())["v9"]["analysis"]["new_rich_gate"],
                "unit_of_analysis": "seed (three paired seeds); DEV is developmental; no TEST read",
@@ -461,9 +497,9 @@ def main():
     code, result, report = 0, None, None
     try:
         if a.command == "accept":
-            report = accept(root, a.seed, a.steps, attempt_dir)
+            report = accept(root, a.seed, a.steps, attempt_dir, finish.forbidden_hits)
         else:
-            result = run_seed(root, a.seed)
+            result = run_seed(root, a.seed, finish.forbidden_hits)
     except Refused as exc:
         code, result = exc.code, str(exc)
         print(f"REFUSED({exc.code}): {exc}", file=sys.stderr)

@@ -51,11 +51,80 @@ class TraceTests(unittest.TestCase):
             code, trace = self.run_traced(tmp, f"open({str(tmp / 'dev_caps.txt')!r}).read()\n", stage="c1")
             self.assertEqual((code, trace["status"]), (0, "PASS"))
 
+    def test_forbidden_hits_are_visible_before_finish(self):
+        import trace_open
+        with tempfile.TemporaryDirectory() as d:
+            bad = Path(d) / "eval_only" / "pairs.eval_only.json"
+            bad.parent.mkdir()
+            bad.write_text("{}")
+            finish = trace_open.install("c1")
+            self.assertEqual(finish.forbidden_hits(), [])
+            bad.read_text()
+            self.assertEqual(finish.forbidden_hits(), [str(bad.resolve())])
+            self.assertEqual(finish(Path(d) / "trace.json")["status"], "FORBIDDEN_ACCESS")
+
     def test_script_failure_is_recorded(self):
         with tempfile.TemporaryDirectory() as d:
             code, trace = self.run_traced(Path(d), "raise ValueError('boom')\n")
             self.assertEqual(code, 1)
             self.assertIn("boom", trace["error"])
+
+
+class InvestmentGateTests(unittest.TestCase):
+    @staticmethod
+    def case(deltas, valid, collapse):
+        units = {f"s{s}__{a}": {"severe_collapse": collapse} for s in C.SEEDS for a in C.ARMS}
+        pairs = [{"seed": s, **{k: valid for k in C.PAIR_VALIDITY}, "vcs_minus_bce_best_rsum": d} for s, d in zip(C.SEEDS, deltas)]
+        return C.rich_gate(units, pairs)
+
+    def test_reviewer_counterexample_is_not_a_signal(self):
+        gate = self.case([5.0, 5.0, 5.0], False, "UNKNOWN")      # all pairs mismatched, all collapse UNKNOWN
+        self.assertEqual(gate["status"], "PAIRING_INVALID")
+        self.assertIsNone(gate["investment_signal"])
+
+    def test_unknown_collapse_or_missing_pair_is_incomplete(self):
+        for gate in (self.case([5.0, 5.0, 5.0], True, "UNKNOWN"), self.case([5.0, 5.0], True, "NO")):
+            self.assertEqual(gate["status"], "INCOMPLETE")
+            self.assertIsNone(gate["investment_signal"])
+
+    def test_valid_pairs_compute_the_rule(self):
+        self.assertIs(self.case([5.0, 5.0, -1.0], True, "NO")["investment_signal"], True)
+        gate = self.case([-4.596, -11.716, 6.095], True, "NO")
+        self.assertEqual((gate["status"], gate["positive_seeds"], gate["investment_signal"]), ("COMPUTED", 1, False))
+
+
+class CrosscheckReuseTests(unittest.TestCase):
+    """c0_extract.sbatch accepts or reuses a TORCH_CROSSCHECK receipt only when it says PASS."""
+
+    def run_extract(self, tmp, out_receipt=None, records_receipt=None, block_rerun=False):
+        root, records = tmp / "root", tmp / "records"
+        (root / "c0" / "traces").mkdir(parents=True, exist_ok=True)
+        (records / "c0").mkdir(parents=True, exist_ok=True)
+        if out_receipt is not None:
+            C.write_json(root / "c0" / "TORCH_CROSSCHECK_SERVER.json", out_receipt)
+        if records_receipt is not None:
+            C.write_json(records / "c0" / "TORCH_CROSSCHECK_SERVER.json", records_receipt)
+        if block_rerun:                    # trace_open refuses an existing trace, so no real crosscheck starts
+            (root / "c0" / "traces" / "crosscheck_t.json").write_text("{}")
+        env = dict(os.environ, N2PC_ROOT=str(root), N2PC_RECORDS=str(records), SLURM_JOB_ID="t", SEEDS=" ")
+        proc = subprocess.run(["bash", str(HERE / "c0_extract.sbatch")], env=env, capture_output=True, text=True)
+        return proc.returncode, proc.stdout, root / "c0" / "TORCH_CROSSCHECK_SERVER.json"
+
+    def test_existing_non_pass_receipt_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            code, stdout, _ = self.run_extract(Path(d), out_receipt={"status": "FAIL"})
+            self.assertEqual(code, 3)
+            self.assertIn("REFUSED", stdout)
+
+    def test_only_a_pass_receipt_is_reused(self):
+        with tempfile.TemporaryDirectory() as d:
+            code, stdout, receipt = self.run_extract(Path(d), records_receipt={"status": "PASS"})
+            self.assertEqual(code, 0, stdout)
+            self.assertEqual(json.loads(receipt.read_text())["status"], "PASS")
+        with tempfile.TemporaryDirectory() as d:
+            code, stdout, receipt = self.run_extract(Path(d), records_receipt={"status": "FAIL"}, block_rerun=True)
+            self.assertNotEqual(code, 0)
+            self.assertFalse(receipt.exists())
 
 
 class GateTests(unittest.TestCase):
@@ -79,8 +148,16 @@ class GateTests(unittest.TestCase):
             C.write_json(root / "c1" / "C1_ACCEPTANCE.json", {"status": "FAIL"})
             with self.assertRaises(C.Refused):
                 C.read_gate(root, True)
-            C.write_json(root / "c1" / "C1_ACCEPTANCE.json", {"status": "PASS"})
+            C.write_json(root / "c1" / "C1_ACCEPTANCE.json", {"status": "PASS"})          # no decision binding
+            with self.assertRaises(C.Refused):
+                C.read_gate(root, True)
+            C.write_json(root / "c1" / "C1_ACCEPTANCE.json", {"status": "PASS", "gate": {"decision_sha256": gate["decision_sha256"]}})
             self.assertIn("acceptance_sha256", C.read_gate(root, True)[0])
+            decision["note"] = "a later, different decision file"
+            C.write_json(root / "c0" / "PILOT_DECISION.json", decision)
+            with self.assertRaises(C.Refused) as ctx:                       # acceptance made under another decision
+                C.read_gate(root, True)
+            self.assertIn("different PILOT_DECISION", str(ctx.exception))
 
     def test_pair_environment_must_not_change_between_attempts(self):
         with tempfile.TemporaryDirectory() as d:
@@ -148,9 +225,22 @@ class StudentSmokeTests(unittest.TestCase):
             self.assertTrue(pair["same_initial_model"] and pair["same_data_order"])
             self.assertAlmostEqual(pair["vcs_minus_bce_best_rsum"],
                                    summary["units"]["s901__RICH_VCS"]["best_rsum"] - summary["units"]["s901__RICH_BCE"]["best_rsum"])
-            self.assertIsNone(summary["new_rich_gate"])             # needs all three seeds
+            self.assertEqual(summary["new_rich_gate"]["status"], "INCOMPLETE")      # needs all three seeds
+            self.assertIsNone(summary["new_rich_gate"]["investment_signal"])
             self.assertEqual(summary["units"]["s902__RICH_VCS"]["status"], "NOT_COMPLETE")
             self.assertTrue((root / "c1" / "C1_EPOCHS.csv").is_file())
+
+    def test_no_completion_record_after_forbidden_read(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = Path(d) / "unit"
+            inputs = {"rows": self.rows, "weights": self.weights["RICH_VCS"], "lock": {"sha256": "SYNTHETIC"}}
+            with self.assertRaises(C.Refused) as ctx:
+                C.train_arm(self.ctx, inputs, 901, out, 2, "cpu", trace_hits=lambda: ["/x/eval_only/pairs.eval_only.json"])
+            self.assertEqual(ctx.exception.code, 9)
+            self.assertFalse((out / "done.json").exists() or (out / "last.pt").exists() or (out / "best.pt").exists())
+            with self.assertRaises(C.Refused):
+                C.require_clean_trace(lambda: ["/x/test_ims.npy"])
+            C.require_clean_trace(lambda: [])
 
     def test_pool_checks_catch_wrong_anchor_weight_or_normaliser(self):
         import numpy as np

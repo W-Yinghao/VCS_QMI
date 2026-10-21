@@ -17,11 +17,14 @@ OUT=$N2PC_ROOT/c0; RI=$N2PC_PKG/v9/rich_input; mkdir -p "$OUT/traces" "$N2PC_REC
 T=("$N2PC_PY_C0" -I -B "$N2PC_SERVER/trace_open.py" --stage c0)
 echo "host=$(hostname) gpu=$(nvidia-smi --query-gpu=name,driver_version --format=csv,noheader | head -1) job=$J start=$(date -u +%FT%TZ) root=$N2PC_ROOT"
 rc=0
+receipt_pass() { "$N2PC_PY_C0" -I -B -c 'import json,sys; sys.exit(0 if json.load(open(sys.argv[1])).get("status") == "PASS" else 1)' "$1" 2>/dev/null; }
 # The crosscheck is a CPU-only check; a PASS receipt already produced in the C0 env (records dir) is reused, not rerun.
-if [ ! -f "$OUT/TORCH_CROSSCHECK_SERVER.json" ] && grep -q '"status": "PASS"' "$N2PC_RECORDS/c0/TORCH_CROSSCHECK_SERVER.json" 2>/dev/null; then
+if [ ! -f "$OUT/TORCH_CROSSCHECK_SERVER.json" ] && receipt_pass "$N2PC_RECORDS/c0/TORCH_CROSSCHECK_SERVER.json"; then
   cp "$N2PC_RECORDS/c0/TORCH_CROSSCHECK_SERVER.json" "$OUT/"; echo "crosscheck: reusing PASS receipt from $N2PC_RECORDS/c0"
 fi
-if [ ! -f "$OUT/TORCH_CROSSCHECK_SERVER.json" ]; then
+if [ -f "$OUT/TORCH_CROSSCHECK_SERVER.json" ]; then
+  receipt_pass "$OUT/TORCH_CROSSCHECK_SERVER.json" || { echo "REFUSED: $OUT/TORCH_CROSSCHECK_SERVER.json is not PASS"; exit 3; }
+else
   "${T[@]}" --out "$OUT/traces/crosscheck_$J.json" -- "$RI/torch_crosscheck.py" --repo "$N2PC_REPO" \
     --out "$OUT/TORCH_CROSSCHECK_SERVER.json"
   r=$?; echo "crosscheck rc=$r $(date -u +%FT%TZ)"; cp "$OUT/TORCH_CROSSCHECK_SERVER.json" "$N2PC_RECORDS/c0/" 2>/dev/null

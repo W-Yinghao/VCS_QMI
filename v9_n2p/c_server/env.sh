@@ -5,7 +5,7 @@ N2PC_SERVER=$N2PC_REPO/v9_n2p/c_server
 # Output root (proposed: home; /projects is below its 1.2 TB free floor).  Override by exporting N2PC_ROOT
 # before sbatch; c1_student.py takes the same path through --root.
 N2PC_ROOT=${N2PC_ROOT:-/home/infres/yinwang/CS_QMI/outputs_v9_n2p/c_20261020}
-N2PC_RECORDS=/home/infres/yinwang/CS_QMI/handoff/v9_n2p_20261020/rich
+N2PC_RECORDS=${N2PC_RECORDS:-/home/infres/yinwang/CS_QMI/handoff/v9_n2p_20261020/rich}
 N2PC_OLD=/projects/EEG-foundation-model/yinghao/outputs_v9/n2/f30k/rho0.4
 N2PC_DATA=/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/f30k_precomp
 N2PC_VOCAB=/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/vocab/f30k_precomp_vocab.json
