@@ -41,18 +41,24 @@ def main():
             units.append({"line": f"EPFL RuLSIF_exact_v2 T{T} ({v['role']})", "unit": f"seed_{s}",
                           "state": "COMPLETE_VERIFIED" if s in v["summary"].get("seeds_complete", []) else "NOT_SUBMITTED",
                           "evidence": str(HO / f"v10_epfl_rulsif_v2_T{T}_20261020")})
+    evn_names = {}
+    for l in open(HO / "v10_epfl_eval_noise_20261020/JOB_LINES.txt"):
+        if "--job-name=" in l:
+            t = l.split(); evn_names[f"{t[-2].strip(chr(39))}/{t[-1]}"] = l.split("--job-name=")[1].split()[0]
     for k, v in (ep.get("evaluation_noise") or {}).get("units", {}).items():
-        units.append({"line": "EPFL evaluation-noise re-evaluation (post hoc, DEV)", "unit": k,
-                      "state": "COMPLETE_VERIFIED" if v["status"] == "COMPLETE" else "NOT_SUBMITTED",
-                      "evidence": str(HO / "v10_epfl_eval_noise_20261020")})
-    st = json.loads(subprocess.run([PY, "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v5_20261020/scripts/v10_test_repeat/status.py",
+        name = evn_names.get(k)
+        st = "COMPLETE_VERIFIED" if v["status"] == "COMPLETE" else (q[name][1] if name in q and q[name][1] == "RUNNING" else
+                                                                    "QUEUED" if name in q else "NOT_SUBMITTED")
+        units.append({"line": "EPFL evaluation-noise re-evaluation (post hoc, DEV)", "unit": k, "state": st,
+                      "job": q.get(name, (None,))[0], "evidence": str(HO / "v10_epfl_eval_noise_20261020")})
+    st = json.loads(subprocess.run([PY, "/home/infres/yinwang/CS_QMI/ssl_pilot_v10_test_repeat_exec_v6_20261020/scripts/v10_test_repeat/status.py",
                                     "--json"], capture_output=True, text=True, cwd="/home/infres/yinwang/CS_QMI").stdout)
     names = {l.split(" test ")[1].strip(): l.split("--job-name=")[1].split()[0]
-             for l in open(HO / "v10_test_repeat134_20261020/SBATCH_LINES.txt") if " test " in l}
+             for f in ("SBATCH_LINES.txt", "SBATCH_LINES_V6.txt") for l in open(HO / "v10_test_repeat134_20261020" / f) if " test " in l}
     for u, name in names.items():
         state = ("COMPLETE_VERIFIED" if u in st["units_done"] else "BLOCKED" if u in st["units_blocked"] else
                  q[name][1] if name in q and q[name][1] in ("RUNNING",) else "QUEUED" if name in q else "NOT_SUBMITTED")
-        units.append({"line": "TEST_REPEAT134 v5 (same-job DEV32 then TEST134)", "unit": u, "state": state,
+        units.append({"line": "TEST_REPEAT134 v5 + v6 CoMIR (same-job DEV32 then TEST134)", "unit": u, "state": state,
                       "job": q.get(name, (None,))[0], "evidence": str(HO / "v10_test_repeat134_20261020")})
     counts = {}
     for x in units:
