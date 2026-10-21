@@ -34,9 +34,15 @@ from pathlib import Path
 DATA = Path("/projects/EEG-foundation-model/yinghao/data"); MODELS = Path("/projects/EEG-foundation-model/yinghao/models")
 MANIFEST = Path(__file__).resolve().parents[1] / "data" / "DATA_MANIFEST.json"; LOG = Path("/home/infres/yinwang/CS_QMI/slurm_logs/data_fetch.log")
 FLOOR_GB = 1200; WGET = "/home/infres/yinwang/anaconda3/bin/wget"; LOCK = threading.Lock(); TOUCHED: set[str] = set()   # ids this process updates
+# One run may start items under a different floor only with a written reason (e.g. the owner's one-time exception for the ~2 GB
+# AIGIQA download, 2026-10-20) and only for an explicit --group/--ids: the manifest policy keeps FLOOR_GB, every item started under
+# it records the exception, and data_fetch_guard.sh takes the same value through its own FLOOR_GB env var during the download.
+RUN_FLOOR_GB = int(os.environ.get("DATA_FETCH_RUN_FLOOR_GB", FLOOR_GB)); RUN_FLOOR_REASON = os.environ.get("DATA_FETCH_RUN_FLOOR_REASON", "").strip()
 OWNER_AUTH = "owner 2026-10-11: download all r6 / r7 package data to /projects/EEG-foundation-model"
 NC_AUTH = OWNER_AUTH + "; covers terms marked 'needs owner acceptance' — research / non-commercial use only"
 EVAL_ONLY = "evaluation-only benchmark: never used for training or selection"
+AIGIQA_AUTH = ("owner 2026-10-19 (VCS_QMI_KD_AIGIQA_Server_Package_v1): 「准备并提交这个包里的实验」; pinned public sources of the package's first AIGIQA round, "
+               "requested by the coordinator 2026-10-20")
 
 
 def gdrive(fid: str) -> str:
@@ -220,6 +226,56 @@ ITEMS = [
                "query features; test annotations closed, not checked",
      "note": "mirror of the official Moment-DETR SlowFast + CLIP feature tarball: the official Drive link (1Hiln02F1NEpoW8-iPZurRyi-47-W2_B9) returns 404 on 2026-10-11 "
              "and no official checksum exists, so identity with the official file is unverifiable; sha256 checked against the mirror's LFS hash; load the .npz with allow_pickle=False"},
+    # ---- AIGIQA (owner 2026-10-19, VCS_QMI_KD_AIGIQA_Server_Package_v1: 「准备并提交这个包里的实验」; branch apps/aigiqa-20261020) -----------------------
+    # First round = AGIQA-3K alignment only (package SERVER_HANDOFF section 7); AIGCIQA2023 / PKU-AIGIQA-4K are later rounds and are not listed.
+    # AGIQA-3K has no official test split: the package's prompt-grouped TEST labels are sealed later by `aigiqa.cli prepare` (prepared/.../sealed/).
+    # Every source is pinned (Drive file id, git commit, HF revision); after download apps/aigiqa_server/stage_data.py re-verifies all of it.
+    {"id": "agiqa3k_images", "group": "aigiqa", "kind": "http", "dest": DATA / "agiqa_3k" / "images_official", "extract": True, "auth": AIGIQA_AUTH,
+     "licence": "MIT (AGIQA-3K README @30ded2b, section 4: 'The database is distributed under the MIT license')",
+     "files": [http(gdrive("1ObuOZ6YZqZuxe4oRlaf3kdOBlTRg2GE4"), "AGIQA-3K.zip")],
+     "provenance": {"source": "author's Google Drive link in the AGIQA-3K README at commit 30ded2bed96fc78070636548e811ece37e5d8f66 (Quark link https://pan.quark.cn/s/10187e65d5c1 "
+                              "is the author's alternative); package research/sources.json dataset_acquisition AGIQA3K",
+                    "expected_bytes": 97950738, "expected_bytes_basis": "Content-Length of a HEAD request, 2026-10-20 (no body fetched)", "published_checksum": None,
+                    "cross_check": "every extracted image is compared with the per-file LFS sha256 published by the HF mirror strawhat/agiqa-3k at revision "
+                                   "bf9b7bb8d633f44832d6ba51ff496a25d8e8e2ae (2,982 .jpg, 99,181,135 B; mirror listed in M3-AGIQA's README, package sources.json); "
+                                   "only the mirror's file listing is used, the mirror is not downloaded",
+                    "image_count_expected": 2982},
+     "note": "AI-generated images of AGIQA-3K (6 generators); labels come from data.csv / CMIM full.csv, not from this archive"},
+    {"id": "agiqa3k_owner_repo", "group": "aigiqa", "kind": "http", "dest": DATA / "agiqa_3k" / "sources", "extract": True, "auth": AIGIQA_AUTH, "licence": "MIT",
+     "files": [http("https://codeload.github.com/lcysyzxdxc/AGIQA-3k-Database/tar.gz/30ded2bed96fc78070636548e811ece37e5d8f66", "AGIQA-3k-Database-30ded2b.tar.gz")],
+     "provenance": {"repo": "https://github.com/lcysyzxdxc/AGIQA-3k-Database", "commit": "30ded2bed96fc78070636548e811ece37e5d8f66",
+                    "expected_tree": {"data.csv": {"bytes": 445544, "git_blob": "49f88aa19b6c0327be21d7eab6cb90a44847f2f9"},
+                                      "README.md": {"bytes": 2470, "git_blob": "97d21d94094b1ee0ea1e4105d105fbc10a45f835",
+                                                    "sha256": "98afd93e8700b58cec096eea2e2513c758301349cb838538979a797187dcc9dd"},
+                                      "LICENSE": {"bytes": 1067, "git_blob": "1ecf98b2c4ead0a8f6a651fce5af6df78d4dd305",
+                                                  "sha256": "212f2fbdc065ebab2e78a94c728f0964d598cacce017ad6e3b78b4d0e6f1aa44"}}},
+     "note": "the dataset owner's original MOS table data.csv (README section 2B: name, prompt, adj1, adj2, style, perception MOS/STD, alignment MOS/STD); "
+             "used for the owner-MOS mapping check against CMIM full.csv"},
+    {"id": "cmim_aigiqa_4108d1d", "group": "aigiqa", "kind": "http", "dest": DATA / "agiqa_3k" / "sources", "extract": True, "auth": AIGIQA_AUTH,
+     "licence": "MIT (CMIM-AIGIQA LICENSE @4108d1d, sha256 fb9e78af81adb77a1dbc86f8e8423645e329a3e0c2e714a3b30370354220e219)",
+     "files": [http("https://codeload.github.com/Buka-Xing/CMIM-AIGIQA/tar.gz/4108d1d6c26c5494ddac7bb71b11ecdf67203d95", "CMIM-AIGIQA-4108d1d.tar.gz")],
+     "provenance": {"repo": "https://github.com/Buka-Xing/CMIM-AIGIQA", "commit": "4108d1d6c26c5494ddac7bb71b11ecdf67203d95", "tree_entries": 192, "tree_blob_bytes": 14350002,
+                    "expected_tree": {"Database/AGIQA-3k/full.csv": {"bytes": 445544, "git_blob": "49f88aa19b6c0327be21d7eab6cb90a44847f2f9",
+                                                                     "sha256": "4b1945c2137e196d9378b9cf4a114de2267b97a4724f0743e260287eb2ddd6c0"},
+                                      "README.md": {"bytes": 11393, "sha256": "a5c0fd4e71ccd7584613e3670ca465382a7eb648e83a4c63fb00f6706772e823"}},
+                    "full_csv_sha256_basis": "package aigiqa/validation/CSV_ADAPTER_RESULTS.json; the git blob equals the owner's data.csv blob at 30ded2b"},
+     "note": "CMIM-AIGIQA release used by the package: Database/AGIQA-3k/full.csv is the adapter input; its ten author train/val splits are NOT used"},
+    {"id": "imagereward_v1", "group": "aigiqa", "kind": "hf", "repo": "zai-org/ImageReward", "type": "model", "revision": "5736be03b2652728fb87788c9797b0570450ab72",
+     "dest": MODELS / "imagereward", "allow": ["ImageReward.pt", "med_config.json", "README.md", ".gitattributes"], "auth": AIGIQA_AUTH, "licence": "Apache-2.0 (model card)",
+     "provenance": {"expected": {"ImageReward.pt": {"bytes": 1786880927, "sha256_lfs": "d71dc8d4912bc633c06ab8ef1ef6a81e8199d4369f14b47b29baf1d19de561f6"},
+                                 "med_config.json": {"bytes": 485, "git_blob": "0ffad0a6f3c2f9f11b8faa84529d9860bb70327a"},
+                                 "README.md": {"bytes": 3158, "git_blob": "24c07dab977a45f215d73a3d7632e712243b14a4"}},
+                    "code": "THUDM/ImageReward @78f8051059b34fef8e0032ccb40561c23a2ddbbb is pip-installed into the AIGIQA env (not fetched here)",
+                    "tokenizer": "bert-base-uncased is served offline from the existing item bert_base_uncased (google-bert/bert-base-uncased @86b5e09; "
+                                 "vocab.txt / tokenizer_config.json / config.json git blobs equal that revision)"},
+     "note": "ImageReward-v1.0 (THUDM/ImageReward redirects here); the package's frozen BLIP backbone and native-score baseline; generations/ and test_images.zip not fetched"},
+    {"id": "agiqa3k_images_hf_mirror", "group": "aigiqa_fallback", "kind": "hf", "repo": "strawhat/agiqa-3k", "type": "dataset",
+     "revision": "bf9b7bb8d633f44832d6ba51ff496a25d8e8e2ae", "dest": DATA / "agiqa_3k" / "images_official" / "hf_mirror_bf9b7bb",
+     "allow": ["images/*", "data.csv", "README.md", ".gitattributes"], "auth": AIGIQA_AUTH, "licence": "MIT (dataset card; AGIQA-3K database MIT)",
+     "flag": "unofficial mirror (M3-AGIQA author's HF account, listed in package research/sources.json); run ONLY if agiqa3k_images fails",
+     "provenance": {"images": 2982, "image_bytes": 99181135, "data_csv_git_blob": "49f88aa19b6c0327be21d7eab6cb90a44847f2f9",
+                    "per_file_sha256": "published LFS sha256 for every image, checked by do_hf"},
+     "note": "fallback image source; its 712_splits/ (another split) is not fetched; stage_data.py records which image source was staged"},
 ]
 
 TIER_C = [  # listed for the owner, never started here
@@ -333,8 +389,10 @@ def do_http(item, rec) -> None:
 def do_hf(item, rec) -> None:
     from huggingface_hub import HfApi, snapshot_download
     os.environ.pop("HF_HUB_OFFLINE", None); os.environ.pop("TRANSFORMERS_OFFLINE", None)
-    api = HfApi(); kind = item["type"]
-    info = {"model": api.model_info, "dataset": api.dataset_info, "space": api.space_info}[kind](item["repo"], files_metadata=True)
+    api = HfApi(); kind = item["type"]; pinned = item.get("revision")  # optional pin; without it the current main is used (earlier behaviour)
+    info = {"model": api.model_info, "dataset": api.dataset_info, "space": api.space_info}[kind](item["repo"], revision=pinned, files_metadata=True)
+    if pinned and info.sha != pinned:
+        raise RuntimeError(f"pinned revision {pinned} resolved to {info.sha}")
     dest = Path(item["dest"]); dest.mkdir(parents=True, exist_ok=True)
     snapshot_download(item["repo"], repo_type=kind, revision=info.sha, local_dir=str(dest), allow_patterns=item.get("allow"), ignore_patterns=item.get("ignore"))
     files = []
@@ -455,8 +513,11 @@ def run_item(item, manifest) -> None:
                                               "resolution": "retried; see the current status" if rec.get("status") != "done" else "retried and verified"})
     if rec.get("status") == "done":
         save(manifest); return  # keeps provenance / validation flags added after the item finished
-    if free_gb() < FLOOR_GB + 10:
-        rec["status"] = "deferred_free_space"; log(f"DEFER {item['id']}: free {free_gb():.0f} GB < floor"); return
+    if free_gb() < RUN_FLOOR_GB + 10:
+        rec["status"] = "deferred_free_space"; log(f"DEFER {item['id']}: free {free_gb():.0f} GB < floor {RUN_FLOOR_GB} + 10"); return
+    if RUN_FLOOR_GB != FLOOR_GB:
+        rec["floor_exception"] = {"run_floor_gb": RUN_FLOOR_GB, "policy_floor_gb": FLOOR_GB, "reason": RUN_FLOOR_REASON,
+                                  "free_gb_at_item_start": round(free_gb(), 1), "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     rec.update({"status": "running", "started": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}); save(manifest)
     log(f"START {item['id']} ({item['kind']})")
     try:
@@ -521,7 +582,10 @@ def main() -> int:
             r = manifest["items"].get(i["id"], {}); print(f"{i['group']:9s} {i['id']:28s} {r.get('status', 'pending'):22s} {r.get('error', '')[:80]}")
         print(f"free {free_gb():.0f} GB"); return 0
     todo = [i for i in ITEMS if (a.group is None or i["group"] == a.group) and (a.ids is None or i["id"] in a.ids)]
-    log(f"RUN group={a.group} ids={a.ids} items={len(todo)} jobs={a.jobs} free={free_gb():.0f} GB")
+    if RUN_FLOOR_GB != FLOOR_GB and (not RUN_FLOOR_REASON or (a.group is None and a.ids is None)):
+        raise SystemExit("DATA_FETCH_RUN_FLOOR_GB needs DATA_FETCH_RUN_FLOOR_REASON and an explicit --group or --ids")
+    log(f"RUN group={a.group} ids={a.ids} items={len(todo)} jobs={a.jobs} free={free_gb():.0f} GB floor={RUN_FLOOR_GB}"
+        + (f" (policy {FLOOR_GB}; exception: {RUN_FLOOR_REASON})" if RUN_FLOOR_GB != FLOOR_GB else ""))
     with ThreadPoolExecutor(a.jobs) as ex:
         list(ex.map(lambda it: run_item(it, manifest), todo))
     log(f"RUN END group={a.group} free={free_gb():.0f} GB"); return 0

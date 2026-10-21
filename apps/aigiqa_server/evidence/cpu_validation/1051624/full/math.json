@@ -1,0 +1,139 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "moment_dense_value_and_xyz_gradient",
+      "dtype": "torch.float64",
+      "q_mode": "u",
+      "value_error": 1.3877787807814457e-17,
+      "gradient_error": 1.3877787807814457e-17,
+      "fp64_reference_error": 1.3877787807814457e-17,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "moment_dense_value_and_xyz_gradient",
+      "dtype": "torch.float64",
+      "q_mode": "v",
+      "value_error": 6.938893903907228e-18,
+      "gradient_error": 1.3877787807814457e-17,
+      "fp64_reference_error": 1.3877787807814457e-17,
+      "tolerance": 2e-12,
+      "passed": true
+    },
+    {
+      "name": "moment_dense_value_and_xyz_gradient",
+      "dtype": "torch.float32",
+      "q_mode": "u",
+      "value_error": 7.450580596923828e-09,
+      "gradient_error": 1.1175870895385742e-08,
+      "fp64_reference_error": 1.0004758244086531e-08,
+      "tolerance": 2e-06,
+      "passed": true
+    },
+    {
+      "name": "moment_dense_value_and_xyz_gradient",
+      "dtype": "torch.float32",
+      "q_mode": "v",
+      "value_error": 7.450580596923828e-09,
+      "gradient_error": 5.587935447692871e-09,
+      "fp64_reference_error": 9.176059044546658e-09,
+      "tolerance": 2e-06,
+      "passed": true
+    },
+    {
+      "name": "all_nonzero_shifts_match_U_value_and_gradient",
+      "passed": true,
+      "sampler": "uniform_nonzero_cyclic_shift_not_uniform_derangements"
+    },
+    {
+      "name": "population_S_minus_J_identity",
+      "s": 0.24182870859276115,
+      "j": 0.11464999999999999,
+      "mixture_squared_error": 0.12717870859276117,
+      "error": 2.7755575615628914e-17,
+      "passed": true
+    },
+    {
+      "name": "M1_relative_zero_reference_nonzero_update",
+      "solver_converged": false,
+      "solver_iterations": 30,
+      "solver_gap": 1.6245138482191434e-06,
+      "solver_tolerance": 1.6231094761565147e-08,
+      "solver_status": "iteration_budget_exhausted",
+      "solver_zero_gap": 1.6231094761565146e-06,
+      "solver_warm_start_gap": 1.6231094761565146e-06,
+      "solver_relative_tol": 0.01,
+      "solver_gap_scope": "inner_pre_outer_batch",
+      "solver_cap": 30,
+      "method": "vcs_m1",
+      "q_mode": "u",
+      "batch": 24,
+      "loss": -2.3980713051783167e-10,
+      "head_abs_max": 0.0002399025491618403,
+      "simplex_left_max": 0.3618445881564947,
+      "simplex_right_max": 0.39056578478134635,
+      "p1": 2.4047810404079824e-08,
+      "p2": 1.2083764858486573e-15,
+      "q1": 2.38080022147438e-08,
+      "q2": 9.092598972010552e-16,
+      "raw_j": 2.3980713051783167e-10,
+      "passed": true
+    },
+    {
+      "name": "balanced_BCE_same_bounded_posterior_family",
+      "objective_scale": 2,
+      "raw_balanced_bce": 0.7001082784630372,
+      "passed": true
+    },
+    {
+      "name": "normalized_BCE_minusJ_gradient_and_hessian_at_zero",
+      "passed": true
+    }
+  ],
+  "check_count": 9,
+  "task_counterexample": {
+    "scope": "exact_discrete_probability_calculation",
+    "results": [
+      {
+        "retained_factor": "task_label",
+        "s": 0.3333333333333333,
+        "bayes_task_accuracy": 1.0
+      },
+      {
+        "retained_factor": "independent_nuisance",
+        "s": 0.3333333333333333,
+        "bayes_task_accuracy": 0.5
+      }
+    ],
+    "conclusion": "Same S can retain different task information; no task guarantee"
+  },
+  "runtime": {
+    "timestamp_utc": "2026-10-20T10:59:21.205910+00:00",
+    "python": "3.11.17 (main, Oct  1 2026, 20:17:42) [GCC 14.3.0]",
+    "platform": "Linux-6.12.0-211.50.1.el10_2.x86_64-x86_64-with-glibc2.39",
+    "torch": "2.9.0+cu128",
+    "numpy": "1.26.4",
+    "cuda_build": "12.8",
+    "cuda_available": false,
+    "cudnn_version": 91002,
+    "float32_matmul_precision": "highest",
+    "matmul_allow_tf32": false,
+    "cudnn_allow_tf32": true,
+    "deterministic_algorithms": false,
+    "cudnn_benchmark": false,
+    "threads": 1,
+    "interop_threads": 96,
+    "precision_policy": "retain_torch_defaults_record_effective_settings_no_AMP_in_dependence",
+    "environment_overrides": {
+      "NVIDIA_TF32_OVERRIDE": null,
+      "TORCH_ALLOW_TF32_CUBLAS_OVERRIDE": null,
+      "CUBLAS_WORKSPACE_CONFIG": null,
+      "OMP_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "PYTORCH_CUDA_ALLOC_CONF": null
+    },
+    "gpus": []
+  },
+  "coverage": "CPU math and gradient; no real data, pretrained models, CUDA or application efficacy"
+}
