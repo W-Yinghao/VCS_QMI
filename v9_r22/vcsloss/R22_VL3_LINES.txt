@@ -1,0 +1,5 @@
+# R22-A3 full units (R22_ALTERNATIVES_CN.md A3): A's InfoNCE (tau 0.05) with the N2F VCS / BCE weights on the positive terms; seed 901 only
+# (902/903 only under the pre-registered rule: NCE_VCSW best rSum >= 464.0).  Runs from the A2 dev worktree (R22_DIR), as A2.
+# Fed by app_lines_feed.sh TAG r22_vl3 (normal < 28), nice 60: queued behind the existing jobs.  After a TIMEOUT resubmit the identical line.
+sbatch --job-name=r22_vl3_nce_vcsw_s901 --partition=RTX6000PRO,L40S,H100 --qos=normal --exclude=node51,node53,node60 --nice=60 --time=23:59:00 --export=ALL,R22_DIR=/home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22a2_dev/v9_r22/vcsloss /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22a2_dev/v9_r22/vcsloss/r22_vl.sbatch run 901 NCE_VCSW
+sbatch --job-name=r22_vl3_nce_bcew_s901 --partition=RTX6000PRO,L40S,H100 --qos=normal --exclude=node51,node53,node60 --nice=60 --time=23:59:00 --export=ALL,R22_DIR=/home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22a2_dev/v9_r22/vcsloss /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22a2_dev/v9_r22/vcsloss/r22_vl.sbatch run 901 NCE_BCEW

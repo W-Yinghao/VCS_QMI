@@ -44,15 +44,19 @@ def _set_rng_state(st):
 class WeightedStudent:
     def __init__(self, cfg: HostConfig, pool_rows: list[dict], weights: dict, collate, dev_images: np.ndarray, dev_captions: list[list[int]],
                  out_dir: str | Path, seed: int, lr_mult: float = 1.0, device: str = "cpu", weight_lock: dict | None = None, formal: bool = False,
-                 loss_scale: str = "mean", grad_log_window: tuple | None = None, stop_epoch_steps: int | None = None):
+                 loss_scale: str = "mean", grad_log_window: tuple | None = None, stop_epoch_steps: int | None = None, objective=None):
         # loss_scale "mean" (default, frozen N2 runs): batch loss = mean_i(v_i l_i) / mean_v_full.  "sum" (A/B diagnostic, main session 2026-10-17):
         # sum_i(v_i l_i) / mean_v_full = batch_size x the default, i.e. the official SGRAF / NCR ContrastiveLoss scale (sum over anchors) for v = 1,
         # under which the locked grad_clip 2.0 acts as in the official code.  grad_log_window = (steps before, steps after) the warm-up -> hard switch:
         # every step in it writes grad_norms.jsonl (total grad norm before / after clipping, loss, U risk).  stop_epoch_steps: stop the LAST epoch
-        # after that many steps and validate there (diagnostic only).
+        # after that many steps and validate there (diagnostic only).  objective (R22-A, 2026-10-22): an nn.Module from v9_r22/vcsloss/losses.py that
+        # replaces the hinge, called as objective(sims, v, mean_v_full, loss_scale) -> (loss, per-anchor term for the U-risk log); its parameters join
+        # the same Adam (same lr schedule) and its state is checkpointed.  None (default) leaves the hinge path exactly as before.  R22-A2: an objective
+        # with param_groups() adds those groups instead (a group with "base_lr" gets base_lr x 0.1^(epoch // lr_update)); one with epoch_stats()
+        # adds its per-epoch record to the epoch log.  Objectives without these methods (R22-A arms) run exactly as before.
         if loss_scale not in ("mean", "sum"):
             raise ValueError(f"loss_scale {loss_scale!r}")
-        self.loss_scale, self.grad_log_window, self.stop_epoch_steps = loss_scale, grad_log_window, stop_epoch_steps
+        self.loss_scale, self.grad_log_window, self.stop_epoch_steps, self.objective = loss_scale, grad_log_window, stop_epoch_steps, objective
         for r in pool_rows:
             if "original_image_id" in r or "mismatched" in r or EVAL_ONLY_SUFFIX in json.dumps(r):
                 raise ValueError("a pool row carries evaluation-only information; the trainer refuses")
@@ -70,11 +74,14 @@ class WeightedStudent:
                          "mean_v_full_pool": self.mean_v_full, "ess_U": REF.effective_sample_size(v[self.is_u]) if self.is_u.any() else 0.0,
                          "weight_lock_sha256": (weight_lock or {}).get("sha256"), "seed": self.seed, "lr_mult": self.lr_mult,
                          "cfg": asdict(cfg), "loss": f"warm-up mean hinge for {cfg.warmup_epochs} epochs (HOST_LOCK 57366c5), then max-violation hinge per anchor (row + column); fixed-pool normaliser", "formal": formal}
+        if objective is not None:
+            self.manifest.update(loss=objective.describe(), objective=objective.config())
         (self.out / "run_manifest.json").write_text(json.dumps(self.manifest, indent=1))
 
     # ---------------------------------------------------------------------------------------------------------------- checkpoints
     def _save(self, host, opt, epoch, best, log, name="last.pt"):
-        torch.save({"model": host.state_dict(), "opt": opt.state_dict(), "epoch": epoch, "best": best, "log": log, "rng": _rng_state()}, self.out / f"{name}.tmp")
+        extra = {"objective": self.objective.state_dict()} if self.objective is not None else {}
+        torch.save({"model": host.state_dict(), "opt": opt.state_dict(), "epoch": epoch, "best": best, "log": log, "rng": _rng_state(), **extra}, self.out / f"{name}.tmp")
         (self.out / f"{name}.tmp").replace(self.out / name)
 
     def validate(self, host) -> dict:
@@ -86,16 +93,26 @@ class WeightedStudent:
             return json.loads((self.out / "done.json").read_text())
         cfg = self.cfg; epochs = cfg.num_epochs if epochs is None else epochs
         seed_everything(self.seed); host = build_host(cfg).to(self.device); opt = torch.optim.Adam(host.parameters(), lr=cfg.learning_rate * self.lr_mult)
+        obj = self.objective
+        if obj is not None:
+            obj.to(self.device)
+            if hasattr(obj, "param_groups"):                     # R22-A2: the objective's own groups (own lr; "base_lr" follows the step schedule)
+                for grp in obj.param_groups():
+                    opt.add_param_group(grp)
+            elif list(obj.parameters()):
+                opt.add_param_group({"params": list(obj.parameters())})
         start, best, log = 0, {"rsum": -1.0, "epoch": -1}, {"epochs": [], "steps": []}
         if (self.out / "last.pt").exists():
             ck = torch.load(self.out / "last.pt", map_location="cpu", weights_only=False)
             host.load_state_dict(ck["model"]); opt.load_state_dict(ck["opt"]); start, best, log = ck["epoch"] + 1, ck["best"], ck["log"]; _set_rng_state(ck["rng"])
+            if obj is not None:
+                obj.load_state_dict(ck["objective"])
             log.setdefault("resumed_at", []).append(start)
-        t0 = time.time(); step = len(log["steps"])
+        t0 = time.time(); step = sum(r["steps_in_epoch"] for r in log["epochs"])     # completed updates (len(log["steps"]) undercounts on resume)
         for epoch in range(start, epochs):
             lr = cfg.learning_rate * self.lr_mult * (0.1 ** (epoch // cfg.lr_update))
             for g in opt.param_groups:
-                g["lr"] = lr
+                g["lr"] = g["base_lr"] * (0.1 ** (epoch // cfg.lr_update)) if "base_lr" in g else lr
             rng = np.random.default_rng([self.seed, 9_020, epoch]); host.train(); agg = {"loss": 0.0, "u_risk": 0.0, "n": 0, "u_n": 0}; in_epoch = 0
             n_batches = (sum(1 for _ in iterate_batches(len(self.rows), cfg.batch_size, np.random.default_rng([self.seed, 9_020, epoch])))
                          if self.grad_log_window is not None else 0)      # a separate generator: the training permutation is untouched
@@ -105,8 +122,13 @@ class WeightedStudent:
                 # HOST_LOCK 57366c5: SGRAF with hardest negatives from step 0 collapses under torch 2.9; every SGR row runs NCR's warm-up loss
                 # (mean over in-batch negatives, both directions) for the first `warmup_epochs`, then the max-violation hinge.  Weights apply in both phases.
                 hard = epoch >= cfg.warmup_epochs
-                er, ec = hinge_per_anchor(sims, cfg.margin, hard_negative=hard); ell = er + ec
-                loss = ((v.detach() * ell).sum() if self.loss_scale == "sum" else (v.detach() * ell).mean()) / self.mean_v_full
+                if obj is None:
+                    er, ec = hinge_per_anchor(sims, cfg.margin, hard_negative=hard); ell = er + ec
+                    loss = ((v.detach() * ell).sum() if self.loss_scale == "sum" else (v.detach() * ell).mean()) / self.mean_v_full
+                else:                                                   # no hard-negative phase: the objective sees every in-batch pair
+                    loss, ell = obj(sims, v.detach(), self.mean_v_full, self.loss_scale)
+                    if not bool(torch.isfinite(loss)):
+                        raise FloatingPointError(f"nonfinite objective at epoch {epoch}, update {in_epoch + 1}")
                 opt.zero_grad(set_to_none=True); loss.backward()
                 if cfg.grad_clip > 0:
                     gn_t = torch.nn.utils.clip_grad_norm_(host.parameters(), cfg.grad_clip)   # total norm BEFORE clipping (returned anyway)
@@ -130,11 +152,15 @@ class WeightedStudent:
                 if step % log_every == 0:
                     vb = self.v[idx]; log["steps"].append({"step": step, "epoch": epoch, "loss": float(loss), "u_risk_unnormalised": u_risk, "batch_mass": float(vb.sum()),
                                                             "batch_ess": REF.effective_sample_size(vb) if vb.sum() > 0 else 0.0, "lr": lr})
+                    if obj is not None:
+                        log["steps"][-1].update(obj.stats(), grad_norm_pre_clip=float(gn_t) if gn_t is not None else None)
                 if self.stop_epoch_steps is not None and epoch == epochs - 1 and in_epoch >= self.stop_epoch_steps:
                     break                                                # diagnostic: validate mid-epoch, right after the switch
             val = self.validate(host)
-            rec = {"epoch": epoch, "lr": lr, "phase": "warmup_mean_hinge" if epoch < cfg.warmup_epochs else "max_violation", "steps_in_epoch": in_epoch, "mean_loss": agg["loss"] / max(agg["n"], 1),
+            rec = {"epoch": epoch, "lr": lr, "phase": f"objective:{obj.name}" if obj is not None else "warmup_mean_hinge" if epoch < cfg.warmup_epochs else "max_violation", "steps_in_epoch": in_epoch, "mean_loss": agg["loss"] / max(agg["n"], 1),
                    "mean_u_risk_unnormalised": agg["u_risk"] / max(agg["u_n"], 1), "dev": val, "seconds": time.time() - t0}
+            if obj is not None and hasattr(obj, "epoch_stats"):         # R22-A2: critic / T distribution over the epoch's updates
+                rec["objective_epoch"] = obj.epoch_stats()
             log["epochs"].append(rec)
             with open(self.out / "progress.jsonl", "a") as fh:                   # monitoring only (release gate / watcher); the checkpoint log is authoritative
                 fh.write(json.dumps({"epoch": epoch, "phase": rec["phase"], "steps_in_epoch": in_epoch, "mean_loss": rec["mean_loss"], "dev_rsum": val["rsum"], "seconds": rec["seconds"], "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}) + "\n")
