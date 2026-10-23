@@ -1,0 +1,333 @@
+"""R22-B: online VCS (or matched-BCE) clean posterior in place of NCR's per-epoch GMM clean probability.
+
+Theory (Variational_Cauchy_Schwarz_divergence.pdf): J(T) = E_P T - E_Q T - E_P T^2/2 - E_Q T^2/2, T = tanh(f) (eq. 36/40); the optimum is
+T* = tanh(log(p/q)/2).  If U = (1 - rho) P + rho Q, then E_U T = (1 - rho) E_P T + rho E_Q T for any fixed T, and the clean posterior of a
+U pair is (1 - rho) p / ((1 - rho) p + rho q) = (1 - rho)(1 + T*) / (1 + (1 - 2 rho) T*) = sigmoid(log(1 - rho) - log(rho) + 2 f*).
+
+Use in NCR (patch ncr_r22_posterior.diff): at every co-training epoch, after the official eval_train has computed its per-sample losses and
+fitted its GMMs, for each network separately (model A's posterior replaces prob_A, which -- as in NCR -- divides the data for model B):
+  s       the network's own SGR similarity (sigmoid score) of every observed training pair, eval mode: the diagonal of the official eval_train
+          batch score matrix (no extra pass over the training pairs)
+  P       anchor pairs (A, trusted clean); Q = the same anchor captions re-paired with the observed image of another anchor pair of the same
+          role, never the caption's own image (N2F repair_within_role), redrawn every epoch from numpy rng [seed, 22022, epoch, role]
+  roles   N2F anchor roles of the shared stage: FIT = critic_fit, SELECT = critic_select, REF = reference_moments + teacher_warmup
+          (online there is no teacher; its anchors go to REF because rho-hat precision dominates the error of a 2-parameter critic)
+  critic  f(s) = softplus(a_raw) s + b, T = tanh(f); float64 full-batch Adam on FIT (numpy, analytic gradient, torch.optim.Adam update),
+          N2F scalar grid lr {1e-2, 3e-2, 1e-1} x init {(0,0), (1,0), (2,-1), (0,1)}, 400 steps; objective VCS = 1 - J (arm vcs) or balanced BCE on the natural logit 2f (arm bce);
+          selection by the common J on SELECT for both arms (ties within 1e-12 keep the earlier grid point)
+  rho     (E_P T - E_U T) / (E_P T - E_Q T) with REF P/Q and all U pairs; deployed iff finite, gap >= .01 and 0 < rho_raw < 1
+  w       sigmoid(log(1 - rho) - log(rho) + 2 f(s)) for U pairs, 1 for anchors
+Not deployable -> that network keeps its GMM probability of that epoch (fallback; counted in the ledger).  The anchor patch afterwards
+forces every anchor to probability 1 / clean in both networks, as in NCR_A.
+No global RNG is used (numpy Generator only; no torch seeding), so the training RNG streams are untouched by this module.
+"""
+from __future__ import annotations
+
+import json
+import math
+import os
+import time
+
+import numpy as np
+import torch
+
+LRS = (1e-2, 3e-2, 1e-1)
+INITS = ((0.0, 0.0), (1.0, 0.0), (2.0, -1.0), (0.0, 1.0))
+STEPS = 400
+GAP_MIN = 0.01
+RHO_ATOL = 1e-12
+TIE = 1e-12
+Q_STREAM = 22022
+ROLE_CODES = {"U": -1, "teacher_warmup": 0, "critic_fit": 1, "critic_select": 2, "reference_moments": 3}
+FIT_ROLES, SELECT_ROLES, REF_ROLES = (1,), (2,), (3, 0)
+QUANTILES = (0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99)
+CONFIG = {"lrs": LRS, "inits": INITS, "steps": STEPS, "gap_min": GAP_MIN, "rho_atol": RHO_ATOL, "tie": TIE, "q_stream": Q_STREAM,
+          "fit_roles": ["critic_fit"], "select_roles": ["critic_select"], "ref_roles": ["reference_moments", "teacher_warmup"],
+          "U_for_rho": "all non-anchor pairs", "critic": "f = softplus(a_raw) s + b, T = tanh(f), float64 full-batch Adam",
+          "selection": "common J on SELECT (both arms)", "posterior": "sigmoid(log1p(-rho) - log(rho) + 2 f)"}
+
+
+# ----------------------------------------------------------------------------------------------------------------------- critic
+def f_np(s, a_raw, b):
+    return np.logaddexp(0.0, a_raw) * np.asarray(s, dtype=np.float64) + b
+
+
+def common_j(tp, tq):
+    tp, tq = np.asarray(tp, dtype=np.float64), np.asarray(tq, dtype=np.float64)
+    return float(np.mean(tp - tp ** 2 / 2) + np.mean(-tq - tq ** 2 / 2))
+
+
+def sigmoid_np(x):
+    x = np.asarray(x, dtype=np.float64)
+    e = np.exp(-np.abs(x))
+    return np.where(x >= 0, 1 / (1 + e), e / (1 + e))
+
+
+def balanced_loss(fp, fq, kind):
+    """Objective on f (natural logit 2f); the same normalisation as the package reference torch_losses.balanced_fit_loss."""
+    if kind == "vcs":                                            # 1 - J(tanh f)
+        return float(.5 * np.mean((1 - np.tanh(fp)) ** 2) + .5 * np.mean((1 + np.tanh(fq)) ** 2))
+    if kind == "bce":
+        return float(.5 * np.mean(np.logaddexp(0.0, -2 * fp)) + .5 * np.mean(np.logaddexp(0.0, 2 * fq)))
+    raise ValueError(kind)
+
+
+def loss_grad(theta, sp, sq, kind):
+    """Analytic gradient of balanced_loss wrt (a_raw, b) for f = softplus(a_raw) s + b."""
+    a = np.logaddexp(0.0, theta[0])
+    fp, fq = a * sp + theta[1], a * sq + theta[1]
+    if kind == "vcs":
+        tp, tq = np.tanh(fp), np.tanh(fq)
+        gp, gq = -(1 - tp) * (1 - tp * tp) / len(sp), (1 + tq) * (1 - tq * tq) / len(sq)
+    elif kind == "bce":
+        gp, gq = (sigmoid_np(2 * fp) - 1) / len(sp), sigmoid_np(2 * fq) / len(sq)
+    else:
+        raise ValueError(kind)
+    return np.array([(gp @ sp + gq @ sq) * float(sigmoid_np(theta[0])), gp.sum() + gq.sum()])
+
+
+def adam_fit(sp, sq, kind, lr, init, steps, beta1=0.9, beta2=0.999, eps=1e-8):
+    """Full-batch float64 Adam with torch.optim.Adam's update (defaults, no weight decay)."""
+    theta = np.array(init, dtype=np.float64)
+    m, v = np.zeros(2), np.zeros(2)
+    for t in range(1, steps + 1):
+        g = loss_grad(theta, sp, sq, kind)
+        m = beta1 * m + (1 - beta1) * g
+        v = beta2 * v + (1 - beta2) * g * g
+        denom = np.sqrt(v) / math.sqrt(1 - beta2 ** t) + eps
+        theta = theta - (lr / (1 - beta1 ** t)) * m / denom
+    return theta
+
+
+def fit_critic(sP, sQ, sP_sel, sQ_sel, kind, lrs=LRS, inits=INITS, steps=STEPS):
+    """Grid of full-batch float64 Adam fits on FIT; the candidate with the largest common J on SELECT wins (earlier grid point on ties)."""
+    sP, sQ = np.asarray(sP, dtype=np.float64), np.asarray(sQ, dtype=np.float64)
+    best, grid = None, []
+    for lr in lrs:
+        for a0, b0 in inits:
+            with np.errstate(over="ignore", invalid="ignore"):
+                ar, bb = (float(x) for x in adam_fit(sP, sQ, kind, lr, (a0, b0), steps))
+                hp, hq = f_np(sP_sel, ar, bb), f_np(sQ_sel, ar, bb)
+                j_sel = common_j(np.tanh(hp), np.tanh(hq))
+                native = balanced_loss(hp, hq, kind)
+                fit_loss = balanced_loss(f_np(sP, ar, bb), f_np(sQ, ar, bb), kind)
+            rec = {"lr": lr, "init": [a0, b0], "a_raw": ar, "a": float(np.logaddexp(0.0, ar)), "b": bb, "fit_loss": fit_loss,
+                   "select_common_J": j_sel, "select_native": native,
+                   "finite": all(math.isfinite(x) for x in (ar, bb, fit_loss, j_sel))}
+            grid.append(rec)
+            if rec["finite"] and (best is None or j_sel > best["select_common_J"] + TIE):
+                best = rec
+    return {"selected": best, "grid": grid, "kind": kind}
+
+
+# ----------------------------------------------------------------------------------------------------------------------- rho / posterior
+def rho_moments(tp_ref, tq_ref, t_u):
+    a, b, c = float(np.mean(tp_ref)), float(np.mean(tq_ref)), float(np.mean(t_u))
+    gap = a - b
+    rec = {"a": a, "b": b, "c": c, "gap": gap, "raw": None, "status": None, "n_ref_P": int(len(tp_ref)), "n_ref_Q": int(len(tq_ref)),
+           "n_U": int(len(t_u))}
+    if not all(math.isfinite(x) for x in (a, b, c)):
+        rec["status"] = "nonfinite_moment"
+    elif abs(gap) <= RHO_ATOL:
+        rec["status"] = "unidentified_at_numerical_tolerance"
+    else:
+        raw = (a - c) / gap
+        rec["raw"] = raw
+        if gap < GAP_MIN:
+            rec["status"] = "weak_or_reversed_empirical_separation"
+        elif not 0 < raw < 1:
+            rec["status"] = "outside_open_unit_interval"
+        else:
+            rec["status"] = "point_estimate"
+    rec["deployable"] = rec["status"] == "point_estimate"
+    return rec
+
+
+def posterior_stable(f, rho):
+    """sigmoid(log(1 - rho) - log(rho) + 2 f), evaluated without overflow; 0 < rho < 1."""
+    if not 0 < rho < 1:
+        raise ValueError("rho must lie in (0, 1)")
+    x = math.log1p(-rho) - math.log(rho) + 2 * np.asarray(f, dtype=np.float64)
+    e = np.exp(-np.abs(x))
+    return np.where(x >= 0, 1 / (1 + e), e / (1 + e))
+
+
+def posterior_direct(t, rho):
+    t = np.asarray(t, dtype=np.float64)
+    return (1 - rho) * (1 + t) / (1 + (1 - 2 * rho) * t)
+
+
+def stats(x):
+    x = np.asarray(x, dtype=np.float64)
+    if x.size == 0:
+        return {"n": 0}
+    q = np.quantile(x, QUANTILES)
+    out = {"n": int(x.size), "mean": float(x.mean()), "std": float(x.std()), "min": float(x.min()), "max": float(x.max())}
+    out.update({f"q{int(round(p * 100)):02d}": float(v) for p, v in zip(QUANTILES, q)})
+    return out
+
+
+def weight_stats(w):
+    w = np.asarray(w, dtype=np.float64)
+    st = stats(w)
+    st["frac_gt_0.5"] = float(np.mean(w > 0.5))
+    st["ess_frac"] = float(w.sum() ** 2 / np.dot(w, w) / w.size) if np.dot(w, w) > 0 else 0.0
+    return st
+
+
+def decide(s_all, s_q_anchor, anchor_idx, roles_anchor, u_idx, gmm_prob, kind):
+    """Pure decision for one network and one epoch.
+
+    s_all: score of every observed pair (index = caption index); s_q_anchor: Q score per anchor (aligned with anchor_idx);
+    roles_anchor: role code per anchor; u_idx: non-anchor caption indices; gmm_prob: NCR's GMM clean probability (all pairs).
+    Returns (prob, record): prob = posterior for U and 1 for anchors when deployable, else gmm_prob unchanged (fallback)."""
+    s_all = np.asarray(s_all, dtype=np.float64)
+    gmm_prob = np.asarray(gmm_prob, dtype=np.float64)
+    sel = {name: np.isin(roles_anchor, codes) for name, codes in (("fit", FIT_ROLES), ("select", SELECT_ROLES), ("ref", REF_ROLES))}
+    sP = {k: s_all[anchor_idx[m]] for k, m in sel.items()}
+    sQ = {k: np.asarray(s_q_anchor, dtype=np.float64)[m] for k, m in sel.items()}
+    t0 = time.time()
+    fit = fit_critic(sP["fit"], sQ["fit"], sP["select"], sQ["select"], kind)
+    fit_seconds = time.time() - t0
+    rec = {"kind": kind, "config": CONFIG, "fit_seconds": round(fit_seconds, 3),
+           "n": {"fit_P": int(sel["fit"].sum()), "select_P": int(sel["select"].sum()), "ref_P": int(sel["ref"].sum()), "U": int(len(u_idx))},
+           "scores": {"fit_P": stats(sP["fit"]), "fit_Q": stats(sQ["fit"]), "ref_P": stats(sP["ref"]), "ref_Q": stats(sQ["ref"]),
+                      "U": stats(s_all[u_idx])},
+           "grid": fit["grid"], "gmm_U": weight_stats(gmm_prob[u_idx])}
+    best = fit["selected"]
+    if best is None:
+        rec.update(critic=None, rho={"status": "no_finite_critic", "deployable": False})
+    else:
+        rec["critic"] = {k: best[k] for k in ("lr", "init", "a_raw", "a", "b", "fit_loss", "select_common_J", "select_native")}
+        f_ref_p, f_ref_q = f_np(sP["ref"], best["a_raw"], best["b"]), f_np(sQ["ref"], best["a_raw"], best["b"])
+        f_u = f_np(s_all[u_idx], best["a_raw"], best["b"])
+        rec["rho"] = rho_moments(np.tanh(f_ref_p), np.tanh(f_ref_q), np.tanh(f_u))
+        rec["ref_common_J"] = common_j(np.tanh(f_ref_p), np.tanh(f_ref_q))
+    deployed = bool(rec["rho"]["deployable"])
+    rec["deployed"], rec["fallback"] = deployed, not deployed
+    if not deployed:
+        rec["prob_source"] = "GMM (fallback)"
+        return gmm_prob.copy(), rec
+    rho = rec["rho"]["raw"]
+    w_u = posterior_stable(f_u, rho)
+    rec["formula_max_abs_diff"] = float(np.max(np.abs(w_u - posterior_direct(np.tanh(f_u), rho))))
+    prob = gmm_prob.copy()
+    prob[u_idx] = w_u
+    prob[anchor_idx] = 1.0
+    g = gmm_prob[u_idx]
+    rec.update(prob_source="R22 posterior", w_U=weight_stats(w_u),
+               agreement={"split_agree_frac": float(np.mean((w_u > 0.5) == (g > 0.5))),
+                          "pearson_w_gmm": float(np.corrcoef(w_u, g)[0, 1]) if np.std(w_u) > 0 and np.std(g) > 0 else None,
+                          "n_clean_posterior": int(np.sum(w_u > 0.5)), "n_clean_gmm": int(np.sum(g > 0.5))})
+    return prob, rec
+
+
+# ----------------------------------------------------------------------------------------------------------------------- Q pairs and scores
+def repair_within_role(anchor_idx, roles_anchor, t2i, seed, epoch):
+    """Q image for every anchor caption: the observed image of another anchor pair of the same role, never its own image.
+    Cyclic shift of a random permutation (N2F repair_within_role), advanced further while the donor image equals the caption's own image."""
+    t2i = np.asarray(t2i)
+    q_img = np.empty(len(anchor_idx), dtype=np.int64)
+    for code in sorted(set(int(c) for c in roles_anchor)):
+        pos = np.flatnonzero(roles_anchor == code)
+        imgs = t2i[anchor_idx[pos]]
+        n = len(pos)
+        if n < 2 or len(set(imgs.tolist())) < 2:
+            raise ValueError(f"role {code}: needs pairs of at least two images to build Q")
+        rng = np.random.default_rng([int(seed), Q_STREAM, int(epoch), code + 1])
+        perm = rng.permutation(n)
+        shift = int(rng.integers(1, n))
+        where = np.empty(n, dtype=np.int64)
+        where[perm] = np.arange(n)
+        donor = imgs[perm[(where + shift) % n]]
+        k = 1
+        while np.any(donor == imgs):
+            bad = donor == imgs
+            donor[bad] = imgs[perm[(where[bad] + shift + k) % n]]
+            k += 1
+        q_img[pos] = donor
+    return q_img
+
+
+def eval_loss_and_diag(model, images, captions, lengths):
+    """Exactly SGRAF.train(images, captions, lengths, mode="eval_loss") (same calls, same Eiters/zero_grad side effects) plus the
+    diagonal of the batch score matrix = the score of each observed pair."""
+    model.Eiters += 1
+    img_embs, cap_embs, cap_lens = model.forward_emb(images, captions, lengths)
+    sims = model.forward_sim(img_embs, cap_embs, cap_lens)
+    model.optimizer.zero_grad()
+    loss = model.criterion(sims, hard_negative=True, labels=None, soft_margin=None, mode="eval_loss")
+    return loss, sims.diag()
+
+
+def score_pairs(model, dataset, cap_idx, img_idx, collate_fn, batch=128):
+    """SGR score of arbitrary (caption, image) pairs in eval mode, no gradient: diagonal of the batch score matrix; no batch of size 1."""
+    n = len(cap_idx)
+    out = np.empty(n, dtype=np.float64)
+    model.val_start()
+    with torch.no_grad():
+        for chunk in np.array_split(np.arange(n), max(1, int(math.ceil(n / batch)))):
+            items = [(torch.Tensor(dataset.images[int(img_idx[j])]), torch.Tensor(dataset.captions[int(cap_idx[j])]), int(j), int(img_idx[j]))
+                     for j in chunk]
+            images, text, lengths, _ = collate_fn(items)
+            img_embs, cap_embs, cap_lens = model.forward_emb(images, text, lengths)
+            out[chunk] = model.forward_sim(img_embs, cap_embs, cap_lens).diag().double().cpu().numpy()
+    return out
+
+
+# ----------------------------------------------------------------------------------------------------------------------- hook
+_STATE = {}
+
+
+def _roles(opt, dataset):
+    if "roles" not in _STATE:
+        roles = np.load(opt.r22_roles_file)
+        if roles.shape != (len(dataset.t2i_index),):
+            raise ValueError("role vector length differs from the training pairs")
+        anchor = roles >= 0
+        if getattr(dataset, "anchor_mask", None) is None or not np.array_equal(anchor, np.asarray(dataset.anchor_mask, dtype=bool)):
+            raise ValueError("R22 roles disagree with the V9 anchor mask")
+        _STATE["roles"] = roles
+        _STATE["anchor_idx"] = np.flatnonzero(anchor)
+        _STATE["u_idx"] = np.flatnonzero(~anchor)
+    return _STATE["roles"], _STATE["anchor_idx"], _STATE["u_idx"]
+
+
+def replace_probabilities(opt, epoch, dataset, models, scores, gmm_probs, collate_fn):
+    """Called by the patched eval_train after the GMMs: returns the probabilities NCR uses for the split and the label rectification."""
+    roles, anchor_idx, u_idx = _roles(opt, dataset)
+    roles_anchor = roles[anchor_idx]
+    t2i = np.asarray(dataset.t2i_index)
+    t0 = time.time()
+    q_img = repair_within_role(anchor_idx, roles_anchor, t2i, opt.seed, epoch)
+    if np.any(q_img == t2i[anchor_idx]):
+        raise AssertionError("a Q pair kept its own image")
+    out, arrays, line = [], {}, {"epoch": int(epoch), "arm": opt.r22_posterior, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    for name, model, s_all, gmm in zip(("A", "B"), models, scores, gmm_probs):
+        tq = time.time()
+        s_q = score_pairs(model, dataset, anchor_idx, q_img, collate_fn)
+        q_seconds = time.time() - tq
+        prob, rec = decide(s_all, s_q, anchor_idx, roles_anchor, u_idx, gmm, opt.r22_posterior)
+        rec["q_score_seconds"] = round(q_seconds, 3)
+        out.append(prob)
+        line[name] = rec
+        arrays.update({f"{name}_s": np.asarray(s_all, dtype=np.float32), f"{name}_q": s_q.astype(np.float32),
+                       f"{name}_gmm": np.asarray(gmm, dtype=np.float32), f"{name}_prob": prob.astype(np.float32)})
+        r = rec["rho"]
+        print("[R22] epoch {} model {} arm {}: {} rho_raw={} gap={} c={} critic a={} b={} w_mean={} clean_frac={} (GMM {}) split_agree={}".format(
+            epoch, name, opt.r22_posterior, "POSTERIOR" if rec["deployed"] else "FALLBACK_GMM(" + str(r.get("status")) + ")",
+            _fmt(r.get("raw")), _fmt(r.get("gap")), _fmt(r.get("c")), _fmt((rec.get("critic") or {}).get("a")), _fmt((rec.get("critic") or {}).get("b")),
+            _fmt(rec.get("w_U", {}).get("mean")), _fmt(rec.get("w_U", {}).get("frac_gt_0.5")), _fmt(rec["gmm_U"]["frac_gt_0.5"]),
+            _fmt(rec.get("agreement", {}).get("split_agree_frac"))), flush=True)
+    line["seconds"] = round(time.time() - t0, 3)
+    log = opt.r22_log
+    os.makedirs(log, exist_ok=True)
+    arrays.update(anchor_idx=anchor_idx.astype(np.int32), q_img=q_img.astype(np.int32))
+    np.savez_compressed(os.path.join(log, "epoch_{:02d}.npz".format(epoch)), **arrays)
+    with open(os.path.join(log, "posterior.jsonl"), "a") as f:
+        f.write(json.dumps(line) + "\n")
+    return out
+
+
+def _fmt(x):
+    return "None" if x is None else "{:.4f}".format(x)

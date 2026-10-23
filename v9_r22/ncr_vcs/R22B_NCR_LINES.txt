@@ -1,0 +1,10 @@
+# R22-B full runs: NCR_A host + online VCS / matched-BCE posterior; one job per (arm, seed), seed 901 first.  Fed by
+#   handoff/review_claude_20261019/deps_watch/app_lines_feed.sh <this file> r22_ncr 28 1587
+# RTX6000PRO pin: NCR co-training has no resume; B1 NCR_A needed ~11.4 h on RTX (train+DEV forward), est. 19-23 h on L40S/H100 (too close to
+#   the 24 h limit); the NCR_A baseline ran on RTX (same GPU type).
+sbatch --job-name=r22_ncr_vcs_s901 --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --nice=50 --time=23:59:00 /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22b/v9_r22/ncr_vcs/slurm/r22_ncr.sbatch vcs full 901
+sbatch --job-name=r22_ncr_bce_s901 --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --nice=50 --time=23:59:00 /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22b/v9_r22/ncr_vcs/slurm/r22_ncr.sbatch bce full 901
+sbatch --job-name=r22_ncr_vcs_s902 --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --nice=50 --time=23:59:00 /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22b/v9_r22/ncr_vcs/slurm/r22_ncr.sbatch vcs full 902
+sbatch --job-name=r22_ncr_bce_s902 --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --nice=50 --time=23:59:00 /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22b/v9_r22/ncr_vcs/slurm/r22_ncr.sbatch bce full 902
+sbatch --job-name=r22_ncr_vcs_s903 --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --nice=50 --time=23:59:00 /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22b/v9_r22/ncr_vcs/slurm/r22_ncr.sbatch vcs full 903
+sbatch --job-name=r22_ncr_bce_s903 --qos=normal --partition=RTX6000PRO --exclude=node51,node53,node60 --nice=50 --time=23:59:00 /home/infres/yinwang/CS_QMI/ssl_pilot_v9_r22b/v9_r22/ncr_vcs/slurm/r22_ncr.sbatch bce full 903
