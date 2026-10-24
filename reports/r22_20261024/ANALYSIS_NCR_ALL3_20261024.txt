@@ -1,0 +1,16 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+NCR 在线后验六单元完整复核（2026-10-24）
+
+三seed最佳全DEV rSum（0–600）：原NCR 484.0434，VCS 485.6936，BCE 484.9836。
+VCS−原NCR逐seed为+1.4398/+1.3412/+2.1696，均值+1.6502，3/3正。
+VCS−匹配BCE为+2.9389/−0.3945/−0.4142，均值+0.7101，仅1/3正。
+结论：在线后验相对原宿主有小幅开发收益；VCS的独有优势尚未建立。
+
+曲线：VCS−BCE末轮+11.7291（3/3正），末5轮均值+3.6068（2/3），末10轮+1.1335（1/3）。末轮结论对终点敏感，不能取代原最佳checkpoint比较。全部9项均5轮warm-up+40轮main，45个候选完整；main20加入未标注项、main30学习率衰减，阶段改变与曲线共同变化不能单独证明因果。
+
+核验：9项原始结果、全部45候选recall合计/选择/末期均值、输入导出与角色/source哈希、读取轨迹、9个选中checkpoint重新哈希，均通过；与既有配对汇总一致。六新臂共480次模型-epoch后验部署，fallback=0。全部同型RTX，但节点/作业不同；没有初始化tensor及逐minibatch哈希，同教拆分本就因后验变化而不同，不能声称逐批严格配对。Q为同角色锚点重新配对且排除同图，不能称无条件完整乘积。
+
+成本：六次成功train/forward/score回执70.7790 GPUh；seed903原1056273超时23.9897 GPUh必须计入，共已知94.7687 GPUh；重用原NCR三seed另34.3977 GPUh。不含全部启动、导出及门禁开销。失败尝试保留，1061633仅按原登记完整重跑一次。
+
+下一步：不因末轮差异直接加长NCR或开参数网格。继续现有A3扩种和dense配准/全步骤成本对照；若再投NCR，须先预登记可区分配对校准、困难正确对保留及阶段切换影响的匹配机制研究。当前稀疏后验台账不够回答这些机制。未读取TEST，原理论不变。
