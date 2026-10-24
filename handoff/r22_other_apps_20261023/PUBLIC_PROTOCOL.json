@@ -1,0 +1,43 @@
+{
+  "utc": "2026-10-23T19:30:33.480137+00:00",
+  "label": "PILOT/DEVELOPMENT",
+  "retrieval": {
+    "question": "Can VCS reliability improve NCE after protecting every U pair and fixing total U mass, relative to BCE and constant weighting?",
+    "input": "frozen N2F observed pairs and scalar VCS/BCE weight files; no noise-oracle labels, no new critic fitting",
+    "transform": "w_task=.1+.8*sigmoid(logit(clip(w,1e-6,1-1e-6))+b), b fixed by90-step bisection to mean_U=.5. Constant control w_U=.5; anchors1; full-pool normalizer.55.",
+    "interpretation": "Transformed weights are task weights, not calibrated clean posteriors. Scalar VCS/BCE have the same teacher-score ordering; compare confidence/calibration shapes.",
+    "objective": "original symmetric NCE tau.05; only positive row/column terms weighted; all negatives unchanged.",
+    "pilot_seed": 901,
+    "pilot_units": 3,
+    "pilot_epochs": 40,
+    "arms": [
+      "vcs",
+      "bce",
+      "constant"
+    ],
+    "recipe": "original SGR architecture/init, all145000 observed pairs,128batch, Adam2e-4, lr*.1 epoch30, clip2, fullDEV each epoch, earliest maxrSum selection.",
+    "extension": {
+      "require_all3_complete": true,
+      "vcs_min_gain_over_both_controls_rsum": 3.0,
+      "require_at_least_unweighted_NCE": true,
+      "seeds": [
+        902,
+        903
+      ],
+      "units": 6,
+      "note": "Independent of original A3 gate. No duplicate A3 jobs. Report seed901 as selected pilot and new902/903 separately."
+    },
+    "analyses": [
+      "bestDEV, finalDEV and last5epoch rSum, all recalls",
+      "weight mean/min/max/ESS and numerical VCS-BCE differences",
+      "same sample order and initial model across arms",
+      "all attempts and GPU-specific costs"
+    ],
+    "limitations": [
+      "A single preset floor/targetmean is not an optimum claim.",
+      "Same monotone score ranking limits evidence for unique sample identification.",
+      "All retrieval selection remains on DEV; no independent TEST."
+    ]
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

@@ -1,0 +1,17 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+检索保护权重三臂完整分析：seed901，40轮，DEV开发证据。
+
+248个冻结文件、三臂初始化/输入顺序/前八批/训练配置/权重锁/历史与模型哈希通过；每臂45320更新。访问轨迹PASS（Python文件审计范围）。
+vcs: 最佳rSum 464.8126（第14轮），最后433.2347，末5轮435.2032；回执6.502GPUh；NVIDIA RTX PRO 6000 Blackwell Server Edition。
+bce: 最佳rSum 467.7712（第10轮），最后437.1400，末5轮438.4892；回执10.546GPUh；NVIDIA L40S。
+constant: 最佳rSum 468.0473（第12轮），最后407.3373，末5轮414.7179；回执6.073GPUh；NVIDIA RTX PRO 6000 Blackwell Server Edition。
+VCS−bce: best_rsum -2.9586, last_rsum -3.9053, mean_last5_rsum -3.2860
+VCS−constant: best_rsum -3.2347, last_rsum +25.8974, mean_last5_rsum +20.4852
+不加权NCE参考468.4024，VCS差-3.5897。
+VCS/BCE权重平均绝对差0.004059，最大0.005000；变换后排序一致=True。
+
+结论：未过原扩展门槛，不交902/903六项，不另开floor/mean网格或更长训练。VCS后期比constant稳定，但BCE也有类似行为；最佳模型没有额外收益。
+硬件限制：VCS与constant同型RTX/同驱动，BCE为L40S；VCS−BCE不能作纯目标函数因果差异。单seed和DEV选择亦限制结论。
+三臂回执合计23.1209GPUh，三项各一次成功尝试；门禁/旧权重拟合/不加权NCE/未测调度启动成本另计。
+下一步：原A3/NCR和配准完整对照继续；新任务必须回答新的任务机制问题，不能为了维持排队数量重复已完成实验。

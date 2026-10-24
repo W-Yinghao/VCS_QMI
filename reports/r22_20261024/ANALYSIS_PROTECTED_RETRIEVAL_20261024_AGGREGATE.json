@@ -1,0 +1,64 @@
+{
+  "utc": "2026-10-24T07:38:38.791102+00:00",
+  "series": "r22_other_apps_20261023:other_retrieval",
+  "status": "COMPLETE_REVIEWED",
+  "label": "Single seed901 PILOT/DEVELOPMENT;40epoch full schedule; existing FIT/DEV only",
+  "paired_vcs_minus_control": {
+    "bce": {
+      "best_rsum": -2.9585798816567603,
+      "last_rsum": -3.905325443786978,
+      "mean_last5_rsum": -3.2859960552267466
+    },
+    "constant": {
+      "best_rsum": -3.2347140039447595,
+      "last_rsum": 25.897435897435912,
+      "mean_last5_rsum": 20.485207100591765
+    }
+  },
+  "weight_audit": {
+    "mean_abs_difference": 0.0040591617258802825,
+    "max_abs_difference": 0.005000410359103563,
+    "equal_transformed_stable_order": true,
+    "original_equal_order": true
+  },
+  "matching": {
+    "initialization": true,
+    "sample_order": true,
+    "first8_batches": true,
+    "architecture_schedule": true,
+    "observed_pairs": true,
+    "transformed_weight_ids": true,
+    "all40epochs_45320updates": true,
+    "VCS_constant_gpu_and_driver": true,
+    "VCS_BCE_gpu_and_driver": false
+  },
+  "unweighted_reference": {
+    "best_rsum": 468.40236686390534,
+    "gpu": "NVIDIA L40S",
+    "vcs_difference": -3.589743589743591,
+    "role": "Historical registered gate reference; hardware differs from protected VCS"
+  },
+  "gate": {
+    "eligible": false,
+    "required_gain_over_both": 3,
+    "require_unweighted": true
+  },
+  "receipt_gpu_hours": 23.12091308871905,
+  "cost_scope": "Three successful first attempts, no known failed training attempts. Runner receipts include setup inside train_one; unmeasured scheduler startup, shared weight fitting, original NCE and technical gate costs are separate. Not an objective speed comparison across hardware.",
+  "interpretation": [
+    "The frozen expansion gate fails: protected VCS loses on best DEV to both controls and unweighted NCE.",
+    "VCS beats constant weights late in training, but BCE also does; improved late stability does not establish a better selected model or VCS-specific advantage.",
+    "VCS and BCE weights share ordering and differ by only about0.004 on average. This is a calibration-shape comparison, not evidence for distinct noise identification.",
+    "VCS versus constant uses the same GPU model/driver. BCE and historical NCE are L40S, VCS is RTX; do not attribute VCS-BCE differences solely to the objective.",
+    "All best checkpoints are early; curves do not support blind extension beyond40epochs. Single seed and reused DEV are not independent confirmation."
+  ],
+  "decision": {
+    "action": "STOP_THIS_PROTECTED_RECIPE",
+    "new_gpu_jobs": 0,
+    "extend_seeds902_903": false,
+    "new_floor_or_mean_grid": false,
+    "longer_training": false,
+    "continue_work": "Finish original A3/NCR and dense matched registration. Require a new theoretical/task hypothesis before a new application batch."
+  },
+  "_publication_note": "Aggregate excerpt of the completed local review. Per-unit identity/data/checkpoint records omitted."
+}
