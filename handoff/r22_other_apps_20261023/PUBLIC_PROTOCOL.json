@@ -1,0 +1,72 @@
+{
+  "utc": "2026-10-23T19:30:33.480137+00:00",
+  "label": "PILOT/DEVELOPMENT",
+  "kd": {
+    "question": "Does dependence between shared class decision coordinates transfer useful knowledge beyond direct similarity and matched BCE?",
+    "variables": "Each sample: logits minus class mean, then L2 normalization eps1e-8. Student/teacher in common100-class coordinates, no learned projection.",
+    "theory": {
+      "T": "unit centered-logit dot product",
+      "P": "same-instance student/teacher pairs",
+      "Q": "population marginal product estimated by ordered off-diagonal U-statistic, no label filtering",
+      "J": "EP(T-.5*T^2)-EQ(T+.5*T^2), exact batch first/second moments excluding diagonal",
+      "warning": "Centering/normalization changes measured variables and removes confidence scale; anchors still train logits. Not a claim that every task-relevant dependency must help."
+    },
+    "arms": [
+      "anchor_only",
+      "anchor+cosine",
+      "anchor+VCS",
+      "anchor+BCE"
+    ],
+    "anchors": [
+      "CE",
+      "DKD"
+    ],
+    "lambdas": [
+      0.1,
+      1,
+      10
+    ],
+    "pilot_seed": 27182,
+    "pilot_epochs": 40,
+    "pilot_milestones": [
+      25,
+      32,
+      36
+    ],
+    "pilot_units": 20,
+    "recipe": "same FIT/CAL split and strict FIT WRN40-2 teacher; WRN16-2 student, batch64, SGD.05/momentum.9/wd.0005; DKD beta6/T4/warmup20.",
+    "selection": "each objective: max CAL top1, lower NLL, lower lambda; within run earliest best checkpoint; equal3-lambda budget for all3 auxiliary methods.",
+    "extension": {
+      "per_anchor": true,
+      "vcs_min_gain_over_anchor_pp": 0.2,
+      "vcs_allowed_deficit_to_best_matched_pp": 0.1,
+      "explanation": "Resource gate, not significance/noninferiority test. Extend only after all10 corresponding pilot units finish and identities match.",
+      "full_seeds": [
+        31415,
+        16180,
+        57721
+      ],
+      "full_epochs": 240,
+      "full_milestones": [
+        150,
+        180,
+        210
+      ],
+      "units_per_eligible_anchor": 12,
+      "max_units": 24,
+      "arms": "anchor + selected lambda of each of cosine/VCS/BCE; same seeds/init/schedule; no lambda re-selection on full seeds"
+    },
+    "final_signal": "VCS mean gain >=.2pp and >=2/3 seeds positive against anchor and each selected matched control; report full differences regardless of gate.",
+    "analyses": [
+      "CAL accuracy/NLL and class margin",
+      "teacher-correct/anchor-wrong gains and teacher-wrong harms using matched CAL ids",
+      "auxiliary vs full-anchor logit gradients, saturation",
+      "all lambda histories and matched sample-order traces"
+    ],
+    "limitations": [
+      "CAL reused for pilot and full development; no independent confirmation.",
+      "Short pilot schedule differs from240epochs; all expansion claims conditional on this choice."
+    ]
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

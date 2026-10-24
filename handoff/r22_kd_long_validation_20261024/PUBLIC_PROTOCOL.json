@@ -1,0 +1,85 @@
+{
+  "utc": "2026-10-23T22:26:55.129939+00:00",
+  "label": "POST-PILOT TRAINING-DURATION VALIDATION; exploratory FIT/CAL",
+  "question": "Do the short-schedule rankings persist under the standard240epoch recipe across3paired seeds?",
+  "rationale": [
+    "40epoch schedule decays at25/32/36, not a prefix of240epoch150/180/210. A low-LR tail plateau does not establish convergence under the standard recipe.",
+    "DKD warmup20 occupies50pct of short run but8.33pct of long run; effective training regimes differ.",
+    "Pilot has1seed, mixed GPU models, and small DKD gaps; the .1pp resource cutoff is not a statistical exclusion test.",
+    "Observed short curves do not show a uniquely strong late VCS rise. Long validation addresses uncertainty, not a prediction of a reversal."
+  ],
+  "units": 24,
+  "epochs": 240,
+  "from_scratch": true,
+  "resume_short": false,
+  "milestones": [
+    150,
+    180,
+    210
+  ],
+  "warmup20_unchanged": true,
+  "seeds": [
+    31415,
+    16180,
+    57721
+  ],
+  "anchors": [
+    "ce",
+    "dkd"
+  ],
+  "arms": [
+    "none",
+    "cosine",
+    "vcs",
+    "bce"
+  ],
+  "lambdas": {
+    "ce": {
+      "none": 0,
+      "cosine": 10,
+      "vcs": 10,
+      "bce": 10
+    },
+    "dkd": {
+      "none": 0,
+      "cosine": 10,
+      "vcs": 10,
+      "bce": 1
+    }
+  },
+  "selection_policy": "Existing pilot-selected lambdas fixed for every method; no long-run lambda grid, no winning-seed or winning-anchor selection.",
+  "hardware": {
+    "partition_by_seed": {
+      "31415": "L40S",
+      "16180": "RTX6000PRO",
+      "57721": "L40S"
+    },
+    "rule": "All8runs sharing a seed use the same GPU model. Across-seed hardware differs as explicitly registered. Driver and environment still recorded."
+  },
+  "primary": "Fixed epoch240 CAL top1; per-seed VCS differences versus each matched control and anchor, then mean and SD across all3seeds.",
+  "secondary": [
+    "Mean CAL top1 over epochs231-240",
+    "Best CAL checkpoint by unchanged selection rule",
+    "Fixed40/80/120/150/180/210/240 learning-curve points",
+    "Teacher-correct/anchor-wrong transfer at selected checkpoints via existing summary"
+  ],
+  "interpretation": "Report all endpoints. Keep the original practical gain criterion: mean final240 gain >=.2pp and >=2/3positive seeds against anchor and each matched auxiliary, with compatible last10epoch direction. This is descriptive, not a significance claim. If still inferior after240epochs, lower priority for this specific recipe, not the general theory.",
+  "stopping": "All24runs planned regardless of interim ranking; abort only technical nonfinite/mismatched identity/storage/time failures. No automatic longer extension and no blind retries.",
+  "estimated_gpu_hours": [
+    10,
+    20
+  ],
+  "estimate_from_pilot_selected_seconds_6x3": 12.433492404222488,
+  "per_job_time_limit_hours": 3,
+  "storage_estimate_gib_lt": 3,
+  "monitor": "Reuse versioned existing other_apps controller; no extra permanent CPU job.",
+  "registration_scope": "Current dense48matched full training continues. Microbenchmark does not prove full-training utility. A longer registration protocol should use its completed trajectories/costs; no arbitrary duplicate registration expansion here.",
+  "retrieval_scope": "Current40epoch retrieval recipe is already the established full schedule; finish the three arms and NCR first.",
+  "limitations": [
+    "All are CAL development results, no TEST access.",
+    "Short-pilot lambdas may not be optimal for240epochs; conclusion is conditional on these frozen choices.",
+    "New long seeds differ from the short seed; short-vs-long does not isolate duration from seed or schedule.",
+    "Three seeds do not justify treating a small difference as a proven advantage."
+  ],
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}
