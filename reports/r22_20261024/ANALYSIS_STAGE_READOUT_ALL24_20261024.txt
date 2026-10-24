@@ -1,0 +1,32 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+阶段读出24项完整分析（2026-10-24，DEV探索性证据）
+
+结论：把精确J用于粗搜索、COS用于局部精修，没有形成跨数据集的严格定位收益，也没有建立VCS训练相对匹配BCE/NCE的独有优势。BF有宽松成功率与尾部改善，但这一现象也出现在BCE和permutation训练表示上，且未迁移到EPFL。
+
+完整性与公平性：BF/EPFL × exact/perm/BCE/NCE × 1001/1002/1003共24项均完成，单次尝试。每项固定同一CAL选中checkpoint，并在同作业中比较COS→COS、J→COS、COS→J、J→J；每问题10668粗网格、3起点×100Adam，21次grid调用、303次local调用，四策略轮换顺序。BF32core×10扰动，EPFL74window×10扰动按72scene宏平均，重复扰动不视为独立样本。全部冻结/源checkpoint/CAL选择/原DEV真值与读域/逐项指标重算通过。所有同粗阶段grid哈希差异数为0，同局部能量F_true差值为0；这不等于整个GPU位姿搜索确定。
+
+预登记主比较 J→COS 减 COS→COS，单位百分点：
+数据集 训练目标    严格<9     宽松<42
+BF     exact      -0.3125    +0.8333
+BF     perm       +0.3125    +1.7708
+BF     BCE        +0.2083    +0.7292
+BF     NCE        -0.2083    -0.4167
+EPFL   exact       0.0000    -0.2315
+EPFL   perm        0.0000    -0.3704
+EPFL   BCE        -0.0463    -0.3241
+EPFL   NCE        -1.9444    -2.2685
+
+Exact的严格逐seed变化：BF均为-0.3125pp（0/3正）；EPFL为0/-0.1389/+0.1389pp（1/3正）。BF exact严格均值66.3542→66.0417%，宽松96.0417→96.8750%；EPFL严格87.1296→87.1296%，宽松97.8704→97.6389%。同作业时间比中位数BF1.01964、EPFL1.01830，约增加2%，不是速度收益。两数据集预登记useful_search与VCS_specific均false；判断来自实际收益方向，不能仅归结为1pp阈值太严。
+
+匹配目标比较：在同一J→COS策略下，exact−BCE严格为BF-0.3125pp、EPFL-0.3704pp，均仅1/3 seed为正；exact−NCE为BF-2.6042pp（0/3正）、EPFL+3.2870pp（3/3正）。EPFL的后者包含NCE自身换J粗搜索后明显退化，不能只展示此比较作为VCS独有优势。Exact对permutation严格也为BF-1.8750pp、EPFL-1.6667pp。
+
+机制与失败尾部：BF exact在private_sample_002的宽松失败5/2/1次全部消失，但private_sample_001每seed仍10/10失败，宽松提升因此集中在一个core。BF exact平均p95误差24.4265→21.3943，>=100严重失败率3.4375→3.1250%；perm/BCE也获得宽松改善。EPFL exact失败仍集中water/0025、water/0026，J粗搜索使它们略增加；严重失败率1.3426→1.4815%。不删这些场景、不按结果重划数据。完整成功率曲线3/9/21/42/100及每场景失败保留在JSON。
+
+四策略对照：固定COS粗搜索，仅把局部精修换成J，严格平均变化BF exact/perm/BCE/NCE分别-0.2083/-1.0417/-0.7292/-0.5208pp；EPFL分别-1.6204/-1.8519/-1.8056/-1.3889pp。更支持继续关注局部几何及训练，而非把任何依赖读出直接视为适合精修；这是机制线索，不是收敛定理。全部四策略均值与交互已保存，不事后挑选其他格子替代主比较。
+
+成本：24正式回执合计15.02254 GPU小时；加两项v2门禁、v1 EPFL成功门禁、BF旧失败87调度秒及诊断，已知总计15.08803 GPU小时。成功回执不含全部调度启动成本、源训练成本另计。BF exact1001与EPFL exact1003在较慢RTX node61，其余大多L40S；同作业读出比较有效，但跨训练目标存在硬件混杂，不作跨机器加速结论。
+
+下一步：继续已冻结的24项3000→30000步匹配验证，检验短训不足；保留统一LR与固定终点，不根据途中成绩停机或换读出。阶段读出短程24项已完整，不再重复这一批以寻求正结果。另继续保护权重检索6项和A3最后一臂，等待完整配对证据。当前研究池仍有充分已准入长训练，本次无需新增GPU作业。旧阈值仅保留为报告标准，不永久禁止不同机制、实现或数据集的新验证；新方案需单独冻结、匹配对照和技术门禁。
+
+限制：重复使用DEV，三seed，不能作为独立确认或显著性检验；原CAL曲线已随模型记录保留，本次没有新训练曲线；运行输入按已有锁和trace审计，分析器未独立重哈希所有输入字节。没有读取TEST、修改冻结实验、删除数据或公开推送。

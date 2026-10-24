@@ -1,0 +1,86 @@
+{
+  "utc": "2026-10-23T18:42:05.626456+00:00",
+  "name": "Shared geometry under marginal-preserving correspondence corruption",
+  "label": "PILOT/DEVELOPMENT",
+  "rationale": "Clean shared-geometry pilot has not established a VCS advantage over matched BCE. This tests a specific bounded-loss robustness hypothesis under deliberately unreliable training correspondences; no positive result is assumed.",
+  "data": [
+    "bf",
+    "epfl"
+  ],
+  "arms": [
+    "vcs_exact",
+    "vcs_perm",
+    "bce",
+    "nce"
+  ],
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "noise_requested": [
+    0.2,
+    0.4
+  ],
+  "jobs": 48,
+  "corruption": {
+    "support": "only aligned training descriptor pairs; CAL/DEV inputs and registration tasks unchanged",
+    "algorithm": "Each scene and training step: independently choose m=round(rho*N) positions, cycle their right descriptors by one place. N=128, m=26 or51. No selected position stays fixed.",
+    "same_across_arms": "RNG depends only on seed,step,scene,noise; it does not touch the host sampler or initialization RNG",
+    "marginals": "right positions are permuted bijectively; both empirical marginals and full Q are exactly unchanged",
+    "P": "joint with m/N mismatches, not the original clean joint. In expectation at fixed descriptors, P_noisy=(1-r)P_clean+r Q_offdiag, r=m/N.",
+    "Q": "within-scene full empirical product, including diagonal. Conditional within-scene dependence, not global QMI.",
+    "theory": "same mixture reference M=(P_noisy+Q)/2 and quadratic J over the stated noisy joint. Boundedness alone does not guarantee superior downstream robustness."
+  },
+  "recipe": {
+    "host": "same normalized16D encoders, no free critic, original sampler",
+    "training_steps": 3000,
+    "lr": 0.0003,
+    "batch": [
+      16,
+      128
+    ],
+    "cal_candidates": [
+      1000,
+      2000,
+      3000
+    ],
+    "selection": "same CAL loose success, strict success, median error, earlier checkpoint",
+    "primary_readout": "COS",
+    "secondary_readout": "J_EXACT at the same selected model",
+    "clean_control": "reuse frozen clean geometry jobs, all arms/all seeds; disclose GPU types",
+    "TEST": false
+  },
+  "endpoints": [
+    "clean DEV strict and loose success under corrupted training",
+    "noise-minus-clean per seed and objective",
+    "VCS exact-minus-BCE and exact-minus-NCE at each declared noise level",
+    "difference in degradation versus matched controls; retain all seeds and both thresholds",
+    "VCS exact-minus-permutation isolates empirical reference computation"
+  ],
+  "reporting": "Two corruption levels reported separately; no posthoc winner selection. Current fixed LR and controlled artificial correspondence noise limit real-world claims.",
+  "execution": {
+    "normal_only": true,
+    "partitions": [
+      "RTX6000PRO",
+      "L40S",
+      "H100"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60"
+    ],
+    "max_hours_per_job": 6,
+    "estimated_total_gpu_hours": [
+      10,
+      20
+    ],
+    "estimate_basis": "clean pilot about10–32min/unit depending dataset/hardware",
+    "storage_GiB_lt": 4,
+    "queue_controller": "1061067",
+    "CPU_checks": "bijection, mismatch count, same marginal moments, gradients, identical encoders",
+    "GPU_smokes": "BF rho.2 and EPFL rho.4 before bulk admission"
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

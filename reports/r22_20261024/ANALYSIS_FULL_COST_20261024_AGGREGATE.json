@@ -1,0 +1,40 @@
+{
+  "status": "AUDIT_PASS",
+  "utc": "2026-10-24T08:56:25.638863+00:00",
+  "series": "r22_cost_validation_20261024:other_cost",
+  "dataset_criteria": {
+    "bf": {
+      "seeds_passing_both_competitors": 0,
+      "pass_at_least2": false
+    },
+    "epfl": {
+      "seeds_passing_both_competitors": 0,
+      "pass_at_least2": false
+    }
+  },
+  "registered_cost_signal": false,
+  "cost": {
+    "full_recorded_gpu_hours": 0.13245850642522175,
+    "gate_recorded_gpu_hours": 0.005432410836219787,
+    "known_attempts_full": 6,
+    "scope": "Recorded producer elapsed time, excluding Python startup/queue/allocation overhead."
+  },
+  "aggregation": "Median of10 timings per cell, then median of3 FIT batches for each arm/N/seed. Choose fastest measured BCE and NCE implementation separately, compare its peak; additionally report memory-minimizing variant. Require both competitors in the same at least2of3 seeds per dataset.",
+  "audit": "Frozen files, source/checkpoint hashes, FIT role, exact grid/order, 10 positive finite times, medians/memory arithmetic, 27 numerical comparisons/unit, unchanged weights and one complete attempt/submission/unit verified. Reference-relative value tolerance asserted by frozen producer; reference values not serialized.",
+  "task_quality_status": "Must be interpreted with all dense task series; cost criterion alone does not establish application advantage.",
+  "limitations": [
+    "No claim that block256 is an optimized global baseline.",
+    "Fixed zero-lr steps are not convergence evidence and do not time all training IO.",
+    "Shared source models trained with VCS can influence numerical distribution; same across objectives.",
+    "No new CAL/DEV numerical evaluation; integrity metadata may reference them. TEST prohibited."
+  ],
+  "interpretation": {
+    "result": "Registered cost signal false: no seed in either dataset meets >=1.2x versus both fastest BCE/NCE controls atN2048. Speed ratios around1.060/1.089, not the descriptor-only10x claim.",
+    "memory": "N2048 exact has lower total peak than materialized competitors, but blocked alternatives remove most excess score memory. BF exact934.56MiB vs blockedBCE980.02,blockedNCE964.24; EPFL2142.87/2188.33/2172.55. No81x end-to-end memory claim.",
+    "environment": "All6 full probes landed onRTXnode61, where dense training also showed slow execution. These are paired controlled ratios within this measured environment, not a general GPU performance guarantee. Gates onotherhardware are numerical validations, not substitute full results.",
+    "cost": "Recorded full0.13246GPUh plus gates0.00543; sixsingle attempts, no failure. Excludesstartup/allocationoverhead.",
+    "decision": "Close the preregistered >=1.2x full-step cost claim at these measured operating points. No density/chunk/length grid to chase a positive result. Continue remaining dense results and prospectively test fixed-checkpoint coarse-versus-local readout factorization with matched controls, not extra representation training."
+  },
+  "review_completed_utc": "2026-10-24T08:58:27.126708+00:00",
+  "_publication_note": "Aggregate excerpt of the completed local review. Per-unit identity/data/checkpoint records omitted."
+}

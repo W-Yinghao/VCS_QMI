@@ -1,0 +1,16 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+EPFL N512密集配准12/12完整复核（2026-10-24）
+
+COS主读出严格<9 / 宽松<42成功率：exact88.1944/97.7778%，perm88.3796/97.9167%，BCE86.8981/97.8704%，NCE87.6389/98.5185%。
+exact−BCE严格+1.2963pp（2/3正）、宽松−0.0926pp（1/3正）；−NCE严格+0.5556pp（2/3正）、宽松−0.7407pp（0/3正）。对普通置换两个均值都略低。没有统一任务优势。
+
+同一exact checkpoint改J_EXACT为87.0833/97.5463%，相对COS两个指标都下降。J下exact相对BCE/NCE差值较好，不能据此换主指标：BCE/NCE本身在J读出下也变差。BF上J降低尾部失败的现象未直接迁移到EPFL。
+
+密度：exact512−128严格+1.0185pp、宽松−0.0926pp，中位误差+0.1017像素；所有密度并列。COS exact三seed累计>=42失败48次，BCE46、NCE32；2160扰动依赖于相同场景/窗口，不能当作独立样本。逐seed中位误差均值exact2.1608、BCE2.0168、NCE1.9520；逐seed95%分位数均值13.9306/13.4604/11.7615，非合并分位数。
+
+曲线：exact的CAL选中步数为3000/1000/2000；1000/2000/3000步严格成功率均值85.9259/82.5926/84.4444%，宽松都100%，中位误差1.9406/1.7938/1.9766。FIT损失继续改善，但没有统一的任务收益趋势。不能仅因个别seed选末步就断言加长有利；也不从这批短预算否定所有长训练。
+
+核验：31冻结文件、12项各固定3000更新、同seed初始化及全输入序列、训练/DEV/模型哈希、CAL选择、真值/扰动/网格、既有配对汇总及尝试账本全部通过。12项各一次已知成功尝试、无失败。回执5.90487GPUh，其中训练0.39532GPUh；启动及门禁另计。node61的perm1002/BCE1003约慢三倍，只作环境成本异常记录，不作目标函数加速证据。
+
+下一步：余下EPFL N2048与6项完整步骤成本对照继续；不追加密度、学习率、时长网格，不按DEV改主读出。后续若做固定checkpoint读出机制，必须同时检验BF/EPFL，而不是只追BF中有利的尾部现象。原理论不变，未读TEST。

@@ -1,0 +1,74 @@
+{
+  "name": "Matched fixed-budget geometry continuation 3000 to 30000",
+  "label": "DEVELOPMENT; no TEST",
+  "hypothesis": "A 3000-update screen may miss useful representation after longer training with matched LR decay. Does exact VCS improve task success and failure tail relative to matched BCE/NCE?",
+  "datasets": [
+    "bf",
+    "epfl"
+  ],
+  "arms": [
+    "vcs_exact",
+    "vcs_perm",
+    "bce",
+    "nce"
+  ],
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "jobs": 24,
+  "theory": "Original bounded cosine critic and quadratic J; same within-scene empirical P/Q and N128 as original geometry protocol.",
+  "recipe": {
+    "source_steps": 3000,
+    "final_steps": 30000,
+    "new_updates": 27000,
+    "continuation": "All encoders,AdamW moments,optimizer counters,sampler/local/global RNG from fixed step3000, not CAL-selected.",
+    "lr": "updates1..15000:3e-4;15001..24000:3e-5;24001..30000:3e-6; identical all4arms",
+    "config": "N128,n_sc16,crop160,weight_decay1e-4,clip1; unchanged objective/temperature.",
+    "cal_steps": [
+      10000,
+      20000,
+      30000
+    ],
+    "cal": "COS curves only; no early stopping or checkpoint selection.",
+    "dev": "Fixed3000 and30000 COS, samejob sameGPU fullDEV10perturbations/core; no bestDEV selection.",
+    "limitation": "Long-short changes duration and preset LR decay; not pure duration effect. Inherited prefix may use different GPU, disclosed."
+  },
+  "report": {
+    "primary": "Fixed30000 exact minus BCE/NCE scene/core-macro strict<9 and loose<42, allseeds; exact−perm andlong−short.",
+    "practical_signal": "Each dataset exact beats BOTH BCE andNCE by >=1pp strict with2/3positive seeds and loose loss<=.25pp. Report all effects/uncertainty; reporting criterion, not earlystop or permanent prohibition.",
+    "other": [
+      "CAL/FITloss/grad curves",
+      "median,p95,error>100tail",
+      "allattempt costs",
+      "matched input traces"
+    ]
+  },
+  "execution": {
+    "finite_budget": true,
+    "earlystop": false,
+    "gate": "CPU checkpoint/RNG+synthetic continuation; BF/EPFL3realFITupdates all4arms+fullstate roundtrip andCALgradient; onlytechnical criteria.",
+    "estimate_gpu_hours": [
+      15,
+      40
+    ],
+    "hard_gpu_hours": 96,
+    "job_hours": 4,
+    "storage_gib_lt": 2,
+    "partitions": [
+      "RTX6000PRO",
+      "L40S",
+      "H100"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60",
+      "node61"
+    ],
+    "feeder": "existing unique pool1062146",
+    "retry": "No automatic retry; preserve failed attempts."
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

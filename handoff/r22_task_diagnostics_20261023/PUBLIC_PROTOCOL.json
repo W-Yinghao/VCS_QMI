@@ -1,0 +1,89 @@
+{
+  "utc": "2026-10-23T17:12:38.556613+00:00",
+  "label": "PILOT/DEVELOPMENT",
+  "theory": "Original bounded-critic J unchanged. Geometry and counterfactual temperature are descriptive implementation diagnostics.",
+  "registration": {
+    "jobs": 12,
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "families": [
+      "MLPp1",
+      "InfoNCE"
+    ],
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "checkpoint": "historical CAL-selected J checkpoint",
+    "data": "all CAL cores/windows, all 10 frozen perturbations; no DEV image reads",
+    "radii_optimizer_coordinates": [
+      0.5,
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "directions": "six signed coordinate axes in p=(rho*theta_radians,ty,tx)",
+    "readouts": [
+      "J",
+      "PMI",
+      "PMI_C2",
+      "EPT",
+      "POS"
+    ],
+    "measures": [
+      "truth versus perturbed pose preference",
+      "gradient pointing toward truth",
+      "gradient norm and alignment",
+      "score saturation"
+    ],
+    "aggregation": "rays -> problems -> scenes; all seeds reported, no profile-based checkpoint reselection",
+    "limitations": "axis slices are not full attraction basins; existing hosts have recipe differences"
+  },
+  "kd": {
+    "jobs": 3,
+    "seeds": [
+      31415,
+      16180,
+      57721
+    ],
+    "arms": {
+      "vcscrd": 0.8,
+      "dkd_vcscrd": 3
+    },
+    "data": "8 fixed FIT batches of 64 per arm, augmented at epoch0 in training-mode BN; buffers restored and checkpoints immutable",
+    "negative_pairs": 16384,
+    "positive": "current student/teacher embeddings",
+    "temperatures": [
+      0.07,
+      0.2,
+      0.5
+    ],
+    "matched_BCE": "same current positive and saved memory negatives; 2*balanced BCE per direction to match VCS derivatives at zero",
+    "measures": [
+      "actual positive/negative cos and tanh distributions",
+      "score gradient suppression 1-T^2",
+      "weighted feature gradient vs full CE/DKD anchor",
+      "positive vs negative gradient contributions",
+      "teacher correct / student wrong subgroup"
+    ],
+    "limitations": "saved CAL-selected checkpoint with stale memory, not an early-training reconstruction; counterfactual derivatives do not prove retraining gains"
+  },
+  "execution": {
+    "normal_only": true,
+    "gpu_jobs": 15,
+    "training": false,
+    "TEST": false,
+    "time_limits_hours": {
+      "reg": 4,
+      "kd": 0.5
+    },
+    "estimated_gpu_hours": "3–8, subject to measured throughput",
+    "output_GiB_lt": 1
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

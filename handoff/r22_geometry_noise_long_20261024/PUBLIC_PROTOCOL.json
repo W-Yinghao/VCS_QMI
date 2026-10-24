@@ -1,0 +1,95 @@
+{
+  "name": "Matched noisy-positive continuation at both original rates 3000 to 30000",
+  "label": "DEVELOPMENT; no TEST",
+  "hypothesis": "The 3000-update mismatch screen may miss late memorization or a delayed task benefit. At fixed 30000 updates, do bounded VCS objectives reduce clean-DEV degradation relative to matched BCE/NCE under a changed P and unchanged empirical marginals?",
+  "datasets": [
+    "bf",
+    "epfl"
+  ],
+  "arms": [
+    "vcs_exact",
+    "vcs_perm",
+    "bce",
+    "nce"
+  ],
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "jobs": 48,
+  "theory": "Original paper unchanged. Same normalized cosine function class and original four objectives. Corruption changes positive empirical P while preserving each within-scene empirical marginal and exact product Q.",
+  "recipe": {
+    "source_steps": 3000,
+    "final_steps": 30000,
+    "new_updates": 27000,
+    "continuation": "All encoders, AdamW moments/counters, sampler and local/global RNG from each ORIGINAL noisy fixed step3000; never use the CAL-selected checkpoint. Inherited noise rate continues unchanged.",
+    "lr": "updates1..15000:3e-4;15001..24000:3e-5;24001..30000:3e-6; identical all4arms",
+    "config": "N128,n_sc16,crop160,weight_decay1e-4,clip1; unchanged objective/temperature.",
+    "cal_steps": [
+      10000,
+      20000,
+      30000
+    ],
+    "cal": "COS curves only; no early stopping or checkpoint selection.",
+    "dev": "Fixed3000 and30000 COS, samejob sameGPU fullDEV10perturbations/core; no bestDEV selection.",
+    "limitation": "Long-short changes duration and preset LR decay; not pure duration effect. Inherited prefix may use different GPU, disclosed."
+  },
+  "report": {
+    "primary": "Fixed30000 exact minus BCE/NCE scene/core-macro strict<9 and loose<42, allseeds; exact−perm andlong−short.",
+    "practical_signal": "For each dataset/rate exact beats BOTH BCE and NCE by >=1pp strict with >=2/3 positive seeds and loose loss <=.25pp. Report failure too; neither early stopping nor a permanent prohibition. Both rates fully run.",
+    "other": [
+      "CAL/FITloss/grad curves",
+      "median,p95,error>100tail",
+      "allattempt costs",
+      "matched input traces"
+    ]
+  },
+  "execution": {
+    "finite_budget": true,
+    "earlystop": false,
+    "gate": "CPU48 real source-state restores, 3000-step input/noise agreement, first5 future draws equal clean stream, 8 synthetic full-state replay checks, bijection and corruption checks; BF+EPFL gates cover ALL4 arms at BOTH rates with real FIT3steps/roundtrip/CALgradient. No outcome gate.",
+    "estimate_gpu_hours": [
+      25,
+      65
+    ],
+    "hard_gpu_hours": 192,
+    "job_hours": 4,
+    "storage_gib_lt": 4,
+    "partitions": [
+      "L40S"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60",
+      "node61"
+    ],
+    "feeder": "existing unique pool1062146",
+    "retry": "No automatic retry; stop only for technical nonfinite values, corrupt identities/inputs, prohibited access, resource/time limit. Preserve every attempt.",
+    "gate_hard_gpu_hours": 2
+  },
+  "noise": {
+    "requested": [
+      0.2,
+      0.4
+    ],
+    "realized": [
+      0.203125,
+      0.3984375
+    ],
+    "mechanism": "Reuse original stateless per-scene cyclic-subset corruption. Same exact assignment across arms, same crop/draw stream across noise levels and clean continuation. Changing rate changes P; finite sample marginal-product Q unchanged. No theoretical guarantee of robust task performance is asserted."
+  },
+  "comparisons": {
+    "primary": "For each dataset and rate separately, exact minus BOTH BCE and NCE at fixed30000 COS DEV; report both rates, all seeds.",
+    "secondary": [
+      "30000 minus3000 same-job same-GPU COS endpoints",
+      "exact minus permutation",
+      "Difference-in-differences versus already-frozen clean-long24 at fixed30000, conditional on complete verified clean series; cross-hardware prefix caveat",
+      "CAL10000/20000/30000 plus full FIT curves"
+    ],
+    "interpretation": "Controlled synthetic correspondence noise, not independent real-noise evidence. No selecting rate, checkpoint, readout or loss from DEV."
+  },
+  "preexisting_evidence": "Original48 noisy3000 experiments already complete without consistent exact advantage; clean-long24 active. New48 approved by user long-validation instruction, not contingent on partial clean-long outcomes.",
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

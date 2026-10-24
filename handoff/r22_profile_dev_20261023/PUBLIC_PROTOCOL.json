@@ -1,0 +1,61 @@
+{
+  "utc": "2026-10-23T17:12:38.556613+00:00",
+  "label": "PILOT/DEVELOPMENT; reused DEV, no independent confirmation",
+  "theory": "Original bounded-critic J unchanged. Geometry and counterfactual temperature are descriptive implementation diagnostics.",
+  "registration": {
+    "jobs": 12,
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "families": [
+      "MLPp1",
+      "InfoNCE"
+    ],
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "checkpoint": "historical CAL-selected J checkpoint",
+    "data": "All DEV cores/windows and all 10 frozen perturbations, linked to each existing historical J registration error",
+    "radii_optimizer_coordinates": [
+      0.5,
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "directions": "six signed coordinate axes in p=(rho*theta_radians,ty,tx)",
+    "readouts": [
+      "J",
+      "PMI",
+      "PMI_C2",
+      "EPT",
+      "POS"
+    ],
+    "measures": [
+      "truth versus perturbed pose preference",
+      "gradient pointing toward truth",
+      "gradient norm and alignment",
+      "score saturation"
+    ],
+    "aggregation": "rays -> problems -> scenes; all seeds reported, no profile-based checkpoint reselection",
+    "limitations": "axis slices are not full attraction basins; existing hosts have recipe differences",
+    "purpose": "Test whether local truth preference and inward gradients predict actual registration failures on the full reused development set; no selecting readouts or retraining on DEV."
+  },
+  "execution": {
+    "normal_only": true,
+    "gpu_jobs": 12,
+    "training": false,
+    "TEST": false,
+    "time_limits_hours": {
+      "reg": 4,
+      "kd": 0.5
+    },
+    "estimated_gpu_hours": "3–6 based on CAL profile throughput; hard limit 4h/unit",
+    "output_GiB_lt": 1
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

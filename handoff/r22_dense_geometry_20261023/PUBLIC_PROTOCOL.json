@@ -1,0 +1,122 @@
+{
+  "name": "Dense shared geometry: task quality, exact reference cost and permutation variance",
+  "utc": "2026-10-23T18:58:26.078117+00:00",
+  "label": "PILOT/DEVELOPMENT",
+  "rationale": "The quadratic objective with cosine admits exact empirical product moments without a pair matrix. Test whether this enables useful dense correspondence training, without presuming a VCS task advantage.",
+  "theory": {
+    "T": "L2-normalized16D local descriptor dot product",
+    "P": "aligned pairs in the same scene/crop",
+    "Q": "full within-scene empirical marginal product, including diagonal",
+    "J": "EP T - EQ T - .5 EP T^2 - .5 EQ T^2",
+    "reference_cost": "Moment implementation O(N*d^2) work, O(d^2) moment storage; dense pair implementation O(N^2*d) score work and O(N^2) materialized scores. Descriptor/encoder memory and time remain additional.",
+    "qualification": "Conditional within-scene dependence; unchanged quadratic theory, constrained function class. Complexity alone does not imply end-to-end speedup or better registration."
+  },
+  "grid": {
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "arms": [
+      "vcs_exact",
+      "vcs_perm",
+      "bce",
+      "nce"
+    ],
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "n_positions": [
+      512,
+      2048
+    ],
+    "training_jobs": 48,
+    "fit_probe_jobs": 6,
+    "gpu_gate_jobs": 2
+  },
+  "controls": {
+    "baseline128": "Reuse all24 frozen clean geometry runs; no retraining baseline.",
+    "sampler": "Original128-position sampler drives crops and original positions unchanged. Stateless extra positions extend to2048, first512 nested. Extra ordinary permutations use an independent stream; all objectives share batches within each N.",
+    "optim": "Same AdamW3e-4, original decay/clip,3000steps,16scenes,crop160; no free critic. VCS/BCE/NCE formulas byte-equivalent in arithmetic to baseline.",
+    "comparison": "Same number of steps and CAL candidates, NOT same wall-clock budget. Across GPUs group times by model; use within-job probes for reliable objective cost ratios."
+  },
+  "selection": {
+    "cal_steps": [
+      1000,
+      2000,
+      3000
+    ],
+    "rule": "CAL macro loose-success, strict-success, lower median error, earlier step",
+    "primary_readout": "COS",
+    "secondary": "J_EXACT at the same selected model",
+    "DEV": "full existing clean DEV once per selected model; all Ns and seeds reported; no N winner selected on DEV",
+    "TEST": false
+  },
+  "probes": {
+    "data": "One fixed FIT crop batch per dataset and trained seed; use clean CAL-selected VCS exact model",
+    "n_positions": [
+      128,
+      512,
+      2048
+    ],
+    "objectives": [
+      "vcs_exact",
+      "vcs_dense",
+      "vcs_perm",
+      "vcs_perm8",
+      "bce",
+      "nce"
+    ],
+    "warmup": 3,
+    "timing_repeats": 10,
+    "permutation_repeats": 64,
+    "scopes": [
+      "Objective forward plus descriptor backward on same GPU/input; synchronized timing, incremental peak allocated bytes.",
+      "Exact moment versus dense quadratic values and gradient identity.",
+      "Single/eight-permutation conditional descriptor gradient errors against exact reference; NOT total encoder gradient variance."
+    ],
+    "note": "No numerical DEV in probes. Existing guards may hash CAL/DEV inputs for integrity. No TEST."
+  },
+  "endpoints": [
+    "COS strict and loose DEV success and median error at each N, all seeds.",
+    "VCS exact minus permutation, BCE and NCE at the same N.",
+    "N512/N2048 minus N128 per arm; crops/initialization shared, more points also change P sampling, not just Q.",
+    "Per-unit synchronized training seconds, full completion seconds, peak allocated memory; hardware-stratified.",
+    "Same-device objective timing/memory ratios and conditional reference gradient errors."
+  ],
+  "decisions": {
+    "expansion": "This finite batch only. Do not automatically expand density, train length or learning-rate grid.",
+    "support": "A useful operating point requires competitive task performance AND lower measured cost; report strict/loose failures rather than selecting a favorable metric.",
+    "null": "Cheaper objective with no end-to-end or task gain is only an implementation advantage; no VCS application superiority claim."
+  },
+  "limitations": [
+    "More local points are spatially correlated, not independent new training data.",
+    "Fixed learning rate and NCE temperature may interact with density; no optimizer optimum claim.",
+    "Dense BCE/NCE are the existing full implementations; blocking/fusion could alter memory/time tradeoffs.",
+    "Repeated DEV is exploratory, not independent confirmation."
+  ],
+  "execution": {
+    "pool_job": "1061067",
+    "normal_only": true,
+    "partitions": [
+      "RTX6000PRO",
+      "L40S",
+      "H100"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60"
+    ],
+    "time_limit_hours": 6,
+    "estimated_total_gpu_hours": [
+      15,
+      35
+    ],
+    "estimate": "provisional; gates and training time will refine",
+    "storage_GiB_lt": 5,
+    "prerequisites": "CPU PASS, then BF and EPFL gates across all4 objectives and both Ns PASS; admit full batch only afterwards. No dependency jobs."
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

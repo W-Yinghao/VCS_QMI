@@ -1,0 +1,11 @@
+{
+  "original_job": "1061100",
+  "original_name": "r22_geomdev_bf_InfoNCE_s1002",
+  "cause": "Direct verification used angle->fp32 radians, while the differentiable pose used angle->rho-scaled-fp32->radians. A coordinate rounding difference can exceed the tight value tolerance. All curves used the same intended optimizer coordinates.",
+  "fix": "Compare captured J with direct energy at the identical optimizer-coordinate tensor p0 under no_grad. No tolerance relaxation, no model/training/readout change.",
+  "rerun": "Only the failed unit, all 320 DEV cases, new output; failed attempt and partial rows retained.",
+  "original_freeze_sha256": "43e23b5f6d2f8e51dd83568cc69dc008390c8edf88dda9eff630a23611bcf913",
+  "role": "DEV only for numerical profiles; input integrity hashes CAL/DEV as before",
+  "status": "AWAIT_CPU_GATE",
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

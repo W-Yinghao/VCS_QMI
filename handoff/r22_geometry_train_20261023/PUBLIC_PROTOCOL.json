@@ -1,0 +1,81 @@
+{
+  "utc": "2026-10-23T17:20:23.769126+00:00",
+  "name": "Shared cosine geometry for multimodal registration",
+  "label": "PILOT/DEVELOPMENT",
+  "question": "With local matching encoded directly in a shared descriptor geometry, do quadratic J and its exact empirical reference moments improve registration relative to matched objectives?",
+  "theory": {
+    "T": "normalized local descriptor dot product, bounded by one",
+    "P": "aligned descriptor pairs within each sampled scene/crop",
+    "Q": "product of empirical local marginals within the same scene/crop, including diagonal; then average scenes",
+    "qualification": "conditional within-scene dependence, not global marginal-product QMI",
+    "J": "EP T - EQ T - 0.5 EP T^2 - 0.5 EQ T^2",
+    "exact_moments": "EQ T=mu_u dot mu_v; EQ T^2=tr(Cu Cv), uncentered moments"
+  },
+  "arms": [
+    "vcs_exact",
+    "vcs_perm",
+    "bce",
+    "nce"
+  ],
+  "controls": {
+    "vcs_perm": "ordinary within-scene permutation, unbiased for the full empirical product conditional on descriptors",
+    "bce": "same bounded cosine T, twice balanced BCE centered at zero, probability clip1e-6; same full reference pairs",
+    "nce": "symmetric within-scene cosine InfoNCE, tau=.07 preset, strong ranking control; different objective scale disclosed"
+  },
+  "data": [
+    "bf",
+    "epfl"
+  ],
+  "seeds": [
+    1001,
+    1002,
+    1003
+  ],
+  "jobs": 24,
+  "recipe": {
+    "steps": 3000,
+    "encoder_init": "same host encoders and seed, no free pairwise critic",
+    "optimizer": "AdamW lr3e-4, original weight decay and gradient clip",
+    "batch": "16 scenes x 128 positions, crop160, original sampler",
+    "cal_candidates": [
+      1000,
+      2000,
+      3000
+    ],
+    "primary_readout": "mean aligned cosine for every objective",
+    "cal_selection": "original loose success, strict success, lower median error, earlier step; three candidates for every arm",
+    "dev": "both COS and exact J at CAL-selected checkpoint, full existing DEV, no further selection",
+    "TEST": false
+  },
+  "evidence": [
+    "application gains in strict and loose success, retain failure tails",
+    "VCS exact versus sampled isolates reference estimation under same geometry",
+    "VCS exact versus BCE isolates objective at same bounded score and full Q",
+    "NCE and existing historical hosts benchmark task competitiveness",
+    "report every arm and seed, all attempts, GPU runtime and peak memory"
+  ],
+  "no_success_assumed": true,
+  "execution": {
+    "normal_only": true,
+    "partitions": [
+      "RTX6000PRO",
+      "L40S",
+      "H100"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60"
+    ],
+    "time_limit_hours": 6,
+    "estimate_gpu_hours": [
+      24,
+      48
+    ],
+    "estimate_note": "provisional before smoke; actual timings will replace estimate",
+    "checkpoint_storage_GiB_lt": 2,
+    "queue_pool": "8 running + 12 pending, ready remainder stays in local reserve",
+    "prerequisites": "CPU identities/gradients PASS and real BF/EPFL GPU smoke PASS before bulk admission"
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

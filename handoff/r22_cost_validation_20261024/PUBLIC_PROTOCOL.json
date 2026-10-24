@@ -1,0 +1,87 @@
+{
+  "utc": "2026-10-24T07:52:07.381618+00:00",
+  "label": "FIT-only mechanism/cost validation, no retraining or task selection",
+  "hypothesis": "The quadratic exact-moment reference may reduce full-step cost at useful dense correspondence settings even against memory-efficient exact BCE/NCE implementations.",
+  "motivation": "Existing descriptor-only speed and memory probes exclude encoders and use full score matrices for competitors; they cannot establish an application cost advantage.",
+  "theory": "Unchanged J and bounded cosine critic. All P,Q, crop and normalization definitions inherited from the frozen dense protocol.",
+  "arms": [
+    "vcs_exact",
+    "vcs_dense",
+    "vcs_perm",
+    "bce",
+    "bce_block",
+    "nce",
+    "nce_block"
+  ],
+  "grid": {
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "n_positions": [
+      128,
+      512,
+      2048
+    ],
+    "batches_per_full_unit": 3,
+    "block_size": 256,
+    "full_units": 6,
+    "gates": 2
+  },
+  "controls": [
+    "All seven arms in each job use identical model weights, crops, descriptors coordinates, device and precision.",
+    "BCE/NCE blocked controls compute exactly the same full product/competition objectives, using row-block checkpoint recomputation. No negative sampling approximation.",
+    "Fixed original CAL-selected VCS checkpoint for each dataset/seed. Weights do not change; AdamW lr0 includes its computational work.",
+    "Rotate arm order deterministically;3warmups+10timed steps per cell; gate1warmup+2timed on1batch."
+  ],
+  "scope": "Zero-grad, encoder forward, interpolation, loss, encoder backward, clipping, zero-lr AdamW; excludes FIT loading/crop generation, CAL/DEV search and checkpoint IO.",
+  "numerical_gates": {
+    "cpu": "fp64 blocked/dense values and descriptor gradients at uneven block boundaries;atol1e-12/rtol1e-10",
+    "gpu": "both datasets seed1001 all3N: exact/dense VCS and blocked/dense BCE,NCE values atol2e-5+rtol2e-4 and full encoder gradient relative L2<2e-4; finite steps; weight hash unchanged",
+    "admission": "Only2GPUgates enter existing pool after CPU PASS. Admit6full probes manually to same pool only after both gates PASS. No new controller."
+  },
+  "endpoints": [
+    "Paired median full-step wall time and peak total/incremental allocated memory for every N/batch/seed.",
+    "Compare VCS exact against best measured dense or blocked implementation separately for BCE and NCE; all variants reported.",
+    "Combine with all registered dense task results; no task-quality inference from this cost experiment."
+  ],
+  "success": "Cost signal: N2048 exact at least1.2x faster than each competitor best measured implementation, with no higher peak allocation, in at least2of3seeds of EACH dataset using medians across3batches. This is a prospective engineering criterion, not statistical significance. Application advantage additionally requires competitive full dense-series strict AND loose success; no N/metric cherry-pick.",
+  "stop": "Any equivalence/finiteness/weight-identity failure blocks full probes; retain failure. No chunk-size grid, extra density, retries or additional training automatically. Lack of full-step saving closes this cost claim for the measured operating point.",
+  "budget": {
+    "gate_max_gpu_hours": 2,
+    "full_max_gpu_hours": 6,
+    "expected_total_gpu_hours": [
+      0.3,
+      1.5
+    ],
+    "storage_gib_lt": 0.1
+  },
+  "limitations": [
+    "No claim that block256 is an optimized global baseline.",
+    "Fixed zero-lr steps are not convergence evidence and do not time all training IO.",
+    "Shared source models trained with VCS can influence numerical distribution; same across objectives.",
+    "No new CAL/DEV numerical evaluation; integrity metadata may reference them. TEST prohibited."
+  ],
+  "execution": {
+    "pool": "1062146",
+    "qos": "normal",
+    "partitions": [
+      "RTX6000PRO",
+      "L40S",
+      "H100"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60"
+    ],
+    "home_gib_lt": 1450,
+    "projects_free_gb_ge": 300
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

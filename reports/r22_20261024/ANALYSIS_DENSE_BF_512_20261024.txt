@@ -1,0 +1,18 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+BF密集配准N512完整分析：四目标×三seed，固定3000更新，FIT/CAL/DEV开发证据。
+
+31个冻结源文件核验；12项训练/DEV/末轮/选中checkpoint哈希通过。每seed四臂初始化及全部3000批输入逐项一致；CAL选择规则复算、DEV样本/扰动一致，结果与既有配对汇总一致。三个候选1000/2000/3000不变。
+
+主读出COS，三seed平均严格(<9)/宽松(<42)成功率：
+VCS exact 65.8333% /95.4167%；VCS perm65.6250% /95.4167%；BCE66.0417% /96.1458%；NCE66.7708% /94.8958%。
+exact−BCE严格−0.2083pp（1/3正）、宽松−0.7292pp（0/3正）；exact−NCE严格−0.9375pp（1/3正，1平）、宽松+0.5208pp（2/3正）。没有统一任务优势。
+相对N128，exact严格−0.4167pp、宽松−0.6250pp；更密采样没有在此组改善任务。
+
+相同checkpoint改J_EXACT读出，exact严格64.2708%、宽松96.8750%；相对COS严格−1.5625pp，宽松+1.4583pp，精细定位/失败尾部有取舍。COS exact每seed平均>=42错误14.67例/320；BCE12.33、NCE16.33。三个seed各自95%误差分位数均值分别53.13/23.57/76.90像素（非合并总体分位数），不能只报中位数；JSON包含各seed尾部。
+
+曲线：exact三seed全部选1000步。训练损失分段均值继续改善，但CAL中位误差三seed均值1000步2.604、2000步3.853、3000步3.687。严格/宽松CAL已饱和；这些曲线不足以支持盲目加长同一配方，也不能把FIT依赖继续提高当成任务提高。
+
+成本：12项均一次成功训练尝试，回执总2.7396GPUh；训练步骤本身0.3640GPUh，其余主要评估/加载等。门禁、旧探针及调度启动另计。硬件/驱动未完全配对；node61的BCE1003训练256.3s，另两个RTX BCE仅78.8/83.1s，节点慢速不应解释为目标本身成本。L40S exact111.6/112.1s，NCE111.4s；RTX node59 exact79.6s与NCE78.9/86.0s相近。N512尚未建立整体加速。
+
+决定：不立即追加本配方长训练；其余登记dense系列全部继续。下一步小范围验证包含编码器的计算成本，并加入数值等价的分块BCE/NCE，见r22_cost_validation_20261024。它只能验证成本机制，不能代替完整任务收益。非独立DEV证据、非确定性搜索噪声和GPU差异继续披露；没有读取TEST。

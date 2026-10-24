@@ -1,0 +1,18 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+BF N2048密集配准完整12/12复核（2026-10-24）
+
+主读出COS，严格<9 / 宽松<42成功率：
+VCS exact 68.0208% / 95.6250%；普通置换66.3542% / 94.6875%；BCE65.5208% / 96.2500%；NCE67.5000% / 95.0000%。
+exact−BCE严格+2.5000pp（2/3正，逐seed+0.9375/+7.1875/−0.6250），宽松−0.6250pp（1/3正）。exact−NCE严格+0.5208pp、宽松+0.6250pp，均2/3正。严格改善与失败尾部有取舍，尚无统一应用优势；小幅差异还带有既有位姿搜索评估噪声。
+
+密度：exact2048−128严格+1.7708pp、宽松−0.4167pp；2048−512严格+2.1875pp、宽松+0.2083pp。所有密度并列，不按DEV选赢家。
+同一exact模型改J_EXACT读出为67.3958% / 96.8750%，相对COS严格−0.6250pp、宽松+1.2500pp；BCE/普通置换也有宽松尾部改善，不能归为VCS训练的独有贡献。
+
+失败：COS exact/BCE在三个seed合计960次扰动中>=42共42/36次。全部12个方法-seed在private_sample_001的10个扰动上失败；exact COS额外失败集中在private_sample_002（1/2/9次）。不能删除困难core或把960个扰动当独立样本。逐seed95%误差分位数均值exact64.81、BCE21.59像素，非合并分位数。
+
+曲线：固定3000更新，exact三seed均由原CAL规则选1000步。CAL严格/宽松各候选都100%，均值中位误差1000/2000/3000为2.629/3.910/3.655；FIT损失继续降低。当前证据不支持原配方直接加长；不等于否定所有长训练。
+
+核验：31冻结文件、全部12项3000更新、同seed初始化与全部批次输入、训练与DEV文件哈希、CAL选择和模型哈希、真值/扰动/网格一致性、已有配对汇总及提交/尝试全部通过。每项一次已知成功尝试，0失败。回执总2.82925GPUh，其中训练0.40899GPUh；启动/门禁另计。GPU/驱动/节点混合且node61的BCE1002异常慢，不能从跨节点总时长作目标函数加速归因。
+
+下一步：完成EPFL系列及已准入的6项同作业完整计算步骤成本对照（含分块BCE/NCE），再判断应用与成本能否同时成立。若继续机制研究，可预登记固定checkpoint的全局搜索/局部精修读出对照；当前未准入此候选，不以中途结果开密度/学习率/时长网格。原理论不变，未读取TEST。

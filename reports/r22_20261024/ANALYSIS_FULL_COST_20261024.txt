@@ -1,0 +1,13 @@
+Publication copy: sample identifiers are pseudonymized; aggregate numbers and historical conclusions are unchanged. Referenced full local audit records are not part of this public release. Later decisions are in R22_UPDATE_20261024_CN.md.
+
+完整计算步骤成本对照6/6（2026-10-24）
+
+全部冻结/CPU与GPU门禁/源checkpoint/FIT角色/27等价比较/9批次密度组合/7实现/每项10次计时/显存算术/单次尝试账本核验通过。
+N2048 exact相对最快BCE约1.060倍，相对最快NCE约1.089倍；两数据集均0/3seed同时满足登记的>=1.2倍和显存条件。N128/512耗时基本相同。登记成本信号未成立，不以descriptor-only约10倍推断完整步骤收益。
+
+显存（总峰值MiB）：BF exact934.56、BCE1888.15、NCE1888.15、分块BCE980.02、分块NCE964.24；EPFL对应2142.87/3096.46/3096.46/2188.33/2172.55。分块去掉了大部分矩阵显存差距。exact仍较省，但不能宣称完整步骤81倍显存优势。训练IO、位姿评估和checkpoint开销不在计时里；零学习率只测计算，不测收敛。
+
+6个正式任务均落在RTX node61，该节点先前还有慢执行现象；这限制硬件外推，但同作业同输入/权重/环境的配对成本比值仍是该环境的观测。门禁在其他卡的短计时不能代替正式六项；不为追到正结果重跑挑卡。
+正式回执0.13246GPUh，门禁0.00543GPUh，全部一次已知成功尝试；不含Python启动/分配等全部成本。
+
+决定：关闭这些测量点上登记的>=1.2倍完整步骤成本优势主张，不开更高密度/分块大小/时长网格。继续最后的dense任务分析；下一批转向固定checkpoint、粗搜索与局部精修的读出配对机制，保留原理论，不再盲目追加表示训练。未读TEST。

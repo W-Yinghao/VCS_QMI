@@ -1,0 +1,76 @@
+{
+  "utc": "2026-10-24T09:01:39.689091+00:00",
+  "label": "Prospective mechanism PILOT on reused DEV, no independent confirmation",
+  "hypothesis": "The quadratic J may rank broad pose candidates differently from local COS refinement. Factorizing their use can identify whether reduced failure tails and fine localization can coexist without more model training.",
+  "motivation": "BF dense runs show COS/J strict-versus-loose tradeoff; EPFL512 does not show a direct J benefit. Registered full-step cost threshold failed. Test both datasets and all original trained objectives rather than assuming BF transfers.",
+  "theory": "Original bounded-cosine J and exact empirical within-scene product unchanged. Switching search stage changes the application readout, not the estimator theorem. Hybrid policy is not maximization of a single global J.",
+  "grid": {
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "trained_arms": [
+      "vcs_exact",
+      "vcs_perm",
+      "bce",
+      "nce"
+    ],
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "full_jobs": 24,
+    "policies": [
+      "COS__COS",
+      "J_EXACT__COS",
+      "COS__J_EXACT",
+      "J_EXACT__J_EXACT"
+    ]
+  },
+  "control": "All4policies for each problem use samecheckpoint/images/coords/perturbation/device/precision and unchanged host grid,3starts,100Adamsteps. Only coarse grid_values versus local __call__/value readout differs. Final selection and F_true use local readout. No cross-energy numeric score comparison. Rotate policy order byseed/problemindex. Same-job pure controls are necessary to measure stage intervention under prior evaluation noise, not occupancy reruns.",
+  "data": "Gates first2sorted CALcores/windows, firstperturbation, all4trainedarms seed1001 per dataset. Full jobs allDEVcores/windows all10frozenperturbations. No newCALselection, noTEST.",
+  "endpoints": [
+    "Paired scene-macro strict<9 andloose<42 success for eachpolicy/arm/dataset/seed; median/p95/failuretail, allscenes retained.",
+    "Coarse J effect atfixedCOSlocal; coarseCOS effect atfixedJlocal; localstage effects and interaction.",
+    "Same-policy VCS exact minusBCE/NCE andpermutation; no attributing generic search improvement to VCS training.",
+    "Perpolicy synchronized runtime and energy-callcounts. Grid andlocal budgets equal, walltime can differ."
+  ],
+  "primary_comparison": "J_EXACT__COS minus COS__COS on each trained arm; other policies are mechanism controls, not an alternative winner selection.",
+  "success": "Prospective useful-search signal on vcs_exact: mean strict gain>=1pp with >=2of3seeds positive, mean loose loss no worse than0.25pp, and median runtime ratio<=1.5, in EACH dataset. VCS-specific application evidence additionally requires the hybrid vcs_exact to beat identically evaluated BCE andNCE strict means by>=1pp with>=2of3seeds positive and loose means no worse than0.25pp in EACH dataset. Report all effects even if thresholds fail; thresholds are decision rules, not significance.",
+  "stop": "No threshold/seed/model/scene/density changes, no retries or automatic training expansion. If no cross-dataset signal, close this fixed search-policy candidate. Failure blocks admission, retain attempt. No selecting alternative factorial cell as primary after results.",
+  "gates": {
+    "cpu": "Analytic coarse/local routing values/gradients and same-readout wrapper equals unchanged host optimizer exactly onCPU.",
+    "gpu": "Bothdatasets all4trainedarms: finite actual CAL registrations all4policies, recordedbudgetcounts; samecheckpoint COS F_true/perturbation/grid match historical tolerance1e-5+1e-4relative; wrapper grid/local values andgradients match direct current readout at same tolerance; sourceandweight hashes unchanged.",
+    "admission": "Only2technicalGPUgates enter existingpool after CPU PASS. All24full jobs held until bothgatesverify. No newcontroller."
+  },
+  "budget": {
+    "gate_jobs": 2,
+    "gate_limit_hours_each": 1,
+    "full_jobs": 24,
+    "full_limit_hours_each": 3,
+    "expected_full_gpu_hours": [
+      9,
+      24
+    ],
+    "storage_gib_lt": 1
+  },
+  "limitations": [
+    "RepeatedDEV and previously observed readout tradeoffs: exploratory evidence.",
+    "Originalsources trained under different objectives, fixedrecipe; no optimized-baselineclaim.",
+    "Pure andhybrid refinements remain subjectto frozen nondeterministicGPUevaluation.",
+    "No proof of generalattractionbasin or convergence from grid/local intervention."
+  ],
+  "execution": {
+    "pool": "1062146",
+    "normal_only": true,
+    "home_gib_lt": 1450,
+    "projects_free_gb_ge": 300,
+    "exclude": [
+      "node51",
+      "node53",
+      "node60"
+    ]
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}

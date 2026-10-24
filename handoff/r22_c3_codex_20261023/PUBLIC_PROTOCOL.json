@@ -1,0 +1,79 @@
+{
+  "name": "R22 C3 fixed-checkpoint readout mechanism diagnostic",
+  "utc": "2026-10-23T14:20:46.054331+00:00",
+  "label": "PILOT/DEVELOPMENT",
+  "theory_unchanged": "J=EP[T]-EQ[T]-.5EP[T^2]-.5EQ[T^2]; at optimum T*=(p-q)/(p+q). No new variational claim.",
+  "scope": {
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "models": [
+      "MLP_VCS_perm1",
+      "InfoNCE_host[J_perm1]"
+    ],
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "units": 12,
+    "roles": [
+      "CAL",
+      "DEV"
+    ],
+    "training": false,
+    "TEST_access": false
+  },
+  "readouts": {
+    "J": "unchanged original host J",
+    "PMI": "mean 2*atanh(clip(T,+/-(1-1e-4)))",
+    "PMI_C2": "mean clip(2*atanh(clip(T,+/-(1-1e-4))),-2,2), per-position clipping before mean",
+    "EPT": "EP[T]",
+    "POS": "EP[T-.5*T^2]"
+  },
+  "selection": "Historical J-selected checkpoint for every unit. No new checkpoint or threshold selection. CAL descriptive only.",
+  "questions": {
+    "PMI_C2-PMI": "Does limiting extreme per-position scores help, especially BF loose success?",
+    "POS-J": "Effect of removing the negative/reference first and second moments.",
+    "EPT-POS": "Effect of additionally removing the positive second moment.",
+    "PMI-EPT": "Effect of the inverse-tanh transform at otherwise positive-only scoring.",
+    "VCS-InfoNCE": "Same readout comparison plus clipping-gain difference; shared gains do not establish VCS-specific advantage."
+  },
+  "primary_endpoints": {
+    "bf": "PMI_C2-PMI success<42; report success<9 simultaneously, no hiding a tradeoff",
+    "epfl": "PMI_C2-J scene-macro success<2.25 native px; report <10.5 simultaneously"
+  },
+  "report": "All five readouts, all three seeds, paired flips, median errors and scene/core bootstrap 10000 resamples at seed20261022. No selecting winning arm after DEV. Intervals condition on trained seeds.",
+  "limitations": [
+    "All data reused development evidence.",
+    "Existing trained families have recipe differences; this is not objective-only retraining.",
+    "Tanh parameterization alone does not establish PMI calibration.",
+    "Clipped PMI is a heuristic application readout, not the unchanged theorem objective.",
+    "Same-job pairing retains GPU search nondeterminism."
+  ],
+  "execution": {
+    "qos": "normal",
+    "partitions": [
+      "RTX6000PRO",
+      "L40S",
+      "H100"
+    ],
+    "exclude": [
+      "node51",
+      "node53",
+      "node60"
+    ],
+    "nice": 60,
+    "time_limit_hours": 4,
+    "estimated_gpu_hours": [
+      7,
+      12
+    ],
+    "max_normal_jobs": 28,
+    "dependency": false,
+    "automatic_new_experiments": false,
+    "expected_output_GiB_less_than": 1
+  },
+  "_publication_note": "Public scientific protocol excerpt; not an operational freeze, source manifest or admission authorization."
+}
