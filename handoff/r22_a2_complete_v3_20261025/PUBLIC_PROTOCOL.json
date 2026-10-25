@@ -1,0 +1,77 @@
+{
+  "schema": "r22.a2.completion.design.v1",
+  "utc": "2026-10-25T10:05:01.379273+00:00",
+  "hypothesis": "检验A2固定大斜率critic下VCS/BCE及可靠度加权的差异是否跨seed稳定；补足被旧单seed收益阈值截断的证据，不把seed901负结果改写为通过。",
+  "new_units": [
+    {
+      "seed": 902,
+      "arm": "VCS_SHARP"
+    },
+    {
+      "seed": 902,
+      "arm": "VCSW_SHARP"
+    },
+    {
+      "seed": 902,
+      "arm": "BCE_SHARP"
+    },
+    {
+      "seed": 903,
+      "arm": "VCS_SHARP"
+    },
+    {
+      "seed": 903,
+      "arm": "VCSW_SHARP"
+    },
+    {
+      "seed": 903,
+      "arm": "BCE_SHARP"
+    }
+  ],
+  "reuse": "已完成seed901三项和既有三seed A/N2F/N2M对照不重跑；旧控制的身份、初始化、输入顺序、预算、输出和哈希须在执行冻结时锁定。",
+  "recipe": "原A2实现不改：SGR、40epoch、每轮1133更新共45320、f=20*s+b、b0=-10、b独立Adam组LR1e-3、hostLR2e-4、lr_update30、原precision/数据/权重/normalizer/loss_scale；不用当前lr_update10试验配方替换。",
+  "hardware": "新增六项全部RTX PRO 6000，同型/同软件/驱动要求与A2 seed901一致，节点差异记录；既有A控制混L40S/H100/RTX，差异逐项披露，不称纯critic因果对照。",
+  "primary": {
+    "endpoint": "40轮全DEV最佳rSum，最早并列点",
+    "contrasts": [
+      "VCS_SHARP minus BCE_SHARP",
+      "VCSW_SHARP minus VCS_SHARP"
+    ],
+    "report": "三个seed逐项及均值、范围、符号；新902/903与已观察901分列。不能仅凭VCSW胜BCE声称目标独有优势，因为权重同时不同。",
+    "descriptive_signal": "均值绝对差>=3rSum、至少2/3 seed同向且新902/903均同向；始终报告全部差值，该门槛只用于本次描述，不决定是否完成六项。"
+  },
+  "secondary": [
+    "epoch40、末5/10轮和全部40轮曲线",
+    "相对原A对应臂及hinge控制的差值与硬件限制",
+    "b、hard-negative比例、有限值与所有尝试成本"
+  ],
+  "gates": {
+    "CPU": "冻结源与原A2记录一致；原数值/梯度和老臂不变检查；40轮两Adam组实际LR、参数保存/恢复、六输入身份与数据顺序。计算经Slurm。",
+    "GPU": "冻结正式源在RTX上覆盖两个缺失seed和三臂的短真实更新；每seed初始模型/数据顺序一致、b与模型真实更新、有限值、optimizer组/LR、checkpoint及读取轨迹。技术门禁不以DEV收益作条件。",
+    "admission": "CPU与GPU全部PASS后，只加入现有唯一池；不得重用旧取消的未执行smoke当PASS。执行包、完整对照锁与门禁代码尚待准备。"
+  },
+  "budget": {
+    "new_full_jobs": 6,
+    "expected_gpu_hours": [
+      36,
+      45
+    ],
+    "six_at_historical_average_gpu_hours": 37.291555555555554,
+    "full_time_limit_each": "23:50:00",
+    "full_hard_gpu_hours": 143,
+    "gate_hard_gpu_hours": 1,
+    "cpu_hard_minutes": 30,
+    "retained_output_gib_max": 6,
+    "storage": "准入前核对新增输出及在途预算余量；home1450GiB和projects300GB门槛不变，不删数据绕过门槛。"
+  },
+  "stopping": "所有六项固定40轮，不依据中途效果停止或改参数。输入/哈希/非有限/环境失败停止对应单元并保留失败，修补另行冻结；不自动重试。",
+  "limits": "开发证据，已观察seed901，非独立确认；原理论不改，不读TEST、不公开推送、不生成子代理、不另起守护程序。",
+  "implementation": "Original R22 A2 r22_student.run, make_student, WeightedStudent.fit and losses unchanged; wrapper preflights immutable inputs/init/manifest/environment. Separate new output root. No old run overwrite, no silent resume.",
+  "execution_clarifications": {
+    "storage": "All new GPU outputs on projects, six GiB reserved above 300GB floor; home code/CPU checks only. Home still below1450GiB. Chosen before any numerical execution.",
+    "GPU_gate": "One RTX job, seeds902/903 x three arms x40 sparse epochs. Each cell original first8 batches at epoch0 then firstbatch of epochs1-39, 47updates/cell282total. Original SGR and Adam, two LR groups, real16DEVimages/80captions. Sparse scores are only a finite/serialization check, never task results.",
+    "full": "Six RTX jobs, same GPUmodel/driver/software/precision as A2 seed901; full iterator never patched. Each seed init and all40 epoch input orders must match original A metadata before any update. All40epochs45320updates, no early-stop, no automatic retry.",
+    "historical_controls": "Reuse seed901 A2 and original A three-seed VCS/VCSW/BCE/NCE; historical mixed GPU explicitly descriptive. N2M ConstantU/weighted hinge and N2F unweighted/weighted hinge metadata frozen separately. Checkpoint declared hashes retained; original A2 selected checkpoints rehashed here. Other historical best checkpoints must be rehashed at final analysis before any checkpoint-dependent claim."
+  },
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

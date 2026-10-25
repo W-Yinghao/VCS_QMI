@@ -1,0 +1,14 @@
+{
+  "schema": "r22.mechanism_review.20261024.v1",
+  "evidence_role": "FIT/CAL/DEV repeatedly-used development evidence only; no TEST",
+  "retrieval": {
+    "hypothesis": "Late stability depends on allocating high weights to suitable pairs, versus merely their distribution.",
+    "arms": "3 new shuffled protected VCS runs seeds901/902/903; reuse existing real protected VCS and constant .5 matched controls. BCE descriptive only.",
+    "permutation": "numpy.default_rng(202610240000+seed).permutation(sorted U pair IDs); one permutation, no oracle, no selection; entire weight multiset preserved",
+    "budget": "same SGR,40epochs45320updates,originalLR/normalizer.55/anchor1/NCEtau.05. RTX6000PRO only,exclude node61. Three hardlimits23h50; estimated20-35GPUh; technical smoke2x8steps.",
+    "endpoints": "Primary mechanism: last5epoch mean real-shuffle and real-constant. Preserve original bestDEV and epoch40 as parallel endpoints, never replace historical endpoint.",
+    "criterion": "Allocation signal if mean real-shuffle last5 >=3rSum and >=2/3seed positive; report all paired deltas, not a permanent ban on future hypotheses. Complete all3 regardless outcomes.",
+    "controls": "Check same seed init/order/budget/host/software plus GPU model, distinguish driver/run noise. Existing controls unfinished continue unchanged."
+  },
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

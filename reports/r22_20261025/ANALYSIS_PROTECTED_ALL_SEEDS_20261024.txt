@@ -1,0 +1,19 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+保护权重检索全三seed完整分析（2026-10-24，开发证据）
+
+原seed901三臂与扩种902/903六臂全部完成。冻结文件、9个完成回执/模型与曲线哈希、读取轨迹、初始化、40epoch/45320更新、LR、输入顺序/前8批、权重来源与全池归一化均核验PASS。每项一次成功尝试，无已知失败或续跑。
+主指标仍为40轮中最佳DEV rSum；最后一轮、末5与末10轮为并列次指标，rSum范围0–600，不是分类准确率百分点。901是已选择pilot，902/903是追加开发复现，不是独立TEST。
+
+vcs: best_rsum=465.502959, last_rsum=437.172913, mean_last5_rsum=439.898751, mean_last10_rsum=442.673241
+bce: best_rsum=465.680473, last_rsum=438.080210, mean_last5_rsum=440.259040, mean_last10_rsum=443.339908
+constant: best_rsum=468.796844, last_rsum=409.421433, mean_last5_rsum=415.134780, mean_last10_rsum=416.504931
+
+VCS−constant最佳rSum三个seed为−3.2347、−3.2347、−3.4122，平均−3.2939，三个均负；末5轮平均+24.7640，最后一轮+27.7515，均三个seed正。可靠度加权确实对应后期更稳定，但没有提高选中模型的最佳性能。
+VCS−BCE最佳差为−2.9586、+1.3018、+1.1243，平均−.1775（2/3正）；只看新增902/903平均+1.2130，但完整三seed没有稳定独有优势，901 BCE与另两臂跨硬件。末5轮VCS−BCE平均−.3603，末10轮−.6667。不能把早期pilot负结果直接推广为所有seed负，也不能从两个新seed的小正差宣称确认成功。
+三个seed的VCS/BCE权重排序完全一致，平均绝对差分别.004059、.001179、.000342。特别是新增seed的权重更接近；该比较主要辨别同一个score排序上的标定形状，不能用于证明识别了不同错误配对。
+9个run最佳轮在8–14，后期损失继续下降但DEV退化。没有证据支持原样延长40轮；下一步先由已冻结、正在运行的真实/打乱/constant配对分清权重分配与分布的作用。后续若改变学习率，必须同时改变真实与constant两臂、从头训练同预算，不能只给VCS一个更优优化器。
+硬件：902/903三臂全部RTX PRO 6000、615.71.09；901 VCS/constant也是RTX，BCE为L40S、595.84。所有运行相同软件/精度检查通过，但不能消除跨硬件混杂和小样本开发选择偏差。
+成本：新增六项37.285112GPUh，原pilot三项23.120913GPUh，九项合计60.406025GPUh。原教师/权重拟合、共享门禁及调度启动单列，不称全历史成本。
+
+原seed901扩展门槛未通过的历史记录保留；新六项由用户另行授权且均按预算完成。没有因结果追加floor/mean/critic网格。现有shuffled-U三seed、EPFL40、KD分项和A1继续不改参；下一轮优先补训练目标分项的最小匹配对照。
