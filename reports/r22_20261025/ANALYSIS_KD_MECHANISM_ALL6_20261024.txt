@@ -1,0 +1,45 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+KD固定最终checkpoint分项诊断：六项完整审阅（2026-10-24 UTC）
+
+结论：当前最一致的局部信号是正对平方项减弱了直接余弦的有效吸引；参考项的直接logit方向在困难样本上偏负，但真实SGD更新的增量效应混合，不能将最终CAL劣势直接归因于“负样本伤害同类”或统一的梯度冲突。继续已经冻结的六项positive_quadratic完整240轮对照，不改变其λ、seed或预算。
+
+证据与核验
+CE/DKD × seed31415/16180/57721，共六个作业；每项复用同seed的cosine和VCS两个epoch240最终checkpoint。全部299冻结文件、12个源模型和配置哈希、最终轮/λ10/SGD末轮LR5e-5、初始模型与教师配对、软件精度、访问guard、每作业一次尝试全部通过。
+每个checkpoint固定epoch0数据流的前8个增强FIT batch，每批64例；同seed跨两个checkpoint、跨CE/DKD的图像+ID哈希全部一致。共有96个batch诊断记录、288个batch×subset表行。没有CAL/TEST预测；没有训练曲线，这8批各自恢复原checkpoint，不构成8步续训。
+分析文件：ANALYSIS_KD_MECHANISM_ALL6_20261024.json；逐批表：KD_MECHANISM_ALL6_BATCHES_20261024.csv。可用analyze_kd_mechanism_all6.py重算。
+
+梯度衰减（先每seed平均8批，再三seed等权；只在同一源checkpoint内比较损失）
+源checkpoint分层        正对余弦均值    quadratic/cosine的logit梯度范数比
+CE + cosine                0.896572                  0.160929
+CE + VCS                   0.731107                  0.308637
+DKD + cosine               0.902725                  0.163381
+DKD + VCS                  0.898184                  0.170364
+全部12个“源checkpoint×seed”单元范数比为0.152–0.319。该比值不是简单的1−平均T，平方项按样本T重加权，不能将均值0.9直接换算为实际模型梯度恰少十倍。
+
+真实一次SGD副本更新（含原历史momentum，统一λ/LR；以下为全512例的平均分类间隔增量，单位是原始logit margin，不是准确率百分点）
+源checkpoint分层       anchor-only     cosine        positive_quad     full-VCS
+CE + cosine              0.000895       0.001714       0.001017          0.001070
+CE + VCS                 0.001235       0.002605       0.001640          0.001601
+DKD + cosine             0.001490       0.001662       0.001505          0.001506
+DKD + VCS                0.001903       0.002109       0.001922          0.001934
+在all、teacher-correct/student-wrong、teacher-correct/student-margin≤1三个预登记子集上，12个单元的positive_quad−cosine均为负。cosine−anchor-only均为正。teacher-correct/student-wrong各单元只有24–57例，不把这些样本或12个源单元当作12个独立训练seed。
+
+参考项的作用必须分两层
+1. 两个困难子集中，12个单元的参考项直接logit margin方向均为负，与主损失logit梯度的平均cosine也均为负。这是固定FIT批次、固定参数处的局部方向证据。
+2. 实际参数空间更新中，full−positive并不统一为负：全样本CE-cosine三seed均正、CE-VCS三seed均负，DKD两类源均2/3正；困难子集的符号也混合。模型Jacobian、训练/评估BN模式、历史momentum及有限步长会影响实际结果，不能用直接logit方向代替真实更新。
+3. CE两类源的full−anchor-only在三个子集均3/3为正，DKD多为微小或混合。因此完整VCS在这里有局部帮助，但其帮助小于直接cosine；并不是“完整VCS所有部分均有害”。
+
+解释边界
+子集依据源模型training-mode输出定义；实际更新前后用eval-mode并恢复源BN buffers，报告保留这个定义，不能误写成eval-mode选出的错误样本。每个副本包含原优化器momentum，anchor-only控制共享部分；这不是无momentum的纯梯度步。
+source cosine与VCS的表示和困难子集成员不同，分层报告，不做跨checkpoint配对样本因果估计。logit方向没有乘λ、LR、模型Jacobian和momentum，不是实际SGD预测。
+诊断全部请求L40S；历史训练部分在RTX。软件精度一致，但诊断回执没有GPU型号/驱动字段，不能声称训练与诊断跨阶段硬件完全相同。
+此研究只用已多次开发的FIT来源和历史训练参数；不代表泛化提升，不替代CAL最终240轮比较。positive-only是机制对照，不称完整VCS-QMI。
+
+成本与失败
+六正式诊断回执计时共29.224611秒=0.00811795 GPUh；两共享GPU门禁8.332983秒，合计已知37.557594秒=0.01043267 GPUh。CPU修补验收调度45秒单列。这些不含模块/CUDA导入、冻结校验、调度启动退出、原训练等开销，不称完整调度总成本。
+原六个GPU初始化失败全部保留（CPU feature_dim在CUDA模型上执行），发生在诊断FIT循环之前；其调度记录已过期，耗时未知，不能算零。源包/日志/退役记录未删除或改写。
+
+下一步
+保持r22_kd_positive_control_v2_20261025已冻结六项：CE/DKD×三seed，仅新增−E_PT+.5E_PT²，从头240轮、λ10；复用同seed同硬件的cosine/fullVCS。L40S及RTX完整一轮门禁均PASS后由原池自动准入，第一步前仍严格匹配初始化和环境。主要比较positive−cosine与full−positive，末240 CAL为主、末10轮并列；不按本次局部结果修改方案或另开λ网格。
+配准100步真实Adam轨迹诊断仍为独立下一设计；检索先完成三个shuffled-U；A1六项继续。储备清零意味着已准入条目已提交，不是新增无目的任务的依据。

@@ -1,0 +1,14 @@
+{
+  "schema": "r22.mechanism_review.20261024.v1",
+  "evidence_role": "FIT/CAL/DEV repeatedly-used development evidence only; no TEST",
+  "kd": {
+    "hypothesis": "Positive-quadratic attraction attenuation versus off-diagonal Q constraint explains different local classification-margin effects.",
+    "units": "CE/DKD x3seeds, each compares final240 cosine and VCS checkpoints; six short jobs.",
+    "sample": "first8 augmented FIT minibatches of original epoch0 stream perseed, same image/id bytes across checkpoints; teacher frozen; no CAL/TEST predictions",
+    "terms": "-E_PT; -E_PT+.5E_PT2; complete-J; reference=full-positive. Positive-only explicitly mechanism control, not fullQMI.",
+    "metrics": "logit gradients, task-gradient cosine, true-class-vs-max-other margin directional derivative; all/teacher-correct-student-wrong/teacher-correct-margin<=1. No diagnosis assumed in advance.",
+    "update": "Copied full model plus sourceSGDmomentum, same lambda withincheckpoint and same sourcefinalLR. Compare anchor-only and3auxiliary recipes. Restore source BN for paired eval before/after; no checkpoint modification or training continuation.",
+    "budget": "6x30minhard, estimated<1GPUh; identity and finite difference checks before entry."
+  },
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

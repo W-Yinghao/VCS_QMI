@@ -1,0 +1,63 @@
+{
+  "schema": "r22.kd.positive-control.v2",
+  "utc": "2026-10-24T23:03:21.251514+00:00",
+  "hypothesis": "The observed cosine > complete VCS ranking may arise while adding positive-square attenuation, while adding Q constraints, or both. A full-training missing middle arm separates these two matched contrasts.",
+  "evidence": "Complete CE and DKD decision-coordinate 24-run study, final CAL240; no assumption from unfinished local KD probes.",
+  "new_jobs": 6,
+  "reused_controls": 12,
+  "anchors": [
+    "ce",
+    "dkd"
+  ],
+  "seeds": [
+    31415,
+    16180,
+    57721
+  ],
+  "loss": "anchor + 10 * mean(-p+0.5*p^2), p=dot(centered_L2(student_logits), centered_L2(detached_teacher_logits))",
+  "label": "Positive-only quadratic mechanism control; NOT complete VCS-QMI. Original full theory, objective and source runs unchanged.",
+  "matching": "From identical random initialization, same teacher/FIT-CAL split, augmentation/data order, optimizer, learning rate, 240epochs/168720updates, no projection, lambda10 for both anchors/all3terms. Original runner/source unchanged; process-local wrapper adds only a new loss branch.",
+  "hardware": {
+    "partition_by_seed": {
+      "31415": "L40S",
+      "16180": "RTX6000PRO",
+      "57721": "L40S"
+    },
+    "same_as_reused_controls": true,
+    "driver_required": "Recorded; compare to controls, disclose any difference. GPU model and software/precision must equal controls."
+  },
+  "primary": {
+    "endpoint": "fixed epoch240 CAL top1",
+    "contrasts": [
+      "positive_quadratic minus cosine",
+      "full_vcs minus positive_quadratic"
+    ],
+    "aggregation": "Per-anchor paired three seeds; report pilot-independent since all three are designated development seeds. Never average CE/DKD."
+  },
+  "secondary": [
+    "mean last10 CAL top1",
+    "original best CAL checkpoint rule, descriptive",
+    "all240 epochs plus prespecified40/80/120/150/180/210/240 points",
+    "first-batch logit gradient norms/cosines per epoch, same sparse scope as reused controls"
+  ],
+  "decision": "Report both contrasts in all6 cells, no winner selection. A component effect is a descriptive directional signal when abs(mean)>=0.2pp, >=2/3 seeds share sign, and last10 mean shares sign; otherwise unresolved. This threshold controls this interpretation, not permanent future research.",
+  "interpretation": "Chained differences telescope arithmetically but nonlinear optimization paths interact: do not call independent additive causal contributions or infer universal harmful Q. Fixed-lambda recipe comparison; no claim of an optimally tuned positive-only loss.",
+  "stopping": "All6 full240 regardless intermediate outcomes. Technical nonfinite/hash/input/software mismatch stops affected unit and preserves attempt; no auto retries, no parameter changes.",
+  "budget": {
+    "estimate_gpu_hours": [
+      2.5,
+      5
+    ],
+    "reference_12_control_mean_gpu_hours": 0.5264447091078317,
+    "six_at_reference_mean_gpu_hours": 3.15866825464699,
+    "full_hard_gpu_hours": 18,
+    "gate_hard_gpu_hours": 0.5,
+    "cpu_check_limit_minutes": 25,
+    "outputs_gib_max": 1
+  },
+  "gates": {
+    "CPU": "Same formula/gradient/legacy checks and six real FIT CPU updates; repeatability checked on CPU host, source byte equality enforced before first update on actual execution host.",
+    "GPU": "one gate per L40S/RTX: CE and DKD each one whole FIT epoch+CAL using production train/save path, source initialization/full epoch order/count/software/GPU matching; both before full6"
+  },
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

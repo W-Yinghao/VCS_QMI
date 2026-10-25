@@ -1,0 +1,28 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+KD正对二次机制控制6/6完整分析；另复用12个cosine/fullVCS对照。
+六项均240轮、168720更新、lambda10；逐epoch输入顺序/LR、教师/初始化/数据划分、GPU型号及软件精度均匹配。
+主指标固定240轮CAL top1；以下为百分比及百分点。
+CE
+  cosine: final=74.7867%; last10=74.8233%; best=75.3000%.
+  positive_quadratic: final=74.1333%; last10=74.1020%; best=74.4933%.
+  vcs: final=74.1933%; last10=74.2360%; best=74.5933%.
+  positive_minus_cosine: final -0.6533pp, perseed {'31415': -0.9600043296813965, '16180': -0.8599996566772461, '57721': -0.1399993896484375}; last10 -0.7213pp; best -0.8067pp; frozen directional signal=True.
+  full_minus_positive: final +0.0600pp, perseed {'31415': 0.2400040626525879, '16180': 0.1399993896484375, '57721': -0.1999974250793457}; last10 +0.1340pp; best +0.1000pp; frozen directional signal=False.
+  full_minus_cosine: final -0.5933pp, perseed {'31415': -0.7200002670288086, '16180': -0.7200002670288086, '57721': -0.3399968147277832}; last10 -0.5873pp; best -0.7067pp; frozen directional signal=True.
+DKD
+  cosine: final=75.2667%; last10=75.2613%; best=75.6067%.
+  positive_quadratic: final=75.3333%; last10=75.3667%; best=75.7400%.
+  vcs: final=74.7800%; last10=74.7473%; best=75.0533%.
+  positive_minus_cosine: final +0.0667pp, perseed {'31415': 0.0, '16180': 0.55999755859375, '57721': -0.3600001335144043}; last10 +0.1053pp; best +0.1333pp; frozen directional signal=False.
+  full_minus_positive: final -0.5533pp, perseed {'31415': -0.7600009441375732, '16180': -0.9999990463256836, '57721': 0.09999871253967285}; last10 -0.6193pp; best -0.6867pp; frozen directional signal=True.
+  full_minus_cosine: final -0.4867pp, perseed {'31415': -0.7600009441375732, '16180': -0.4400014877319336, '57721': -0.26000142097473145}; last10 -0.5140pp; best -0.5533pp; frozen directional signal=True.
+驱动溯源限制：协议要求记录，但执行回执/环境没有driver/host字段，不能独立验证驱动完全匹配；不把同型GPU等同逐位可复现。
+分项差值可相加为总差，但不是独立可加的因果贡献；不同训练路径交互，不能称Q普遍有害。正对二次是机制对照而非完整VCS。
+成本：{"new_receipt_gpu_hours": 2.590914496249623, "shared_gate_seconds": 36.036869287490845, "gate_receipts": [{"anchor": "ce", "seed": 31415, "job": "1063643", "seconds": 9.471826314926147}, {"anchor": "dkd", "seed": 31415, "job": "1063643", "seconds": 8.793088436126709}, {"anchor": "ce", "seed": 16180, "job": "1063644", "seconds": 10.964396953582764}, {"anchor": "dkd", "seed": 16180, "job": "1063644", "seconds": 6.807557582855225}], "reused_control_receipt_gpu_hours": 6.31733650929398, "old_failed_import_gate_scheduler_seconds": 5, "prior_initialization_cpu_failures": "1063545/1063547 retained; scheduler elapsed unavailable, not zero.", "note": "New six each one COMPLETE attempt, gates shared once. Reused controls and old failures separate; receipt excludes unknown scheduler/startup overhead."}
+
+完整结论与下一步：
+CE中positive_quadratic相对cosine固定240轮−0.6533pp，3/3负；末10轮−0.7213pp、最佳点−0.8067pp。添加正对平方项的配方已足以重现大部分完整VCS与cosine的差距；full相对positive仅+0.0600pp且seed混合。
+DKD中positive与cosine最终+0.0667pp且1正1平1负，未建立差异；full相对positive最终−0.5533pp、2/3负，末10轮−0.6193pp、3/3负。参考项加入后的配方差异更值得追踪。
+两宿主不能合并为正对平方项或参考项普遍有害。固定lambda10、开发CAL、三seed以及缺失driver/host历史记录限制因果和可复现性解释。
+当前不追加KD长训练或lambda网格；优先整理各宿主的分项机制证据。新的KD实现研究需明确问题、匹配控制和独立冻结，不能把删Q版本叫完整VCS。
