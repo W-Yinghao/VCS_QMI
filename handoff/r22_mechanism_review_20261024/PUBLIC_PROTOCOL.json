@@ -1,0 +1,24 @@
+{
+  "schema": "r22.mechanism_review.20261024.v1",
+  "evidence_role": "FIT/CAL/DEV repeatedly-used development evidence only; no TEST",
+  "registration": {
+    "hypothesis": "Positive-square attenuation and Q terms have distinguishable local pose-gradient/one-step effects.",
+    "units": "2datasets x3objectives(exact,BCE,NCE) xseed1001 at fixed30000; six short diagnostic jobs; no new model selection.",
+    "sample": "First4 lexicographically sorted CAL windows, perturbations0/1; pose axis offsets +/-1,4,16 in scaled rotation/translation coordinates. Skip out-of-host-bound offsets, report count.",
+    "terms": "P1,-P2/2,-Q1,-Q2/2,POS_QUAD,J; preserve exact within-scene product incl diagonal. Check sum values and gradients at every pose.",
+    "update": "Fresh Adam copied pose for every term, exact host lr/projection, one real update; no unit-norm surrogate. Report corner-error delta and gradient, scenes separately; local diagnostic not convergence.",
+    "topk": "Historical jobs only retained final estimates/grid hashes, not top-k coordinates. One new small CAL coarse pass/readout/problem; reevaluate only top3 via exact value, compare ranking. No full DEV/retraining grid. Both COS/J and all objectives.",
+    "budget": "6x2GPUh hard; estimated <3GPUh. No success-based extension. Technical nonfinite/identity failures stop affected unit; retain attempt."
+  },
+  "a1": {
+    "hypothesis": "Native intensity-warp/normalize/pullback FIT adaptation changes task performance and objective gaps, independently of the VCS formula.",
+    "design": "2datasets x3targets(exact/BCE/NCE) xA0/A1 xseed1001=12 matched endpoints; reuse six completed fixed30000 A0 controls, add six A1 continuations. Common unadapted3000 prefix, A1 only steps3001..30000; not full-from-init adaptation.",
+    "matching": "same source model/AdamW/sampler/globalRNG at3000, same batch/crop/position/permutation everyupdate checkedagainstA0trace, same LR3e-4to15000/3e-5to24000/3e-6to30000, same COS readout. L40S matching allsix A0seed1001. Driver/nondeterministic evaluation caveat retained.",
+    "adaptation": "exact R21GeometryFitConfig 50%requestedscenes,angle30deg,translationdisk51,16geometrytries,supportmargins2/1; invalidgeometry keeps originalcrop and logs. IndependentRNG; raw warp, native preprocessing, true-transform pullback; no loss/critic changes.",
+    "gates": "CPU restored source streams/support/noRNGconsumption/identitypullback; BF andEPFL gates eachall3targets x3realupdates, native input equivalence, fullstate save/load, CAL pose gradient, role audit. Both pass before6full admitted.",
+    "budget": "6new x8h hard +2x1hgates; estimated8-25GPUh; retained outputs<=2GiB; existingA0cost separate.",
+    "endpoints": "fixed30000 DEV strict andloose success+tail, scene-equal; CAL10000/20000/30000 curvesonly. Perdataset objective x adaptation interaction; no pooleddatasetmean.",
+    "expansion": "Complete6newunits irrespective intermediate outcomes. Consider independent3seed expansion after fullpilot, not automatically. Report >=1pp strict or >=1pp loose without >1pp strict drop as descriptive adaptation signal, not permanent stopping threshold."
+  },
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

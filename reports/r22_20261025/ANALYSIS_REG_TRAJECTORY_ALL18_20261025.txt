@@ -1,0 +1,10 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+配准100步轨迹18/18完整结论（2026-10-25）
+全部冻结、模型/输入/起点身份、4096位置、100步真实Adam状态、访问域、有限值、单次尝试和成本审计通过。两数据集分别报告。
+EPFL：正对平方项相对余弦P1使exact/BCE/NCE表示的三起点平均末误差+0.040866/+0.081150/+0.135491原生像素，三表示×三seed全部为正，逐scene留一均同向。fullJ相对P1也九单元均更差。自身能量选终点的误差同样增加；严格成功率多数不变，NCE1003的J下降一个CAL问题。
+BF：正对平方项在VCS表示使三起点均值略改善，却让自身选终点更差；参考项对VCS路径较差、对BCE路径较好。fullJ−P1三表示均未通过seed方向+LOSO的描述性信号。全部选终点严格/宽松100%，不能说明DEV尾部改善。
+两数据集都表明路径与排序要分开。EPFL的主要端点差在没有Q时已出现，但不能仅由加法差分断言正对平方项通过何种梯度机制致损；BF也不支持普遍删除参考项。
+下一项：梯度方向×梯度范数的2×2机制对照，复用P1/POS_QUAD现有自然轨迹，只补两个交换臂。每一步在各自当前位姿计算两梯度，比较保留方向而交换范数、保留范数而交换方向；同输入/起点/100步Adam。主指标继续同三起点平均误差；次指标统一COS能量选择，避免新增合成梯度没有独立标量能量的问题。先冻结和技术门禁，再入原池。
+原论文理论不变；交换梯度只标机制控制。继续A1、shuffled-U和KD固定预算。CAL是反复开发集，seed仅三个，全部scene保留，不把扰动/起点当独立样本。
+成本：18正式回执0.369811GPUh；两成功门禁11.343969秒计一次，成功回执合计0.372962GPUh。旧失败门禁调度8秒单列，CPU/源训练/其他历史成本另计。

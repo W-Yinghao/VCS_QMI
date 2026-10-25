@@ -1,0 +1,32 @@
+{
+  "schema": "r22.registration_trajectory.v1",
+  "hypothesis": "Positive-square and Q constraints can redirect an evolving 100-step pose optimizer differently; distinguish optimization path from final energy ranking.",
+  "units": "2datasets x3training-objectives(exact,BCE,NCE) x3seeds(1001,1002,1003) =18 existing clean30000 checkpoints; no retraining.",
+  "inputs": "All8 BF CAL cores / all10 EPFL CAL windows, perturbation0/1, original preprocessing/positions. CAL cache hashes only; FIT identifiers metadata only. No DEV image/cache or TEST access.",
+  "starts": "Each checkpoint/problem shares3 original COS coarse starts across all objectives. Reuse48 existing seed1001 CAL P1 top3 records; otherwise one new CAL COS coarse pass. No exact reranking or truth-based choice of starts.",
+  "objectives": [
+    "P1",
+    "POS_QUAD=P1-P2/2",
+    "J=P1-P2/2-Q1-Q2/2"
+  ],
+  "optimizer": "Original fresh Adam lr.5, betas(.9,.999), eps1e-8, no weight decay,100updates, scaled rotation u=theta*RHO and original rotation/translation projection after every update. Record actual evolving moments, no unit-normalized gradient surrogate.",
+  "trace": "At0,1,5,10,25,50,100 record pose/error, all6 scalar terms/pose gradients, Adam moments. Each trajectory starts from identical pose/fresh optimizer; parameters/BN frozen and restored by host evaluation context.",
+  "primary": "Scene-equal mean error at step100 across same three starts; comparisons POS_QUAD-P1 and J-POS_QUAD. Keep separate dataset/training-objective/seed; full trajectories at registered steps.",
+  "secondary": "Original largest-own-energy final selection among3 terminal poses, ties choose first coarse rank; selected strict/loose, median/tail, win/loss scenes. BF fullpx9/42, EPFLnativepx2.25/10.5. No pooled dataset mean, no truth selection.",
+  "criterion": "Directional mechanism if >=2/3seed same primary sign and leave-one-scene-out sign robust, report magnitude/allcases. Descriptive development signal only, not a permanent early stopping rule; completeall18.",
+  "gates": "CPU finite-difference exact terms; literal-host100-step CPU optimizer equivalence/actualstate50 roundtrip; restoreall18 models and CAL identity. Then eachdataset firstCALwindow perturb0 seed1001exact,3starts x3objectives x100actualGPUupdates, finite/state/role checks. BothPASS beforefull18.",
+  "budget": {
+    "estimated_gpu_hours": [
+      2,
+      6
+    ],
+    "full_hard_gpu_hours": 18,
+    "gpu_gates_hard_hours": 1,
+    "full_jobs": 18,
+    "gate_jobs": 2,
+    "output_limit_gib": 2
+  },
+  "failure": "Fail closed on identity/nonfinite/data/state errors; immutable attempt/failure; no implicitretry, freeze revision separately. No outcome-based stopping.",
+  "limits": "CAL repeatedly used for development; 2perturbations/window are correlated. Search nondeterminism and drivers recorded. Mean-three-start error separates path effect; selected error additionally includes ranking. Removing terms gives mechanism controls, not full VCS-QMI.",
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

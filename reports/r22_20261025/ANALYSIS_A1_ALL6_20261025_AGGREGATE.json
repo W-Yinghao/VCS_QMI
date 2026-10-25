@@ -1,0 +1,152 @@
+{
+  "status": "AUDIT_PASS",
+  "utc": "2026-10-25T01:58:41.627957+00:00",
+  "exact_minus_control": {
+    "bf": {
+      "bce": {
+        "A0": {
+          "success9": 0.006249999999999978,
+          "success42": 0.0,
+          "scene_mean_error": 1.0418909738541267,
+          "median_err": 0.1876167693962021,
+          "p95_err": -0.28133061362780865,
+          "failed42": 0,
+          "failed100": 1
+        },
+        "A1": {
+          "success9": -0.009375000000000022,
+          "success42": 0.0,
+          "scene_mean_error": 0.18267308046250896,
+          "median_err": 0.25593903487839054,
+          "p95_err": -0.393066585077424,
+          "failed42": 0,
+          "failed100": -1
+        },
+        "interaction": {
+          "success9": -0.015625,
+          "success42": 0.0,
+          "scene_mean_error": -0.8592178933916177,
+          "median_err": 0.06832226548218845,
+          "p95_err": -0.11173597144961533,
+          "failed42": 0,
+          "failed100": -2
+        }
+      },
+      "nce": {
+        "A0": {
+          "success9": -0.05625000000000002,
+          "success42": 0.0,
+          "scene_mean_error": -1.067403985552314,
+          "median_err": 0.1825714024946059,
+          "p95_err": -0.25166326421597063,
+          "failed42": 0,
+          "failed100": -1
+        },
+        "A1": {
+          "success9": -0.034375000000000044,
+          "success42": 0.0,
+          "scene_mean_error": -0.7962698288967722,
+          "median_err": 0.18971979591254673,
+          "p95_err": -0.4587043123473329,
+          "failed42": 0,
+          "failed100": -1
+        },
+        "interaction": {
+          "success9": 0.021874999999999978,
+          "success42": 0.0,
+          "scene_mean_error": 0.27113415665554186,
+          "median_err": 0.007148393417940824,
+          "p95_err": -0.20704104813136226,
+          "failed42": 0,
+          "failed100": 0
+        }
+      }
+    },
+    "epfl": {
+      "bce": {
+        "A0": {
+          "success9": -0.004166666666666652,
+          "success42": 0.004166666666666652,
+          "scene_mean_error": -0.47544504358211537,
+          "median_err": 0.08593198990436379,
+          "p95_err": 0.09761176552745354,
+          "failed42": -3,
+          "failed100": -3
+        },
+        "A1": {
+          "success9": -0.00694444444444442,
+          "success42": 0.004166666666666652,
+          "scene_mean_error": -0.49326876447875634,
+          "median_err": 0.13272218023215032,
+          "p95_err": -0.16859166560740313,
+          "failed42": -3,
+          "failed100": -3
+        },
+        "interaction": {
+          "success9": -0.002777777777777768,
+          "success42": 0.0,
+          "scene_mean_error": -0.01782372089664097,
+          "median_err": 0.04679019032778653,
+          "p95_err": -0.26620343113485667,
+          "failed42": 0,
+          "failed100": 0
+        }
+      },
+      "nce": {
+        "A0": {
+          "success9": -0.002777777777777768,
+          "success42": -0.002777777777777768,
+          "scene_mean_error": 0.6168985387427948,
+          "median_err": 0.4397838981172064,
+          "p95_err": 0.7750593124913419,
+          "failed42": 2,
+          "failed100": 2
+        },
+        "A1": {
+          "success9": -0.004166666666666652,
+          "success42": -0.002777777777777768,
+          "scene_mean_error": 0.5904298371229282,
+          "median_err": 0.45382726578921284,
+          "p95_err": 0.624293784797727,
+          "failed42": 2,
+          "failed100": 2
+        },
+        "interaction": {
+          "success9": -0.001388888888888884,
+          "success42": 0.0,
+          "scene_mean_error": -0.026468701619866586,
+          "median_err": 0.014043367672006424,
+          "p95_err": -0.15076552769361484,
+          "failed42": 0,
+          "failed100": 0
+        }
+      }
+    }
+  },
+  "input_matching": "27000 original metadata batches/LR matched A0; resampled tensors intentionally differ. Across objectives each dataset has identical geometry plans.",
+  "units_note": "Success rates are scene-equal fractions; error columns use err_full. EPFL native error is err_full/4. Pooled medians and p95 are descriptive, not scene-equal means.",
+  "cost": {
+    "new_receipt_gpu_hours": 4.972703618738386,
+    "shared_gate_gpu_hours": 0.004908325473467509,
+    "reused_a0_gpu_hours": 3.8250639033317566,
+    "common_prefix_gpu_hours": 2.018629012107849,
+    "note": "A0/prefix previously paid, not new cost; gates counted once. STARTED attempt markers are not failure: frozen runner only writes COMPLETE separately. CPU/scheduler startup and unrelated historical failed KD diagnostics excluded, never assumed zero.",
+    "new_plus_shared_gates_gpu_hours": 4.977611944211853
+  },
+  "limitations": [
+    "One pilot seed per dataset/objective, not cross-seed confirmation.",
+    "A0/A1 evaluations are separate jobs with nondeterministic pose search; environment differences recorded.",
+    "Common unadapted3000 prefix; only subsequent27000 updates adapted.",
+    "Repeated DEV/CAL development data; no TEST access or new confirmatory claim.",
+    "Threshold is descriptive and not permanent prohibition; no in-flight or post-hoc recipe change."
+  ],
+  "conclusion": {
+    "bf": "A1 strict changes exact/BCE/NCE -2.8125/-1.25/-5pp, no loose benefit. Exact-BCE strict gap flips +.625 to-.9375pp; exact-NCE deficit narrows -5.625 to-3.4375pp because NCE loses more, not exact improves.",
+    "epfl": "Strict exact0/BCE+.27778/NCE+.13889pp, loose unchanged. Differences small and one seed; no stable VCS-specific benefit.",
+    "cal_dev": "BF CAL remains100%strict and all3 median errors improve at20k; at30k onlyBCE/NCE medians improve while DEV strict worsens. CAL ceiling does not establish transfer. EPFL CAL final exact/NCE drop1.111pp but tiny DEV changes.",
+    "tail": "BF all6 A0/A1 loose failures remain same1B_M3 10/10; BCE>=100 increases8to10. EPFL loose failure counts atwater_0026 unchanged exact3/BCE6/NCE1. No evidence for tail repair.",
+    "hardware": "All A1/A0 L40S, but5/6 pairs differ driver580.178.04 versus595.84; onlyEPFLBCE precisiondict equal. Causal attribution to adaptation alone is limited.",
+    "next": "Do not promote A1 as default input or automatically spend on its full grid. Keep its one-seed results and allow independently frozen matched expansion if a concrete input/transfer hypothesis emerges. Current priority: finish KDpositive6, shuffled3, and gated samejob four-arm gradient mechanism; no permanent stopping rule."
+  },
+  "_publication_note": "Selected aggregate fields from a completed review; identity/hash/receipt details omitted, sample names pseudonymized, numerical values unchanged."
+}

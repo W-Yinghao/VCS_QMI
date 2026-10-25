@@ -1,0 +1,26 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+EPFL 20%错配长训练完整分析，2026-10-24
+
+12/12（四目标×seed1001/1002/1003）完整审计通过：同源3000步完整状态恢复、27000新增更新、固定LR、每步输入与错配哈希跨臂匹配且与clean输入流一致；全部74窗口×10扰动、72场景、固定COS读出，场景等权。实际错配26/128=20.3125%。固定30000端点，不选途中checkpoint/错配率。每项仅一个成功尝试；源状态、训练/评估/读取域和全部checkpoint哈希核对通过。
+
+30000步严格/宽松成功率三seed均值（%）：
+exact 90.2315 / 99.3519
+permutation 89.6296 / 99.2130
+BCE 90.0000 / 99.2130
+NCE 90.6019 / 99.0741
+严格/宽松阈值为full尺度<9/<42，即EPFL原生尺度<2.25/<10.5，不与BF混合。
+
+exact相对自身3000步：严格+1.4352pp，宽松+1.3889pp，均3/3正。NCE严格长减短+3.6111pp，亦3/3正。
+exact相对permutation：严格+0.6019pp，3/3正；宽松+0.1389pp。
+exact相对BCE：严格+0.2315pp（逐seed+0.8333/0/−0.1389），1/3正；宽松+0.1389pp，1/3正。
+exact相对NCE：严格−0.3704pp（−0.8333/−0.4167/+0.1389），1/3正；宽松+0.2778pp，2/3正；中位误差反而更大（full尺度+0.3322）。原practical_signal=false只作报告，不作为永久停止规则。
+
+噪声减clean30k：exact严格+1.3889pp、宽松−0.2315pp；permutation +0.1389/−0.2315；BCE −0.7407/0；NCE +0.3704/−0.6481。
+相对clean的目标差值交互：exact−BCE严格+2.1296pp（3/3正），宽松−0.2315pp；exact−NCE严格+1.0185pp（2/3正）、宽松+0.4167pp（3/3正）。这比clean时的相对排名积极，但不等同于当前绝对性能稳定优于BCE/NCE；也不把噪声自动解释为有益正则化。BF20%的相对尾部交互不同，不能合并成普遍抗错配结论。
+
+严重误差>=100 full（>=25原生）计数：exact6/4/4，permutation7/6/4，BCE6/7/4，NCE6/7/7。全部失败窗口见配套REVIEW JSON，未剔除困难窗口。CAL宽松在10k/20k/30k均100%，严格仍有波动；exact的CAL中位误差20k→30k三seed均反弹，FIT目标后段改善变小。没有用这些曲线改变预算或主端点。
+
+新增训练/评估回执9.37642 GPUh；继承的3000步4.46782 GPUh另计；共13.84424 GPUh，不含共享门禁、调度启动和其他历史尝试。错配GPU门禁16.0628秒由四系列共享，仅计一次，已在全局记录。全部新增为L40S；源前缀及clean可能跨硬件/驱动，冻结搜索不确定性仍保留。这里均为反复使用的开发数据，不构成独立确认。
+
+决定：完成其余两组40%错配与检索扩种，执行已冻结机制和A1研究。当前没有依据再开训练时长/位置/critic网格；不改原论文理论，不读TEST。

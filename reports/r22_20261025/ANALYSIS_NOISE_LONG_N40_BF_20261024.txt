@@ -1,0 +1,23 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+BF 40%错配长训练完整审阅（实际51/128=39.84375%，2026-10-24）
+
+12/12完整：四方法×seed1001/1002/1003，固定3000→30000步，共27000新增更新，统一COS读出。冻结分析器AUDIT_PASS；另核对32core×10扰动、8CAL core×10扰动、clean/20%/40%固定端点的真值/搜索网格完全配对。全部新增批次哈希、同率错配映射、预登记LR、源checkpoint/完整状态、读取角色、最终checkpoint哈希均通过；每项一次成功尝试。未读TEST，不换检查点或率。
+
+固定30000步严格(<9)/宽松(<42)成功率的三seed均值：exact66.9792%/97.7083%，perm67.7083%/98.1250%，BCE68.8542%/98.6458%，NCE68.4375%/96.8750%。完整逐seed结果在同名JSON；clean/20%/40%全部固定终点并列于BF_CLEAN_NOISE_LONG_ALL_RATES_20261024.csv。
+
+长训练改善exact自身均值：严格+1.5625pp、宽松+2.2917pp，均2/3正；seed1002分别−.625/−.9375pp，不能写所有seed获益。BCE严格+3.1250pp、宽松+3.3333pp，均3/3正；NCE严格+3.8542pp（3/3正），宽松−.1042pp。
+
+相对匹配BCE，exact严格−1.8750pp（三seed−2.1875/−2.1875/−1.2500，0/3正），宽松均值−.9375pp（+.625/−3.750/+.3125，2/3正但中间seed损失较大），中位误差三个seed也均更高。相对NCE，exact严格−1.4583pp（1/3正）、宽松+.8333pp（2/3正）；保留定位精度与尾部取舍，不能称稳定优越。exact相对perm严格−.7292pp（1/3正）、宽松−.4167pp（2/3正），精确矩没有在此条件下形成定位优势。
+
+噪声减clean严格/宽松：exact−1.3542/−.5208pp；perm+.9375/+.3125pp；BCE+1.3542/+1.4583pp；NCE−.8333/+1.6667pp。差中差exact相对BCE为−2.7083/−1.9792pp，严格三个seed均负；相对NCE为−.5208/−2.1875pp。clean下相对NCE的宽松优势+3.0208pp缩至+.8333pp。BF两个错配率均未证明VCS独有抗错配优势；不能据非单调结果另称噪声普遍改善泛化，也不能外推真实噪声场景。
+
+尾部按全部core保留：exact长训练宽松失败数7/13/2，其中private_sample_001为7/10/2；seed1002另有private_sample_003的3次失败。该seed短端点只有private_sample_001的10次失败，说明局部新失败可以抵消其他core的改善。BCE长训练宽松失败9/1/3，全来自private_sample_001；NCE均10次，均来自private_sample_001。>=100误差计数exact5/13/2、perm9/2/5、BCE9/0/3、NCE10/2/10；不把同core扰动当独立seed，详见REVIEW JSON。
+
+曲线：exact/perm/BCE的CAL严格与宽松在10k/20k/30k均100%；NCE仅seed1002在10k严格98.75%，其余记录点100%。CAL中位误差并非全部单调，exact1001在20→30k由3.1166反弹到3.1393；exact另两个seed改善。FIT末段损失仍下降但增幅小，不能据此证明充分收敛、推断噪声记忆或事后换端点；分项梯度和实际更新的机制问题由独立冻结诊断/A1来回答。
+
+成本：本12项COMPLETE回执6.2857828 GPUh，原3000步前缀2.2096216 GPUh另计，已知二者8.4954044 GPUh。ATTEMPT在环境信息捕获及完成回执写入之后再次计时，因此比COMPLETE各多约.068–.114秒；差额逐项保存，不能要求两个独立计时逐位一致。原始分析补充检查曾因这个不正确假设失败，已依据冻结run.py修正，实验代码/指标未变。原前缀均有一份成功ATTEMPT，本批未见失败重试。共享两GPU门禁16.0628秒全四系列只记一次，CPU检查与调度启动另列，不称全历史成本。
+
+硬件与解释边界：12新增均L40S，但exact/perm为580.178.04，BCE有两项595.84，NCE三项595.84；源前缀与复用clean控制也可能跨卡/驱动，必须披露。位姿搜索非确定，长期重复使用的DEV/CAL仅是开发证据。长短对比同时改变训练量和预登记LR阶段；本系列不建立哪一个J分项导致差异的因果结论。
+
+下一步：继续剩余EPFL40%完整12项、保护权重扩种、三seed权重打乱对照、KD分项与A1匹配适配，不改变在途参数。当前结果支持把投入集中到已有机制问题，不新增无假设60k续训、位置或critic网格。registered_practical_signal=false保留为本批报告标准，绝非永久禁止新假设。

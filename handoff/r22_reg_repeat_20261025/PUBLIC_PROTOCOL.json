@@ -1,0 +1,50 @@
+{
+  "schema": "r22.reg_repeat.v1",
+  "hypothesis": "Small fixed-CAL direction/norm contrasts may be comparable to same-code repeated-evaluation variability. Quantify reproducibility and balance execution position before attributing a mechanism or changing the production objective.",
+  "motivation": "BF historical native endpoint mean absolute drift .12-.23px and EPFL .015-.027px. Historical comparisons change execution path/run and do not isolate a numerical cause. This study reuses exactly the paired four-arm path function, with no retraining or search expansion.",
+  "theory": "Original VCS theory unchanged. Crossed gradients and positive-only paths are mechanism controls, not complete VCS-QMI.",
+  "units": "18 frozen30k encoders: BF/EPFL x exact/BCE/NCE x seeds1001,1002,1003. All original CAL:8BF cores or10EPFLwindows,2perturbations,3frozen COSstartposes,4096positions. No DEV/TEST reads, new coarse search or encoder training.",
+  "implementation": {
+    "function": "path",
+    "methods": [
+      "P1_NATIVE",
+      "POS_NATIVE",
+      "P1_DIR_POS_NORM",
+      "POS_DIR_P1_NORM"
+    ],
+    "repeats": 4,
+    "order": "For each problem i and repeat r, rotate the listed method order left by (i+r)%4. Every method occupies each rank exactly once per problem; starts always0,1,2.",
+    "optimizer": "Fresh pose and Adam state for every path; original100steps lr.5, projection and frozen precision unchanged; state50 copy check inherited.",
+    "rng": "No reseeding between repeats; assert torch CPU and current CUDA RNG states unchanged over each repeat. No stochastic encoder/dropout updates.",
+    "measurements": "Keep all7 path checkpoints, actual applied ascent gradient and first-pass norms/scale, separately recorded second autograd gradients, chosen endpoint by common terminalP1, all four repetitions including failures."
+  },
+  "primary": "For each dataset/trainingobjective/seed/repeat compute scene-equal mean3start endpoint native error. Compute direction,norm,interaction and nativePOS-P1 contrasts as in paired protocol. Report per-seed four-repeat mean/SD/range, all4 aggregate replicate contrasts, seed variability and leave-one-scene-out signs separately.",
+  "secondary": "Common terminalP1 candidate selection error and strict/loose success; all7point curves; per-problem/start within-method repeat SD/range and execution-position summaries. Repetitions and starts are not independent seeds. Rank effects are descriptive, not isolated CUDA root causes.",
+  "contrast_definitions": {
+    "direction": ".5*((POS_NATIVE-P1_DIR_POS_NORM)+(POS_DIR_P1_NORM-P1_NATIVE))",
+    "norm": ".5*((POS_NATIVE-POS_DIR_P1_NORM)+(P1_DIR_POS_NORM-P1_NATIVE))",
+    "interaction": "POS_NATIVE-P1_DIR_POS_NORM-POS_DIR_P1_NORM+P1_NATIVE",
+    "native": "POS_NATIVE-P1_NATIVE"
+  },
+  "success": "Technical completeness is independent of outcomes. A precision-qualified directional signal requires all3 seed mean contrasts with the same nonzero sign, all4 seed-aggregate replicate contrasts with that sign, stable aggregate leave-one-scene-out sign, and min(abs(seed means))>=2*max(within-seed repeat SD). This is a descriptive preregistered screen, not a significance test; report every contrast even if it fails.",
+  "stopping": "Complete all18 once both gates pass, regardless effect. Any freeze/source/identity/finite/role/budget violation stops that unit; no automatic retry or tolerance relaxation. If signal unresolved, do not reinterpret numerical differences as mechanism advantage; any subsequent implementation study needs a separate concrete hypothesis/freeze, not an indefinite repetition loop.",
+  "gates": "Static undefined globals; inherited all18source/term/gradient/nativeCPUequivalence checks; exact4CPUrepeats under balanced order. One GPU gate per dataset seed1001 exact firstCALproblem:4repeats x4arms x3starts x100updates=4800updates, allfinite/initialfingerprints/RNGunchanged/CALonly/sourceunchanged. Both pass before18formaljobs.",
+  "budget": {
+    "estimated_gpu_hours": [
+      2,
+      4
+    ],
+    "full_jobs": 18,
+    "full_job_minutes": 30,
+    "full_hard_gpu_hours": 9,
+    "paths": 15552,
+    "adam_updates": 1555200,
+    "gate_jobs": 2,
+    "gate_minutes": 10,
+    "gate_hard_gpu_hours": 0.3333333333333333,
+    "cpu_minutes": 20,
+    "max_output_gib": 2
+  },
+  "limits": "Small repeatedly used CAL;3seeds, correlated scenes/starts/perturbations. Samejob repetition does not measure every between-job source of variation or confirm generalization. Preserve hardware/driver/node pin from original source; do not pool datasets or choose checkpoints/starts by truth. No fullJ arm in this diagnostic.",
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

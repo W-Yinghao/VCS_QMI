@@ -1,0 +1,42 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+BF 同作业方向×范数四臂9/9完整分析（固定CAL；2026-10-25）
+3个训练目标×3seed；每项16问题×3共同起点×4臂×100真实Adam更新。源30k模型不训练。
+冻结、源、数据/位置/起点、完整预算、实际梯度范数/比例、CAL边界、单次尝试和统一末P1选择已核验。
+主指标scene等权三起点终点误差；下列为原生像素，负为误差降低。
+训练表示 vcs_exact
+  direction_POS_minus_P1: mean=-0.0991849; seeds=[-0.17259123837359422, -0.15968460213338284, 0.03472120705006565]; LOSO=[-0.1493028,+0.0449758]; signal=False
+  norm_POS_minus_P1: mean=+0.0549162; seeds=[0.07411858193344717, 0.032590199542607445, 0.05803982878423923]; LOSO=[+0.0310990,+0.0757311]; signal=True
+  interaction: mean=-0.1162334; seeds=[-0.06280054471867441, -0.13255650317018094, -0.15334302943452152]; LOSO=[-0.1429911,-0.0221139]; signal=True
+  native_POS_minus_P1: mean=-0.0442687; seeds=[-0.09847265644014702, -0.1270944025907754, 0.09276103583430487]; LOSO=[-0.0962379,+0.0760747]; signal=False
+  P1_direction_with_POS_norm_minus_P1: mean=+0.1130329; seeds=[0.10551885429278421, 0.09886845112769793, 0.1347113435014999]; LOSO=[+0.0421559,+0.1472266]; signal=True
+  POS_direction_with_P1_norm_minus_POS: mean=+0.0032005; seeds=[-0.04271830957411013, 0.03368805204248304, 0.018631685933021475]; LOSO=[-0.0200420,+0.0231788]; signal=False
+  四臂均值(路径/统一P1选择/严格%/宽松%): P1_NATIVE=3.33601/3.23847/100.000/100.000; POS_NATIVE=3.29174/3.39747/100.000/100.000; P1_DIR_POS_NORM=3.44904/3.32735/100.000/100.000; POS_DIR_P1_NORM=3.29494/3.26917/100.000/100.000
+训练表示 bce
+  direction_POS_minus_P1: mean=+0.0712391; seeds=[0.13656003248557766, -0.16215194685637646, 0.23930911416248152]; LOSO=[+0.0173328,+0.1383513]; signal=True
+  norm_POS_minus_P1: mean=-0.0414475; seeds=[-0.17585165378182527, 0.020452569144895252, 0.03105656640916432]; LOSO=[-0.0557067,-0.0113930]; signal=False
+  interaction: mean=+0.0910039; seeds=[0.0637213069628357, 0.12830148928034577, 0.08098893030113635]; LOSO=[-0.0597401,+0.1612615]; signal=False
+  native_POS_minus_P1: mean=+0.0297916; seeds=[-0.03929162129624761, -0.14169937771148122, 0.27036568057164584]; LOSO=[-0.0300632,+0.1269583]; signal=False
+  P1_direction_with_POS_norm_minus_P1: mean=-0.0869495; seeds=[-0.20771230726324308, -0.0436981754952776, -0.009437898741403827]; LOSO=[-0.1196903,+0.0184771]; signal=False
+  POS_direction_with_P1_norm_minus_POS: mean=-0.0040544; seeds=[0.14399100030040746, -0.08460331378506811, -0.07155103155973247]; LOSO=[-0.0415712,+0.0412630]; signal=False
+  四臂均值(路径/统一P1选择/严格%/宽松%): P1_NATIVE=3.35482/3.29061/100.000/100.000; POS_NATIVE=3.38461/3.37365/100.000/100.000; P1_DIR_POS_NORM=3.26787/3.14487/100.000/100.000; POS_DIR_P1_NORM=3.38056/3.39804/100.000/100.000
+训练表示 nce
+  direction_POS_minus_P1: mean=+0.0338820; seeds=[0.08414364245521519, 0.04437732380511786, -0.026875046123651047]; LOSO=[-0.0298056,+0.1882765]; signal=False
+  norm_POS_minus_P1: mean=+0.0838012; seeds=[0.15435716864964416, 0.14412209377125268, -0.04707554201649744]; LOSO=[+0.0426338,+0.1054598]; signal=True
+  interaction: mean=+0.1457098; seeds=[0.257757709946197, 0.15973181327641547, 0.01964000420552342]; LOSO=[+0.0788706,+0.1903450]; signal=True
+  native_POS_minus_P1: mean=+0.1176832; seeds=[0.23850081110485935, 0.18849941757637054, -0.07395058814014849]; LOSO=[+0.0194465,+0.2627285]; signal=True
+  P1_direction_with_POS_norm_minus_P1: mean=+0.0109463; seeds=[0.025478313676545725, 0.06425618713304496, -0.056895544119259185]; LOSO=[-0.0066132,+0.0350167]; signal=False
+  POS_direction_with_P1_norm_minus_POS: mean=-0.1566562; seeds=[-0.2832360236227426, -0.2239880004094604, 0.037255539913735716]; LOSO=[-0.1878433,-0.0865714]; signal=True
+  四臂均值(路径/统一P1选择/严格%/宽松%): P1_NATIVE=3.31666/3.34402/100.000/100.000; POS_NATIVE=3.43434/3.43904/100.000/100.000; P1_DIR_POS_NORM=3.32761/3.34949/100.000/100.000; POS_DIR_P1_NORM=3.27769/3.27980/100.000/100.000
+本组正式回执0.265394GPUh；两数据集共享成功门禁17.338887秒及失败复用门禁调度10秒只计一次。
+方向/范数两主效应之和等于原生POS−P1；交互另报，不能据此唯一归因训练收益。配对在同一作业内计算，旧轨迹仅为输入和描述性偏差参照。
+实际更新向量与再次autograd记录不是逐位同一值，差异已留存；不改冻结门槛，不把重复求导作实际应用梯度。
+两数据集分别解读；CAL反复使用、3seed、起点/扰动相关，不作为独立泛化验证。
+
+完整解释：
+BF四臂统一P1选出的严格/宽松成功率均100%，该小CAL集无法辨别失败尾部。
+VCS表示norm主效应+0.054916px三seed均正且LOSO稳，方向主效应−0.099185但LOSO可翻正；交互−0.116233三seed负且LOSO稳。不能用单个全局梯度缩放解释正对二次项作用。
+BCE方向主效应+0.071239（2/3正、LOSO稳），norm均值−0.041448由一个seed主导，2/3seed反向，未通过信号；NCE norm+0.083801和交互+0.145710通过描述信号。作用随表示变化。
+原生重复轨迹终点绝对漂移平均0.121–0.231px、最大3.914px；与部分小对照差同量级。此处包含不同运行/梯度求取路径，不是隔离后的纯CUDA噪声估计。旧端点不作为新四臂科学对照。
+等待EPFL九项并列，不把BF单个信号推广为优化器/训练配方。需在提出基于细小位姿差的新实施前量化同代码、同作业内重复与执行顺序敏感性。
+CompleteEPFLunchanged. Do not modify ongoing KD/shuffle. Consider bounded same-code paired repeat/order diagnostic if interpretation relies on effects comparable to observed drift; no occupancy duplicates or parameter grid.

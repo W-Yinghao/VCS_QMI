@@ -1,0 +1,24 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+共享cosine配准J分项与候选重排，完整六项分析，2026-10-24
+
+两数据集×exact/BCE/NCE×seed1001，固定clean30000 checkpoint。每项预定首4个CAL窗口、扰动0/1、三半径×三轴×正负偏移；BF138/144个有效位姿，EPFL143/144，其余按宿主边界排除，三目标的位姿键与初始误差完全匹配。每个位姿的四项和等于J，梯度和恒等式通过；六个目标项均有限，无零梯度。输入轨迹仅CAL。全部源/结果/冻结哈希通过，一次尝试完成；没有重训或学习曲线。
+
+平均一步corner-error变化（full尺度，负值为改善；先偏移→扰动→窗口→场景等权）：
+                  P1       POS_QUAD       J
+BF exact        -1.096671   -1.035096   -1.007354
+BF BCE          -1.096661   -1.022728   -1.022685
+BF NCE          -0.936104   -0.885936   -0.915248
+EPFL exact      -1.219190   -1.278723   -1.278746
+EPFL BCE        -1.237610   -1.248883   -1.267371
+EPFL NCE        -1.278827   -1.260241   -1.260259
+EPFL如需原生误差，上述值除4；不跨数据集平均。
+
+正对平方项确实改变梯度：POS_QUAD/P1梯度范数比，BF exact/BCE/NCE为0.8588/0.7541/0.6614，EPFL为0.8564/0.7565/0.5795。但是本实验使用真实宿主fresh Adam第一步，坐标尺度被自适应归一化，梯度衰减不等于位姿步长同比衰减。
+半径1和4的P1/POS_QUAD/J误差更新几乎一致，差异主要出现在半径16。BF exact在该半径P1为−0.1382，POS_QUAD为+0.0466，J为+0.1298；EPFL exact则P1为−0.4691，POS_QUAD/J约−0.6477。参考项对BF NCE和EPFL BCE的一步结果有帮助，对BF exact较差，其余很小。故不能从这六项把“J精修变差”统一归因于参考项或正对平方项，更不能据此删除项后仍称完整VCS-QMI。
+
+48个CAL问题/目标组合，每种读出重算粗top3的精确value：COS首选改变1/48（BF exact的一组），J首选改变0/48；其他排序变化也分别1/48与0/48。最大绝对分数差COS0.002827、J0.001154。只说明这批小CAL子集的top3排序多数稳定，不能证明粗搜索与完整warp编码等价，也没有检查top3之外的全网格最优。历史top-k坐标未保存，本批是预登记的小CAL候选捕获，不冒充历史候选重放。
+
+成本：六项回执合计40.6434秒=0.01128984 GPUh，均L40S/580.178.04；启动、共享CPU检查、源训练另计。只有一个seed、四个CAL窗口，偏移/扰动不是独立重复，fresh Adam一步也不能代替完整精修轨迹或泛化收益。
+
+下一步：按已经冻结的A1输入重采样12匹配端点设计继续（6既有A0+6新A1）。没有依据新增阶段组合或更强critic网格。KD初始化失败单独技术修补，不用它推断机制。详细分窗口/半径/梯度及全部成本见配套JSON。

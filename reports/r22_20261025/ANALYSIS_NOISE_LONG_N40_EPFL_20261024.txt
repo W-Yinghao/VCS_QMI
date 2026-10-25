@@ -1,0 +1,14 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+EPFL 40%错配长训练12/12完整分析（2026-10-25；系列文件沿用20261024后缀）
+四目标×1001/1002/1003，完整恢复3000步状态并新增27000更新；固定30k COS读出。冻结、源checkpoint、批次顺序、同seed同错配、全部输入身份/哈希、CAL曲线、有限值及尝试记录审计通过。实际错配51/128；未读取TEST。
+DEV为74窗口/72scene×10扰动=740条，scene等权；CAL为10窗口/9scene×10扰动。严格/宽松阈值为原生<2.25/<10.5（full尺度<9/<42）。
+三个seed均值（严格%、宽松%）：exact90.6019/99.2593，perm90.2315/99.3981，BCE90.6019/99.2593，NCE90.8333/99.1667。
+exact−BCE严格逐seed为+.9722/−.4167/−.5556pp，均值0；宽松均值0。exact−NCE严格−.2315pp（1/3正），宽松+.0926pp（2/3正）。exact的中位误差相对BCE/NCE三个seed均较大，均值+0.0782/+0.2687 full像素（原生除4）。没有稳定独有优势。
+exact长减短严格+3.2870pp（2/3正、一seed持平）、宽松+1.3426pp（3/3正）；其他三目标的宽松也均改善。全部12项长程宽松/严重误差只剩private_sample_005；exact严重失败6/4/6，BCE4/6/6，NCE4/7/7。短程private_sample_004尾部被各目标消除，不能归为VCS独有机制。
+exact噪声减clean严格+1.7593pp、宽松−.3241pp。相对BCE的噪声交互严格+1.8981pp（3/3正）、宽松−.3704pp；相对NCE+1.1574/+.2315pp。这是相对clean差距的变化，不等于noisy条件下更优，也不支持跨数据集统一鲁棒性。
+CAL10k/20k/30k：全部12项宽松100%，严格/中位误差非单调；FIT目标继续改善但后期幅度缩小。保留固定末端，不以CAL改选或继续盲加长。
+各项仅一次成功新尝试，原前缀尝试也保留。新增9.938559GPUh、前缀5.333073GPUh；两共享GPU门禁16.062809秒在all48只计一次。ATTEMPT比COMPLETE晚写约.084–.113秒，为计时范围差，不伪造逐位一致。
+新增12项均L40S/595.84；前缀与clean存在硬件/驱动差异、搜索非确定性、开发集反复使用，不视为独立确认。所有场景和seed保留，扰动不是独立重复。
+结论：已完成两数据集两率48项。继续现有shuffled-U与A1；下一机制研究以KD positive-only控制、配准共同起点100步轨迹为重点，原理论不变。技术门禁失败另包修补，旧失败与成本保留；不重复训练填队列。
+证据：ANALYSIS_NOISE_LONG_N40_EPFL_20261024.json、ANALYSIS_NOISE_LONG_N40_EPFL_REVIEW_20261024.json、EPFL_CLEAN_NOISE_LONG_ALL_RATES_20261024.csv、ANALYSIS_NOISE_LONG_ALL48_20261025.json。

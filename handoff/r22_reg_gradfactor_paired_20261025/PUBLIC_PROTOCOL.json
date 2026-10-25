@@ -1,0 +1,41 @@
+{
+  "schema": "r22.reg_gradient_factor.paired.v2",
+  "hypothesis": "EPFL POS_QUAD precision loss comes from the evolving gradient direction, scalar norm history, or their interaction; a2x2 crossed intervention separates these mechanisms without retraining.",
+  "theory": "Original VCS theory unchanged. These synthetic gradient paths are mechanism controls, not completeVCS or a new production objective.",
+  "units": "Same18 fixed30k encoders (BF/EPFL x exact/BCE/NCE x3seeds1001-3), all original CAL cores/windows x2perturbations x3frozen COSstarts. No coarse search, no new training.",
+  "factors": {
+    "direction": [
+      "P1",
+      "POS_QUAD"
+    ],
+    "norm": [
+      "P1",
+      "POS_QUAD"
+    ],
+    "formula": "At each arm current pose, compute both gradients. Applied ascent gradient = grad(direction) * norm(grad(norm_source))/norm(grad(direction)), detached before assigning negative gradient to Adam.",
+    "zero": "eps1e-12; both norms <=eps ->zero; undefined direction with nonzero target norm fails closed; no clipping or tuning."
+  },
+  "reuse": "Reuse source models and all324 fixed CAL problem inputs/start poses only. Reexecute allfour arms in each same job; native P1/POS trajectories are new paired references for both crossed arms. Historical trajectory differences are recorded descriptively, never used as primary comparator.",
+  "replay_tolerance": "The old cross-run trajectory reuse gate FAILED at its original fixed tolerances; its thresholds and failures remain untouched. This separately frozen fallback does not reuse those endpoints. Retain samehost/GPU/software/precision/driver and initial value atol1e-6 rtol1e-5, gradient atol1e-5 rtol1e-5, exact pose/truth/position checks, including allfour samejob initial fingerprints. No old trajectory agreement criterion is claimed by this different design.",
+  "optimizer": "Original100steps Adam lr.5 betas(.9,.999) eps1e-8, fresh state per path, original pose projection; state50 copy roundtrip.",
+  "primary": "Scene-equal mean3start native endpoint error, pertrainingobjective/seed/dataset. Direction contrast = .5[(POS_NATIVE-P1_DIR_POS_NORM)+(POS_DIR_P1_NORM-P1_NATIVE)]. Norm(POS relativeP1) contrast=.5[(POS_NATIVE-POS_DIR_P1_NORM)+(P1_DIR_POS_NORM-P1_NATIVE)]. Interaction=(POS_NATIVE-P1_DIR_POS_NORM)-(POS_DIR_P1_NORM-P1_NATIVE). Curves0/1/5/10/25/50/100.",
+  "secondary": "Rank all four arms by common terminalP1 energy (available in old traces), strict/loose/native error and per-scene changes. Never rank synthetic paths by a nonexistent own scalar energy; do not use truth to select starts or candidates.",
+  "interpretation": ">=2/3seed same contrast sign plus leave-one-scene-out aggregate sign stable is descriptive directional evidence; completeall18 irrespective of effect. Comparisons are interventions at different evolving current poses, not an additive causal decomposition of encoder training/generalization.",
+  "gates": "Static undefined globals; inherited CPU all18source/term/gradient checks and both native100step exact CPU equivalence; two GPUdataset gates each 4arms x3same starts x100steps, allfinite/termgradient identity, same initial scalar/gradient fingerprints, Adam state50 roundtrip, CAL only, source unchanged. Both PASS before full18.",
+  "budget": {
+    "estimated_gpu_hours": [
+      0.5,
+      1.5
+    ],
+    "full_jobs": 18,
+    "full_job_minutes": 20,
+    "full_hard_gpu_hours": 6.0,
+    "gate_jobs": 2,
+    "gate_minutes": 10,
+    "gate_hard_gpu_hours": 0.3333333333333333,
+    "cpu_minutes": 20,
+    "max_output_gib": 2
+  },
+  "limits": "CAL repeated development; starts/perturbations correlated; samejob paired references do not eliminate nondeterministic CUDA numerical effects. Originalnode pin retained. Historical failure demonstrates cross-run drift, not a cause isolated to CUDA or manualgradient. Full data for allfour arms, no original endpoint reuse; no pooled dataset mean.",
+  "_publication_note": "Scientific protocol excerpt; no operational authorization, private source/input lock or admission. Status is at original registration; latest state is R22_UPDATE_20261025_CN.md."
+}

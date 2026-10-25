@@ -1,0 +1,23 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+A1六项完整配对审计（seed1001；固定30000步；开发证据）
+A0复用六项完成的干净长训练；共同3000步前缀，A1只改后27000步输入重采样。
+CPU、两GPU门禁、源/冻结/27000批元数据与LR、跨臂几何计划、CAL/DEV真值与搜索预算均通过。
+以下严格/宽松差值单位pp；误差为协议err_full，EPFL原生误差需除4。
+bf_vcs_exact_1001: A0 68.1250/96.8750%, A1 65.3125/96.8750%; Δ -2.8125/+0.0000pp; medianΔ +0.0887; signal=False.
+bf_bce_1001: A0 67.5000/96.8750%, A1 66.2500/96.8750%; Δ -1.2500/+0.0000pp; medianΔ +0.0204; signal=False.
+bf_nce_1001: A0 73.7500/96.8750%, A1 68.7500/96.8750%; Δ -5.0000/+0.0000pp; medianΔ +0.0816; signal=False.
+epfl_vcs_exact_1001: A0 89.8611/99.5833%, A1 89.8611/99.5833%; Δ +0.0000/+0.0000pp; medianΔ -0.0007; signal=False.
+epfl_bce_1001: A0 90.2778/99.1667%, A1 90.5556/99.1667%; Δ +0.2778/+0.0000pp; medianΔ -0.0475; signal=False.
+epfl_nce_1001: A0 90.1389/99.8611%, A1 90.2778/99.8611%; Δ +0.1389/+0.0000pp; medianΔ -0.0148; signal=False.
+所有逐core尾部及CAL曲线另附CSV；不同数据集不合并。
+仅一个seed；需要独立匹配扩种才能评估稳定性。没有基于途中结果停止、调λ或改终点。
+成本：{"new_receipt_gpu_hours": 4.972703618738386, "shared_gate_gpu_hours": 0.004908325473467509, "reused_a0_gpu_hours": 3.8250639033317566, "common_prefix_gpu_hours": 2.018629012107849, "note": "A0/prefix previously paid, not new cost; gates counted once. STARTED attempt markers are not failure: frozen runner only writes COMPLETE separately. CPU/scheduler startup and unrelated historical failed KD diagnostics excluded, never assumed zero."}
+
+完整解释与下一步：
+BF严格成功率exact/BCE/NCE分别−2.8125/−1.25/−5.00pp，宽松均不变。exact相对NCE差距缩小来自NCE下降更多，不能写成VCS改善；相对BCE差距反而变差。
+EPFL严格分别0/+.2778/+.1389pp，宽松均不变；单seed不能判断稳定性。BF严格变化主要来自exact/BCE的private_sample_003，以及NCE若干core；BF全部宽松失败仍为private_sample_001 10/10，EPFL仍集中private_sample_005，未修复大误差尾部。
+BF CAL严格全部100%，20k三个目标中位误差都下降，但DEV严格下降，说明CAL局部收益没有形成所需任务证据。
+硬件均为L40S，但5/6个配对的驱动为旧580.178.04对新595.84，只有EPFL BCE精度记录相同；同型卡并不等于环境逐位一致，不能把差值全部归因为适配。
+新增六项回执4.972704GPUh，两门禁17.669972秒，已知新增合计4.977612GPUh。原A0和共享前缀另计，不重复记新增成本；CPU和调度开销未知部分不算零。
+决定：不把A1设为默认输入，也不自动扩网格；保留独立匹配扩种可能，须有具体输入/泛化问题及新冻结。当前优先完成KD正对二次、shuffled-U及同作业四臂梯度机制。旧阈值不作永久禁止。

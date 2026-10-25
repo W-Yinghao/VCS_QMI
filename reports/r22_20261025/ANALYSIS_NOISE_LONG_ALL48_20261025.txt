@@ -1,0 +1,20 @@
+Publication copy of a completed review. Sample names use stable aliases; original conclusions and numbers retained. Local audit records are private. Historical next steps/operational instructions refer to the original analysis time; see R22_UPDATE_20261025_CN.md for current status.
+
+错配长训练48/48完整分析（2026-10-25）
+两数据集×两率×四目标×三seed全部完成固定30k预算；四份配对审计通过。未挑比例、seed或checkpoint。
+下表为VCS exact减匹配对照，严格/宽松成功率差，单位百分点；数据集分别报告。
+数据集  错配率  对照  严格pp  宽松pp
+bf 20% bce +1.3542 +0.5208
+bf 20% nce -0.8333 +1.2500
+bf 40% bce -1.8750 -0.9375
+bf 40% nce -1.4583 +0.8333
+epfl 20% bce +0.2315 +0.1389
+epfl 20% nce -0.3704 +0.2778
+epfl 40% bce +0.0000 +0.0000
+epfl 40% nce -0.2315 +0.0926
+四组相对NCE均呈严格定位较低、宽松失败较少的取舍；相对BCE不稳定。不能写成VCS普遍抗错配。
+EPFL的噪声交互相对clean更有利，仍未转成稳定绝对优势；BF两率的宽松优势较clean收缩。
+长训练改善部分任务均值，不表示所有目标充分收敛；长短同时改变训练量和学习率阶段。
+48项新增完成回执31.750722 GPUh，原3k前缀14.561246 GPUh，共享GPU门禁16.062809秒只计一次；已知合计46.316430 GPUh。不是完整调度成本，其他历史失败/CPU/clean另计。
+下一步：完成shuffled-U与A1；KD补positive-only中间臂，配准跑共同起点100步分项目标轨迹；均按独立冻结门禁准入原池。
+不新增无假设噪声/时长/位置网格；收益门槛仅作开发描述，不是永久停止规则。保留混硬件/驱动、搜索非确定性、重复使用DEV/CAL和扰动相关性的限制。
