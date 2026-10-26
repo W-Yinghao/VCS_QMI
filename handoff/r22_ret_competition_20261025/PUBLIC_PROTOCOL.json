@@ -1,0 +1,43 @@
+{
+  "utc": "2026-10-25",
+  "label": "PILOT/DEVELOPMENT; offline estimator diagnostic; FIT/SELECT/REF/U train roles only; no student training; no DEV/TEST",
+  "question": "Do candidate-competition features change the VCS/BCE reliability estimate so that correct-but-hard U pairs are retained at matched synthetic-mismatch suppression?",
+  "setting": "V9 N2 Flickr30K, design rho 0.4 synthetic mismatch confined to U; seeds 901/902/903; frozen SGR teachers; C0 caches outputs_v9_n2p/c_20261020/c0/s*/cache (rows/ids/s reused, fit/select/ref P and within-role re-paired Q).",
+  "features": {
+    "construction": "For each row of every part (fit_P, fit_Q, select_P, select_Q, ref_P, ref_Q, U), shuffle the part with rng([seed, 9040+pass, part_index]) and score batches of 128 rows with the frozen teacher (full image x caption matrix). Competitors of row a = other rows of the same batch whose observed image differs from row a's observed image (observed ids only). Last batch < 32 merged into the previous one.",
+    "pass_A": "estimator inputs: s - max(s_comp), s - mean(s_comp) and fraction of competitors with s_comp >= s, each for image->text (row) and text->image (column); agree_top = both fractions 0; rank_gap = |frac_i2t - frac_t2i|  (8 features)",
+    "pass_B": "independent shuffle (pass=1), same features; used ONLY to define hardness, so the hardness label is not the estimator's own noisy feature draw",
+    "identity_check": "diagonal of each batch matrix vs cached s: report max abs diff; hard failure only above 1e-4 (cache was produced on RTX; any GPU type allowed here)",
+    "Q": "unchanged declared product reference (within-role re-pairing from C0); competition features computed identically for Q rows; no hard negatives substituted for Q"
+  },
+  "estimators": {
+    "family": "h = softplus(a_raw)*s + b + x.beta, T = tanh(h) (rich_pilot.py linear_h); scalar: no x; comp: x = the 8 pass-A features standardized on balanced FIT_P/FIT_Q",
+    "objectives": [
+      "vcs (native 0.5E_P(1-T)^2+0.5E_Q(1+T)^2)",
+      "bce (logit 2h)"
+    ],
+    "fit": "rich_pilot.py fit_candidate unchanged: NumPy fp64 full-batch Adam 400 steps, lr {0.01,0.03} x init {(0,0),(2,-1)}, beta_l2 1e-3; selection = max unpenalized common J on SELECT",
+    "deployment": "rho from REF and U_est moments (rho_moments), w = sigmoid(log((1-rho)/rho)+2h) (posterior_from_h); ranking by h",
+    "reference_rows": "existing C0 rich (z256) exports reported for reference only"
+  },
+  "labels": "pairs.eval_only.json mismatch identities read only by analyze (after all fits/exports are written), never by fit or extract",
+  "metrics": {
+    "primary": "at 90% synthetic-mismatch suppression (threshold = 90th percentile of h over mismatched U pairs), retention of correct U pairs split into hard-correct (pass-B frac_i2t>0 or frac_t2i>0) and easy-correct (both 0)",
+    "secondary": [
+      "80% suppression",
+      "hardness by bottom quartile of pass-B mean margin among correct pairs",
+      "AUROC correct vs mismatch and hard-correct vs mismatch",
+      "Kendall tau(scalar h, comp h) per objective on U",
+      "rho_hat status/value",
+      "held-image subset (est_mask False) retention"
+    ]
+  },
+  "go_no_go": {
+    "interface_GO": "for BOTH objectives: comp - scalar hard-correct retention at 90% suppression mean >= +5.0 pp over 3 seeds with >= 2/3 seeds positive, and comp - scalar easy-correct retention mean >= -1.0 pp",
+    "vcs_specific_GO": "interface_GO for VCS and comp_vcs - comp_bce hard-correct retention mean >= +2.0 pp with >= 2/3 seeds positive, easy-correct not lower than -1.0 pp",
+    "otherwise": "NO-GO for a student round on these features; report all differences",
+    "deployability": "comp estimators must give rho status point_estimate on all seeds for any GO"
+  },
+  "budget": "GPU extraction about 10 min total (2 passes x 3 seeds, batch 128); CPU fits about 20 min",
+  "_publication_note": "Scientific protocol excerpt; private locks, receipts and operational fields omitted. Latest state: R22_UPDATE_20261026_CN.md."
+}

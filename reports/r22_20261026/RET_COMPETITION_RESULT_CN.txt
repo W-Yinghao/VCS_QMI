@@ -1,0 +1,17 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+V9 N2 检索：候选竞争特征的可靠度估计器离线诊断（2026-10-25；PILOT/DEVELOPMENT；只用训练角色 FIT/SELECT/REF/U，无 DEV/TEST，无学生训练）
+
+数据：C0 缓存（seed901/902/903，冻结 SGR teacher，U=130500，合成错配约40%）。特征：同 part 内随机 128 行 batch 的完整 SGR 分数矩阵，
+排除同一观测图像的行，K≈127 竞争者；8 个特征（双向 max/mean margin、超过正对的竞争者比例、双向均第一、比例差）。
+两次独立抽样：pass A 作估计器输入，pass B 只定义困难度。GPU 1064498（H100，约18分钟），CPU 1064544；读取 trace 全 PASS。
+估计器：rich_pilot.py 原拟合协议（scalar：softplus(a)s+b；comp：+8 特征线性项），VCS/BCE 同输入同容量，SELECT 上按 J 选；
+重拟合 scalar 与 C0 导出 h 完全一致（max|Δh|=0）；所有估计器 rho 均为 point_estimate。
+
+结果（90% 错配抑制下正确配对保留率，pp，三 seed）：
+- comp − scalar：VCS +6.07/+3.22/+2.93（均值 +4.07，3/3 正）；BCE +5.54/+3.17/+2.91（+3.87，3/3）；easy-correct 均≈100% 不变。
+  AUROC 提高 0.008–0.017；Kendall τ(scalar, comp) 0.84–0.90，排序确有改变。
+- comp_vcs − comp_bce：+0.53/+0.05/+0.02（+0.20）；scalar VCS 与 BCE 排序完全相同。
+- 对照：已有 rich(z256) − scalar 为 +1.1/+1.2，低于竞争特征；在“margin 最低四分位”困难子集上 rich 增益更大（+5.7/+4.9 vs comp +3.4/+2.7）。
+预登记判据：interface_GO 需两目标均值 ≥ +5pp → 未达到（+4.07/+3.87）；VCS 特有 GO 需 comp_vcs − comp_bce ≥ +2pp → 未达到（+0.20）。NO-GO。
+局限：预登记的 hard 定义（pass B 任一方向非第一）覆盖约 89–91% 的正确配对，近似“全部正确配对”；未事后更改判据。

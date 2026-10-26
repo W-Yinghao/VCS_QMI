@@ -1,0 +1,21 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+检索学习率对照完整分析（2026-10-25，Claude 审阅；analyzer ANALYSIS_RETRIEVAL_LR_ALL6_20261025.json 全部核验通过；DEV 开发证据，无 TEST）
+
+设计：真实 VCS 权重 / constant × lr_update 30（复用6项）/ 10（新6项），seed 901/902/903，40 轮 45320 更新。
+period10 在第 11/21/31 轮各 ×0.1，period30 仅第 31 轮 ×0.1：同时改变衰减时机、次数与累计学习率，不是单独“提前一次衰减”。
+
+四个预设量（3 seed 均值，括号为正 seed 数）：
+1. VCS10 − VCS30：最佳 +6.25（3/3），末5轮 +26.35（3/3）
+2. constant10 − constant30：最佳 +4.15（3/3），末5轮 +48.98（3/3）
+3. 交互 (1)−(2)：最佳 +2.10（3/3，未达登记 ≥3），末5轮 −22.63（0/3）
+4. VCS10 − constant10：最佳 −1.19（1/3），末5轮 +2.13（3/3，幅度小）
+
+均值：VCS10 最佳 471.76 / 末5 466.24；constant10 最佳 472.95 / 末5 464.11；VCS30 465.50 / 439.90；constant30 468.80 / 415.13。
+
+解释：两臂都因新 schedule 明显改善，且 constant 改善更多（后期退化几乎消失）；VCS 权重在原 schedule 下的“后期稳定”优势主要在弥补原宿主学习率配方，
+新 schedule 下仅剩末5轮约 +2 rSum，最佳点仍低于 constant。按审阅判据：这是“原宿主优化配方不合适”的证据，不是 VCS 应用优势；第4项无有意义收益，
+不补同 schedule 的 BCE 权重对照。工程上 constant+period10 是目前检索最佳（472.95）。登记 best-DEV 判据：仅两个 schedule 增益为真。
+
+限制：重复使用 DEV、schedule 在看过旧曲线后选择、3 seed 含 pilot901，非确认性；新6项与对照同 GPU/driver/软件，但 5/6 项节点不同（host_equal_to_control 仅 constant903 为真）。
+成本：新6项回执 37.28 GPUh，复用对照 37.25 GPUh 另计，共享门禁 447.7 秒只计一次。

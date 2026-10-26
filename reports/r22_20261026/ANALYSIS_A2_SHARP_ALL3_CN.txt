@@ -1,0 +1,12 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+A2 SHARP 三 seed 完整分析（2026-10-26，Claude；开发 DEV 证据，无 TEST）
+数据：新 902/903 六项（COMPLETE_VERIFIED）+ 已有 901 三项；同 seed 三臂初始化与数据顺序一致（已断言）；9 项均 RTX PRO 6000 / 615.71.09，节点 58/59/61 不同。
+预设主比较（40 轮全 DEV 最佳 rSum，3 seed 值，均值）：
+- VCS_SHARP − BCE_SHARP：−36.53 / −32.33 / −39.80，均值 −36.22（0/3 正），描述性信号成立（方向为 VCS 更差）
+- VCSW_SHARP − VCS_SHARP：+32.13 / +16.19 / +23.45，均值 +23.93（3/3），信号成立（可靠度加权 P 显著挽回）
+次要：VCSW_SHARP − BCE_SHARP −12.30（0/3）；SHARP 相对原 A 各臂：VCS −4.94、VCSW −2.49、BCE +2.79（均混合）；
+相对 hinge：VCS_SHARP − Constant-U −65.61，VCSW_SHARP − hinge+VCS 权重 −68.00，BCE_SHARP − Constant-U −29.39，VCS_SHARP − 原 NCE −90.27（均 0/3）。
+均值：VCS_SHARP 376.40、VCSW_SHARP 400.33、BCE_SHARP 412.62；hinge Constant-U 442.01、hinge+VCS 权重 468.32、原 NCE 466.67。
+结论：补全三 seed 后，seed901 的 STOP 判断得到确认——固定大斜率 critic 下，以 VCS 目标作为检索主损失明显差于同 critic 的 BCE，且所有 SHARP 臂远低于 hinge/NCE 宿主。
+VCSW 相对 VCS 的大幅改善来自权重（P 加权、Q 不加权，不是加权联合分布的 QMI，按审阅需在命名中注明）。不再在该方向投入。
