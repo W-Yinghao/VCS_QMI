@@ -1,0 +1,37 @@
+{
+  "utc": "2026-10-26",
+  "label": "PILOT/DEVELOPMENT; FIT train, full DEV per epoch; no TEST",
+  "authorization": "User 2026-10-26 「全都做吧」 (next-batch option 2: retrieval on the improved host recipe).",
+  "question": "The N2M hinge host is the strongest retrieval result for VCS reliability weights (best full DEV rSum VCS 467.0/467.0/471.0 vs Constant-U 443.6/445.7/436.7, seeds 901/902/903, +26.3 mean, lr_update 30). On the protected-weight NCE host lr_update 10 improved both arms (+6.25/+4.15 rSum) and removed the weight effect (VCS10-constant10 -1.19). Does the hinge-host VCS weighting gain survive the improved LR schedule?",
+  "schedule": "lr = 2e-4 * 0.1 ** (epoch // lr_update). lr_update 10: epochs 0-9 2e-4, 10-19 2e-5, 20-29 2e-6, 30-39 2e-7 (three decays). lr_update 30 (controls): epochs 0-29 2e-4, 30-39 2e-5. Epochs 0-9 are identical, so the new runs must reproduce the controls there. The change alters decay timing, number of decays and cumulative LR together; it is not a pure timing effect.",
+  "new_runs": "arms VCS and ConstantU x seeds 901/902/903 = 6 runs, identical to the seed-matched N2M runs except lr_update (same observed pool, same N2M control weight files + locks, same seed, same initial state, same per-epoch permutation stream, same DEV).",
+  "reused_controls": "N2M lr_update-30 runs s{seed}__VCS and s{seed}__ConstantU (receipts frozen in FREEZE.json); s{seed}__ShuffleVCS descriptive only. Not rerun.",
+  "matching": {
+    "inputs": "observed pool, control weights and weight lock against the frozen N2M experiment hashes; vocab and token cache against the inherited freeze; feature files by inherited size/mtime (no content hash was ever supplied). Noise manifests are not opened (read trace forbids them).",
+    "initial_state_and_order": "N2M did not record an initial-model hash or sample-order hash. Verified functionally: (i) CPU check replays the trainer's own permutation stream and must reproduce batch_mass and batch_ess exactly at all 2266 logged control steps (all 40 epochs, both arms, 3 seeds); (ii) the GPU gate compares step-20/40/60 losses of epoch 0 with the control and requires equal initial-state hashes for the two arms of a seed; (iii) each full run asserts batch_mass/batch_ess equality at every logged step of every epoch and records the epoch 0-9 step-loss, mean-loss and DEV rSum differences to the control (hard failure only if an epoch-0 step loss differs by more than 1e-3 relative = wrong inputs).",
+    "nondeterminism": "deterministic algorithms are on, as in N2M; whether epochs 0-9 reproduce the control bitwise on a different node is measured and reported, not assumed."
+  },
+  "primary_endpoint": "best full DEV rSum over 40 epochs (N2M primary; earlier epoch on ties), per seed paired",
+  "contrasts": {
+    "main": "VCS10 - ConstantU10",
+    "secondary": [
+      "VCS10 - VCS30",
+      "ConstantU10 - ConstantU30",
+      "interaction (VCS10 - ConstantU10) - (VCS30 - ConstantU30)"
+    ],
+    "descriptive": [
+      "last-epoch rSum, mean of last 5 epochs",
+      "N2M collapse diagnostic (aggregate.collapse_diagnostic) per run",
+      "best epoch",
+      "VCS10 vs the protected NCE-host constant+period10 best 472.95 (different host and objective; labelled, not a matched contrast)",
+      "Shuffle-VCS30 as in N2M"
+    ]
+  },
+  "signal_rule": "descriptive: mean paired difference >= +3 rSum and >= 2/3 seeds positive (the N2M investment rule threshold); all contrasts reported regardless; n=3, no significance or equivalence claim.",
+  "evidence": "development: DEV reused across N2F/N2M/R22 retrieval studies; no TEST read.",
+  "hardware": "--partition=RTX6000PRO --exclude=node51,node53,node60 (all N2M runs were RTX node58/59/61, one shared environment).",
+  "gates": "CPU check (cpu-high) then one RTX gate (seed 901, both arms, 99 real updates each: 60 in epoch 0 then one per later epoch; actual Adam LR per update, single param group, finite losses, epoch-0 trajectory vs control, equal initial states, parameter change, read trace). Full runs refuse to start without both PASS records of the same freeze.",
+  "budget": "N2M per-run RTX wall 6.1-6.5 h (40 epochs incl. full DEV each epoch): ~6.5 GPUh per run, ~39 GPUh for 6; hard limit 10 h per run; gate <= 1 h; outputs on /projects <= 6 GiB (best.pt + last.pt ~0.43 GiB per run).",
+  "stopping": "all 6 runs complete; no early stopping on interim DEV; failed attempts kept and reviewed, no silent retry or resume.",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
