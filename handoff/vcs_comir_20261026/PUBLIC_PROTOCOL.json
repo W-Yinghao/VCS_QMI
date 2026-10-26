@@ -1,0 +1,46 @@
+{
+  "utc": "2026-10-26T15:21:56.563076+00:00",
+  "label": "R24 PILOT/DEVELOPMENT: VCS/BCE drop-in for CoMIR InfoNCE; BF-SHG primary (FIT32 / CAL8 / DEV32), EPFL RGB-NIR secondary; no TEST",
+  "authorization": "User 2026-10-26 「都要做，你来规划实验，实现，并提交」 after the SOTA analysis (REGISTRATION_SOTA_ANALYSIS_CN.md): replace the SOTA framework component with VCS.",
+  "question": "Inside the official CoMIR framework (a published SOTA for BF-SHG), does replacing its InfoNCE objective with the VCS objective (same bounded-critic optimum family as BCE) improve registration? CoMIR's own paper shows the critic choice changes SIFT success from 38.8% to 56.0% (strict), so the objective is not neutral in this framework.",
+  "arms": {
+    "nce_mse": "original InfoNCE over 2B points, s_ij = -||x_i-x_j||^2/D/tau, same-modality negatives included (CoMIR as published)",
+    "nce_cos": "same InfoNCE with s_ij = cos(x_i,x_j)/tau",
+    "vcs_exp": "T_ij = 2 exp(-||a_i-b_j||^2/D/tau) - 1 on cross-modal pairs; J = mean_i[T_ii - T_ii^2/2] - mean_{i!=j}[T_ij + T_ij^2/2]; loss -J (P diagonal, Q off-diagonal cross-modal = empirical product of marginals)",
+    "vcs_cos": "T_ij = cos(a_i,b_j), same J",
+    "bce_exp": "balanced BCE, P(+) = (1+T)/2 on the vcs_exp T",
+    "bce_cos": "balanced BCE on the vcs_cos T"
+  },
+  "unchanged": "data stream (sample RNG 3000+seed), initialisation (official comir_models(seed)), augmentation, rotation trick, regularisers, optimiser, steps, registration, evaluation problems. nce_mse is the original code path (bitwise CPU check).",
+  "cal_selection": {
+    "seed": 1017,
+    "seed_note": "V10 CAL seed convention (deviation from the brief's 1001, so finals 1001-1003 are not the selection seed)",
+    "grid": "tau in {0.1, 0.5, 2.0} (lr .01) for nce_mse, nce_cos, vcs_exp, bce_exp; lr in {0.01, 0.003} for vcs_cos, bce_cos (no tau) = 16 runs, each trained 736 steps and evaluated on CAL8 x 10 at step 736",
+    "rule": "per family lexicographic: CAL success<42 desc, success<9 desc, median err asc, grid order; best critic per objective (VCS: vcs_exp vs vcs_cos; NCE: nce_mse vs nce_cos; BCE: bce_exp vs bce_cos) chosen by the same rule over the two selected configs",
+    "no_dev": "selection reads CAL only"
+  },
+  "finals": "the 6 selected configs x seeds 1001-1003 (BF), training 736 steps, CAL and DEV32 x 10 at step 736; plus nce_mse tau .5 lr .01 at 1001-1003 if not selected (reproduction of V10 CoMIR_native, paired with its stored DEV rows)",
+  "epfl": "secondary transfer: the 6 BF-selected configs x 1001-1003 trained on the EPFL FIT windows with the V10 EPFLCoMIRTrainer, DEV74 (72 scene units, unit macro via v10.epfl.production.dev_statistics); no EPFL-specific selection",
+  "primary": "BF DEV32 strict success<9 (pooled over 320 = core macro), seed-paired",
+  "signal_rule": "descriptive: best-critic VCS - best-critic NCE >= +3 pp strict, >= 2/3 seeds positive, loose<42 not worse by > 1 pp; VCS - BCE reported separately (a VCS-specific claim needs VCS > BCE too)",
+  "secondary": [
+    "loose success, median, p95",
+    "paired core-level differences",
+    "VCS - BCE per critic",
+    "all arms vs reused V10 CoMIR_native DEV rows",
+    "EPFL unit-macro",
+    "CoMIR-protocol (834 patch, +-30 deg / +-100 px, SIFT / alpha-AMD on representations) once the B fork harness exists"
+  ],
+  "hardware": "--partition=L40S --exclude=node51,node53,node60 for every arm (deviation from the 3-partition brief: matched to the V10 CoMIR_native environment so arms share one GPU type); precision/environment asserted equal to the V10 BF1 protocol",
+  "budget": "~0.1-0.2 GPUh per unit; 16 CAL + 18-21 BF finals + 18 EPFL finals ~ 8-10 GPUh; hard 2 h per job; cap 30 GPUh",
+  "no_retry": "failed attempts are kept and reviewed, never silently rerun",
+  "limits": [
+    "single 736-step recipe (no training-length search)",
+    "registration readout fixed to the CoMIR_native -MSE latent energy for every arm (cosine-trained latents are scale-free; disclosed)",
+    "DEV reused development data; position search non-deterministic"
+  ],
+  "implementation_notes": [
+    "verify_official_source wrapped process-locally exactly as TEST_REPEAT v6 (namespace package models.layers has __file__ None; only namespace packages inside the pinned official root are hidden during the frozen check, all official file hashes still verified). Needed because several CoMIR trainers are built in one process (CPU check). First CPU check 1066346 failed on this before any training; kept as a record."
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

@@ -1,0 +1,15 @@
+{
+  "utc": "2026-10-26T19:17:44.284869+00:00",
+  "title": "Hardware amendment: L40S pin removed",
+  "reason": "User asked why R24 was L40S-only (default rule: RTX6000PRO,L40S,H100 unless a pin has a stated, approved reason). The pin only matched the V10 CoMIR_native GPU type; no runtime GPU assert exists, every run records its GPU, and arm comparisons are within-study.",
+  "change": [
+    "10 pending CAL jobs moved to RTX6000PRO,L40S,H100 via scontrol (exclude list unchanged)",
+    "select_lock.py final-line template now passes --partition=RTX6000PRO,L40S,H100 (overrides the frozen gpu.sbatch #SBATCH line; gpu.sbatch and PROTOCOL.json left unchanged so verify() passes)"
+  ],
+  "already_on_L40S": [
+    "CAL runs already completed or running",
+    "smokes"
+  ],
+  "consequence": "Arms may run on different GPU types; report GPU per run; the V10 CoMIR_native reproduction check is descriptive (search is non-deterministic across runs anyway).",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

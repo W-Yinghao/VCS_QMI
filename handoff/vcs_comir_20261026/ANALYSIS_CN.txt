@@ -1,0 +1,32 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+VCS / BCE 替换 CoMIR 的 InfoNCE：完整分析（2026-10-26，ANALYSIS.json；CAL seed 1017 选配置，final seed 1001–1003；无 TEST）
+
+宿主：V10 官方 CoMIR 配方（736 步、batch32、128 px、C4 等变），只换对比项；配准与评估沿用 V10 CoMIR_native 路径（我们的搜索器）。
+CAL 选中：nce_mse τ2.0、nce_cos τ0.1、vcs_exp τ0.5、vcs_cos lr3e-3、bce_exp τ0.5、bce_cos lr3e-3；按预登记规则各目标的最佳 critic 为 nce_cos、vcs_exp、bce_exp。
+nce_mse τ0.5（原配方）另跑作复现参照。
+
+DEV 严格 <9 / 宽松 <42（%，3 seed 均值）：
+| 臂 | BF | EPFL |
+|---|---|---|
+| NCE-MSE τ2.0 | 58.8 / 87.0 | 86.1 / 96.6 |
+| NCE-MSE τ0.5（原配方） | 54.9 / 84.9 | 85.6 / 96.7 |
+| NCE-cos τ0.1（CAL 选为 NCE 最佳 critic） | 56.5 / 82.8 | 84.4 / 94.8 |
+| VCS-exp τ0.5 | 22.7 / 41.8 | 78.1 / 89.4 |
+| VCS-cos | 27.5 / 44.5 | 71.2 / 82.5 |
+| BCE-exp τ0.5 | 14.1 / 26.8 | 78.2 / 89.0 |
+| BCE-cos | 29.2 / 47.7 | 75.3 / 87.1 |
+V10 CoMIR_native 记录（原配方，L40S）：BF 52.8 / 79.8，EPFL（scene 宏平均）约 85.8 / 96.8；新原配方复现 54.9 / 84.9、85.6 / 96.7，量级一致。
+
+预登记比较：
+- 主比较 最佳 VCS − 最佳 NCE：BF 严格 −33.8 pp（0/3，scene bootstrap [−45.8, −22.0]），宽松 −41.0；EPFL 严格 −6.3（0/3，[−11.8, −1.2]），宽松 −5.3。信号不成立。
+- VCS − BCE（同 critic 族的最佳）：BF 严格 +8.6（3/3），EPFL −0.1。
+
+解读：
+1. 在 CoMIR 框架里，有界目标（VCS 与 BCE）都明显差于 InfoNCE，BF 上几乎减半。CoMIR 需要把两个模态压到一个可直接做单模态配准的“图像式”表示，InfoNCE 的批内竞争归一化似乎正是这一点的关键；有界目标在相同的短训练（736 步）和正则下没有学到足够有区分度的表示。
+2. 这与 CoMIR 论文中 critic 选择影响很大的现象一致，但方向不利于 VCS：在对目标敏感的框架里，VCS 输得更多，而不是赢得更多。
+3. VCS 比 BCE 好（BF +8.6），说明在有界目标之间 VCS 的二次形式更合适，但远未达到 NCE 的水平。
+4. 局限：只调了 τ / LR 两到三档；训练步数和正则沿用 InfoNCE 的配方，可能对有界目标不利。但按预登记的等预算比较，这个替换方向不成立。
+
+成本：CAL 1.07 + smoke 0.06 + finals BF 2.04 / EPFL 2.99 GPUh；硬件修订后部分作业跨 GPU 型号（逐项记录）。
+CoMIR 协议（SIFT/α-AMD）次指标：鉴于主结果差距很大，未再追加。

@@ -1,0 +1,44 @@
+{
+  "utc": "2026-10-26T15:26:02Z",
+  "label": "R23 task A: modern registration/matching baselines on the V10 BF-SHG protocol (DEVELOPMENT; DEV only, no TEST)",
+  "authorization": "User 2026-10-26 「都可以，你来接手，先做A和B」 (download of public pretrained weights approved).",
+  "question": "Is the system-level BF-SHG SOTA claim (VCS-trained dense descriptors + host search vs CoMIR/MI/MIND) robust to current learned matchers and foundation features?",
+  "convention": "methods.py: mov(R(theta)(z-c)+c+t) ~ ref(z), (y,x), c=(H-1)/2; error = host Q.corner_error_full (strict <9, loose <42 full-res px), plain mean over 320 rows = core macro (10 per core).",
+  "shared_domain": "Every method searches |theta| <= 30 deg, |t| <= 51 px (host searcher domain); RANSAC hypotheses outside 1.05x that domain are rejected; globalign searches all whole-pixel shifts and angles in +-30 deg (its own exhaustive search).",
+  "methods": {
+    "sp_lg": "SuperPoint + LightGlue (cvg/LightGlue v0.1_arxiv weights)",
+    "disk_lg": "DISK + LightGlue",
+    "aliked_lg": "ALIKED-n16 + LightGlue",
+    "minima_sp_lg": "MINIMA SuperPoint + LightGlue (CVPR 2025 modality-invariant weights)",
+    "xfeat": "XFeat + mutual NN",
+    "xfeat_lg": "XFeat + LighterGlue",
+    "minima_loftr": "MINIMA LoFTR",
+    "roma": "RoMa outdoor",
+    "minima_roma": "MINIMA RoMa",
+    "globalign": "MIDA globalign: exhaustive FFT cross-MI (CMIF) over shifts x angle grid + refinement (Learn2Reg 2024 baseline)",
+    "dinov2_host": "Frozen DINOv2 patch tokens in the host energy (cosine) with the unchanged host searcher (DINO-Reg-style, training-free)"
+  },
+  "non_rotation_invariant": "Rotation sweep of the moving image at the configured step over [-30, 30] deg; per angle: match -> map points back -> 2-point RANSAC rigid (tau 3 px at 512, 2000 iters, no scale) + LSQ refits; keep the angle hypothesis with most inliers (IWM Learn2Reg 2024 recipe).",
+  "configs": {
+    "sparse_and_loftr (sp_lg, disk_lg, aliked_lg, minima_sp_lg, xfeat, xfeat_lg, minima_loftr)": "preproc {gray, log, inv, iwm} x rot_step {10, 5} = 8",
+    "dense (roma, minima_roma)": "preproc {gray, log, inv, iwm} x rot_step {15, 10} = 8",
+    "globalign": "preproc {gray, log, iwm} x Q {8, 16} = 6 (61 angles over +-30, 32 refinement angles within +-1 deg, overlap 0.5)",
+    "dinov2_host": "arch {vits14, vitb14} x input scale {1, 2}; reference raw BF RGB, moving SHG intensity = 4"
+  },
+  "preproc": "gray: BF luminance vs SHG intensity; log: BF luminance vs log1p SHG; inv: inverted BF luminance vs SHG; iwm: H&E hue channel + hist-eq + 5x5 median vs hist-eq + median SHG (Learn2Reg 2024 IWM). All uint8 by 0.5/99.5 percentile scaling.",
+  "selection_rule": "Per method on CAL (80 problems): max loose success (<42), then max strict (<9), then min median err_full, then min mean seconds. Written to LOCK.json before any DEV run; one locked config per method on DEV.",
+  "dev_endpoints": [
+    "strict <9, loose <42, median, p95 err_full over DEV32 x 10",
+    "paired core-level differences (core success rate, 32 cores, bootstrap 95% over cores, B=10000) vs V10 MF_VCS_M1, MLP_VCS_perm8, InfoNCE_host[J_perm1] (3-seed core means) and CoMIR_native (3 seeds); MI/NMI/MIND for context",
+    "seconds per problem (synchronised wall time)",
+    "failures (no hypothesis / <3 inliers)"
+  ],
+  "limits": [
+    "DEV is reused development data; this is not a TEST comparison",
+    "matchers run on the 512 host inputs (whole core at 4x down); full-resolution inputs are not part of this protocol",
+    "V10 learned methods were CAL-selected and trained on FIT; the matchers are pre-trained on natural images and only preprocessing / sweep step are selected on CAL (<= 8 configs each)",
+    "search non-determinism of V10 rows (0.6-2.2 pp re-evaluation noise) is not removed"
+  ],
+  "budget": "<= 15 GPUh total (CAL + DEV), outputs < 5 GiB",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
