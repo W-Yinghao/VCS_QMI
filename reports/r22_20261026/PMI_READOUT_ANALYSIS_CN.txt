@@ -1,0 +1,10 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+PMI 读出（30k 共享余弦模型）完整分析（2026-10-26，Claude；ANALYSIS.json；DEV 同作业 2×2 读出；开发证据，无 TEST）
+24 个固定 30000 步 long-v2 checkpoint（BF/EPFL × vcs_exact/vcs_perm/bce/nce × 1001–1003），同问题同作业比较 COS/PMI 粗搜/精修，PMI=2·atanh(clip(cos,1e-4))。
+主终点 PMI__PMI − COS__COS 严格<9（pp，3 seed 均值）：
+BF：vcs_exact +0.52（2/3）、vcs_perm −0.42、bce −0.10、nce 0.00
+EPFL：vcs_exact +0.65（3/3）、vcs_perm +0.28、bce −0.18、nce 0.00
+预登记信号（≥+1pp、≥2/3、宽松不降>0.5）：无一臂达到。理论模式（校准臂有信号且比 NCE 对照高 ≥1pp）：未成立。
+vcs_exact 方向与理论一致（两数据集均高于 NCE 对照约 0.5–0.65pp，增益全部来自局部精修 COS__PMI），但幅度低于门槛，且同样以 tanh(PMI/2) 为最优的 BCE 臂无增益。
+结论：C 线中学习型 critic 在 EPFL 的 +2–4pp PMI 读出收益没有迁移到共享余弦 30k 模型；COS/P1 读出保持。成本 14.58 GPUh。

@@ -1,0 +1,9 @@
+{
+  "tau": 0.02,
+  "m_near": 0.02,
+  "m_far": 0.1,
+  "lam": 1.0,
+  "rule": "Fixed from CALIBRATION.json (FIT only, existing seed-1001 vcs_exact checkpoints, 48 FIT problems per cell) before any pose training: tau ~ 1/3 of the median |near gap| at step 3000 (BF 0.053, EPFL 0.090) rounded to 0.02 for both datasets; m_near = tau (truth must beat a 3 px / 1.2 deg pose by one temperature unit); m_far = 5 tau (8 px / 3.2 deg poses, median |gap| 0.23-0.33, must lose by more). lam = 1: the base objectives (-J_exact ~ -0.4, bounded BCE ~ O(1)) and tau*L_pose (~0.13 at init, O(0.01) once trained; gradient O(1) in energy units) are O(1); no grid, never changed after training starts.",
+  "scaling": "L_pose is multiplied by tau (tau * logsumexp), so its gradient with respect to the energies is a softmax weight vector in [0,1]; the unscaled form gave pre-clip gradient norm ~48 at init vs ~0.3-3 for the J/BCE terms (CPU check 1064512 first step), which would make lambda=1 a near-zero VCS/BCE weight. Changed after the CPU check, before any training run.",
+  "_publication_note": "Selected aggregate fields of a completed review; identity/hash/receipt fields omitted, sample names pseudonymized, numerical values unchanged."
+}

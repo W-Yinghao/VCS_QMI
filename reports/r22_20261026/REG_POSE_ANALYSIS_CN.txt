@@ -1,0 +1,18 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+配准姿态排序项 18 项完整分析（2026-10-26，Claude；ANALYSIS.json；DEV 固定 30000 步 COS 读出；开发证据，无 TEST）
+三臂 × BF/EPFL × 1001–1003，从头训练，与 long-v2 30k 参照同初始化/同 sampler 流/同 LR；GPU 混合 H100/L40S/RTX（逐项记录）。回执 15.27 GPUh。
+
+严格成功率 <9（3 seed 均值，%）：
+BF：pose_only 6.35 | pose+J 40.42 | pose+BCE 41.46 | 参照 J-only 68.33 | BCE-only 67.50 | NCE-only 69.27
+EPFL：pose_only 79.40 | pose+J 89.26 | pose+BCE 89.49 | 参照 J-only 88.84 | BCE-only 90.74 | NCE-only 90.23
+预设比较：
+- pose_only − J-only：BF −61.98（0/3），EPFL −9.44（0/3）
+- pose+J − pose_only：BF +34.06（3/3），EPFL +9.86（3/3）（J 不可缺）
+- pose+J − pose+BCE：BF −1.04（1/3），EPFL −0.23（1/3）（无 VCS 特有差异）
+- pose+J − J-only：BF −27.92（0/3），EPFL +0.42（2/3，未达 +1）；pose+BCE − BCE-only：BF −26.04，EPFL −1.25
+失败归因（F_hat≥F_true 为能量偏好错误位姿，否则为搜索遗漏），BF 严格失败：参照 J-only 304 中 292 为能量问题；
+pose_only 899 中仅 43、pose+J 572 中 168 为能量问题，其余为搜索遗漏。
+解释：姿态项确实让能量在真值附近更偏好真值（能量问题大幅减少），但只用 10 个近/远环错误位姿训练，削弱了粗网格搜索依赖的大范围能量形状，
+BF 失败转为搜索遗漏、严格成功率大幅下降；EPFL 基本不变。按预登记判据无应用收益，也无 VCS 特有差异。
+若继续，须同时约束全局能量形状（例如覆盖粗搜索网格的远处候选），这是新的设计，不能由本结果事后调参得出。

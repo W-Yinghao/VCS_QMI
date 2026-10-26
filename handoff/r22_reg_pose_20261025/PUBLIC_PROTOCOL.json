@@ -1,0 +1,42 @@
+{
+  "utc": "2026-10-25",
+  "label": "PILOT/DEVELOPMENT; FIT train, CAL curves, DEV readout; no TEST",
+  "authorization": "User 2026-10-25 「三项都开始做」 after the forwarded external review (registration: train pose discrimination in the actual energy).",
+  "motivation": "All 24 clean 30000-step long-v2 models, COS readout, DEV: 98-100% of strict-only near misses (err_full 9-42) and most gross failures (>=42) have F_hat >= F_true, i.e. the deployed energy itself prefers the wrong pose; search misses are rare (largest: BF NCE 13/46 gross). The shared searcher is not the main bottleneck.",
+  "hypothesis": "Adding a ranking term that makes the deployed COS energy prefer the known truth over a fixed ring of nearby wrong poses improves strict DEV localization; adding the VCS J term on top may add shared cross-modal structure beyond pose supervision alone.",
+  "loss": "L_pose = tau * logsumexp([0, (S(theta*+d) - S(theta*) + m_d)/tau for d in D]); S = deployed COS energy (host Q.RigidEnergy critic path: perturbed moving image warped into BOX1, eV encode, 4096 disk positions, eU-encoded reference, mean cos), gradients through eU and eV. One FIT problem per step: a FIT core/window and one of its 10 known perturbations from Q.perturbations_p2 (same rule as CAL/DEV, FIT ids only), positions redrawn per step; separate RNG seed_of(R22-POSE|ds|seed).",
+  "candidate_set": {
+    "near": "translations +-3 px (y,x) and rotations +-1.2 deg: ~12 err_full, 1.33x the strict 9 threshold",
+    "far": "diagonal translations |t|=8 px and rotations +-3.2 deg: ~32-33 err_full, inside loose 42",
+    "support": "same 4096 reference-frame positions for all candidates; every sampled source location of the original moving image stays inside it (max radius R_OMEGA + RF_BOX*sqrt2 + 8 < 255.5, checked); truth also passes through two bilinear resamplings so identity-warp sharpness is not a cue",
+    "precision": "ground-truth alignment precision is not separately measured; the protocol strict threshold (2.25 px at 512) is taken as its bound and the nearest candidate is 3 px",
+    "revision": "v0 rings 4 px/1.5 deg and 12 px/5 deg were replaced after a FIT-only calibration (CALIBRATION_V0.json) showed they already lose to the truth in ~93% / 94-100% of FIT problems; no CAL/DEV outcome was used"
+  },
+  "constants": "CONSTANTS.json (tau 0.02, m_near 0.02, m_far 0.10, lambda 1), fixed before any pose training; L_pose scaled by tau (see CONSTANTS.json scaling) so lambda=1 balances terms in energy units",
+  "arms": {
+    "pose_only": "L_pose",
+    "pose_vcs": "L_pose + lambda * (-J_exact) (train.py vcs_exact on the host batch)",
+    "pose_bce": "L_pose + lambda * bounded-score BCE (train.py bce on the host batch)"
+  },
+  "matched_references": "long-v2 30000-step runs r22_geometry_long_v2_20261024 {vcs_exact (J only), bce (BCE only), nce (NCE only)} x {bf,epfl} x {1001,1002,1003}: identical initial encoders (checked against the original 3000-step training init), identical host sampler stream (batch hashes at steps 3001-3005 checked against long-v2 TRAIN.jsonl in every run), identical LR schedule 3e-4 (<=15000) / 3e-5 (<=24000) / 3e-6 (<=30000), AdamW, clip 1.0. Differences: the pose term, and the references inherit a 3000-step prefix from a separate job (cross-job/hardware nondeterminism disclosed).",
+  "evaluation": "fixed step-30000 checkpoint; full DEV, COS readout through T.evaluate (unchanged host searcher); CAL at 10000/20000/30000 as curves only; no checkpoint selection, no TEST",
+  "primary_endpoint": "DEV strict success err_full<9, scene-macro, at step 30000, per dataset (never pooled), per seed paired",
+  "comparisons": [
+    "pose_only - vcs_exact reference (pose supervision vs J alone)",
+    "pose_vcs - pose_only (does VCS add to pose supervision)",
+    "pose_vcs - pose_bce (is any addition VCS-specific)",
+    "descriptive: pose_bce - bce reference, pose_* - nce reference"
+  ],
+  "signal_rule": "descriptive, per dataset: mean paired difference >= +1 pp strict and >= 2/3 seeds positive, with loose success<42 not worse by > 0.5 pp; all differences reported regardless",
+  "secondary": [
+    "loose success<42",
+    "median err_full",
+    "failure attribution F_hat>=F_true vs search miss",
+    "CAL curves",
+    "train-time truth-beats-all rate"
+  ],
+  "hardware": "--partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60; GPU type recorded; references were mostly L40S (disclosed)",
+  "budget": "see BUDGET.json (from the GPU smoke); hard limit 6 h per run",
+  "no_retry": "failed attempts are kept and reviewed, never silently rerun",
+  "_publication_note": "Scientific protocol excerpt; private locks, receipts and operational fields omitted. Latest state: R22_UPDATE_20261026_CN.md."
+}

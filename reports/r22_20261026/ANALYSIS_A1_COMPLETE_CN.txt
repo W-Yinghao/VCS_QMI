@@ -1,0 +1,13 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+A1 原生输入适配补种完整分析（2026-10-26，Claude；ANALYSIS_A1_COMPLETE.json；DEV 固定 30000 步 COS；开发证据，无 TEST）
+新两 seed（1002/1003）12 项与复用 A0（long-v2 30k）逐项匹配节点/GPU/driver/软件（environment_matched 全为 True）；6 项曾因 home 守卫启动失败，
+未建目录/未训练，原参数重交（STARTUP_GUARD_RESUBMIT_20261026.json）。旧 pilot 1001 只进入三 seed 描述表。
+
+新匹配两 seed A1−A0（严格<9 / 宽松<42，pp）：
+BF：VCS −1.25/+0.31 | +1.88/−0.63；BCE −0.94/−0.31 | 0/+1.88；NCE −2.81/+2.81 | +2.19/+1.25
+EPFL：三目标严格 −0.28~0，宽松全为 0
+预登记描述判据（两 seed 都改善且均值≥1pp，或宽松两 seed 都改善且均值≥1pp 且严格均不降>1pp）：6 个单元均未满足。
+VCS 相对 BCE/NCE 的交互（严格）：BF +0.16 / −0.47，EPFL 0.00 / +0.14。
+三 seed 描述（含 pilot）：BF 严格均值 VCS −1.25、BCE −0.83、NCE −1.67；EPFL −0.05 / +0.05 / −0.09。
+结论：在环境严格匹配下，A1 原生 warp/预处理/真值回拉的输入适配没有可重复收益。按审阅，此后不再用“未处理真实重采样”解释配准表现；COS/P1 读出保持。

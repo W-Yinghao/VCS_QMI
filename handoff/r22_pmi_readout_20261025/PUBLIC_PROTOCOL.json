@@ -1,0 +1,19 @@
+{
+  "utc": "2026-10-25",
+  "authorization": "user 2026-10-25 「能提交的都做好准备提交」 after this package was flagged as conflicting with the external review advice to keep COS/P1 inference; eval only, no training",
+  "hypothesis": "PDF eq.35: optimal bounded critic T*=tanh(PMI/2). In the shared-cosine family T=cos for every arm; vcs_exact, vcs_perm and the (1+T)/2 BCE share that optimum, so mean 2atanh(T) is the summed log-likelihood-ratio pose score. NCE trains cos/0.07, for which atanh(cos) is not its PMI: control.",
+  "models": "24 fixed step-30000 long-v2 checkpoints (BF/EPFL x vcs_exact/vcs_perm/bce/nce x 1001-1003); no selection; mismatch-trained models excluded (review: stop noise expansions)",
+  "design": "same job, same problems: 2x2 COS/PMI for coarse grid and local refinement, host searcher/grid/3 starts/100 Adam unchanged, policy order rotated; PMI clip EPS=1e-4 as in R22 C",
+  "primary": "DEV strict success<9 scene-macro, PMI__PMI minus COS__COS, per dataset per arm, never pooled",
+  "signal_arm": "mean >= +1 pp and >= 2/3 seeds positive, loose success<42 not worse by > 0.5 pp",
+  "theory_pattern": "readout signal in calibrated arms (vcs_exact, vcs_perm, bce) with the NCE control gain at least 1 pp smaller",
+  "secondary": [
+    "COS__PMI and PMI__COS (stage attribution)",
+    "vcs_exact PMI__PMI minus bce PMI__PMI (same optimum)",
+    "vcs_exact PMI__PMI minus nce COS__COS (each natural readout; same job not available, descriptive)",
+    "failure attribution F_hat>=F_true per policy"
+  ],
+  "limits": "DEV reused (exploratory), search non-deterministic (paired in job), not a confirmation",
+  "budget": "24 jobs, L40S/H100 only, 3h hard each, est. 15-28 GPUh, output < 0.5 GiB",
+  "_publication_note": "Scientific protocol excerpt; private locks, receipts and operational fields omitted. Latest state: R22_UPDATE_20261026_CN.md."
+}
