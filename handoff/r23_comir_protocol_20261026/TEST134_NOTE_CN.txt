@@ -1,0 +1,12 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+在 TEST134 上运行同一协议需要什么（供用户决定；本包未读任何 TEST）
+
+1. 授权：TEST134 已在 10-20 的 TEST_REPEAT134 中读过一次。再读一次属于重复使用，需要用户单独批准，结果只能作为重复基准报告，不是独立确认。
+2. 读取前冻结：所有方法、checkpoint（V10 已选定，不重选）、SIFT 上采样/RANSAC 阈值与 MI 变体（均已在 CAL 上选定）、搜索器网格、阈值与分析脚本都须先冻结成 manifest；读取前不得再改。
+3. 两种做法（可都做）：
+   a. 精确复现已发表的测试问题：下载 CoMIR 原始测试补丁 Zenodo 3874362（TestSet.zip 约 456 MB，含 R_/T_ 834×834 补丁和 metadata.csv 角点坐标），以及 MultiRegEval 的 Eliceiri 补丁（Zenodo 5557568，4 级 × 134，info_test.csv）。从角点坐标反解刚性变换作真值，所有方法跑这批固定补丁，数字可以和 CoMIR 论文 Table 2、Lu et al. Table 2 逐行并列。
+   b. 用本包的生成器在 TEST134 全尺寸 core 上抽样（与 DEV 同分布，K=10），配对比较更稳定，但与论文不是同一批变换。
+4. 数据守卫：需要一个只允许 TEST 角色、并记录全部读取的守卫（参照 TEST_REPEAT134 的 TestRepeatGuard）；DataGuard 目前拒绝 TEST core。
+5. 成本：按 DEV 实测外推，a（每对一个变换，CoMIR 134 + MultiRegEval 536 问题）约 3–5 GPU 小时；b（K=10）约为 DEV 的 4.2 倍。CPU 的 MI 不到 1 小时。
+6. 方向：已发表表格报告两个方向（BF→SHG 与 SHG→BF）；本包只做 BF 参照、SHG 变换，TEST 上可按需补另一方向。

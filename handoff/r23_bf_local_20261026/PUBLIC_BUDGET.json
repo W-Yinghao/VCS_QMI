@@ -1,0 +1,28 @@
+{
+  "smoke_job": "1065462",
+  "smoke_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition (node59)",
+  "mean_step_ms": {
+    "dual_aug_vcs_exact_lr0.0003": 101.1,
+    "dual_aug_nce_t0.07_lr0.0003": 100.5,
+    "dual_aug_soft_nce_t0.07_s4_lr0.0003": 100.6,
+    "dual_aug_bce_lr0.0003": 100.9,
+    "dual_aug_rince_t0.07_q0.5_lr0.0003": 100.4,
+    "fine_aug_vcs_exact_lr0.0003": 80.3
+  },
+  "peak_gib": 2.392597198486328,
+  "registration_seconds_dual": 0.69,
+  "registration_seconds_fine": 0.53,
+  "estimate": {
+    "cal_run": "10000 steps x ~0.10 s (RTX PRO; L40S ~1.5-2x) + FIT load ~3 min + CAL 160 registrations ~2 min: ~0.35-0.7 GPUh",
+    "cal_batch_21": "~8-15 GPUh",
+    "pilot_new_4": "train + CAL + DEV 1280 registrations (~15 min): ~0.6-1.0 GPUh each",
+    "evals_6": "DEV 4 conditions ~15-25 min (+2 aux for P3/P4): ~0.3-0.6 GPUh each",
+    "stage_total": "~12-22 GPUh"
+  },
+  "time_limits": {
+    "cal": "03:00:00 (LINES_CAL.txt)",
+    "pilot_and_eval_lines_from_select": "select() writes 08:00:00 / 10:00:00 / 08:00:00; can be lowered to 03:00 / 03:00 / 02:00 at submission"
+  },
+  "note_rince": "Smoke dual_aug_rince_t0.07_q0.5 collapsed within 10 steps to the antipodal two-tower solution (all pair scores -1/tau, loss 0.002, gradient 0, CAL registration failed); q->0 limit and gradcheck verify the implementation. The preregistered grid keeps q 0.1 and 0.5; if every RINCE candidate collapses, report RINCE as not trainable in this host at the preregistered grid rather than retune after seeing results.",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

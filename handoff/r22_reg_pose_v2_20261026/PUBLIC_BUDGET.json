@@ -1,0 +1,30 @@
+{
+  "smoke_jobs": {
+    "bf": "1065339",
+    "epfl": "1065340",
+    "diagnostic": "1065338",
+    "cpu_check": "1065335"
+  },
+  "smoke_gpu": "NVIDIA RTX PRO 6000 Blackwell (bf on node61, epfl on node58)",
+  "smoke_mean_step_ms": {
+    "bf_pose2_bce": 241.8,
+    "bf_pose2_only": 165.7,
+    "bf_pose2_vcs": 246.3,
+    "epfl_pose2_bce": 83.7,
+    "epfl_pose2_only": 61.1,
+    "epfl_pose2_vcs": 84.1
+  },
+  "smoke_peak_gpu_gib": {
+    "bf_pose2_bce": 2.09,
+    "bf_pose2_only": 1.48,
+    "bf_pose2_vcs": 2.09,
+    "epfl_pose2_bce": 3.27,
+    "epfl_pose2_only": 2.66,
+    "epfl_pose2_vcs": 3.27
+  },
+  "v1_reference": "v1 RTX PRO ~61-62 ms/step (pose+base), H100 ~80 ms, one slow RTX run 207 ms; v1 eval overhead 0.1-0.5 h per run; v1 total 15.27 GPUh",
+  "estimate": "v2 ~1.35x v1 per step on the same node (epfl 84 vs 62 ms on RTX); bf smoke 246 ms is node61 (known slow node, v1 also had one ~3x slow run). Typical run 30000 x ~85 ms = 0.7 h + 0.1-0.5 h CAL/DEV ~ 0.9-1.2 GPUh; slow node up to ~2.6 h. 18 runs ~20-30 GPUh, ~40 GPUh if several land on slow nodes.",
+  "time_limit": "08:00:00 per run (~3x the slow-node worst case 2.6 h)",
+  "outputs": "home handoff dir, <1 GiB total (6 checkpoints ~ few MB each per run)",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

@@ -1,0 +1,112 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+R23 任务 B：CoMIR / MultiRegEval 已发表协议在 DEV32 上的复现（开发证据；BF 参照、SHG 变换；未读 TEST）
+
+CoMIR 协议（±30°、x/y ±100 px、834 patch；成功 <9 / <42 px）
+  InfoNCE_host（3 seed）：全部 320 问题 0.635 / 0.936；中位 6.18 px；p95 96.5；已发表设计子集 0.635 / 0.948
+  MLP_VCS_perm8 (VCS)（3 seed）：全部 320 问题 0.614 / 0.928；中位 6.40 px；p95 143.8；已发表设计子集 0.594 / 0.938
+  MF_VCS_M1 (VCS)[norm=core]（3 seed）：全部 320 问题 0.576 / 0.939；中位 7.49 px；p95 107.6；已发表设计子集 0.625 / 0.948
+  MF_VCS_M1 (VCS)（3 seed）：全部 320 问题 0.562 / 0.935；中位 7.74 px；p95 131.4；已发表设计子集 0.562 / 0.948
+  soft MI + our searcher（1 seed）：全部 320 问题 0.534 / 0.787；中位 7.68 px；p95 333.4；已发表设计子集 0.531 / 0.781
+  CoMIR + our searcher（3 seed）：全部 320 问题 0.425 / 0.688；中位 11.93 px；p95 426.9；已发表设计子集 0.448 / 0.750
+  MIND + our searcher（1 seed）：全部 320 问题 0.300 / 0.700；中位 17.82 px；p95 381.7；已发表设计子集 0.312 / 0.688
+  CoMIR + SIFT (paper best pipeline)（3 seed）：全部 320 问题 0.230 / 0.403；中位 248.76 px；p95 1205.4；已发表设计子集 0.260 / 0.427
+  Mattes MI (SimpleITK, CAL-tuned, amendment 1)（1 seed）：全部 320 问题 0.197 / 0.294；中位 96.01 px；p95 417.2；已发表设计子集 0.156 / 0.375
+  Mattes MI (SimpleITK, registered config)（1 seed）：全部 320 问题 0.031 / 0.066；中位 136.41 px；p95 457.7；已发表设计子集 0.031 / 0.062
+  配对（core 级，主阈值，均值 [95% bootstrap]）：
+    CoMIR_native − MI_native: -0.109 [-0.246, +0.026]，正/负 core 7/11
+    CoMIR_native − MI_SimpleITK_tuned: +0.228 [+0.085, +0.375]，正/负 core 19/7
+    CoMIR_native − MI_SimpleITK: +0.394 [+0.256, +0.536]，正/负 core 23/1
+    CoMIR_SIFT − CoMIR_native: -0.195 [-0.298, -0.089]，正/负 core 2/20
+    CoMIR_SIFT − MI_native: -0.304 [-0.424, -0.188]，正/负 core 1/19
+    CoMIR_SIFT − MI_SimpleITK_tuned: +0.033 [-0.080, +0.152]，正/负 core 10/10
+    CoMIR_SIFT − MI_SimpleITK: +0.199 [+0.093, +0.319]，正/负 core 13/3
+    InfoNCE_host[J_perm1] − CoMIR_SIFT: +0.405 [+0.285, +0.526]，正/负 core 24/1
+    InfoNCE_host[J_perm1] − CoMIR_native: +0.210 [+0.110, +0.322]，正/负 core 18/3
+    InfoNCE_host[J_perm1] − MI_native: +0.101 [-0.005, +0.218]，正/负 core 10/6
+    InfoNCE_host[J_perm1] − MI_SimpleITK_tuned: +0.439 [+0.308, +0.566]，正/负 core 25/1
+    InfoNCE_host[J_perm1] − MI_SimpleITK: +0.604 [+0.461, +0.744]，正/负 core 26/0
+    MF_VCS_M1[norm=core] − CoMIR_SIFT: +0.346 [+0.204, +0.482]，正/负 core 24/1
+    MF_VCS_M1[norm=core] − CoMIR_native: +0.151 [+0.031, +0.271]，正/负 core 14/7
+    MF_VCS_M1[norm=core] − MI_native: +0.042 [-0.097, +0.185]，正/负 core 9/12
+    MF_VCS_M1[norm=core] − MI_SimpleITK_tuned: +0.379 [+0.240, +0.521]，正/负 core 23/3
+    MF_VCS_M1[norm=core] − MI_SimpleITK: +0.545 [+0.401, +0.682]，正/负 core 25/1
+    MF_VCS_M1 − CoMIR_SIFT: +0.332 [+0.198, +0.468]，正/负 core 21/1
+    MF_VCS_M1 − CoMIR_native: +0.138 [+0.018, +0.266]，正/负 core 14/10
+    MF_VCS_M1 − MI_native: +0.028 [-0.102, +0.161]，正/负 core 9/11
+    MF_VCS_M1 − MI_SimpleITK_tuned: +0.366 [+0.229, +0.501]，正/负 core 22/3
+    MF_VCS_M1 − MI_SimpleITK: +0.531 [+0.387, +0.672]，正/负 core 23/1
+    MIND_2D_adapted − CoMIR_SIFT: +0.070 [-0.029, +0.164]，正/负 core 13/6
+    MIND_2D_adapted − CoMIR_native: -0.125 [-0.251, +0.003]，正/负 core 4/20
+    MIND_2D_adapted − MI_native: -0.234 [-0.353, -0.125]，正/负 core 3/18
+    MIND_2D_adapted − MI_SimpleITK_tuned: +0.103 [+0.003, +0.209]，正/负 core 14/7
+    MIND_2D_adapted − MI_SimpleITK: +0.269 [+0.153, +0.391]，正/负 core 19/2
+    MI_SimpleITK_tuned − MI_SimpleITK: +0.166 [+0.097, +0.244]，正/负 core 18/0
+    MI_native − MI_SimpleITK_tuned: +0.338 [+0.225, +0.453]，正/负 core 21/0
+    MI_native − MI_SimpleITK: +0.503 [+0.350, +0.653]，正/负 core 21/0
+    MLP_VCS_perm8 − CoMIR_SIFT: +0.383 [+0.257, +0.511]，正/负 core 23/1
+    MLP_VCS_perm8 − CoMIR_native: +0.189 [+0.083, +0.304]，正/负 core 16/5
+    MLP_VCS_perm8 − MI_native: +0.079 [-0.045, +0.210]，正/负 core 9/8
+    MLP_VCS_perm8 − MI_SimpleITK_tuned: +0.417 [+0.280, +0.550]，正/负 core 22/3
+    MLP_VCS_perm8 − MI_SimpleITK: +0.582 [+0.432, +0.725]，正/负 core 24/1
+    MF_VCS_M1 − InfoNCE_host: -0.073 [-0.143, -0.003]，正/负 core 4/15
+    MLP_VCS_perm8 − InfoNCE_host: -0.022 [-0.066, +0.017]，正/负 core 6/9
+
+MultiRegEval 协议（4 级，θ≤20°、t≤80 px；成功 <2% = 16.68 px）
+  InfoNCE_host（3 seed）：全部 320 问题 0.883 / 0.637 / 0.927；中位 6.24 px；p95 108.8；已发表设计子集 0.885 / 0.643 / 0.924
+      分级 <16.68 px（L1–L4）：0.878 / 0.885 / 0.885 / 0.885
+  MLP_VCS_perm8 (VCS)（3 seed）：全部 320 问题 0.881 / 0.620 / 0.927；中位 6.67 px；p95 156.1；已发表设计子集 0.885 / 0.630 / 0.927
+      分级 <16.68 px（L1–L4）：0.885 / 0.885 / 0.870 / 0.880
+  MF_VCS_M1 (VCS)（3 seed）：全部 320 问题 0.849 / 0.582 / 0.933；中位 7.63 px；p95 112.0；已发表设计子集 0.854 / 0.583 / 0.930
+      分级 <16.68 px（L1–L4）：0.858 / 0.858 / 0.833 / 0.839
+  soft MI + our searcher（1 seed）：全部 320 问题 0.719 / 0.541 / 0.784；中位 7.48 px；p95 296.1；已发表设计子集 0.719 / 0.531 / 0.773
+      分级 <16.68 px（L1–L4）：0.729 / 0.708 / 0.703 / 0.734
+  CoMIR + our searcher（3 seed）：全部 320 问题 0.645 / 0.418 / 0.691；中位 11.73 px；p95 348.1；已发表设计子集 0.648 / 0.409 / 0.690
+      分级 <16.68 px（L1–L4）：0.639 / 0.639 / 0.630 / 0.677
+  MIND + our searcher（1 seed）：全部 320 问题 0.559 / 0.338 / 0.762；中位 14.78 px；p95 311.5；已发表设计子集 0.508 / 0.297 / 0.758
+      分级 <16.68 px（L1–L4）：0.615 / 0.552 / 0.641 / 0.406
+  Mattes MI (SimpleITK, CAL-tuned, amendment 1)（1 seed）：全部 320 问题 0.484 / 0.381 / 0.550；中位 25.90 px；p95 344.1；已发表设计子集 0.430 / 0.352 / 0.469
+      分级 <16.68 px（L1–L4）：0.823 / 0.594 / 0.250 / 0.047
+  CoMIR + SIFT (paper best pipeline)（3 seed）：全部 320 问题 0.372 / 0.274 / 0.450；中位 124.34 px；p95 1192.7；已发表设计子集 0.370 / 0.276 / 0.432
+      分级 <16.68 px（L1–L4）：0.403 / 0.385 / 0.344 / 0.333
+  Mattes MI (SimpleITK, registered config)（1 seed）：全部 320 问题 0.178 / 0.131 / 0.250；中位 87.44 px；p95 433.3；已发表设计子集 0.164 / 0.117 / 0.211
+      分级 <16.68 px（L1–L4）：0.531 / 0.042 / 0.031 / 0.000
+  配对（core 级，主阈值，均值 [95% bootstrap]）：
+    CoMIR_native − MI_native: -0.074 [-0.231, +0.081]，正/负 core 8/13
+    CoMIR_native − MI_SimpleITK_tuned: +0.160 [-0.000, +0.314]，正/负 core 20/10
+    CoMIR_native − MI_SimpleITK: +0.467 [+0.322, +0.606]，正/负 core 25/4
+    CoMIR_SIFT − CoMIR_native: -0.273 [-0.423, -0.119]，正/负 core 3/22
+    CoMIR_SIFT − MI_native: -0.347 [-0.472, -0.224]，正/负 core 0/22
+    CoMIR_SIFT − MI_SimpleITK_tuned: -0.113 [-0.234, +0.014]，正/负 core 9/19
+    CoMIR_SIFT − MI_SimpleITK: +0.194 [+0.087, +0.305]，正/负 core 18/7
+    InfoNCE_host[J_perm1] − CoMIR_SIFT: +0.511 [+0.370, +0.647]，正/负 core 27/1
+    InfoNCE_host[J_perm1] − CoMIR_native: +0.239 [+0.130, +0.358]，正/负 core 18/2
+    InfoNCE_host[J_perm1] − MI_native: +0.165 [+0.051, +0.294]，正/负 core 10/3
+    InfoNCE_host[J_perm1] − MI_SimpleITK_tuned: +0.399 [+0.299, +0.502]，正/负 core 28/2
+    InfoNCE_host[J_perm1] − MI_SimpleITK: +0.705 [+0.601, +0.801]，正/负 core 30/0
+    MF_VCS_M1 − CoMIR_SIFT: +0.477 [+0.332, +0.621]，正/负 core 25/2
+    MF_VCS_M1 − CoMIR_native: +0.204 [+0.086, +0.331]，正/负 core 16/3
+    MF_VCS_M1 − MI_native: +0.130 [-0.000, +0.272]，正/负 core 9/4
+    MF_VCS_M1 − MI_SimpleITK_tuned: +0.365 [+0.243, +0.480]，正/负 core 26/3
+    MF_VCS_M1 − MI_SimpleITK: +0.671 [+0.554, +0.777]，正/负 core 28/1
+    MIND_2D_adapted − CoMIR_SIFT: +0.188 [+0.079, +0.290]，正/负 core 19/5
+    MIND_2D_adapted − CoMIR_native: -0.085 [-0.218, +0.047]，正/负 core 9/15
+    MIND_2D_adapted − MI_native: -0.159 [-0.269, -0.050]，正/负 core 4/16
+    MIND_2D_adapted − MI_SimpleITK_tuned: +0.075 [-0.037, +0.178]，正/负 core 18/10
+    MIND_2D_adapted − MI_SimpleITK: +0.381 [+0.275, +0.481]，正/负 core 25/2
+    MI_SimpleITK_tuned − MI_SimpleITK: +0.306 [+0.234, +0.378]，正/负 core 27/0
+    MI_native − MI_SimpleITK_tuned: +0.234 [+0.144, +0.325]，正/负 core 23/4
+    MI_native − MI_SimpleITK: +0.541 [+0.419, +0.656]，正/负 core 25/2
+    MLP_VCS_perm8 − CoMIR_SIFT: +0.509 [+0.368, +0.645]，正/负 core 27/0
+    MLP_VCS_perm8 − CoMIR_native: +0.236 [+0.128, +0.355]，正/负 core 18/1
+    MLP_VCS_perm8 − MI_native: +0.163 [+0.048, +0.293]，正/负 core 10/2
+    MLP_VCS_perm8 − MI_SimpleITK_tuned: +0.397 [+0.294, +0.502]，正/负 core 28/2
+    MLP_VCS_perm8 − MI_SimpleITK: +0.703 [+0.598, +0.800]，正/负 core 30/0
+    MF_VCS_M1 − InfoNCE_host: -0.034 [-0.094, +0.003]，正/负 core 2/4
+    MLP_VCS_perm8 − InfoNCE_host: -0.002 [-0.009, +0.003]，正/负 core 1/1
+
+成本：GPU 2.40 h（作业内计时），CPU 作业 0.38 h。
+文献（TEST134、不同问题，仅作量级参照）：CoMIR 论文 BF→SHG CoMIR+SIFT 56.0/73.1%、MI 5/22%；Lu 2022 <2%：CoMIR+α-AMD 81.3%、MI 56.5%、MIND 29.1%。
+限制：DEV 是复用的开发数据（V10 checkpoint 在宿主 DEV 协议上开发过）；已发表数字在 TEST134、不同的固定变换上，不能直接比较。
+  CoMIR 是官方代码在我们 FIT32 上以 1/4 尺度（208 px 补丁）重训的模型；CoMIR+SIFT 用 OpenCV SIFT（上采样与 RANSAC 阈值在 CAL 上选），论文用 834 px 全分辨率 CoMIR 与 Fiji SIFT，因此这里的 CoMIR+SIFT 显著低估论文流程，不能当作论文结果的复现。
+  方向只做 BF 参照、SHG 变换；我们的搜索器平移被限制在 ±28（512 帧）= ±112 全分辨率 px，覆盖 ±100 px 协议但不是无界搜索。

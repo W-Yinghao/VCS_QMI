@@ -1,0 +1,29 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+VCS 代替 MI 作配准相似度：BF-SHG 与 EPFL RGB-NIR 完整结果（2026-10-26，开发证据，免训练，未读 TEST）
+包：handoff/vcs_fdiv_reg_20261026（PROTOCOL.json 在任何 DEV 作业前写定；FREEZE ee81d2e2…；LOCK.json 由 CAL 预登记规则生成）。
+
+做法：与 V10 MI_native 完全相同的流程（同一角色门控输入、4096 个位置、0.5/99.5 分位强度范围、Parzen 联合直方图、宿主网格 + 3 起点 + 100 步 Adam），
+只把联合直方图上的依赖度量换掉：mi（KL，宿主原式）、nmi、vcs（sup J = ½Σ(p−q)²/(p+q)，逐 bin 最优 critic T*=(p−q)/(p+q)∈[−1,1]）、
+js（BCE 最优）、chi2（无界 Pearson）、cs_qmi（经典 Cauchy–Schwarz QMI）、hellinger。每种度量 4 个配置（bins 32/64 × σ 1/2），在 CAL 上按同一规则选定。
+
+门禁：CPU1066377 PASS（fdiv 的 mi/nmi 与宿主 soft_mi_batch 逐位一致；vcs 闭式与逐 bin 数值 sup J 相对误差 7e-10）；
+GPU 门禁1066348（L40S）PASS：宿主 MI/NMI 默认配置重跑与历史 V10 CAL 记录逐位一致（BF、EPFL 各 8/8），fdiv 路径与宿主能量逐位一致。
+
+DEV 结果（严格 <9 / 宽松 <42，BF 按 core、EPFL 按 72 个 scene 宏平均；锁定配置）：
+BF DEV32：MI .525/.753 | NMI .528/.753 | VCS .553/.791 | JS .541/.803 | Hellinger .531/.813 | CS-QMI .572/.816 | χ² .453/.575 | MIND（历史）.350/.709
+EPFL DEV：MI .829/.938 | NMI .829/.940 | VCS .826/.934 | JS .824/.931 | Hellinger .817/.924 | CS-QMI .686/.785 | χ² .794/.915 | MIND（历史）.879/.972
+
+预登记比较（VCS − MI，同作业配对）：
+- BF：严格 +2.81 pp、宽松 +3.75 pp，96.9% 的 core 严格不变差；未达 +3 pp 门槛，signal=false。默认配置下为 +0.63 / +4.38 pp。
+- EPFL：严格 −0.35 pp、宽松 −0.42 pp，signal=false。
+- VCS − JS（BCE 对应）：BF +1.25 / −1.25 pp，EPFL +0.14 / +0.28 pp，没有 VCS 特有差异。
+
+解读：
+1. BF 上所有“有界或平方型”度量（VCS、JS、Hellinger、CS-QMI）都比 MI 宽松成功率高约 4–6 pp，无界的 χ² 明显崩坏（宽松 .575）。这支持“每个 bin 的贡献有界比 KL 更稳”的方向，但 VCS 不是其中最好的（CS-QMI、Hellinger、JS 相当或更高），不能写成 VCS 特有优势。
+2. EPFL 上各度量与 MI 基本持平，CS-QMI 明显更差；经典 MIND 仍是两项指标最好的。
+3. CAL 诊断：网格局部极大比例与“全局最大落在 err<42 盆地”的比例在 MI 与 VCS 之间几乎相同（BF .112/.113，.80/.80），按初始位移三分位的成功率也无系统差异。所以收益不是来自更平滑的能量面或更宽的捕获范围，假设的机制没有得到支持。
+4. 强度直方图在 BF-SHG 上的上限仍远低于学习型描述子（VCS 训练系统 DEV32 约 .64–.69 严格 / .95–.96 宽松）；这条线只检验相似度度量本身。
+
+限制：DEV/CAL 为反复使用的开发数据；DEV 作业在 RTX/L40S/H100 上运行，宿主 MI 默认的 DEV 行与历史记录只有部分逐位一致（BF 4/320、EPFL 46/740；BF 严格 .513 对历史 .494），差异在已知的位姿搜索评估噪声范围内（0.6–2.2 pp），所有对比都用同作业配对的 MI。
+成本：CAL 4 项 + DEV 5 项回执 2.54 GPUh，另有门禁约 0.1 GPUh。

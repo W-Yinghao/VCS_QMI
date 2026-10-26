@@ -1,0 +1,50 @@
+{
+  "utc": "2026-10-26T13:56:31.010183+00:00",
+  "title": "R23 expansion rule amendment: grey-zone seed check",
+  "authorization": "User 2026-10-26 「加进去吧」 after the main session proposed it (question 「这个大于等于3pp是不是有点太严格了」).",
+  "amends": {
+    "file": "PROTOCOL.json",
+    "field": "expansion_rule",
+    "note": "PROTOCOL.json and FREEZE.json are left unchanged so the frozen run.py verify() keeps passing; this file is the registered addendum."
+  },
+  "registered_before_any_dev": {
+    "lock_json_exists": false,
+    "dev_results_in_runs": false,
+    "cal_complete": 15,
+    "cal_complete_runs": [
+      "dual_aug_nce_t0.03_lr0.0003",
+      "dual_aug_nce_t0.03_lr0.001",
+      "dual_aug_nce_t0.07_lr0.0003",
+      "dual_aug_nce_t0.07_lr0.001",
+      "dual_aug_nce_t0.15_lr0.0003",
+      "dual_aug_nce_t0.15_lr0.001",
+      "dual_aug_nce_t0.3_lr0.0003",
+      "dual_aug_nce_t0.3_lr0.001",
+      "dual_aug_soft_nce_t0.07_s4_lr0.0003",
+      "dual_aug_soft_nce_t0.07_s8_lr0.0003",
+      "dual_aug_soft_nce_t0.15_s4_lr0.0003",
+      "dual_aug_soft_nce_t0.15_s8_lr0.0003",
+      "dual_aug_vcs_exact_lr0.0001",
+      "dual_aug_vcs_exact_lr0.0003",
+      "dual_aug_vcs_exact_lr0.001"
+    ],
+    "statement": "Written before LOCK.json and before any DEV pilot evaluation; no DEV metric of any R23 run had been computed."
+  },
+  "original_rule": "P3 - P4 >= +3 pp strict on DEV deform with p95 not worse (p95_err(P3) - p95_err(P4) <= 0, as implemented in run.py analyze): expand (P3 and P4 only: 30000-step runs and seeds 1002/1003, separate package).",
+  "amended_rule": {
+    "expand": "Unchanged: delta = P3 - P4 strict success on DEV deform (pp, core macro, seed 1001) >= +3.0 and p95 not worse -> expand as in the original rule.",
+    "grey_zone": "+1.5 <= delta < +3.0 and p95 not worse -> before any expansion, run P3 and P4 with their locked configs (LOCK.json) at seeds 1002 and 1003, 10000 steps, identical protocol (same deformation generator, conditions, domain, DEV evaluation); 4 new runs, ~2-3 GPUh, separate small package reusing run.py by import with only the seed changed.",
+    "grey_zone_decision": "Expand only if the 3-seed mean P3 - P4 strict on DEV deform >= +3.0 pp AND >= 2 of 3 seeds positive AND the 3-seed mean p95 difference <= 0; otherwise report and stop this line.",
+    "stop": "delta < +1.5 pp, or p95 worse -> report all pilots and stop this line (or an explicitly new design).",
+    "reporting": "All 8 pilots and both references are reported in full regardless of the branch taken; the grey-zone seeds do not replace the seed-1001 pilot, they are reported alongside it."
+  },
+  "rationale": "Single-seed pilot: BF re-evaluation noise of one checkpoint is 0.6-2.2 pp strict, and past BF paired differences varied by several pp across seeds (e.g. dense N2048 exact-BCE +0.94/+7.19/-0.63). The +3 pp bar is kept for expansion; the grey zone guards against a false negative from one seed without lowering the bar. The formal application target stays >= +5 pp vs the strongest NCE.",
+  "not_changed": [
+    "CAL selection rule and LOCK",
+    "pilot set P1-P8",
+    "primary endpoint",
+    "p95 definition",
+    "formal target (>= +5 pp vs strongest NCE)"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

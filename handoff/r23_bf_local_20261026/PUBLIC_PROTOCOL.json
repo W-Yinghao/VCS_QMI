@@ -1,0 +1,67 @@
+{
+  "utc": "2026-10-26",
+  "label": "R23 PILOT/DEVELOPMENT; BF-SHG; FIT training, CAL selection, DEV pilots; no TEST",
+  "authorization": "User 2026-10-26 forwarded R23 plan (registration under local structural inconsistency); main session fixed open design choices in the package brief.",
+  "hypothesis": "With the same representation and budget, the original J (exact product-reference moments, unit-cosine critic) may favour broadly supported but imperfect shared structure over sparse highly discriminative local cues more than a well-tuned NCE does; under local geometric inconsistency this could give clearly better global rigid registration. Motivation verified numerically (binary rho=0.9 factor vs 15%-coverage 1024-value factor: sup J 0.25392 vs 0.21887, JS 0.14234 vs 0.15064, InfoNCE-128 0.491 vs 0.862); a joint representation keeps both (sup J 0.42472), so the effect, if any, depends on finite capacity and optimization.",
+  "task": "Recover the global rigid T* that governs most of the image while a minority of the moving (SHG) image is locally deformed; V_obs = V o phi^-1 o T*^-1; error = host corner error vs T*; strict<9, loose<42, core macro.",
+  "critic_and_reference": "T = u.v with unit descriptors; P = matched positions, Q = within-crop empirical product (train.py); unchanged for every objective.",
+  "objectives": {
+    "vcs_exact": "-J, exact moments (train.py exact_j)",
+    "nce": "symmetric InfoNCE on cos/tau",
+    "soft_nce": "symmetric soft-target CE, targets proportional to exp(-|x_i-x_j|^2/(2 sigma^2)) over the crop positions (512-scale px), logits cos/tau",
+    "bce": "balanced BCE, logit a*cos+b, a,b learnable (init 2, 0), P diagonal, Q off-diagonal within crop",
+    "rince": "RINCE (Chuang et al. 2022) on s=cos/tau: -exp(q s+)/q + (lambda (exp(s+)+sum exp(s-)))^q/q, lambda 0.01, symmetric"
+  },
+  "descriptor": {
+    "fine": "existing encoder (31x31 RF), unchanged",
+    "dual": "same encoder on the crop and on avg_pool2d(crop, 2); sample fine at x and coarse at (x-0.5)/2 (same physical point); concat -> Linear(32->16, no bias, init [I|I], trained with the encoders, weight decay as encoders) -> L2 normalize; identical interface for every objective"
+  },
+  "training": "from scratch with the long-v2 seed-1001 encoder init (hash asserted); crop 256, 512 positions per crop uniform in [33, 222] (valid for both scales, same positions for all arms), n_sc 16; host sampler stream (seed 1001) shared by all arms; AdamW (weight decay 1e-4 on encoders/fusion, 0 on BCE a,b), clip 1.0; 10000 steps, LR base until step 5000, x0.1 until 8000, x0.01 until 10000. 'aug': each crop independently deformed with probability 0.5 (SHG crop, 1-2 disk regions covering 15% of the crop, amplitude 8 px), RNG seed_of('R23-AUG|bf|seed'), identical for every aug arm; 'clean': none. The learner sees only nominal pairs.",
+  "deformation": "phi(x) = x + sum_k A w(|x-c_k|/r) e_k, w(rho)=0.5(1+cos(pi rho)) for rho<1 else 0; 1 or 2 non-overlapping disks (prob 0.5 each) of total area f; e_k random unit vectors; inverse by fixed-point iteration (A pi/(2r) < 1 asserted); eval instances per (core, perturbation) from seed_of('R23-DEF|core|i'), regions inside the common valid disk, applied to V in its native frame before the host perturbation.",
+  "conditions": {
+    "clean": "host moving image",
+    "occlude": "instance regions of the moving image set to the robust median (0 after the clean normalization), region mask carried through the same perturbation",
+    "deform": "main: f = 15% of the valid disk, A = 8 px (512 scale)",
+    "sparse_only": "only the instance regions kept, complement set to the robust median (sparse structure decides the pose)",
+    "deform_4px_15": "auxiliary, DEV, P3/P4 only",
+    "deform_8px_30": "auxiliary, DEV, P3/P4 only",
+    "note": "occlude/sparse_only use the clean normalization statistics because a filled image has a degenerate IQR; deform uses the host robust norm of its own image"
+  },
+  "evaluation_domain": "common valid domain from the dual-scale receptive field with the host formula (RF_BOX 34): R_OMEGA 104, BOX1 [117,394], BOX2 [66,445]; every model (single- and dual-scale pilots, long-v2 references) evaluated on it with the host position rng (4096 positions), grid (21 x 508), top-3 starts, 100 Adam steps lr 0.5, host u = theta*RHO parameterization (RHO, UMAX unchanged); COS readout; new results are not compared with historical numbers on the old domain.",
+  "cal_selection": {
+    "runs": "21, all dual + aug, seed 1001, 10000 steps: vcs_exact lr {1e-4,3e-4,1e-3}; nce tau {.03,.07,.15,.30} x lr {3e-4,1e-3}; soft_nce sigma {4,8} x tau {.07,.15} at lr 3e-4; bce lr {3e-4,1e-3}; rince q {0.1,0.5} x tau {.07,.15} at lr 3e-4",
+    "cal_eval": "CAL (8 cores x 10 perturbations) under deform and clean at step 10000",
+    "rule": "per family maximize (CAL deform strict, -CAL deform median error, CAL clean strict, -lr); families vcs, nce_control (= nce and soft_nce together), bce, rince; LOCK.json written before any DEV read"
+  },
+  "pilots": {
+    "P1": "vcs fine aug (locked vcs hyperparameters)",
+    "P2": "best NCE control fine aug",
+    "P3": "vcs dual aug (selected CAL run)",
+    "P4": "best NCE control dual aug (selected CAL run)",
+    "P5": "bce dual aug (selected)",
+    "P6": "rince dual aug (selected)",
+    "P7": "vcs dual clean",
+    "P8": "best NCE control dual clean",
+    "references": "long-v2 30k vcs_exact and nce seed 1001 re-evaluated on the new domain and conditions (descriptive)",
+    "dev": "DEV (32 cores x 10 perturbations) under clean, occlude, deform, sparse_only at the fixed step-10000 checkpoint; auxiliary strengths for P3/P4"
+  },
+  "primary": "DEV strict success under deform, P3 - P4 (pp), core macro, single seed (pilot, method-selection evidence only)",
+  "secondary": [
+    "loose success, median, p90, p95 per condition",
+    "interaction (P3-P1) - (P4-P2)",
+    "P3/P4 vs P7/P8 (augmentation)",
+    "P3 vs P5 (BCE) and P6 (RINCE)",
+    "clean-condition cost",
+    "region-wise support: mean over positions of s(x; T*) - s(x; T* + (0, 5.66, 5.66)) inside vs outside the instance regions, offline from generator masks",
+    "failure attribution F_hat >= F_true"
+  ],
+  "expansion_rule": "P3 - P4 >= +3 pp strict on DEV deform with p95 not worse: then only P3 and P4 get 30000-step runs and seeds 1002/1003 (separate package). Otherwise report and stop this line or redesign explicitly.",
+  "hardware": "--partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60, normal QOS, GPU recorded per run; single-seed pilots are not hardware-matched",
+  "limits": [
+    "single seed; DEV reused development data; position search non-deterministic (0.6-2.2 pp re-evaluation noise on BF)",
+    "synthetic local deformation; natural data (ANHIR) only after a BF signal",
+    "10000-step pilots; a still-improving method is not judged at a truncated point"
+  ],
+  "no_retry": "failed attempts are kept and reviewed, never silently rerun",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

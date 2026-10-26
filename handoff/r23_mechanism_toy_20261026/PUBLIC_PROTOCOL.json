@@ -1,0 +1,59 @@
+{
+  "utc": "2026-10-26",
+  "label": "R23 mechanism toy (synthetic, descriptive); written before any training",
+  "question": "With two shared factors competing for a limited L2-normalized representation, does VCS (exact quadratic J, cosine critic, within-batch product Q) retain the broad imperfect factor S while InfoNCE retains the sparse highly discriminative factor R, and does the difference vanish as capacity d grows?",
+  "theory_targets": {
+    "supJ_S": 0.25392,
+    "supJ_R": 0.21887,
+    "supJ_joint": 0.42472,
+    "JS_S": 0.14234,
+    "JS_R": 0.15064,
+    "InfoNCE128_S": 0.4915,
+    "InfoNCE128_R": 0.8634,
+    "note": "Reproduced by exact enumeration (sup J, JS) and Monte Carlo (InfoNCE with 128 candidates); joint values are reported, not used for decisions."
+  },
+  "data": {
+    "S": "binary per sample; modality B copy flipped with probability 0.05 (correlation 0.9)",
+    "R": "0 with probability 0.85 (shared, uninformative), else uniform over 1..1024, identical in both modalities",
+    "inputs": "per modality: concat(E_S^m[s_m], E_R^m[r]) + N(0, 0.05^2) noise; E tables are fixed random unit vectors of dimension 32, drawn separately for each modality and seed; both parts unit norm so both factors are near-perfectly linearly decodable from raw inputs (checked first, nearest-class-mean accuracy)",
+    "stream": "fresh samples every step from the seed's training generator; held-out and probe sets from separate generators"
+  },
+  "model": "two towers with identical architecture for all objectives: Linear(64,256)-ReLU-Linear(256,256)-ReLU-Linear(256,d), L2-normalized",
+  "grid": {
+    "d": [
+      2,
+      4,
+      8,
+      16,
+      32,
+      64
+    ],
+    "batch": 128,
+    "sensitivity": "d=16 with batch 512",
+    "seeds": [
+      1,
+      2,
+      3
+    ]
+  },
+  "objectives": {
+    "vcs": "-J, J = mean(p - p^2/2) - mean_u.mean_v - 0.5 tr(M_u M_v), uncentered second moments, Q = within-batch product of empirical marginals (diagonal included)",
+    "nce_tau": "symmetric InfoNCE on cos/tau, tau in {0.03, 0.07, 0.15, 0.30}; batch 128 = positive + 127 candidates; each tau reported, and the best tau per (d, batch) by mean held-out cross-modal top-1 retrieval",
+    "bce": "balanced BCE, logit a*cos + b with learnable scalars a (init 1) and b (init 0), Q = off-diagonal within-batch pairs"
+  },
+  "budget": "one Adam learning rate and one step count for every run, chosen once from a short sanity run (d=16, batch 128, vcs / nce tau .07 / bce, lr in {3e-4, 1e-3, 3e-3}, 6000 steps, held-out checkpoints every 1000). Rule: lr = the value giving the best final held-out own-objective for the most objectives (ties -> smaller lr); steps = smallest checkpoint at which every objective reaches >= 98% of its 6000-step held-out own-objective value. Recorded in SANITY.json before the main run.",
+  "measures": {
+    "S_retention": "balanced accuracy of a logistic probe for s_A from u_A (and s_B from v_B), probe-train 8192 / probe-test 8192 held-out samples; normalized (bacc - 0.5) / 0.5",
+    "R_retention": "nearest-class-mean accuracy over the 1024 informative R values among informative samples only (class means from 16 samples per class, 8192 test samples), within modality A and cross-modal (B means, A queries); normalized (acc - 1/1024) / (1 - 1/1024)",
+    "objective_value": "own held-out objective estimate (VCS J_hat; InfoNCE log B - loss; BCE JS_hat = (log 4 - loss)/2), compared with the single-factor and joint theory values",
+    "retrieval": "held-out cross-modal top-1 within batches of the training batch size"
+  },
+  "reporting": "per d: S and R retention for vcs, bce and every nce tau (mean and per seed); VCS minus best-tau NCE differences and whether they shrink with d; temperature dependence; batch-512 sensitivity.",
+  "interpretation_rules": [
+    "Descriptive only: three seeds, no significance test.",
+    "A difference that vanishes at d >= 16 is a valid negative outcome: it would mean the preference needs a representation too small to hold both factors.",
+    "Synthetic factors with a cosine critic do not by themselves imply any registration benefit."
+  ],
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

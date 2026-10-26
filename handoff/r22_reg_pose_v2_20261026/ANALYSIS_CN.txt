@@ -1,0 +1,25 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+配准姿态项 v2 18 项完整分析（2026-10-26，Claude；ANALYSIS.json；DEV 固定 30000 步 COS 读出；开发证据，无 TEST）
+三臂（pose2_only / pose2+J(VCS) / pose2+BCE）× BF/EPFL × 1001–1003，从头训练，与 v1 及 long-v2 30k 参照同初始化/同数据流/同 LR；
+v2 = v1 局部环（真值胜 6 个近位姿）+ 宿主粗网格路径上的全局项（真值所在网格胞节点软最大值胜 24 个 err_full≥42 的网格负例），常数沿用 v1。
+回执 15.54 GPUh（L40S/RTX PRO 6000）。
+
+严格成功率 <9（3 seed 均值，%）/ 宽松 <42：
+BF：pose2_only 69.48/90.94 | pose2+J 51.15/88.02 | pose2+BCE 51.25/90.94 | v1 对应 6.35 / 40.42 / 41.46 | J-only 参照 68.33/98.23 | BCE-only 67.50 | NCE-only 69.27/95.21
+EPFL：pose2_only 85.65/96.99 | pose2+J 89.21/98.98 | pose2+BCE 87.64/99.03 | v1 对应 79.40 / 89.26 / 89.49 | J-only 参照 88.84/99.58 | BCE-only 90.74 | NCE-only 90.23
+
+预设比较（严格 pp，逐 seed 正数个数）：
+- 主比较 pose2+J − J-only：BF −17.19（0/3），EPFL +0.37（1/3）。没有应用收益。
+- pose2 − v1 同臂：BF pose_only +63.12、+J +10.73、+BCE +9.79（均 3/3）；EPFL pose_only +6.25（3/3），+J −0.05，+BCE −1.85。全局项修复了 v1 的粗搜索盆地塌陷。
+- pose2+J − pose2+BCE：BF −0.10（2/3），EPFL +1.57（3/3，宽松 −0.05）。EPFL 的差值来自 pose2+BCE 低于自身 BCE-only 参照 −3.10（0/3），pose2+J 本身只与 J-only 持平，不能当作 VCS 的应用优势。
+- pose2_only − pose2+J：BF +18.33（3/3），EPFL −3.56（0/3）。BF 上加入 J/BCE 反而让严格成功率下降约 18 pp。
+- 描述：BF pose2_only − NCE-only 严格 +0.21（2/3）、宽松 −4.27。
+
+失败归因（F_hat≥F_true 为能量偏好错误位姿）：BF pose2_only 293 次严格失败中 243 次为能量问题（v1 899 中 43），盆地恢复；pose2+J 469 中 179，其余为搜索遗漏。
+训练时：pose2_only 真值胜近环 100%、盆地胜全部负例 100%；+J/+BCE 为 97%/99.8%（BF）、88%/99%（EPFL）。训练内排序几乎全部满足，但 DEV 上加 J 的 BF 模型搜索遗漏仍多，FIT 上的全局排序没有完全迁移到 DEV。
+
+解释：
+1. 全局网格项确实解决了 v1 的问题：只用姿态监督也能保住粗搜索盆地，BF 严格成功率与 J-only/NCE-only 持平（69.5 对 68.3/69.3），但宽松成功率低 4–7 pp，尾部更差。
+2. 把姿态项与 J（或 BCE）以 λ=1 相加，BF 上两者互相干扰（−18 pp），EPFL 上与参照持平。VCS 与 BCE 在 BF 上无差别。
+3. 按预登记判据（≥+1 pp 且 ≥2/3 seed，宽松不降超过 0.5 pp）没有任何臂相对 J-only 参照成立；配准姿态排序方向到此关闭，不调 λ、不扩网格。

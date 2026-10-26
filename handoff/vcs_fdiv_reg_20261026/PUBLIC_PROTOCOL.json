@@ -1,0 +1,54 @@
+{
+  "utc": "2026-10-26T15:21:51Z",
+  "label": "PILOT/DEVELOPMENT; training-free; CAL selection, DEV evaluation; no TEST",
+  "authorization": "User 2026-10-26 「都要做，你来规划实验，实现，并提交」 (drop-in replacement of MI by VCS in intensity-based registration).",
+  "question": "On the identical Parzen joint histogram, sampled positions and host search, does the VCS dependence measure (sup_T J with per-bin critic = 1/2 sum (p-q)^2/(p+q)) register better than MI (KL), JS (BCE optimum), NMI, Pearson chi^2, Cauchy-Schwarz QMI and Hellinger?",
+  "theory": "Per joint bin the VCS objective (p-q)T-(p+q)T^2/2 has T*=(p-q)/(p+q) in [-1,1]; sup J = 1/2 sum (p-q)^2/(p+q) (half the triangular discrimination). Each bin contributes at most (p+q)/2, whereas KL terms grow with log(p/q); the hypothesis is that bounded per-bin contributions give a smoother landscape and a wider capture basin.",
+  "measures": [
+    "mi",
+    "nmi",
+    "vcs",
+    "js",
+    "chi2",
+    "cs_qmi",
+    "hellinger"
+  ],
+  "configs": {
+    "bins": [
+      32,
+      64
+    ],
+    "sigma_bins": [
+      1.0,
+      2.0
+    ],
+    "default": [
+      64,
+      1.0
+    ],
+    "note": "4 configs per measure, identical for all measures including mi"
+  },
+  "data": {
+    "bf": "V10 BF CAL8 (80 problems) and DEV32 (320), Q.perturbations_p2",
+    "epfl": "V10 EPFL CAL10 (100) and DEV74 (740), 72 DEV scene units"
+  },
+  "selection_rule": "per dataset x measure on CAL: max (loose<42, strict<9, -median); ties -> default (64,1), then fewer bins, then smaller sigma. Written to LOCK.json before any DEV job.",
+  "dev": "locked config and default config of every measure, plus host MI default in every DEV job (paired reference).",
+  "primary": "DEV strict success err_full<9, core-macro (BF, = pooled) / scene-macro (EPFL), vcs(locked) - mi(locked), per dataset",
+  "signal_rule": "descriptive: vcs - mi >= +3 pp strict on a dataset with >= 70% of cores/scenes not worse (strict) and loose not worse by > 1 pp; vcs - js (BCE analogue) and vs historical MIND (classical SOTA) reported separately; default-config contrasts reported alongside.",
+  "secondary": [
+    "loose<42, median, p95",
+    "CAL diagnostics per locked config: fraction of grid local maxima, global grid max in the err<42 basin, top-3 grid starts contain the basin, success by initial-displacement tercile"
+  ],
+  "gates": [
+    "CPU: fdiv mi/nmi bitwise equal host soft_mi_batch; vcs closed form equals numeric per-bin sup J and J(T*); all measures/configs finite with finite gradients; identity > independence",
+    "GPU (L40S, the hardware of the historical MI/NMI rows): host MI/NMI default re-run reproduces stored V10 CAL rows (exact, else PASS_TOLERANCE if F_true within 1e-5+1e-4|F|); fdiv mi/nmi exactly equal the host energy; every measure x config finite on one problem; roles read within FIT/CAL/DEV"
+  ],
+  "hardware": "gate pinned to L40S (bitwise reproduction of historical rows recorded on L40S); CAL/DEV on RTX6000PRO,L40S,H100 (all measures of a problem run in the same job and on the same GPU)",
+  "budget": "<= 10 GPUh; no retry without review",
+  "limits": [
+    "CAL/DEV are reused development data",
+    "intensity histograms are known to be weak for BF-SHG (MI 0.741/0.494 BF DEV32); this tests the similarity measure, not learned features"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

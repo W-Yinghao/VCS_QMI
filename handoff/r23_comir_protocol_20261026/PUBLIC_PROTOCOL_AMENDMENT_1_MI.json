@@ -1,0 +1,8 @@
+{
+  "utc": "2026-10-26T15:33:37Z",
+  "title": "Amendment 1: CAL-tuned SimpleITK MI baseline in addition to the registered configuration",
+  "reason": "The registered MI_SimpleITK configuration (linear SHG intensity, 32 bins, coarse-only pyramid 8/4/2) gave DEV success 3.1% / 6.6% (<9 / <42) on the CoMIR protocol, below the MI numbers reported in the literature (CoMIR paper MI 5% / 22%; Lu et al. MI 56.5% at <2%). An under-tuned baseline would overstate other methods, so the baseline is tuned on CAL only.",
+  "rule": "Variants reg / log421 / log421_b64 / rank421 / log421_s9 (run.py MI_VARIANTS) are run on CAL8 x 10 draws x both protocols; the variant with the highest CAL CoMIR-protocol success <42, then <9, then MultiRegEval <16.68 is run once on DEV as MI_SimpleITK_tuned. The registered DEV result (MI_SimpleITK, variant reg) is kept and reported.",
+  "disclosure": "Chosen after seeing the registered DEV MI result (aggregate only); selection itself uses CAL only. No other method or threshold changes.",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

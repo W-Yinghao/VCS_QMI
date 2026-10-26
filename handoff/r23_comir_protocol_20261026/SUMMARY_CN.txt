@@ -1,0 +1,17 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+R23 任务 B 小结（2026-10-26，DEV32，开发证据；未读 TEST；详表 RESULTS_CN.txt / RESULTS.json）
+
+做了什么：按 CoMIR（±30°、±100 px、834 补丁，<9/<42 px）与 MultiRegEval（4 级，<2%=16.68 px）的已发表生成方式，在 DEV32 每 core 各抽 10 个变换（共 320+320 问题），所有方法跑同一批问题。门禁：CPU 检查 1066363 PASS（角点误差与独立实现一致、遮罩能量在不遮罩时与宿主逐项一致、SIFT/SimpleITK 约定的合成真值恢复），GPU smoke 1066366/1066367 PASS，然后 17 个 GPU DEV 作业 + 2 个 CPU MI 作业全部完成。
+
+CoMIR 协议（<9 / <42，3 seed 均值）：InfoNCE_host .635/.936；MLP_VCS_perm8 .614/.928；MF_VCS_M1 .562/.935；soft MI+我们的搜索器 .534/.787；CoMIR+我们的搜索器 .425/.688；MIND .300/.700；CoMIR+SIFT .230/.403；SimpleITK MI（CAL 调参）.197/.294，登记配置 .031/.066。
+MultiRegEval（<16.68）：InfoNCE .883、MLP_VCS .881、MF_VCS .849、soft MI .719、CoMIR+搜索器 .645、MIND .559、SimpleITK MI(调参) .484、CoMIR+SIFT .372。学习能量在 4 级间基本持平（.83–.89），SimpleITK MI 随级别从 .82 掉到 .05。
+
+结论：
+1. 三个宿主学习能量 + 全局网格搜索在两个协议上都明显高于 CoMIR+SIFT（+33~+40pp，<9）和 SimpleITK MI（+37~+44pp），core 级 bootstrap 区间不含 0。
+2. 但大部分优势来自全局搜索：同一搜索器下的 soft MI 已达 .534/.787；MF_VCS_M1 − soft MI 在 <9 上 +2.8pp [−10, +16]，不显著；InfoNCE − soft MI +10.1pp [−0.5, +21.8]。学习能量的稳定收益主要在 <42 / p95（尾部）。
+3. VCS 没有超过 InfoNCE：MF_VCS_M1 − InfoNCE −7.3pp [−14.3, −0.3]（4/15 core 正）；MLP_VCS_perm8 − InfoNCE −2.2pp [−6.6, +1.7]。
+4. 归一化敏感性（MF_VCS_M1，整 core 归一化后裁剪）.576/.939，与补丁内归一化 .562/.935 接近，结论不变。
+
+主要限制：CoMIR 是官方代码在我们 FIT32 上 1/4 尺度重训的模型，CoMIR+SIFT 用 208 px 潜表示上的 OpenCV SIFT，远低于论文 834 px 全分辨率 + Fiji SIFT 的 56.0/73.1%，不能当作论文流程的复现；与文献数字的直接对比需要 TEST134 上的原始固定补丁（见 TEST134_NOTE_CN.txt）。SimpleITK MI 的调参变体是看到登记配置 DEV 结果后加的（修订 1，选择只用 CAL），两者都报告。DEV 曾用于 V10 开发。
+成本：GPU 2.40 h（作业内计时），CPU 0.38 h。

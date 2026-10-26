@@ -1,0 +1,49 @@
+{
+  "utc": "2026-10-26T15:26:06Z",
+  "label": "R23 task B: published BF-SHG patch protocols (CoMIR NeurIPS 2020; MultiRegEval / Lu et al. PLOS ONE 2022) on DEV32 (CAL8 for baseline tuning). DEVELOPMENT; no TEST read.",
+  "authorization": "User 2026-10-26 「都可以，你来接手，先做A和B」 (B = CoMIR-protocol re-evaluation, DEV first; TEST134 needs a separate approval).",
+  "sources": {
+    "comir": "Zenodo 3874362 description: 834x834 patches; per test pair a random rotation up to +-30 deg and random x and y translation up to 100 px, applied to both modalities; corner coordinates in metadata.csv; success <1% (9 px) / <5% (42 px) of 834 (CoMIR paper Table 2).",
+    "multiregeval": "MIDA-group/MultiRegEval utils/make_eliceiri_patches.py: 834 centre patch [608:1442]; level t in 1..4: |theta| ~ U[5(t-1), 5t] deg, |tx|,|ty| ~ U[20(t-1), 20t] px each with an independent fair sign; the full image is warped (rotation about the image centre, then translation) and then cropped; success <2% of the patch width (paper)."
+  },
+  "data": {
+    "roles": "V10 BF DataGuard: DEV32 = CoMIR validation1 (25) + validation2 (7); CAL8 = first 8 of the hash-ordered CoMIR training set; FIT32 = the rest of the training set; TEST134 = CoMIR test set (held, never read here)",
+    "inputs": "host REG-P1 cache (2048 px cores area-downsampled x4 to 512) for the learned / CoMIR / MIND / soft-MI methods; raw full-res TIFFs (validation/train dirs only) for SimpleITK MI"
+  },
+  "transform": {
+    "frame": "512 frame, x_full = 4x + 1.5, centres 255.5 <-> 1023.5; truth (theta*, ty*, tx*) = (theta, ty_full/4, tx_full/4)",
+    "moving": "host Q.perturb_map of the full core (V_p = V o T*^-1, rotation about the core centre, warp then crop), patch window = 512 px 152..359 (full-res 607..1440, 834 px)",
+    "draws": "K=10 independent draws per core per protocol, seeds Q.seed_of(\"R23-COMIR-PROTO|core|k\") / (\"R23-MRE-PROTO|core|k\"); MultiRegEval level = k mod 4 + 1 (draws 0-3 = one per level, the published design; draws 4-9 extra); CoMIR draw 0 = one per pair (published design)",
+    "direction": "reference = BF (fixed), moving = transformed SHG only (the published tables report both directions; we report BF->SHG)"
+  },
+  "metric": "host Q.corner_error_full: mean displacement of the 4 corners of the 834-px centre patch (pixel centres +-416.5), full-res px; CoMIR thresholds 9 / 42 px; MultiRegEval 16.68 px (2%); median and p95 also reported",
+  "methods": {
+    "ours": "V10 BF CAL-selected checkpoints (seeds 1001-1003, frozen, no new selection): MF_VCS_M1, MLP_VCS_perm8, InfoNCE_host[J_perm1] with their own host J energies",
+    "comir": "CoMIR_native (official CoMIR code trained on our FIT32, V10 CAL-selected, seeds 1001-1003): (a) host MSE latent energy with the patch searcher; (b) OpenCV SIFT + RANSAC similarity on the latent patches (stand-in for the paper Fiji SIFT; upsampling {1,2,4} x RANSAC threshold {3,6} px chosen on CAL CoMIR-protocol problems per seed before any DEV row)",
+    "classical": "MI_native (host soft MI, 64 bins) and MIND_2D_adapted (V10 CAL-selected descriptor config) with the patch searcher; MI_SimpleITK: Mattes MI (32 bins), Euler2D about the patch centre, regular-step gradient descent, 3-level pyramid (shrink 8/4/2), 5 rotation starts {-30,-15,0,15,30} deg, best final metric, on full-res raw patches (BF luminance vs SHG intensity)",
+    "alpha_amd": "not run (no maintained Python implementation integrated); the paper best (SIFT on CoMIR) is included"
+  },
+  "searcher": {
+    "energy": "host energies restricted to the patches: 4096 reference positions uniform in the square |x-c|inf <= 86.5 (reference receptive field inside the reference patch); a position counts for candidate (theta, t) only if T(x) lies inside the moving patch by the method receptive-field margin (learned 15*sqrt2+1 px, MIND 4, CoMIR/MI 1); all averages (positive term, product-distribution moments / permutation pairs, histograms, MSE) over valid positions; with the mask disabled and host positions/boxes the energies equal the host energies (CPU check)",
+    "search": "grid theta -30..30 step 3 deg x translations -28..28 step 4 px (512 frame, square), top-3 starts, 100 Adam steps (host lr, host u = theta*RHO), projection |theta|<=30, |t_i|<=28",
+    "normalisation": "primary: robust median/IQR normalisation computed on the patches only (methods see only the patches); sensitivity (MF_VCS_M1, CoMIR protocol): host full-core normalisation then cropped"
+  },
+  "primary": {
+    "comir": "success <9 and <42 px over all 320 DEV problems (K=10 x 32 cores; each core equal weight), and the draw-0 subset (32 problems, one per pair as published)",
+    "mre": "success <16.68 px over all 320 DEV problems and per level; draws 0-3 subset (one per level as published)"
+  },
+  "comparisons": [
+    "each method vs CoMIR_SIFT and vs CoMIR_native(searcher) and vs MI_SimpleITK: paired core-level success differences (mean over cores, bootstrap over cores B=10000)",
+    "our learned families vs each other (VCS vs InfoNCE in the same patch pipeline)",
+    "descriptive only: literature tables (different test set: TEST134)"
+  ],
+  "limits": [
+    "DEV is reused development data (V10 CAL selection used CAL only; DEV results were already seen in V10, so this is not a held-out confirmation)",
+    "our checkpoints were selected on the host protocol, not on the patch protocol",
+    "CoMIR_native is our FIT32 re-training of the official code, at 1/4 scale, not the authors released model",
+    "the published numbers are on TEST134 and cannot be compared without a TEST read"
+  ],
+  "budget": "<= 10 GPUh; per-unit jobs; normal QOS; RTX6000PRO,L40S,H100 excluding node51,53,60; nice 30",
+  "no_retry": "failed attempts are kept and reviewed",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

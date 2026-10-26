@@ -1,0 +1,43 @@
+{
+  "utc": "2026-10-26",
+  "label": "PILOT/DEVELOPMENT; FIT train, CAL curves, DEV readout; no TEST",
+  "authorization": "User 2026-10-26 「全都做吧」 (next batch: registration pose term v2 with coarse-grid candidates, retrieval on the improved host, write-up).",
+  "follows": "handoff/r22_reg_pose_20261025 (v1). v1 local ring only: BF pose+J strict 40.4 vs J-only 68.3, loose<42 82.7 vs 98.2; 404 of 572 strict failures were search misses (F_hat < F_true). The local ring sharpened the energy near the truth but removed the coarse basin the host grid search needs.",
+  "hypothesis": "Adding a global ranking term evaluated through the host coarse-grid energy path (the grid nodes enclosing the truth must outscore far grid nodes) keeps the coarse basin while the local term improves local ranking, so strict DEV success improves over the J-only reference; adding the VCS J term may add structure beyond pose supervision.",
+  "loss": {
+    "total": "L_local + L_global (+ lambda * base for pose2_vcs / pose2_bce; base = train.py vcs_exact / bce on the host batch, as v1)",
+    "L_local": "tau * logsumexp([0, (S_loc(theta*+d) - S_loc(theta*) + m_near)/tau for d in v1 NEAR (6 poses: +-3 px y/x, +-1.2 deg)]); S_loc = v1 pose_energy (host local warp-then-encode BOX1 path, Q.RigidEnergy.batch with COS). v1 FAR ring dropped.",
+    "S_grid": "host coarse-grid path exactly as Q.RigidEnergy.grid_values kind 'critic' with the COS readout: rotation-only warp of the perturbed moving image into BOX2, eV encoded once per rotation, descriptors sampled at x + R(-theta) t - BOX2[0], mean cosine with the eU reference descriptors; differentiable in eU and eV",
+    "basin": "B = the 2 grid rotations bracketing theta* (3 deg grid on [-30, 30]) x the up-to-4 grid translations (4 px grid) enclosing t* that belong to Q.grid_points(); asserted non-empty for every FIT perturbation; S_B = tau * logsumexp(S_grid[B] / tau)",
+    "negatives": "G, 24 per step: 4 grid translations at each of the 2 bracketing rotations with err_full >= 42 vs the truth (Q.corner_error_full), plus 2 other grid rotations drawn uniformly from the remaining 19 x 8 grid translations drawn uniformly from the grid disk excluding err_full < 42; basin nodes never negatives; separate RNG seed_of('R22-POSE2|ds|seed')",
+    "L_global": "tau * logsumexp([0, (S_grid[g] - S_B + m_glob)/tau for g in G])"
+  },
+  "constants": "CONSTANTS.json (v1 values tau 0.02, m_near 0.02, m_glob = v1 m_far 0.10, lambda 1; not retuned). DIAGNOSTIC.json (FIT only, existing checkpoints) is report-only.",
+  "arms": {
+    "pose2_only": "L_local + L_global",
+    "pose2_vcs": "L_local + L_global + lambda * (-J_exact)",
+    "pose2_bce": "L_local + L_global + lambda * bounded-score BCE"
+  },
+  "matched_references": "long-v2 30000-step runs (r22_geometry_long_v2_20261024) vcs_exact / bce / nce and v1 pose runs (r22_reg_pose_20261025) pose_only / pose_vcs / pose_bce, x {bf, epfl} x {1001, 1002, 1003}: identical initial encoders (checked vs the original 3000-step init), host sampler stream (batch hashes at steps 3001-3005 checked vs long-v2 TRAIN.jsonl), LR schedule 3e-4 (<=15000) / 3e-5 (<=24000) / 3e-6 (<=30000), AdamW, clip 1.0; v1 also shares the pose-problem stream. Differences vs v1: candidate set and loss only.",
+  "evaluation": "fixed step-30000 checkpoint; full DEV, COS readout through T.evaluate (unchanged host searcher); CAL at 10000/20000/30000 as curves only; no checkpoint selection; no TEST",
+  "primary_endpoint": "DEV strict success err_full < 9, scene-macro, at step 30000, per dataset (never pooled), per seed paired",
+  "comparisons": [
+    "pose2_vcs - J-only long-v2 reference",
+    "pose2_vcs - pose2_bce (VCS-specific?)",
+    "pose2_x - v1 pose_x for each arm (does the global term fix v1)",
+    "pose2_only - pose2_vcs",
+    "descriptive: pose2_bce - bce reference, pose2_* - nce reference"
+  ],
+  "signal_rule": "descriptive, per dataset: mean paired difference >= +1 pp strict and >= 2/3 seeds positive, with loose success<42 not worse by > 0.5 pp; all differences reported regardless",
+  "secondary": [
+    "loose success < 42",
+    "median err_full",
+    "failure attribution F_hat >= F_true (energy prefers a wrong pose) vs search miss",
+    "CAL curves",
+    "train-time rates: truth beats the local ring; best basin node beats all negatives"
+  ],
+  "hardware": "--partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60, normal QOS, nice 60; GPU type recorded per run; references were mostly L40S (disclosed)",
+  "budget": "BUDGET.json from the GPU smoke",
+  "no_retry": "failed attempts are kept and reviewed, never silently rerun",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
