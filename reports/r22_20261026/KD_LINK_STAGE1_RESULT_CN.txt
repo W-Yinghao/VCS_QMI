@@ -1,0 +1,21 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+KD CE 有界 link 阶段1 诊断（2026-10-25，diag 作业1064326，L40S，86 秒；CPU 检查1064325 PASS；只用 FIT，未读 CAL/TEST）
+
+输入：6 个已完成的 CE 240 轮 checkpoint（cosine 与 identity-VCS，seed 31415/16180/57721，λ10）。FIT 按样本 id 奇偶拆半：偶数半拟合 (a,b)，奇数半评估；固定 64 样本 batch，有序 off-diagonal Q。
+
+1. 拟合的 link 在两半、三个 seed、两种来源 checkpoint 上高度一致：a = 12.4–14.6，b = −7.0 到 −9.3。
+   VCS-J 拟合与 BCE 拟合几乎相同（留出 |T_vcs − T_bce| 平均 ≤ 0.0006），符合两者最优都为 tanh(PMI/2)。
+2. 拟合 link 下留出 J ≈ 0.975–0.980（identity T=cos 为 0.449–0.499，固定 tanh(cos) 为 0.420–0.466）：
+   第240轮的决策坐标几乎完全分开同图配对与异图配对。
+3. 严重饱和：P 中 |T|≥0.99 占 68–80%，Q 中 96–97%；平均梯度因子 (1−T_P²) 0.030–0.037。
+4. 一步真实更新（historical momentum，BN 恢复，λ10，8 batch，描述性）：在“教师对、学生错/低 margin”子集上，
+   拟合 link 的 VCS/BCE margin 增量大于 cosine 与 identity VCS（例如 cosine checkpoint：vcs_link +0.0084、bce_link +0.0101、
+   cosine +0.0057、identity VCS +0.0048、anchor-only +0.0047）；饱和把梯度集中在少数未饱和的困难配对上。
+   这是局部证据，按审阅意见与协议不作为任务收益或门槛。
+
+预登记阶段2技术门槛：FAIL（6/6 checkpoint 均饱和/梯度因子不达标；b 稳定性的绝对 0.25 阈值对 b≈−8 量级设定过严，但不影响结论）。
+按协议：报告、不调参、不进入阶段2的 9 项完整训练。
+
+解释：在这个 KD 宿主里，P/Q 判别任务到训练末期几乎是平凡可分的；学到的尺度会把 critic 推到饱和区，使辅助项对大多数样本失去梯度。
+T=cos 的 identity 版本远离最优 critic，实际上一直作为余弦对齐项在起作用。是否仍做阶段2属于事后决定，需用户同意。

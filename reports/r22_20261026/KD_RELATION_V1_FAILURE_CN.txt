@@ -1,0 +1,12 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+KD 关系项 v1（1064503–1064511）技术失败，结果无效（2026-10-25，Claude 自查）
+
+现象：9 项全部 240 轮跑完、无报错，但固定第240轮 CAL top1：direct ≈1%、BCE ≈2%、VCS ≈18.5%（对照 DKD 75.13%）。
+后验检查（1064937，CPU，FIT 8 batch）：最终 checkpoint 的 BN running_var 最大 1e7–2e8（对照 29），BN weight 最大 47–164（对照 2.8）；
+eval-mode 特征范数爆炸（direct 1492 对 对照 6.5），train-mode 准确率 49–70%（对照 84%）。
+原因：relation.py 在 eval-mode BN 下带梯度计算学生参照特征。train-mode 路径对 BN 前权重尺度不变，eval-mode 路径不然，
+λ=10 的关系项把 BN 权重与 running 统计推到发散区，破坏了 eval 读出。这是实现缺陷，不是“关系知识无用”的证据。
+1 轮 smoke 无法发现该问题。成本：9 项回执约 8.07 GPUh，全部计入失败成本。
+修复（v2）：参照特征改为 train-mode BN（用参照 batch 自身统计），该前向期间冻结 running 统计更新；
+正式 9 项前增加多轮技术门禁（与对照同 epoch 的 CAL 轨迹不塌、BN 统计不发散）。

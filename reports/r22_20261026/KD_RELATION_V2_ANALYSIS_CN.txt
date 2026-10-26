@@ -1,0 +1,15 @@
+Publication copy of a completed review written at analysis time. Sample names use stable aliases; numbers and conclusions unchanged.
+
+KD 关系向量项 v2 完整分析（2026-10-26，Claude；ANALYSIS.json；CAL 开发证据，无 TEST）
+设计：DKD + 关系项（200 个固定 FIT 参照，train-mode BN 且冻结 running 统计），direct / VCS / BCE × seed 31415/16180/57721，λ10，240 轮；
+复用 DKD-only 与 DKD+logit cosine 对照（同初始化、同 240 轮样本顺序、同 GPU 型号，已断言）。v1 因 BN 发散无效（见 v1 postmortem）。
+
+固定第240轮 CAL top1 均值：DKD 75.13 | DKD+logit cosine 75.27 | +direct 74.78 | +VCS 75.17 | +BCE 74.83
+配对差（pp，3 seed）：
+- direct − DKD −0.35（0/3）：关系对象本身（直接匹配）没有带来收益，略有损害
+- VCS − DKD +0.05（2/3）；BCE − DKD −0.30（0/3）
+- VCS − direct +0.39（2/3），VCS − BCE +0.35（2/3）：形式上达到 +0.2/2/3 描述判据，seed57721 为负
+- VCS − DKD+logit cosine −0.09（1/3）
+解释（按审阅三层判据）：直接关系匹配无改善，说明在这个 DKD 设置下教师隐层关系没有可额外传递的有用知识；
+VCS 在同一关系对象上比 direct/BCE 损害更小，但相对 DKD 与强参照均无收益——只是“更不伤”，不是应用优势。按审阅建议，当前分类蒸馏不必强行放入 VCS。
+成本：9 项回执 7.49 GPUh（v1 失败 8.07 GPUh 另计）。

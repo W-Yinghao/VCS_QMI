@@ -1,0 +1,45 @@
+{
+  "utc": "2026-10-25",
+  "owner": "Claude (takeover from Codex, user 2026-10-25); design from user-forwarded external review of the 10-25 public commits",
+  "label": "PILOT/DEVELOPMENT, CAL only, no TEST",
+  "hypothesis": "Fixing the VCS critic to T=cos may pin the task similarity scale to the discriminator scale. A small bounded link T=tanh(a*cos+b) (the SSL CosineCritic form) keeps the cosine geometry and may suit the VCS objective better. Not assumed; J, P, Q unchanged, only the critic function class.",
+  "host": "CE decision-coordinate KD only (r22_other_apps_20261023 engine, WRN40-2 strict-FIT teacher -> WRN16-2), lambda 10, 240 epochs, batch 64, same seeds/init/data order/GPU model as the reused controls.",
+  "stage1": {
+    "what": "Fixed epoch-240 CE checkpoints of cosine and identity-VCS arms, 3 seeds. FIT coordinates from one augmented epoch-0 pass (eval-mode BN). FIT split by sample-id parity: fit (a,b) on even ids, evaluate on odd ids, fixed 64-sample batches, ordered off-diagonal Q. Report fitted (a,b) for VCS-J and BCE, held-out J (identity, tanh, fitted), T distributions/saturation, VCS-vs-BCE fitted-link agreement, and 8-batch disposable momentum-SGD margin deltas (anchor-only, cosine, identity VCS, tanh VCS, fitted-link VCS, fitted-link BCE).",
+    "gate_to_stage2": "Technical only, every checkpoint: fitted VCS a in (0.1,100) on both halves; |a_even-a_odd| <= 0.25*max|a|; |b_even-b_odd| <= 0.25; at the even-fit link on odd ids mean(1-T_P^2) >= 0.05 and frac |T_P|>=0.99 <= 0.5. Margin deltas are descriptive, never a gate (local metrics do not equal task gains). On failure: report, no tuning, no stage 2."
+  },
+  "stage2": {
+    "new_arms": [
+      "vcs_tanh: J with fixed T=tanh(cos)",
+      "vcs_link: J with learnable T=tanh(a cos+b), init (1,0), AdamW lr1e-3 wd0 on (a,b) only",
+      "bce_link: balanced BCE with P(+)=(1+T)/2 under the same learnable link"
+    ],
+    "seeds": [
+      31415,
+      16180,
+      57721
+    ],
+    "new_jobs": 9,
+    "reused_controls": "kd_full_ce_cosine_l10_s*, kd_full_ce_vcs_l10_s* (identity link T=cos) from r22_other_apps_20261023",
+    "hardware": "GPU model per seed equal to reused controls (31415/57721 L40S, 16180 RTX PRO 6000); any node of that model (node61 allowed).",
+    "primary_endpoint": "fixed epoch-240 CAL top1; per-seed paired differences; never pooled with DKD",
+    "secondary": [
+      "mean last-10 CAL top1",
+      "best CAL top1 (descriptive)",
+      "a,b trajectories from epoch diagnostics"
+    ],
+    "interpretation_layers": [
+      "vcs_link - identity vcs: supports the interface recipe",
+      "vcs_link - vcs_tanh: supports learnable parameters beyond the tanh map",
+      "vcs_link - cosine AND vcs_link - bce_link: only both positive would be a VCS application advantage worth further validation"
+    ],
+    "signal": "a layer counts as supported when mean >= +0.2 pp and >= 2/3 seeds positive (same descriptive rule as previous KD rounds); all differences reported regardless."
+  },
+  "budget": {
+    "stage1_gpu_h": "<0.5",
+    "stage2_gpu_h": "about 5 (KD240 historical about 0.52 GPUh each), hard 9 x 3h",
+    "outputs": "<2 GiB home"
+  },
+  "not_done": "No DKD arms, no lambda/a-init grid, no retraining of controls.",
+  "_publication_note": "Scientific protocol excerpt; private locks, receipts and operational fields omitted. Latest state: R22_UPDATE_20261026_CN.md."
+}

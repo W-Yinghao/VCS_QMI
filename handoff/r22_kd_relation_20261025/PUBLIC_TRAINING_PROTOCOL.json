@@ -1,0 +1,37 @@
+{
+  "utc": "2026-10-25",
+  "follows": "COMPLETE.json headroom check (job 1064495): gate PASS (teacher hidden-vs-own-logit relation 0.887 <= 0.90; DKD+logit-cosine hidden agreement 0.792 <= 0.90; no identity-link saturation)",
+  "question": "Does the teacher hidden relation structure, beyond direct DKD decision distillation, help the student; and does VCS add anything over direct relation matching and matched BCE on the same relation object?",
+  "new_arms": {
+    "direct": "DKD + 10*(1-<u,v>)",
+    "vcs": "DKD + 10*(-J), T=<u,v>, diagonal P, ordered off-diagonal Q, exact moments",
+    "bce": "DKD + 10*bounded-score BCE, P(+)=(1+T)/2"
+  },
+  "object": "u,v = centered-L2 relation vectors of student/teacher pooled features to 200 fixed FIT references (2/class); P/Q conditional on that reference set",
+  "reused_controls": "kd_full_dkd_none_l0_s* (DKD only) and kd_full_dkd_cosine_l10_s* (DKD + logit cosine, strong reference)",
+  "seeds": [
+    31415,
+    16180,
+    57721
+  ],
+  "new_jobs": 9,
+  "hardware": "GPU model per seed equal to controls (31415/57721 L40S, 16180 RTX PRO 6000); software/precision, student init, teacher and data order asserted equal",
+  "primary_endpoint": "fixed epoch-240 CAL top1, per-seed paired differences",
+  "layers": [
+    "direct - DKD: relation object has value",
+    "vcs - direct and vcs - bce: VCS increment on the same object",
+    "vcs - DKD+logit cosine: against the strong existing reference"
+  ],
+  "signal": "mean >= +0.2 pp and >= 2/3 seeds positive; all differences reported regardless",
+  "secondary": [
+    "mean last-10 CAL top1",
+    "hidden-relation agreement at epoch 240 (rerun check_relation on the new checkpoints)"
+  ],
+  "disclosures": [
+    "student reference features in eval-mode BN with gradient each step (no running-stat writes)",
+    "references keep their augmented self-similarity column when they appear as queries (200/44992)",
+    "weight 10 for all three terms, no lambda search"
+  ],
+  "budget": "9 runs, about 1-2 GPUh each (200 extra student forwards per step); hard 4h each",
+  "_publication_note": "Scientific protocol excerpt; private locks, receipts and operational fields omitted. Latest state: R22_UPDATE_20261026_CN.md."
+}

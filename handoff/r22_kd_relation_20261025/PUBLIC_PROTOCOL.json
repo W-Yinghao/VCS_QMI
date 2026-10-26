@@ -1,0 +1,14 @@
+{
+  "utc": "2026-10-25",
+  "label": "KD relation-vector headroom check; FIT only, fixed epoch-240 checkpoints, no training, no CAL/TEST reads beyond stored CAL top1",
+  "question": "Before any relation-distillation training: does the WRN40-2 teacher hidden relation structure (cosine to a fixed FIT reference set) contain information its own logits do not, and is it already transferred to the 24 existing CE/DKD students?",
+  "reference_set": "2 FIT samples per class (smallest sha256(id)), 200 total, excluded from queries; queries = remaining FIT; eval-mode BN, no augmentation",
+  "measures": [
+    "teacher hidden-vs-own-logit relation Pearson (row-wise over anchors, mean over queries)",
+    "per student: hidden relation agreement with teacher; logit relation agreement; student-logit vs teacher-hidden relation",
+    "VCS P/Q on centered-L2 relation vectors (diagonal P, ordered off-diagonal Q, 64-batches): identity-link held-out J and saturation; fitted tanh(a s+b) on even ids, evaluated on odd ids"
+  ],
+  "gate_to_training": "Proceed to the 4-arm DKD relation study (DKD; +direct relation matching; +VCS relation; +matched BCE relation; existing DKD+logit-cosine as strong reference; 3 seeds) only if ALL: (i) teacher hidden-vs-own-logit relation Pearson <= 0.90; (ii) mean over 3 seeds of the DKD+logit-cosine student hidden relation agreement <= 0.90; (iii) identity-link relation P |T|>=0.99 fraction <= 0.5 for the DKD students. Otherwise report and stop; no threshold tuning.",
+  "not_claims": "Agreement statistics are not task gains; only the later training study can show those.",
+  "_publication_note": "Scientific protocol excerpt; private locks, receipts and operational fields omitted. Latest state: R22_UPDATE_20261026_CN.md."
+}
