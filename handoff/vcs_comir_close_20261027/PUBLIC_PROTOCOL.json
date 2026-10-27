@@ -1,0 +1,64 @@
+{
+  "schema": "r24.comir_close.protocol.v1",
+  "written_utc": "2026-10-26 (before any GPU job of this package)",
+  "purpose": "Two closing experiments for the VCS-in-CoMIR result (handoff/vcs_comir_20261026, read/import only), requested by the external review: separate (a) removal of same-modality negatives and (b) critic/readout mismatch from the loss shape. Plus FIT-only gradient diagnostics. Development evidence only (BF DEV32, EPFL DEV); no TEST.",
+  "base_package": {
+    "imported_not_modified": true,
+    "verified_by": "base FREEZE.json hashes checked at every run (run.verify())"
+  },
+  "experiment_1_cross_modal_nce": {
+    "question": "Does removing the same-modality negatives from CoMIR's InfoNCE alone cause a large registration drop (which would explain part of the VCS/BCE gap, since VCS/BCE use only the B x B cross-modal matrix)?",
+    "change": "Same 2B-point similarity matrix and expression as the original step; additionally mask the same-modality off-diagonal entries (a_i,a_j) and (b_i,b_j), i != j, to -inf before logsumexp. Each anchor's denominator is then its B cross-modal entries (positive included); loss averaged over all 2B anchors (both directions). Nothing else changes: host, data stream, init, augmentation, SGD/momentum/clip, 736 steps, L1/L2 regularisers.",
+    "arms": [
+      "nce_mse_x tau 2.0 lr 0.01 (cross-modal-only version of the selected nce_mse_t2.0_lr0.01)",
+      "nce_cos_x tau 0.1 lr 0.01 (cross-modal-only version of the selected nce_cos_t0.1_lr0.01)"
+    ],
+    "no_new_selection": "configs are the two NCE configs already selected on CAL in the base package; no CAL grid, no reselection",
+    "seeds": [
+      1001,
+      1002,
+      1003
+    ],
+    "datasets": [
+      "bf",
+      "epfl"
+    ],
+    "units": 12,
+    "evaluation": "DEV only, the same V10 CoMIR_native registration session (host -MSE latent energy, grid + 3 starts x 100 Adam) as the base finals",
+    "reference_arms": "base finals of the same config/seed (full NCE), and the base VCS/BCE finals",
+    "cpu_check": "with the same-modality terms restored (mask = identity only) the new code path reproduces the original CoMIRTrainer.step bitwise on real FIT data (losses, grad norms, model hash after two steps); the cross-modal-only loss equals an fp64 dense-loop reference and passes gradcheck; sample stream identical to the original."
+  },
+  "experiment_2_readout_cross_evaluation": {
+    "question": "Is the VCS/BCE drop a mismatch between the training critic (exp-of-MSE or cosine) and the MSE readout?",
+    "checkpoints": "existing step-736 checkpoints of the six selected base arms (nce_mse_t2.0, nce_cos_t0.1, vcs_exp_t0.5, vcs_cos_lr0.003, bce_exp_t0.5, bce_cos_lr0.003) x seeds 1001-1003 x {bf, epfl} = 36; checkpoint hash checked against the base COMPLETE.json",
+    "readouts": {
+      "mse": "native: -mean_x (u(x) - v(T x))^2 over the host's 4096 sampled positions (already used; base DEV records reused for all 36 checkpoints; BF seed-1001 checkpoints of every arm additionally re-evaluated in-job as a re-evaluation-noise anchor, budget)",
+      "ncc": "Pearson correlation of the sampled latent values u(x), v(T x) over the same positions (latent has one channel, so per-channel NCC = NCC of that channel)",
+      "cos": "uncentred cosine u.v / (|u| |v|) of the sampled latent vectors over the same positions (matches the cosine training critic, which is the cosine of the flattened latents)"
+    },
+    "fixed": "same reference/moving latents, positions, perturbations, grid, starts, Adam steps and problem set for every readout; only RigidEnergy.batch changes (mse delegates to the unmodified host method)",
+    "primary_contrasts": "per arm: best non-MSE readout - MSE readout; and best VCS (any readout) - best NCE (its MSE readout and its best readout)",
+    "evaluation_noise_note": "position search is non-deterministic on GPU (V10 evaluation noise, 0.6-2.2 pp re-evaluation change); readouts are compared across separate searches; the BF MSE re-evaluation measures this directly"
+  },
+  "experiment_3_fit_diagnostics": {
+    "data": "FIT only: 16 fixed batches of 32 drawn with the host's own draw() (fixed numpy seed 777, same batches for all checkpoints of a dataset), train mode as in the optimiser step",
+    "models": "the 36 checkpoints above plus the seed-matched initial models (step 0) for the gradient ratio",
+    "positive_d_over_tau": "for exp arms (vcs_exp, bce_exp, nce_mse): distribution (quantiles) of d/tau on positives and negatives, d = per-element latent MSE between paired crops; VCS positive gradient factor (4/tau) e^{-d/tau} (1 - e^{-d/tau}) and negative factor magnitude (4/tau) e^{-2d/tau}; both per pair",
+    "gradient_ratio": "per arm: ||grad of the contrastive term|| / ||grad of the L1+L2 regulariser|| over both encoders' parameters, before clipping",
+    "interpretation": "descriptive only"
+  },
+  "reporting": "ANALYSIS.json + ANALYSIS_CN.txt: strict (<9) / loose (<42) / median / p95 err_full per dataset, per seed and mean (BF core macro over 32 cores, EPFL scene macro over 72 scenes); paired differences cross-modal-only NCE - full NCE, and vs VCS/BCE; readout table; diagnostics table. No pre-registered success threshold: descriptive closing evidence; a drop of >= 10 pp strict on BF from removing same-modality negatives would be read as a large drop.",
+  "slurm": "--qos=normal --partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60 --nice=30, no --dependency; batches through deps_watch/app_lines_feed.sh; job names r24_close_*",
+  "budget_gpu_hours": {
+    "estimate": 8,
+    "cap": 10,
+    "parts": "exp1 12 units ~1.9 h; readouts 36 jobs ~6.3 h (BF ncc+cos, + mse re-eval on seed 1001; EPFL ncc+cos); diagnostics ~0.3 h"
+  },
+  "data_roles": [
+    "FIT",
+    "CAL (integrity hashing by the guard only)",
+    "DEV"
+  ],
+  "test": "not read",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

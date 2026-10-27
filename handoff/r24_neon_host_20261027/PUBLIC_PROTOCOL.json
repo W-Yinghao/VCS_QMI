@@ -1,0 +1,28 @@
+{
+  "name": "R24 strong-host (Neon_ShgBf) stage 0-1",
+  "written_utc": "2026-10-26T23:30:00Z",
+  "status": "v0: written before any registration use of the Learn2Reg COMULIS data; stage-1 details are fixed in a dated amendment after the stage-0 audit, before any candidate pool is scored",
+  "source_request": "pasted external R24 review (strong host Neon_ShgBf + IWM/DeeperHistReg; stage 1 fixed candidate pool selection comparison; identity audit; corrections)",
+  "data": {
+    "learn2reg_bundle": "https://cloud.imi.uni-luebeck.de/s/dPtMi8fiopkSgCA (Learn2Reg 2024 task COMULISglobe SHG-BF; CC BY 4.0; derived from Zenodo 4550300, the same source as our bf_shg_4550300)",
+    "local": "/projects/EEG-foundation-model/yinghao/data/learn2reg_comulis_shgbf/download",
+    "contents": "imagesTr 166 pairs (156 train + 10 registration_val, <Learn2Reg case ids withheld>), imagesTs 40 registration_test pairs; 834x834; fixed=SHG (_0000), moving=BF RGB (_0001); NO landmark files in the public bundle (checked bundle listing and github.com/MDL-UzL/L2R @88475095)"
+  },
+  "test_rules": [
+    "never open data/bf_shg_4550300/closed/ or any TEST134 file",
+    "a Learn2Reg case may be used only if the identity audit matches it by content to one of our 72 non-TEST cores (FIT 32 / CAL 8 / DEV 32); unmatched cases are quarantined as presumed TEST134-derived and are not registered, scored or inspected beyond the audit fingerprint",
+    "the audit reads Learn2Reg pixels only to compute match scores against our non-TEST images; for unmatched cases only the best match score is recorded",
+    "no Grand-Challenge submission (outward-facing; not authorized)"
+  ],
+  "stage0": {
+    "S0.1_audit": "content match of every Learn2Reg SHG image to center/any-offset crops of our 72 non-TEST MI images (exact center-crop test, then low-resolution NCC search); BF checked the same way against our WB; outputs AUDIT.json with case -> {core, role} or UNMATCHED, and whether Learn2Reg BF equals our aligned WB crop (i.e. whether training pairs are pre-aligned)",
+    "S0.2_checkpoint_scope": "the author checkpoint best_score_-6.6130_net_epoch_22.pth was trained on Learn2Reg imagesTr train pairs and selected on validation TRE; every Learn2Reg train case is therefore seen by the host; the audit records which of our roles that covers",
+    "S0.3_repro": "run the released Neon inference (affine XFeat init + 3 restarts x 60 ConvexAdam-style iterations, LNCC then MI, MI selection) with and without the two known bug fixes (getters.py fixed-checkpoint reload; loss.py mask sampling axes) on audit-cleared cases; the evaluation target depends on S0.1 and is fixed in the amendment",
+    "S0.4_reference": "DeeperHistReg/IWM as an independent strong reference if it installs from public code and weights; otherwise recorded as not run"
+  },
+  "stage1": "fixed host and fixed candidate pool per case; selection rules: native MI (host), local VCS J_C (our critic), BCE, NCE, oracle (diagnostic only); per-case failure decomposition (pool miss vs selection error); details fixed in the post-audit amendment before scoring",
+  "stop_rule": "stop after stage 1; no stage-2/3 training without main-session review",
+  "budget": "<=20 GPUh; jobs r24_neon_*, nice 30, normal QOS, --partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60",
+  "claims": "development evidence only; not the Learn2Reg leaderboard metric unless landmark TRE is actually available",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, Learn2Reg case-id ranges tied to held-out data withheld, numbers unchanged."
+}

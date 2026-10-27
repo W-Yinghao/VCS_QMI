@@ -1,0 +1,23 @@
+{
+  "written_utc": "2026-10-26T23:04:44Z",
+  "binds": {},
+  "written_before": "any CAL/DEV candidate pool is scored (only a 2-problem CAL smoke may have run)",
+  "why": "The audit shows <Learn2Reg case ids withheld> are presumed TEST134-derived and the bundle has no landmarks, so the Learn2Reg validation TRE cannot be reproduced locally; the host is instead run on our own CAL/DEV cores with exact synthetic truth.",
+  "metric": "primary: grid TRE = mean |q + u(q) - T(q)| over a 16x16 interior grid of the 832 patch (full-res px), strict <9 / loose <42 (CoMIR 1 % / 5 %), core-macro over the 10 draws then mean over cores; secondary: patch-corner error (CoMIR definition), median, p95.",
+  "pool": "per problem 183 candidates = per round the XFeat affine init + 60 iterates; candidates with <64 valid positions are ineligible for learned/soft-MI rules",
+  "rules": {
+    "NATIVE": "Neon rule exactly (per round max MI over iterates on that round's k-means labels, best round); recomputed from the recorded pool and checked equal to the host output",
+    "SOFTMI": "argmax our 64-bin Parzen MI (BF luminance vs log SHG at the 512-frame scale, valid positions)",
+    "VCS_J": "argmax exact J of the long-v2 30k vcs_exact encoder (per seed 1001-1003)",
+    "BCE": "argmax BCE objective score of the bce encoder (per seed)",
+    "NCE": "argmax InfoNCE (tau .07) score of the nce encoder (per seed)",
+    "COS_<arm>": "argmax mean cosine for each encoder (readout control)",
+    "ORACLE": "argmin grid TRE (diagnostic only, never a method)",
+    "AFFINE": "round-0 XFeat affine init (reference)"
+  },
+  "comparisons": "primary: VCS_J - NATIVE on DEV strict (paired by seed: seed s of VCS_J vs the single NATIVE); secondary: VCS_J - BCE, VCS_J - NCE (same seed), each also loose / median / p95; all split by DEV cores seen vs not seen in Neon training (AUDIT_SUMMARY).",
+  "signal_rule": "descriptive: \"VCS selection gain\" if VCS_J - NATIVE >= +3 pp strict with >= 2/3 seeds positive and p95 not worse; \"VCS-specific\" additionally needs VCS_J - max(BCE, NCE) >= +2 pp strict with >= 2/3 seeds. Not significance tests; DEV has been used across many rounds.",
+  "decomposition": "per problem at strict 9 px: pool miss (ORACLE >= 9), native selection error (ORACLE < 9 and NATIVE >= 9), and for each rule rescued / broken counts relative to NATIVE",
+  "stop": "after stage 1; no stage-2/3 training; no DeeperHistReg tuning on DEV (if run, CAL-only configuration)",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, Learn2Reg case-id ranges tied to held-out data withheld, numbers unchanged."
+}

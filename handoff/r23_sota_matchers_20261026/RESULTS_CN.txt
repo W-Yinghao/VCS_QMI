@@ -1,0 +1,36 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+R23 task A: modern matcher baselines on the V10 BF-SHG DEV32 protocol (DEV, 320 problems; TEST not read)
+
+method              config        strict<9  loose<42  median   p95      s/problem  fail
+V10 InfoNCE_host    (3 seeds)     0.690     0.956     5.83     23.4
+V10 MLP_VCS_perm8   (3 seeds)     0.680     0.946     5.65     117.5
+V10 MF_VCS_M1       (3 seeds)     0.641     0.957     5.66     27.0
+V10 CoMIR_native    (3 seeds)     0.528     0.798     7.07     423.4
+V10 NMI_native      (1 seeds)     0.506     0.759     8.94     341.8
+V10 MI_native       (1 seeds)     0.494     0.741     9.33     310.7
+V10 MIND_2D_adapted (1 seeds)     0.350     0.709     15.05    420.2
+sp_lg               iwm_r5        0.728     0.988     5.25     20.0     0.26       0
+minima_sp_lg        iwm_r5        0.725     1.000     5.30     17.6     0.23       0
+minima_roma         log_r15       0.694     1.000     4.54     17.6     1.70       0
+globalign           iwm_q8        0.675     1.000     6.03     17.4     0.44       0
+aliked_lg           iwm_r10       0.666     0.941     5.02     98.4     0.28       7
+disk_lg             iwm_r10       0.662     0.925     5.55     116.6    0.37       17
+roma                log_r10       0.659     0.991     5.66     21.6     4.50       0
+xfeat_lg            iwm_r10       0.656     0.981     5.70     21.8     0.28       0
+minima_loftr        log_r10       0.650     0.991     5.42     17.8     0.30       0
+xfeat               iwm_r10       0.641     0.994     6.07     21.4     0.12       0
+dinov2_host         vitb14_s2     0.053     0.575     34.98    229.3    19.02      0
+
+paired core-level differences (method - reference), mean [bootstrap 95% over 32 cores]
+sp_lg: MF_VCS_M1 strict +0.088 [+0.014,+0.179] loose +0.030; MLP_VCS_perm8 strict +0.048 [-0.007,+0.114] loose +0.042; InfoNCE_host strict +0.039 [-0.025,+0.110] loose +0.031; CoMIR_native strict +0.200 [+0.099,+0.314] loose +0.190
+disk_lg: MF_VCS_M1 strict +0.022 [-0.019,+0.089] loose -0.032; MLP_VCS_perm8 strict -0.018 [-0.076,+0.025] loose -0.021; InfoNCE_host strict -0.027 [-0.093,+0.030] loose -0.031; CoMIR_native strict +0.134 [+0.046,+0.235] loose +0.127
+aliked_lg: MF_VCS_M1 strict +0.025 [-0.021,+0.098] loose -0.017; MLP_VCS_perm8 strict -0.015 [-0.075,+0.032] loose -0.005; InfoNCE_host strict -0.024 [-0.092,+0.036] loose -0.016; CoMIR_native strict +0.138 [+0.049,+0.238] loose +0.143
+minima_sp_lg: MF_VCS_M1 strict +0.084 [+0.005,+0.184] loose +0.043; MLP_VCS_perm8 strict +0.045 [-0.017,+0.121] loose +0.054; InfoNCE_host strict +0.035 [-0.037,+0.121] loose +0.044; CoMIR_native strict +0.197 [+0.094,+0.314] loose +0.202
+xfeat: MF_VCS_M1 strict +0.000 [-0.058,+0.064] loose +0.036; MLP_VCS_perm8 strict -0.040 [-0.118,+0.034] loose +0.048; InfoNCE_host strict -0.049 [-0.122,+0.025] loose +0.037; CoMIR_native strict +0.113 [+0.041,+0.197] loose +0.196
+xfeat_lg: MF_VCS_M1 strict +0.016 [-0.025,+0.073] loose +0.024; MLP_VCS_perm8 strict -0.024 [-0.095,+0.046] loose +0.035; InfoNCE_host strict -0.033 [-0.102,+0.036] loose +0.025; CoMIR_native strict +0.128 [+0.048,+0.219] loose +0.183
+minima_loftr: MF_VCS_M1 strict +0.009 [-0.071,+0.086] loose +0.033; MLP_VCS_perm8 strict -0.030 [-0.096,+0.027] loose +0.045; InfoNCE_host strict -0.040 [-0.112,+0.024] loose +0.034; CoMIR_native strict +0.122 [+0.047,+0.207] loose +0.193
+roma: MF_VCS_M1 strict +0.019 [-0.083,+0.124] loose +0.033; MLP_VCS_perm8 strict -0.021 [-0.101,+0.047] loose +0.045; InfoNCE_host strict -0.030 [-0.119,+0.050] loose +0.034; CoMIR_native strict +0.131 [+0.038,+0.242] loose +0.193
+minima_roma: MF_VCS_M1 strict +0.053 [-0.055,+0.166] loose +0.043; MLP_VCS_perm8 strict +0.014 [-0.071,+0.092] loose +0.054; InfoNCE_host strict +0.004 [-0.090,+0.092] loose +0.044; CoMIR_native strict +0.166 [+0.067,+0.280] loose +0.202
+globalign: MF_VCS_M1 strict +0.034 [-0.049,+0.132] loose +0.043; MLP_VCS_perm8 strict -0.005 [-0.095,+0.090] loose +0.054; InfoNCE_host strict -0.015 [-0.106,+0.084] loose +0.044; CoMIR_native strict +0.147 [+0.051,+0.255] loose +0.202
+dinov2_host: MF_VCS_M1 strict -0.587 [-0.749,-0.415] loose -0.382; MLP_VCS_perm8 strict -0.627 [-0.772,-0.473] loose -0.371; InfoNCE_host strict -0.636 [-0.777,-0.484] loose -0.381; CoMIR_native strict -0.475 [-0.633,-0.314] loose -0.223

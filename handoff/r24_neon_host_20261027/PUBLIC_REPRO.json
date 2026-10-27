@@ -1,0 +1,45 @@
+{
+  "neon": {
+    "repo": "https://github.com/JackyWang22/Neon_ShgBf",
+    "commit": "1b3bdbfdf0eeaf48f8d196f96c9ea49e73edcbaf",
+    "env": "venv /projects/EEG-foundation-model/yinghao/envs/neon, torch 2.14.1+cu130 (author: torch 2.0)"
+  },
+  "learn2reg_validation_tre": "NOT REPRODUCED: the public bundle has no landmark files and 7 of the 10 validation cases are presumed TEST134-derived (AUDIT_SUMMARY); the host was instead run on our own CAL/DEV problems with exact synthetic truth",
+  "bug_fixes": {
+    "getters_fixed_checkpoint_reload": "the released code always reloads ../best_score_-6.6130_net_epoch_22.pth relative to the cwd; loading the author checkpoint through the released path and through an explicit path gives identical state dicts (asserted in smoke 1067103), so for author-checkpoint inference the fix is a no-op",
+    "loss_mask_sampling": "utils/loss.py random_patches_msk indexes (channel,row,col) as (row,col); training-only, not used at inference; no-op here; matters only for any retraining (stage 2)",
+    "xfeat_cwd": "xfeatComplex always reads ./xfeat.pt (then overwritten by the checkpoint); model construction runs with cwd = Neon src"
+  },
+  "deviations": [
+    "per-problem reseed 0 (script seeds once per run)",
+    "fixed-image k-means labels computed once per problem (identical input, fixed random_state; same labels as per-round recomputation)",
+    "when no iterate reaches MI > 0 the released script writes no field; scored as the identity (9/160 DEV problems, amendment 3)"
+  ],
+  "runs": {
+    "smoke": "1067095 (xfeat.pt cwd failure), 1067101 (truth-check mask bug), 1067103 PASS",
+    "cal": "1067111",
+    "dev": [
+      "1067112-1067119",
+      "1067174-1067179 (6 shards resumed after the no-output crash)"
+    ],
+    "dhr": [
+      "1067120 smoke",
+      "1067121/1067122 CAL",
+      "1067142 DEV"
+    ]
+  },
+  "cost_seconds_recorded": {
+    "neon_dev": 27521,
+    "neon_cal": 1622,
+    "neon_smoke": 586,
+    "dhr_dev": 1599,
+    "dhr_cal": 351,
+    "note": "per-problem wall seconds from rows; crashed-problem time, model loading and scheduling not included; ~8.9 GPUh known"
+  },
+  "deeperhistreg": {
+    "package": "deeperhistreg 1.0.1 (pip) + MagicLeap SuperPoint/SuperGlue weights",
+    "config": "default_initial_nonrigid, no initial resampling, non-rigid 832 px / 5 levels; SHG inverted (CAL-chosen, DHR_CAL_SELECTION.json)",
+    "note": "a general-purpose WSI pipeline used as an independent reference; not the IWM Learn2Reg entry"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, Learn2Reg case-id ranges tied to held-out data withheld, numbers unchanged."
+}

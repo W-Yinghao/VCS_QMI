@@ -73,7 +73,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ### 3.4 小结
 
-检索中 VCS 唯一稳定有效的角色，是在 hinge 宿主上作为可靠度估计。在已调好的 NCE 宿主上，VCS 加权与 constant 权重相当或更差，学习率配方的作用大于加权方式。在途实验：在 hinge 宿主上把 lr_update 改为 10，检验 +26 rSum 的加权收益是否在改进配方后保留（`handoff/r22_retrieval_n2m_lr10_20261026`）。
+检索中 VCS 唯一稳定有效的角色，是在 hinge 宿主上作为可靠度估计。在已调好的 NCE 宿主上，VCS 加权与 constant 权重相当或更差，学习率配方的作用大于加权方式。hinge 宿主 lr_update 10 已完成（`handoff/r22_retrieval_n2m_lr10_20261026/ANALYSIS_CN.txt`）：VCS10−ConstantU10 最佳 +15.6 rSum（3/3），加权收益保留但小于 lr30 的 +26.3（交互 −10.7，0/3）；提前衰减在 hinge 宿主上伤害两臂（VCS −15.8、Constant −5.1，均 0/3），与 NCE 宿主相反。最佳 hinge 结果 VCS30 468.3 仍低于 NCE 宿主 constant+period10 472.95（非配对）。检索线不再扩展 schedule。
 
 来源：`outputs_v9_r22/vcsloss/SUMMARY.json`；`handoff/r22_a2_complete_v3_20261025/analysis/ANALYSIS_A2_SHARP_ALL3.json`；`outputs_v9/n2m_20261019_v1/analysis/full/RESULTS_CN.md`；`handoff/r22_watch10m_20261024/ANALYSIS_{A3_ALL_SEEDS,PROTECTED_ALL_SEEDS,SHUFFLED_RETRIEVAL_ALL3,RETRIEVAL_LR_ALL6,NCR_ALL3}_*.txt`；`handoff/r22_ret_competition_20261025/RESULT.json`。
 
@@ -198,8 +198,8 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | 项目 | 内容 | 状态 |
 |---|---|---|
 | 配准姿态项 v2 | 局部环 + 宿主粗网格全局排序，3 臂×2 数据集×3 seed，从头 30k | 已完成：无应用收益（§4.4） |
-| 检索 hinge 宿主 lr10 | N2M hinge，VCS/Constant-U×3 seed，lr_update 10，复用 lr30 对照 | 运行中（1065385–1065390） |
-| R23 局部不一致配准 | 共享双尺度描述子 + SHG 局部形变，BF，CAL 21 项 → 8 个 pilot | CAL 选择运行中 |
+| 检索 hinge 宿主 lr10 | N2M hinge，VCS/Constant-U×3 seed，lr_update 10，复用 lr30 对照 | 已完成：加权收益保留（+15.6，3/3），schedule 无改进（§3.4） |
+| R23 局部不一致配准 | 共享双尺度描述子 + SHG 局部形变，BF，CAL 21 项 → 8 个 pilot | 已完成：按预登记规则收尾（见 REGISTRATION_SOTA_ANALYSIS_CN.md） |
 
 两项完成后补充到本报告的第 3.4、4.4 节；如两项都没有达到预登记信号，建议 R22 方向以本报告收尾。
 

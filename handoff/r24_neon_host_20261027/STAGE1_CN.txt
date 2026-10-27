@@ -1,0 +1,42 @@
+Publication copy (sample names aliased; Learn2Reg case ids withheld; numbers and conclusions unchanged).
+
+R24 阶段0–1：Neon_ShgBf 强宿主 + 固定候选池选择规则（2026-10-27；PROTOCOL.json + 修订1–3；仅 FIT/CAL/DEV，无 TEST）
+
+一、阶段0
+1. 数据与身份审计（AUDIT.json / AUDIT_SUMMARY.json）
+   - Learn2Reg 2024 COMULIS SHG-BF 公开包（sha c8047c7a…，CC BY 4.0）共 206 对、834×834，无 landmark 文件。
+   - 身份审计（内容匹配，阳性对照全部找回）：公开 Learn2Reg COMULIS 206 例中，72 例与我们 72 个非 TEST core 一一对应；其余 134 例不匹配任何非 TEST core，推定来自我们的 TEST134，已隔离（不配准、不打分、文件权限关闭）。具体 Learn2Reg 编号不公开。
+   - 作者 checkpoint 训练于 Learn2Reg train：见过 103 个推定 TEST134 core 与我们 32 个 DEV core 中的 22 个（未对齐对，同组织但不是我们的题目）。
+   - 披露：审计确立前，为诊断图像格式，少数后来推定为 TEST 来源的 Learn2Reg 例曾被渲染缩略图或进入格式探针（强度统计/匹配分数）；未用于任何配准、打分、选择或调参，缩略图已删除。
+2. Learn2Reg 验证集 TRE 无法本地复现：公开包无 landmark，且 10 个验证例中 7 个推定来自 TEST134。改在我们自己的 CAL/DEV core 上用 CoMIR 协议合成刚体变换（±30°、|t|≤100 px，B 包同一 draw），固定 SHG、移动 BF，真值精确。
+3. 两个作者代码 bug：getters 固定重载 checkpoint——作者权重下与显式路径逐位相同（smoke 断言）；loss.py 掩码采样轴错误——仅训练用。对作者 checkpoint 推理两者都是空操作，故只跑一个宿主变体（REPRO.json）。
+4. 预算修订（修订2）：宿主约 290 s/题（L40S），DEV 改为每 core 5 个 draw（160 题），CAL 16 题仅技术检查；固定图 k-means 标签每题只算一次（输入与随机种子相同，结果不变）。
+   修订3：9/160 题宿主没有任何迭代 MI>0、发布脚本不写场，按恒等场计为 NATIVE 输出，候选池照常供其他规则使用（修订前已能在日志看到逐题数字，未做任何汇总/规则比较）。
+5. DeeperHistReg（pip 1.0.1 + SuperPoint/SuperGlue，default_initial_nonrigid，适配 834 px；SHG 反相由 CAL 选定）：DEV 严格/宽松 10.6/30.0%，中位 308 px。通用 WSI 流程在 ±30° 跨模态 patch 上初始对齐基本失败；这不是 IWM 的 Learn2Reg 参赛版本，只作独立参照。
+
+二、阶段1（DEV 160 题，32 core × 5 draw，主指标 grid TRE，core 宏平均；同题同候选池 183 个）
+| 规则 | 严格<9 | 宽松<42 | 中位 px | p95 px |
+|---|---|---|---|---|
+| ORACLE（诊断） | 74.4 | 91.9 | 3.77 | 92.1 |
+| NATIVE（Neon MI 选择） | 61.3 | 90.6 | 5.82 | 101.6 |
+| AFFINE（第0轮 XFeat 仿射初值） | 67.5 | 91.3 | 5.43 | 129.0 |
+| 我们的 soft MI | 63.8 | 91.3 | 5.58 | 122.2 |
+| VCS J（vcs_exact 1001/1002/1003） | 68.1 / 66.3 / 68.1 | 91.3 | 5.4–5.8 | 111–136 |
+| BCE（bce 三 seed） | 68.1 / 67.5 / 68.1 | 91.3 | 5.4–5.6 | 122–124 |
+| NCE（nce 三 seed） | 68.8 / 68.1 / 66.9 | 91.3 | 5.6 | 126 |
+| COS（9 个编码器） | 65.6–68.8 | 91.3 | 5.3–5.7 | 101–134 |
+- VCS_J − NATIVE：严格 +6.25（3/3）、宽松 +0.63（3/3），但 p95 +21.4 px（3/3 变差）→ 预登记“VCS 选择收益”判据不成立；VCS_J − BCE −0.42（0/3）、VCS_J − NCE −0.42（1/3）→ 无 VCS 特有性。
+- 失败分解（严格 9 px）：候选池遗漏 41/160（oracle 也 ≥9），原生选择错误 21/160；各学习规则救回 9–12 例、破坏 0–1 例，BCE/NCE/COS 与 VCS 相同，仅取第0轮仿射初值就救回 12 例（破坏 2）。
+  原生规则所选迭代中位为第 25 次（81% 落在前 30 次 NCC 阶段），学习规则中位约第 20 次（约 70% 在 NCC 阶段）、并有 12–15% 直接选回仿射初值；收益来自替换 Neon 的 k-means MI 选择，与用哪种学习目标无关。
+- 分层（三 seed 均值）：未进 Neon 训练的 10 个 DEV core（50 题）NATIVE 70.0 → VCS 79.3 / BCE 79.3 / NCE 78.7（VCS−NATIVE +9.3，3/3，p95 不变差）；见过的 22 个 core NATIVE 57.3 → VCS 62.1 / BCE 62.7 / NCE 63.0。两层里 VCS 都不高于 BCE/NCE。
+- CAL（16 题，技术检查）同样：所有学习规则与仿射初值 87.5%，NATIVE 37.5%。
+- 参照（不同题目方向，不严格可比）：B 包我们的系统在 CoMIR 协议角点误差下 InfoNCE_host .635/.936、MLP_VCS_perm8 .614/.928；本包 Neon 原生角点误差 60.0/90.6%，加任一学习选择 64–66%。
+
+三、结论
+1. 在强宿主 Neon 的固定候选池上，用 VCS J 选候选比 Neon 原生 MI 选择严格成功率高约 6 pp，但 BCE、NCE、余弦以及“直接用仿射初值”都给出同样的提升，且尾部（p95）变差；不存在 VCS 特有的选择优势。
+2. 主要失败源是候选池遗漏（41 例，oracle 也失败），其次才是选择错误（21 例，能被任何合理的学习型或仿射规则部分修正）。
+3. 阶段2/3（局部 P/Q 辅助训练）没有从阶段1得到支持 VCS 的信号；按协议停在阶段1，是否继续由主会话审阅后决定。
+
+四、局限
+DEV 已多轮开发使用；每 core 只用 5 个 draw；合成刚体变换下 Neon 的可变形精修本身会伤害（仿射初值已优于原生输出），对 Neon 不完全公平；我们的编码器在 1/4 分辨率打分；22/32 DEV core 在 Neon 训练集中；混用 L40S/RTX PRO 6000/H100（同题内所有规则同卡配对）；Learn2Reg landmark TRE 不可得，结果不是排行榜指标。
+成本：已知约 8.9 GPUh（Neon DEV 7.64 + CAL 0.45 + smoke 0.16 + DHR 0.54；崩溃题、模型加载与调度另计）。
