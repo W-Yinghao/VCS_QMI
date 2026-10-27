@@ -1,0 +1,26 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+N2M hinge 检索宿主 lr_update 30→10：6 项完成分析（2026-10-27，ANALYSIS.json；DEV，3 seed 901–903；无 TEST）
+
+新 6 项（VCS / Constant-U × lr_update 10 × 3 seed）与复用的 N2M 30 期对照配对；6 组 seed×arm 的 epoch0–9（首次衰减前）
+损失与 DEV 逐位复现对照，数据顺序全程一致。新项 39.87 GPUh（RTX）。
+
+最佳全 DEV rSum（3 seed 均值）：
+| 臂 | lr_update 30 | lr_update 10 |
+|---|---|---|
+| VCS 权重 | 468.32 | 452.53 |
+| Constant-U | 442.01 | 436.91 |
+| Shuffle-VCS（参照） | 440.82 | — |
+
+配对差（最佳 rSum，逐 seed）：
+- 主比较 VCS10 − ConstantU10：+15.62（+13.5/+15.9/+17.5，3/3）→ 描述性信号成立。
+- VCS10 − VCS30：−15.79（0/3）；ConstantU10 − ConstantU30：−5.10（0/3）。
+- 交互（VCS10−ConstU10）−（VCS30−ConstU30）：−10.69（0/3）。
+- 末轮 VCS10 − ConstantU10 +29.62（Constant-U 后期退化更明显）。
+
+解读：
+1. 在 NCE 宿主上有效的提前衰减（constant+period10 472.95）在 hinge 宿主上反而伤害两臂，VCS 伤得更多；不是可迁移的配方改进。
+2. VCS 可靠度权重相对 Constant-U 的优势在两种 schedule 下都稳定（+26.3 / +15.6，均 3/3），这是 N2M 已有结论的复现，强度随 schedule 变化。
+3. 最佳 hinge 结果（VCS30 468.3）仍低于 NCE 宿主 constant+period10（472.95，不同宿主与目标，非配对）。检索线不再扩展 schedule。
+
+局限：DEV 在 N2F/N2M/R22 检索中反复使用；n=3、描述性规则；lr_update 同时改变衰减时机、次数与累计 LR；对照为 10-19 运行，新项节点可能不同（同断言环境）。
