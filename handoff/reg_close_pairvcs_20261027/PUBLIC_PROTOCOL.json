@@ -1,0 +1,106 @@
+{
+  "name": "Registration closing study: pair-calibrated VCS structure matcher (inference-only A/B/C)",
+  "written_utc": "2026-10-27T11:33:59.075288+00:00",
+  "design": "DESIGN_CN.md",
+  "package": "reg_arch_review/VCS_Registration_Architecture_Review_20261027 (zip sha256 29def908...)",
+  "features": "frozen RoMa encoder at 560: DINOv2 stride-14 (1024) bilinear-upsampled to the VGG stride-4 grid (140x140) + VGG scale-4 (256), each L2-normalised, concat/sqrt2; per-modality PCA + k-means simplex basis fit once on FIT descriptors (no gradient training)",
+  "basis": {
+    "pca_dim": 64,
+    "r": 32,
+    "kmeans_seed": 1001,
+    "temperature": "median squared distance to the nearest centre on FIT, per modality"
+  },
+  "fit": {
+    "n_pert": 2,
+    "samples_per_image": 512,
+    "sample_seed": 20261027,
+    "note": "FIT 32 cores x perturbations 0,1: basis + global W (C4) from real host seeds"
+  },
+  "critic": "M1 simplex-bilinear f = a^T W b, W in [-1,1]^(32x32) (|f|<=1), v10.mf_vcs QuadraticHead/solve_box_head, V-mode product (complete marginal product, diagonal included), uniform support weights, float64",
+  "vcs": {
+    "rel_tol": 0.0001,
+    "max_iter": 5000,
+    "rule": "FW-gap tolerance = rel_tol x G(0) (M1 relative rule)"
+  },
+  "bce": {
+    "eps": 0.001,
+    "rel_tol": 0.0001,
+    "max_iter": 5000,
+    "solver": "scipy L-BFGS-B box-constrained (ftol 0, gtol 1e-14)",
+    "objective": "0.5 E_P log((1+f)/2) + 0.5 E_Q log((1-f)/2), same P/Q and class, box shrunk by eps",
+    "settings": {
+      "C6a": "L-BFGS-B capped at the VCS solve's iteration count for the pair",
+      "C6b": "L-BFGS-B to box gap <= rel_tol x gap(0) or max_iter (convergence reported)"
+    }
+  },
+  "blocks": {
+    "size": 128,
+    "layout": "4x4 blocks on reference coordinates; support blocks (bi+bj) even, check blocks odd",
+    "guard_px": 12
+  },
+  "support": {
+    "rule": "host matches at the host-selected angle that are host-RANSAC inliers (tau 3), bidirectionally consistent (B->A RoMa warp within bidir_px of the source), RoMa certainty >= cert_min, inside support blocks outside the guard band; at most per_block per block by certainty, at most max_total",
+    "bidir_px": 3.0,
+    "cert_min": 0.5,
+    "per_block": 32,
+    "max_total": 256,
+    "min_total": 24,
+    "min_blocks": 3
+  },
+  "queries": {
+    "stride_px": 16,
+    "region": "grid points in check blocks outside the guard band",
+    "window": {
+      "base_px": 54.0,
+      "slope": 0.18,
+      "meaning": "target search disk in the rotated moving image covering |t|<=51x1.05 and residual rotation <=10 deg"
+    },
+    "peak": "top-1 on the 140x140 target grid + parabolic sub-cell refinement; 2nd peak >= peak2_sep_px away recorded for top-2 coverage only",
+    "peak2_sep_px": 8.0,
+    "one_candidate_per_query_to_ransac": true
+  },
+  "ransac": {
+    "function": "methods.ransac_rigid (host)",
+    "tau_px": 3.0,
+    "iters": 2000,
+    "domain": "theta<=30deg, |t|<=51px (x1.05)",
+    "seeds": "ctx seed*1009 + host angle index (+1 new-only, +2 seed-only, +3 seed+new)"
+  },
+  "arms": {
+    "C1_host": "locked host output (recomputed in-job)",
+    "C2_extra_search": "host matches + RoMa's own dense-warp target at the SAME query positions (equal extra budget)",
+    "C3_seed_only": "RANSAC on the support set only",
+    "C4_global_vcs": "fixed global VCS W fit once on FIT real seeds (multi-scene V mode), same expansion",
+    "C5_pair_vcs": "pair-calibrated VCS W on this pair's support, same expansion",
+    "C6a_pair_bce_samecompute": "pair-calibrated balanced BCE, same iterations as C5",
+    "C6b_pair_bce_converged": "pair-calibrated balanced BCE, own convergence",
+    "main_point_set": "host matches U new matches (as C2); secondary: support U new (seed_plus_new), new only"
+  },
+  "fallback": "support < min_total or < min_blocks occupied support blocks -> C3..C6 take the host output (counted); C5 VCS solver not converged -> host output (counted)",
+  "oracle_m": 20,
+  "correct_px": [
+    2.25,
+    3.0,
+    6.0
+  ],
+  "A": "CAL only (oracle support = true correspondences at support-block grid points, sweep angle nearest the true rotation; diagnostic, never deployable); real-seed calibration at the same angle reported alongside",
+  "B": "DEV (and CAL): support count/error rate (truth, diagnostic)/blocks/hull/eff. rank/condition/J fit vs held-out check-block host matches/solver/fallback",
+  "C": "DEV 320 (and CAL 80): six arms, strict<9/loose<42/p95/worst core/fallback; paired C5-Ck core-cluster bootstrap (B=10000) on strict",
+  "no_thresholds": "no result gate; all of A, B, C run",
+  "test": "never read; host DataGuard refuses TEST cores; no closed/ or quarantined Learn2Reg file is opened",
+  "budget_gpuh_cap": 10,
+  "frozen": {
+    "close_reg.py": "f0ce860c2af665c04adcb7b2ad810ce0bf45c306568a65d377a6af05f9fd0b0d",
+    "gpu.sbatch": "9a306e0312f0a7c6386b24aba5ad224ff029d2fb4b24ff0541a63db92e863acc",
+    "cpu.sbatch": "1768d453826590469b36890b409df6c1ecd09eca635da57b2c82ad9e88800851",
+    "smoke.sbatch": "9594073151850287dd498633f03d89f4c0c4850077a69cd126e36e6c9d82a545"
+  },
+  "revisions": [
+    "pre-GPU: jsonable() also converts numpy bool (CPU check 1067821 crashed writing its report); no setting changed",
+    "pre-GPU: BCE solver changed from plain projected gradient (did not reach its gap tolerance in 5000 steps on the CPU toy, 1067822) to box L-BFGS-B so the BCE control is properly optimised; smoke output dir added",
+    "pre-full-run: cmd_fit creates the work dir (smoke 1067824 failed saving smoke/BASIS.npz after the host ran 2 FIT problems); no setting changed"
+  ],
+  "smoke": "R27_SMOKE=1 writes BASIS/W_GLOBAL/FIT/rows under smoke/ (fit --limit 2, run --role CAL --limit 2)",
+  "cpu_check": "CPU_CHECK.json (job 1067823, all_pass)",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
