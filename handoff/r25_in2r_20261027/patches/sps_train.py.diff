@@ -1,0 +1,19 @@
+--- /projects/EEG-foundation-model/yinghao/models/r25_src/SPS/code/train.py	2026-10-27 10:56:04.852774795 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r25_in2r_20261027/sps_code/train.py	2026-10-27 11:11:52.456062528 +0100
+@@ -283,7 +283,7 @@
+         # remember best R@ sum and save checkpoint
+         is_best = rsum > best_rsum
+         best_rsum = max(rsum, best_rsum)
+-        if is_best:
++        if True:  # R25: save every epoch for offline full-DEV selection (native: best/stage/last only)
+             save_checkpoint(
+                 {
+                     "epoch": epoch,
+@@ -768,4 +768,4 @@
+     noisy_mask = np.zeros(prob.shape[0], dtype=bool)
+     noisy_mask[clean_prob_mask == False] = True
+ 
+-    return strictly_clean_mask, clean_mask, noisy_mask
+\ No newline at end of file
++    return strictly_clean_mask, clean_mask, noisy_mask
+\ No newline at end of file

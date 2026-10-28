@@ -1,0 +1,11 @@
+--- /projects/EEG-foundation-model/yinghao/models/r25_src/IN2R/data.py	2026-10-27 10:56:03.022775998 +0100
++++ data.py	2026-10-27 23:11:30.361113696 +0100
+@@ -161,7 +161,7 @@
+                     deleted_idx.append(i)
+             else:
+                 tokens[i] = vocab(token)
+-        if len(deleted_idx) != 0:
++        if len(deleted_idx) != 0 and len(deleted_idx) < len(tokens):  # R25: native deletes every token with p~0.08^n -> 0-length caption crashes the GRU; keep tokens then (no RNG change)
+             tokens = [tokens[i] for i in range(len(tokens)) if i not in deleted_idx]
+         target = torch.Tensor(tokens)
+         return target

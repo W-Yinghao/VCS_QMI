@@ -1,0 +1,29 @@
+--- /tmp/claude-34987/-home-infres-yinwang-CS-QMI/3ef2737e-e5a7-4b67-9f0b-53c6d6caa16c/scratchpad/sps_train_before.py	2026-10-28 02:07:18.512498603 +0100
++++ train.py	2026-10-28 02:07:18.518801039 +0100
+@@ -406,7 +406,7 @@
+                     batch_prob_A_c,
+                     batch_prob_B_c,
+                     _c_correspondence
+-                ) = clean_iter.next()
++                ) = next(clean_iter)
+             except:
+ 
+                 skip_clean_train = True
+@@ -421,7 +421,7 @@
+                     n_ids,
+                     batch_labels_n,
+                     _n_correspondence
+-                ) = noisy_iter.next()
++                ) = next(noisy_iter)
+             except:
+ 
+                 noisy_iter = iter(noisy_loader)
+@@ -432,7 +432,7 @@
+                     n_ids,
+                     batch_labels_n,
+                     _n_correspondence
+-                ) = noisy_iter.next()
++                ) = next(noisy_iter)
+ 
+         data_time.update(time.time() - end)
+ 

@@ -1,0 +1,38 @@
+--- /projects/EEG-foundation-model/yinghao/models/r25_src/SPS/code/run.py	2026-10-27 10:56:04.848774797 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r25_in2r_20261027/sps_code/run.py	2026-10-27 11:11:52.473062672 +0100
+@@ -48,34 +48,7 @@
+     main(opt, logger, resume=False)
+ 
+ 
+-    logger.info("\n*-------- Testing Best Epoch --------*")
+-    if opt.data_name == "coco_precomp":
+-        logger.info("5 fold validation")
+-        evalrank(
+-            os.path.join(opt.output_dir, "model_best.pth.tar"),
+-            logger,
+-            split="testall",
+-            fold5=True,
+-        )
+-        logger.info("full validation")
+-        evalrank(os.path.join(opt.output_dir, "model_best.pth.tar"), logger, split="testall")
+-    else:
+-        evalrank(os.path.join(opt.output_dir, "model_best.pth.tar"), logger, split="test")
+-
+-    logger.info("\n*-------- Testing Last Epoch --------*")
+-    last_epoch_model_path = "checkpoint_" + str(opt.num_epochs - 1) + ".pth.tar"
+-    if opt.data_name == "coco_precomp":
+-        logger.info("5 fold validation")
+-        evalrank(
+-            os.path.join(opt.output_dir, last_epoch_model_path),
+-            logger,
+-            split="testall",
+-            fold5=True,
+-        )
+-        logger.info("full validation")
+-        evalrank(os.path.join(opt.output_dir, last_epoch_model_path), logger, split="testall")
+-    else:
+-        evalrank(os.path.join(opt.output_dir, last_epoch_model_path), logger, split="test")
++    logger.info("R25: no automatic TEST (explicit entry only)")
+ 
+ 
+ if __name__ == "__main__":
