@@ -1,4 +1,4 @@
-Publication copy (sample names aliased; numbers and conclusions unchanged).
+Publication copy (sample names aliased; Learn2Reg case ids withheld; numbers and conclusions unchanged).
 
 # 配准应用：与 SOTA 的对照分析（2026-10-26）
 
@@ -229,3 +229,11 @@ V10 BF DEV32 同一批 320 题，CAL 8 选配置后锁定；现成公开权重�
 配对 core 级差（32 core bootstrap）：SP+LG − MF_VCS_M1 严格 +8.8 pp [+1.4, +17.9]，− MLP_VCS_perm8 +4.8 [−0.7, +11.4]，− InfoNCE_host +3.9 [−2.5, +11.0]；宽松全部 +3–4 pp。
 
 **结论：系统级 SOTA 说法不成立。** 现成的 SuperPoint+LightGlue（不在 BF 上训练）在严格成功率上与我们最好的系统持平或更好，在宽松成功率和尾部误差上明显更好（98.8–100% 对 94.6–95.7%）。我们的学习型系统只对已发表的 CoMIR/MI/MIND 类流程有明确优势。这与 §9 的收回一致；后续配准工作应以这些匹配器（及 R24 的 Neon 强宿主）为基线，并把 VCS 放到局部对应评价或候选选择的位置，而不是替换整个能量。
+
+## 11. 配准收尾：按图像对校准的 VCS 结构匹配器（2026-10-28，`handoff/reg_close_pairvcs_20261027/ANALYSIS_CN.txt`）
+
+冻结 MINIMA-RoMa 特征、FIT 固定低维基底，每对图像在固定支持集上做一次有界二次 VCS 校准后冻结，生成新对应并刚性求解；只做推理期诊断，不训练基底。
+
+- **oracle 支持上限（CAL）**：校准后的新对应在 2.25/3/6 px 内正确率仅 0.10%/0.18%/0.74%，只用新对应严格 0%。真实支持与之几乎相同。
+- **完整任务（DEV 320 题）**：原生 69.06 严格 / 100 宽松；等预算额外搜索 69.06；仅支持点 67.81；全局 VCS、逐对 VCS、逐对 matched BCE 全部 68.75。C5−C1 −0.31 pp [−0.94, 0]，C5−C6 与 C5−C4 为 0。宿主额外搜索能产生 40% 正确的新对应，VCS 校准模块只有 0.08%。
+- **结论**：属于设计中“连理想支持都不能改善新匹配”的情形，推理期即插即用的逐对校准切口无价值，VCS 与 BCE 无差别。**配准线就此关闭**。局限：基底低秩（有效秩约 3.4）、二次问题病态，可训练基底/双层训练版本未运行，不能推出该版本必然无效，但不再投入。
