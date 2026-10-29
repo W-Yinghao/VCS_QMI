@@ -20,7 +20,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | D-VCS − H0 | −0.24（2/3） | −0.93（0/3） |
 | D-VCS − D-BCE | +1.38（3/3） | +0.05（2/3） |
 | D-VCS − M-VCS | +0.50（2/3） | +0.75（3/3） |
-| D-VCS − N-VCS | −0.45（0/3） | −0.34（0/3） |
+| D-VCS − N-VCS | −0.45（0/3） | −0.34（0 正 / 1 平 / 2 负；seed1002 两者差 6e-14，为浮点平局） |
 | D-VCS − D-sNCE | −0.99（0/3） | −0.37（2/3） |
 
 末 5 轮口径方向基本一致，例外：60% 上 D-VCS 相对 M-VCS/N-VCS 的末 5 轮优势更大（+1.86 / +1.44，均 3/3），即点目标臂后期退化更多。
@@ -28,7 +28,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 ## 3. 结论（按包 §7 与调整包的判断顺序）
 
 1. **完整系统相对原生强宿主**：没有臂稳定超过 H0。40% 上 D-sNCE +0.75、N-VCS +0.21（各 2/3），60% 上所有臂都低于 H0（−0.55 至 −1.68）。去掉 GraphRefiner、改用真实候选分布这一架构本身没有带来系统级收益；也低于 R25 中保留 refiner 的 V1（VCS-C1）512.32 / 493.84 与 B1（BCE-C1）513.77 / 494.22（R26 用 cosine critic，二者 critic 不同）。
-2. **候选分布与二阶结构**：D-VCS 高于未归一化均值点 M-VCS（40% +0.50、60% +0.75），但低于归一化均值点 N-VCS（两条件 0/3）。保留完整分布相对“未归一化均值”有小幅好处，不优于常见的“归一化 prototype”。
+2. **候选分布与二阶结构**：D-VCS 高于未归一化均值点 M-VCS（40% +0.50、60% +0.75），但不高于归一化均值点 N-VCS（40% 0/3；60% 两负一平）。保留完整分布相对“未归一化均值”有小幅好处，不优于常见的“归一化 prototype”。
 3. **VCS 目标特异性**：同图同 critic 下 D-VCS 胜 D-BCE（40% +1.38，3/3；60% 基本持平），但输给同图 soft NCE（D-sNCE）。不能称 VCS 特有优势。
 4. 逐 seed 差值都在 ±3 rSum 内（均值差都在 ±1.7 内），三 seed、无逐 query 排名，因此没有图像分组 bootstrap；按设计不设结果门槛，只报告。
 
@@ -38,4 +38,9 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 - GPU 混合 L40S 与 RTX PRO 6000（每 run 记录在 PEAK_*.json），臂间硬件不完全配对。
 - 外系数 c_J 在共同前缀上按 FIT 梯度量级一次标定后冻结（SCALE_flickr.json），critic 为 cosine，不同臂的有效步长只在标定点匹配。
 - DEV 已多轮使用；Flickr TEST 旧轮次已读，锁定后只能作重复 benchmark，需用户批准。
-- 固定图机制诊断（同图 VCS/BCE/M 梯度、跨 peer 坐标相容性）作业 1071955 尚未运行完成，结果出来后补充。
+- 固定图机制诊断（同图 VCS/BCE/M 梯度、跨 peer 坐标相容性）结果见 `handoff/r26_graph_diag_20261028/ANALYSIS_CN.txt`（1073221）：同图 VCS/BCE query 梯度方向 cos≥0.99、末轮 BCE 步长约大 15–20%；共同前缀处两 peer 坐标基本不相容（同样本跨 peer 余弦 0.12–0.19，按图分组正交映射可恢复到 0.83–0.87），末轮已对齐。
+
+## 5. 补充（2026-10-29）
+
+- 更正：60%/seed1002 的 D-VCS 与 N-VCS 最佳 rSum 相差约 6e-14，应记为平局，上表已改；结论不变。
+- 种子差异来源见 `analysis/SEED_DIVERGENCE_CN.txt`：60% seed1002 的约 −20 rSum 共同位移在原生 warmup/共同前缀阶段已形成，co-train 中未扩大，与 R26 目标无关。

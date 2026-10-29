@@ -54,7 +54,7 @@ def sep(S):
     d = S.diagonal(); n = S.shape[0]
     off = (S.sum() - d.sum()) / (n * n - n)
     r1 = float((S.argmax(1) == torch.arange(n, device=S.device)).float().mean())
-    return {'diag_mean': float(d.mean()), 'offdiag_mean': float(off), 'diag_minus_off': float(d.mean() - off), 'inbatch_R1': r1}
+    return {'diag_mean': float(d.mean()), 'offdiag_mean': float(off), 'diag_minus_off': float(d.mean() - off), 'inbatch_diag_top1_noisy_pairs': r1}
 
 
 def procrustes(src, dst):
@@ -65,6 +65,8 @@ def procrustes(src, dst):
 def cross_peer(A, B, loader):
     A.val_start(); B.val_start()
     feats = {k: [] for k in ('iA', 'tA', 'iB', 'tB')}
+    img_ids = []
+    t2i = getattr(loader.dataset, 't2i_index', None)
     per_batch = []
     n = 0
     with torch.no_grad():
@@ -78,6 +80,7 @@ def cross_peer(A, B, loader):
             iB, tB, _ = B.forward_emb(imgs, txt, tlen, imgae_lengths=ilen)
             for k, v in (('iA', iA), ('tA', tA), ('iB', iB), ('tB', tB)):
                 feats[k].append(v.float())
+            img_ids += [int(t2i[i]) if t2i is not None else int(i) // 5 for i in batch[4]]
             per_batch.append({'AA': sep(iA @ tA.t()), 'BB': sep(iB @ tB.t()), 'AB': sep(iA @ tB.t()), 'BA': sep(iB @ tA.t()),
                               'nbr_overlap_i2t_AA_vs_BB': topk_overlap(iA @ tA.t(), iB @ tB.t()),
                               'nbr_overlap_t2i_AA_vs_BB': topk_overlap(tA @ iA.t(), tB @ iB.t()),
@@ -100,14 +103,20 @@ def cross_peer(A, B, loader):
         same[mod] = {'same_sample_cross_peer_cos_mean': float(cs.mean()), 'same_sample_cross_peer_cos_p10': float(cs.quantile(.1)),
                      'other_sample_cross_peer_cos_mean': float((a * b[perm]).sum(1).mean()),
                      'same_sample_within_peer_ref_cos': 1.0}
-    half = N // 2
-    fit, chk = perm[:half], perm[half:]
+    # split by presented image id so captions of one image never straddle fit/check (review 20261029 §7.4)
+    ids = torch.tensor(img_ids, device=F['iA'].device)
+    uniq = torch.unique(ids)
+    gperm = uniq[torch.randperm(len(uniq), generator=torch.Generator().manual_seed(GEN_SEED)).to(ids.device)]
+    fit_imgs = gperm[: len(gperm) // 2]
+    in_fit = torch.isin(ids, fit_imgs)
+    fit, chk = in_fit.nonzero().flatten(), (~in_fit).nonzero().flatten()
+    half = int(fit.numel())
     proc = {}
     for mod in ('i', 't'):
         Rm = procrustes(F[mod + 'B'][fit], F[mod + 'A'][fit])
         b_chk = F[mod + 'B'][chk]; a_chk = F[mod + 'A'][chk]
         mapped = Fn.normalize(b_chk @ Rm, dim=-1)
-        proc[mod + '_B_to_A'] = {'fit_n': int(half), 'check_n': int(N - half), 'dim': int(a_chk.shape[1]),
+        proc[mod + '_B_to_A'] = {'fit_n': int(half), 'check_n': int(N - half), 'fit_images': int(len(fit_imgs)), 'check_images': int(len(uniq) - len(fit_imgs)), 'dim': int(a_chk.shape[1]),
                                  'check_same_sample_cos_before': float((a_chk * b_chk).sum(1).mean()),
                                  'check_same_sample_cos_after': float((a_chk * mapped).sum(1).mean()),
                                  'fit_same_sample_cos_after': float((F[mod + 'A'][fit] * Fn.normalize(F[mod + 'B'][fit] @ Rm, dim=-1)).sum(1).mean())}
@@ -117,7 +126,8 @@ def cross_peer(A, B, loader):
             proc['i2t_AB_check_sep_before'] = sep(ic[:m] @ tc[:m].t())
             proc['i2t_AB_check_sep_after'] = sep(ic[:m] @ Fn.normalize(tc[:m] @ Rm, dim=-1).t())
             proc['i2t_AA_check_sep_ref'] = sep(ic[:m] @ F['tA'][chk][:m].t())
-    return {'n_batches': n, 'n_samples': int(N), 'batch_context': 'identical batch tensors for both peers, val mode (no dropout), host batch centering applies within each batch',
+    return {'n_batches': n, 'n_samples': int(N), 'n_images': int(len(uniq)), 'split': 'image-grouped (presented image id), fit/check disjoint images',
+            'label_note': 'diagonal of a noisy FIT batch is not all true correspondences; inbatch_diag_top1_noisy_pairs is not a retrieval R@1', 'batch_context': 'identical batch tensors for both peers, val mode (no dropout), host batch centering applies within each batch',
             'per_batch_mean': agg, 'same_sample': same, 'orthogonal_map_diagnostic_only': proc}
 
 

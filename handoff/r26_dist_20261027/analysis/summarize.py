@@ -51,7 +51,7 @@ for c in CONDS:
     for m in ('best', 'last5'):
         for x, y in pairs:
             d = [res[f'{c}_s{s}'][x][m] - res[f'{c}_s{s}'][y][m] for s in SEEDS]
-            comp.setdefault(c, {}).setdefault(m, {})[f'{x}-{y}'] = {'per_seed': d, 'mean': float(np.mean(d)), 'n_pos': int(sum(v > 0 for v in d))}
+            comp.setdefault(c, {}).setdefault(m, {})[f'{x}-{y}'] = {'per_seed': d, 'mean': float(np.mean(d)), 'n_pos': int(sum(v > 1e-9 for v in d)), 'n_tie': int(sum(abs(v) <= 1e-9 for v in d))}
     comp[c]['arm_means_best'] = {a: float(np.mean([res[f'{c}_s{s}'][a]['best'] for s in SEEDS])) for a in ARMS + ['H0']}
     comp[c]['arm_means_last5'] = {a: float(np.mean([res[f'{c}_s{s}'][a]['last5'] for s in SEEDS])) for a in ARMS + ['H0']}
 json.dump({'scope': f'R26 {which}: full DEV best/last5 rSum, seed-paired; no TEST; no per-query ranks saved -> no image-grouped bootstrap',

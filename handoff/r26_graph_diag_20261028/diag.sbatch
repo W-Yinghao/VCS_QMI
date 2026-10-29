@@ -23,7 +23,7 @@ for CELL in f40_s1001 f60_s1001; do
   NR=0.${CELL:1:1}
   $PY -u r26_graph_export.py $O $CELL prefix=$P/$CELL/prefix/prefix_state.pt mid=MISSING_mid_checkpoint_not_saved \
      d_vcs_final=$R/$CELL/d_vcs/state_last.pt d_bce_final=$R/$CELL/d_bce/state_last.pt m_vcs_final=$R/$CELL/m_vcs/state_last.pt \
-     -- --data_name f30k_precomp --noise_ratio $NR --noise_file $NZ/f30k_precomp_$NR.npy --seed ${CELL:5:4}
+     -- --data_name f30k_precomp --noise_ratio $NR --noise_file $NZ/f30k_precomp_$NR.npy --seed ${CELL:5:4} --output_dir $O/_opt_unused
 done
 $PY -u aggregate.py $O /home/infres/yinwang/CS_QMI/handoff/r26_dist_20261027/SCALE_flickr.json
 echo DIAG_DONE
