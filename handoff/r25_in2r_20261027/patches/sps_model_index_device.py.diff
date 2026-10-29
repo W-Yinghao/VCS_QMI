@@ -1,0 +1,11 @@
+--- /tmp/claude-34987/-home-infres-yinwang-CS-QMI/3ef2737e-e5a7-4b67-9f0b-53c6d6caa16c/scratchpad/sps_model_before.py	2026-10-28 15:04:36.982847484 +0100
++++ model.py	2026-10-28 15:05:02.416401356 +0100
+@@ -681,7 +681,7 @@
+         top=img_cossim.topk(k=1,dim=1,largest=True,sorted=True)
+ 
+         indices = top.indices.squeeze(1)
+-        batch_text_n = captions_sc[indices]
++        batch_text_n = captions_sc[indices.to(captions_sc.device)]
+ 
+         batch_lengths_n = [lengths_sc[i.item()] for i in indices]
+         img_embs_n, cap_embs_n, cap_lens_n = self.forward_emb(images_n, batch_text_n, batch_lengths_n)

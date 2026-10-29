@@ -72,3 +72,10 @@ Flickr30K `f30k_precomp`：训练 29,000 图 / 145,000 caption；完整 DEV 1,01
 - 原因：作者代码用 Python 2 风格的 `it.next()`，当前 torch 迭代器只支持内置 `next(it)`。另一个后果更隐蔽：`train.py:409` 的 `clean_iter.next()` 包在裸 `try/except` 中，在新版 torch 下总是抛错并被吞掉，导致 `skip_clean_train=True`、clean batch 每步都被静默跳过；noisy 分支的第二次调用不在 try 中，所以才崩溃。
 - 修复：三处 `x.next()` → `next(x)`，恢复作者在旧 torch 下的原意（耗尽时 StopIteration 仍走原 except 路径）。diff：`patches/sps_train_iternext.py.diff`。不改任何超参或流程。
 - 处理：失败尝试整体移入 `outputs_v9/r25_in2r_20261027/attempts/S0_sps_f40_s1001_1067812_iternext`（SPS 原生不支持续跑），从头重交为 1069504（RTX，24h），成本计入失败尝试。
+
+### 3.3 SPS 原生缺陷：CPU 张量用 CUDA 索引（2026-10-28 14:05UTC，主会话）
+
+- 现象：S0 SPS 重跑（1069504）在 co-training 进入 `noisy_start_epoch`（默认 15）后第一次走 noisy 分支时崩溃：`RuntimeError: indices should be either on cpu or on the same device as the indexed tensor (cpu)`（`sps_code/model.py:684 process_noisy_p1`）。
+- 原因：`captions_sc` 留在 CPU（`forward_emb` 内部再搬到 GPU），`indices` 来自 CUDA 上的 `topk`；新版 torch 不允许跨设备索引。只有 epoch ≥ 15 才会走到这条路径，所以前 15 轮正常。
+- 修复：`captions_sc[indices]` → `captions_sc[indices.to(captions_sc.device)]`，语义不变（caption 仍留在 CPU，之后由 forward_emb 搬到 GPU）。按字节替换，保留原文件 CRLF 换行；diff：`patches/sps_model_index_device.py.diff`。
+- 为避免再跑数小时才暴露下一个缺陷，先用存档的 warmup 第 4 轮 checkpoint 做 1 轮技术 smoke（clean_start_epoch = noisy_start_epoch = 0，覆盖全部 co-training 分支；输出 `outputs_v9/r25_in2r_20261027/smoke/S0_sps_branchcheck`，不作结果），作业 1070492。通过后从头重交正式 S0。失败尝试存档 `attempts/S0_sps_f40_s1001_1069504_indexdevice`，成本计入。
