@@ -28,9 +28,15 @@ def run(cell, arm):
                     skips[k] = skips.get(k, 0) + v
     peak = sorted(glob.glob(os.path.join(d, 'PEAK_*.json')))
     pk = json.load(open(peak[-1])) if peak else {}
+    runj = sorted(glob.glob(os.path.join(d, 'RUN_*.json')))
+    env = json.load(open(runj[-1])).get('env', {}) if runj else {}
+    # cost metadata: PEAK files exist only for R26 arm runs; native H0 (r25_run.py) records GPU/host in RUN_*.json and
+    # per-epoch seconds in EPOCHS.json. epoch_seconds_sum excludes data staging / model setup.
+    pk.setdefault('gpu', env.get('gpu'))
+    ep_sec = sum(e.get('seconds', 0) for e in ep) / 3600
     return {'best': max(rs), 'epoch': b, 'last': rs[-1], 'last5': float(np.mean(rs[-5:])),
             **{k: ep[b]['dev'][k] for k in KEYS}, 'skips': skips,
-            'wall_h_last_attempt': pk.get('wall_seconds', 0) / 3600, 'gpu': pk.get('gpu'), 'attempts': open(os.path.join(d, 'ATTEMPTS')).read().strip()}
+            'wall_h_last_attempt': (pk['wall_seconds'] / 3600) if 'wall_seconds' in pk else None, 'cotrain_epoch_seconds_h': ep_sec, 'gpu': pk.get('gpu'), 'host': env.get('host'), 'attempts': open(os.path.join(d, 'ATTEMPTS')).read().strip()}
 
 
 res = {}

@@ -2,7 +2,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # R25 结果：IN²R 强宿主中局部替换 noisy 修正目标（Flickr30K，2026-10-28）
 
-状态：正式 Flickr 矩阵 18 项（H0 原生 SCE / V1 VCS-C1 / B1 balanced BCE-C1 × 40%/60% × seed 1001–1003）全部完成。SPS 外部参照因原生代码缺陷重跑中（NATIVE_FIDELITY §3.2–3.3）。全部为 full DEV（1,014 图 / 5,070 caption）开发证据，未读取 TEST。数字来源：`RESULTS_PER_RUN_CORE.json`、`PAIRED_COMPARISONS.json`。
+状态：正式 Flickr 矩阵 18 项（H0 原生 SCE / V1 VCS-C1 / B1 balanced BCE-C1 × 40%/60% × seed 1001–1003）全部完成。SPS 外部参照修复原生缺陷后已完成（见 §5）。全部为 full DEV（1,014 图 / 5,070 caption）开发证据，未读取 TEST。数字来源：`RESULTS_PER_RUN_CORE.json`、`PAIRED_COMPARISONS.json`。
 
 ## 1. 最佳 full-DEV rSum（0–600）
 
@@ -30,3 +30,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 - 外系数 c_J 在共同原生状态下按 FIT 梯度量级一次标定（CRITIC_AND_SCALE / calib），critic C1 在 40%/seed1001 上按 full DEV 选定（该格属于开发选择，其余 5 格为同协议复用）。
 - 原生代码三处缺陷（单样本 labeled batch NaN、空 caption、SPS `it.next()`）与 SPS 第四处缺陷（跨设备索引）均已修复，对所有臂一致；失败尝试存档并计入成本。
 - Flickr TEST 已在旧轮次读取过，锁定后的 TEST 评估只算重复 benchmark，且需用户批准后执行。
+
+## 5. SPS 外部参照（2026-10-29 完成）
+
+SPS 原生（commit b985abe9，修复 NATIVE_FIDELITY §3.1–3.3 四处原生缺陷后从头运行；作业 1071941，RTX PRO 6000，约 12.6 h）在 Flickr 40% / seed 1001、同一锁定噪声映射上，40 轮 co-train 每个 checkpoint 离线做 full DEV（1,014 图 / 5,070 caption，`tools/sps_fulldev_eval.py`，peer 平均相似度）：
+
+- 最佳 full-DEV rSum **487.26**（第 37 轮；i2t R@1/5/10 75.15 / 92.50 / 96.35，t2i 55.72 / 80.59 / 86.94）；末轮 486.88，末 5 轮均值 487.09。
+- 同条件 IN²R-code 原生 H0 为 512.62，R25 V1（VCS-C1）513.65、B1（BCE-C1）514.87：SPS 低约 25 rSum。
+- SPS 原生代码自带的验证只用前 1,000 条 caption（200 图），其最佳为 547.5，与 full DEV 不可比，未用于选择。
+- 论文报告的 SPS Flickr 40% 数字是 TEST 上的、划分与噪声抽样不同，不能与本 DEV 结果直接比较。只跑了一个 seed，作为外部参照，不做配对统计。

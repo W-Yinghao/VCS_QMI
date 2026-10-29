@@ -40,3 +40,4 @@ R@1 均值：COCO i2t H0 85.57 / D-VCS 86.27 / D-BCE 85.80 / M-VCS 86.13，t2i 6
 - 24 单元均一次完成（ATTEMPTS=1）；`skip_labeled_lt2` 每 run 0–2 次；CC152K 部分 run 的 `skip_small_or_empty` 达 11–21 次（真实噪声下 GMM 划分偶有极小 unlabeled 划分，各臂同规则跳过，已计数）。
 - GPU 混合 L40S 与 RTX PRO 6000，臂间硬件不完全配对。外系数 c_J 按各数据集 FIT 一次标定后冻结（SCALE_coco.json、SCALE_cc152k.json），cosine critic。
 - CC152K 的 TEST 与 COCO 5K TEST 均未读取；锁定后的 TEST 评估需用户批准。
+- 成本元数据补齐（2026-10-29）：原生 H0 由 r25_run.py 运行，不写 PEAK 文件，旧表中 H0 的 wall_h_last_attempt=0.0、gpu=null 是缺失而非零成本。现从 RUN_*.json 取 GPU/节点，从 EPOCHS.json 累加 40 轮 co-train 计时（不含数据拷贝与建模）：COCO H0 6.51 / 12.14 / 6.48 h（RTX / L40S / RTX），CC152K 2.56 / 3.98 / 4.10 h（RTX / L40S / L40S）；表中缺失的整作业墙钟记为 None。

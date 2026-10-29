@@ -1,0 +1,55 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+diff -ru -x __pycache__ code/r27_co_train.py code_v11/r27_co_train.py
+--- code/r27_co_train.py	2026-10-29 03:06:23.497977498 +0100
++++ code_v11/r27_co_train.py	2026-10-29 13:42:01.992764036 +0100
+@@ -21,10 +21,11 @@
+ import r27_interface as I
+ from r27_interface import Ctx, forward_emb_ctx, search, reencode, enqueue_with_ids
+ from r27_targets import generate, f_vcs
++from r27_delta_control import generate_centered_mean
+ from vse import infonce
+
+ logger = R.logger
+-ARMS = {'a1_iface': None, 'a2_mean': 'mean', 'a3_vcs': 'vcs', 'a4_bce': 'bce', 'a5_snce': 'snce'}
++ARMS = {'a1_iface': None, 'a2_mean': 'mean', 'a3_vcs': 'vcs', 'a4_bce': 'bce', 'a5_snce': 'snce', 'a6_delta': 'delta'}  # v1.1 supplement: linear background-subtracted control (not full VCS)
+ TIME_EVERY = 25
+ SELFCOS_EVERY = 50
+ _PEER = {}
+@@ -105,7 +106,10 @@
+         stats[f'{branch}_J_query'] += float(f_vcs(Xd.double(), S['A'].double(), c.double(), Y.double()).mean())
+         l_aux = None
+         if gen is not None:
+-            Tg, valid, info = generate(gen, S['A'], Y)
++            if gen == 'delta':
++                Tg, valid, info = generate_centered_mean(S['A'], Y)
++            else:
++                Tg, valid, info = generate(gen, S['A'], Y)
+             t3 = _sync() if timed else None
+             if int(valid.sum()) >= 2:
+                 if bool(valid.all()):
+Only in code_v11: r27_delta_control.py
+diff -ru -x __pycache__ code/r27_gate.py code_v11/r27_gate.py
+--- code/r27_gate.py	2026-10-29 03:03:10.451353252 +0100
++++ code_v11/r27_gate.py	2026-10-29 13:42:02.005764142 +0100
+@@ -120,6 +120,11 @@
+                                 mean_req=bool(mean.requires_grad), n_atoms=int(S['cols'].numel()),
+                                 cos_reenc_vs_other_cached=float((neigh * (B.memory_queue.txt_queue if branch == 'i2t' else B.memory_queue.img_queue)[S['slots']]).sum(-1).mean()),
+                                 queue_same=(h(B.memory_queue.img_queue), h(B.memory_queue.txt_queue), tuple(h(v) for v in B.memory_queue.r27_ids.values())) == qh)
++            if arm == 'a6_delta':
++                Aa = S['A'].double(); Yy = Y.double(); dl = Aa @ Yy - Aa.mean(0) @ Yy
++                exp_t = (dl / dl.norm(dim=1, keepdim=True)).to(tgt.dtype)
++                seen[branch]['delta_target_maxdiff'] = float((tgt - exp_t).abs().max())
++                seen[branch]['delta_target_ok'] = bool(seen[branch]['delta_target_maxdiff'] < 1e-5)
+             if branch == 'i2t' and arm == 'a3_vcs':
+                 seen['_graph'] = (S['A'].clone(), Y.clone())
+         grads = {}
+@@ -149,6 +154,8 @@
+         arm_info[arm] = dict(branches=seen, **grads)
+         cp_info[arm] = {b: dict(bitwise_equal=seen[b]['reenc_current_equal'], current_maxdiff=seen[b]['reenc_current_maxdiff'],
+                                 other_maxdiff=seen[b]['reenc_other_maxdiff']) for b in ('i2t', 't2i')}
++        if arm == 'a6_delta':
++            g = g and all(seen[b].get('delta_target_ok') for b in ('i2t', 't2i'))
+         allgood &= g
+         cp_good &= c
+     ok('grad_paths', allgood, queues=qinfo, **arm_info)
