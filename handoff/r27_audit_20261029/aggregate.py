@@ -6,7 +6,7 @@ import numpy as np
 
 ROOT = sys.argv[1] if len(sys.argv) > 1 else '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_audit_20261029'
 HERE = os.path.dirname(os.path.abspath(__file__))
-G1 = os.path.join(ROOT, 'audit1_graphs')
+G1 = os.path.join(ROOT, os.environ.get('AUDIT_G1_SUB', 'audit1_graphs'))
 G3 = os.path.join(ROOT, 'audit3_ranks')
 TGT = ('mean', 'delta', 'vcs', 'bce', 'snce')
 CELLS = ('f40_s1001', 'f40_s1002', 'f40_s1003', 'f60_s1001', 'f60_s1002', 'f60_s1003')
@@ -61,7 +61,7 @@ def ckpt_summary(cell, label):
         B['rel_max'] = {t: float(max(g[f'prod_{t}']['rel_max'] for g in gs)) for t in ('vcs', 'bce', 'snce')}
         B['fp32_vs_fp64_maxabs'] = {t: float(max((g[f'prod_{t}']['fp32_target_vs_fp64_maxabs'] or 0) for g in gs)) for t in TGT}
         ck = {}
-        for t in TGT:
+        for t in [t for t in TGT + ('native',) if t in gs[0]['collisions']]:
             ks = [k for k in gs[0]['collisions'][t]]
             ck[t] = {k: int(sum(g['collisions'][t][k] for g in gs)) for k in ks}
         B['collisions'] = ck
@@ -113,8 +113,84 @@ def ckpt_summary(cell, label):
                                     obj_exact_minus_max=float(max(x['obj_exact_minus']['max'] for x in rows)))
         a2['vcs|exact_solver_seconds_total'] = float(sum(g['prod_vcs']['seconds_solver'] for g in gs))
         B['audit2'] = a2
+        if 'noisy' in arr:
+            B.update(tables23(arr, gs))
         S['by_branch'][br] = B
     return S
+
+
+def task_block(arr, key, m):
+    rk, mg = arr[f'task_rank_{key}'][m], arr[f'task_margin_{key}'][m]
+    if rk.size == 0:
+        return dict(n=0)
+    return dict(n=int(rk.size), top1=float((rk == 0).mean()), rank_mean=float(rk.mean()), rank_median=float(np.median(rk)),
+                margin_mean=float(mg.mean()), margin_median=float(np.median(mg)))
+
+
+def tables23(arr, gs):
+    noisy = arr['noisy'].astype(bool); idhit = arr['idhit'].astype(bool); selfhit = arr['selfhit'].astype(bool)
+    keys = TGT + ('native',)
+    T2 = dict(n_rows=int(noisy.size), n_noisy=int(noisy.sum()), idhit_rate_noisy=float(idhit[noisy].mean()) if noisy.any() else None,
+              idhit_rate_clean=float(idhit[~noisy].mean()) if (~noisy).any() else None,
+              selfhit_rate_noisy=float(selfhit[noisy].mean()) if noisy.any() else None, selfhit_rate_clean=float(selfhit[~noisy].mean()) if (~noisy).any() else None,
+              pool_mean=float(np.mean([g['eval']['pool'] for g in gs])),
+              angle_to_native={g: q(arr[f'angle_{g}_native']) for g in TGT},
+              task_noisy={k: task_block(arr, k, noisy) for k in keys},
+              task_noisy_idhit={k: task_block(arr, k, noisy & idhit) for k in keys},
+              task_noisy_nohit={k: task_block(arr, k, noisy & ~idhit) for k in keys},
+              task_clean={k: task_block(arr, k, ~noisy) for k in keys},
+              collisions_native=None)
+    T3 = {}
+    tn = T2['task_noisy']
+    for g in TGT:
+        jr, jn = arr[f'obj_vcs_raw_{g}'], arr[f'obj_vcs_norm_{g}']
+        T3[g] = dict(Jv_raw_mean=float(np.mean(jr)), Jv_norm_mean=float(np.mean(jn)), Jv_raw_minus_norm_mean=float(np.mean(jr - jn)),
+                     Jv_norm_minus_native_mean=float(np.mean(jn - arr['obj_vcs_norm_native'])),
+                     Jv_norm_minus_mean_mean=float(np.mean(jn - arr['obj_vcs_norm_mean'])),
+                     raw_norm_median=float(np.median(arr[f'rawnorm_{g}'])),
+                     angle_to_mean_median=float(np.median(arr[f'angle_mean_{g}'])) if g != 'mean' else 0.0,
+                     angle_to_native_median=float(np.median(arr[f'angle_{g}_native'])),
+                     top1_noisy=tn[g].get('top1'), d_top1_vs_native=(tn[g]['top1'] - tn['native']['top1']) if tn[g].get('n') else None,
+                     d_top1_vs_mean=(tn[g]['top1'] - tn['mean']['top1']) if tn[g].get('n') else None,
+                     margin_mean_noisy=tn[g].get('margin_mean'),
+                     d_margin_vs_native=(tn[g]['margin_mean'] - tn['native']['margin_mean']) if tn[g].get('n') else None,
+                     d_margin_vs_mean=(tn[g]['margin_mean'] - tn['mean']['margin_mean']) if tn[g].get('n') else None)
+    T3['native'] = dict(Jv_norm_mean=float(np.mean(arr['obj_vcs_norm_native'])), top1_noisy=tn['native'].get('top1'), margin_mean_noisy=tn['native'].get('margin_mean'))
+    CO = {}
+    for g in ('vcs', 'bce', 'snce'):
+        for th in (15, 30, 45):
+            k = f'{g}_t{th}'
+            if f'task_rank_con_{k}' not in arr:
+                continue
+            tb = task_block(arr, f'con_{k}', noisy); tc = task_block(arr, f'con_{k}', ~noisy)
+            rows = [x['constrained'][k] for x in gs]
+            CO[k] = dict(top1_noisy=tb.get('top1'), rank_mean_noisy=tb.get('rank_mean'), margin_mean_noisy=tb.get('margin_mean'),
+                         top1_clean=tc.get('top1'), margin_mean_clean=tc.get('margin_mean'),
+                         Jv_raw_mean=float(np.mean(arr[f'con_Jv_raw_{k}'])), Jv_norm_mean=float(np.mean(arr[f'con_Jv_norm_{k}'])),
+                         obj_norm_mean=float(np.mean(arr[f'con_obj_norm_{k}'][np.isfinite(arr[f'con_obj_norm_{k}'])])),
+                         angle_native_median=float(np.median(arr[f'con_angle_native_{k}'])), angle_native_max=float(np.max(arr[f'con_angle_native_{k}'])),
+                         angle_free_median=float(np.median(arr[f'con_angle_free_{k}'])), znorm_median=float(np.median(arr[f'con_znorm_{k}'])),
+                         iters_mean=float(np.mean([x['iters_mean'] for x in rows])), iters_max=int(max(x['iters_max'] for x in rows)),
+                         cap=int(sum(x['cap'] for x in rows)), rel_max=float(max(x['rel_max'] for x in rows)),
+                         violation_max=float(max(x['violation_max'] for x in rows)), half_active=int(sum(x['half_active'] for x in rows)),
+                         seconds_total=float(sum(x['seconds'] for x in rows)))
+    ref = {}
+    for g in ('vcs', 'bce', 'snce', 'native'):
+        tb = T2['task_noisy'][g]; tc = T2['task_clean'][g]
+        ref[g] = dict(top1_noisy=tb.get('top1'), rank_mean_noisy=tb.get('rank_mean'), margin_mean_noisy=tb.get('margin_mean'),
+                      top1_clean=tc.get('top1'), margin_mean_clean=tc.get('margin_mean'),
+                      Jv_norm_mean=float(np.mean(arr[f'obj_vcs_norm_{g}'])))
+    return dict(table2=T2, table3=T3, constrained=CO, constrained_reference_unconstrained_native=ref)
+
+
+def table1():
+    import table1_transitions as T1
+    if not os.path.isdir(G3):
+        return None
+    outj = os.path.join(HERE, 'TABLE1.json')
+    T1.OUT3, T1.OUTJ = G3, outj
+    T1.main()
+    return json.load(open(outj))
 
 
 def audit3():
@@ -136,14 +212,15 @@ def main():
         for d in sorted(glob.glob(os.path.join(G1, cell, '*', 'RESULT.json'))):
             A1.append(ckpt_summary(cell, os.path.basename(os.path.dirname(d))))
     A3 = audit3()
+    TB1 = table1()
     checks = sorted(glob.glob(os.path.join(HERE, 'CHECK_*.json')))
     chk = json.load(open(checks[-1])) if checks else None
-    out = dict(root=ROOT, audit1_2=A1, audit3=A3, check=os.path.basename(checks[-1]) if checks else None)
+    out = dict(root=ROOT, audit1_2=A1, audit3=A3, table1=TB1, check=os.path.basename(checks[-1]) if checks else None)
     json.dump(out, open(os.path.join(HERE, 'AUDIT_SUMMARY.json'), 'w'), indent=1, default=float)
-    write_md(A1, A3, chk, checks[-1] if checks else None)
+    write_md(A1, A3, chk, checks[-1] if checks else None, TB1)
 
 
-def write_md(A1, A3, chk, chkpath):
+def write_md(A1, A3, chk, chkpath, TB1=None):
     L = []
     w = L.append
     w('# R27 只读审计（补充包 v1.1 SERVER_ADDENDUM「只读审计」）—— 数字与设置，无解释\n')
@@ -205,7 +282,7 @@ def write_md(A1, A3, chk, chkpath):
             w('')
             w('碰撞（不同行目标近同；行对总数 ' + str(B['collisions']['vcs']['n_pairs']) + f'，A 行完全相同的行对 {B["collisions"]["vcs"]["n_pairs_identical_A"]}）：')
             w('| 目标 | <1e-6 rad（A同/A异） | <1e-3 | <1e-2 | <5e-2 | 目标≈单原子 <1e-6 / <1e-3 |'); w('|---|---:|---:|---:|---:|---:|')
-            for t in TGT:
+            for t in [t for t in TGT + ('native',) if t in B['collisions']]:
                 c = B['collisions'][t]
                 w(f'| {t} | {c["pairs_lt_1e-06_identical_A"]}/{c["pairs_lt_1e-06_different_A"]} | {c["pairs_lt_0.001_identical_A"]}/{c["pairs_lt_0.001_different_A"]} | '
                   f'{c["pairs_lt_0.01_identical_A"]}/{c["pairs_lt_0.01_different_A"]} | {c["pairs_lt_0.05_identical_A"]}/{c["pairs_lt_0.05_different_A"]} | {c["rows_atom_lt_1e-06"]} / {c["rows_atom_lt_0.001"]} |')
@@ -255,12 +332,96 @@ def write_md(A1, A3, chk, chkpath):
         w(f'| {r["cell"]} | {r["arm"]} | {r["epoch"]} | {r["epochs_best_epoch"]} | {f(r["logged_rsum"],3)} | {f(r["recomputed_rsum"],3)} | {f(r["rsum_diff"],4)} | {f(r["max_abs_recall_diff_pp"],4)} | {r["within_tolerance"]} | {r["gpu"]} | {r["job"]} |')
     if A3:
         w(f'\n单元数 {len(A3)}；六项最大绝对差的最大值 {f(max(r["max_abs_recall_diff_pp"] for r in A3),4)} pp；容差内 {sum(r["within_tolerance"] for r in A3)}/{len(A3)}。')
+    md_tables(w, A1, TB1)
     w('\n## 3. 证据路径\n')
     w(f'- 审计 1/2 每检查点：`{G1}/<cell>/<label>/RESULT.json`（每图汇总）与 `graphs/<peer>_b<k>_<branch>.npz`（逐行数组）。')
     w(f'- 审计 3：`{G3}/<cell>/<arm>/{{RESULT.json,i2t_rank.npy,i2t_top1.npy,t2i_rank.npy,t2i_top1.npy}}`，`{G3}/INDEX.json`。')
     w('- SPG 副本与差异：`audit_spg.py`，`SPG_DIFF.patch`（相对生产 solve_spg 的唯一功能差异：hist.max → hist.min，另加诊断计数）。')
     w('- 门禁：`CHECK_<job>.json`；日志 `logs/`。')
     open(os.path.join(HERE, 'AUDIT_CN.md'), 'w').write('\n'.join(L) + '\n')
+
+
+def md_tables(w, A1, TB1):
+    KEYS = ('1->2-10', '1->>10', '2-10->1', '>10->1', '>10->2-10')
+    w('\n## 4. 表一：逐 query 排名迁移（SERVER_ADJUSTMENTS_CN.md §4）\n')
+    w('来源：审计 3 保存的 rank（各单元 best full-DEV checkpoint，同一固定 DEV 顺序）。分桶（1 起计）：1 / 2–10 / >10。'
+      '“甲/乙”= 乙（参照）→ 甲（新）的 query 计数，按 seed 配对；i2t 每格 1,014 个图像 query，t2i 每格 5,070 个 caption query。仅当两单元都完成时列出。`TABLE1.json` 含 3×3 矩阵。\n')
+    if not TB1:
+        w('（尚无审计 3 结果）')
+    else:
+        w('| 对 | 方向 | 范围 | 格数 | 1→2–10 | 1→>10 | 2–10→1 | >10→1 | >10→2–10 | R@1 计数 参照 | R@1 计数 新 |')
+        w('|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|')
+        for pn, P in TB1['pairs'].items():
+            for d in ('i2t', 't2i'):
+                for cell, v in sorted(P['per_cell'].items()):
+                    if d in v:
+                        t = v[d]
+                        w(f'| {pn} | {d} | {cell} | 1 | ' + ' | '.join(str(t[k]) for k in KEYS) + f' | {t["r1_ref"]} | {t["r1_new"]} |')
+                for nz, v in sorted(P['per_noise'].items()):
+                    if d in v:
+                        t = v[d]
+                        w(f'| {pn} | {d} | {nz} 合计 | {t["n_cells"]} | ' + ' | '.join(str(t[k]) for k in KEYS) + f' | {t["r1_ref"]} | {t["r1_new"]} |')
+                if d in P['total']:
+                    t = P['total'][d]
+                    w(f'| {pn} | {d} | 全部 | {t["n_cells"]} | ' + ' | '.join(str(t[k]) for k in KEYS) + f' | {t["r1_ref"]} | {t["r1_new"]} |')
+    w('\n## 5. 表二：生成目标与任务身份（固定 FIT 图，离线评价）\n')
+    w('设置：p_i = 原生 GraphRefiner 目标（当前 peer refiner 对同一 K 个重编码邻居的输出，train 模式、固定 seed，已归一化）。'
+      '离线评价仅在评价器中使用 Flickr 原始配对（caption j ↔ 图像 j//5；噪声锁只改变 caption 的观测图像），图构建不使用。noisy query = 观测图像 ≠ j//5。'
+      'i2t：query 为该对的观测图像 I，真实对应 = I 的 5 条 caption；t2i：query 为 caption j，真实对应 = 图像 j//5。'
+      '对应池 = 本 batch 所有 query 的真实对应的并集，用当前 peer 以与候选相同的方式重编码（eval、no grad、同一 batch 中心化均值）。'
+      'rank = 池中严格高于最佳真实对应分数的竞争者个数（0 = 第一），margin = 最佳真实分数 − 最强竞争者分数。'
+      '身份命中 idhit = 真实对应 ID 在该 query 的 K 个候选原子中；self hit = 观测（训练可见）伙伴在候选中。\n')
+    for S in [s for s in A1 if s.get('status') == 'OK']:
+        for br, B in S['by_branch'].items():
+            if 'table2' not in B:
+                continue
+            t2 = B['table2']
+            w(f'### {S["cell"]} / {S["label"]} / {br}\n')
+            w(f'行数 {t2["n_rows"]}，noisy {t2["n_noisy"]}，对应池均值 {f(t2["pool_mean"],1)}；idhit 率 noisy {f(t2["idhit_rate_noisy"])} / clean {f(t2["idhit_rate_clean"])}；'
+              f'self hit 率 noisy {f(t2["selfhit_rate_noisy"])} / clean {f(t2["selfhit_rate_clean"])}。')
+            w('与原生目标夹角（rad，中位/p90/max）：' + '；'.join(f'{g} {f(v.get("median"))}/{f(v.get("p90"))}/{f(v.get("max"))}' for g, v in t2['angle_to_native'].items()))
+            cn = B['collisions'].get('native') if 'native' in B.get('collisions', {}) else None
+            w('')
+            w('| 目标 | noisy top1 | noisy rank 均值 | noisy margin 均值 | noisy∧idhit top1 (n) | noisy∧未命中 top1 (n) | clean top1 | clean margin 均值 |')
+            w('|---|---:|---:|---:|---:|---:|---:|---:|')
+            for k in TGT + ('native',):
+                a, h, nh, c_ = t2['task_noisy'][k], t2['task_noisy_idhit'][k], t2['task_noisy_nohit'][k], t2['task_clean'][k]
+                w(f'| {k} | {f(a.get("top1"))} | {f(a.get("rank_mean"),2)} | {f(a.get("margin_mean"))} | {f(h.get("top1"))} ({h.get("n")}) | {f(nh.get("top1"))} ({nh.get("n")}) | {f(c_.get("top1"))} | {f(c_.get("margin_mean"))} |')
+            w('')
+            w('原生 vs 辅助 SCE 对 X 的梯度（cos 中位 / 范数比中位，辅助/原生）：' + '；'.join(
+                f'{g} {f(B["grad"][f"{g}|native"]["cos_median"])}/{f(B["grad"][f"{g}|native"]["rel_norm_median"])}' for g in TGT if f'{g}|native' in B['grad']) + '。目标碰撞见 §1 各检查点碰撞表。\n')
+    w('\n## 6. 表三：内层收益、归一化方向与任务分数（同一图）\n')
+    w('J = f_vcs（行均值）。raw = 未归一化 z（mean 为 μ_i，delta 为 δ_i）；norm = 归一化目标。任务分数为表二 noisy query 的 top1 与 margin 均值；差值为该目标减原生 / 减 mean。\n')
+    for S in [s for s in A1 if s.get('status') == 'OK']:
+        for br, B in S['by_branch'].items():
+            if 'table3' not in B:
+                continue
+            t3 = B['table3']
+            w(f'**{S["cell"]} / {S["label"]} / {br}**（原生：J_norm {f(t3["native"]["Jv_norm_mean"])}，noisy top1 {f(t3["native"]["top1_noisy"])}，margin {f(t3["native"]["margin_mean_noisy"])}）\n')
+            w('| 目标 | J raw | J norm | J raw−norm | J norm−原生 | J norm−mean | ‖raw‖ 中位 | 与 mean 夹角中位 | 与原生夹角中位 | noisy top1 | Δtop1 vs 原生 | Δtop1 vs mean | margin | Δmargin vs 原生 | Δmargin vs mean |')
+            w('|---|' + '---:|' * 14)
+            for g in TGT:
+                v = t3[g]
+                w(f'| {g} | {f(v["Jv_raw_mean"])} | {f(v["Jv_norm_mean"])} | {f(v["Jv_raw_minus_norm_mean"])} | {f(v["Jv_norm_minus_native_mean"])} | {f(v["Jv_norm_minus_mean_mean"])} | '
+                  f'{f(v["raw_norm_median"])} | {f(v["angle_to_mean_median"])} | {f(v["angle_to_native_median"])} | {f(v["top1_noisy"])} | {f(v["d_top1_vs_native"])} | {f(v["d_top1_vs_mean"])} | '
+                  f'{f(v["margin_mean_noisy"])} | {f(v["d_margin_vs_native"])} | {f(v["d_margin_vs_mean"])} |')
+            w('')
+    w('\n## 7. §5 离线比较：受限目标 max J_i(z) s.t. ‖z‖≤1, p_iᵀz ≥ cosθ（不训练）\n')
+    w('p_i 同表二。θ ∈ {15°, 30°, 45°}；同一约束用于 VCS、BCE、soft-NCE（各自原目标，J 与 P/Q 不变）。求解：加速投影梯度 + 精确球∩半空间投影（audit_constrained.py，CPU 校验见 `CHECK2_<job>.json`），'
+      'z0 = cosθ·p_i，相对不动点残差 ≤ 1e-6，上限 20000 次。任务分数同表二（noisy / clean query）。列出 J 仅供记录，不据以选择。\n')
+    for S in [s for s in A1 if s.get('status') == 'OK']:
+        for br, B in S['by_branch'].items():
+            if not B.get('constrained'):
+                continue
+            w(f'**{S["cell"]} / {S["label"]} / {br}**\n')
+            w('| 目标 | noisy top1 | noisy rank 均值 | noisy margin | clean top1 | clean margin | J raw | J norm | 原目标 norm | 与原生夹角 中位/max | 与无约束夹角中位 | ‖z‖ 中位 | 半空间约束激活行 | 迭代 均值/最大 | cap | rel 最大 | 违反 最大 | 总秒 |')
+            w('|---|' + '---:|' * 17)
+            for g, v in B['constrained_reference_unconstrained_native'].items():
+                w(f'| {g}（{"原生" if g == "native" else "无约束"}） | {f(v["top1_noisy"])} | {f(v["rank_mean_noisy"],2)} | {f(v["margin_mean_noisy"])} | {f(v["top1_clean"])} | {f(v["margin_mean_clean"])} | — | {f(v["Jv_norm_mean"])} | — | — | — | — | — | — | — | — | — | — |')
+            for k, v in B['constrained'].items():
+                w(f'| {k} | {f(v["top1_noisy"])} | {f(v["rank_mean_noisy"],2)} | {f(v["margin_mean_noisy"])} | {f(v["top1_clean"])} | {f(v["margin_mean_clean"])} | {f(v["Jv_raw_mean"])} | {f(v["Jv_norm_mean"])} | {f(v["obj_norm_mean"])} | '
+                  f'{f(v["angle_native_median"])}/{f(v["angle_native_max"])} | {f(v["angle_free_median"])} | {f(v["znorm_median"])} | {v["half_active"]} | {f(v["iters_mean"],1)}/{v["iters_max"]} | {v["cap"]} | {f(v["rel_max"])} | {f(v["violation_max"])} | {f(v["seconds_total"],1)} |')
+            w('')
 
 
 if __name__ == '__main__':

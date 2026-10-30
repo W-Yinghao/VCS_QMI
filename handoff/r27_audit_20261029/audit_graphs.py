@@ -18,17 +18,24 @@ Per checkpoint (isolated process, frozen R27 code_v11 imported read-only; no opt
      objective values (f_vcs, f_bce, f_snce at every raw vector and every normalized target), ||raw||; pairwise angles;
      cap / fallback / invalid / interior counts; collisions; tighter tolerance (1e-9) re-solves; gradients of the
      auxiliary SCE wrt the query X for every target and of the native refiner SCE (refiner train mode, fixed seed).
+  5b. SERVER_ADJUSTMENTS_CN.md table 2: angle of every target to the native GraphRefiner target p_i (normalized refiner
+     proto, refiner train mode, fixed seed); offline correspondence (evaluator only): identity hit / self hit, and rank /
+     margin of the true counterpart vs the strongest in-batch competitor under every target and p_i. Table 3 inputs (raw
+     and normalized J, angles, task scores) are the same per-row arrays.
+  5c. §5 offline: max J_i(z) s.t. ||z|| <= 1, p_i.z >= cos(theta), theta in {15,30,45} deg, for vcs / bce / snce
+     (audit_constrained.solve_constrained, exact ball-halfspace projection); same task scores; J reported, never used to select.
   6. audit 2 on the same graphs: production SPG (history max) vs audit_spg history-min variant at 1e-6 and 1e-9, vs a
      tight FISTA (1e-9); optional SLSQP (reduced coordinates, CPU) on a few rows of the first graph.
 No DEV/TEST read (only the train split is loaded).
 """
-import os, sys, json, copy, time, hashlib
+import os, sys, json, copy, time, hashlib, math
 import numpy as np
 import torch
 
 import audit_common as C
 from audit_common import T, angle, qstats, sync
 import audit_spg as SPG
+import audit_constrained as KC
 import r25_run
 import r25_co_train as R
 import r27_co_train as R27
@@ -45,6 +52,8 @@ TARGETS = ('mean', 'delta', 'vcs', 'bce', 'snce')
 TIGHT = 1e-9
 TIGHT_CAP = 40000
 ANG_THR = (1e-6, 1e-3, 1e-2, 5e-2)
+THETAS = (15, 30, 45)                # §5 constrained comparison (degrees)
+CON_TOL, CON_CAP = 1e-6, 20000
 SLSQP_ROWS = int(os.environ.get('AUDIT_SLSQP_ROWS', '0'))
 LAM = json.load(open('/home/infres/yinwang/CS_QMI/handoff/r27_qtarget_20261029/LAMBDA_flickr.json'))['lambda']
 
@@ -98,9 +107,45 @@ def gcmp(g1, g2):
                 rowcos_median=float(rowcos.median()), rowcos_min=float(rowcos.min()))
 
 
-def graph_audit(gpath, X, A_, Y, neigh, refiner, seed):
-    """All per-graph computations. Returns summary dict; per-row arrays saved to gpath (.npz)."""
+NOISE_OBS = None
+
+
+@torch.no_grad()
+def evaluator(net, br, S, mean, cap_g, obs_img, dev):
+    """Offline correspondence labels for one graph; truth is used ONLY here (never in graph construction).
+    Flickr truth (pre-injection pairing): caption j <-> image j // 5; the noise lock only replaces the OBSERVED image of a
+    caption (training-visible t2i_index). Noisy query = observed image != j // 5.
+      i2t: query = the pair's observed image I; true counterparts = its 5 captions {5I..5I+4}; pool = union over the batch.
+      t2i: query = the caption j; true counterpart = image j // 5; pool = union over the batch.
+    Pool re-encoded by the CURRENT peer exactly like the candidates (eval mode, no grad, same batch centering mean).
+    idhit = a true counterpart ID is among the query's K candidate atoms; selfhit = the observed (training-visible) partner
+    is among them."""
+    cap_t = torch.as_tensor(cap_g, device=dev); obs_t = torch.as_tensor(obs_img, device=dev)
+    true_img = cap_t // 5
+    atoms = S['cols'][S['inv']]
+    if br == 'i2t':
+        pool = torch.unique((obs_t.unsqueeze(1) * 5 + torch.arange(5, device=dev)).flatten())
+        truth = (pool.unsqueeze(0) // 5) == obs_t.unsqueeze(1)
+        idhit = ((atoms // 5) == obs_t.unsqueeze(1)).any(1)
+        selfhit = (atoms == cap_t.unsqueeze(1)).any(1)
+    else:
+        pool = torch.unique(true_img)
+        truth = pool.unsqueeze(0) == true_img.unsqueeze(1)
+        idhit = (atoms == true_img.unsqueeze(1)).any(1)
+        selfhit = (atoms == obs_t.unsqueeze(1)).any(1)
+    E = C.unit(I.reencode(net, br, pool, mean).double())
+    return dict(E=E, truth=truth, noisy=obs_t != true_img, idhit=idhit, selfhit=selfhit)
+
+
+def graph_audit(gpath, X, A_, Y, neigh, refiner, seed, ev):
+    """All per-graph computations. Returns summary dict; per-row arrays saved to gpath (.npz).
+    ev: offline evaluator inputs (truth used ONLY here, never in graph construction): E [U,d] re-encoded pool of true
+    counterparts, truth [B,U] bool, noisy/idhit/selfhit [B] bool."""
     A64, Y64 = A_.double(), Y.double()
+    torch.manual_seed(seed); torch.cuda.manual_seed(seed)
+    with torch.no_grad():
+        proto = refiner(neigh)                       # native GraphRefiner target; production: refiner in train mode
+    p64 = C.unit(proto.double())
     c, mu, muQ, delta = T.moments(A64, Y64)
     rows = {}
     out = dict(B=int(A_.shape[0]), M=int(A_.shape[1]), d=int(Y.shape[1]))
@@ -150,8 +195,16 @@ def graph_audit(gpath, X, A_, Y, neigh, refiner, seed):
         for g2 in TARGETS[i + 1:]:
             a = angle(nrm[g1], nrm[g2]); rows[f'angle_{g1}_{g2}'] = a; pa[f'{g1}|{g2}'] = qstats(a)
     out['pair_angles_rad'] = pa
+    # ---- table 2: angle of every target to the native GraphRefiner target (normalized proto of the same query)
+    an = {}
+    for g in TARGETS:
+        a = angle(nrm[g], p64); rows[f'angle_{g}_native'] = a; an[g] = qstats(a)
+    out['angle_to_native_rad'] = an
+    for o in ('vcs', 'bce', 'snce'):
+        fn = T.OBJ[o][0](p64, A64, c, Y64); rows[f'obj_{o}_norm_native'] = fn; om[o]['norm_native'] = qstats(fn)
     # ---- collisions
     out['collisions'] = {g: collisions(nrm[g], A64, Y64) for g in TARGETS}
+    out['collisions']['native'] = collisions(p64, A64, Y64)
     # ---- tighter tolerance (audit 1) + SPG history reference (audit 2)
     tt, a2 = {}, {}
     (Zv9, iv9), t = timed(T.solve_vcs, A64, Y64, tol_rel=TIGHT)
@@ -219,9 +272,6 @@ def graph_audit(gpath, X, A_, Y, neigh, refiner, seed):
     if slsqp_out:
         out['audit2_slsqp'] = slsqp_out
     # ---- downstream gradients wrt the query X
-    torch.manual_seed(seed); torch.cuda.manual_seed(seed)
-    with torch.no_grad():
-        proto = refiner(neigh)                       # production: refiner in train mode
     gs, losses = {}, {}
     gs['native'], losses['native'] = grad_x(X, proto, torch.ones(X.shape[0], dtype=torch.bool, device=X.device))
     for g in TARGETS:
@@ -234,6 +284,35 @@ def graph_audit(gpath, X, A_, Y, neigh, refiner, seed):
             gd[f'{b}|{a}'] = gcmp(gs[b], gs[a])
     out['grad_x'] = dict(pairs=gd, sce_loss=losses, norms={k: float(v.norm()) for k, v in gs.items()},
                          note=f'production loss per direction = 0.5*SCE_native + 0.5*lam*SCE_aux, lam={LAM}; values above unscaled')
+    # ---- table 2: offline correspondence (truth only in the evaluator)
+    E, truth = ev['E'], ev['truth']
+    for k in ('noisy', 'idhit', 'selfhit'):
+        rows[k] = ev[k]
+    tasks = dict(nrm, native=p64)
+    for k, U_ in tasks.items():
+        rk, mg, st = KC.task_scores(U_, E, truth)
+        rows[f'task_rank_{k}'] = rk; rows[f'task_margin_{k}'] = mg
+    out['eval'] = dict(pool=int(E.shape[0]), noisy=int(ev['noisy'].sum()), idhit=int(ev['idhit'].sum()), idhit_noisy=int((ev['idhit'] & ev['noisy']).sum()),
+                       selfhit=int(ev['selfhit'].sum()), truth_per_row_mean=float(truth.sum(1).double().mean()))
+    # ---- §5 offline: max J_i(z) s.t. ||z|| <= 1, p_i.z >= cos(theta), p_i = normalized stop-grad native target
+    con = {}
+    for g in ('vcs', 'bce', 'snce'):
+        f_ = T.OBJ[g][0]
+        for th in THETAS:
+            cth = math.cos(math.radians(th))
+            (Z, ic), t = timed(KC.solve_constrained, g, A64, Y64, p64, cth, tol_rel=CON_TOL, cap=CON_CAP)
+            U_ = C.unit(Z)
+            key = f'{g}_t{th}'
+            rk, mg, st = KC.task_scores(U_, E, truth)
+            rows[f'task_rank_con_{key}'] = rk; rows[f'task_margin_con_{key}'] = mg
+            rows[f'con_angle_native_{key}'] = angle(U_, p64); rows[f'con_angle_free_{key}'] = angle(U_, nrm[g])
+            rows[f'con_Jv_raw_{key}'] = T.f_vcs(Z, A64, c, Y64); rows[f'con_Jv_norm_{key}'] = T.f_vcs(U_, A64, c, Y64)
+            rows[f'con_obj_raw_{key}'] = f_(Z, A64, c, Y64); rows[f'con_obj_norm_{key}'] = f_(U_, A64, c, Y64)
+            rows[f'con_znorm_{key}'] = Z.norm(dim=1)
+            con[key] = dict(seconds=t, iters_mean=float(ic['iters'].double().mean()), iters_max=int(ic['iters'].max()), cap=int(ic['cap'].sum()),
+                            rel_max=float(ic['rel'].max()), violation_max=float(ic['violation'].max()), half_active=int(ic['half_active'].sum()),
+                            ball_active=int(ic['ball_active'].sum()))
+    out['constrained'] = con
     np.savez_compressed(gpath, **{k: v.detach().cpu().numpy() for k, v in rows.items()})
     return out
 
@@ -243,6 +322,9 @@ def main():
     out_dir, cell, nb = sys.argv[1], sys.argv[2], int(sys.argv[3])
     specs = [a.split('=', 1) for a in sys.argv[4:sep]]
     opt = r25_run.parse(sys.argv[sep + 1:])
+    assert opt.data_name == 'f30k_precomp', 'offline correspondence check: Flickr only (injected truth)'
+    global NOISE_OBS
+    NOISE_OBS = np.load(opt.noise_file)
     opt.arm, opt.lam = 'a3_vcs', LAM          # not used for training; noisy_branches is not called
     R27.install()
     vocab = deserialize_vocab(os.path.join(opt.vocab_path, "%s_vocab.json" % opt.data_name)); vocab.add_word('<mask>')
@@ -308,6 +390,10 @@ def main():
                 if imgs.size(0) < 2:
                     continue
                 bh.append(hashlib.sha256(np.asarray(ut.dataset.r27_gidx[np.asarray(ids, dtype=np.int64)]).tobytes()).hexdigest()[:16])
+                ids_np = np.asarray(ids, dtype=np.int64)
+                cap_g = ut.dataset.r27_gidx[ids_np]                                   # global caption ids of the batch
+                obs_img = np.asarray(ut.dataset.t2i_index, dtype=np.int64)[ids_np]    # observed (training-visible) image ids
+                assert (NOISE_OBS[cap_g] == obs_img).all()                           # noise lock == loader pairing
                 keep = (copy.deepcopy(net.img_enc.state_dict()), copy.deepcopy(net.txt_enc.state_dict()))
                 s = QUERY_SEED + 1000 * pi + k
                 torch.manual_seed(s); torch.cuda.manual_seed(s)
@@ -323,8 +409,9 @@ def main():
                         graphs.append(dict(graph=gid, status='no_proto', **qs)); continue
                     Y = I.reencode(net, br, S['cols'], mean)
                     ref = net.i2t_refiner_node if br == 'i2t' else net.t2i_refiner_node
+                    ev = evaluator(net, br, S, mean, cap_g, obs_img, dev=X.device)
                     t = time.time()
-                    g = graph_audit(os.path.join(od, 'graphs', gid + '.npz'), X, S['A'], Y, Y[S['inv']], ref, s + 500000 + (br == 't2i'))
+                    g = graph_audit(os.path.join(od, 'graphs', gid + '.npz'), X, S['A'], Y, Y[S['inv']], ref, s + 500000 + (br == 't2i'), ev)
                     g.update(graph=gid, status='ok', seconds=time.time() - t, usable_frac=qs['nv'] / max(qs['n'], 1))
                     graphs.append(g)
                     print(json.dumps(dict(label=label, graph=gid, M=g['M'], sec=round(g['seconds'], 1),

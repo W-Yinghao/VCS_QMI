@@ -1,0 +1,176 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+diff -ru -x __pycache__ <WORKSPACE>/handoff/r27_qtarget_20261029/code_v11/r27_co_train.py <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_co_train.py
+--- <WORKSPACE>/handoff/r27_qtarget_20261029/code_v11/r27_co_train.py	2026-10-29 13:42:01.992764036 +0100
++++ <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_co_train.py	2026-10-30 02:04:00.006756374 +0100
+@@ -23,9 +23,17 @@
+ from r27_targets import generate, f_vcs
+ from r27_delta_control import generate_centered_mean
+ from vse import infonce
++from r27s_targets import generate_cap
+
+ logger = R.logger
+ ARMS = {'a1_iface': None, 'a2_mean': 'mean', 'a3_vcs': 'vcs', 'a4_bce': 'bce', 'a5_snce': 'snce', 'a6_delta': 'delta'}  # v1.1 supplement: linear background-subtracted control (not full VCS)
++# v1.2 supplement (R27-S, DESIGN_S_CN.md): single encoder target, refiner keeps the native SCE path with stop-grad query.
++S_ARMS = {'s0_identity': 'identity',            # gate only: T = sg(P) -> must reproduce A1 gradients exactly
++          's1_balanced_dual': 'dual',           # [L(X,sgP) + lam L(X,sgT_free)] / (1+lam)
++          's2_single_free_vcs': 'vcs',          # L(X, sg T_free)   (R27 free-ball VCS generator)
++          's3_single_cap_delta': 'cap_delta', 's4_single_cap_vcs': 'cap_vcs',
++          's5_single_cap_bce': 'cap_bce', 's6_single_cap_snce': 'cap_snce'}
++ARMS.update({k: 'S' for k in S_ARMS})
+ TIME_EVERY = 25
+ SELFCOS_EVERY = 50
+ _PEER = {}
+@@ -75,6 +83,90 @@
+             stats[f'max_range_loss_{b}'] = max(stats.get(f'max_range_loss_{b}', 0.0), float(info['lost'].max()))
+
+
++def margin(Smat):
++    """mean_i (S_ii - max_{j != i} S_ij) of a query x target score matrix (task margin diagnostic)."""
++    d = Smat.diagonal()
++    off = Smat - torch.diag_embed(torch.full_like(d, float('inf')))
++    return float((d - off.max(1).values).mean())
++
++
++def acc_cap(stats, b, info):
++    f = lambda t: float(t.double().mean())
++    ang = torch.rad2deg(torch.arccos(info['cos_to_p'].clamp(-1, 1)))
++    stats[f'{b}_angle_to_p_deg'] += f(ang)
++    stats[f'max_angle_to_p_deg_{b}'] = max(stats.get(f'max_angle_to_p_deg_{b}', 0.0), float(ang.max()))
++    stats[f'{b}_z_norm'] += f(info['z_norm'])
++    stats[f'min_znorm_{b}'] = min(stats.get(f'min_znorm_{b}', 9.0), float(info['z_norm'].min()))
++    stats[f'{b}_cap_active_frac'] += f(info['cap_active'].double())
++    stats[f'{b}_ball_active_frac'] += f(info['ball_active'].double())
++    stats[f'{b}_iters'] += f(info['iters'])
++    stats[f'max_iters_{b}'] = max(stats.get(f'max_iters_{b}', 0), int(info['iters'].max()))
++    stats[f'{b}_rel_res'] += f(info['rel'])
++    stats[f'max_rel_res_{b}'] = max(stats.get(f'max_rel_res_{b}', 0.0), float(info['rel'].max()))
++    stats[f'max_violation_{b}'] = max(stats.get(f'max_violation_{b}', 0.0), float(info['violation'].max()))
++    stats[f'cnt_{b}_cap_hits'] += int(info['cap'].sum())
++    stats[f'cnt_{b}_fallback'] += int(info['fallback'].sum())
++    stats[f'cnt_{b}_rows'] += int(info['fallback'].numel())
++    stats[f'{b}_nu_hat'] += f(info['nu_hat']); stats[f'{b}_kappa'] += f(info['kappa'])
++    for k in ('obj_raw', 'obj_norm', 'obj_p', 'Jv_raw', 'Jv_norm', 'Jv_p'):
++        t = info[k].double(); m = torch.isfinite(t)
++        stats[f'cnt_{b}_{k}_nonfinite'] += int((~m).sum())
++        if bool(m.any()):
++            stats[f'{b}_{k}'] += float(t[m].mean())
++
++
++def s_branch(opt, branch, X, Xd, proto, S, Y, stats, timed, t2, probe):
++    """R27-S noisy branch for one direction. One refiner forward (proto), reused:
++       refiner:  0.5 * SCE(sg X, P)        (native path; query stop-grad)
++       encoder:  0.5 * L_enc(X, sg targets) (S0: sg P; S1: dual balanced; S2: free VCS; S3-S6: capped targets)
++    Encoder and refiner parameter sets are disjoint; one backward here, the single optimizer step stays in train()."""
++    kind = S_ARMS[opt.arm]
++    Pd = proto.detach()
++    l_ref = infonce(Xd.mm(proto.t()))
++    T, info, valid = None, None, None
++    if kind == 'identity':
++        T = Pd
++        l_enc = infonce(X.mm(T.t()))
++    elif kind in ('dual', 'vcs'):
++        T, valid, info = generate('vcs', S['A'], Y)
++        acc_info(stats, branch, info, valid)
++        if int(valid.sum()) < 2:
++            stats[f'cnt_{branch}_aux_skipped'] += 1
++            l_free = None
++        else:
++            l_free = infonce(X.mm(T.t())) if bool(valid.all()) else infonce(X[valid].mm(T[valid].t()))
++        if kind == 'dual':
++            l_p = infonce(X.mm(Pd.t()))
++            l_enc = (l_p + (opt.lam * l_free if l_free is not None else 0.0)) / (1.0 + opt.lam)
++            stats[f'{branch}_enc_native_part'] += float(l_p.detach())
++        else:
++            l_enc = l_free if l_free is not None else infonce(X.mm(Pd.t())) * 0.0
++        if l_free is not None:
++            stats[f'{branch}_enc_free_part'] += float(l_free.detach())
++    else:
++        T, valid, info = generate_cap(kind, S['A'], Y, Pd)
++        acc_cap(stats, branch, info)
++        l_enc = infonce(X.mm(T.t()))
++    if timed:
++        stats[f'time_gen_{branch}'] += _sync() - t2
++    loss = 0.5 * l_ref + 0.5 * l_enc
++    if probe is not None:
++        probe(branch, dict(X=X, Y=Y, neigh=None, proto=proto, S=S, l_nat=l_ref, l_aux=l_enc, loss=loss, target=T,
++                           mean=None, Pd=Pd))
++    loss.backward()
++    stats[f'{branch}_n'] += 1
++    stats[f'{branch}_raw_loss'] += float(l_ref.detach())          # native SCE value (same forward value as native)
++    stats[f'{branch}_enc_loss'] += float(l_enc.detach())
++    if T is not None:
++        stats[f'{branch}_margin_target'] += margin(Xd.mm(T.t()))
++        stats[f'{branch}_margin_p'] += margin(Xd.mm(Pd.t()))
++        stats[f'{branch}_cos_target_p'] += float((T * Pd).sum(1).mean())
++    stats[f'{branch}_n_atoms'] += S['cols'].numel()
++    stats[f'{branch}_shared_frac'] += float((S['A'] > 0).sum(0).gt(1).float().mean())
++    stats[f'{branch}_max_col_mass'] += float(S['A'].mean(0).max())
++    stats[f'{branch}_cand_age_epochs'] += float((opt.r27_epoch - S['wepoch']).double().mean())
++
++
+ def noisy_branches(opt, net, net2, imgs, ilen, txt, tlen, img_u, cap_u, mi, mt, stats, uids, timed, probe=None):
+     gen = ARMS[opt.arm]
+     t0 = _sync() if timed else None
+@@ -99,11 +191,17 @@
+         X = img_u if branch == 'i2t' else cap_u
+         refiner = net.i2t_refiner_node if branch == 'i2t' else net.t2i_refiner_node
+         proto = refiner(neigh)                                                       # native GraphRefiner (trainable)
+-        l_nat = infonce(X.mm(proto.t()))
+-        loss = 0.5 * l_nat
+         Xd = X.detach()
+         c = S['A'].mean(0)
+         stats[f'{branch}_J_query'] += float(f_vcs(Xd.double(), S['A'].double(), c.double(), Y.double()).mean())
++        if gen == 'S':
++            s_branch(opt, branch, X, Xd, proto, S, Y, stats, timed, t2, probe)
++            if timed:
++                stats[f'time_search_{branch}'] += t1 - tb
++                stats[f'time_reenc_{branch}'] += t2 - t1
++            continue
++        l_nat = infonce(X.mm(proto.t()))
++        loss = 0.5 * l_nat
+         l_aux = None
+         if gen is not None:
+             if gen == 'delta':
+@@ -209,8 +307,16 @@
+             iu = np.asarray(ids_u, dtype=np.int64)
+             dev = img_emb_u.device
+             uids = (torch.as_tensor(u_gidx[iu], device=dev), torch.as_tensor(u_obs[iu], device=dev))
++            gsnap = [p.grad.detach().clone() if p.grad is not None else None for p in net.params] if timed else None
+             noisy_branches(opt, net, net2, batch_images_u, batch_img_len_u, batch_text_u, batch_lengths_u,
+                            img_emb_u, cap_emb_u, mi, mt, stats, uids, timed, probe=probe)
++            if timed:  # gradient diagnostics (no extra autograd): clean = grads before the noisy branch, noisy = increment
++                gc = sum(float((g.double() ** 2).sum()) for g in gsnap if g is not None)
++                gn = sum(float(((p.grad.double() - (g.double() if g is not None else 0)) ** 2).sum()) for p, g in zip(net.params, gsnap) if p.grad is not None)
++                gr = sum(float((p.grad.double() ** 2).sum()) for m in (net.i2t_refiner_node, net.t2i_refiner_node) for p in m.parameters() if p.grad is not None)
++                stats['gnorm_enc_clean'] += gc ** 0.5; stats['gnorm_enc_noisy'] += gn ** 0.5; stats['gnorm_refiner'] += gr ** 0.5
++                stats['gnorm_n'] += 1
++                del gsnap
+             if i % SELFCOS_EVERY == 0:
+                 # diagnostic: eval-mode re-encoding of the query batch itself, same centering, vs native train-mode query
+                 with torch.no_grad():
+@@ -246,6 +352,9 @@
+     for k in list(out):
+         if k.startswith('time_') and k != 'time_n' and tn:
+             out[k + '_mean_s'] = out.pop(k) / tn
++    if s.get('gnorm_n'):
++        for k in ('gnorm_enc_clean', 'gnorm_enc_noisy', 'gnorm_refiner'):
++            out[k + '_mean'] = out.pop(k) / s['gnorm_n']
+     if s.get('selfcos_n'):
+         out['selfcos_img_mean'] = out.pop('selfcos_img') / s['selfcos_n']
+         out['selfcos_txt_mean'] = out.pop('selfcos_txt') / s['selfcos_n']
+diff -ru -x __pycache__ <WORKSPACE>/handoff/r27_qtarget_20261029/code_v11/r27_run.py <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_run.py
+--- <WORKSPACE>/handoff/r27_qtarget_20261029/code_v11/r27_run.py	2026-10-29 02:36:19.526783475 +0100
++++ <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_run.py	2026-10-30 02:04:00.008756391 +0100
+@@ -12,6 +12,8 @@
+     a, rest = p.parse_known_args(argv)
+     opt = r25_run.parse(rest)
+     assert opt.noisy_obj == 'sce' and opt.link == 'c0', 'R25 hook flags are not used by R27'
++    if a.arm == 's0_identity':
++        raise SystemExit('s0_identity is a gate-only arm')
+     if a.arm == 'a1_iface':
+         assert a.lam == 0.0, 'A1 has no auxiliary term'
+     else:
+Only in <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12: r27s_cpu_check.py
+Only in <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12: r27s_gate.py
+Only in <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12: r27s_targets.py

@@ -42,7 +42,7 @@ def angle(a, b):
 
 
 def qstats(x):
-    x = torch.as_tensor(x).double().flatten()
+    x = torch.as_tensor(x).detach().double().flatten().cpu()  # stats on CPU (fix: quantile q tensor was on CPU while x was on CUDA)
     m = torch.isfinite(x)
     n_nf = int((~m).sum())
     x = x[m]
