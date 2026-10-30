@@ -1,0 +1,80 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+diff -ru -x __pycache__ <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_interface.py code_a1x/r27_interface.py
+--- <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_interface.py	2026-10-29 02:36:07.035677677 +0100
++++ code_a1x/r27_interface.py	2026-10-30 15:11:34.121973930 +0100
+@@ -13,7 +13,7 @@
+    pre-centering mean of that modality (detached, taken from the native forward_emb of the query batch) and
+    unit-normalizes (host l2norm). The snapshot is stop-grad. Queries keep the native forward_emb values.
+ """
+-import time
++import os, time
+ import numpy as np
+ import torch
+ from vse import l2norm
+@@ -45,6 +45,38 @@
+             cls.images_gpu = t
+         return cls.images_gpu
+
++    # R27-A1X (COCO / CC152K): the full train feature array (COCO 31.1 GiB, CC152K 41.2 GiB fp32) does not fit next to
++    # the models on every allowed GPU. image_rows() returns exactly the rows the original path returns
++    # (gpu_images()[cols], same float32 bytes, same order); 'cpu' mode gathers the requested rows from the host
++    # memmap and copies only them to the GPU. Mode: env R27X_IMG_GATHER in {auto, gpu, cpu}; auto = gpu iff
++    # array bytes + GATHER_HEADROOM <= total GPU memory (a fixed function of the GPU type), else cpu.
++    GATHER_HEADROOM = 16 * 2**30
++    gather_mode = None
++
++    @classmethod
++    def mode(cls):
++        if cls.gather_mode is None:
++            m = os.environ.get('R27X_IMG_GATHER', 'auto')
++            assert m in ('auto', 'gpu', 'cpu'), m
++            if m == 'auto':
++                total = torch.cuda.get_device_properties(0).total_memory
++                m = 'gpu' if cls.images.nbytes + cls.GATHER_HEADROOM <= total else 'cpu'
++            cls.gather_mode = m
++            print(f"R27X image gather mode {m} (array {cls.images.nbytes / 2**30:.2f} GiB, "
++                  f"GPU total {torch.cuda.get_device_properties(0).total_memory / 2**30:.2f} GiB)", flush=True)
++        return cls.gather_mode
++
++    @classmethod
++    def rows_np(cls, idx):
++        """Host gather of observed-image feature rows (float32, given order) from the memmap."""
++        return np.ascontiguousarray(cls.images[np.asarray(idx, dtype=np.int64)])
++
++    @classmethod
++    def image_rows(cls, cols):
++        if cls.mode() == 'gpu':
++            return cls.gpu_images()[cols]
++        return torch.from_numpy(cls.rows_np(cols.detach().cpu().numpy())).to(cols.device)
++
+     @classmethod
+     def tokens(cls, cid):
+         t = cls.tok.get(cid)
+@@ -167,7 +199,7 @@
+                 cap[j, :len(t)] = t
+             raw = net.txt_enc(cap.cuda(), lengths)
+         else:
+-            ims = Ctx.gpu_images()[cols]
++            ims = Ctx.image_rows(cols)
+             lens = torch.full((ims.shape[0],), float(ims.shape[1]), device=ims.device)
+             raw = net.img_enc(ims, lens)
+     finally:
+diff -ru -x __pycache__ <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_run.py code_a1x/r27_run.py
+--- <WORKSPACE>/handoff/r27_qtarget_20261029/code_v12/r27_run.py	2026-10-30 02:04:00.008756391 +0100
++++ code_a1x/r27_run.py	2026-10-30 15:11:34.122973938 +0100
+@@ -35,8 +35,9 @@
+     import r27_co_train
+     t0 = time.time()
+     r27_co_train.main(opt)
++    import r27_interface
+     json.dump({'peak_mem_allocated_GiB': torch.cuda.max_memory_allocated() / 2**30, 'peak_mem_reserved_GiB': torch.cuda.max_memory_reserved() / 2**30,
+-               'wall_seconds': time.time() - t0, 'gpu': env['gpu'], 'job': env['job']},
++               'wall_seconds': time.time() - t0, 'gpu': env['gpu'], 'job': env['job'], 'img_gather': r27_interface.Ctx.gather_mode},
+               open(os.path.join(opt.output_dir, f"PEAK_{env['job']}.json"), 'w'), indent=1)
+
+
+Only in code_a1x: r27x_cpu_check.py
+Only in code_a1x: r27x_flickr_gather.py
+Only in code_a1x: r27x_gate.py
+Only in code_a1x: r27x_onestep.py
