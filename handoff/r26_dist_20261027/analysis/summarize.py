@@ -6,7 +6,7 @@ import numpy as np
 R = '/projects/EEG-foundation-model/yinghao/outputs_v9/r26_dist_20261027/runs'
 R25 = json.load(open('/home/infres/yinwang/CS_QMI/handoff/r25_in2r_20261027/RESULTS_PER_RUN_CORE.json'))
 which, out = sys.argv[1], sys.argv[2]
-ARMS = ['d_vcs', 'd_bce', 'm_vcs', 'n_vcs', 'd_snce'] if which == 'flickr' else ['d_vcs', 'd_bce', 'm_vcs']
+ARMS = ['d_vcs', 'd_bce', 'm_vcs', 'n_vcs', 'd_snce']  # cross: N-VCS and D-sNCE added by the 2026-10-29 supplement (LINES_C2)
 CONDS = ['f40', 'f60'] if which == 'flickr' else ['c40', 'cc']
 SEEDS = [1001, 1002, 1003]
 KEYS = ['i2t_r1', 'i2t_r5', 'i2t_r10', 't2i_r1', 't2i_r5', 't2i_r10']

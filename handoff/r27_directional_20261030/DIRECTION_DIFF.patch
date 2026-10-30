@@ -1,0 +1,36 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+--- v12/r27_co_train.py
++++ R27-D/r27_co_train.py
+@@ -34,6 +34,11 @@
+           's3_single_cap_delta': 'cap_delta', 's4_single_cap_vcs': 'cap_vcs',
+           's5_single_cap_bce': 'cap_bce', 's6_single_cap_snce': 'cap_snce'}
+ ARMS.update({k: 'S' for k in S_ARMS})
++
++# R27-D: only the per-direction target policy changes.
++from r27d_policy import D_ARMS, direction_kind
++S_ARMS.update({k: 'directional' for k in D_ARMS})
++ARMS.update({k: 'S' for k in D_ARMS})
+ TIME_EVERY = 25
+ SELFCOS_EVERY = 50
+ _PEER = {}
+@@ -120,7 +125,7 @@
+        refiner:  0.5 * SCE(sg X, P)        (native path; query stop-grad)
+        encoder:  0.5 * L_enc(X, sg targets) (S0: sg P; S1: dual balanced; S2: free VCS; S3-S6: capped targets)
+     Encoder and refiner parameter sets are disjoint; one backward here, the single optimizer step stays in train()."""
+-    kind = S_ARMS[opt.arm]
++    kind = direction_kind(opt.arm, branch, S_ARMS)
+     Pd = proto.detach()
+     l_ref = infonce(Xd.mm(proto.t()))
+     T, info, valid = None, None, None
+--- v12/r27_run.py
++++ R27-D/r27_run.py
+@@ -19,6 +19,8 @@
+     else:
+         assert a.lam > 0
+     opt.arm, opt.lam = a.arm, a.lam
++    from r27d_policy import validate_options
++    validate_options(opt)
+     return opt
+
+
