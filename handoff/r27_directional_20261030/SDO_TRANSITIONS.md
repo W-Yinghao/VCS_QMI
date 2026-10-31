@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 来源：审计 3 保存的 rank（各单元 best full-DEV checkpoint，同一固定 DEV 顺序）。“新/参照”= 参照 → 新 的 query 数；分桶 1 / 2–10 / >10（1 起计）。i2t 每格 1,014 个图像 query，t2i 5,070 个 caption query。单 seed。
 
-缺失比较（任一单元未完成或未导出）：f40_s1001:d3_snce_i2t/a1_iface, f40_s1001:d1_vcs_i2t/d3_snce_i2t, f40_s1001:s6_single_cap_snce/d3_snce_i2t
+缺失比较（任一单元未完成或未导出）：无
 
 ## f40_s1001
 
@@ -32,17 +32,20 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | d1_vcs_i2t/a1_iface | t2i | 153 | 0 | 154 | 0 | 51 | 154 | 153 | +1 | 3118 | 3119 |
 | d2_vcs_t2i/a1_iface | i2t | 46 | 0 | 32 | 0 | 6 | 32 | 46 | -14 | 840 | 826 |
 | d2_vcs_t2i/a1_iface | t2i | 217 | 1 | 173 | 0 | 54 | 173 | 218 | -45 | 3118 | 3073 |
-| d3_snce_i2t/a1_iface | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| d3_snce_i2t/a1_iface | i2t | 40 | 0 | 28 | 0 | 7 | 28 | 40 | -12 | 840 | 828 |
+| d3_snce_i2t/a1_iface | t2i | 186 | 0 | 162 | 1 | 62 | 163 | 186 | -23 | 3118 | 3095 |
 | d4_snce_t2i/a1_iface | i2t | 38 | 0 | 29 | 0 | 5 | 29 | 38 | -9 | 840 | 831 |
 | d4_snce_t2i/a1_iface | t2i | 169 | 0 | 173 | 0 | 54 | 173 | 169 | +4 | 3118 | 3122 |
-| d1_vcs_i2t/d3_snce_i2t | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| d1_vcs_i2t/d3_snce_i2t | i2t | 33 | 0 | 37 | 0 | 6 | 37 | 33 | +4 | 828 | 832 |
+| d1_vcs_i2t/d3_snce_i2t | t2i | 145 | 0 | 169 | 0 | 55 | 169 | 145 | +24 | 3095 | 3119 |
 | d2_vcs_t2i/d4_snce_t2i | i2t | 38 | 0 | 33 | 0 | 4 | 33 | 38 | -5 | 831 | 826 |
 | d2_vcs_t2i/d4_snce_t2i | t2i | 223 | 0 | 174 | 0 | 56 | 174 | 223 | -49 | 3122 | 3073 |
 | s4_single_cap_vcs/d1_vcs_i2t | i2t | 40 | 0 | 35 | 0 | 2 | 35 | 40 | -5 | 832 | 827 |
 | s4_single_cap_vcs/d1_vcs_i2t | t2i | 182 | 0 | 138 | 0 | 58 | 138 | 182 | -44 | 3119 | 3075 |
 | s4_single_cap_vcs/d2_vcs_t2i | i2t | 43 | 0 | 44 | 0 | 3 | 44 | 43 | +1 | 826 | 827 |
 | s4_single_cap_vcs/d2_vcs_t2i | t2i | 183 | 0 | 185 | 0 | 61 | 185 | 183 | +2 | 3073 | 3075 |
-| s6_single_cap_snce/d3_snce_i2t | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| s6_single_cap_snce/d3_snce_i2t | i2t | 28 | 0 | 37 | 0 | 5 | 37 | 28 | +9 | 828 | 837 |
+| s6_single_cap_snce/d3_snce_i2t | t2i | 172 | 0 | 183 | 1 | 60 | 184 | 172 | +12 | 3095 | 3107 |
 | s6_single_cap_snce/d4_snce_t2i | i2t | 30 | 0 | 36 | 0 | 3 | 36 | 30 | +6 | 831 | 837 |
 | s6_single_cap_snce/d4_snce_t2i | t2i | 172 | 0 | 157 | 0 | 57 | 157 | 172 | -15 | 3122 | 3107 |
 | o1_rescue_native_t2i/a1_iface | i2t | 45 | 0 | 31 | 0 | 6 | 31 | 45 | -14 | 840 | 826 |

@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27-O 为显式使用真对应的诊断（O1/O2：t2i 候选救援；O3：t2i 编码器目标直接取当前 peer 重编码的真图），不进入主结果表。bn_cross_t2i / cn_mix_t2i：A1 宿主，t2i 候选改为直接跨模态检索 / 固定 3+2 混合（唯一 ID，整体接口改动）。q1–q4：C-native 候选上 t2i GraphRefiner 末端改为 query 条件加权 pooling（α 来自另一 peer：q1 直接跨模态 cosine；q2/q3/q4 同输入关系头，VCS / BCE / soft-NCE 训练），配置见 r27_qpool_20261031/PROTOCOL_FROZEN.json。
 
-缺失单元（未完成，记 NA，不以其他臂替代）：f40_s1001/d3_snce_i2t
+缺失单元（未完成，记 NA，不以其他臂替代）：无
 
 ## f40_s1001：各臂终点
 
@@ -21,7 +21,7 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | s6_single_cap_snce | 514.46 | 21 | 513.10 | 513.22 | 82.54 | 96.25 | 98.42 | 61.28 | 85.19 | 90.77 | 3 |
 | d1_vcs_i2t | 513.16 | 25 | 512.45 | 512.52 | 82.05 | 95.36 | 98.52 | 61.52 | 85.11 | 90.59 | 1 |
 | d2_vcs_t2i | 511.95 | 15 | 510.95 | 511.14 | 81.46 | 95.96 | 98.42 | 60.61 | 84.69 | 90.81 | 1 |
-| d3_snce_i2t | NA | | | | | | | | | | | |
+| d3_snce_i2t | 513.02 | 28 | 512.33 | 512.27 | 81.66 | 96.25 | 98.42 | 61.05 | 84.71 | 90.93 | 3 |
 | d4_snce_t2i | 513.53 | 22 | 512.49 | 512.70 | 81.95 | 95.66 | 98.42 | 61.58 | 85.09 | 90.83 | 2 |
 | o1_rescue_native_t2i | 513.75 | 21 | 512.86 | 512.99 | 81.46 | 96.25 | 98.42 | 61.40 | 85.33 | 90.89 | 1 |
 | o2_rescue_vcs_t2i | 514.77 | 26 | 514.38 | 514.37 | 83.04 | 96.15 | 98.42 | 61.22 | 85.15 | 90.79 | 1 |
@@ -50,13 +50,13 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | s4_single_cap_vcs-s3_single_cap_delta | -0.53 | -0.44 | -0.39 | -0.34 |
 | d1_vcs_i2t-a1_iface | -1.81 | -1.55 | -0.79 | +0.02 |
 | d2_vcs_t2i-a1_iface | -3.02 | -2.93 | -1.38 | -0.89 |
-| d3_snce_i2t-a1_iface | NA | NA | NA | NA |
+| d3_snce_i2t-a1_iface | -1.95 | -1.80 | -1.18 | -0.45 |
 | d4_snce_t2i-a1_iface | -1.44 | -1.37 | -0.89 | +0.08 |
-| d1_vcs_i2t-d3_snce_i2t | NA | NA | NA | NA |
+| d1_vcs_i2t-d3_snce_i2t | +0.14 | +0.25 | +0.39 | +0.47 |
 | d2_vcs_t2i-d4_snce_t2i | -1.58 | -1.56 | -0.49 | -0.97 |
 | s4_single_cap_vcs-d1_vcs_i2t | -0.65 | -0.43 | -0.49 | -0.87 |
 | s4_single_cap_vcs-d2_vcs_t2i | +0.55 | +0.95 | +0.10 | +0.04 |
-| s6_single_cap_snce-d3_snce_i2t | NA | NA | NA | NA |
+| s6_single_cap_snce-d3_snce_i2t | +1.44 | +0.95 | +0.89 | +0.24 |
 | s6_single_cap_snce-d4_snce_t2i | +0.93 | +0.52 | +0.59 | -0.30 |
 | o1_rescue_native_t2i-a1_iface | -1.22 | -1.08 | -1.38 | -0.10 |
 | o2_rescue_vcs_t2i-d2_vcs_t2i | +2.82 | +3.23 | +1.58 | +0.61 |
@@ -84,7 +84,7 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | 交互 | best rSum | last5 | i2t R@1 | t2i R@1 |
 |---|---|---|---|---|
 | I_vcs | +2.37 | +2.50 | +0.89 | +0.02 |
-| I_snce | NA | NA | NA | NA |
+| I_snce | +2.88 | +2.32 | +1.78 | +0.16 |
 
 ## f60_s1001：各臂终点
 
