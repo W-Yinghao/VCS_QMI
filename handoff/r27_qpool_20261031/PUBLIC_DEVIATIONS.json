@@ -1,0 +1,36 @@
+{
+  "task": "R27-Q query-conditioned candidate pooling: Q1 cos / Q2 VCS head / Q3 BCE head / Q4 soft-NCE head x Flickr 40%/60% x seed1001, cell common prefix, 40 epochs, C-native candidates (NEXT_DESIGN_CN.md, review f3640384)",
+  "snapshot": "code_q = copy of handoff/r27_candsrc_20261031/code_cs + r27q_pool.py, r27q_config.py (new) + 3 edited files (co_train.py GraphRefiner.forward alpha argument; r27_co_train.py Q-arm registration / t2i hook / stage hook; r27_run.py lam-0 + options). r27cs_sources.py byte-identical. code_cs, code_frozen, code_oracle*, r27_qtarget trees untouched. Q_DIFF.patch.",
+  "design_choices_not_fixed_by_the_design": {
+    "teacher_coordinates": "Teacher = other peer in eval mode; unaugmented inputs; centering by a <=128-sample same-modality batch mean of the same call (fit: P encoding chunk; apply: noisy batch captions / noisy batch observed images); l2norm. This costs three extra no-grad teacher forwards per t2i step (128 captions, 128 images, <=640 candidate images). The production C-native search keeps the native xt2 query (loader tokens, teacher val forward_emb); only the scorer uses the re-encoded coordinates. Q1 uses the same coordinates so that Q1 vs Q2-Q4 differ only by the scorer.",
+    "P_threshold": "teacher clean prob > teacher avg_clean_prob (= mean prob over the teacher's clean split), i.e. the host's high-confidence enqueue rule written with the teacher's own statistics (the host enqueue compares the loader prob with the CURRENT peer's avg_clean_prob; for the scorer the teacher's own value is used so that P depends only on the frozen teacher).",
+    "P_size": "random subset of <=16384 fit + <=2048 held-out pairs per stage (trial stage: 78447 available). Held-out pairs are diagnostics only.",
+    "head_reinit": "head refitted from scratch every stage with a stage seed shared by all arms (no warm start) -> no head state in checkpoints; resume refits the same stage.",
+    "nce_form": "soft-NCE = t2i in-batch competition over the P batch's images with logits 2g; soft targets spread over in-batch duplicates of the caption's observed image ID (training-visible). One-directional (application is t2i).",
+    "link_scales": "pre-link g shared: VCS T=tanh(g), BCE logit 2g, NCE logits 2g, so g estimates 0.5 log(p/q) for all three and one readout scale serves Q2-Q4.",
+    "readout_and_steps": "STEPS and the two beta values chosen once by pre-written rules (r27q_config.TRIAL_RULES) in the real-data technical trial 1078146 (gate start state, stage A, f40 noise): STEPS=200, BETA_HEAD=2.0 (pooled Q2-Q4 NLL; per-head argmin vcs 2, bce 2, snce 1 recorded as info), BETA_COS=16.0. Grids, architecture (hidden 256, 2049 inputs), LR 1e-3, batch 128, N_FIT/N_VAL were fixed before the trial."
+  },
+  "observations_from_trial_info_only": {
+    "snce_head_offset": "the soft-NCE head drifts to large negative g (T=tanh(g) ~ -1, held-out J = -1) because NCE is invariant to a per-query shift; softmax readout over candidates is invariant to that shift. Not an error.",
+    "calibration_set_top1": "on the trial calibration set (observed image + 4 cosine-nearest distractors) the observed top1 was cos 0.662, vcs 0.611, bce 0.605, snce 0.632 (heads are trained against the product of marginals, not against hard negatives). Recorded, not acted on."
+  },
+  "uniform_gate": "Two routes: (a) GATE_UNIFORM='mean': all Q computations run (stage fit, teacher scoring) and then the native alpha=None mean path is used -> must equal C-native bitwise (proves no side effect of the extra work, incl. RNG); (b) 'weighted': alpha = full 1/5 through the weighted pooling path -> sum_j 0.2*h_j vs mean(h) differ only by fp32 rounding (0.2 not exact); max diffs reported, pass within float tolerance.",
+  "i2t": "production A1 search and native refiner path unchanged (gate: bitwise equal to A1)",
+  "truth": "no truth in training code (static check); truth used only in the gate's evaluator-side P clean fraction and in tools/fit_eval_offline.py",
+  "runner": "tools/run_unit_q.py (copy of run_unit_cs.py): Q arms only, lam fixed 0.0, identity file R27Q_IDENTITY.json (incl. PROTOCOL_FROZEN sha), same-unit resume only, requires GPU_GATE.json all_pass + config_frozen + matching code sha256s",
+  "sbatch": "sbatch/r27q_unit.sbatch: normal QOS, RTX6000PRO,L40S,H100, exclude node51,node53,node60, nice 20, 10h (LINES_Q.txt), self-continuation on timeout <= 3 attempts, keep_states.py (R27-D) for epoch 10/20 states, no --dependency",
+  "output": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs/<cell>/<arm>",
+  "references": "A1 (r27_qtarget a1_iface) and C-native (r27_candsrc cn_mix_t2i) f40/f60_s1001 reused, not rerun; same prefix/config/data/40 epochs",
+  "not_done": "no K/candidate-rule/temperature sweeps; no per-arm tuning; no extra pseudo-target loss; no TEST",
+  "gate_history": {
+    "1078145": "CPU 14 passed (pre-freeze)",
+    "1078146": "trial -> STEPS 200, BETA_HEAD 2.0, BETA_COS 16.0",
+    "1078151": "CPU 14 passed (frozen v1)",
+    "1078152": "smoke+gate v1 ALL_PASS False: weighted-uniform param diff 1.08e-6 > 1e-6 (fp32), frozen head kept fit .grad (code fix: zero_grad), fp32/fp64 threshold compare (gate fix); mean route bitwise",
+    "1078188": "CPU 14 passed (frozen v2)",
+    "1078189": "smoke v2 arms OK, gate v2 crashed (KeyError from a trailing comment in a gate edit)",
+    "1078210": "gate-only v3 on smoke_q_1078189: ALL_PASS True (L40S)"
+  },
+  "gate_criteria_changed_after_seeing_results": "weighted-uniform route param criterion 1e-6 -> 1e-5 (justified fp32 rounding; exact equivalence carried by the bitwise mean route, unchanged); threshold equality check fp32 1e-6. No training-code criterion or hyperparameter changed.",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

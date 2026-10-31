@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 来源：审计 3 保存的 rank（各单元 best full-DEV checkpoint，同一固定 DEV 顺序）。“新/参照”= 参照 → 新 的 query 数；分桶 1 / 2–10 / >10（1 起计）。i2t 每格 1,014 个图像 query，t2i 5,070 个 caption query。单 seed。
 
-缺失比较（任一单元未完成或未导出）：f40_s1001:d3_snce_i2t/a1_iface, f40_s1001:d1_vcs_i2t/d3_snce_i2t, f40_s1001:s6_single_cap_snce/d3_snce_i2t, f60_s1001:d3_snce_i2t/a1_iface, f60_s1001:d1_vcs_i2t/d3_snce_i2t, f60_s1001:s6_single_cap_snce/d3_snce_i2t
+缺失比较（任一单元未完成或未导出）：f40_s1001:d3_snce_i2t/a1_iface, f40_s1001:d1_vcs_i2t/d3_snce_i2t, f40_s1001:s6_single_cap_snce/d3_snce_i2t
 
 ## f40_s1001
 
@@ -61,6 +61,20 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | cn_mix_t2i/a1_iface | t2i | 169 | 0 | 167 | 0 | 50 | 167 | 169 | -2 | 3118 | 3116 |
 | bn_cross_t2i/cn_mix_t2i | i2t | 34 | 0 | 28 | 0 | 4 | 28 | 34 | -6 | 841 | 835 |
 | bn_cross_t2i/cn_mix_t2i | t2i | 169 | 0 | 178 | 0 | 64 | 178 | 169 | +9 | 3116 | 3125 |
+| q1_cos_pool/cn_mix_t2i | i2t | 40 | 0 | 30 | 0 | 5 | 30 | 40 | -10 | 841 | 831 |
+| q1_cos_pool/cn_mix_t2i | t2i | 192 | 0 | 158 | 0 | 70 | 158 | 192 | -34 | 3116 | 3082 |
+| q2_vcs_pool/cn_mix_t2i | i2t | 42 | 0 | 36 | 0 | 3 | 36 | 42 | -6 | 841 | 835 |
+| q2_vcs_pool/cn_mix_t2i | t2i | 200 | 0 | 171 | 0 | 69 | 171 | 200 | -29 | 3116 | 3087 |
+| q3_bce_pool/cn_mix_t2i | i2t | 36 | 0 | 32 | 0 | 3 | 32 | 36 | -4 | 841 | 837 |
+| q3_bce_pool/cn_mix_t2i | t2i | 165 | 0 | 161 | 0 | 61 | 161 | 165 | -4 | 3116 | 3112 |
+| q4_snce_pool/cn_mix_t2i | i2t | 44 | 0 | 44 | 0 | 4 | 44 | 44 | +0 | 841 | 841 |
+| q4_snce_pool/cn_mix_t2i | t2i | 177 | 0 | 158 | 0 | 64 | 158 | 177 | -19 | 3116 | 3097 |
+| q2_vcs_pool/q1_cos_pool | i2t | 40 | 0 | 44 | 0 | 3 | 44 | 40 | +4 | 831 | 835 |
+| q2_vcs_pool/q1_cos_pool | t2i | 188 | 0 | 193 | 0 | 77 | 193 | 188 | +5 | 3082 | 3087 |
+| q2_vcs_pool/q3_bce_pool | i2t | 37 | 0 | 35 | 0 | 6 | 35 | 37 | -2 | 837 | 835 |
+| q2_vcs_pool/q3_bce_pool | t2i | 200 | 0 | 175 | 0 | 66 | 175 | 200 | -25 | 3112 | 3087 |
+| q2_vcs_pool/q4_snce_pool | i2t | 43 | 0 | 37 | 0 | 6 | 37 | 43 | -6 | 841 | 835 |
+| q2_vcs_pool/q4_snce_pool | t2i | 187 | 0 | 177 | 0 | 73 | 177 | 187 | -10 | 3097 | 3087 |
 
 ## f60_s1001
 
@@ -88,17 +102,20 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | d1_vcs_i2t/a1_iface | t2i | 223 | 0 | 198 | 0 | 63 | 198 | 223 | -25 | 2980 | 2955 |
 | d2_vcs_t2i/a1_iface | i2t | 42 | 0 | 31 | 0 | 8 | 31 | 42 | -11 | 825 | 814 |
 | d2_vcs_t2i/a1_iface | t2i | 234 | 1 | 206 | 0 | 87 | 206 | 235 | -29 | 2980 | 2951 |
-| d3_snce_i2t/a1_iface | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| d3_snce_i2t/a1_iface | i2t | 38 | 0 | 30 | 0 | 7 | 30 | 38 | -8 | 825 | 817 |
+| d3_snce_i2t/a1_iface | t2i | 223 | 0 | 213 | 1 | 74 | 214 | 223 | -9 | 2980 | 2971 |
 | d4_snce_t2i/a1_iface | i2t | 39 | 0 | 24 | 0 | 11 | 24 | 39 | -15 | 825 | 810 |
 | d4_snce_t2i/a1_iface | t2i | 213 | 0 | 213 | 0 | 86 | 213 | 213 | +0 | 2980 | 2980 |
-| d1_vcs_i2t/d3_snce_i2t | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| d1_vcs_i2t/d3_snce_i2t | i2t | 34 | 0 | 38 | 0 | 4 | 38 | 34 | +4 | 817 | 821 |
+| d1_vcs_i2t/d3_snce_i2t | t2i | 190 | 1 | 174 | 1 | 51 | 175 | 191 | -16 | 2971 | 2955 |
 | d2_vcs_t2i/d4_snce_t2i | i2t | 36 | 0 | 40 | 0 | 2 | 40 | 36 | +4 | 810 | 814 |
 | d2_vcs_t2i/d4_snce_t2i | t2i | 198 | 0 | 169 | 0 | 64 | 169 | 198 | -29 | 2980 | 2951 |
 | s4_single_cap_vcs/d1_vcs_i2t | i2t | 37 | 0 | 40 | 0 | 9 | 40 | 37 | +3 | 821 | 824 |
 | s4_single_cap_vcs/d1_vcs_i2t | t2i | 210 | 1 | 224 | 0 | 85 | 224 | 211 | +13 | 2955 | 2968 |
 | s4_single_cap_vcs/d2_vcs_t2i | i2t | 40 | 0 | 50 | 0 | 8 | 50 | 40 | +10 | 814 | 824 |
 | s4_single_cap_vcs/d2_vcs_t2i | t2i | 205 | 0 | 222 | 0 | 70 | 222 | 205 | +17 | 2951 | 2968 |
-| s6_single_cap_snce/d3_snce_i2t | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| s6_single_cap_snce/d3_snce_i2t | i2t | 44 | 0 | 43 | 1 | 4 | 44 | 44 | +0 | 817 | 817 |
+| s6_single_cap_snce/d3_snce_i2t | t2i | 207 | 2 | 228 | 1 | 82 | 229 | 209 | +20 | 2971 | 2991 |
 | s6_single_cap_snce/d4_snce_t2i | i2t | 34 | 0 | 41 | 0 | 4 | 41 | 34 | +7 | 810 | 817 |
 | s6_single_cap_snce/d4_snce_t2i | t2i | 203 | 0 | 212 | 2 | 71 | 214 | 203 | +11 | 2980 | 2991 |
 | o1_rescue_native_t2i/a1_iface | i2t | 41 | 0 | 36 | 0 | 11 | 36 | 41 | -5 | 825 | 820 |
@@ -117,4 +134,18 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | cn_mix_t2i/a1_iface | t2i | 222 | 2 | 213 | 0 | 72 | 213 | 224 | -11 | 2980 | 2969 |
 | bn_cross_t2i/cn_mix_t2i | i2t | 42 | 0 | 44 | 0 | 3 | 44 | 42 | +2 | 813 | 815 |
 | bn_cross_t2i/cn_mix_t2i | t2i | 251 | 0 | 202 | 3 | 84 | 205 | 251 | -46 | 2969 | 2923 |
+| q1_cos_pool/cn_mix_t2i | i2t | 40 | 0 | 46 | 0 | 6 | 46 | 40 | +6 | 813 | 819 |
+| q1_cos_pool/cn_mix_t2i | t2i | 234 | 0 | 228 | 2 | 85 | 230 | 234 | -4 | 2969 | 2965 |
+| q2_vcs_pool/cn_mix_t2i | i2t | 38 | 0 | 33 | 0 | 5 | 33 | 38 | -5 | 813 | 808 |
+| q2_vcs_pool/cn_mix_t2i | t2i | 208 | 1 | 219 | 1 | 85 | 220 | 209 | +11 | 2969 | 2980 |
+| q3_bce_pool/cn_mix_t2i | i2t | 38 | 0 | 38 | 0 | 6 | 38 | 38 | +0 | 813 | 813 |
+| q3_bce_pool/cn_mix_t2i | t2i | 203 | 0 | 192 | 1 | 86 | 193 | 203 | -10 | 2969 | 2959 |
+| q4_snce_pool/cn_mix_t2i | i2t | 41 | 1 | 40 | 0 | 7 | 40 | 42 | -2 | 813 | 811 |
+| q4_snce_pool/cn_mix_t2i | t2i | 233 | 0 | 212 | 0 | 86 | 212 | 233 | -21 | 2969 | 2948 |
+| q2_vcs_pool/q1_cos_pool | i2t | 47 | 0 | 36 | 0 | 5 | 36 | 47 | -11 | 819 | 808 |
+| q2_vcs_pool/q1_cos_pool | t2i | 224 | 1 | 239 | 1 | 81 | 240 | 225 | +15 | 2965 | 2980 |
+| q2_vcs_pool/q3_bce_pool | i2t | 38 | 0 | 33 | 0 | 7 | 33 | 38 | -5 | 813 | 808 |
+| q2_vcs_pool/q3_bce_pool | t2i | 166 | 0 | 187 | 0 | 81 | 187 | 166 | +21 | 2959 | 2980 |
+| q2_vcs_pool/q4_snce_pool | i2t | 43 | 0 | 40 | 0 | 4 | 40 | 43 | -3 | 811 | 808 |
+| q2_vcs_pool/q4_snce_pool | t2i | 198 | 1 | 231 | 0 | 73 | 231 | 199 | +32 | 2948 | 2980 |
 

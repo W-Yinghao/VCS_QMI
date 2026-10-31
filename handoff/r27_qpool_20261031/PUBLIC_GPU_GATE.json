@@ -1,0 +1,628 @@
+{
+  "all_pass": true,
+  "config_frozen": true,
+  "config": {
+    "BATCH": 128,
+    "BETA_COS": 16.0,
+    "BETA_GRID": [
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0,
+      16.0,
+      32.0,
+      64.0,
+      128.0
+    ],
+    "BETA_HEAD": 2.0,
+    "CHUNK": 128,
+    "FEATURES": "concat(q*y, |q-y|, q.y) of unit teacher vectors (2*1024+1 = 2049 inputs)",
+    "FROZEN": true,
+    "HIDDEN": 256,
+    "LR": 0.001,
+    "N_FIT": 16384,
+    "N_VAL": 2048,
+    "SEED_BASE": 7919,
+    "STEPS": 200,
+    "STEPS_GRID": [
+      100,
+      200,
+      400,
+      800
+    ],
+    "TRIAL_RULES": {
+      "steps": "smallest S in STEPS_GRID such that, for EACH of the three heads, the held-out improvement of its own objective (loss at step 0 minus loss at S) is >= 0.95 x its best improvement over STEPS_GRID; one S for all heads",
+      "beta": "temperature scaling on held-out high-confidence pairs (training-visible observed pairing only): each held-out caption gets K=5 candidates = its observed image + the 4 other distinct observed images of the held-out pool with highest teacher cosine; NLL(beta) = -mean log softmax(beta*score)[observed]; BETA_HEAD = argmin over BETA_GRID of the SUM of the Q2/Q3/Q4 NLLs (one shared value); BETA_COS = argmin over BETA_GRID of the Q1 cosine NLL",
+      "data": "gate start state, stage A of the next epoch (teacher = model B), GMM split recomputed as in training"
+    }
+  },
+  "code_matches_install_manifest": true,
+  "checks": {
+    "uniform_equiv": {
+      "pass_": true,
+      "q1_cos_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "bitwise": true,
+        "stage_fitted": true,
+        "alpha_computed_rows": 128.0,
+        "refiner_alpha_none": true,
+        "weighted_route": {
+          "param_maxdiff": 1.0952353477478027e-06,
+          "adam_maxdiff": 2.2584572434425354e-08,
+          "rng_equal": true,
+          "proto_t2i_maxdiff": 5.960464477539063e-08,
+          "proto_i2t_maxdiff": 0.0,
+          "enc_grad_rel": 4.259536292094075e-06,
+          "ref_t2i_grad_rel": 3.6663423175829713e-07,
+          "t2i_dir_grad_rel": 1.0054943805971299e-05,
+          "i2t_bitwise": true,
+          "graph_equal": {
+            "i2t": true,
+            "t2i": true
+          },
+          "t2i_alpha_passed_uniform": true,
+          "pass": true
+        },
+        "pass": true
+      },
+      "q2_vcs_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "bitwise": true,
+        "stage_fitted": true,
+        "alpha_computed_rows": 128.0,
+        "refiner_alpha_none": true,
+        "weighted_route": {
+          "param_maxdiff": 1.0952353477478027e-06,
+          "adam_maxdiff": 2.2584572434425354e-08,
+          "rng_equal": true,
+          "proto_t2i_maxdiff": 5.960464477539063e-08,
+          "proto_i2t_maxdiff": 0.0,
+          "enc_grad_rel": 4.259536292094075e-06,
+          "ref_t2i_grad_rel": 3.6663423175829713e-07,
+          "t2i_dir_grad_rel": 1.0054943805971299e-05,
+          "i2t_bitwise": true,
+          "graph_equal": {
+            "i2t": true,
+            "t2i": true
+          },
+          "t2i_alpha_passed_uniform": true,
+          "pass": true
+        },
+        "pass": true
+      },
+      "q3_bce_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "bitwise": true,
+        "stage_fitted": true,
+        "alpha_computed_rows": 128.0,
+        "refiner_alpha_none": true,
+        "weighted_route": {
+          "param_maxdiff": 1.0952353477478027e-06,
+          "adam_maxdiff": 2.2584572434425354e-08,
+          "rng_equal": true,
+          "proto_t2i_maxdiff": 5.960464477539063e-08,
+          "proto_i2t_maxdiff": 0.0,
+          "enc_grad_rel": 4.259536292094075e-06,
+          "ref_t2i_grad_rel": 3.6663423175829713e-07,
+          "t2i_dir_grad_rel": 1.0054943805971299e-05,
+          "i2t_bitwise": true,
+          "graph_equal": {
+            "i2t": true,
+            "t2i": true
+          },
+          "t2i_alpha_passed_uniform": true,
+          "pass": true
+        },
+        "pass": true
+      },
+      "q4_snce_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "bitwise": true,
+        "stage_fitted": true,
+        "alpha_computed_rows": 128.0,
+        "refiner_alpha_none": true,
+        "weighted_route": {
+          "param_maxdiff": 1.0952353477478027e-06,
+          "adam_maxdiff": 2.2584572434425354e-08,
+          "rng_equal": true,
+          "proto_t2i_maxdiff": 5.960464477539063e-08,
+          "proto_i2t_maxdiff": 0.0,
+          "enc_grad_rel": 4.259536292094075e-06,
+          "ref_t2i_grad_rel": 3.6663423175829713e-07,
+          "t2i_dir_grad_rel": 1.0054943805971299e-05,
+          "i2t_bitwise": true,
+          "graph_equal": {
+            "i2t": true,
+            "t2i": true
+          },
+          "t2i_alpha_passed_uniform": true,
+          "pass": true
+        },
+        "pass": true
+      }
+    },
+    "i2t_identical": {
+      "pass_": true,
+      "q1_cos_pool": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      },
+      "q2_vcs_pool": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      },
+      "q3_bce_pool": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      },
+      "q4_snce_pool": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      }
+    },
+    "pooling": {
+      "pass_": true,
+      "a1_iface": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "pass": true
+      },
+      "cn_mix_t2i": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "pass": true
+      },
+      "q1_cos_pool": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "alpha_min": 2.427142499072943e-05,
+        "alpha_max": 0.9588217735290527,
+        "alpha_row_range_mean": 0.5063529014587402,
+        "alpha_entropy_mean": 1.1148459911346436,
+        "t2i_refiner_got_alpha": true,
+        "i2t_refiner_alpha_none": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": false,
+        "pass": true
+      },
+      "q2_vcs_pool": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "alpha_min": 2.2025757061783224e-05,
+        "alpha_max": 0.9183595180511475,
+        "alpha_row_range_mean": 0.49108994007110596,
+        "alpha_entropy_mean": 1.1449401378631592,
+        "t2i_refiner_got_alpha": true,
+        "i2t_refiner_alpha_none": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": true,
+        "pass": true
+      },
+      "q3_bce_pool": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "alpha_min": 6.789877602386696e-07,
+        "alpha_max": 0.9680927395820618,
+        "alpha_row_range_mean": 0.583810567855835,
+        "alpha_entropy_mean": 0.9709120988845825,
+        "t2i_refiner_got_alpha": true,
+        "i2t_refiner_alpha_none": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": true,
+        "pass": true
+      },
+      "q4_snce_pool": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "alpha_min": 1.0242324322007335e-08,
+        "alpha_max": 0.9996527433395386,
+        "alpha_row_range_mean": 0.6717604994773865,
+        "alpha_entropy_mean": 0.7670620679855347,
+        "t2i_refiner_got_alpha": true,
+        "i2t_refiner_alpha_none": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": true,
+        "pass": true
+      }
+    },
+    "pq_truth_free": {
+      "pass_": true,
+      "thr": 0.9785515069961548,
+      "thr_equals_teacher_mean": true,
+      "nP_avail": 78447,
+      "stage_log_nP_avail": 78447,
+      "stage_log_nP_fit": 16384,
+      "nP_fit": 16384,
+      "rows_subset": true,
+      "rows_unique": true,
+      "gidx_is_labeled_observed": true,
+      "labeled_is_teacher_clean_split": true,
+      "observed_consistent_with_noise_lock": true,
+      "all_prob_above_thr": true,
+      "evaluator_only_P_clean_fraction": 0.98541259765625,
+      "evaluator_only_all_labeled_clean_fraction": 0.9603821818139755,
+      "note": "clean fractions use the injected-noise truth inside this gate only (evaluator); training never reads it",
+      "static_truth_hits": [],
+      "hook_lines": [
+        "elif branch == 't2i' and opt.arm in Q_ARMS:",
+        "S, qs = CS.search_t2i(net2.memory_queue, xt2, QP.SOURCE, opt.k, stats)",
+        "if branch == 't2i' and opt.arm in Q_ARMS:",
+        "alpha = QP.alpha_t2i(opt, net, net2, S, uids, stats, timed)              # stop-grad, other-peer scores"
+      ],
+      "stage_hook_lines": [
+        "QP.begin_stage(opt, net, net2, ld, epoch, peer, stats)   # frozen teacher; forked RNG; no global-RNG change"
+      ],
+      "pass": true
+    },
+    "resume": {
+      "pass_": true,
+      "snapshot_twice": {
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "rng_equal": true,
+        "head_sha_equal": true,
+        "alpha_maxdiff": 0.0
+      },
+      "disk_reload": {
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "rng_equal": true,
+        "head_sha_equal": true,
+        "queue_ids_equal": true
+      },
+      "smoke_states": {
+        "q1_cos_pool": {
+          "saved_arm": "q1_cos_pool",
+          "saved_lam": 0.0,
+          "saved_scorer": "cos",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        },
+        "q2_vcs_pool": {
+          "saved_arm": "q2_vcs_pool",
+          "saved_lam": 0.0,
+          "saved_scorer": "vcs",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        },
+        "q3_bce_pool": {
+          "saved_arm": "q3_bce_pool",
+          "saved_lam": 0.0,
+          "saved_scorer": "bce",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        },
+        "q4_snce_pool": {
+          "saved_arm": "q4_snce_pool",
+          "saved_lam": 0.0,
+          "saved_scorer": "snce",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        }
+      },
+      "run_unit_identity": {
+        "dry_fresh_rc": 0,
+        "same_arm_rc": 0,
+        "same_arm_resumes_state_last": true,
+        "other_arm_rc": 1,
+        "other_arm_msg": "Cannot resume: identity mismatch.",
+        "unidentified_state_rc": 1,
+        "unidentified_msg": "Unidentified state in output directory; refuse resume.",
+        "non_q_unit_rc": 1,
+        "non_q_msg": "Unit is not in the authorized R27-Q 8-unit matrix.",
+        "lam_zero_in_cmd": true,
+        "dry_fresh_cmd": "/projects/EEG-foundation-model/yinghao/envs/v9_sgr/bin/python -u -B <WORKSPACE>/handoff/r27_qpool_20261031/code_q/r27_run.py --arm q2_vcs_pool --lam 0.0 --data_path /tmp/r27_1078210 --data_name f30k_precomp --noise_file /projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.4.npy --noise_ratio 0.4 --seed 1001 --k 5 --num_epochs 40 --output_dir /tmp/r27q_gate_id_f6uf7as2/f40_s1001/q2_vcs_pool --resume /projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/groups/f40_s1001/prefix/prefix_state.pt",
+        "identity_has_protocol_sha": true
+      }
+    },
+    "timing": {
+      "pass_": true,
+      "gpu": "NVIDIA L40S",
+      "note": "30 iterations incl. data loading and the stage fit; model A stage only",
+      "est_extra_hours_per_unit_vs_cnative": {
+        "q1_cos_pool": 0.5281953716278082,
+        "q2_vcs_pool": 0.3647481550993746,
+        "q3_bce_pool": 0.35116132912812426,
+        "q4_snce_pool": 0.3435308954450819
+      },
+      "steps_per_stage": 676,
+      "a1_iface": {
+        "seconds_30it_incl_fit": 7.210965156555176,
+        "stage_fit_seconds": 0.0,
+        "ms_per_step_excl_fit": 240.36550521850586,
+        "peak_mem_GiB": 25.5662579536438,
+        "t2i_n": 30.0,
+        "qscore_s_per_timed_step": 0.0,
+        "ratio_vs_cnative_excl_fit": 1.0244715229076489
+      },
+      "cn_mix_t2i": {
+        "seconds_30it_incl_fit": 7.038717031478882,
+        "stage_fit_seconds": 0.0,
+        "ms_per_step_excl_fit": 234.62390104929605,
+        "peak_mem_GiB": 25.566044330596924,
+        "t2i_n": 30.0,
+        "qscore_s_per_timed_step": 0.0,
+        "ratio_vs_cnative_excl_fit": 1.0
+      },
+      "q1_cos_pool": {
+        "seconds_30it_incl_fit": 8.152141094207764,
+        "stage_fit_seconds": 0.06131720542907715,
+        "ms_per_step_excl_fit": 269.69412962595624,
+        "peak_mem_GiB": 25.56642198562622,
+        "t2i_n": 30.0,
+        "qscore_s_per_timed_step": 0.03186142444610596,
+        "ratio_vs_cnative_excl_fit": 1.149474236937573
+      },
+      "q2_vcs_pool": {
+        "seconds_30it_incl_fit": 10.135634660720825,
+        "stage_fit_seconds": 2.4784927368164062,
+        "ms_per_step_excl_fit": 255.2380641301473,
+        "peak_mem_GiB": 25.569027423858643,
+        "t2i_n": 30.0,
+        "qscore_s_per_timed_step": 0.026400327682495117,
+        "ratio_vs_cnative_excl_fit": 1.0878604566229597
+      },
+      "q3_bce_pool": {
+        "seconds_30it_incl_fit": 10.094639778137207,
+        "stage_fit_seconds": 2.4639875888824463,
+        "ms_per_step_excl_fit": 254.3550729751587,
+        "peak_mem_GiB": 25.568806648254395,
+        "t2i_n": 30.0,
+        "qscore_s_per_timed_step": 0.02640855312347412,
+        "ratio_vs_cnative_excl_fit": 1.0840970243765446
+      },
+      "q4_snce_pool": {
+        "seconds_30it_incl_fit": 10.034299612045288,
+        "stage_fit_seconds": 2.4167912006378174,
+        "ms_per_step_excl_fit": 253.91694704691568,
+        "peak_mem_GiB": 25.569689750671387,
+        "t2i_n": 30.0,
+        "qscore_s_per_timed_step": 0.026439428329467773,
+        "ratio_vs_cnative_excl_fit": 1.0822296701714376
+      }
+    }
+  },
+  "gpu": "NVIDIA L40S",
+  "source_state": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_20261029/smoke_s_1075954/s4_single_cap_vcs/state_last.pt",
+  "raw_report_paths": [
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/smoke_q_1078189/GPU_GATE.json",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/smoke_q_1078189/q1_cos_pool",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/smoke_q_1078189/q2_vcs_pool",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/smoke_q_1078189/q3_bce_pool",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/smoke_q_1078189/q4_snce_pool"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

@@ -9,7 +9,8 @@ ROOTS = {'/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_20261029
          '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_directional_20261030/runs': ('d1_vcs_i2t', 'd2_vcs_t2i', 'd3_snce_i2t', 'd4_snce_t2i'),
          '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle_20261030/runs': ('o1_rescue_native_t2i', 'o2_rescue_vcs_t2i'),
          '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle3_20261031/runs': ('o3_true_target_t2i',),
-         '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs': ('bn_cross_t2i', 'cn_mix_t2i')}
+         '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs': ('bn_cross_t2i', 'cn_mix_t2i'),
+         '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs': ('q1_cos_pool', 'q2_vcs_pool', 'q3_bce_pool', 'q4_snce_pool')}
 CELLS = ('f40_s1001', 'f60_s1001')
 
 

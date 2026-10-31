@@ -18,7 +18,9 @@ PAIRS = [('a1_iface', A0), ('s1_balanced_dual', 'a1_iface'), ('s2_single_free_vc
          ('s6_single_cap_snce', 'd3_snce_i2t'), ('s6_single_cap_snce', 'd4_snce_t2i'),
          ('o1_rescue_native_t2i', 'a1_iface'), ('o2_rescue_vcs_t2i', 'd2_vcs_t2i'), ('o2_rescue_vcs_t2i', 'o1_rescue_native_t2i'),
          ('o3_true_target_t2i', 'o1_rescue_native_t2i'), ('o3_true_target_t2i', 'a1_iface'),
-         ('bn_cross_t2i', 'a1_iface'), ('cn_mix_t2i', 'a1_iface'), ('bn_cross_t2i', 'cn_mix_t2i')]
+         ('bn_cross_t2i', 'a1_iface'), ('cn_mix_t2i', 'a1_iface'), ('bn_cross_t2i', 'cn_mix_t2i'),
+         ('q1_cos_pool', 'cn_mix_t2i'), ('q2_vcs_pool', 'cn_mix_t2i'), ('q3_bce_pool', 'cn_mix_t2i'), ('q4_snce_pool', 'cn_mix_t2i'),
+         ('q2_vcs_pool', 'q1_cos_pool'), ('q2_vcs_pool', 'q3_bce_pool'), ('q2_vcs_pool', 'q4_snce_pool')]
 COLS = ['1->2-10', '1->>10', '2-10->1', '>10->1', '>10->2-10']
 
 

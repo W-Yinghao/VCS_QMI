@@ -1,0 +1,246 @@
+{
+  "protocol": "R27-Q query-conditioned candidate pooling (NEXT_DESIGN_CN.md, review f3640384, 2026-10-31)",
+  "frozen_utc": "2026-10-31T09:52:50Z",
+  "frozen_before": "any formal unit and before the GPU gate of the frozen snapshot; no DEV result of any R27-Q arm was seen",
+  "design_source": "<WORKSPACE>/r27_review_f364/VCS_Retrieval_Review_f3640384_20261031/NEXT_DESIGN_CN.md",
+  "code_snapshot": "<WORKSPACE>/handoff/r27_qpool_20261031/code_q",
+  "base": "code_cs (R27-CS) C-native arm cn_mix_t2i; diff Q_DIFF.patch; r27cs_sources.py unchanged",
+  "matrix": {
+    "arms": {
+      "q1_cos_pool": "alpha from the teacher cosine",
+      "q2_vcs_pool": "relation head, original VCS J(T), T=tanh(g)",
+      "q3_bce_pool": "same head, balanced BCE, logit 2g",
+      "q4_snce_pool": "same head, soft-NCE t2i in-batch competition, logits 2g (uncapped)"
+    },
+    "cells": [
+      "f40_s1001",
+      "f60_s1001"
+    ],
+    "seed": 1001,
+    "epochs": 40,
+    "prefix": "cell common prefix (CELLS.json)",
+    "units": 8,
+    "references_reused_not_rerun": {
+      "A1": "r27_qtarget a1_iface f40/f60_s1001",
+      "C_native": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs/<cell>/cn_mix_t2i"
+    }
+  },
+  "relation_head": {
+    "architecture": "g(q,y) = Linear(256->1)(ReLU(Linear(2049->256)([q*y, |q-y|, q.y])))",
+    "hidden": 256,
+    "params": 525057,
+    "features": "concat(q*y, |q-y|, q.y) of unit teacher vectors (2*1024+1 = 2049 inputs)",
+    "init": "PyTorch default Linear init under torch.manual_seed(stage_seed+17); identical initial head for Q2/Q3/Q4",
+    "link": {
+      "vcs": "T = tanh(g); maximize J = E_P[T - T^2/2] - E_Q[T + T^2/2]",
+      "bce": "minimize E_P softplus(-2g) + E_Q softplus(2g)",
+      "snce": "minimize -sum_l soft[k,l] log softmax_l(2 g(cap_k, img_l)) over the P batch (rows = captions); soft = observed-image-ID duplicates, rows normalized"
+    },
+    "shared_optimum": "VCS/BCE: g* = 0.5 log(p/q); NCE: 2g* = log(p/q) + c(query); softmax(2g*) over candidates = normalized density ratio"
+  },
+  "P": {
+    "definition": "stage labeled split (teacher's GMM clean split as handed to the stage) rows with teacher clean prob > teacher avg_clean_prob; caption -> OBSERVED image",
+    "weighting": "uniform within the stage (one peer stage = one time window)",
+    "n_fit_max": 16384,
+    "n_val_max": 2048,
+    "split_rule": "n_val = min(N_VAL, floor(n/10) to a multiple of 128); n_fit = min(N_FIT, rest to a multiple of 128); random subset (stage seed)",
+    "truth": "never read (static check + gate pq_truth_free)"
+  },
+  "Q": {
+    "definition": "empirical product of the fitted P marginals including its diagonal: caption and image indices drawn independently uniformly from the fitted P rows",
+    "per_step": "BATCH x BATCH grid of independent draws",
+    "nce": "uses the P batch itself (in-batch competition), same index draws consumed"
+  },
+  "optimisation": {
+    "optimizer": "Adam",
+    "lr": 0.001,
+    "weight_decay": 0,
+    "batch": 128,
+    "steps": 200,
+    "positives_per_step": 128,
+    "pair_evaluations_per_step": "vcs/bce: 128 + 128^2; snce: 128^2",
+    "same_index_sequence_all_heads": true
+  },
+  "teacher_coordinates": {
+    "teacher": "other peer (net2) eval mode, no grad",
+    "inputs": "unaugmented captions (Ctx.tokens) / all 36 regions",
+    "centering_fit": "per 128-pair encoding chunk of P, each modality by its chunk mean, then l2norm",
+    "centering_apply": "query captions by the noisy batch own (unaugmented, teacher-eval) caption mean; candidates by the teacher-eval mean of the noisy batch observed images; then l2norm",
+    "q1": "same coordinates, score = q.y"
+  },
+  "stage_schedule": {
+    "when": "start of every peer stage (model A with teacher B, then model B with teacher A), each epoch",
+    "seed": "SEED_BASE*seed + 2*epoch + peer (SEED_BASE=7919), identical across arms",
+    "rng": "torch.random.fork_rng (global CPU/CUDA RNG restored); numpy/python RNG untouched",
+    "frozen_within_stage": true,
+    "carried_across_stages": false
+  },
+  "readout": {
+    "alpha": "softmax(beta * score) over the K=5 candidates of each row",
+    "beta_head": 2.0,
+    "beta_cos": 16.0,
+    "note": "alpha is a relative candidate weight, not a calibrated clean probability"
+  },
+  "trial": {
+    "file": "TRIAL_1078146.json",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "rules": {
+      "steps": "smallest S in STEPS_GRID such that, for EACH of the three heads, the held-out improvement of its own objective (loss at step 0 minus loss at S) is >= 0.95 x its best improvement over STEPS_GRID; one S for all heads",
+      "beta": "temperature scaling on held-out high-confidence pairs (training-visible observed pairing only): each held-out caption gets K=5 candidates = its observed image + the 4 other distinct observed images of the held-out pool with highest teacher cosine; NLL(beta) = -mean log softmax(beta*score)[observed]; BETA_HEAD = argmin over BETA_GRID of the SUM of the Q2/Q3/Q4 NLLs (one shared value); BETA_COS = argmin over BETA_GRID of the Q1 cosine NLL",
+      "data": "gate start state, stage A of the next epoch (teacher = model B), GMM split recomputed as in training"
+    },
+    "chosen": {
+      "STEPS": 200,
+      "BETA_HEAD": 2.0,
+      "BETA_COS": 16.0
+    },
+    "steps_improvement": {
+      "vcs": {
+        "100": 0.896317457780242,
+        "200": 0.9398142453283072,
+        "400": 0.9547178503125906,
+        "800": 0.9598373528569937
+      },
+      "bce": {
+        "100": 1.1861310750246048,
+        "200": 1.2764137461781502,
+        "400": 1.3037894368171692,
+        "800": 1.307342790067196
+      },
+      "snce": {
+        "100": 4.530858053825796,
+        "200": 4.556286702863872,
+        "400": 4.565351566299796,
+        "800": 4.579677029512823
+      }
+    },
+    "calibration_nll": {
+      "cos": {
+        "0.5": 1.5776347139510642,
+        "1.0": 1.5467151239940196,
+        "2.0": 1.4876252787068684,
+        "4.0": 1.381039240449359,
+        "8.0": 1.2167464975641473,
+        "16.0": 1.064412583647153,
+        "32.0": 1.1487708352561072,
+        "64.0": 1.7487826265085742,
+        "128.0": 3.2261276811991
+      },
+      "vcs": {
+        "0.5": 1.418076588715275,
+        "1.0": 1.2820063374241872,
+        "2.0": 1.160386163922807,
+        "4.0": 1.2752897451792264,
+        "8.0": 1.9409102857125673,
+        "16.0": 3.571329945809148,
+        "32.0": 6.98857846020891,
+        "64.0": 13.900369493209347,
+        "128.0": 27.762559145797482
+      },
+      "bce": {
+        "0.5": 1.3594149960341766,
+        "1.0": 1.2148642835548713,
+        "2.0": 1.1702688162222938,
+        "4.0": 1.5096829291226317,
+        "8.0": 2.5748298150280124,
+        "16.0": 4.930090338042339,
+        "32.0": 9.752434445726022,
+        "64.0": 19.4522316534187,
+        "128.0": 38.87772439724064
+      },
+      "snce": {
+        "0.5": 1.2501601101378452,
+        "1.0": 1.122703175569777,
+        "2.0": 1.2423975995350944,
+        "4.0": 1.9062501228273558,
+        "8.0": 3.5151486457938868,
+        "16.0": 6.879824416256921,
+        "32.0": 13.683069502225568,
+        "64.0": 27.327863689877063,
+        "128.0": 54.63682262211706
+      }
+    },
+    "pooled_head_nll": {
+      "0.5": 4.027651694887297,
+      "1.0": 3.6195737965488357,
+      "2.0": 3.5730525796801955,
+      "4.0": 4.691222797129214,
+      "8.0": 8.030888746534465,
+      "16.0": 15.381244700108407,
+      "32.0": 30.424082408160498,
+      "64.0": 60.68046483650511,
+      "128.0": 121.27710616515517
+    },
+    "per_head_argmin_info_only": {
+      "vcs": 2.0,
+      "bce": 2.0,
+      "snce": 1.0
+    },
+    "P": {
+      "nP_avail": 78447,
+      "nP_fit": 16384,
+      "nP_val": 2048,
+      "thr": 0.978546142578125,
+      "n_labeled": 86452,
+      "fit_unique_images": 13083
+    },
+    "fit_seconds_at_chosen": {
+      "vcs": 0.28975582122802734,
+      "bce": 0.28604769706726074,
+      "snce": 0.2637772560119629
+    },
+    "observation_info_only": "calibration set (observed + 4 cosine-nearest distractors): observed top1 cos 0.662 vcs 0.611 bce 0.605 snce 0.632"
+  },
+  "config": {
+    "BATCH": 128,
+    "BETA_COS": 16.0,
+    "BETA_GRID": [
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0,
+      16.0,
+      32.0,
+      64.0,
+      128.0
+    ],
+    "BETA_HEAD": 2.0,
+    "CHUNK": 128,
+    "FEATURES": "concat(q*y, |q-y|, q.y) of unit teacher vectors (2*1024+1 = 2049 inputs)",
+    "FROZEN": true,
+    "HIDDEN": 256,
+    "LR": 0.001,
+    "N_FIT": 16384,
+    "N_VAL": 2048,
+    "SEED_BASE": 7919,
+    "STEPS": 200,
+    "STEPS_GRID": [
+      100,
+      200,
+      400,
+      800
+    ],
+    "TRIAL_RULES": {
+      "steps": "smallest S in STEPS_GRID such that, for EACH of the three heads, the held-out improvement of its own objective (loss at step 0 minus loss at S) is >= 0.95 x its best improvement over STEPS_GRID; one S for all heads",
+      "beta": "temperature scaling on held-out high-confidence pairs (training-visible observed pairing only): each held-out caption gets K=5 candidates = its observed image + the 4 other distinct observed images of the held-out pool with highest teacher cosine; NLL(beta) = -mean log softmax(beta*score)[observed]; BETA_HEAD = argmin over BETA_GRID of the SUM of the Q2/Q3/Q4 NLLs (one shared value); BETA_COS = argmin over BETA_GRID of the Q1 cosine NLL",
+      "data": "gate start state, stage A of the next epoch (teacher = model B), GMM split recomputed as in training"
+    }
+  },
+  "offline_evaluator": "tools/fit_eval_offline.py (design §6 items 1-5; truth only there)",
+  "not_done": [
+    "no K / candidate-rule / temperature sweeps",
+    "no per-arm tuning on DEV",
+    "no extra pseudo-target loss",
+    "TEST never read"
+  ],
+  "revisions": [
+    {
+      "utc": "2026-10-31T10:05:27Z",
+      "after_gate": "1078152 (ALL_PASS False)",
+      "code": "r27q_pool.fit_head: opt_h.zero_grad(set_to_none=True) after the fit (frozen head kept its last fit-step .grad; not in any optimizer, params unchanged by the encoder step). No numeric change; all hyperparameters/rules unchanged.",
+      "gate_script": "v2: weighted-uniform route param criterion 1e-6 -> 1e-5 (observed 1.08e-6 = fp32 rounding through one AdamW step; the bitwise mean route is unchanged), threshold check compares with the fp32 mean as computed in R.main (v1 compared a float64 mean at 1e-9). v1 kept as gate/r27q_gate.py.v1_1078152."
+    }
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
