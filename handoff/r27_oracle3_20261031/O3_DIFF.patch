@@ -1,0 +1,98 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+--- code_oracle/r27_co_train.py
++++ code_o3/r27_co_train.py
+@@ -123,7 +123,7 @@
+             stats[f'{b}_{k}'] += float(t[m].mean())
+
+
+-def s_branch(opt, branch, X, Xd, proto, S, Y, stats, timed, t2, probe):
++def s_branch(opt, branch, X, Xd, proto, S, Y, stats, timed, t2, probe, oracle_T=None):
+     """R27-S noisy branch for one direction. One refiner forward (proto), reused:
+        refiner:  0.5 * SCE(sg X, P)        (native path; query stop-grad)
+        encoder:  0.5 * L_enc(X, sg targets) (S0: sg P; S1: dual balanced; S2: free VCS; S3-S6: capped targets)
+@@ -135,6 +135,13 @@
+     if kind == 'identity':
+         T = Pd
+         l_enc = infonce(X.mm(T.t()))
++    elif kind == 'true_target':      # R27-O3 (oracle): sg T_true from r27o_rescue.true_target_t2i, no generator
++        if oracle_T is None:
++            assert not RX.O3_TARGET, 'R27-O3 true target missing'
++            T = Pd                   # gate-only switch: O3 with the target off == O1
++        else:
++            T = oracle_T
++        l_enc = infonce(X.mm(T.t()))
+     elif kind in ('dual', 'vcs'):
+         T, valid, info = generate('vcs', S['A'], Y)
+         acc_info(stats, branch, info, valid)
+@@ -205,7 +212,10 @@
+         c = S['A'].mean(0)
+         stats[f'{branch}_J_query'] += float(f_vcs(Xd.double(), S['A'].double(), c.double(), Y.double()).mean())
+         if gen == 'S':
+-            s_branch(opt, branch, X, Xd, proto, S, Y, stats, timed, t2, probe)
++            oT = None
++            if branch == 't2i' and opt.arm in RX.O3_ARMS and RX.O3_TARGET:
++                oT, _ = RX.true_target_t2i(net, uids[0], mi, stats)   # R27-O3: truth read inside the oracle module only
++            s_branch(opt, branch, X, Xd, proto, S, Y, stats, timed, t2, probe, oracle_T=oT)
+             if timed:
+                 stats[f'time_search_{branch}'] += t1 - tb
+                 stats[f'time_reenc_{branch}'] += t2 - t1
+--- code_oracle/r27d_policy.py
++++ code_o3/r27d_policy.py
+@@ -40,3 +40,4 @@
+     opt.r27d_policy = dict(D_ARMS[opt.arm])
+     opt.r27d_theta_degrees = 15.0
+     opt.r27o_rescue_t2i = opt.arm in O_ARMS
++    opt.r27o3_true_target_t2i = opt.arm == 'o3_true_target_t2i'   # R27-O3 (oracle diagnostic)
+--- code_oracle/r27o_rescue.py
++++ code_o3/r27o_rescue.py
+@@ -10,15 +10,24 @@
+ is replaced by the true image ID. Candidate count stays K, and cols / inv / A are rebuilt with the production weight
+ rule of r27_interface.search (each slot 1/K, duplicates merged by scatter_add), so P/Q construction, re-encoding,
+ GraphRefiner, SCE and the optimizer step are unchanged. The replaced slot carries slots = -1, cap = -1 (no queue
+-slot) and wepoch = current epoch (diagnostic field only)."""
++slot) and wepoch = current epoch (diagnostic field only).
++
++R27-O3 (direct true-target diagnostic): arm o3_true_target_t2i keeps the O1 rescue and the native GraphRefiner update
++(refiner: 0.5 * SCE(sg query, P) on the rescued graph), and replaces only the t2i ENCODER target by the query caption's
++true image re-encoded by the CURRENT peer with the production rule (r27_interface.reencode: eval mode, no grad, centered
++with the current noisy batch's image mean, unit norm), stop-grad. Encoder: 0.5 * SCE(X, sg T_true). No averaging of the
++other candidates, no VCS correction. i2t keeps the A1 path. Truth is read only here (true_image)."""
+ import torch
+
+ O_ARMS = {
+     'o1_rescue_native_t2i': {'i2t': 'identity', 't2i': 'identity'},
+     'o2_rescue_vcs_t2i': {'i2t': 'identity', 't2i': 'cap_vcs'},
++    'o3_true_target_t2i': {'i2t': 'identity', 't2i': 'true_target'},     # R27-O3: rescue + direct true-image encoder target
+ }
++O3_ARMS = ('o3_true_target_t2i',)
+ IM_DIV = 5          # Flickr30K precomp: 5 training captions per training image
+ ENABLED = True      # gate-only switch (rescue disabled -> O1 == A1, O2 == D2); production never changes it
++O3_TARGET = True    # gate-only switch (O3 true target disabled -> O3 == O1); production never changes it
+ _checked = [False]
+
+
+@@ -67,3 +76,23 @@
+     S_new = dict(S)
+     S_new.update(slots=slots, cols=cols, inv=inv, A=A, wepoch=wep, cap=cap, img=img)
+     return S_new, info
++
++
++@torch.no_grad()
++def true_target_t2i(net, cap_gidx, mean, stats=None):
++    """R27-O3 encoder target: T[i] = current-peer re-encoding (r27_interface.reencode, the candidate rule) of the TRUE
++    image of query caption i, unit norm, stop-grad. Unique true IDs are encoded once and gathered (rows sharing a true
++    image get the identical vector). Logs rows / rows whose true image is shared with another row of the batch."""
++    _check_id_space()
++    from r27_interface import reencode
++    tru = true_image(cap_gidx.long())
++    cols, inv, cnt = torch.unique(tru, return_inverse=True, return_counts=True)
++    Yt = reencode(net, 't2i', cols, mean)
++    T = Yt[inv]
++    dup = cnt[inv] > 1
++    if stats is not None:
++        stats['cnt_t2i_o3_rows'] += int(tru.numel())
++        stats['cnt_t2i_o3_dup_rows'] += int(dup.sum())
++        stats['cnt_t2i_o3_unique_targets'] += int(cols.numel())
++        stats['t2i_o3_dup_frac'] += float(dup.double().mean())
++    return T, dict(truth=tru, cols=cols, inv=inv, dup=dup)

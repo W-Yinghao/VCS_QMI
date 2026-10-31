@@ -1,0 +1,296 @@
+{
+  "all_pass": true,
+  "oracle_diagnostic": "R27-O3 uses injected-pairing truth for the t2i candidate rescue AND the t2i encoder target; never part of a SOTA table",
+  "code_matches_install_manifest": true,
+  "checks": {
+    "i2t_identical": {
+      "pass_": true,
+      "vs_a1_iface": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "graph_equal": true,
+        "Y_equal": true,
+        "proto_equal": true,
+        "none_pattern_equal": true,
+        "a1_loss_vs_o3_loss": [
+          2.388772964477539,
+          4.777545928955078
+        ],
+        "bitwise": true
+      },
+      "vs_o1_rescue_native_t2i": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "graph_equal": true,
+        "Y_equal": true,
+        "proto_equal": true,
+        "none_pattern_equal": true,
+        "l_enc_absdiff": 0.0,
+        "loss_absdiff": 0.0,
+        "target_equal": true,
+        "bitwise": true
+      },
+      "full_step_ref_i2t_grad_maxdiff_vs_a1": 0.0,
+      "full_step_ref_i2t_grad_maxdiff_vs_o1": 0.0
+    },
+    "t2i_true_target": {
+      "pass_": true,
+      "dim": 1024,
+      "refiner_dir_grad_maxdiff_vs_o1": 0.0,
+      "refiner_full_step_t2i_grad_maxdiff_vs_o1": 0.0,
+      "l_ref_absdiff_vs_o1": 0.0,
+      "graph_equal_vs_o1": true,
+      "Y_equal_vs_o1": true,
+      "proto_equal_vs_o1": true,
+      "helper_calls": 1,
+      "helper_net_is_current_peer": true,
+      "helper_mean_is_batch_image_mean": true,
+      "helper_cap_is_query_uids0": true,
+      "target_is_helper_output": true,
+      "target_vs_independent_reencode_maxdiff": 0.0,
+      "truth_rx_equals_dataset_clean_index": true,
+      "noise_lock_equals_loader_pairing": true,
+      "noisy_query_frac": 0.96875,
+      "truth_in_rescued_cols": true,
+      "target_vs_rescued_candidate_reencode_maxdiff": 1.3083219528198242e-05,
+      "target_vs_rescued_candidate_note": "same IDs re-encoded inside a different (larger) candidate batch: fp32 kernel-shape differences only; tolerance 1e-4 abs (fp32 T01 convention); the same-call comparison target_vs_independent_reencode_maxdiff is required bitwise",
+      "target_vs_rescued_candidate_cos_min": 0.9999998807907104,
+      "norm_maxdev": 1.1920928955078125e-07,
+      "target_requires_grad": false,
+      "target_vs_o1_target_maxdiff": 0.22152066230773926,
+      "o1_target_is_sgP": true,
+      "cos_T_vs_P_mean": 0.590690553188324,
+      "l_enc_o3": 7.134669780731201,
+      "l_enc_o1": 3.3071091175079346,
+      "loss_is_half_ref_plus_half_enc": 1.1920928955078125e-07,
+      "enc_grad_vs_indep_sce_maxdiff": 0.0,
+      "enc_grad_absmax": 0.026518596336245537,
+      "enc_grad_maxdiff_vs_o1": 0.02374674193561077,
+      "dup_counters": {
+        "dup_rows": 0.0,
+        "unique": 128.0,
+        "dup_frac": 0.0
+      },
+      "dup_rows_gate": 0,
+      "unique_gate": 128,
+      "rescue_counters": {
+        "present": 12.0,
+        "rescued": 116.0
+      },
+      "rescue_counters_o1": {
+        "present": 12.0,
+        "rescued": 116.0
+      },
+      "rescue_calls": 1,
+      "pass": true
+    },
+    "o3_target_off_equiv": {
+      "pass_": true,
+      "helper_calls": 0,
+      "enc_grad_maxdiff": 0.0,
+      "ref_i2t_grad_maxdiff": 0.0,
+      "ref_t2i_grad_maxdiff": 0.0,
+      "param_maxdiff": 0.0,
+      "adam_maxdiff": 0.0,
+      "adam_len_equal": true,
+      "adam_step_equal": true,
+      "rng_equal": true,
+      "dir_grad_maxdiff": {
+        "i2t": 0.0,
+        "t2i": 0.0
+      },
+      "dir_target_equal": {
+        "i2t": true,
+        "t2i": true
+      },
+      "bitwise": true,
+      "note": "O3_TARGET is a gate-only switch; production never changes it (a missing target raises)"
+    },
+    "both_branches": {
+      "pass_": true,
+      "a1_iface": {
+        "opt_i2t": true,
+        "opt_t2i": true,
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": 2,
+        "refiner_forwards_a1": 2,
+        "stopgrad": true
+      },
+      "o1_rescue_native_t2i": {
+        "opt_i2t": true,
+        "opt_t2i": true,
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": 2,
+        "refiner_forwards_a1": 2,
+        "stopgrad": true
+      },
+      "o3_true_target_t2i": {
+        "opt_i2t": true,
+        "opt_t2i": true,
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": 2,
+        "refiner_forwards_a1": 2,
+        "stopgrad": true
+      }
+    },
+    "resume": {
+      "pass_": true,
+      "snapshot_twice": {
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "rng_equal": true
+      },
+      "disk_reload": {
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "rng_equal": true,
+        "queue_ids_equal": true
+      },
+      "smoke_state": {
+        "saved_arm": "o3_true_target_t2i",
+        "saved_rescue_flag": true,
+        "saved_o3_flag": true,
+        "policy_from_arm": {
+          "i2t": "identity",
+          "t2i": "true_target"
+        }
+      },
+      "run_unit_identity": {
+        "dry_fresh_rc": 0,
+        "dry_fresh_tail": "nghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.4.npy --noise_ratio 0.4 --seed 1001 --k 5 --num_epochs 40 --output_dir /tmp/r27o3_gate_id_ia4u5i34/f40_s1001/o3_true_target_t2i --resume /projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/groups/f40_s1001/prefix/prefix_state.pt",
+        "same_unit_rc": 0,
+        "same_unit_resumes_state_last": true,
+        "foreign_identity_rc": 1,
+        "foreign_identity_msg": "Cannot resume: identity mismatch.",
+        "unidentified_state_rc": 1,
+        "unidentified_msg": "Unidentified state in output directory; refuse resume.",
+        "non_o3_unit_rc": 1,
+        "non_o3_msg": "Unit is not in the authorized R27-O3 2-unit matrix.",
+        "identities_differ": true
+      }
+    },
+    "truth_isolation": {
+      "pass_": true,
+      "source_term_hits": {
+        "s_branch": [],
+        "noisy_branches": [],
+        "search": [],
+        "reencode": [],
+        "r27s_targets": [],
+        "r27d_policy": []
+      },
+      "hook_lines": [
+        "if branch == 't2i' and opt.arm in O_ARMS and RX.ENABLED:",
+        "S, _ = RX.rescue_t2i(S, uids[0], opt.k, opt.r27_epoch, stats)   # uids[0] = global caption IDs of the query batch",
+        "if branch == 't2i' and opt.arm in RX.O3_ARMS and RX.O3_TARGET:",
+        "oT, _ = RX.true_target_t2i(net, uids[0], mi, stats)   # R27-O3: truth read inside the oracle module only"
+      ],
+      "truth_reader": "r27o_rescue.true_image (caption j -> image j // 5), used by rescue_t2i and true_target_t2i only",
+      "split": "train (FIT) only; smoke DEV for arms_ran only; TEST never loaded"
+    },
+    "timing": {
+      "pass_": true,
+      "gpu": "NVIDIA A40",
+      "note": "30 iterations incl. data loading; model A step only",
+      "a1_iface": {
+        "ms_per_step": 412.78403600056964,
+        "peak_mem_GiB": 17.816758632659912,
+        "rescued_rows": 0,
+        "rescue_rows": 0,
+        "o3_rows": 0,
+        "o3_dup_rows": 0,
+        "ratio_vs_a1": 1.0
+      },
+      "o1_rescue_native_t2i": {
+        "ms_per_step": 385.5742295583089,
+        "peak_mem_GiB": 17.814051151275635,
+        "rescued_rows": 3575.0,
+        "rescue_rows": 3840.0,
+        "o3_rows": 0,
+        "o3_dup_rows": 0,
+        "ratio_vs_a1": 0.9340822220115528
+      },
+      "o3_true_target_t2i": {
+        "ms_per_step": 384.98826026916504,
+        "peak_mem_GiB": 17.81435203552246,
+        "rescued_rows": 3575.0,
+        "rescue_rows": 3840.0,
+        "o3_rows": 3840.0,
+        "o3_dup_rows": 16.0,
+        "ratio_vs_a1": 0.9326626678669175
+      }
+    },
+    "arms_ran": {
+      "pass_": true,
+      "finite": true,
+      "counters": {
+        "A": {
+          "cnt_t2i_rescue_rows": null,
+          "cnt_t2i_truth_present_rows": null,
+          "cnt_t2i_rescued_rows": null,
+          "cnt_t2i_o3_rows": null,
+          "cnt_t2i_o3_dup_rows": null,
+          "cnt_t2i_o3_unique_targets": null,
+          "t2i_o3_dup_frac_mean": null
+        },
+        "B": {
+          "cnt_t2i_rescue_rows": 3840.0,
+          "cnt_t2i_truth_present_rows": 172.0,
+          "cnt_t2i_rescued_rows": 3668.0,
+          "cnt_t2i_o3_rows": 3840.0,
+          "cnt_t2i_o3_dup_rows": 12.0,
+          "cnt_t2i_o3_unique_targets": 3834.0,
+          "t2i_o3_dup_frac_mean": 0.003125
+        }
+      },
+      "counters_logged": true,
+      "counters_consistent": true,
+      "noisy_steps": {
+        "A/i2t": 0,
+        "A/t2i": 0,
+        "B/i2t": 30.0,
+        "B/t2i": 30.0
+      },
+      "no_proto": {
+        "A/i2t": 30.0,
+        "A/t2i": 30.0,
+        "B/i2t": null,
+        "B/t2i": null
+      },
+      "epochs": [
+        0,
+        1
+      ],
+      "dev_rsum": 499.01380670611445,
+      "note": "1-epoch smoke from the common prefix: peer A has no ID-bearing candidates (known), so only peer B runs t2i"
+    }
+  },
+  "gpu": "NVIDIA A40",
+  "source_state": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_20261029/smoke_s_1075954/s4_single_cap_vcs/state_last.pt",
+  "raw_report_paths": [
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle3_20261031/smoke_o3_1077921/GPU_GATE.json",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle3_20261031/smoke_o3_1077921/o3_true_target_t2i"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

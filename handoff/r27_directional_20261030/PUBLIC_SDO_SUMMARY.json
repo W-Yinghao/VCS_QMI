@@ -1,12 +1,14 @@
 {
-  "scope": "Flickr30K seed1001, full DEV (1,014 img / 5,070 cap), best rSum over 40 co-train epochs; A0 = R25 H0; R27-O is an oracle diagnostic (true image inserted into t2i candidates), not a main-table result; no TEST",
+  "scope": "Flickr30K seed1001, full DEV (1,014 img / 5,070 cap), best rSum over 40 co-train epochs; A0 = R25 H0; R27-O (O1/O2: true image inserted into t2i candidates; O3: true image re-encoded as the t2i encoder target) are oracle diagnostics, not main-table results; bn_cross_t2i / cn_mix_t2i = A1 host with t2i candidates from direct cross-modal search / fixed 3+2 mix (whole-interface change, unique IDs); no TEST",
   "missing": [
     "f40_s1001/s6_single_cap_snce",
     "f40_s1001/d3_snce_i2t",
-    "f40_s1001/d4_snce_t2i",
-    "f60_s1001/s6_single_cap_snce",
+    "f40_s1001/bn_cross_t2i",
+    "f40_s1001/cn_mix_t2i",
     "f60_s1001/d3_snce_i2t",
-    "f60_s1001/d4_snce_t2i"
+    "f60_s1001/d4_snce_t2i",
+    "f60_s1001/bn_cross_t2i",
+    "f60_s1001/cn_mix_t2i"
   ],
   "runs": {
     "f40_s1001": {
@@ -178,6 +180,23 @@
         ],
         "wall_h_sum_recorded": 5.120795968506071
       },
+      "d4_snce_t2i": {
+        "best": 513.5305719921105,
+        "epoch": 22,
+        "last": 512.4852071005917,
+        "last5": 512.698224852071,
+        "i2t_r1": 81.95266272189349,
+        "i2t_r5": 95.66074950690336,
+        "i2t_r10": 98.42209072978304,
+        "t2i_r1": 61.57790927021696,
+        "t2i_r5": 85.08875739644971,
+        "t2i_r10": 90.82840236686391,
+        "attempts": "2",
+        "gpu": [
+          "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+        ],
+        "wall_h_sum_recorded": 0.28738065328862933
+      },
       "o1_rescue_native_t2i": {
         "best": 513.7475345167653,
         "epoch": 21,
@@ -211,6 +230,23 @@
           "NVIDIA RTX PRO 6000 Blackwell Server Edition"
         ],
         "wall_h_sum_recorded": 2.6512338994608986
+      },
+      "o3_true_target_t2i": {
+        "best": 515.956607495069,
+        "epoch": 23,
+        "last": 514.9901380670611,
+        "last5": 515.1715976331361,
+        "i2t_r1": 83.53057199211045,
+        "i2t_r5": 96.35108481262327,
+        "i2t_r10": 98.22485207100591,
+        "t2i_r1": 61.38067061143984,
+        "t2i_r5": 85.26627218934911,
+        "t2i_r10": 91.20315581854044,
+        "attempts": "1",
+        "gpu": [
+          "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+        ],
+        "wall_h_sum_recorded": 2.3626985482374825
       }
     },
     "f60_s1001": {
@@ -348,6 +384,23 @@
         ],
         "wall_h_sum_recorded": 2.2412456999884713
       },
+      "s6_single_cap_snce": {
+        "best": 504.26035502958575,
+        "epoch": 12,
+        "last": 501.5187376725838,
+        "last5": 501.8540433925049,
+        "i2t_r1": 80.57199211045365,
+        "i2t_r5": 95.16765285996055,
+        "i2t_r10": 97.23865877712032,
+        "t2i_r1": 58.994082840236686,
+        "t2i_r5": 83.25443786982248,
+        "t2i_r10": 89.03353057199212,
+        "attempts": "2",
+        "gpu": [
+          "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+        ],
+        "wall_h_sum_recorded": 5.83877310388618
+      },
       "d1_vcs_i2t": {
         "best": 503.629191321499,
         "epoch": 39,
@@ -415,6 +468,23 @@
           "NVIDIA RTX PRO 6000 Blackwell Server Edition"
         ],
         "wall_h_sum_recorded": 3.8497189315160116
+      },
+      "o3_true_target_t2i": {
+        "best": 507.90927021696257,
+        "epoch": 18,
+        "last": 507.3767258382643,
+        "last5": 507.2031558185405,
+        "i2t_r1": 80.96646942800788,
+        "i2t_r5": 95.56213017751479,
+        "i2t_r10": 97.73175542406311,
+        "t2i_r1": 60.0,
+        "t2i_r5": 84.0828402366864,
+        "t2i_r10": 89.56607495069034,
+        "attempts": "1",
+        "gpu": [
+          "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+        ],
+        "wall_h_sum_recorded": 1.771431674891048
       }
     }
   },
@@ -489,9 +559,19 @@
         "t2i_r1": -0.8875739644970437
       },
       "d3_snce_i2t-a1_iface": null,
-      "d4_snce_t2i-a1_iface": null,
+      "d4_snce_t2i-a1_iface": {
+        "best": -1.4398422090729355,
+        "last5": -1.3727810650887022,
+        "i2t_r1": -0.8875739644970366,
+        "t2i_r1": 0.07889546351084675
+      },
       "d1_vcs_i2t-d3_snce_i2t": null,
-      "d2_vcs_t2i-d4_snce_t2i": null,
+      "d2_vcs_t2i-d4_snce_t2i": {
+        "best": -1.577909270216992,
+        "last5": -1.5581854043392696,
+        "i2t_r1": -0.49309664694280286,
+        "t2i_r1": -0.9664694280078905
+      },
       "s4_single_cap_vcs-d1_vcs_i2t": {
         "best": -0.6508875739646101,
         "last5": -0.4299802761340743,
@@ -523,7 +603,28 @@
         "last5": 1.3846153846153584,
         "i2t_r1": 1.5779092702169635,
         "t2i_r1": -0.17751479289940875
-      }
+      },
+      "o3_true_target_t2i-o1_rescue_native_t2i": {
+        "best": 2.2090729783036522,
+        "last5": 2.1854043392504536,
+        "i2t_r1": 2.0710059171597663,
+        "t2i_r1": -0.01972386587771524
+      },
+      "o3_true_target_t2i-a1_iface": {
+        "best": 0.9861932938855489,
+        "last5": 1.1005917159764067,
+        "i2t_r1": 0.6903353057199269,
+        "t2i_r1": -0.11834319526627723
+      },
+      "o3_true_target_t2i-o2_rescue_vcs_t2i": {
+        "best": 1.1834319526626587,
+        "last5": 0.8007889546350953,
+        "i2t_r1": 0.49309664694280286,
+        "t2i_r1": 0.1577909270216935
+      },
+      "bn_cross_t2i-a1_iface": null,
+      "cn_mix_t2i-a1_iface": null,
+      "bn_cross_t2i-cn_mix_t2i": null
     },
     "f60_s1001": {
       "s1_balanced_dual-a1_iface": {
@@ -556,7 +657,12 @@
         "i2t_r1": -1.1834319526627297,
         "t2i_r1": -0.1577909270216935
       },
-      "s6_single_cap_snce-a1_iface": null,
+      "s6_single_cap_snce-a1_iface": {
+        "best": -0.2169625246549458,
+        "last5": -0.489151873767355,
+        "i2t_r1": -0.7889546351084817,
+        "t2i_r1": 0.21696252465483212
+      },
       "s2_single_free_vcs-a3_vcs": {
         "best": -0.9270216962524387,
         "last5": -1.3964497041420145,
@@ -575,7 +681,12 @@
         "i2t_r1": 1.0848126232741748,
         "t2i_r1": -0.07889546351085386
       },
-      "s4_single_cap_vcs-s6_single_cap_snce": null,
+      "s4_single_cap_vcs-s6_single_cap_snce": {
+        "best": 0.6311637080868309,
+        "last5": 1.8461538461539249,
+        "i2t_r1": 0.6903353057199269,
+        "t2i_r1": -0.4536489151873795
+      },
       "s4_single_cap_vcs-s3_single_cap_delta": {
         "best": 0.5917159763313862,
         "last5": 0.8836291913215177,
@@ -629,7 +740,28 @@
         "last5": -0.12623274161734344,
         "i2t_r1": -1.2820512820512846,
         "t2i_r1": -0.13806706114397826
-      }
+      },
+      "o3_true_target_t2i-o1_rescue_native_t2i": {
+        "best": 2.426035502958655,
+        "last5": 3.6568047337278813,
+        "i2t_r1": 0.09861932938855489,
+        "t2i_r1": 1.0650887573964525
+      },
+      "o3_true_target_t2i-a1_iface": {
+        "best": 3.4319526627218693,
+        "last5": 4.859960552268262,
+        "i2t_r1": -0.394477317554248,
+        "t2i_r1": 1.222879684418146
+      },
+      "o3_true_target_t2i-o2_rescue_vcs_t2i": {
+        "best": 4.378698224852087,
+        "last5": 3.7830374753452247,
+        "i2t_r1": 1.3806706114398395,
+        "t2i_r1": 1.2031558185404307
+      },
+      "bn_cross_t2i-a1_iface": null,
+      "cn_mix_t2i-a1_iface": null,
+      "bn_cross_t2i-cn_mix_t2i": null
     }
   },
   "interaction_package": {

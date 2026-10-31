@@ -1,0 +1,26 @@
+{
+  "task": "R27-CS: SERVER_ADJUSTMENTS_CN.md (a773dc92, 2026-10-31) section 5 -- t2i candidate-source units B-native (bn_cross_t2i) / C-native (cn_mix_t2i) x Flickr 40%/60% x seed1001 on the A1 host, cell common prefix, 40 epochs",
+  "snapshot": "code_cs = copy of handoff/r27_directional_20261030/code_frozen + r27cs_sources.py (new) + 2 edited files (r27_co_train.py, r27_run.py); see CANDSRC_DIFF.patch and code_cs/INSTALL_MANIFEST.json. code_frozen / code_oracle / r27_qtarget code trees untouched.",
+  "frozen_rules": {
+    "query": "other peer net2 val-mode native forward_emb text embedding of the current noisy batch (the same xt2 tensor the production t2i search uses)",
+    "eligible_bank": "net2.memory_queue slots with cap>=0 and img>=0 (asserted equal to production usable mask); prefix-era ID-less slots excluded as in A1",
+    "B_direct": "xt2 . net2.img_queue (cross-modal); target = observed image IDs; package unique_topk (ID score = max eligible slot score, descending, stable tie-break to smaller ID)",
+    "C_mix": "A_unique = xt2 . net2.txt_queue -> partner observed image IDs, unique_topk; final = package mix_3a_2b(A_unique, B_direct): first 3 distinct A IDs, then not-yet-chosen B IDs in rank order, A remainder fills shortage",
+    "source_of_rules": "verbatim copy (inspect.getsource equality tested) of r27d_server/VCS_Retrieval_R27D_Server_20261030/src/candidate_sources.py (sha256 a4f7f35a...), mode 'normal' of tools/candidate_source_audit.py (no same-source exclusion) = the mode of the SERVER_ADJUSTMENTS section 7 coverage numbers",
+    "K": 5,
+    "graph": "cols, inv = torch.unique(final IDs); A = scatter_add 1/K per (row, ID) (production rule of r27_interface.search). Each row: 5 distinct IDs, mass 1/5 each, rows sum to 1",
+    "i2t": "production A1 search, unchanged (gate: bitwise equal to A1)",
+    "losses": "A1 path: ARMS[arm] = None, lam = 0; 0.5 * SCE(X, GraphRefiner(neigh)) per direction, separate backward per direction, one optimizer.step"
+  },
+  "whole_interface_change": "Production A1 keeps the top-5 SLOTS and merges duplicate slots of the same ID into one atom with accumulated mass (2/5, 3/5, ...). Both new arms always deliver 5 DISTINCT image IDs with mass 1/5. Any difference vs A1 therefore belongs to the whole interface (candidate source + duplicate handling), not to the source alone.",
+  "shortage_handling": "As production (search returns None when < K ID-bearing slots: batch direction skipped, counted t2i_no_proto). Additionally, if any row still has < 5 unique IDs after the backfill rule, the batch direction is skipped the same way and counted (cnt_t2i_cs_short_rows, cnt_t2i_cs_skipped_batches). Without source exclusion all rows share one unique-ID set, so this can only occur when the whole bank has < 5 distinct images.",
+  "per_epoch_logs": "EPOCHS.json train.<peer>: cnt_t2i_cs_calls, cnt_t2i_cs_rows, cnt_t2i_cs_short_rows, cnt_t2i_cs_skipped_batches, cnt_t2i_cs_bank_unique_ids_sum, cnt_t2i_cs_bank_slots_sum, cnt_t2i_cs_from_b (number of final candidates supplied by the B route; = 5 x rows for bn), plus the existing t2i_n_atoms / shared_frac / max_col_mass / cand_age_epochs / self_hit / no_proto",
+  "representative_slots": "S['slots'/'cap'/'wepoch'] for each chosen ID = highest-scoring eligible slot of that ID in the route that supplied it (diagnostics only: candidate age, cap); not used by any loss",
+  "truth": "No truth in training code. Offline identity counters (caption j -> image j//5) are computed only inside the gate on the gate batch (evaluator side) and are not part of training.",
+  "not_done": "No K / temperature / mix-ratio sweeps; no in-training identity-hit counters (optional per brief; omitted to keep truth out of the training process). Top5 coverage / MRR@5 for the formal units can be produced afterwards by the existing offline exporter on saved states.",
+  "runner": "tools/run_unit_cs.py (modeled on R27-O run_unit_o.py): lam fixed 0.0 in the driver command, identity file R27CS_IDENTITY.json, same-unit resume only, requires GPU_GATE.json all_pass with matching code sha256s",
+  "sbatch": "sbatch/r27cs_unit.sbatch: normal QOS, RTX6000PRO,L40S,H100, exclude node51,node53,node60, nice 40, 10h (from LINES_CS.txt), self-continuation on timeout <= 3 attempts, keep_states.py (R27-D) for epoch 10/20 states, no --dependency",
+  "output": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs/<cell>/<arm>",
+  "r27_run_change": "lam==0 assert extended from a1_iface to the CS arms; r27cs_sources.validate_options (Flickr, seed1001, K=5, noise 0.4/0.6, 40 epochs except a separate <=2-epoch <=30-iteration smoke dir, both directions on, lam 0)",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
