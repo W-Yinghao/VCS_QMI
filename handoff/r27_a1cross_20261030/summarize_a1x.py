@@ -66,7 +66,7 @@ L += ['', '## 逐 seed 配对差 A1 − R26 各臂（best rSum / last5 / i2t R@1
 for c in CELLS:
     for k, v in pairs[c].items():
         L.append(f'| {c} | {k} | ' + (' | '.join(f(v[m]) for m in ('best', 'last5', 'i2t_r1', 't2i_r1')) if v else 'NA | NA | NA | NA') + ' |')
-L += ['', '## 仅在 A1 已完成格上的均值（best rSum；不是三 seed 均值）', '', '| 数据集 | 已完成格 | ' + ' | '.join(ARMS) + ' |', '|---|---|' + '---|' * len(ARMS)]
+L += ['', '## 三 seed 均值（best rSum）' if not missing else '## 仅在 A1 已完成格上的均值（best rSum；不是三 seed 均值）', '', '| 数据集 | 已完成格 | ' + ' | '.join(ARMS) + ' |', '|---|---|' + '---|' * len(ARMS)]
 for ds, m in means.items():
     L.append(f"| {ds} | {', '.join(m['cells_with_a1']) or '—'} | " + (' | '.join(f"{m['mean_best_over_these_cells'][a]:.2f}" for a in ARMS) if m['mean_best_over_these_cells'] else 'NA') + ' |')
 open(os.path.join(HERE, 'A1X_TABLES.md'), 'w').write('\n'.join(L) + '\n')
