@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 来源：审计 3 保存的 rank（各单元 best full-DEV checkpoint，同一固定 DEV 顺序）。“新/参照”= 参照 → 新 的 query 数；分桶 1 / 2–10 / >10（1 起计）。i2t 每格 1,014 个图像 query，t2i 5,070 个 caption query。单 seed。
 
-缺失比较（任一单元未完成或未导出）：f40_s1001:d3_snce_i2t/a1_iface, f40_s1001:d1_vcs_i2t/d3_snce_i2t, f40_s1001:s6_single_cap_snce/d3_snce_i2t, f40_s1001:bn_cross_t2i/a1_iface, f40_s1001:cn_mix_t2i/a1_iface, f40_s1001:bn_cross_t2i/cn_mix_t2i, f60_s1001:d3_snce_i2t/a1_iface, f60_s1001:d1_vcs_i2t/d3_snce_i2t, f60_s1001:s6_single_cap_snce/d3_snce_i2t, f60_s1001:bn_cross_t2i/a1_iface, f60_s1001:cn_mix_t2i/a1_iface, f60_s1001:bn_cross_t2i/cn_mix_t2i
+缺失比较（任一单元未完成或未导出）：f40_s1001:d3_snce_i2t/a1_iface, f40_s1001:d1_vcs_i2t/d3_snce_i2t, f40_s1001:s6_single_cap_snce/d3_snce_i2t, f60_s1001:d3_snce_i2t/a1_iface, f60_s1001:d1_vcs_i2t/d3_snce_i2t, f60_s1001:s6_single_cap_snce/d3_snce_i2t
 
 ## f40_s1001
 
@@ -55,9 +55,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | o3_true_target_t2i/o1_rescue_native_t2i | t2i | 186 | 0 | 184 | 1 | 68 | 185 | 186 | -1 | 3113 | 3112 |
 | o3_true_target_t2i/a1_iface | i2t | 36 | 0 | 43 | 0 | 6 | 43 | 36 | +7 | 840 | 847 |
 | o3_true_target_t2i/a1_iface | t2i | 168 | 0 | 162 | 0 | 66 | 162 | 168 | -6 | 3118 | 3112 |
-| bn_cross_t2i/a1_iface | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
-| cn_mix_t2i/a1_iface | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
-| bn_cross_t2i/cn_mix_t2i | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| bn_cross_t2i/a1_iface | i2t | 40 | 0 | 35 | 0 | 5 | 35 | 40 | -5 | 840 | 835 |
+| bn_cross_t2i/a1_iface | t2i | 172 | 0 | 179 | 0 | 54 | 179 | 172 | +7 | 3118 | 3125 |
+| cn_mix_t2i/a1_iface | i2t | 34 | 0 | 35 | 0 | 5 | 35 | 34 | +1 | 840 | 841 |
+| cn_mix_t2i/a1_iface | t2i | 169 | 0 | 167 | 0 | 50 | 167 | 169 | -2 | 3118 | 3116 |
+| bn_cross_t2i/cn_mix_t2i | i2t | 34 | 0 | 28 | 0 | 4 | 28 | 34 | -6 | 841 | 835 |
+| bn_cross_t2i/cn_mix_t2i | t2i | 169 | 0 | 178 | 0 | 64 | 178 | 169 | +9 | 3116 | 3125 |
 
 ## f60_s1001
 
@@ -108,7 +111,10 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | o3_true_target_t2i/o1_rescue_native_t2i | t2i | 155 | 1 | 210 | 0 | 87 | 210 | 156 | +54 | 2988 | 3042 |
 | o3_true_target_t2i/a1_iface | i2t | 43 | 0 | 39 | 0 | 4 | 39 | 43 | -4 | 825 | 821 |
 | o3_true_target_t2i/a1_iface | t2i | 195 | 0 | 257 | 0 | 91 | 257 | 195 | +62 | 2980 | 3042 |
-| bn_cross_t2i/a1_iface | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
-| cn_mix_t2i/a1_iface | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
-| bn_cross_t2i/cn_mix_t2i | — | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA |
+| bn_cross_t2i/a1_iface | i2t | 43 | 1 | 34 | 0 | 6 | 34 | 44 | -10 | 825 | 815 |
+| bn_cross_t2i/a1_iface | t2i | 254 | 2 | 199 | 0 | 85 | 199 | 256 | -57 | 2980 | 2923 |
+| cn_mix_t2i/a1_iface | i2t | 45 | 0 | 33 | 0 | 9 | 33 | 45 | -12 | 825 | 813 |
+| cn_mix_t2i/a1_iface | t2i | 222 | 2 | 213 | 0 | 72 | 213 | 224 | -11 | 2980 | 2969 |
+| bn_cross_t2i/cn_mix_t2i | i2t | 42 | 0 | 44 | 0 | 3 | 44 | 42 | +2 | 813 | 815 |
+| bn_cross_t2i/cn_mix_t2i | t2i | 251 | 0 | 202 | 3 | 84 | 205 | 251 | -46 | 2969 | 2923 |
 

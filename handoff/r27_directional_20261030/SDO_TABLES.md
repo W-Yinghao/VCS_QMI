@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27-O 为显式使用真对应的诊断（O1/O2：t2i 候选救援；O3：t2i 编码器目标直接取当前 peer 重编码的真图），不进入主结果表。bn_cross_t2i / cn_mix_t2i：A1 宿主，t2i 候选改为直接跨模态检索 / 固定 3+2 混合（唯一 ID，整体接口改动）。
 
-缺失单元（未完成，记 NA，不以其他臂替代）：f40_s1001/d3_snce_i2t, f40_s1001/bn_cross_t2i, f40_s1001/cn_mix_t2i, f60_s1001/d3_snce_i2t, f60_s1001/bn_cross_t2i, f60_s1001/cn_mix_t2i
+缺失单元（未完成，记 NA，不以其他臂替代）：f40_s1001/d3_snce_i2t, f60_s1001/d3_snce_i2t
 
 ## f40_s1001：各臂终点
 
@@ -26,8 +26,8 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | o1_rescue_native_t2i | 513.75 | 21 | 512.86 | 512.99 | 81.46 | 96.25 | 98.42 | 61.40 | 85.33 | 90.89 | 1 |
 | o2_rescue_vcs_t2i | 514.77 | 26 | 514.38 | 514.37 | 83.04 | 96.15 | 98.42 | 61.22 | 85.15 | 90.79 | 1 |
 | o3_true_target_t2i | 515.96 | 23 | 514.99 | 515.17 | 83.53 | 96.35 | 98.22 | 61.38 | 85.27 | 91.20 | 1 |
-| bn_cross_t2i | NA | | | | | | | | | | | |
-| cn_mix_t2i | NA | | | | | | | | | | | |
+| bn_cross_t2i | 515.38 | 19 | 513.77 | 514.20 | 82.35 | 96.75 | 98.52 | 61.64 | 85.33 | 90.81 | 1 |
+| cn_mix_t2i | 514.60 | 20 | 512.64 | 512.77 | 82.94 | 96.45 | 98.32 | 61.46 | 84.73 | 90.69 | 1 |
 
 ## f40_s1001：配对差（单 seed）
 
@@ -60,9 +60,9 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | o3_true_target_t2i-o1_rescue_native_t2i | +2.21 | +2.19 | +2.07 | -0.02 |
 | o3_true_target_t2i-a1_iface | +0.99 | +1.10 | +0.69 | -0.12 |
 | o3_true_target_t2i-o2_rescue_vcs_t2i | +1.18 | +0.80 | +0.49 | +0.16 |
-| bn_cross_t2i-a1_iface | NA | NA | NA | NA |
-| cn_mix_t2i-a1_iface | NA | NA | NA | NA |
-| bn_cross_t2i-cn_mix_t2i | NA | NA | NA | NA |
+| bn_cross_t2i-a1_iface | +0.41 | +0.13 | -0.49 | +0.14 |
+| cn_mix_t2i-a1_iface | -0.37 | -1.31 | +0.10 | -0.04 |
+| bn_cross_t2i-cn_mix_t2i | +0.79 | +1.44 | -0.59 | +0.18 |
 
 ## f40_s1001：2×2 交互（包 tools/analyze_results.py；I_V = S4−D1−D2+A1，I_N = S6−D3−D4+A1）
 
@@ -91,8 +91,8 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | o1_rescue_native_t2i | 505.48 | 26 | 503.59 | 503.55 | 80.87 | 95.17 | 98.42 | 58.93 | 83.21 | 88.88 | 1 |
 | o2_rescue_vcs_t2i | 503.53 | 37 | 503.39 | 503.42 | 79.59 | 95.36 | 98.13 | 58.80 | 82.86 | 88.80 | 1 |
 | o3_true_target_t2i | 507.91 | 18 | 507.38 | 507.20 | 80.97 | 95.56 | 97.73 | 60.00 | 84.08 | 89.57 | 1 |
-| bn_cross_t2i | NA | | | | | | | | | | | |
-| cn_mix_t2i | NA | | | | | | | | | | | |
+| bn_cross_t2i | 502.17 | 9 | 500.53 | 500.70 | 80.37 | 94.77 | 97.63 | 57.65 | 82.88 | 88.86 | 1 |
+| cn_mix_t2i | 503.25 | 15 | 501.16 | 501.27 | 80.18 | 94.58 | 98.03 | 58.56 | 83.20 | 88.72 | 1 |
 
 ## f60_s1001：配对差（单 seed）
 
@@ -125,9 +125,9 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | o3_true_target_t2i-o1_rescue_native_t2i | +2.43 | +3.66 | +0.10 | +1.07 |
 | o3_true_target_t2i-a1_iface | +3.43 | +4.86 | -0.39 | +1.22 |
 | o3_true_target_t2i-o2_rescue_vcs_t2i | +4.38 | +3.78 | +1.38 | +1.20 |
-| bn_cross_t2i-a1_iface | NA | NA | NA | NA |
-| cn_mix_t2i-a1_iface | NA | NA | NA | NA |
-| bn_cross_t2i-cn_mix_t2i | NA | NA | NA | NA |
+| bn_cross_t2i-a1_iface | -2.31 | -1.64 | -0.99 | -1.12 |
+| cn_mix_t2i-a1_iface | -1.22 | -1.08 | -1.18 | -0.22 |
+| bn_cross_t2i-cn_mix_t2i | -1.08 | -0.57 | +0.20 | -0.91 |
 
 ## f60_s1001：2×2 交互（包 tools/analyze_results.py；I_V = S4−D1−D2+A1，I_N = S6−D3−D4+A1）
 

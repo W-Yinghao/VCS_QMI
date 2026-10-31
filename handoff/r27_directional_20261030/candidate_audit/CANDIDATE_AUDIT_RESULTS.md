@@ -38,6 +38,38 @@ Per set = (condition/checkpoint, training peer T; searching peer = the other). h
 | f60_s1001/a1_iface_last | B | normal | t2i | 1024 | 1010 | 879 | 231 | 239 | 288 | 304 | 0.2719 | 0.3276 | 0.3458 | 149 / 90 / 139 / 646 |
 | f60_s1001/a1_iface_last | B | exclude_same_source | i2t | 1024 | 1010 | 139 | - | 0 | 34 | 24 | 0.0000 | 0.2446 | 0.1727 | 0 / 0 / 34 / 990 |
 | f60_s1001/a1_iface_last | B | exclude_same_source | t2i | 1024 | 1010 | 879 | - | 234 | 288 | 298 | 0.2662 | 0.3276 | 0.3390 | 149 / 85 / 139 / 651 |
+| f40_s1001/bn_cross_last | A | normal | i2t | 1024 | 1009 | 943 | 931 | 931 | 654 | 932 | 0.9873 | 0.6935 | 0.9883 | 653 / 278 / 1 / 92 |
+| f40_s1001/bn_cross_last | A | normal | t2i | 1024 | 1009 | 941 | 245 | 254 | 331 | 334 | 0.2699 | 0.3518 | 0.3549 | 169 / 85 / 162 / 608 |
+| f40_s1001/bn_cross_last | A | exclude_same_source | i2t | 1024 | 1009 | 75 | - | 0 | 15 | 12 | 0.0000 | 0.2000 | 0.1600 | 0 / 0 / 15 / 1009 |
+| f40_s1001/bn_cross_last | A | exclude_same_source | t2i | 1024 | 1009 | 940 | - | 246 | 331 | 326 | 0.2617 | 0.3521 | 0.3468 | 165 / 81 / 166 / 612 |
+| f40_s1001/bn_cross_last | B | normal | i2t | 1024 | 1018 | 933 | 922 | 922 | 669 | 924 | 0.9882 | 0.7170 | 0.9904 | 666 / 256 / 3 / 99 |
+| f40_s1001/bn_cross_last | B | normal | t2i | 1024 | 1018 | 936 | 272 | 277 | 312 | 343 | 0.2959 | 0.3333 | 0.3665 | 176 / 101 / 136 / 611 |
+| f40_s1001/bn_cross_last | B | exclude_same_source | i2t | 1024 | 1018 | 74 | - | 0 | 15 | 10 | 0.0000 | 0.2027 | 0.1351 | 0 / 0 / 15 / 1009 |
+| f40_s1001/bn_cross_last | B | exclude_same_source | t2i | 1024 | 1018 | 935 | - | 271 | 310 | 338 | 0.2898 | 0.3316 | 0.3615 | 173 / 98 / 137 / 616 |
+| f40_s1001/cn_mix_last | A | normal | i2t | 1024 | 1012 | 922 | 911 | 911 | 630 | 911 | 0.9881 | 0.6833 | 0.9881 | 629 / 282 / 1 / 112 |
+| f40_s1001/cn_mix_last | A | normal | t2i | 1024 | 1012 | 929 | 271 | 274 | 325 | 350 | 0.2949 | 0.3498 | 0.3767 | 175 / 99 / 150 / 600 |
+| f40_s1001/cn_mix_last | A | exclude_same_source | i2t | 1024 | 1012 | 74 | - | 0 | 19 | 6 | 0.0000 | 0.2568 | 0.0811 | 0 / 0 / 19 / 1005 |
+| f40_s1001/cn_mix_last | A | exclude_same_source | t2i | 1024 | 1012 | 927 | - | 268 | 325 | 346 | 0.2891 | 0.3506 | 0.3732 | 173 / 95 / 152 / 604 |
+| f40_s1001/cn_mix_last | B | normal | i2t | 1024 | 1012 | 932 | 926 | 926 | 672 | 926 | 0.9936 | 0.7210 | 0.9936 | 671 / 255 / 1 / 97 |
+| f40_s1001/cn_mix_last | B | normal | t2i | 1024 | 1012 | 917 | 287 | 298 | 344 | 366 | 0.3250 | 0.3751 | 0.3991 | 197 / 101 / 147 / 579 |
+| f40_s1001/cn_mix_last | B | exclude_same_source | i2t | 1024 | 1012 | 73 | - | 0 | 16 | 6 | 0.0000 | 0.2192 | 0.0822 | 0 / 0 / 16 / 1008 |
+| f40_s1001/cn_mix_last | B | exclude_same_source | t2i | 1024 | 1012 | 916 | - | 287 | 343 | 357 | 0.3133 | 0.3745 | 0.3897 | 193 / 94 / 150 / 587 |
+| f60_s1001/bn_cross_last | A | normal | i2t | 1024 | 1006 | 894 | 875 | 875 | 642 | 878 | 0.9787 | 0.7181 | 0.9821 | 638 / 237 / 4 / 145 |
+| f60_s1001/bn_cross_last | A | normal | t2i | 1024 | 1006 | 887 | 219 | 228 | 290 | 312 | 0.2570 | 0.3269 | 0.3517 | 150 / 78 / 140 / 656 |
+| f60_s1001/bn_cross_last | A | exclude_same_source | i2t | 1024 | 1006 | 112 | - | 0 | 26 | 17 | 0.0000 | 0.2321 | 0.1518 | 0 / 0 / 26 / 998 |
+| f60_s1001/bn_cross_last | A | exclude_same_source | t2i | 1024 | 1006 | 885 | - | 220 | 289 | 306 | 0.2486 | 0.3266 | 0.3458 | 146 / 74 / 143 / 661 |
+| f60_s1001/bn_cross_last | B | normal | i2t | 1024 | 1001 | 898 | 875 | 875 | 649 | 875 | 0.9744 | 0.7227 | 0.9744 | 647 / 228 / 2 / 147 |
+| f60_s1001/bn_cross_last | B | normal | t2i | 1024 | 1001 | 896 | 245 | 258 | 308 | 323 | 0.2879 | 0.3438 | 0.3605 | 164 / 94 / 144 / 622 |
+| f60_s1001/bn_cross_last | B | exclude_same_source | i2t | 1024 | 1001 | 133 | - | 0 | 28 | 17 | 0.0000 | 0.2105 | 0.1278 | 0 / 0 / 28 / 996 |
+| f60_s1001/bn_cross_last | B | exclude_same_source | t2i | 1024 | 1001 | 895 | - | 250 | 307 | 318 | 0.2793 | 0.3430 | 0.3553 | 160 / 90 / 147 / 627 |
+| f60_s1001/cn_mix_last | A | normal | i2t | 1024 | 1014 | 887 | 849 | 849 | 621 | 853 | 0.9572 | 0.7001 | 0.9617 | 615 / 234 / 6 / 169 |
+| f60_s1001/cn_mix_last | A | normal | t2i | 1024 | 1014 | 877 | 234 | 248 | 285 | 305 | 0.2828 | 0.3250 | 0.3478 | 155 / 93 / 130 / 646 |
+| f60_s1001/cn_mix_last | A | exclude_same_source | i2t | 1024 | 1014 | 131 | - | 0 | 21 | 16 | 0.0000 | 0.1603 | 0.1221 | 0 / 0 / 21 / 1003 |
+| f60_s1001/cn_mix_last | A | exclude_same_source | t2i | 1024 | 1014 | 876 | - | 245 | 284 | 301 | 0.2797 | 0.3242 | 0.3436 | 155 / 90 / 129 / 650 |
+| f60_s1001/cn_mix_last | B | normal | i2t | 1024 | 1012 | 894 | 857 | 857 | 642 | 859 | 0.9586 | 0.7181 | 0.9609 | 639 / 218 / 3 / 164 |
+| f60_s1001/cn_mix_last | B | normal | t2i | 1024 | 1012 | 897 | 250 | 252 | 273 | 304 | 0.2809 | 0.3043 | 0.3389 | 156 / 96 / 117 / 655 |
+| f60_s1001/cn_mix_last | B | exclude_same_source | i2t | 1024 | 1012 | 141 | - | 0 | 27 | 21 | 0.0000 | 0.1915 | 0.1489 | 0 / 0 / 27 / 997 |
+| f60_s1001/cn_mix_last | B | exclude_same_source | t2i | 1024 | 1012 | 896 | - | 246 | 273 | 301 | 0.2746 | 0.3047 | 0.3359 | 154 / 92 / 119 / 659 |
 
 ## Pooled over the two peers (counts summed)
 
@@ -99,3 +131,59 @@ Per set = (condition/checkpoint, training peer T; searching peer = the other). h
 | f60_s1001/a1_iface_last | exclude_same_source | t2i | A_unique | 2048 | 1761 | 483 | 0.2358 | 0.2743 | 0.2358 | 0.1635 | 0 |
 | f60_s1001/a1_iface_last | exclude_same_source | t2i | B_direct | 2048 | 1761 | 592 | 0.2891 | 0.3362 | 0.2891 | 0.1955 | 0 |
 | f60_s1001/a1_iface_last | exclude_same_source | t2i | C_mix | 2048 | 1761 | 622 | 0.3037 | 0.3532 | 0.3037 | 0.1799 | 0 |
+| f40_s1001/bn_cross_last | normal | i2t | A_slot_reference | 2048 | 1876 | 1853 | 0.9048 | 0.9877 | 0.3581 | 0.8953 | 0 |
+| f40_s1001/bn_cross_last | normal | i2t | A_unique | 2048 | 1876 | 1853 | 0.9048 | 0.9877 | 0.3581 | 0.8953 | 0 |
+| f40_s1001/bn_cross_last | normal | i2t | B_direct | 2048 | 1876 | 1323 | 0.6460 | 0.7052 | 0.1877 | 0.5090 | 0 |
+| f40_s1001/bn_cross_last | normal | i2t | C_mix | 2048 | 1876 | 1856 | 0.9062 | 0.9893 | 0.3547 | 0.8957 | 0 |
+| f40_s1001/bn_cross_last | normal | t2i | A_slot_reference | 2048 | 1877 | 517 | 0.2524 | 0.2754 | 0.2524 | 0.1778 | 0 |
+| f40_s1001/bn_cross_last | normal | t2i | A_unique | 2048 | 1877 | 531 | 0.2593 | 0.2829 | 0.2593 | 0.1799 | 0 |
+| f40_s1001/bn_cross_last | normal | t2i | B_direct | 2048 | 1877 | 643 | 0.3140 | 0.3426 | 0.3140 | 0.2111 | 0 |
+| f40_s1001/bn_cross_last | normal | t2i | C_mix | 2048 | 1877 | 677 | 0.3306 | 0.3607 | 0.3306 | 0.1969 | 0 |
+| f40_s1001/bn_cross_last | exclude_same_source | i2t | A_unique | 2048 | 149 | 0 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0 |
+| f40_s1001/bn_cross_last | exclude_same_source | i2t | B_direct | 2048 | 149 | 30 | 0.0146 | 0.2013 | 0.0029 | 0.0088 | 0 |
+| f40_s1001/bn_cross_last | exclude_same_source | i2t | C_mix | 2048 | 149 | 22 | 0.0107 | 0.1477 | 0.0021 | 0.0025 | 0 |
+| f40_s1001/bn_cross_last | exclude_same_source | t2i | A_unique | 2048 | 1875 | 517 | 0.2524 | 0.2757 | 0.2524 | 0.1731 | 0 |
+| f40_s1001/bn_cross_last | exclude_same_source | t2i | B_direct | 2048 | 1875 | 641 | 0.3130 | 0.3419 | 0.3130 | 0.2097 | 0 |
+| f40_s1001/bn_cross_last | exclude_same_source | t2i | C_mix | 2048 | 1875 | 664 | 0.3242 | 0.3541 | 0.3242 | 0.1902 | 0 |
+| f40_s1001/cn_mix_last | normal | i2t | A_slot_reference | 2048 | 1854 | 1837 | 0.8970 | 0.9908 | 0.3569 | 0.8870 | 0 |
+| f40_s1001/cn_mix_last | normal | i2t | A_unique | 2048 | 1854 | 1837 | 0.8970 | 0.9908 | 0.3569 | 0.8870 | 0 |
+| f40_s1001/cn_mix_last | normal | i2t | B_direct | 2048 | 1854 | 1302 | 0.6357 | 0.7023 | 0.1894 | 0.5019 | 0 |
+| f40_s1001/cn_mix_last | normal | i2t | C_mix | 2048 | 1854 | 1837 | 0.8970 | 0.9908 | 0.3521 | 0.8870 | 0 |
+| f40_s1001/cn_mix_last | normal | t2i | A_slot_reference | 2048 | 1846 | 558 | 0.2725 | 0.3023 | 0.2725 | 0.1905 | 0 |
+| f40_s1001/cn_mix_last | normal | t2i | A_unique | 2048 | 1846 | 572 | 0.2793 | 0.3099 | 0.2793 | 0.1928 | 0 |
+| f40_s1001/cn_mix_last | normal | t2i | B_direct | 2048 | 1846 | 669 | 0.3267 | 0.3624 | 0.3267 | 0.2201 | 0 |
+| f40_s1001/cn_mix_last | normal | t2i | C_mix | 2048 | 1846 | 716 | 0.3496 | 0.3879 | 0.3496 | 0.2095 | 0 |
+| f40_s1001/cn_mix_last | exclude_same_source | i2t | A_unique | 2048 | 147 | 0 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0 |
+| f40_s1001/cn_mix_last | exclude_same_source | i2t | B_direct | 2048 | 147 | 35 | 0.0171 | 0.2381 | 0.0034 | 0.0075 | 0 |
+| f40_s1001/cn_mix_last | exclude_same_source | i2t | C_mix | 2048 | 147 | 12 | 0.0059 | 0.0816 | 0.0012 | 0.0013 | 0 |
+| f40_s1001/cn_mix_last | exclude_same_source | t2i | A_unique | 2048 | 1843 | 555 | 0.2710 | 0.3011 | 0.2710 | 0.1852 | 0 |
+| f40_s1001/cn_mix_last | exclude_same_source | t2i | B_direct | 2048 | 1843 | 668 | 0.3262 | 0.3625 | 0.3262 | 0.2198 | 0 |
+| f40_s1001/cn_mix_last | exclude_same_source | t2i | C_mix | 2048 | 1843 | 703 | 0.3433 | 0.3814 | 0.3433 | 0.2024 | 0 |
+| f60_s1001/bn_cross_last | normal | i2t | A_slot_reference | 2048 | 1792 | 1750 | 0.8545 | 0.9766 | 0.3139 | 0.8393 | 0 |
+| f60_s1001/bn_cross_last | normal | i2t | A_unique | 2048 | 1792 | 1750 | 0.8545 | 0.9766 | 0.3142 | 0.8396 | 0 |
+| f60_s1001/bn_cross_last | normal | i2t | B_direct | 2048 | 1792 | 1291 | 0.6304 | 0.7204 | 0.1789 | 0.4882 | 0 |
+| f60_s1001/bn_cross_last | normal | i2t | C_mix | 2048 | 1792 | 1753 | 0.8560 | 0.9782 | 0.3141 | 0.8399 | 0 |
+| f60_s1001/bn_cross_last | normal | t2i | A_slot_reference | 2048 | 1783 | 464 | 0.2266 | 0.2602 | 0.2266 | 0.1601 | 0 |
+| f60_s1001/bn_cross_last | normal | t2i | A_unique | 2048 | 1783 | 486 | 0.2373 | 0.2726 | 0.2373 | 0.1632 | 0 |
+| f60_s1001/bn_cross_last | normal | t2i | B_direct | 2048 | 1783 | 598 | 0.2920 | 0.3354 | 0.2920 | 0.1996 | 0 |
+| f60_s1001/bn_cross_last | normal | t2i | C_mix | 2048 | 1783 | 635 | 0.3101 | 0.3561 | 0.3101 | 0.1805 | 0 |
+| f60_s1001/bn_cross_last | exclude_same_source | i2t | A_unique | 2048 | 245 | 0 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0 |
+| f60_s1001/bn_cross_last | exclude_same_source | i2t | B_direct | 2048 | 245 | 54 | 0.0264 | 0.2204 | 0.0053 | 0.0153 | 0 |
+| f60_s1001/bn_cross_last | exclude_same_source | i2t | C_mix | 2048 | 245 | 34 | 0.0166 | 0.1388 | 0.0033 | 0.0038 | 0 |
+| f60_s1001/bn_cross_last | exclude_same_source | t2i | A_unique | 2048 | 1780 | 470 | 0.2295 | 0.2640 | 0.2295 | 0.1558 | 0 |
+| f60_s1001/bn_cross_last | exclude_same_source | t2i | B_direct | 2048 | 1780 | 596 | 0.2910 | 0.3348 | 0.2910 | 0.1991 | 0 |
+| f60_s1001/bn_cross_last | exclude_same_source | t2i | C_mix | 2048 | 1780 | 624 | 0.3047 | 0.3506 | 0.3047 | 0.1736 | 0 |
+| f60_s1001/cn_mix_last | normal | i2t | A_slot_reference | 2048 | 1781 | 1706 | 0.8330 | 0.9579 | 0.3019 | 0.8172 | 0 |
+| f60_s1001/cn_mix_last | normal | i2t | A_unique | 2048 | 1781 | 1706 | 0.8330 | 0.9579 | 0.3019 | 0.8175 | 0 |
+| f60_s1001/cn_mix_last | normal | i2t | B_direct | 2048 | 1781 | 1263 | 0.6167 | 0.7092 | 0.1747 | 0.4934 | 0 |
+| f60_s1001/cn_mix_last | normal | i2t | C_mix | 2048 | 1781 | 1712 | 0.8359 | 0.9613 | 0.3032 | 0.8182 | 0 |
+| f60_s1001/cn_mix_last | normal | t2i | A_slot_reference | 2048 | 1774 | 484 | 0.2363 | 0.2728 | 0.2363 | 0.1618 | 0 |
+| f60_s1001/cn_mix_last | normal | t2i | A_unique | 2048 | 1774 | 500 | 0.2441 | 0.2818 | 0.2441 | 0.1649 | 0 |
+| f60_s1001/cn_mix_last | normal | t2i | B_direct | 2048 | 1774 | 558 | 0.2725 | 0.3145 | 0.2725 | 0.1811 | 0 |
+| f60_s1001/cn_mix_last | normal | t2i | C_mix | 2048 | 1774 | 609 | 0.2974 | 0.3433 | 0.2974 | 0.1774 | 0 |
+| f60_s1001/cn_mix_last | exclude_same_source | i2t | A_unique | 2048 | 272 | 0 | 0.0000 | 0.0000 | 0.0000 | 0.0000 | 0 |
+| f60_s1001/cn_mix_last | exclude_same_source | i2t | B_direct | 2048 | 272 | 48 | 0.0234 | 0.1765 | 0.0047 | 0.0170 | 0 |
+| f60_s1001/cn_mix_last | exclude_same_source | i2t | C_mix | 2048 | 272 | 37 | 0.0181 | 0.1360 | 0.0036 | 0.0043 | 0 |
+| f60_s1001/cn_mix_last | exclude_same_source | t2i | A_unique | 2048 | 1772 | 491 | 0.2397 | 0.2771 | 0.2397 | 0.1611 | 0 |
+| f60_s1001/cn_mix_last | exclude_same_source | t2i | B_direct | 2048 | 1772 | 557 | 0.2720 | 0.3143 | 0.2720 | 0.1807 | 0 |
+| f60_s1001/cn_mix_last | exclude_same_source | t2i | C_mix | 2048 | 1772 | 602 | 0.2939 | 0.3397 | 0.2939 | 0.1738 | 0 |

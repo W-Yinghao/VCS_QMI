@@ -9,7 +9,8 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATES = [('f40_s1001', 'prefix_reconstructed'), ('f40_s1001', 'a1_iface_last'),
-          ('f60_s1001', 'prefix_reconstructed'), ('f60_s1001', 'a1_iface_last')]
+          ('f60_s1001', 'prefix_reconstructed'), ('f60_s1001', 'a1_iface_last'),
+          ('f40_s1001', 'bn_cross_last'), ('f40_s1001', 'cn_mix_last'), ('f60_s1001', 'bn_cross_last'), ('f60_s1001', 'cn_mix_last')]  # R27-CS final states (added 2026-10-31)
 MODES = ('normal', 'exclude_same_source')
 METH = ('A_slot_reference', 'A_unique', 'B_direct', 'C_mix')
 
