@@ -1,0 +1,167 @@
+{
+  "01_reference_selfcheck": {
+    "pass_": true,
+    "rerun": {
+      "bounded_critic": true,
+      "exact_gap_max_abs_error": 2.220446049250313e-16,
+      "random_scores_below_optimum": true,
+      "normalized_ratio_recovery_max_abs_error": 1.1102230246251565e-16,
+      "candidate_permutation_max_abs_error": 1.1102230246251565e-16,
+      "one_hot_optimum_error": 0.0,
+      "finite_difference_gradient_max_abs_error": 2.53448192988337e-10,
+      "logit_shift_gradient_sum_max_abs_error": 9.71445146547012e-17,
+      "all_pass": true
+    }
+  },
+  "02_L_vs_reference": {
+    "pass_": true,
+    "max_abs": {
+      "k7_onehot": {
+        "loss": 4.440892098500626e-16,
+        "grad": 1.6653345369377348e-16,
+        "critic": 4.163336342344337e-16
+      },
+      "k7_soft": {
+        "loss": 2.220446049250313e-16,
+        "grad": 9.020562075079397e-17,
+        "critic": 4.163336342344337e-16
+      },
+      "k128_onehot": {
+        "loss": 8.881784197001252e-16,
+        "grad": 2.220446049250313e-16,
+        "critic": 6.661338147750939e-16
+      },
+      "k128_soft": {
+        "loss": 2.220446049250313e-16,
+        "grad": 4.163336342344337e-17,
+        "critic": 6.661338147750939e-16
+      }
+    }
+  },
+  "03_J_identity": {
+    "pass_": true,
+    "gap_err": 2.220446049250313e-16,
+    "onehot_opt_err": 0.0
+  },
+  "04_B_direct_formula": {
+    "pass_": true,
+    "loss_err": 1.021405182655144e-14,
+    "grad_fd_err": 1.2855068121098157e-09
+  },
+  "05_P_direct_formula": {
+    "pass_": true,
+    "loss_err": 5.551115123125783e-17,
+    "grad_fd_err": 2.1220323276338604e-09,
+    "b_grad_fd_err": 1.9394696959551538e-10
+  },
+  "06_N_infonce": {
+    "pass_": true,
+    "ce_err": 1.7763568394002505e-15,
+    "native_expr_err": 0.0
+  },
+  "07_permutation_invariance": {
+    "pass_": true,
+    "max_abs": {
+      "n_slots": 3.552713678800501e-15,
+      "p_slots": 2.220446049250313e-16,
+      "l_slots": 2.220446049250313e-16,
+      "b_slots": 3.552713678800501e-15,
+      "n_infonce_warmup_batch": 0.0,
+      "n_infonce_cotrain_batch": 0.0,
+      "p_pointwise_vcs_warmup_batch": 0.0,
+      "p_pointwise_vcs_cotrain_batch": 0.0,
+      "l_listwise_vcs_warmup_batch": 1.1102230246251565e-16,
+      "l_listwise_vcs_cotrain_batch": 7.105427357601002e-15,
+      "b_listwise_bce_warmup_batch": 0.0,
+      "b_listwise_bce_cotrain_batch": 0.0
+    }
+  },
+  "08_logit_shift_gradient_sum": {
+    "pass_": true,
+    "max_abs": {
+      "n": 3.552713678800501e-15,
+      "l": 1.3322676295501878e-15,
+      "b": 5.329070518200751e-15
+    }
+  },
+  "09_phase_reduction": {
+    "pass_": true,
+    "max_abs": {
+      "n_infonce": 0.0,
+      "p_pointwise_vcs": 0.0,
+      "l_listwise_vcs": 0.0,
+      "b_listwise_bce": 0.0
+    },
+    "rule": {
+      "warmup": "0.5*(mean_i2t+mean_t2i)",
+      "cotrain": "sum_i2t+sum_t2i"
+    }
+  },
+  "10_H_unchanged": {
+    "pass_": true,
+    "h_call_identity": true,
+    "train_removed": [
+      "\"\"\"r25_co_train.train with the R27 noisy branch (identical clean part, line for line, plus ID writes).\"\"\"",
+      "loss_1 = criterion(sims_l, labels=None)"
+    ],
+    "train_added": [
+      "\"\"\"r27_co_train.train; the only numerical change is loss_1 (R29 marks).\"\"\"",
+      "obs_l = torch.as_tensor(l_obs[np.asarray(ids_l, dtype=np.int64)], device=sims_l.device)",
+      "loss_1 = AL.align(opt, net, 'cotrain', sims_l, obs_l)",
+      "if timed:",
+      "stats['r29_gnorm_align'] += _gnorm_align(loss_1, net.params); stats['r29_align_loss'] += float(loss_1.detach())",
+      "for k, v in AL.readout(sims_l, obs_l, getattr(net, 'r29_b', None)).items():",
+      "stats['r29_' + k] += v",
+      "stats['r29_diag_n'] += 1",
+      "if hasattr(net, 'r29_b'):",
+      "stats['r29_b_end'] = float(net.r29_b.detach())"
+    ],
+    "warmup_order_positions": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      18,
+      19,
+      20,
+      21,
+      22
+    ],
+    "warmup_extra_lines": [
+      "if diag:",
+      "st['gnorm_align'] += _gnorm_align(loss, model.params); st['align_loss'] += float(loss.detach())",
+      "for k, v in AL.readout(sims, obs, getattr(model, 'r29_b', None)).items():",
+      "st[k] += v",
+      "st['diag_n'] += 1"
+    ]
+  },
+  "11_targets_and_truth_isolation": {
+    "pass_": true,
+    "token_scan": {
+      "r29_align.py": {
+        "t2i_truth": false,
+        "labels_attr": false,
+        "clean_label_reads": []
+      },
+      "r29_co_train.py": {
+        "t2i_truth": false,
+        "labels_attr": false,
+        "clean_label_reads": []
+      },
+      "r29_run.py": {
+        "t2i_truth": false,
+        "labels_attr": false,
+        "clean_label_reads": []
+      }
+    }
+  },
+  "all_pass": true,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

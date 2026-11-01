@@ -1,0 +1,25 @@
+{
+  "task": "R29 listwise-competition VCS main alignment: H_native / N_InfoNCE / P_pointwise_VCS / L_listwise_VCS / B_listwise_BCE x Flickr30K 0%/60% x seed1001 (10 pilots) + H/N/L/B x 60% x seeds 1002/1003 (8), common untrained init, warmup 5 + 40 co-train epochs (NEXT_EXPERIMENTS_CN.md, global review 637ba390).",
+  "snapshot": "code_r29 = byte-identical copy of handoff/r27_qtarget_20261029/code_v12 (all 26 .py) + 3 new files r29_align.py, r29_co_train.py, r29_run.py. No existing file edited; code_v12, R28 and seed-extension snapshots untouched. R29_DIFF.patch / INSTALL_MANIFEST.json.",
+  "design_choices_not_fixed_by_the_design": {
+    "temperature": "tau = 0.05 = the IN2R backbone own infonce temperature (vse.infonce default; native warmup and noisy SCE). No separate FIT temperature rule was needed.",
+    "outer_scale": "reduction matching: warmup replacement = 0.5*(mean i2t + mean t2i) (native SCE convention), co-train replacement = sum i2t + sum t2i over rows (native hinge convention). Same rule for N/P/L/B; gradient norms only recorded.",
+    "N_definition": "standard InfoNCE = cross-entropy part only (no reverse-CE term of the native SCE), multi-positive targets; checked equal to F.cross_entropy and to the CE part of the native infonce expression for diagonal targets.",
+    "P_parameterization": "a = 1/tau fixed (shared temperature), b one learnable scalar per peer, init 0 (T(0) = 0: unsaturated at the untrained init where s ~ 0; R22-A2 used b0 = -10, which saturates tanh at s ~ 0 and would give ~0 gradient from scratch), own AdamW group (model lr schedule, weight_decay 0, not clipped). Q of P = Unif(K) over the same candidate list incl. the positive slot (same Q as L/B), so P differs from L only in the critic.",
+    "multi_positive": "positives = in-batch candidates whose observed image id equals the query observed image id (both directions, diagonal included); a uniform over them. Applies to N/P/L/B only; H keeps its native diagonal-only positives.",
+    "intra_modal_terms": "the two intra-modal self-consistency terms (warmup infonce(img_sims)/infonce(cap_sims); co-train hinge margin 0.3) are not the image-text alignment term and stay native for all arms.",
+    "zero_noise_file": "outputs_v9/r29_listwise_20261101/noise/f30k_precomp_0.0.npy = arange(145000)//5 (int64, R25 format; sha in the .json beside it). data.py does not load a noise file when noise_ratio = 0 (it already uses arange(N)//5); the runner verifies the file equals that mapping. split_prob's native rule (if no estimated noise, the lowest 1/100 of probabilities becomes unlabeled) applies at 0%.",
+    "prefix_state": "--prefix_epoch -1: no prefix_state.pt is written by the formal units (disk); state_last.pt + keep_states epoch10/20 states + model_best kept.",
+    "diagnostics": "every 25th step (R27 TIME_EVERY): alignment-term encoder grad norm via torch.autograd.grad on the retained graph (.grad untouched) and a detached batch readout (listwise J, positive-top1, positive softmax mass; P also pointwise J). Report only; the gate checks that H with these diagnostics stays bitwise equal to the original path."
+  },
+  "deviations_from_package": [
+    "Seeds: the package proposes seed1001 only (10 pilots); the main session added H/N/L/B x 60% x seeds 1002/1003 (8 units). 0% and P stay single-seed by that decision.",
+    "Hardware: arms are not pinned to one GPU type (RTX6000PRO/L40S/H100 by Slurm); recorded per unit and to be disclosed (cross-type nondeterminism of the native stack, see V10 evaluation-noise notes)."
+  ],
+  "not_done": [
+    "no K / hard-negative / teacher / tau grid",
+    "no new gating or pseudo-target module",
+    "no TEST read"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

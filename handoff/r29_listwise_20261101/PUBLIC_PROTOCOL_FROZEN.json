@@ -1,0 +1,166 @@
+{
+  "protocol": "R29 listwise-competition VCS main alignment (NEXT_EXPERIMENTS_CN.md, global review 637ba390, 2026-11-01)",
+  "frozen": true,
+  "frozen_utc": "2026-11-01T00:59:44Z",
+  "frozen_before": "any formal R29 unit and before the R29 GPU smoke/gate; no R29 training or DEV result of any kind seen. Only the R29 CPU checks (synthetic float64 data, job 1079393 ALL_PASS) had run.",
+  "design_source": {
+    "GLOBAL_REVIEW_CN.md": {},
+    "MATH_CHECKS.json": {},
+    "NEXT_EXPERIMENTS_CN.md": {},
+    "PROPOSED_MATRIX.csv": {},
+    "README_CN.md": {},
+    "SOURCE_LEDGER.md": {},
+    "listwise_vcs_reference.py": {}
+  },
+  "code_snapshot": "<WORKSPACE>/handoff/r29_listwise_20261101/code_r29",
+  "base_snapshot": "<WORKSPACE>/handoff/r27_qtarget_20261029/code_v12",
+  "diff_vs_base": {
+    "file": "R29_DIFF.patch",
+    "changed": [],
+    "added": [
+      "r29_align.py",
+      "r29_co_train.py",
+      "r29_run.py"
+    ],
+    "byte_identical": [
+      "co_train.py",
+      "data.py",
+      "evaluation.py",
+      "glove_shim.py",
+      "model.py",
+      "noisy_loss.py",
+      "r25_co_train.py",
+      "r25_run.py",
+      "r26_co_train.py",
+      "r26_graph.py",
+      "r27_calibrate.py",
+      "r27_co_train.py",
+      "r27_cpu_check.py",
+      "r27_delta_control.py",
+      "r27_gate.py",
+      "r27_interface.py",
+      "r27_run.py",
+      "r27_targets.py",
+      "r27s_cpu_check.py",
+      "r27s_gate.py",
+      "r27s_targets.py",
+      "train.py",
+      "utils.py",
+      "vocab.py",
+      "vse.py",
+      "vse_.py"
+    ]
+  },
+  "cpu_check": {
+    "file": "CPU_CHECK.json",
+    "all_pass": true,
+    "reference": {
+      "file": "<WORKSPACE>/handoff/r29_listwise_20261101/reference/listwise_vcs_reference.py"
+    }
+  },
+  "arms": {
+    "h_native": "H: native A1 recipe from scratch: warmup cross-modal infonce(sims) (SCE = CE+RCE, tau 0.05, batch mean, x1 per direction pair as in VSE.train), co-train loss_1 = ContrastiveLoss hinge (margin 0.2, max violation, batch sum). Diagonal-only positives (native).",
+    "n_infonce": "N: task-native InfoNCE, row loss -sum_j a_j log softmax(s/tau)_j (multi-positive CE).",
+    "p_pointwise_vcs": "P: original J with pointwise critic T_ij = tanh(s_ij/tau + b); reads only its own score; b one learnable scalar per peer (init 0, own AdamW group, lr = model lr schedule, weight_decay 0, not grad-clipped).",
+    "l_listwise_vcs": "L: original J with listwise critic T_j = (K pi_j - 1)/(K pi_j + 1) = tanh(log(K pi_j)/2), pi = softmax(s/tau) over the candidate list.",
+    "b_listwise_bce": "B: same pi/T as L, D = (1+T)/2 = sigmoid(log K pi); row loss -sum_j a_j log D_j - (1/K) sum_j log(1 - D_j)."
+  },
+  "J": "J(T, a) = sum_j a_j (T_j - T_j^2/2) - (1/K) sum_j (T_j + T_j^2/2); P = P_(Z,I), Q = P_Z x Unif(K) (uniform candidate-slot permutation applied analytically as the mean over the K slots; no K-fold training).",
+  "candidates": "in-batch candidates of the original batch (batch 128): i2t query = image row, candidates = the B captions; t2i query = caption, candidates = the B image rows; K = B. Same lists for N/P/L/B.",
+  "target_rule": "training-visible multi-positive identity: candidate j is a positive of query i iff observed image id (dataset.t2i_index after the noise file) of j equals that of i; a uniform over the positives (diagonal included). Injected-noise truth (_t2i_index / _labels) is never read. 0% = original pairing (arange(N)//5), no artificial shuffling.",
+  "temperature": {
+    "tau": 0.05
+  },
+  "outer_scale_rule": "reduction matching (one rule, all arms): the replacement keeps the native term reduction in each phase. warmup: 0.5*(mean_rows i2t + mean_rows t2i) (native SCE 0.5 per direction, batch mean); co-train: sum_rows i2t + sum_rows t2i (native hinge sum over rows of both directions). Alignment-term gradient norms are recorded (report only; never used to rescale or to interpret a larger norm as a mechanism gain).",
+  "intervention_location": "warmup cross-modal term (VSE.train mode=warmup: infonce(sims)) AND the reliable (labeled / clean-split) pair alignment loss_1 of co-training. NOT the noisy-prototype auxiliary.",
+  "unchanged_for_all_arms": [
+    "intra-modal terms (warmup infonce(img_sims)+infonce(cap_sims); co-train hinge margin 0.3 x2)",
+    "noisy branch = R27 A1 interface (arm a1_iface, lam 0: other-peer ID search, current-peer re-encoding, native GraphRefiner + SCE x0.5 per direction)",
+    "GMM split: native eval_train with the native eval_loss hinge per-sample score, p_threshold 0.5",
+    "FIFO enqueue of high-confidence clean pairs",
+    "grad clip 2.0 on encoder params",
+    "AdamW lr 5e-4, x0.1 at co-train epoch 15 (lr_update 15)",
+    "image-text cosine score for training and validation/test (peer-averaged)",
+    "batch 128, K=5 neighbours, queue 65536"
+  ],
+  "init_and_budget": "common UNTRAINED seed-determined initialization (r25_run.seed_all(seed) then VSE construction; identical for every arm of a seed; P adds b without consuming RNG). No common prefix is reused (they were trained with the native objective). Each unit: warmup 5 epochs + co-train 40 epochs (epochs 0..39) = the native protocol budget.",
+  "cells": {
+    "f00_s1001": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.0,
+      "seed": 1001,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/noise/f30k_precomp_0.0.npy",
+      "init": "common untrained seed-determined init (r25_run.seed_all(seed) + VSE construction); no prefix",
+      "warmup_epoch": 5,
+      "num_epochs": 40
+    },
+    "f60_s1001": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.6,
+      "seed": 1001,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.6.npy",
+      "init": "common untrained seed-determined init (r25_run.seed_all(seed) + VSE construction); no prefix",
+      "warmup_epoch": 5,
+      "num_epochs": 40
+    },
+    "f60_s1002": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.6,
+      "seed": 1002,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.6.npy",
+      "init": "common untrained seed-determined init (r25_run.seed_all(seed) + VSE construction); no prefix",
+      "warmup_epoch": 5,
+      "num_epochs": 40
+    },
+    "f60_s1003": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.6,
+      "seed": 1003,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.6.npy",
+      "init": "common untrained seed-determined init (r25_run.seed_all(seed) + VSE construction); no prefix",
+      "warmup_epoch": 5,
+      "num_epochs": 40
+    }
+  },
+  "units": {
+    "n": 18,
+    "order": "10 seed1001 pilots first (0% then 60%; H,N,P,L,B), then H,N,L,B x 60% x seeds 1002, 1003 (main-session decision: 0% and P single-seed)",
+    "lines_file": "LINES_R29.txt",
+    "lines": [
+      "sbatch --job-name=r29_h_native_f00_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f00_s1001__h_native",
+      "sbatch --job-name=r29_n_infonce_f00_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f00_s1001__n_infonce",
+      "sbatch --job-name=r29_p_pointwise_vcs_f00_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f00_s1001__p_pointwise_vcs",
+      "sbatch --job-name=r29_l_listwise_vcs_f00_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f00_s1001__l_listwise_vcs",
+      "sbatch --job-name=r29_b_listwise_bce_f00_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f00_s1001__b_listwise_bce",
+      "sbatch --job-name=r29_h_native_f60_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1001__h_native",
+      "sbatch --job-name=r29_n_infonce_f60_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1001__n_infonce",
+      "sbatch --job-name=r29_p_pointwise_vcs_f60_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1001__p_pointwise_vcs",
+      "sbatch --job-name=r29_l_listwise_vcs_f60_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1001__l_listwise_vcs",
+      "sbatch --job-name=r29_b_listwise_bce_f60_s1001 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1001__b_listwise_bce",
+      "sbatch --job-name=r29_h_native_f60_s1002 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1002__h_native",
+      "sbatch --job-name=r29_n_infonce_f60_s1002 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1002__n_infonce",
+      "sbatch --job-name=r29_l_listwise_vcs_f60_s1002 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1002__l_listwise_vcs",
+      "sbatch --job-name=r29_b_listwise_bce_f60_s1002 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1002__b_listwise_bce",
+      "sbatch --job-name=r29_h_native_f60_s1003 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1003__h_native",
+      "sbatch --job-name=r29_n_infonce_f60_s1003 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1003__n_infonce",
+      "sbatch --job-name=r29_l_listwise_vcs_f60_s1003 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1003__l_listwise_vcs",
+      "sbatch --job-name=r29_b_listwise_bce_f60_s1003 --time=10:00:00 <WORKSPACE>/handoff/r29_listwise_20261101/sbatch/r29_unit.sbatch f60_s1003__b_listwise_bce"
+    ]
+  },
+  "scheduling": "normal QOS, --partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60, nice 5, 10h time limit, self-continuation <= 3 attempts on timeout (resume from own state_last.pt), no --dependency; keep_states (epoch 10/20 full states). Hardware recorded per unit, not matched across arms (disclose).",
+  "outputs": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/<cell>/<arm>; prefix_state.pt not written (--prefix_epoch -1).",
+  "endpoints": {
+    "primary": "best full-DEV rSum (peer-averaged native readout, max over the 40 co-train epochs)",
+    "report": [
+      "six recalls (i2t/t2i R@1/5/10) at the same best checkpoint",
+      "last-5-epoch mean rSum (stability)",
+      "per-epoch train diagnostics: alignment loss, alignment-term grad norm, listwise J readout, positive-top1, GMM split precision/recall (post hoc, evaluator only)"
+    ],
+    "later_analyses": "correct hard samples, gradient contribution of injected mismatches, R@1 rank transitions: evaluator-only, after the units finish; not a selection criterion. J is never a substitute for the task endpoint."
+  },
+  "decision_rules": "NEXT_EXPERIMENTS_CN.md section 3 (five routes), applied by the main session after the matrix; no thresholds start or stop units.",
+  "no_selection_on_dev": "one rule for all arms; no per-arm tau / scale / epoch / checkpoint choice on DEV; no K / hard-negative / teacher grids.",
+  "test": "never read (stage.sh copies only train/dev; no TEST entry is run).",
+  "deviations": "DEVIATIONS.json",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

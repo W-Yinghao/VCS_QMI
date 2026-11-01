@@ -1,0 +1,430 @@
+Publication copy (sample names aliased; numbers and conclusions unchanged).
+
+--- /dev/null
++++ code_r29/r29_align.py
+@@ -0,0 +1,107 @@
++"""R29 main-alignment objectives (NEXT_EXPERIMENTS_CN.md of VCS_Retrieval_Global_Review_20261101).
++
++The only term that differs between arms is the image-text alignment term of the clean main learning:
++  warmup  : the cross-modal term of VSE.train(mode='warmup')      (native: infonce(sims) = SCE, tau 0.05, batch mean)
++  co-train: loss_1 of the reliable (labeled / clean-split) branch   (native: ContrastiveLoss hinge, margin 0.2, max-violation, batch sum)
++Intra-modal terms (loss2/loss3), the noisy branch (R27 A1 interface), GMM scoring (native eval_loss hinge), validation and the
++test-time cosine score are the same for every arm.
++
++Candidate list of a query = the in-batch candidates of the original batch (i2t: the B captions; t2i: the B image rows), K = B.
++Target a = training-visible multi-positive identity: candidate j is a positive of query i iff its OBSERVED image id equals the
++query's observed image id (dataset.t2i_index after the noise file; injected-noise truth is never read); a is uniform over the
++positives (contains the diagonal). Q = P_Z x Unif(K): the uniform candidate-slot permutation is applied analytically (mean
++over the K slots), so no K-fold training.
++
++All four non-native arms share the temperature TAU = 0.05 of the backbone's own InfoNCE (vse.infonce default):
++  N  n_infonce        row loss  -sum_j a_j log pi_j,                        pi = softmax(s / TAU)
++  P  p_pointwise_vcs  row loss  -J(T, a),  T_j = tanh(s_j / TAU + b)        (reads only its own score; b one learnable scalar per peer)
++  L  l_listwise_vcs   row loss  -J(T, a),  T_j = (K pi_j - 1)/(K pi_j + 1) = tanh(u_j / 2),  u_j = log(K pi_j)
++  B  b_listwise_bce   row loss  -sum_j a_j log D_j - (1/K) sum_j log(1 - D_j),  D = (1+T)/2 = sigmoid(u)
++  J(T, a) = sum_j a_j (T_j - T_j^2/2) - (1/K) sum_j (T_j + T_j^2/2)        (original J; listwise_vcs_reference.py)
++Reduction rule (one rule, all arms, no per-arm tuning): the replacement uses the native term's own reduction in that phase,
++  warmup  : 0.5 * (mean_rows i2t + mean_rows t2i)      (= native SCE's 0.5 per direction, batch mean)
++  co-train: sum_rows i2t + sum_rows t2i                (= native hinge's sum over rows of both directions)
++"""
++import math
++import torch
++import torch.nn.functional as F
++from vse import infonce
++
++TAU = 0.05
++P_B0 = 0.0          # initial b of the pointwise critic (T = tanh(s/TAU + b); b = 0 -> T(0) = 0, unsaturated at the untrained init)
++ARMS = ('h_native', 'n_infonce', 'p_pointwise_vcs', 'l_listwise_vcs', 'b_listwise_bce')
++KIND = {'n_infonce': 'n', 'p_pointwise_vcs': 'p', 'l_listwise_vcs': 'l', 'b_listwise_bce': 'b'}
++PHASE_COEF = {'warmup': 0.5, 'cotrain': 1.0}
++PHASE_REDUCE = {'warmup': 'mean', 'cotrain': 'sum'}
++
++
++def target_from_obs(obs, dtype=torch.float32):
++    """Row-stochastic multi-positive target from observed image ids [B] (symmetric support, diagonal included)."""
++    M = (obs.view(-1, 1) == obs.view(1, -1)).to(dtype)
++    return M / M.sum(1, keepdim=True)
++
++
++def vcs_J_rows(T, A):
++    return (A * (T - 0.5 * T * T)).sum(1) - (T + 0.5 * T * T).mean(1)
++
++
++def log_kpi(S, tau=TAU):
++    """u = log(K pi), pi = softmax(S / tau) along the candidate axis (dim 1)."""
++    return math.log(S.shape[1]) + F.log_softmax(S / tau, dim=1)
++
++
++def row_losses(kind, S, A, b=None, tau=TAU):
++    """Per-query losses [n_rows]; queries = rows of S, candidates = columns, A row-stochastic target."""
++    if kind == 'n':
++        return -(A * F.log_softmax(S / tau, dim=1)).sum(1)
++    if kind == 'l':
++        return -vcs_J_rows(torch.tanh(0.5 * log_kpi(S, tau)), A)
++    if kind == 'b':
++        u = log_kpi(S, tau)
++        sp = F.softplus(u)
++        return -(A * (u - sp)).sum(1) + sp.mean(1)
++    if kind == 'p':
++        return -vcs_J_rows(torch.tanh(S / tau + b), A)
++    raise ValueError(kind)
++
++
++def critic_T(kind, S, b=None, tau=TAU):
++    if kind == 'p':
++        return torch.tanh(S / tau + b)
++    return torch.tanh(0.5 * log_kpi(S, tau))
++
++
++def two_way(kind, sims, A, b=None, tau=TAU):
++    """(i2t rows [B], t2i rows [B]) for the image x caption score matrix sims."""
++    return row_losses(kind, sims, A, b, tau), row_losses(kind, sims.t(), A.t(), b, tau)
++
++
++def align(opt, net, phase, sims, obs):
++    """The alignment term for arm opt.r29_arm in phase 'warmup' / 'cotrain'. H returns the native expression unchanged."""
++    arm = opt.r29_arm
++    if arm == 'h_native':
++        if phase == 'warmup':
++            return infonce(sims)
++        return net.criterion(sims, labels=None)
++    kind = KIND[arm]
++    A = target_from_obs(obs, sims.dtype)
++    r1, r2 = two_way(kind, sims, A, getattr(net, 'r29_b', None))
++    if PHASE_REDUCE[phase] == 'mean':
++        return PHASE_COEF[phase] * (r1.mean() + r2.mean())
++    return PHASE_COEF[phase] * (r1.sum() + r2.sum())
++
++
++@torch.no_grad()
++def readout(sims, obs, b=None):
++    """Report-only batch diagnostics common to all arms (detached): listwise J (L critic), positive-top1 rate, positive mass."""
++    A = target_from_obs(obs, sims.dtype)
++    out = {}
++    for name, S, At in (('i2t', sims, A), ('t2i', sims.t(), A.t())):
++        T = critic_T('l', S)
++        out[f'Jlist_{name}'] = float(vcs_J_rows(T, At).mean())
++        out[f'top1pos_{name}'] = float((At.gather(1, S.argmax(1, keepdim=True)) > 0).float().mean())
++        out[f'pimass_{name}'] = float((F.softmax(S / TAU, dim=1) * (At > 0)).sum(1).mean())
++        if b is not None:
++            out[f'Jpoint_{name}'] = float(vcs_J_rows(critic_T('p', S, b), At).mean())
++    out['multi_pos_rows'] = float(((A > 0).sum(1) > 1).float().mean())
++    return out
+--- /dev/null
++++ code_r29/r29_co_train.py
+@@ -0,0 +1,271 @@
++"""R29 driver: R27 driver (r27_co_train, arm a1_iface, lam 0 -> noisy branch = A1 interface for EVERY arm) on top of the R25
++driver (r25_co_train), run from the common UNTRAINED seed-determined initialization (warmup + 40 co-train epochs, no prefix).
++
++Changes, all confined to the image-text alignment term of the clean main learning (r29_align.align):
++  * warmup(): line-for-line co_train.warmup + VSE.train(mode='warmup'); the cross-modal term infonce(sims) -> align(...,'warmup').
++  * train():  line-for-line r27_co_train.train; loss_1 = criterion(sims_l, labels=None) -> align(..., 'cotrain').
++  * P arm only: one scalar b per peer (T = tanh(s/tau + b)), own AdamW param group (lr = model lr schedule, weight_decay 0,
++    not clipped), saved/restored with the full state.
++  * report-only diagnostics every R27.TIME_EVERY steps: alignment-term encoder gradient norm (torch.autograd.grad on the
++    retained graph; .grad untouched) and r29_align.readout of the batch; P's b at the end of every stage.
++H (h_native) returns the native expressions unchanged in both phases (the gate checks bitwise identity vs the original
++co_train.warmup / VSE.train and r27_co_train.train). eval_train / GMM, intra-modal terms, enqueue, noisy branch, grad clip,
++LR schedule, validation and save/resume are the unchanged R25/R27 code.
++"""
++import os, json, time
++from collections import defaultdict
++import numpy as np
++import torch
++from torch.nn.utils.clip_grad import clip_grad_norm_
++
++import vse as V
++import r25_co_train as R
++import r27_co_train as R27
++import r27_interface as I
++from r27_interface import forward_emb_ctx, enqueue_with_ids
++from vse import infonce
++import r29_align as AL
++
++logger = R.logger
++DIAG_EVERY = R27.TIME_EVERY
++_WARM = {}          # warmup diagnostics, keyed '<epoch>_<peer>'
++_WPEER = {}
++
++
++# ----------------------------------------------------------------------------- model factory (P: learnable b)
++
++def make_vse(opt, word2idx):
++    m = V.VSE(opt, word2idx)
++    if opt.r29_arm == 'p_pointwise_vcs':
++        m.r29_b = torch.nn.Parameter(torch.full((), AL.P_B0, dtype=torch.float32, device='cuda'))
++        m.optimizer.add_param_group({'params': [m.r29_b], 'lr': opt.learning_rate, 'weight_decay': 0.0})
++    return m
++
++
++def _gnorm_align(loss, params):
++    g = torch.autograd.grad(loss, params, retain_graph=True, allow_unused=True)
++    return sum(float((x.double() ** 2).sum()) for x in g if x is not None) ** 0.5
++
++
++def _obs(dataset, ids):
++    return torch.as_tensor(np.asarray(dataset.t2i_index, dtype=np.int64)[np.asarray(ids, dtype=np.int64)], device='cuda')
++
++
++# ----------------------------------------------------------------------------- warmup
++
++def warmup_step(opt, model, images, captions, lengths, image_lengths, obs, st, diag):
++    """VSE.train(mode='warmup') line for line; only the cross-modal term goes through AL.align."""
++    model.Eiters += 1
++    img_embs, cap_embs, cap_lens = model.forward_emb(images, captions, lengths, imgae_lengths=image_lengths)
++    sims = model.forward_sim(img_embs, cap_embs, cap_lens)
++    model.optimizer.zero_grad()
++    img_embs2, cap_embs2, cap_lens2 = model.forward_emb(images, captions, lengths, imgae_lengths=image_lengths)
++    sims1 = model.forward_sim(img_embs2, cap_embs2, cap_lens2)
++    img_sims = img_embs.mm(img_embs2.t())
++    cap_sims = cap_embs.mm(cap_embs2.t())
++    loss = AL.align(opt, model, 'warmup', sims, obs)
++    loss2 = infonce(img_sims)
++    loss3 = infonce(cap_sims)
++    if diag:
++        st['gnorm_align'] += _gnorm_align(loss, model.params); st['align_loss'] += float(loss.detach())
++        for k, v in AL.readout(sims, obs, getattr(model, 'r29_b', None)).items():
++            st[k] += v
++        st['diag_n'] += 1
++    loss = loss + loss2 + loss3
++    loss.backward()
++    if model.grad_clip > 0:
++        clip_grad_norm_(model.params, model.grad_clip)
++    model.optimizer.step()
++    return loss.item()
++
++
++def _warm_record(opt, model, epoch, st, n):
++    if not _WPEER:
++        _WPEER[id(model)] = 'A'
++    _WPEER.setdefault(id(model), 'B')
++    out = {k: v / st['diag_n'] for k, v in st.items() if k != 'diag_n' and st['diag_n']}
++    out.update(steps=n, diag_n=st['diag_n'])
++    if hasattr(model, 'r29_b'):
++        out['r29_b_end'] = float(model.r29_b.detach())
++    _WARM[f'{epoch}_{_WPEER[id(model)]}'] = out
++    json.dump(_WARM, open(os.path.join(opt.output_dir, 'R29_WARMUP_DIAG.json'), 'w'), indent=1)
++
++
++def warmup(opt, train_loader, model, epoch):
++    """co_train.warmup (meters/progress printing dropped; no numerical effect)."""
++    st, n = defaultdict(float), 0
++    ds = train_loader.dataset
++    for i, (images, image_lengths, captions, lengths, ids) in enumerate(train_loader):
++        if images.size(0) == 1:
++            break
++        model.train_start()
++        warmup_step(opt, model, images, captions, lengths, image_lengths, _obs(ds, ids), st, i % DIAG_EVERY == 0)
++        n += 1
++        if i % opt.log_step == 0:
++            logger.info(f"Warmup[{epoch}] step {i}/{len(train_loader)}")
++    _warm_record(opt, model, epoch, st, n)
++
++
++def limited_warmup(opt, train_loader, model, epoch):
++    """r25_co_train._limited_warmup (smoke only)."""
++    st, n = defaultdict(float), 0
++    ds = train_loader.dataset
++    for i, (images, image_lengths, captions, lengths, ids) in enumerate(train_loader):
++        if i >= opt.max_iters or images.size(0) == 1:
++            break
++        model.train_start()
++        warmup_step(opt, model, images, captions, lengths, image_lengths, _obs(ds, ids), st, i % DIAG_EVERY == 0)
++        n += 1
++    _warm_record(opt, model, epoch, st, n)
++
++
++# ----------------------------------------------------------------------------- co-training (copy of r27_co_train.train)
++
++def train(opt, net, net2, labeled_trainloader, unlabeled_trainloader, epoch, stats, max_iters=None, probe=None):
++    """r27_co_train.train; the only numerical change is loss_1 (R29 marks)."""
++    max_len = len(labeled_trainloader)
++    if max_iters:
++        max_len = min(max_len, max_iters)
++    R.ensure_refiners(opt, net, net2)  # keeps the native param-group layout of the loaded prefix
++    I.ensure_ids(net.memory_queue); I.ensure_ids(net2.memory_queue)
++    peer = R27.peer_of(net, net2)
++    opt.r27_epoch = epoch
++    ld, ud = labeled_trainloader.dataset, unlabeled_trainloader.dataset
++    l_gidx, l_obs = ld.r27_gidx, np.asarray(ld.t2i_index, dtype=np.int64)
++    criterion = net.criterion
++    net.train_start()
++    net2.val_start()
++    have_u = len(unlabeled_trainloader.dataset) > 0
++    unlabeled_train_iter = iter(unlabeled_trainloader) if have_u else None
++    labeled_train_iter = iter(labeled_trainloader)
++    u_gidx, u_obs = (ud.r27_gidx, np.asarray(ud.t2i_index, dtype=np.int64)) if have_u else (None, None)
++    t0 = time.time()
++    for i in range(max_len):
++        try:
++            (batch_images_l, batch_img_len_l, batch_text_l, batch_lengths_l, ids_l, batch_labels_l, batch_prob_l, batch_clean_labels_l) = next(labeled_train_iter)
++        except StopIteration:
++            labeled_train_iter = iter(labeled_trainloader)
++            (batch_images_l, batch_img_len_l, batch_text_l, batch_lengths_l, ids_l, batch_labels_l, batch_prob_l, batch_clean_labels_l) = next(labeled_train_iter)
++        if have_u:
++            try:
++                (batch_images_u, batch_img_len_u, batch_text_u, batch_lengths_u, ids_u, batch_clean_labels_u) = next(unlabeled_train_iter)
++            except StopIteration:
++                unlabeled_train_iter = iter(unlabeled_trainloader)
++                (batch_images_u, batch_img_len_u, batch_text_u, batch_lengths_u, ids_u, batch_clean_labels_u) = next(unlabeled_train_iter)
++        if batch_images_l.size(0) < 2:
++            # native bug (R25 NATIVE_FIDELITY §3): 1-sample batch centering -> zero vector -> NaN. Skipped (all arms).
++            stats['skip_labeled_lt2'] += 1
++            continue
++        timed = (i % R27.TIME_EVERY == 0)
++        ts = R27._sync() if timed else None
++        batch_prob_l = batch_prob_l.cuda(); batch_labels_l = batch_labels_l.cuda()
++
++        net.optimizer.zero_grad()
++        img_emb_l, cap_emb_l, cap_len_l = net.forward_emb(batch_images_l, batch_text_l, batch_lengths_l, imgae_lengths=batch_img_len_l)
++        sims_l = net.forward_sim(img_emb_l, cap_emb_l, cap_len_l)
++        obs_l = torch.as_tensor(l_obs[np.asarray(ids_l, dtype=np.int64)], device=sims_l.device)          # R29
++        loss_1 = AL.align(opt, net, 'cotrain', sims_l, obs_l)                                             # R29 (H: criterion(sims_l, labels=None))
++        img_emb_l2, cap_emb_l2, cap_len_l2 = net.forward_emb(batch_images_l, batch_text_l, batch_lengths_l, imgae_lengths=batch_img_len_l)
++        loss_2 = criterion(img_emb_l.mm(img_emb_l2.t()), margin=0.3)
++        loss_3 = criterion(cap_emb_l.mm(cap_emb_l2.t()), margin=0.3)
++        if timed:                                                                                         # R29 report-only
++            stats['r29_gnorm_align'] += _gnorm_align(loss_1, net.params); stats['r29_align_loss'] += float(loss_1.detach())
++            for k, v in AL.readout(sims_l, obs_l, getattr(net, 'r29_b', None)).items():
++                stats['r29_' + k] += v
++            stats['r29_diag_n'] += 1
++        loss_l = loss_1 + loss_2 + loss_3
++        loss_l.backward()
++
++        high_conf_idx = (batch_prob_l > net.avg_clean_prob).nonzero(as_tuple=True)[0]
++        if high_conf_idx.numel() > 0:
++            hc = np.asarray(ids_l, dtype=np.int64)[high_conf_idx.cpu().numpy()]
++            enqueue_with_ids(net.memory_queue, img_emb_l[high_conf_idx], cap_emb_l[high_conf_idx],
++                             l_gidx[hc], l_obs[hc], epoch, i, peer)
++        stats['clean_loss'] += loss_l.item(); stats['steps'] += 1
++
++        if not have_u or batch_images_u.size(0) < 2:
++            stats['skip_small_or_empty'] += 1
++        else:
++            img_emb_u, cap_emb_u, cap_len_u, mi, mt = forward_emb_ctx(net, batch_images_u, batch_text_u, batch_lengths_u, imgae_lengths=batch_img_len_u)
++            iu = np.asarray(ids_u, dtype=np.int64)
++            dev = img_emb_u.device
++            uids = (torch.as_tensor(u_gidx[iu], device=dev), torch.as_tensor(u_obs[iu], device=dev))
++            gsnap = [p.grad.detach().clone() if p.grad is not None else None for p in net.params] if timed else None
++            R27.noisy_branches(opt, net, net2, batch_images_u, batch_img_len_u, batch_text_u, batch_lengths_u,
++                               img_emb_u, cap_emb_u, mi, mt, stats, uids, timed, probe=probe)
++            if timed:  # gradient diagnostics (no extra autograd): clean = grads before the noisy branch, noisy = increment
++                gc = sum(float((g.double() ** 2).sum()) for g in gsnap if g is not None)
++                gn = sum(float(((p.grad.double() - (g.double() if g is not None else 0)) ** 2).sum()) for p, g in zip(net.params, gsnap) if p.grad is not None)
++                gr = sum(float((p.grad.double() ** 2).sum()) for m in (net.i2t_refiner_node, net.t2i_refiner_node) for p in m.parameters() if p.grad is not None)
++                stats['gnorm_enc_clean'] += gc ** 0.5; stats['gnorm_enc_noisy'] += gn ** 0.5; stats['gnorm_refiner'] += gr ** 0.5
++                stats['gnorm_n'] += 1
++                del gsnap
++            if i % R27.SELFCOS_EVERY == 0:
++                # diagnostic: eval-mode re-encoding of the query batch itself, same centering, vs native train-mode query
++                with torch.no_grad():
++                    was = net.training; net.val_start()
++                    ri = net.img_enc(batch_images_u.cuda(), batch_img_len_u.cuda()); rt = net.txt_enc(batch_text_u.cuda(), batch_lengths_u)
++                    if was:
++                        net.train_start()
++                    stats['selfcos_img'] += float((R.N.F.normalize(ri - mi, dim=-1) * img_emb_u.detach()).sum(1).mean())
++                    stats['selfcos_txt'] += float((R.N.F.normalize(rt - mt, dim=-1) * cap_emb_u.detach()).sum(1).mean())
++                    stats['selfcos_n'] += 1
++        if net.grad_clip > 0:
++            clip_grad_norm_(net.params, net.grad_clip)
++        net.optimizer.step()
++        if timed:
++            stats['time_step_total'] += R27._sync() - ts
++            stats['time_n'] += 1
++        if i % opt.log_step == 0:
++            logger.info(f"Epoch[{epoch}] step {i}/{max_len} loss_l {loss_l.item():.4f} {time.time() - t0:.1f}s")
++    stats['train_seconds'] += time.time() - t0
++    if hasattr(net, 'r29_b'):                                                                             # R29
++        stats['r29_b_end'] = float(net.r29_b.detach())
++
++
++def summarize(stats):
++    s = dict(stats)
++    out = R27.summarize(stats)
++    n = s.get('r29_diag_n', 0)
++    for k in list(out):
++        if k.startswith('r29_') and k not in ('r29_diag_n', 'r29_b_end') and n:
++            out[k + '_mean'] = out.pop(k) / n
++    return out
++
++
++# ----------------------------------------------------------------------------- state hooks (P's b)
++
++def model_full_state(m):
++    s = R27.model_full_state(m)
++    if hasattr(m, 'r29_b'):
++        s['r29_b'] = m.r29_b.detach().clone()
++    return s
++
++
++def load_full_state(path, opt, model_A, model_B):
++    st = R27.load_full_state(path, opt, model_A, model_B)
++    for key, m in (('model_A', model_A), ('model_B', model_B)):
++        has_m, has_s = hasattr(m, 'r29_b'), 'r29_b' in st[key]
++        assert has_m == has_s, 'R29: P-arm bias present in model / state mismatch (cross-arm resume?)'
++        if has_m:
++            with torch.no_grad():
++                m.r29_b.copy_(st[key]['r29_b'].to(m.r29_b.device))
++    assert st['opt'].get('r29_arm') == opt.r29_arm, ('R29: cross-arm resume refused', st['opt'].get('r29_arm'), opt.r29_arm)
++    return st
++
++
++def install():
++    R27.install()
++    R.VSE = make_vse
++    R.warmup = warmup
++    R._limited_warmup = limited_warmup
++    R.train = train
++    R.summarize = summarize
++    R.model_full_state = model_full_state
++    R.load_full_state = load_full_state
++
++
++def main(opt):
++    assert opt.r29_arm in AL.ARMS and opt.arm == 'a1_iface' and opt.lam == 0.0
++    install()
++    R.main(opt)
+--- /dev/null
++++ code_r29/r29_run.py
+@@ -0,0 +1,41 @@
++"""R29 entry point: pinned r25_run arguments plus --r29_arm. The noisy branch is always the R27 A1 interface (arm a1_iface,
++lam 0); the run starts from the common untrained seed-determined initialization unless --resume names this unit's own
++state_last.pt (the unit runner enforces same-unit resume). No TEST at the end."""
++import os, json, glob, hashlib, argparse, time
++import torch
++import r25_run
++import r29_align as AL
++
++
++def parse(argv=None):
++    p = argparse.ArgumentParser(add_help=False)
++    p.add_argument('--r29_arm', required=True, choices=AL.ARMS)
++    a, rest = p.parse_known_args(argv)
++    opt = r25_run.parse(rest)
++    assert opt.noisy_obj == 'sce' and opt.link == 'c0', 'R25 hook flags are not used by R29'
++    assert opt.data_name == 'f30k_precomp'
++    opt.arm, opt.lam, opt.r29_arm = 'a1_iface', 0.0, a.r29_arm
++    opt.r29_tau = AL.TAU
++    return opt
++
++
++def main():
++    opt = parse()
++    os.makedirs(opt.output_dir, exist_ok=True)
++    r25_run.seed_all(opt.seed)
++    here = os.path.dirname(os.path.abspath(__file__))
++    env = dict(torch=torch.__version__, cuda=torch.version.cuda, cudnn=torch.backends.cudnn.version(),
++               gpu=torch.cuda.get_device_name(0), host=os.uname().nodename, job=os.environ.get('SLURM_JOB_ID'),
++               dtype='float32 (no AMP)',
++               code_sha256={os.path.basename(f): hashlib.sha256(open(f, 'rb').read()).hexdigest() for f in sorted(glob.glob(os.path.join(here, '*.py')))})
++    json.dump({'opt': vars(opt), 'env': env}, open(os.path.join(opt.output_dir, f"RUN_{env['job']}.json"), 'w'), indent=1)
++    import r29_co_train
++    t0 = time.time()
++    r29_co_train.main(opt)
++    json.dump({'peak_mem_allocated_GiB': torch.cuda.max_memory_allocated() / 2**30, 'peak_mem_reserved_GiB': torch.cuda.max_memory_reserved() / 2**30,
++               'wall_seconds': time.time() - t0, 'gpu': env['gpu'], 'job': env['job']},
++              open(os.path.join(opt.output_dir, f"PEAK_{env['job']}.json"), 'w'), indent=1)
++
++
++if __name__ == '__main__':
++    main()
