@@ -1,0 +1,137 @@
+{
+  "amendment": "A1",
+  "base_version": "R30-v1.1-merged-20261101",
+  "frozen": true,
+  "frozen_utc": "2026-11-01T14:16:57Z",
+  "frozen_before": "any R30 parent state, calibration or formal branch job, and before the v1.1 GPU gate result; no R30 v1.1 result of any kind seen",
+  "sources": {
+    "proposal_csv": {},
+    "review_memo": {},
+    "adoption": "main session decision relayed 2026-11-01: adopt memo §三, §八 (seed confirmation), §九 (formal-mean NA rule; gate coverage), §七 registered as a trigger only (not run now)"
+  },
+  "package_files_unchanged": {
+    "MATRIX": "9155e6818efe63f161f865f7c6be60e51cdd4d5eb4b258b467cb4520becf0d30",
+    "plan_v11": "cd4315b37ef842fbf8046ca434fe29309fa028587385bfbe44714befa6795440"
+  },
+  "changes": {
+    "sec3_extend_list_NB_to_40": {
+      "units": [
+        "r30v11_f00_s1001_HN",
+        "r30v11_f00_s1001_HB",
+        "r30v11_f60_s1001_HN",
+        "r30v11_f60_s1001_HB"
+      ],
+      "from_epochs": 10,
+      "to_epochs": 40,
+      "execution_class": "FULL40_EXTENDED_A1",
+      "rule": "same unit id, same parent, same run (no separate short copy); fixed E10 checkpoint/readout kept (completed 10 = raw 9); native 40-epoch LR schedule (lr_update 15 unchanged); no new parent; N/B keep coefficient 1 and the R29 reduction; RTX6000PRO blocks"
+    },
+    "sec8_extend_HH_controls_to_40": {
+      "units": [
+        "r30v11_f60_s1002_HH",
+        "r30v11_f60_s1003_HH"
+      ],
+      "from_epochs": 10,
+      "to_epochs": 40,
+      "execution_class": "FULL40_EXTENDED_A1",
+      "rule": "these controls were resolved RUN10_CONTROL (no strict reuse possible); the 40-epoch extension needs a real run anyway; E10 kept; L40S blocks"
+    },
+    "sec8_seed_confirmation_new_units": {
+      "units": [
+        "r30a1_f60_s1002_PN",
+        "r30a1_f60_s1002_PV",
+        "r30a1_f60_s1002_PB",
+        "r30a1_f60_s1003_PN",
+        "r30a1_f60_s1003_PV",
+        "r30a1_f60_s1003_PB"
+      ],
+      "epochs": 40,
+      "parents": [
+        "wp_f60_s1002_H_e5",
+        "wp_f60_s1003_H_e5"
+      ],
+      "rule": "PN/PV/PB x 60% x seed1002/1003 from the existing matching H parents (no new warmup); each cell has its OWN one-time 64-FIT-batch calibration on its matching H parent (seed1001 coefficients never reused); same formulas / runner / gates; L40S blocks; ordered after the 30 main paths in LINES_R30.txt (queue order only)"
+    },
+    "calibration_parents": [
+      "wp_f00_s1001_H_e5",
+      "wp_f60_s1001_H_e5",
+      "wp_f60_s1002_H_e5",
+      "wp_f60_s1003_H_e5"
+    ]
+  },
+  "matrix_a1": {
+    "file": "MATRIX_A1.csv",
+    "unique_paths": 36,
+    "counts": {
+      "CONTROL10_REUSE_OR_RUN": 3,
+      "FULL40_EXTENDED_A1": 6,
+      "FULL40_REQUIRED": 12,
+      "FULL40_SEEDCONF_A1": 6,
+      "SHORT10_REQUIRED": 9
+    }
+  },
+  "plan_a1": {
+    "file": "plan_A1/EXECUTION_PLAN_A1.csv",
+    "actions": {
+      "RUN40": 24,
+      "RUN10": 9,
+      "RUN10_CONTROL": 3
+    }
+  },
+  "budget": {
+    "cotrain_epoch_units": 1080,
+    "cotrain_epoch_units_if_all_controls_reused": 1050,
+    "note": "package 610-660 + sec3 120 + sec8 300 = 1030-1080 (here all 5 controls run: 1080); warmup epoch units <= 35 (7 parents x 5, unchanged); calibrations 4 (2 RTX s1001, 2 L40S s1002/1003). An epoch unit is one dual-peer native co-train epoch, not a GPU hour."
+  },
+  "summary_rule": {
+    "memo": "§九",
+    "rule": "formal cross-seed mean = NA unless n_complete == expected_n (0%: 1 seed; 60%: 3 seeds); per-seed results always reported; a partial mean only as a separately labelled exploratory_partial_mean (never in the formal column)",
+    "implementation": "tools/report_stage_r30.py (patched copy of the package tools/report_stage.py; reads MATRIX_A1.csv) + tests/test_report_stage_r30.py (package test_missing_pair + formal-mean-is-None assertion); the package tools are not modified"
+  },
+  "feedback_intervention_trigger": {
+    "memo": "§七",
+    "status": "REGISTERED_NOT_RUN",
+    "executed_only_if": "the trigger below fires on its registered readouts",
+    "pairs": [
+      {
+        "name": "list",
+        "vcs": "r30_f60_s1001_L0 (H->L)",
+        "control": "r30v11_f60_s1001_HN (H->N)"
+      },
+      {
+        "name": "pairwise",
+        "vcs": "r30_f60_s1001_PV",
+        "control": "r30_f60_s1001_PN"
+      }
+    ],
+    "seed_and_state": "60% seed1001 only; evaluated once per pair after both units have their E10_RECORD (completed 10); list pair first",
+    "trigger": "A and B and C (all three)",
+    "A_one_step_favorable": "on the common H parent wp_f60_s1001_H_e5, a fixed diagnostic list of 64 FIT labeled batches (selected once from the parent with a fixed seed, ids/hash registered before evaluation, disjoint from the 64 calibration batches); group correct-hard = observed pair correct (offline evaluator) and the observed positive not ranked first by the parent; layer C one-step probe (main + native intra/noisy terms, real clipping and the inherited AdamW, one step from an isolated copy): mean delta(observed margin) of the VCS objective >= the control objective and > 0, with >= 100 correct-hard comparisons",
+    "B_natural_continuation_worse": "E10 full-DEV rSum (same parent, same seed, fixed completed epoch 10) of the VCS unit <= control unit - 2.0",
+    "C_feedback_divergence": "at any completed epoch 1..10, for either peer: relative difference of the GMM clean-split size n_pred_clean >= 0.10, or absolute difference of the noisy-branch usable-candidate fraction (i2t or t2i, epoch mean) >= 0.05, or absolute difference of the split precision (offline evaluator only) >= 0.05",
+    "intervention": {
+      "design": "2x2: {VCS objective, matched control objective} x {native dynamic feedback, common reference feedback}",
+      "common_start": "the control unit's immutable completed-10 checkpoint (state_completed10.pt), copied for every cell; the VCS cell switches only the main objective (registered coefficient for PV)",
+      "window": "co-train epoch raw 10: native prelude (adjust_learning_rate, GMM split from the common state) then exactly 200 training iterations per peer (A then B, native order); identical budget in all four cells; each peer's actual optimizer.step count recorded",
+      "native_dynamic_feedback": "each cell generates its own split (identical at the window start), queue writes, other-peer candidate identities and detached candidate re-encodings / refiner targets",
+      "common_reference_feedback": "replay, from the control cell under native feedback in the same window: GMM split + reliability probabilities + avg_clean_prob, labeled / unlabeled batch ids in order, queue contents and IDs written, noisy-branch candidate identities (cols / inv / A) and their detached re-encoded embeddings; each cell still encodes its own inputs with its own encoder and refiner",
+      "readouts": "full-DEV rSum + six recalls after the window, main/intra/noisy gradient norms, split stats, fixed-list margins when available",
+      "claims": "answers only whether the VCS-control gap changes under this artificial fixed-feedback intervention; not a causal mediation decomposition of natural training; fixed feedback is not a candidate method"
+    },
+    "budget": "4 cells x 200 iterations x 2 peers per triggered pair (~0.3 GPUh), not part of the 1080 epoch units"
+  },
+  "gate_coverage": {
+    "memo": "§九 last paragraph",
+    "checks": {
+      "real dtype / AMP": "dtype_and_score_range (float32 params, scores, losses; autocast disabled; matmul TF32 off; cudnn flags recorded)",
+      "actual cosine score range": "dtype_and_score_range (min/max of the production score matrix within [-1, 1]; implied pair-margin range)",
+      "multi-positive / no-negative / tie": "rules_gpu, math_gpu (CUDA argmax first index), CPU 05_rules",
+      "calibration state isolation": "calibration_inprocess (encoders / AdamW moments / counters unchanged, .grad untouched), calibration_records (parent file sha256 and fingerprint unchanged before/after)",
+      "production loss / gradient equality with the reference": "math_gpu (H/L/N/B/PN/PV/PB vs package reference on a real batch, float32 and float64), CPU 02/03/06"
+    }
+  },
+  "not_adopted_now": [
+    "memo §四 three-layer probes, §五 competitor-identity audit, §六 fixed-object J/gap table: diagnostics after the first delivery (the §七 trigger A depends on the layer-C probe; it is evaluated only when that probe exists)"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

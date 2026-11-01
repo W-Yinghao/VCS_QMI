@@ -1,0 +1,341 @@
+{
+  "version": "R30-v1.1-merged-20261101",
+  "amendments": [
+    "A1"
+  ],
+  "amendment_a1_file": "PROTOCOL_AMENDMENT_A1.json",
+  "frozen": true,
+  "frozen_utc": "2026-11-01T14:28:54Z",
+  "supersedes": [
+    {
+      "file": "PROTOCOL_FROZEN_v1_SUPERSEDED.json",
+      "note": "R30 v1 (12-unit) protocol; never used for a formal job"
+    },
+    {
+      "file": "PROTOCOL_FROZEN_v11_preA1_SUPERSEDED.json",
+      "note": "v1.1 freeze before amendment A1 (30 paths); used by no parent / calibration / branch / gate result (only the protocol-independent early stages of smoke 1080122)"
+    },
+    {
+      "file": "PROTOCOL_FROZEN_v11A1_r0_SUPERSEDED.json",
+      "note": "v1.1+A1 freeze on the snapshot before the milestone RNG-restore fix (smoke 1080122 failed at its first branch, no gate result); rules and matrix unchanged, only code sha256s / CPU check / smoke references differ"
+    }
+  ],
+  "frozen_before": "the v1.1 GPU gate result, all 7 parent states, all 4 calibrations and every branch unit; no v1.1 GPU result seen. Only v1.1 CPU checks (synthetic), the pre-migration v1 runfill smoke 1080050 and the failed smoke 1080122 (stopped by the milestone RNG check at its first branch, no gate) had run.",
+  "authority": "package configs/PROTOCOL.json + MATRIX.csv (byte-identical copies in v11_protocol/, verified against the package manifest) + frozen amendment A1 (MATRIX_A1.csv overlay)",
+  "package": {
+    "dir": "<WORKSPACE>/r30_v11/VCS_R30_v1_1_Merged_Server_20261101",
+    "files_verified": 30,
+    "local_checks": {
+      "check_package": "v11_package_checks/check_package.json",
+      "resolve_preview": "v11_package_checks/resolve_preview.out",
+      "unittest": "v11_package_checks/unittest.out (34 tests OK)",
+      "run_math_checks": "v11_package_checks/math_checks_1080145.json",
+      "run_math_checks_status": "PASS",
+      "note": "package checks are local CPU checks of protocol/matrix/reference math, not production gates"
+    }
+  },
+  "code_snapshot": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11",
+  "base_snapshot": "<WORKSPACE>/handoff/r29_listwise_20261101/code_r29",
+  "v1_snapshot": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30",
+  "migration_diff": {
+    "file": "R30_V11_DIFF.patch",
+    "v1_changed": [
+      "r30_align.py",
+      "r30_calibrate.py",
+      "r30_co_train.py",
+      "r30_run.py"
+    ],
+    "v1_added": [
+      "r30_state.py"
+    ]
+  },
+  "diff_vs_r29": {
+    "file": "R30_V11_DIFF_VS_R29.patch",
+    "added": [
+      "r30_align.py",
+      "r30_calibrate.py",
+      "r30_co_train.py",
+      "r30_run.py",
+      "r30_state.py"
+    ],
+    "byte_identical": [
+      "co_train.py",
+      "data.py",
+      "evaluation.py",
+      "glove_shim.py",
+      "model.py",
+      "noisy_loss.py",
+      "r25_co_train.py",
+      "r25_run.py",
+      "r26_co_train.py",
+      "r26_graph.py",
+      "r27_calibrate.py",
+      "r27_co_train.py",
+      "r27_cpu_check.py",
+      "r27_delta_control.py",
+      "r27_gate.py",
+      "r27_interface.py",
+      "r27_run.py",
+      "r27_targets.py",
+      "r27s_cpu_check.py",
+      "r27s_gate.py",
+      "r27s_targets.py",
+      "r29_align.py",
+      "r29_co_train.py",
+      "r29_run.py",
+      "train.py",
+      "utils.py",
+      "vocab.py",
+      "vse.py",
+      "vse_.py"
+    ]
+  },
+  "cpu_check": {
+    "file": "CPU_CHECK_V11_1080145.json",
+    "all_pass": true,
+    "reference": {
+      "file": "<WORKSPACE>/handoff/r30_pairwise_20261101/reference/objective_checks.py",
+      "identical_to_package": true
+    }
+  },
+  "cells": {
+    "f00_s1001": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.0,
+      "noise_percent": 0,
+      "seed": 1001,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/noise/f30k_precomp_0.0.npy",
+      "block_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "partition": "RTX6000PRO",
+      "r29_reference": {
+        "H": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native",
+        "L": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs"
+      }
+    },
+    "f60_s1001": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.6,
+      "noise_percent": 60,
+      "seed": 1001,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.6.npy",
+      "block_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "partition": "RTX6000PRO",
+      "r29_reference": {
+        "H": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native",
+        "L": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs"
+      }
+    },
+    "f60_s1002": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.6,
+      "noise_percent": 60,
+      "seed": 1002,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.6.npy",
+      "block_gpu": "NVIDIA L40S",
+      "partition": "L40S",
+      "r29_reference": {
+        "H": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1002/h_native",
+        "L": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1002/l_listwise_vcs"
+      }
+    },
+    "f60_s1003": {
+      "data_name": "f30k_precomp",
+      "noise_ratio": 0.6,
+      "noise_percent": 60,
+      "seed": 1003,
+      "noise_file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.6.npy",
+      "block_gpu": "NVIDIA L40S",
+      "partition": "L40S",
+      "r29_reference": {
+        "H": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1003/h_native",
+        "L": "/projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1003/l_listwise_vcs"
+      }
+    }
+  },
+  "parents": [
+    {
+      "parent_id": "wp_f00_s1001_H_e5",
+      "noise_percent": "0",
+      "seed": "1001",
+      "warmup_source": "H",
+      "warmup_epochs": "5",
+      "init_group": "init_f00_s1001",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    },
+    {
+      "parent_id": "wp_f60_s1001_H_e5",
+      "noise_percent": "60",
+      "seed": "1001",
+      "warmup_source": "H",
+      "warmup_epochs": "5",
+      "init_group": "init_f60_s1001",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    },
+    {
+      "parent_id": "wp_f60_s1001_L_e5",
+      "noise_percent": "60",
+      "seed": "1001",
+      "warmup_source": "L",
+      "warmup_epochs": "5",
+      "init_group": "init_f60_s1001",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    },
+    {
+      "parent_id": "wp_f60_s1002_H_e5",
+      "noise_percent": "60",
+      "seed": "1002",
+      "warmup_source": "H",
+      "warmup_epochs": "5",
+      "init_group": "init_f60_s1002",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    },
+    {
+      "parent_id": "wp_f60_s1002_L_e5",
+      "noise_percent": "60",
+      "seed": "1002",
+      "warmup_source": "L",
+      "warmup_epochs": "5",
+      "init_group": "init_f60_s1002",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    },
+    {
+      "parent_id": "wp_f60_s1003_H_e5",
+      "noise_percent": "60",
+      "seed": "1003",
+      "warmup_source": "H",
+      "warmup_epochs": "5",
+      "init_group": "init_f60_s1003",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    },
+    {
+      "parent_id": "wp_f60_s1003_L_e5",
+      "noise_percent": "60",
+      "seed": "1003",
+      "warmup_source": "L",
+      "warmup_epochs": "5",
+      "init_group": "init_f60_s1003",
+      "first_cotrain_completed_epochs": "0",
+      "action": "REUSE_EXACT_STATE_OR_BUILD_ONCE",
+      "state_path": "SERVER_BIND_REQUIRED"
+    }
+  ],
+  "matrix": {
+    "file": "v11_protocol/MATRIX.csv",
+    "unique_paths": 30
+  },
+  "matrix_a1": {
+    "file": "MATRIX_A1.csv",
+    "unique_paths": 36,
+    "counts": {
+      "CONTROL10_REUSE_OR_RUN": 3,
+      "FULL40_EXTENDED_A1": 6,
+      "FULL40_REQUIRED": 12,
+      "FULL40_SEEDCONF_A1": 6,
+      "SHORT10_REQUIRED": 9
+    }
+  },
+  "reuse_decisions": {
+    "file": "REUSE_DECISIONS.json",
+    "all_run": true
+  },
+  "execution_plan_package": {
+    "file": "plan_v11/EXECUTION_PLAN.csv",
+    "tool": "package tools/resolve_plan.py --reuse-decisions REUSE_DECISIONS.json"
+  },
+  "execution_plan": {
+    "file": "plan_A1/EXECUTION_PLAN_A1.csv",
+    "tool": "tools/apply_amendment_a1.py (package plan + A1 overlay)",
+    "actions": {
+      "RUN40": 24,
+      "RUN10": 9,
+      "RUN10_CONTROL": 3
+    }
+  },
+  "execution_list": {
+    "file": "LINES_R30.txt",
+    "n": 36,
+    "lines": [
+      "sbatch --job-name=r30_f00_s1001_H0 --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f00_s1001_H0",
+      "sbatch --job-name=r30_f00_s1001_L0 --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f00_s1001_L0",
+      "sbatch --job-name=r30_f60_s1001_H0 --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f60_s1001_H0",
+      "sbatch --job-name=r30_f60_s1001_L0 --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f60_s1001_L0",
+      "sbatch --job-name=r30v11_f00_s1001_HN --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f00_s1001_HN",
+      "sbatch --job-name=r30v11_f00_s1001_HB --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f00_s1001_HB",
+      "sbatch --job-name=r30v11_f60_s1001_HN --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1001_HN",
+      "sbatch --job-name=r30v11_f60_s1001_HB --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1001_HB",
+      "sbatch --job-name=r30v11_f60_s1001_LN --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=03:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1001_LN",
+      "sbatch --job-name=r30v11_f60_s1001_LL --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=03:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1001_LL",
+      "sbatch --job-name=r30v11_f60_s1002_HN --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1002_HN",
+      "sbatch --job-name=r30v11_f60_s1002_HB --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1002_HB",
+      "sbatch --job-name=r30v11_f60_s1002_HL --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1002_HL",
+      "sbatch --job-name=r30v11_f60_s1002_LN --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1002_LN",
+      "sbatch --job-name=r30v11_f60_s1002_LL --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1002_LL",
+      "sbatch --job-name=r30v11_f60_s1003_HN --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1003_HN",
+      "sbatch --job-name=r30v11_f60_s1003_HB --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1003_HB",
+      "sbatch --job-name=r30v11_f60_s1003_HL --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1003_HL",
+      "sbatch --job-name=r30v11_f60_s1003_LN --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1003_LN",
+      "sbatch --job-name=r30v11_f60_s1003_LL --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=04:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1003_LL",
+      "sbatch --job-name=r30_f00_s1001_Ls --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f00_s1001_Ls",
+      "sbatch --job-name=r30_f00_s1001_PN --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f00_s1001_PN",
+      "sbatch --job-name=r30_f00_s1001_PV --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f00_s1001_PV",
+      "sbatch --job-name=r30_f00_s1001_PB --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f00_s1001_PB",
+      "sbatch --job-name=r30_f60_s1001_Ls --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f60_s1001_Ls",
+      "sbatch --job-name=r30_f60_s1001_PN --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f60_s1001_PN",
+      "sbatch --job-name=r30_f60_s1001_PV --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f60_s1001_PV",
+      "sbatch --job-name=r30_f60_s1001_PB --partition=RTX6000PRO --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30_f60_s1001_PB",
+      "sbatch --job-name=r30v11_f60_s1002_HH --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1002_HH",
+      "sbatch --job-name=r30v11_f60_s1003_HH --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30v11_f60_s1003_HH",
+      "sbatch --job-name=r30a1_f60_s1002_PN --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30a1_f60_s1002_PN",
+      "sbatch --job-name=r30a1_f60_s1002_PV --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30a1_f60_s1002_PV",
+      "sbatch --job-name=r30a1_f60_s1002_PB --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30a1_f60_s1002_PB",
+      "sbatch --job-name=r30a1_f60_s1003_PN --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30a1_f60_s1003_PN",
+      "sbatch --job-name=r30a1_f60_s1003_PV --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30a1_f60_s1003_PV",
+      "sbatch --job-name=r30a1_f60_s1003_PB --partition=L40S --exclude=node51,node53,node60 --qos=normal --nice=0 --time=10:00:00 <WORKSPACE>/handoff/r30_pairwise_20261101/sbatch/r30v11_unit.sbatch r30a1_f60_s1003_PB"
+    ],
+    "order": "stage-view FULL40 (H0/L0 + A1-extended s1001 HN/HB), the 12 10-epoch branches/controls, FULL40 s1001 Ls/PN/PV/PB, then the A1 L40S block (HH s1002/s1003 extended to 40 + PN/PV/PB s1002/s1003); queue order only"
+  },
+  "rules": {
+    "deviations": "DEVIATIONS.json",
+    "tau": 0.05,
+    "batch": 128,
+    "K": 5,
+    "warmup_epochs": 5,
+    "co_train_epochs": {
+      "FULL40 incl. A1": 40,
+      "SHORT10/CONTROL10": 10
+    },
+    "lr_update": 15,
+    "milestone_completed_epochs": 10,
+    "raw_epoch_of_milestone": 9,
+    "stage_paths": "N/L/B coefficient 1, R29 co-train reduction; H native",
+    "fit_static": "Ls/PN/PV/PB on the matching H parent (s1001; A1: PN/PV/PB also s1002/s1003, own calibration per cell), 64 FIT batches per peer, frozen",
+    "summary_rule": "formal cross-seed mean = NA unless n_complete == expected_n (0%: 1 seed; 60%: 3 seeds); per-seed results always reported; a partial mean only as a separately labelled exploratory_partial_mean (never in the formal column)",
+    "endpoints": {
+      "stage": "full-DEV rSum + six recalls at completed_cotrain_epochs=10 (never best-in-first-10); paired by noise/seed; interaction only for seeds with all four paths",
+      "full40": "best full-DEV rSum over 40 epochs + same-checkpoint six recalls, final, last5, ranks, cost"
+    }
+  },
+  "budget_note": {
+    "epoch_units": {
+      "warmup": 35,
+      "cotrain": 1080,
+      "package_range": "610-660",
+      "with_A1": "1030-1080"
+    },
+    "estimate_from_R29_receipts": "RTX PRO 6000: warmup epoch ~120 s (both peers), co-train epoch ~300 s at 0% and ~150-260 s at 60%; L40S assumed ~1.6x slower (no R29 Flickr L40S receipt). Parents ~0.75 GPUh (3 RTX) + ~1.5 GPUh (4 L40S); calibrations 4 x ~0.15 GPUh; RTX: 12 FULL40 + 4 A1-extended HN/HB x 2.6-3.4 h ~ 47 GPUh, 2 x 10-epoch ~1.4 GPUh; L40S: 8 x 10-epoch ~1 h ~ 8 GPUh + 8 A1 FULL40 x ~4 h ~ 32 GPUh; total ~90 GPUh plus continuation / staging overhead. Real costs from scheduler receipts."
+  },
+  "test": "never read (stage.sh copies only train/dev; no TEST entry is run).",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
