@@ -1,0 +1,937 @@
+{
+  "all_pass": true,
+  "config_frozen": true,
+  "config": {
+    "AFF_A0": 1.0,
+    "AFF_B0": 0.0,
+    "AFF_CHUNK": 2048,
+    "AFF_FALLBACK": "R1/R2 only: the residual is not fitted and r = 0 for the whole stage, so alpha_score = softmax(16 s) (exactly the G1 score readout); counted in rstage_aff_fallback. Same rule for both arms.",
+    "AFF_MAX_ITERS": 60,
+    "AFF_RULE": "per peer stage, on the stage fit P (teacher coordinates, the same pairs that fit the residual) and the FULL empirical product of its two marginals incl. the diagonal (all n_fit x n_fit caption/image pairs): minimize the balanced logistic loss E_P softplus(-2 g0) + E_Q softplus(2 g0) over (a, b) (Platt-type scalar calibration of 0.5 log(p/q), convex; the diagonal is in both P and Q so the optimum is finite); damped Newton with Armijo backtracking, float64 reductions. a, b are then frozen and only the residual is fitted.",
+    "AFF_TOL": 1e-09,
+    "A_MIN": 1.0,
+    "BATCH": 128,
+    "BETA_COS": 16.0,
+    "BETA_HEAD": 2.0,
+    "CAL_RULE": "pool = stage P rows (teacher high-confidence labeled rows, observed pairing) NOT used by the head/residual fit or held-out sets; observed-image IDs of the pool shuffled (stage generator) and split in half -> fit / report groups (no observed image in both); rows of each group shuffled, first N_CAL_FIT / N_CAL_REP taken (rounded down to 128). Each row: query = its caption in teacher coordinates (unaugmented, centered by its 128-row chunk mean); candidates = the ACTUAL C_mix rule (r27cs_sources.unique_topk + mix_3a_2b on the teacher queue) with the query's own queue record(s) (slot caption ID == query caption ID) excluded from BOTH routes (direct-copy channel; same for all arms); rows short of 5 unique IDs dropped. weak label = 1[observed image ID in the 5 candidates]; the observed item is never inserted. Logistic regression on U_FEATURES + intercept, ridge on the weights only, Newton/IRLS float64 to convergence.",
+    "CAL_SEED_OFFSET": 31,
+    "ECE_BINS": 10,
+    "FROZEN": true,
+    "HARD_RULE": "each held-out P caption (the head held-out set): its observed image + the 4 other distinct observed images of the held-out pool with the highest teacher cosine (= the R27-Q trial calibration set); logged per stage: observed top-1 / mean rank / NLL under the arm score readout",
+    "HIDDEN": 256,
+    "LOGIT_MAX_ITERS": 100,
+    "LOGIT_TOL": 1e-10,
+    "LR": 0.001,
+    "MIN_CLASS": 64,
+    "N_CAL_FIT": 4096,
+    "N_CAL_REP": 2048,
+    "RESIDUAL_INIT": "PairHead default init under torch.manual_seed(stage_seed+17) (= the Q2 head init), then the LAST layer (l2 weight and bias) set to zero -> r_phi == 0 at fit start",
+    "RIDGE": 0.0001,
+    "STEPS": 200,
+    "U_FALLBACK": "intercept-only logistic: u = the calibration-fit weak-label rate (constant for the stage; 0 or 1 if one class is empty); used when the calibration-fit split has < MIN_CLASS rows of a class, or the Newton fit is non-finite / not converged. Counted in rstage_u_fallback. Same rule for all arms.",
+    "U_FEATURES": [
+      "best_cos",
+      "ab_overlap",
+      "ab_top1_agree"
+    ],
+    "U_FEATURE_DEF": {
+      "best_cos": "max over the K candidates of the teacher cosine q.y (R27-Q teacher coordinates; the Q1 score)",
+      "ab_overlap": "|A5 & B5| / 5: overlap of the two C_mix routes' unique top-5 image-ID lists (A: query . teacher text bank -> partner observed image IDs; B: query . teacher image bank)",
+      "ab_top1_agree": "1[A route top-1 ID == B route top-1 ID]"
+    }
+  },
+  "code_matches_install_manifest": true,
+  "checks": {
+    "u0_equiv": {
+      "pass_": true,
+      "g1_cos_sel": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "stage_fitted": true,
+        "refiner_got_u_zero": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "g2_vcs_sel": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "stage_fitted": true,
+        "refiner_got_u_zero": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "r1_res_vcs_sel": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "stage_fitted": true,
+        "refiner_got_u_zero": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "r2_res_bce_sel": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "stage_fitted": true,
+        "refiner_got_u_zero": true,
+        "pass": true,
+        "bitwise": true
+      }
+    },
+    "u1_equiv": {
+      "pass_": true,
+      "g1_cos_sel/u1==q1_cos_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "alpha_equal": true,
+        "refiner_got_u_one": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "g2_vcs_sel/u1==q2_vcs_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "alpha_equal": true,
+        "refiner_got_u_one": true,
+        "same_head_as_q2": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "r1_res_vcs_sel/zres_u1==q1_cos_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "alpha_equal": true,
+        "refiner_got_u_one": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "r2_res_bce_sel/zres_u1==q1_cos_pool": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "alpha_equal": true,
+        "refiner_got_u_one": true,
+        "pass": true,
+        "bitwise": true
+      }
+    },
+    "zres_equiv": {
+      "pass_": true,
+      "r1_res_vcs_sel": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "alpha_equal": true,
+        "u_equal": true,
+        "residual_was_fitted": true,
+        "pass": true,
+        "bitwise": true
+      },
+      "r2_res_bce_sel": {
+        "enc_grad_maxdiff": 0.0,
+        "ref_i2t_grad_maxdiff": 0.0,
+        "ref_t2i_grad_maxdiff": 0.0,
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "adam_len_equal": true,
+        "adam_step_equal": true,
+        "rng_equal": true,
+        "dir_grad_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "dir_lnat_absdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "proto_maxdiff": {
+          "i2t": 0.0,
+          "t2i": 0.0
+        },
+        "graph_equal": {
+          "i2t": true,
+          "t2i": true
+        },
+        "alpha_equal": true,
+        "u_equal": true,
+        "residual_was_fitted": true,
+        "pass": true,
+        "bitwise": true
+      }
+    },
+    "shared_u": {
+      "pass_": true,
+      "u_equal_all": true,
+      "w_equal_all": true,
+      "cal_status": "ok",
+      "u_mean": 0.11330009996891022,
+      "u_std": 0.09214124083518982,
+      "u_min": 0.0035741275642067194,
+      "u_max": 0.530236542224884,
+      "weights": [
+        9.010009999227934,
+        0.5678857565376972,
+        0.6337576076469943
+      ],
+      "intercept": -6.798401172878847,
+      "report": {
+        "rstage_cal_pool_rows": 60015,
+        "rstage_cal_pool_images": 26715,
+        "rstage_cal_fit_rows": 4096,
+        "rstage_cal_rep_rows": 2048,
+        "rstage_cal_fit_short": 0,
+        "rstage_cal_rep_short": 0,
+        "rstage_cal_fit_pos": 563,
+        "rstage_cal_fit_neg": 3533,
+        "rstage_cal_status": "ok",
+        "rstage_cal_converged": true,
+        "rstage_cal_w_best_cos": 9.010009999227934,
+        "rstage_cal_w_ab_overlap": 0.5678857565376972,
+        "rstage_cal_w_ab_top1": 0.6337576076469943,
+        "rstage_cal_c": -6.798401172878847,
+        "rstage_calfit_n": 4096,
+        "rstage_calfit_weak_rate": 0.137451171875,
+        "rstage_calfit_u_mean": 0.137451171875,
+        "rstage_calfit_u_mean_with_pair": 0.19999544429876814,
+        "rstage_calfit_u_mean_without_pair": 0.12748445085190874,
+        "rstage_calfit_frac_u_ge_half_with_pair": 0.010657193605683837,
+        "rstage_calfit_frac_u_ge_half_without_pair": 0.002830455703368242,
+        "rstage_calfit_brier": 0.10907597408343106,
+        "rstage_calfit_logloss": 0.3623983574859244,
+        "rstage_calfit_ece": 0.011404348251896831,
+        "rstage_calfit_auc": 0.7254136210778959,
+        "rstage_calrep_n": 2048,
+        "rstage_calrep_weak_rate": 0.11962890625,
+        "rstage_calrep_u_mean": 0.14001796720491877,
+        "rstage_calrep_u_mean_with_pair": 0.2068097993265136,
+        "rstage_calrep_u_mean_without_pair": 0.13094198336144078,
+        "rstage_calrep_frac_u_ge_half_with_pair": 0.012244897959183673,
+        "rstage_calrep_frac_u_ge_half_without_pair": 0.0016638935108153079,
+        "rstage_calrep_brier": 0.0980571234760372,
+        "rstage_calrep_logloss": 0.33442777947893243,
+        "rstage_calrep_ece": 0.02038906095491875,
+        "rstage_calrep_auc": 0.7256047177606484,
+        "rstage_cal_feature_means_fit": [
+          0.5082938176565222,
+          0.21220703125,
+          0.125244140625
+        ],
+        "rstage_cal_feature_means_rep": [
+          0.5092536242736969,
+          0.21162109375000004,
+          0.138671875
+        ]
+      },
+      "pass": true
+    },
+    "i2t_identical": {
+      "pass_": true,
+      "g1_cos_sel": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      },
+      "g2_vcs_sel": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      },
+      "r1_res_vcs_sel": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      },
+      "r2_res_bce_sel": {
+        "grad_maxdiff": 0.0,
+        "l_nat_absdiff": 0.0,
+        "proto_equal": true,
+        "graph_equal": true,
+        "step_ref_i2t_grad_maxdiff": 0.0,
+        "t2i_graph_equal_cnative": true,
+        "cs_rows": 128.0,
+        "pass": true
+      }
+    },
+    "mechanics": {
+      "pass_": true,
+      "a1_iface": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "pass": true
+      },
+      "cn_mix_t2i": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "pass": true
+      },
+      "g1_cos_sel": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "u_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "u_in_unit": true,
+        "u_shape": [
+          128
+        ],
+        "alpha_row_range_mean": 0.506353497505188,
+        "t2i_refiner_got_alpha_u": true,
+        "i2t_refiner_plain": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_requires_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": false,
+        "calib_w_requires_grad": false,
+        "calib_w_in_optimizer": false,
+        "pass": true
+      },
+      "g2_vcs_sel": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "u_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "u_in_unit": true,
+        "u_shape": [
+          128
+        ],
+        "alpha_row_range_mean": 0.4910892844200134,
+        "t2i_refiner_got_alpha_u": true,
+        "i2t_refiner_plain": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_requires_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": true,
+        "calib_w_requires_grad": false,
+        "calib_w_in_optimizer": false,
+        "pass": true
+      },
+      "r1_res_vcs_sel": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "u_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.1920928955078125e-07,
+        "u_in_unit": true,
+        "u_shape": [
+          128
+        ],
+        "alpha_row_range_mean": 0.5055159330368042,
+        "t2i_refiner_got_alpha_u": true,
+        "i2t_refiner_plain": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_requires_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": true,
+        "calib_w_requires_grad": false,
+        "calib_w_in_optimizer": false,
+        "res_active": true,
+        "a": 17.559587292468837,
+        "b": -4.79444384609873,
+        "beta": 0.9111831464776093,
+        "res_rowstd_step": 0.01548871211707592,
+        "aff_converged": true,
+        "aff_grad_maxabs": 3.0335208602016994e-08,
+        "alpha_differs_from_g1": true,
+        "residual_train_loss": [
+          -0.9746005535125732,
+          -0.9640045762062073
+        ],
+        "val_J_g0_vs_res": [
+          0.96878981590271,
+          0.9688271880149841
+        ],
+        "val_bce_g0_vs_res": [
+          0.06304626911878586,
+          0.06341272592544556
+        ],
+        "hard_top1_cos_vs_arm": [
+          0.662109375,
+          0.66162109375
+        ],
+        "pass": true
+      },
+      "r2_res_bce_sel": {
+        "i2t_n": 1.0,
+        "t2i_n": 1.0,
+        "enc_grad_nonzero": 43,
+        "ref_i2t_with_grad": 10,
+        "ref_t2i_with_grad": 10,
+        "peer_params_with_grad": 0,
+        "peer_queue_ids_same": true,
+        "peer_params_same": true,
+        "optimizer_steps": 1,
+        "refiner_forwards": [
+          "i2t",
+          "t2i"
+        ],
+        "stopgrad_graph": true,
+        "alpha_calls": 1,
+        "alpha_requires_grad": false,
+        "u_requires_grad": false,
+        "alpha_shape": [
+          128,
+          5
+        ],
+        "alpha_rowsum_maxdev": 1.7881393432617188e-07,
+        "u_in_unit": true,
+        "u_shape": [
+          128
+        ],
+        "alpha_row_range_mean": 0.5055556297302246,
+        "t2i_refiner_got_alpha_u": true,
+        "i2t_refiner_plain": true,
+        "teacher_is_other_peer": true,
+        "t2i_proto_differs_from_cnative": true,
+        "head_in_optimizer": 0,
+        "head_with_grad": 0,
+        "head_requires_grad": 0,
+        "head_unchanged_by_step": true,
+        "head_present": true,
+        "calib_w_requires_grad": false,
+        "calib_w_in_optimizer": false,
+        "res_active": true,
+        "a": 17.559587292468837,
+        "b": -4.79444384609873,
+        "beta": 0.9111831464776093,
+        "res_rowstd_step": 0.043021634221076965,
+        "aff_converged": true,
+        "aff_grad_maxabs": 3.0335208602016994e-08,
+        "alpha_differs_from_g1": true,
+        "residual_train_loss": [
+          0.05174364522099495,
+          0.07058240473270416
+        ],
+        "val_J_g0_vs_res": [
+          0.96878981590271,
+          0.9688193202018738
+        ],
+        "val_bce_g0_vs_res": [
+          0.06304626911878586,
+          0.0630006343126297
+        ],
+        "hard_top1_cos_vs_arm": [
+          0.662109375,
+          0.662109375
+        ],
+        "pass": true
+      }
+    },
+    "calibration": {
+      "pass_": true,
+      "stage_seed": 7926925,
+      "thr": 0.9785518050193787,
+      "n_cal_fit": 4096,
+      "n_cal_rep": 2048,
+      "logged_cal_fit_rows_plus_short": 4096,
+      "rows_high_conf": true,
+      "rows_disjoint_from_head_sets": true,
+      "fit_rep_images_disjoint": true,
+      "own_record_exclusion_equal_production": 64,
+      "own_record_rows_checked": 64,
+      "own_records_present_in_queue": 4,
+      "cal_fit_pos": 563,
+      "cal_fit_neg": 3533,
+      "cal_status": "ok",
+      "calfit_weak_rate": 0.137451171875,
+      "calrep_weak_rate": 0.11962890625,
+      "calrep_auc": 0.7256047177606484,
+      "calrep_ece": 0.02038906095491875,
+      "calrep_u_with_pair": 0.2068097993265136,
+      "calrep_u_without_pair": 0.13094198336144078,
+      "anchor": {
+        "a": 17.559587292468837,
+        "b": -4.79444384609873,
+        "reproducible": true,
+        "stage_logged": [
+          17.559587292468837,
+          -4.79444384609873
+        ],
+        "equals_stage": true,
+        "aff_iters": 15,
+        "aff_converged": true,
+        "aff_loss": 0.06646166544800078,
+        "aff_loss_init": 1.011881765967408,
+        "aff_grad_maxabs": 3.0335208602016994e-08,
+        "aff_ok": true
+      },
+      "evaluator_only_cal_fit_observed_is_injected_clean": 0.98291015625,
+      "evaluator_only_cal_rep_observed_is_injected_clean": 0.98193359375,
+      "note": "evaluator_only_* use the injected-noise pairing inside this gate only; training never reads it",
+      "pass": true
+    },
+    "pq_truth_free": {
+      "pass_": true,
+      "thr": 0.9785518050193787,
+      "thr_equals_teacher_mean": true,
+      "nP_avail": 78447,
+      "stage_log_nP_avail": 78447,
+      "stage_log_nP_fit": 16384,
+      "nP_fit": 16384,
+      "rows_subset": true,
+      "rows_unique": true,
+      "gidx_is_labeled_observed": true,
+      "labeled_is_teacher_clean_split": true,
+      "observed_consistent_with_noise_lock": true,
+      "evaluator_only_P_clean_fraction": 0.98541259765625,
+      "static_truth_hits": {
+        "r28_select.py": [],
+        "r28_config.py": []
+      },
+      "hook_lines": [
+        "elif branch == 't2i' and opt.arm in R28_ARMS:",
+        "S, qs = CS.search_t2i(net2.memory_queue, xt2, SEL.SOURCE, opt.k, stats)",
+        "elif branch == 't2i' and opt.arm in R28_ARMS:",
+        "alpha, u = SEL.alpha_u_t2i(opt, net, net2, S, uids, stats, timed)      # stop-grad, other-peer teacher"
+      ],
+      "stage_hook_lines": [
+        "SEL.begin_stage(opt, net, net2, ld, epoch, peer, stats)  # frozen teacher; forked RNG; no global-RNG change"
+      ],
+      "pass": true
+    },
+    "resume": {
+      "pass_": true,
+      "snapshot_twice": {
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "rng_equal": true,
+        "head_sha_equal": true,
+        "alpha_maxdiff": 0.0,
+        "u_maxdiff": 0.0,
+        "anchor_equal": true
+      },
+      "disk_reload": {
+        "param_maxdiff": 0.0,
+        "adam_maxdiff": 0.0,
+        "rng_equal": true,
+        "head_sha_equal": true,
+        "u_maxdiff": 0.0,
+        "queue_ids_equal": true
+      },
+      "smoke_states": {
+        "g1_cos_sel": {
+          "saved_arm": "g1_cos_sel",
+          "saved_lam": 0.0,
+          "saved_kind": "cos",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        },
+        "g2_vcs_sel": {
+          "saved_arm": "g2_vcs_sel",
+          "saved_lam": 0.0,
+          "saved_kind": "vcs",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        },
+        "r1_res_vcs_sel": {
+          "saved_arm": "r1_res_vcs_sel",
+          "saved_lam": 0.0,
+          "saved_kind": "res_vcs",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        },
+        "r2_res_bce_sel": {
+          "saved_arm": "r2_res_bce_sel",
+          "saved_lam": 0.0,
+          "saved_kind": "res_bce",
+          "saved_source": "C_mix",
+          "has_queue_ids": true
+        }
+      },
+      "run_unit_identity": {
+        "dry_fresh_rc": 0,
+        "same_arm_rc": 0,
+        "same_arm_resumes_state_last": true,
+        "other_arm_rc": 1,
+        "other_arm_msg": "Cannot resume: identity mismatch.",
+        "unidentified_state_rc": 1,
+        "unidentified_msg": "Unidentified state in output directory; refuse resume.",
+        "non_r28_unit_rc": 1,
+        "non_r28_msg": "Unit is not in the authorized R28 8-unit matrix.",
+        "lam_zero_in_cmd": true,
+        "dry_fresh_cmd": "/projects/EEG-foundation-model/yinghao/envs/v9_sgr/bin/python -u -B <WORKSPACE>/handoff/r28_selective_20261031/code_r28/r27_run.py --arm r1_res_vcs_sel --lam 0.0 --data_path /tmp/r27_1078833 --data_name f30k_precomp --noise_file /projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/f30k_precomp_0.4.npy --noise_ratio 0.4 --seed 1001 --k 5 --num_epochs 40 --output_dir /tmp/r28_gate_id_u0hy_hxs/f40_s1001/r1_res_vcs_sel --resume /projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/groups/f40_s1001/prefix/prefix_state.pt",
+        "identity_has_protocol_sha": true
+      }
+    },
+    "timing": {
+      "pass_": true,
+      "gpu": "NVIDIA A40",
+      "note": "30 iterations incl. data loading and the stage fit; model A stage only",
+      "est_extra_hours_per_unit_vs_cnative": {
+        "g1_cos_sel": 0.8126897416291411,
+        "g2_vcs_sel": 0.8485479715135362,
+        "r1_res_vcs_sel": 1.0990186239171906,
+        "r2_res_bce_sel": 1.003449066303394
+      },
+      "steps_per_stage": 676,
+      "a1_iface": {
+        "seconds_30it_incl_fit": 11.755873918533325,
+        "stage_fit_seconds": 0.0,
+        "ms_per_step_excl_fit": 391.86246395111084,
+        "peak_mem_GiB": 30.165912628173828,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.0233190824359073
+      },
+      "cn_mix_t2i": {
+        "seconds_30it_incl_fit": 11.487984657287598,
+        "stage_fit_seconds": 0.0,
+        "ms_per_step_excl_fit": 382.9328219095866,
+        "peak_mem_GiB": 30.164252758026123,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.0
+      },
+      "q1_cos_pool": {
+        "seconds_30it_incl_fit": 13.277825355529785,
+        "stage_fit_seconds": 0.21238374710083008,
+        "ms_per_step_excl_fit": 435.51472028096515,
+        "peak_mem_GiB": 30.16685962677002,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.1373136366560752
+      },
+      "q2_vcs_pool": {
+        "seconds_30it_incl_fit": 16.671536207199097,
+        "stage_fit_seconds": 3.979010820388794,
+        "ms_per_step_excl_fit": 423.08417956034344,
+        "peak_mem_GiB": 30.170515060424805,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.1048522230362299
+      },
+      "g1_cos_sel": {
+        "seconds_30it_incl_fit": 18.320143699645996,
+        "stage_fit_seconds": 5.451096534729004,
+        "ms_per_step_excl_fit": 428.9682388305664,
+        "peak_mem_GiB": 30.169008255004883,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.1202179972231503
+      },
+      "g2_vcs_sel": {
+        "seconds_30it_incl_fit": 19.31649422645569,
+        "stage_fit_seconds": 6.418781280517578,
+        "ms_per_step_excl_fit": 429.9237648646037,
+        "peak_mem_GiB": 30.17263650894165,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.1227132809370726
+      },
+      "r1_res_vcs_sel": {
+        "seconds_30it_incl_fit": 26.753898859024048,
+        "stage_fit_seconds": 13.678146839141846,
+        "ms_per_step_excl_fit": 435.85840066274005,
+        "peak_mem_GiB": 30.172099590301514,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.138211131887905
+      },
+      "r2_res_bce_sel": {
+        "seconds_30it_incl_fit": 26.572028875350952,
+        "stage_fit_seconds": 13.68755054473877,
+        "ms_per_step_excl_fit": 429.48261102040607,
+        "peak_mem_GiB": 30.173255443572998,
+        "t2i_n": 30.0,
+        "ratio_vs_cnative_excl_fit": 1.121561241156315
+      }
+    }
+  },
+  "gpu": "NVIDIA A40",
+  "source_state": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_20261029/smoke_s_1075954/s4_single_cap_vcs/state_last.pt",
+  "raw_report_paths": [
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/smoke_r28_1078833/GPU_GATE.json",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/smoke_r28_1078833/g1_cos_sel",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/smoke_r28_1078833/g2_vcs_sel",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/smoke_r28_1078833/r1_res_vcs_sel",
+    "/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/smoke_r28_1078833/r2_res_bce_sel"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

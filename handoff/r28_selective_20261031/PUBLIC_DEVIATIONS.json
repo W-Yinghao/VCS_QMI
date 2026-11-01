@@ -1,0 +1,33 @@
+{
+  "task": "R28 selective candidate correction: G1 (Q1 cosine + fallback) / G2 (Q2 VCS head + fallback) / R1 (cosine-anchored residual VCS + fallback) / R2 (same, BCE) x Flickr 40%/60% x seed1001, cell common prefix, 40 epochs, C-native candidates (NEXT_EXPERIMENTS_CN.md, review 380ddfa)",
+  "snapshot": "code_r28 = copy of handoff/r27_qpool_20261031/code_q + r28_select.py, r28_config.py (new) + 3 edited files (co_train.py GraphRefiner.forward gains u; r27_co_train.py R28 arm registration / t2i search + pooling hook / stage hook as separate elif lines; r27_run.py lam-0 + options). r27cs_sources.py, r27q_pool.py, r27q_config.py byte-identical. code_q, code_cs, code_frozen, code_oracle*, r27_qtarget trees and the running seed-extension snapshots untouched. R28_DIFF.patch.",
+  "design_choices_not_fixed_by_the_design": {
+    "u_implementation": "alpha_final pooling written as (1-u)*mean_j h_j + u*sum_j alpha_j h_j (algebraically identical by linearity) so that u = 0 reproduces the C-native mean path BITWISE and u = 1 the R27-Q weighted path bitwise (R27-Q could only reach float tolerance with alpha = 1/5).",
+    "r_readout": "softmax((16/a) g) computed as softmax(16 s + (16/a) r): the constant 16 b / a cancels in the softmax; with r = 0 this is the Q1 expression 16*s bitwise.",
+    "anchor_rule": "the 'common low-capacity scalar calibration' for g0 = a s + b is the balanced logistic (Platt-type) loss with logit 2 g0 on the stage fit P and its FULL empirical product grid incl. the diagonal (convex; the diagonal in both P and Q keeps the optimum finite). Both VCS and BCE share the nonparametric optimum g* = 0.5 log(p/q); a logistic fit is the standard scalar estimator of that and is used for both arms. Note: the anchor objective coincides with R2's residual objective, not with R1's; this is the one asymmetry of the shared anchor and is disclosed.",
+    "anchor_fallback": "a < A_MIN = 1 (beta > 16), non-finite or non-converged Newton -> residual off for that stage (alpha_score = softmax(16 s), exactly G1), counted rstage_aff_fallback.",
+    "u_features": "best teacher cosine among the 5 candidates (R27-Q teacher coordinates), overlap of the A/B route unique top-5 lists, A/B top-1 agreement; + intercept. Not alpha max / entropy.",
+    "calibration_rows": "stage P rows not used by the head fit/held-out sets, observed-image groups split in halves (fit / report), up to 4096 / 2048 rows. Query for the calibration search = the caption re-encoded by the teacher (unaugmented, chunk-centered; = the scoring coordinate), whereas the production application search query is the native loader xt2 (token augmentation, batch-centered). Disclosed difference of the calibration distribution.",
+    "own_record_exclusion": "applied in calibration only (design: exclude the direct copy channel when the candidate record is the query's own queue record); implemented with unique_topk's source-ID exclusion on slot caption IDs in both routes. Application candidates are the unchanged production C_mix.",
+    "u_fallback": "intercept-only logistic (weak-label rate; 0 or 1 if a class is empty) when a class has < 64 calibration-fit rows or the fit fails. The first co-train stage after the common prefix (teacher queue without IDs) necessarily hits this (u = 0 there, and that stage has no t2i rows anyway).",
+    "hard_candidate_log": "per stage on the head held-out P: observed + 4 nearest distinct observed images (the R27-Q trial calibration construction); top-1/rank/NLL for cos and the arm readout.",
+    "budget": "STEPS 200, LR 1e-3, batch 128, hidden 256 inherited from R27-Q and asserted equal; no trial run, no change of steps."
+  },
+  "references": "A1 (r27_qtarget a1_iface), C-native (r27_candsrc cn_mix_t2i), Q1/Q2 (r27_qpool q1_cos_pool/q2_vcs_pool) f40/f60_s1001 reused, not rerun",
+  "gate_history": {
+    "1078830": "CPU 17 passed / 2 failed: both test-fixture defects (test reseeded the global RNG outside fork_rng; float32 tensor compared at 1e-12); no code change",
+    "1078832": "CPU 19 passed / 0 failed + SNAPSHOT_IMPORT_OK (PROTOCOL_FROZEN.json written after this, before any GPU run)",
+    "1078833": "A40 (runfill): smoke 4 arms OK; gate ALL_PASS True, 11/11 checks, first attempt, no gate criterion or code changed; diag tool 3-batch OK",
+    "1078862": "read-only diagnostics on C-native + Q2 final states (runfill)"
+  },
+  "not_done": "no K/candidate-rule/temperature sweeps; no per-arm tuning; no soft-NCE arm; no new dataset; no TEST",
+  "observations_from_gate_info_only": {
+    "anchor": "gate stage: a = 17.56, b = -4.79 (Newton 15 iters, grad 3e-8) -> beta = 16/a = 0.91 on g; a well above A_MIN",
+    "residual_small": "after the frozen 200 steps from the zero-initialised last layer the residual barely moves: held-out J g0 0.96879 -> g0+r 0.96883 (R1), BCE 0.06305 -> 0.06300 (R2); residual row std on real candidates 0.015 (R1) / 0.043 (R2) -> logit change (16/a) r ~ 0.01-0.04; hard-set top1 0.6621 cos vs 0.6616 / 0.6621. R1/R2 are therefore expected to stay close to G1. The budget is NOT changed (frozen; a change would need a common FIT rule decided before formal runs).",
+    "support_u_low": "gate stage weak-label coverage 13.7% (fit) / 12.0% (report); calibrated u mean 0.113, max 0.53 on the training step; report AUC 0.726, ECE 0.020; u >= 0.5 for only ~1% of rows with the observed pair. alpha_final is therefore mostly the uniform mean in early training; logged per stage.",
+    "first_stage_fallback": "the first co-train stage after the common prefix has a teacher queue without IDs -> calibration degenerate -> pre-registered intercept-only fallback (u = 0); that stage has no t2i rows anyway (no ID-bearing candidates), identical to the R27-Q behaviour",
+    "timing": "A40 30-iteration estimate +0.81 (G1), +0.85 (G2), +1.10 (R1), +1.00 (R2) h per unit vs C-native incl. stage fits; R27-Q units took ~5.3 h on L40S, so 10 h limit with self-continuation is adequate",
+    "own_record": "4/64 checked calibration rows had their own record in the teacher queue; exclusion matched the production C_mix on a queue without those slots for 64/64"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

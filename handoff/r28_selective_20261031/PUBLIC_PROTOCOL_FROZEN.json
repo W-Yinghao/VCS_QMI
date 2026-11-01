@@ -1,0 +1,156 @@
+{
+  "protocol": "R28 selective candidate correction (NEXT_EXPERIMENTS_CN.md, review 380ddfa, 2026-10-31)",
+  "frozen_utc": "2026-10-31T18:00:37Z",
+  "frozen_before": "any formal R28 unit and before the R28 GPU smoke/gate; no R28 training or DEV result of any kind seen. Only the R28 CPU checks (synthetic data) had run.",
+  "design_source": {
+    "NEXT_EXPERIMENTS_CN.md": {},
+    "REVIEW_CN.md": {},
+    "SERVER_PROMPT_CN.txt": {},
+    "math_checks.py": {},
+    "CPU_CHECKS.json": {},
+    "MANIFEST.json": {}
+  },
+  "code_snapshot": "<WORKSPACE>/handoff/r28_selective_20261031/code_r28",
+  "diff_vs_code_q": {
+    "file": "R28_DIFF.patch",
+    "changed": [
+      "co_train.py",
+      "r27_co_train.py",
+      "r27_run.py"
+    ],
+    "added": [
+      "r28_config.py",
+      "r28_select.py"
+    ],
+    "byte_identical": [
+      "r27cs_sources.py",
+      "r27q_pool.py",
+      "r27q_config.py"
+    ]
+  },
+  "base": "<WORKSPACE>/handoff/r27_qpool_20261031/code_q (R27-Q, PROTOCOL_FROZEN sha256 e2faebd5e9eb97661c5807fe3cdc1543d561f1f156de620750b9895a58511645)",
+  "matrix": {
+    "arms": {
+      "g1_cos_sel": "Q1 score (teacher cosine s, alpha_score = softmax(16 s)) + selective fallback",
+      "g2_vcs_sel": "Q2 score (VCS relation head g fitted from scratch, alpha_score = softmax(2 g)) + selective fallback",
+      "r1_res_vcs_sel": "cosine-anchored residual VCS: g = a s + b + r_phi, residual fitted with the original J(T), T = tanh(g); alpha_score = softmax((16/a) g) + selective fallback",
+      "r2_res_bce_sel": "same structure, residual fitted with balanced BCE (logit 2g) + selective fallback"
+    },
+    "cells": [
+      "f40_s1001",
+      "f60_s1001"
+    ],
+    "seed": 1001,
+    "epochs": 40,
+    "prefix": "cell common prefix (r27_qtarget CELLS.json)",
+    "units": 8,
+    "order": "40% four units first, then 60% four; all eight completed per the frozen matrix; no arm dropped on intermediate DEV",
+    "references_reused_not_rerun": {
+      "A1": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_20261029/runs/<cell>/a1_iface",
+      "C_native": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs/<cell>/cn_mix_t2i",
+      "Q1": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs/<cell>/q1_cos_pool",
+      "Q2": "/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs/<cell>/q2_vcs_pool",
+      "identity_condition": "same prefix, data, noise lock, seed, 40-epoch host; Q1/Q2 code paths byte-identical in code_r28 (r27q_pool.py, r27q_config.py unchanged; refiner alpha-only and native paths checked bitwise vs code_q)"
+    },
+    "main_comparisons": [
+      "G1-Q1 and G2-Q2 (effect of the selective fallback)",
+      "R1-G2 (keeping the task cosine score)",
+      "R1-G1 (VCS residual beyond the cosine)",
+      "R1-R2 (objective attribution)",
+      "R1-A1 and every arm vs C-native"
+    ],
+    "endpoints": "primary best full-DEV rSum; same checkpoint six Recalls, last / last5, per-query rank-1 gains/losses; logs: u distribution, alpha on candidates, fallback ratio; TEST never read"
+  },
+  "scores": {
+    "teacher_coordinates": "R27-Q convention (r27q_pool.teacher_scores): teacher = other peer eval/no-grad, unaugmented inputs; query captions centered by the noisy batch caption mean, candidates by the noisy batch observed-image mean; l2norm",
+    "g1": "s = q.y; logits 16 s (R27-Q Q1, BETA_COS = 16)",
+    "g2": "R27-Q Q2 head: PairHead [q*y, |q-y|, q.y] -> 256 -> 1 (525057 params), original VCS J, T = tanh(g), P = stage high-confidence observed pairs, Q = empirical product of the same P incl. the diagonal, 200 Adam steps lr 1e-3 batch 128, init under stage_seed+17; logits 2 g (BETA_HEAD = 2). Produced by the very calls of r27q_pool.begin_stage (bitwise the Q2 head at the same state)",
+    "anchor": "per peer stage, on the stage fit P (teacher coordinates, the same pairs that fit the residual) and the FULL empirical product of its two marginals incl. the diagonal (all n_fit x n_fit caption/image pairs): minimize the balanced logistic loss E_P softplus(-2 g0) + E_Q softplus(2 g0) over (a, b) (Platt-type scalar calibration of 0.5 log(p/q), convex; the diagonal is in both P and Q so the optimum is finite); damped Newton with Armijo backtracking, float64 reductions. a, b are then frozen and only the residual is fitted. Shared by R1 and R2 (same function of the same stage data).",
+    "residual": "r_phi = the Q2 PairHead (same inputs/params/init seed) with the last layer zero-initialised (r == 0 at fit start); fitted for STEPS=200 with Adam lr 1e-3 batch 128 and the same index sequence as the Q2 head; R1: maximize J(T), T = tanh(a s + b + r); R2: minimize E_P softplus(-2g) + E_Q softplus(2g); a, b frozen during the fit",
+    "r_readout": "alpha_score = softmax((16/a) * (a s + b + r)), computed as softmax(16 s + (16/a) r) (the constant 16 b / a cancels); r = 0 -> softmax(16 s) elementwise (the Q1 alpha, bitwise in code)",
+    "not_done": "g0 is NOT written as 8 s; beta = 16/a only restores the task readout; no temperature, K, solver, angle, dropout sweeps"
+  },
+  "support_u": {
+    "function": "u = sigmoid(c + w . [best_cos, ab_overlap, ab_top1_agree]); one shared low-capacity logistic for all four arms (same function / rule / budget), refitted at every peer stage on the frozen teacher with the stage seed",
+    "features": {
+      "best_cos": "max over the K candidates of the teacher cosine q.y (R27-Q teacher coordinates; the Q1 score)",
+      "ab_overlap": "|A5 & B5| / 5: overlap of the two C_mix routes' unique top-5 image-ID lists (A: query . teacher text bank -> partner observed image IDs; B: query . teacher image bank)",
+      "ab_top1_agree": "1[A route top-1 ID == B route top-1 ID]"
+    },
+    "calibration": "pool = stage P rows (teacher high-confidence labeled rows, observed pairing) NOT used by the head/residual fit or held-out sets; observed-image IDs of the pool shuffled (stage generator) and split in half -> fit / report groups (no observed image in both); rows of each group shuffled, first N_CAL_FIT / N_CAL_REP taken (rounded down to 128). Each row: query = its caption in teacher coordinates (unaugmented, centered by its 128-row chunk mean); candidates = the ACTUAL C_mix rule (r27cs_sources.unique_topk + mix_3a_2b on the teacher queue) with the query's own queue record(s) (slot caption ID == query caption ID) excluded from BOTH routes (direct-copy channel; same for all arms); rows short of 5 unique IDs dropped. weak label = 1[observed image ID in the 5 candidates]; the observed item is never inserted. Logistic regression on U_FEATURES + intercept, ridge on the weights only, Newton/IRLS float64 to convergence.",
+    "sizes": {
+      "N_CAL_FIT": 4096,
+      "N_CAL_REP": 2048,
+      "MIN_CLASS": 64,
+      "RIDGE": 0.0001
+    },
+    "report": "calibration-fit and separate report split (disjoint observed images): weak-label coverage, u mean with / without the observed pair, frac u >= .5 with / without, Brier, log-loss, ECE (10 bins), AUC; logged per stage (rstage_calfit_* / rstage_calrep_*)",
+    "nature": "an application calibration on training-visible observed supervision, not a probability given by the CS-QMI theorem; the injected-noise pairing is used only by the evaluator (r28_fit_eval.py, gate evaluator-only counts), never to choose thresholds",
+    "own_record_exclusion": "queue slots whose caption ID equals the query caption ID are removed from both routes during calibration (direct copy channel); identical for all arms. Application candidates are the unchanged production C_mix."
+  },
+  "pre_registered_fallbacks": {
+    "anchor": "R1/R2 only: the residual is not fitted and r = 0 for the whole stage, so alpha_score = softmax(16 s) (exactly the G1 score readout); counted in rstage_aff_fallback. Same rule for both arms. Trigger: Newton not converged, non-finite, or a < A_MIN = 1.0.",
+    "support": "intercept-only logistic: u = the calibration-fit weak-label rate (constant for the stage; 0 or 1 if one class is empty); used when the calibration-fit split has < MIN_CLASS rows of a class, or the Newton fit is non-finite / not converged. Counted in rstage_u_fallback. Same rule for all arms."
+  },
+  "stage_schedule": {
+    "when": "start of every peer stage (model A with teacher B, then model B with teacher A), each epoch",
+    "seed": "SEED_BASE*seed + 2*epoch + peer (SEED_BASE 7919, = R27-Q), identical across arms; calibrator generator stage_seed + 31",
+    "rng": "torch.random.fork_rng (global CPU/CUDA RNG restored); numpy/python RNG untouched",
+    "frozen_within_stage": true,
+    "carried_across_stages": false
+  },
+  "hard_candidate_log": "each held-out P caption (the head held-out set): its observed image + the 4 other distinct observed images of the held-out pool with the highest teacher cosine (= the R27-Q trial calibration set); logged per stage: observed top-1 / mean rank / NLL under the arm score readout",
+  "config": {
+    "AFF_A0": 1.0,
+    "AFF_B0": 0.0,
+    "AFF_CHUNK": 2048,
+    "AFF_FALLBACK": "R1/R2 only: the residual is not fitted and r = 0 for the whole stage, so alpha_score = softmax(16 s) (exactly the G1 score readout); counted in rstage_aff_fallback. Same rule for both arms.",
+    "AFF_MAX_ITERS": 60,
+    "AFF_RULE": "per peer stage, on the stage fit P (teacher coordinates, the same pairs that fit the residual) and the FULL empirical product of its two marginals incl. the diagonal (all n_fit x n_fit caption/image pairs): minimize the balanced logistic loss E_P softplus(-2 g0) + E_Q softplus(2 g0) over (a, b) (Platt-type scalar calibration of 0.5 log(p/q), convex; the diagonal is in both P and Q so the optimum is finite); damped Newton with Armijo backtracking, float64 reductions. a, b are then frozen and only the residual is fitted.",
+    "AFF_TOL": 1e-09,
+    "A_MIN": 1.0,
+    "BATCH": 128,
+    "BETA_COS": 16.0,
+    "BETA_HEAD": 2.0,
+    "CAL_RULE": "pool = stage P rows (teacher high-confidence labeled rows, observed pairing) NOT used by the head/residual fit or held-out sets; observed-image IDs of the pool shuffled (stage generator) and split in half -> fit / report groups (no observed image in both); rows of each group shuffled, first N_CAL_FIT / N_CAL_REP taken (rounded down to 128). Each row: query = its caption in teacher coordinates (unaugmented, centered by its 128-row chunk mean); candidates = the ACTUAL C_mix rule (r27cs_sources.unique_topk + mix_3a_2b on the teacher queue) with the query's own queue record(s) (slot caption ID == query caption ID) excluded from BOTH routes (direct-copy channel; same for all arms); rows short of 5 unique IDs dropped. weak label = 1[observed image ID in the 5 candidates]; the observed item is never inserted. Logistic regression on U_FEATURES + intercept, ridge on the weights only, Newton/IRLS float64 to convergence.",
+    "CAL_SEED_OFFSET": 31,
+    "ECE_BINS": 10,
+    "FROZEN": true,
+    "HARD_RULE": "each held-out P caption (the head held-out set): its observed image + the 4 other distinct observed images of the held-out pool with the highest teacher cosine (= the R27-Q trial calibration set); logged per stage: observed top-1 / mean rank / NLL under the arm score readout",
+    "HIDDEN": 256,
+    "LOGIT_MAX_ITERS": 100,
+    "LOGIT_TOL": 1e-10,
+    "LR": 0.001,
+    "MIN_CLASS": 64,
+    "N_CAL_FIT": 4096,
+    "N_CAL_REP": 2048,
+    "RESIDUAL_INIT": "PairHead default init under torch.manual_seed(stage_seed+17) (= the Q2 head init), then the LAST layer (l2 weight and bias) set to zero -> r_phi == 0 at fit start",
+    "RIDGE": 0.0001,
+    "STEPS": 200,
+    "U_FALLBACK": "intercept-only logistic: u = the calibration-fit weak-label rate (constant for the stage; 0 or 1 if one class is empty); used when the calibration-fit split has < MIN_CLASS rows of a class, or the Newton fit is non-finite / not converged. Counted in rstage_u_fallback. Same rule for all arms.",
+    "U_FEATURES": [
+      "best_cos",
+      "ab_overlap",
+      "ab_top1_agree"
+    ],
+    "U_FEATURE_DEF": {
+      "best_cos": "max over the K candidates of the teacher cosine q.y (R27-Q teacher coordinates; the Q1 score)",
+      "ab_overlap": "|A5 & B5| / 5: overlap of the two C_mix routes' unique top-5 image-ID lists (A: query . teacher text bank -> partner observed image IDs; B: query . teacher image bank)",
+      "ab_top1_agree": "1[A route top-1 ID == B route top-1 ID]"
+    }
+  },
+  "runner": "tools/run_unit_r28.py (R28 arms only, lam 0, R28_IDENTITY.json incl. this file's sha, same-unit resume only, requires GPU_GATE.json all_pass + config_frozen + matching code sha256s)",
+  "sbatch": "sbatch/r28_unit.sbatch: normal QOS, RTX6000PRO,L40S,H100, exclude node51,node53,node60, nice 10, 10h, self-continuation on timeout <= 3 attempts, keep_states.py (epoch 10/20), no --dependency",
+  "output": "/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/runs/<cell>/<arm>",
+  "read_only_diagnostics": "tools/r28_fit_eval.py (design §4 items 1-4) on C-native and Q2 final states f40/f60_s1001, stage A; truth only there",
+  "not_done": [
+    "no K / candidate-rule / temperature / solver / angle / dropout sweeps",
+    "no per-arm tuning on DEV",
+    "no extra pseudo-target loss",
+    "no soft-NCE arm in this batch",
+    "no new dataset matrix",
+    "TEST never read"
+  ],
+  "revisions": [],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

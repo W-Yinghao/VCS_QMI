@@ -1,0 +1,561 @@
+"""R28 selective candidate correction (r27_review_380d NEXT_EXPERIMENTS_CN.md, review 380ddfa, 2026-10-31).
+
+Host = the R27-Q host (C-native C_mix 3A+2B K=5 unique candidates, current-peer re-encoding, native GraphRefiner
+self-attention, single native SCE, i2t full native A1 path). Only the t2i pooling weights change:
+
+    alpha_final = (1 - u) * (1/K, ..., 1/K) + u * alpha_score          (u in [0, 1], stop-gradient, per query row)
+
+implemented by co_train.GraphRefiner.forward(neigh, alpha=alpha_score, u=u) as (1-u)*mean_j h_j + u*sum_j alpha_j h_j
+(linear identity), so u = 0 gives the C-native mean path bitwise and u = 1 the R27-Q weighted path bitwise. Both
+training branches and the GraphRefiner always run; no query is skipped.
+
+Arms (score -> alpha_score over the K candidates of a row):
+  g1_cos_sel     : Q1 score, teacher cosine s = q.y;               alpha_score = softmax(16 s)
+  g2_vcs_sel     : Q2 score, VCS relation head g (from scratch);   alpha_score = softmax(2 g)
+  r1_res_vcs_sel : cosine-anchored residual, g = g0 + r_phi, g0 = a s + b, residual fitted with the original VCS J,
+                   T = tanh(g), Q = empirical product of the same P incl. the diagonal;
+                   alpha_score = softmax((16/a) g), computed as softmax(16 s + (16/a) r) (exact rewrite: the constant
+                   16 b / a cancels in the softmax), so r = 0 gives the Q1 alpha bitwise
+  r2_res_bce_sel : the same structure, residual fitted with balanced BCE, logit 2g
+  (a, b) are calibrated once per peer stage on that stage's fit P and its full product Q by one common logistic rule and
+  shared by R1/R2; frozen before the residual fit. Residual head = the Q2 PairHead (same inputs, params, init) with a
+  zero-initialised last layer, same 200-step budget, LR, batch and index sequence as the Q2 head.
+
+Support u (shared by all four arms; the same function / fitting rule / budget, refitted per stage on the frozen teacher):
+  u = sigmoid(c + w . [best_cos, ab_overlap, ab_top1_agree]); features from the teacher only. Calibration rows:
+  held-out high-confidence observed pairs, split by observed-image ID into fit / report groups, candidates generated
+  by the actual C_mix rule with the query's own queue record excluded, weak label = observed image ID in the candidates
+  (never inserted). Fallbacks are pre-registered in r28_config.
+
+Stage schedule / RNG: as R27-Q (stage seed SEED_BASE*seed + 2*epoch + peer; torch.random.fork_rng; head, residual,
+anchor and calibrator are refitted at every peer stage start, frozen inside the stage, never saved, so an epoch-boundary
+resume refits the same stage). The G2 head is produced by the very calls of r27q_pool.begin_stage (bitwise the Q2 head).
+The pre-injection pairing / caption-index arithmetic / the dataset's clean-label arrays are never read here; they are
+used only by the separate offline evaluator tools/r28_fit_eval.py and by the gate's evaluator-side counts.
+"""
+from __future__ import annotations
+import hashlib, time
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from vse import l2norm
+from r27_interface import usable
+import r27q_pool as QP
+import r27q_config as QC
+import r27cs_sources as CS
+import r28_config as C
+
+R28_ARMS = {'g1_cos_sel': 'cos', 'g2_vcs_sel': 'vcs', 'r1_res_vcs_sel': 'res_vcs', 'r2_res_bce_sel': 'res_bce'}
+RES_KINDS = ('res_vcs', 'res_bce')
+SOURCE = QP.SOURCE          # 'C_mix'
+K = QP.K
+GATE_U = None               # gate only: None | 'zero' (u = 0) | 'one' (u = 1)
+GATE_RESIDUAL = None        # gate only: None | 'zero' (R arms apply r = 0 after the normal fit)
+STAGE = {}
+
+
+# ----------------------------------------------------------------------------- residual scorer
+
+def zero_last(head):
+    with torch.no_grad():
+        head.l2.weight.zero_()
+        head.l2.bias.zero_()
+    return head
+
+
+class AnchoredScorer(nn.Module):
+    """g(q, y) = a * (q.y) + b + r_phi(q, y); a, b fixed python floats, only r_phi has parameters."""
+
+    def __init__(self, res, a, b):
+        super().__init__()
+        self.res, self.a, self.b = res, float(a), float(b)
+
+    def forward(self, q, y):
+        return self.a * (q * y).sum(-1) + self.b + self.res(q, y)
+
+    def grid(self, q, y):
+        a_, b_ = q.shape[0], y.shape[0]
+        return self.forward(q[:, None, :].expand(a_, b_, q.shape[1]), y[None, :, :].expand(a_, b_, y.shape[1]))
+
+
+def fit_residual(kind, cap, img, obs, a, b, seed, steps):
+    """Residual fit (call inside a forked RNG). Same init (up to the zeroed last layer) and the same index sequence as
+    r27q_pool.fit_head for the given seed."""
+    assert kind in RES_KINDS
+    torch.manual_seed(seed)
+    res = zero_last(QP.PairHead(dim=cap.shape[1]).to(cap.device))
+    scorer = AnchoredScorer(res, a, b)
+    opt_h = torch.optim.Adam(res.parameters(), lr=C.LR)
+    n = cap.shape[0]
+    first = last = None
+    obj = 'vcs' if kind == 'res_vcs' else 'bce'
+    for s in range(1, steps + 1):
+        ip, ia, ib = (torch.randint(n, (C.BATCH,)).to(cap.device) for _ in range(3))
+        loss = QP.head_loss(obj, scorer, cap, img, obs, ip, ia, ib)
+        opt_h.zero_grad(set_to_none=True)
+        loss.backward()
+        opt_h.step()
+        if first is None:
+            first = float(loss.detach())
+    last = float(loss.detach()) if steps else None
+    opt_h.zero_grad(set_to_none=True)
+    res.eval()
+    for p in res.parameters():
+        p.requires_grad_(False)
+    return scorer, dict(train_loss_first=first, train_loss_last=last)
+
+
+# ----------------------------------------------------------------------------- cosine anchor g0 = a s + b
+
+@torch.no_grad()
+def _aff_terms(cap, img, a, b):
+    """Balanced logistic loss / gradient / Hessian of g0 = a s + b over P (diagonal pairs) and the full product grid."""
+    n = cap.shape[0]
+    f64 = torch.float64
+    sp = (cap * img).sum(1)
+    zp = 2.0 * (a * sp + b)
+    sgp = torch.sigmoid(-zp)                          # dL/dz = -sigma(-z) for softplus(-z)
+    wp = sgp * (1 - sgp)
+    tp = torch.stack([F.softplus(-zp).sum(dtype=f64), (-sgp * sp).sum(dtype=f64), (-sgp).sum(dtype=f64),
+                      (wp * sp * sp).sum(dtype=f64), (wp * sp).sum(dtype=f64), wp.sum(dtype=f64)]) / n
+    tq = torch.zeros(6, dtype=f64, device=cap.device)
+    for s0 in range(0, n, C.AFF_CHUNK):
+        S = cap[s0:s0 + C.AFF_CHUNK] @ img.t()
+        z = 2.0 * (a * S + b)
+        sg = torch.sigmoid(z)
+        w = sg * (1 - sg)
+        tq += torch.stack([F.softplus(z).sum(dtype=f64), (sg * S).sum(dtype=f64), sg.sum(dtype=f64),
+                           (w * S * S).sum(dtype=f64), (w * S).sum(dtype=f64), w.sum(dtype=f64)])
+    tq = tq / float(n) ** 2
+    t = (tp + tq).cpu().numpy()
+    L = float(t[0])
+    g = 2.0 * np.array([t[1], t[2]])
+    H = 4.0 * np.array([[t[3], t[4]], [t[4], t[5]]])
+    return L, g, H
+
+
+@torch.no_grad()
+def calib_affine(cap, img):
+    a, b = C.AFF_A0, C.AFF_B0
+    L, g, H = _aff_terms(cap, img, a, b)
+    L0 = L
+    conv, it = False, 0
+    for it in range(1, C.AFF_MAX_ITERS + 1):
+        try:
+            step = np.linalg.solve(H + 1e-12 * np.eye(2), g)
+        except np.linalg.LinAlgError:
+            break
+        t = 1.0
+        while True:
+            a1, b1 = a - t * step[0], b - t * step[1]
+            L1, g1, H1 = _aff_terms(cap, img, a1, b1)
+            if np.isfinite(L1) and L1 <= L - 1e-4 * t * float(g @ step):
+                break
+            t *= 0.5
+            if t < 1e-8:
+                break
+        if t < 1e-8:
+            conv = bool(np.max(np.abs(step)) < 1e-6)
+            break
+        moved = float(np.max(np.abs(t * step)))
+        a, b, L, g, H = a1, b1, L1, g1, H1
+        if moved < C.AFF_TOL:
+            conv = True
+            break
+    ok = bool(conv and np.isfinite(a) and np.isfinite(b) and np.isfinite(L) and a >= C.A_MIN)
+    return float(a), float(b), dict(aff_iters=int(it), aff_converged=bool(conv), aff_loss=float(L), aff_loss_init=float(L0),
+                                    aff_grad_maxabs=float(np.max(np.abs(g))), aff_ok=ok)
+
+
+# ----------------------------------------------------------------------------- support calibrator
+
+def ab_features(a_ids, b_ids):
+    ov = (a_ids[:, :, None] == b_ids[:, None, :]).any(2).sum(1).double() / K
+    t1 = (a_ids[:, 0] == b_ids[:, 0]).double()
+    return ov, t1
+
+
+@torch.no_grad()
+def cal_search(q2, query, own_cap):
+    """The C_mix candidate rule (r27cs_sources.search_t2i) with the query's own queue record(s) excluded from both routes:
+    queue slots whose caption ID equals the query's caption ID are masked (source-ID exclusion of unique_topk)."""
+    n, valid = usable(q2)
+    ids = q2.r27_ids
+    elig = (ids['cap'][:n] >= 0) & (ids['img'][:n] >= 0)
+    assert torch.equal(elig, valid)
+    sl = torch.nonzero(elig).flatten()
+    tgt = ids['img'][:n][sl]
+    src = ids['cap'][:n][sl]
+    b_ids, _, _ = CS.unique_topk(query, q2.img_queue[:n][sl], tgt, K, source_ids=src, query_source_ids=own_cap)
+    a_ids, _, _ = CS.unique_topk(query, q2.txt_queue[:n][sl], tgt, K, source_ids=src, query_source_ids=own_cap)
+    final = torch.as_tensor(CS.mix_3a_2b(a_ids.cpu().numpy(), b_ids.cpu().numpy()), device=query.device, dtype=torch.long)
+    return final, a_ids, b_ids
+
+
+def cal_rows(ld, thr, used_rows, gen):
+    """Calibration-fit / report row indices into the stage labeled split (grouped by observed image ID)."""
+    gidx, obs, rows = QP.select_P(ld, thr)
+    keep = ~np.isin(rows, used_rows)
+    pr, po = rows[keep], obs[keep]
+    imgs = np.unique(po)
+    ip = torch.randperm(len(imgs), generator=gen).numpy()
+    fit_imgs = set(imgs[ip[:len(imgs) // 2]].tolist())
+    in_fit = np.array([o in fit_imgs for o in po.tolist()], dtype=bool)
+    out = {}
+    for name, m, nmax in (('fit', in_fit, C.N_CAL_FIT), ('rep', ~in_fit, C.N_CAL_REP)):
+        r = pr[m]
+        r = r[torch.randperm(len(r), generator=gen).numpy()]
+        out[name] = r[:min(nmax, len(r) // QC.CHUNK * QC.CHUNK)]
+    return out, dict(cal_pool_rows=int(keep.sum()), cal_pool_images=int(len(imgs)))
+
+
+@torch.no_grad()
+def cal_features(net2, ld, rows):
+    """Weak labels + features of calibration rows (teacher coordinates; C_mix with own-record exclusion)."""
+    lg = np.asarray(ld.r27_gidx, dtype=np.int64); lo = np.asarray(ld.t2i_index, dtype=np.int64)
+    X, Y, short, own_slot_hits = [], [], 0, 0
+    for s0 in range(0, len(rows), QC.CHUNK):
+        r = rows[s0:s0 + QC.CHUNK]
+        cg, co = lg[r], lo[r]
+        q = QP.center(QP.t_txt_raw(net2, cg))
+        cgt = torch.as_tensor(cg, device=q.device)
+        final, a_ids, b_ids = cal_search(net2.memory_queue, q, cgt)
+        ok = (final >= 0).all(1)
+        short += int((~ok).sum())
+        if not bool(ok.any()):
+            continue
+        final, a_ids, b_ids, q = final[ok], a_ids[ok], b_ids[ok], q[ok]
+        cot = torch.as_tensor(co, device=q.device)[ok]
+        mimg = QP.t_img_raw(net2, co).mean(dim=0, keepdim=True)          # chunk's observed images (all 128 rows)
+        cols, inv = torch.unique(final.flatten(), return_inverse=True)
+        yc = l2norm(QP.t_img_raw(net2, cols) - mimg)
+        s = (q[:, None, :] * yc[inv.view_as(final)]).sum(-1)
+        ov, t1 = ab_features(a_ids, b_ids)
+        X.append(torch.stack([s.max(1).values.double(), ov, t1], 1).cpu())
+        Y.append((final == cot[:, None]).any(1).double().cpu())
+    if not X:
+        return torch.zeros(0, 3, dtype=torch.float64), torch.zeros(0, dtype=torch.float64), short
+    return torch.cat(X), torch.cat(Y), short
+
+
+def fit_logistic(X, y):
+    """Ridge logistic (weights only), Newton/IRLS in float64 on CPU. Returns (w[3], c, converged)."""
+    n, d = X.shape
+    Z = torch.cat([X, torch.ones(n, 1, dtype=torch.float64)], 1)
+    th = torch.zeros(d + 1, dtype=torch.float64)
+    th[-1] = float(torch.logit(y.mean().clamp(1e-6, 1 - 1e-6)))
+    R = torch.diag(torch.tensor([C.RIDGE] * d + [0.0], dtype=torch.float64))
+    conv = False
+    for _ in range(C.LOGIT_MAX_ITERS):
+        p = torch.sigmoid(Z @ th)
+        g = Z.t() @ (p - y) / n + R @ th
+        H = (Z * (p * (1 - p))[:, None]).t() @ Z / n + R
+        step = torch.linalg.solve(H, g)
+        th = th - step
+        if not bool(torch.isfinite(th).all()):
+            break
+        if float(step.abs().max()) < C.LOGIT_TOL:
+            conv = True
+            break
+    return th[:d].clone(), float(th[d]), conv
+
+
+def u_of(X, w, c):
+    return torch.sigmoid(X.double() @ w.to(X.device) + c)
+
+
+def cal_report(u, y):
+    u, y = u.double(), y.double()
+    n = len(y)
+    if n == 0:
+        return dict(n=0)
+    pos, neg = y > 0.5, y < 0.5
+    r = dict(n=int(n), weak_rate=float(y.mean()), u_mean=float(u.mean()),
+             u_mean_with_pair=float(u[pos].mean()) if bool(pos.any()) else None,
+             u_mean_without_pair=float(u[neg].mean()) if bool(neg.any()) else None,
+             frac_u_ge_half_with_pair=float((u[pos] >= 0.5).double().mean()) if bool(pos.any()) else None,
+             frac_u_ge_half_without_pair=float((u[neg] >= 0.5).double().mean()) if bool(neg.any()) else None,
+             brier=float(((u - y) ** 2).mean()),
+             logloss=float(-(y * u.clamp_min(1e-12).log() + (1 - y) * (1 - u).clamp_min(1e-12).log()).mean()))
+    e = 0.0
+    for j in range(C.ECE_BINS):
+        m = (u >= j / C.ECE_BINS) & ((u < (j + 1) / C.ECE_BINS) if j < C.ECE_BINS - 1 else (u <= 1.0))
+        if bool(m.any()):
+            e += float(m.double().mean()) * abs(float(u[m].mean()) - float(y[m].mean()))
+    r['ece'] = e
+    if bool(pos.any()) and bool(neg.any()):
+        order = torch.argsort(u, stable=True)
+        rk = torch.empty(n, dtype=torch.float64); rk[order] = torch.arange(1, n + 1, dtype=torch.float64)
+        # average ranks for ties
+        uu, inv = torch.unique(u, return_inverse=True)
+        sums = torch.zeros(len(uu), dtype=torch.float64).index_add_(0, inv, rk)
+        cnt = torch.zeros(len(uu), dtype=torch.float64).index_add_(0, inv, torch.ones(n, dtype=torch.float64))
+        rk = (sums / cnt)[inv]
+        npos, nneg = float(pos.sum()), float(neg.sum())
+        r['auc'] = float((rk[pos].sum() - npos * (npos + 1) / 2) / (npos * nneg))
+    return r
+
+
+@torch.no_grad()
+def fit_support(net2, ld, used_rows, seed):
+    gen = torch.Generator().manual_seed(int(seed) + C.CAL_SEED_OFFSET)
+    rows, pinfo = cal_rows(ld, net2.avg_clean_prob, used_rows, gen)
+    Xf, yf, sh_f = cal_features(net2, ld, rows['fit'])
+    Xr, yr, sh_r = cal_features(net2, ld, rows['rep'])
+    npos, nneg = int((yf > 0.5).sum()), int((yf < 0.5).sum())
+    status, conv = 'ok', None
+    if npos >= C.MIN_CLASS and nneg >= C.MIN_CLASS:
+        w, c, conv = fit_logistic(Xf, yf)
+        if not (conv and bool(torch.isfinite(w).all()) and np.isfinite(c)):
+            status = 'fallback_fit'
+    else:
+        status = 'fallback_degenerate'
+    if status != 'ok':
+        rate = float(yf.mean()) if len(yf) else 0.0
+        w = torch.zeros(3, dtype=torch.float64)
+        c = float('inf') if rate >= 1.0 else (float('-inf') if rate <= 0.0 else float(np.log(rate / (1 - rate))))
+    info = dict(pinfo, cal_fit_rows=int(len(yf)), cal_rep_rows=int(len(yr)), cal_fit_short=int(sh_f), cal_rep_short=int(sh_r),
+                cal_fit_pos=npos, cal_fit_neg=nneg, cal_status=status, cal_converged=conv,
+                cal_w_best_cos=float(w[0]), cal_w_ab_overlap=float(w[1]), cal_w_ab_top1=float(w[2]), cal_c=float(c))
+    rep_fit = cal_report(u_of(Xf, w, c), yf)
+    rep_rep = cal_report(u_of(Xr, w, c), yr)
+    for k, v in rep_fit.items():
+        info[f'calfit_{k}'] = v
+    for k, v in rep_rep.items():
+        info[f'calrep_{k}'] = v
+    feats = dict(fit=Xf.mean(0).tolist() if len(Xf) else None, rep=Xr.mean(0).tolist() if len(Xr) else None)
+    info['cal_feature_means_fit'] = feats['fit']; info['cal_feature_means_rep'] = feats['rep']
+    return (w, c), info, rows
+
+
+# ----------------------------------------------------------------------------- fixed hard-candidate diagnostic
+
+@torch.no_grad()
+def hard_set(cap, img, obs):
+    """Each held-out caption: [observed image] + 4 other distinct observed images with highest teacher cosine."""
+    o = obs.cpu().numpy()
+    _, first = np.unique(o, return_index=True)
+    bank_ids = o[first]; bank = img[torch.as_tensor(first, device=img.device)]
+    pos = torch.as_tensor(np.searchsorted(bank_ids, o), device=img.device)
+    sim = cap @ bank.t()
+    sim[torch.arange(len(o), device=img.device), pos] = -float('inf')
+    neg = sim.topk(K - 1, dim=1).indices
+    return bank, torch.cat([pos[:, None], neg], 1)          # column 0 = observed
+
+
+@torch.no_grad()
+def hard_metrics(logits):
+    """logits [n,K] with the observed candidate in column 0 (the arm's readout logits)."""
+    rk = (logits > logits[:, :1]).sum(1).double() + 1
+    return dict(top1_obs=float((logits.argmax(1) == 0).double().mean()), mean_rank_obs=float(rk.mean()),
+                nll_obs=float(-torch.log_softmax(logits.double(), 1)[:, 0].mean()))
+
+
+# ----------------------------------------------------------------------------- stage
+
+def stage_seed(seed, epoch, peer):
+    return QP.stage_seed(seed, epoch, peer)
+
+
+def begin_stage(opt, net, net2, ld, epoch, peer, stats):
+    kind = R28_ARMS[opt.arm]
+    STAGE.clear()
+    t0 = time.time()
+    assert QP.teacher_mode_ok(net2), 'teacher must be in eval mode'
+    seed = stage_seed(opt.seed, epoch, peer)
+    fp = QP.fingerprint(net2)
+    STAGE.update(arm=opt.arm, kind=kind, epoch=int(epoch), peer=int(peer), student=id(net), teacher=id(net2), seed=seed,
+                 teacher_fp=fp, head=None, a=None, b=None, res_active=False)
+    dev = torch.cuda.current_device()
+    hm, res_info, aff = {}, {}, {}
+    with torch.random.fork_rng(devices=[dev]):
+        torch.manual_seed(seed)
+        fitd, vald, info, (_, _, r_fit) = QP.stage_data(net2, ld, seed)          # identical calls to r27q_pool.begin_stage
+        if kind == 'vcs':
+            head, fi = QP.fit_head('vcs', *fitd, seed=seed + 17, steps=QC.STEPS)
+            res_info = fi
+            STAGE['head'] = head
+            hm = QP.heldout_metrics(head, *vald, gen_seed=seed + 1) if vald is not None else {}
+        elif kind in RES_KINDS:
+            a, b, aff = calib_affine(fitd[0], fitd[1])
+            STAGE.update(a=a, b=b)
+            if aff['aff_ok']:
+                scorer, res_info = fit_residual(kind, *fitd, a=a, b=b, seed=seed + 17, steps=C.STEPS)
+                STAGE.update(head=scorer, res_active=True)
+                hm = QP.heldout_metrics(scorer, *vald, gen_seed=seed + 1) if vald is not None else {}
+            if vald is not None:
+                g0s = AnchoredScorer(zero_last(QP.PairHead(dim=fitd[0].shape[1]).to(fitd[0].device)), a, b).eval()
+                for k_, v_ in QP.heldout_metrics(g0s, *vald, gen_seed=seed + 1).items():
+                    aff[f'g0_val_{k_}'] = v_
+        # rows used by the head/residual fit and the held-out set (excluded from the calibration pool)
+        torch.manual_seed(seed)
+        _, _, rows_all = QP.select_P(ld, net2.avg_clean_prob)
+        perm = torch.randperm(len(rows_all)).numpy()
+        used = rows_all[perm[:info['nP_fit'] + info['nP_val']]]
+        assert np.array_equal(rows_all[perm[:info['nP_fit']]], r_fit)
+        (w, c), cal, cal_rows_ = fit_support(net2, ld, used, seed)
+        # fixed hard-candidate set on the held-out P (training-visible)
+        hard = {}
+        if vald is not None:
+            vcap, vimg, vobs = vald
+            bank, cand = hard_set(vcap, vimg, vobs)
+            Yh = bank[cand]; qq = vcap[:, None, :].expand_as(Yh)
+            sh = (qq * Yh).sum(-1)
+            hard['cos'] = hard_metrics(C.BETA_COS * sh.float())
+            if kind == 'vcs':
+                hard['arm'] = hard_metrics(C.BETA_HEAD * STAGE['head'](qq, Yh).float())
+            elif kind in RES_KINDS and STAGE['res_active']:
+                rh = STAGE['head'].res(qq, Yh)
+                hard['arm'] = hard_metrics(C.BETA_COS * sh.float() + (C.BETA_COS / STAGE['a']) * rh.float())
+                hard['arm_argmax_differs_from_cos'] = float((C.BETA_COS * sh.float() + (C.BETA_COS / STAGE['a']) * rh.float()).argmax(1).ne(sh.argmax(1)).double().mean())
+                hard['res_rowstd'] = float(rh.std(1).mean()); hard['g0_rowstd'] = float((STAGE['a'] * sh).std(1).mean())
+            else:
+                hard['arm'] = hard['cos']
+    STAGE.update(w=w.cuda(), c=float(c), cal_status=cal['cal_status'])
+    hs = None
+    if STAGE['head'] is not None:
+        hs = QP.head_sha(STAGE['head'].res if kind in RES_KINDS else STAGE['head'])
+    STAGE['head_sha'] = hs
+    STAGE['version'] = f"e{epoch}p{peer}-{kind}-s{seed}-h{(hs or 'none')[:12]}-t{fp[:12]}-u{cal['cal_status']}"
+    st = {'rstage_seed': seed, 'rstage_teacher_fp': fp[:16], 'rstage_kind': kind, 'rstage_version': STAGE['version'],
+          'rstage_config_frozen': bool(C.FROZEN), 'rstage_head_sha': (hs or '')[:16]}
+    for k_, v_ in info.items():
+        st[f'rstage_{k_}'] = v_
+    if kind in RES_KINDS:
+        st.update(rstage_a=STAGE['a'], rstage_b=STAGE['b'], rstage_beta=C.BETA_COS / STAGE['a'] if STAGE['a'] else None,
+                  rstage_aff_fallback=int(not STAGE['res_active']))
+        for k_, v_ in aff.items():
+            st[f'rstage_{k_}'] = v_
+    else:
+        st['rstage_beta'] = C.BETA_COS if kind == 'cos' else C.BETA_HEAD
+    for k_, v_ in res_info.items():
+        st[f'rstage_{k_}'] = v_
+    for k_, v_ in hm.items():
+        st[f'rstage_val_{k_}'] = v_
+    for k_, v_ in cal.items():
+        st[f'rstage_{k_}'] = v_
+    st['rstage_u_fallback'] = int(cal['cal_status'] != 'ok')
+    for grp, d in hard.items():
+        if isinstance(d, dict):
+            for k_, v_ in d.items():
+                st[f'rstage_hard_{grp}_{k_}'] = v_
+        else:
+            st[f'rstage_hard_{grp}'] = d
+    if STAGE['head'] is not None:
+        st['rstage_head_params'] = int(sum(p.numel() for p in STAGE['head'].parameters()))
+    torch.cuda.synchronize()
+    st['rstage_fit_seconds'] = time.time() - t0
+    STAGE['log'] = st
+    for k_, v_ in st.items():
+        stats[k_] = v_
+
+
+# ----------------------------------------------------------------------------- apply (one t2i step)
+
+@torch.no_grad()
+def scores_t2i(net2, S, uids):
+    """(cos s [B,K], arm score readout logits [B,K], residual r or None)."""
+    st = STAGE
+    s, q, yc = QP.teacher_scores(net2, S, uids[0], uids[1], 'cos')
+    kind = st['kind']
+    r = None
+    if kind == 'cos':
+        logits = C.BETA_COS * s.float()
+    elif kind == 'vcs':
+        Yn = yc[S['inv']]
+        qq = q[:, None, :].expand_as(Yn)
+        logits = C.BETA_HEAD * st['head'](qq, Yn).float()
+    else:
+        if st['res_active'] and GATE_RESIDUAL != 'zero':
+            Yn = yc[S['inv']]
+            qq = q[:, None, :].expand_as(Yn)
+            r = st['head'].res(qq, Yn)
+        else:
+            r = torch.zeros_like(s)
+        a = st['a'] if st['res_active'] else 1.0
+        logits = C.BETA_COS * s.float() + (C.BETA_COS / a) * r.float()
+    return s, logits, r
+
+
+@torch.no_grad()
+def support_u(s, S):
+    ov, t1 = ab_features(S['a_ids'], S['b_ids'])
+    X = torch.stack([s.max(1).values.double(), ov, t1], 1)
+    return u_of(X, STAGE['w'], STAGE['c']).float(), X
+
+
+@torch.no_grad()
+def alpha_u_t2i(opt, net, net2, S, uids, stats, timed=False):
+    """(alpha_score [B,K], u [B]) for the current t2i step, both stop-grad."""
+    st = STAGE
+    assert st and st['arm'] == opt.arm and st['epoch'] == int(opt.r27_epoch) and st['student'] == id(net) and st['teacher'] == id(net2), 'stale R28 stage'
+    assert S['inv'].shape[1] == K and QP.teacher_mode_ok(net2) and S.get('a_ids') is not None
+    t0 = time.time()
+    s, logits, r = scores_t2i(net2, S, uids)
+    alpha = torch.softmax(logits, dim=1)
+    u, X = support_u(s, S)
+    if GATE_U == 'zero':
+        u = torch.zeros_like(u)
+    elif GATE_U == 'one':
+        u = torch.ones_like(u)
+    b = 't2i'
+    af = (1 - u)[:, None] / K + u[:, None] * alpha
+    ent = lambda p: -(p * p.clamp_min(1e-30).log()).sum(1)
+    stats[f'{b}_r28_u'] += float(u.mean())
+    stats[f'{b}_r28_frac_u_lt_0.1'] += float((u < 0.1).float().mean())
+    stats[f'{b}_r28_frac_u_lt_0.5'] += float((u < 0.5).float().mean())
+    stats[f'{b}_r28_frac_u_above_0.9'] += float((u > 0.9).float().mean())
+    stats[f'{b}_r28_fallback_mass'] += float((1 - u).mean())
+    for j in range(10):
+        stats[f'cnt_t2i_r28_u_bin{j}'] += int(((u >= j / 10) & ((u < (j + 1) / 10) if j < 9 else (u <= 1))).sum())
+    stats[f'{b}_r28_alpha_score_max'] += float(alpha.max(1).values.mean())
+    stats[f'{b}_r28_alpha_score_entropy'] += float(ent(alpha).mean())
+    stats[f'{b}_r28_alpha_final_max'] += float(af.max(1).values.mean())
+    stats[f'{b}_r28_alpha_final_entropy'] += float(ent(af).mean())
+    stats[f'{b}_r28_alpha_final_mass_slot0'] += float(af[:, 0].mean())
+    if 'route_b' in S:
+        stats[f'{b}_r28_alpha_final_mass_routeB'] += float((af * S['route_b'].float()).sum(1).mean())
+    stats[f'{b}_r28_feat_best_cos'] += float(X[:, 0].mean())
+    stats[f'{b}_r28_feat_ab_overlap'] += float(X[:, 1].mean())
+    stats[f'{b}_r28_feat_ab_top1'] += float(X[:, 2].mean())
+    stats[f'{b}_r28_cos_rowstd'] += float(s.std(1).mean())
+    stats[f'{b}_r28_argmax_differs_from_cos'] += float(logits.argmax(1).ne(s.argmax(1)).float().mean())
+    if r is not None:
+        stats[f'{b}_r28_res_mean'] += float(r.mean())
+        stats[f'{b}_r28_res_rowstd'] += float(r.std(1).mean())
+        stats[f'{b}_r28_res_absmax'] += float(r.abs().max())
+    stats['r28max_alpha_final_t2i'] = max(stats.get('r28max_alpha_final_t2i', 0.0), float(af.max()))
+    stats['cnt_t2i_r28_rows'] += int(alpha.shape[0])
+    if timed:
+        torch.cuda.synchronize()
+        stats['time_r28score_t2i'] += time.time() - t0
+    return alpha, u
+
+
+# ----------------------------------------------------------------------------- options
+
+def validate_options(opt):
+    """R28: Flickr, seed1001, K=5, noise 0.4/0.6, native 40-epoch SCE host, lam 0; separate <=2-epoch smoke allowed."""
+    if opt.arm not in R28_ARMS:
+        return
+    if not opt.i2t or not opt.t2i:
+        raise ValueError('Both native directions must stay ON; do not use --no_i2t/--no_t2i.')
+    if opt.k != K or opt.seed != 1001 or opt.data_name != 'f30k_precomp':
+        raise ValueError('R28 is Flickr, seed1001, K=5 only.')
+    if not any(abs(opt.noise_ratio - x) < 1e-12 for x in (0.4, 0.6)):
+        raise ValueError('Noise ratio must be 0.4 or 0.6.')
+    if opt.lam != 0.0:
+        raise ValueError('R28 arms keep the single native SCE: lam must be 0.')
+    max_iters = int(getattr(opt, 'max_iters', 0))
+    smoke = (0 < max_iters <= 30 and 1 <= opt.num_epochs <= 2 and 'smoke' in str(getattr(opt, 'output_dir', '')).lower())
+    if max_iters and not smoke:
+        raise ValueError('Partial-iteration runs are allowed only in a separate <=2-epoch smoke directory.')
+    if (opt.num_epochs != 40 and not smoke) or opt.noisy_obj != 'sce' or opt.link != 'c0':
+        raise ValueError('Keep the native 40-epoch SCE host and c0 flag (separate smoke excepted).')
+    if not smoke and not C.FROZEN:
+        raise ValueError('r28_config is not frozen: formal units need the frozen protocol.')
+    opt.r28_smoke_only = smoke
+    opt.r28_kind = R28_ARMS[opt.arm]
+    opt.r28_source = SOURCE
+    opt.r28_config = {k: getattr(C, k) for k in dir(C) if k.isupper() and isinstance(getattr(C, k), (int, float, str, bool, tuple))}

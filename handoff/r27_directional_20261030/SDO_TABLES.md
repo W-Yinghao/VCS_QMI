@@ -2,9 +2,9 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # R27-S / R27-D / R27-O 数字表（自动生成，full DEV；未读 TEST；只列数字，不含解读）
 
-Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27-O 为显式使用真对应的诊断（O1/O2：t2i 候选救援；O3：t2i 编码器目标直接取当前 peer 重编码的真图），不进入主结果表。bn_cross_t2i / cn_mix_t2i：A1 宿主，t2i 候选改为直接跨模态检索 / 固定 3+2 混合（唯一 ID，整体接口改动）。q1–q4：C-native 候选上 t2i GraphRefiner 末端改为 query 条件加权 pooling（α 来自另一 peer：q1 直接跨模态 cosine；q2/q3/q4 同输入关系头，VCS / BCE / soft-NCE 训练），配置见 r27_qpool_20261031/PROTOCOL_FROZEN.json。
+Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27-O 为显式使用真对应的诊断（O1/O2：t2i 候选救援；O3：t2i 编码器目标直接取当前 peer 重编码的真图），不进入主结果表。bn_cross_t2i / cn_mix_t2i：A1 宿主，t2i 候选改为直接跨模态检索 / 固定 3+2 混合（唯一 ID，整体接口改动）。q1–q4：C-native 候选上 t2i GraphRefiner 末端改为 query 条件加权 pooling（α 来自另一 peer：q1 直接跨模态 cosine；q2/q3/q4 同输入关系头，VCS / BCE / soft-NCE 训练），配置见 r27_qpool_20261031/PROTOCOL_FROZEN.json。g1/g2/r1/r2_*_sel（R28）：在 q1/q2 加权上加选择性回退 α=(1−u)·均匀+u·α_score（u 为全臂共享的支持校准器）；r1/r2 为 cosine 锚定残差（VCS / BCE），配置见 r28_selective_20261031/PROTOCOL_FROZEN.json。
 
-缺失单元（未完成，记 NA，不以其他臂替代）：无
+缺失单元（未完成，记 NA，不以其他臂替代）：f40_s1001/r1_res_vcs_sel, f40_s1001/r2_res_bce_sel, f60_s1001/g2_vcs_sel, f60_s1001/r1_res_vcs_sel, f60_s1001/r2_res_bce_sel
 
 ## f40_s1001：各臂终点
 
@@ -32,6 +32,10 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | q2_vcs_pool | 513.53 | 15 | 512.31 | 512.34 | 82.35 | 96.25 | 98.32 | 60.91 | 84.97 | 90.73 | 1 |
 | q3_bce_pool | 513.93 | 25 | 512.90 | 512.99 | 82.54 | 95.96 | 98.22 | 61.38 | 85.01 | 90.81 | 1 |
 | q4_snce_pool | 513.02 | 17 | 512.17 | 512.19 | 82.94 | 95.66 | 98.03 | 61.08 | 84.65 | 90.65 | 1 |
+| g1_cos_sel | 513.43 | 34 | 513.16 | 513.10 | 82.45 | 96.06 | 98.32 | 61.01 | 85.05 | 90.55 | 1 |
+| g2_vcs_sel | 513.25 | 24 | 512.41 | 512.28 | 82.05 | 95.96 | 98.22 | 61.38 | 84.89 | 90.75 | 1 |
+| r1_res_vcs_sel | NA | | | | | | | | | | | |
+| r2_res_bce_sel | NA | | | | | | | | | | | |
 
 ## f40_s1001：配对差（单 seed）
 
@@ -78,6 +82,14 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | q2_vcs_pool-q1_cos_pool | +0.39 | -0.33 | +0.39 | +0.12 |
 | q2_vcs_pool-q3_bce_pool | -0.39 | -0.65 | -0.20 | -0.47 |
 | q2_vcs_pool-q4_snce_pool | +0.51 | +0.15 | -0.59 | -0.18 |
+| g1_cos_sel-q1_cos_pool | +0.30 | +0.43 | +0.49 | +0.22 |
+| g2_vcs_sel-q2_vcs_pool | -0.28 | -0.06 | -0.30 | +0.47 |
+| r1_res_vcs_sel-g2_vcs_sel | NA | NA | NA | NA |
+| r1_res_vcs_sel-g1_cos_sel | NA | NA | NA | NA |
+| r1_res_vcs_sel-r2_res_bce_sel | NA | NA | NA | NA |
+| r1_res_vcs_sel-a1_iface | NA | NA | NA | NA |
+| g1_cos_sel-cn_mix_t2i | -1.16 | +0.34 | -0.49 | -0.45 |
+| g2_vcs_sel-cn_mix_t2i | -1.34 | -0.49 | -0.89 | -0.08 |
 
 ## f40_s1001：2×2 交互（包 tools/analyze_results.py；I_V = S4−D1−D2+A1，I_N = S6−D3−D4+A1）
 
@@ -112,6 +124,10 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | q2_vcs_pool | 502.82 | 21 | 500.65 | 500.64 | 79.68 | 94.87 | 97.34 | 58.78 | 83.14 | 89.01 | 1 |
 | q3_bce_pool | 503.14 | 20 | 501.89 | 501.99 | 80.18 | 95.27 | 97.73 | 58.36 | 82.80 | 88.80 | 1 |
 | q4_snce_pool | 502.72 | 11 | 500.26 | 500.14 | 79.98 | 94.58 | 97.73 | 58.15 | 83.23 | 89.05 | 1 |
+| g1_cos_sel | 504.77 | 17 | 503.61 | 503.50 | 81.76 | 95.07 | 97.63 | 58.50 | 82.90 | 88.92 | 1 |
+| g2_vcs_sel | NA | | | | | | | | | | | |
+| r1_res_vcs_sel | NA | | | | | | | | | | | |
+| r2_res_bce_sel | NA | | | | | | | | | | | |
 
 ## f60_s1001：配对差（单 seed）
 
@@ -158,6 +174,14 @@ Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27
 | q2_vcs_pool-q1_cos_pool | -1.99 | -2.13 | -1.08 | +0.30 |
 | q2_vcs_pool-q3_bce_pool | -0.32 | -1.35 | -0.49 | +0.41 |
 | q2_vcs_pool-q4_snce_pool | +0.10 | +0.50 | -0.30 | +0.63 |
+| g1_cos_sel-q1_cos_pool | -0.04 | +0.73 | +0.99 | +0.02 |
+| g2_vcs_sel-q2_vcs_pool | NA | NA | NA | NA |
+| r1_res_vcs_sel-g2_vcs_sel | NA | NA | NA | NA |
+| r1_res_vcs_sel-g1_cos_sel | NA | NA | NA | NA |
+| r1_res_vcs_sel-r2_res_bce_sel | NA | NA | NA | NA |
+| r1_res_vcs_sel-a1_iface | NA | NA | NA | NA |
+| g1_cos_sel-cn_mix_t2i | +1.52 | +2.23 | +1.58 | -0.06 |
+| g2_vcs_sel-cn_mix_t2i | NA | NA | NA | NA |
 
 ## f60_s1001：2×2 交互（包 tools/analyze_results.py；I_V = S4−D1−D2+A1，I_N = S6−D3−D4+A1）
 

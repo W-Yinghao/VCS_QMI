@@ -13,7 +13,8 @@ ROOTS = {'r27': '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_2
          'r27o': '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle_20261030/runs',
          'r27o3': '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle3_20261031/runs',
          'r27cs': '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs',
-         'r27q': '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs'}
+         'r27q': '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs',
+         'r28': '/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/runs'}
 R25 = '/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/groups'
 CELLS = ['f40_s1001', 'f60_s1001']
 ARMS = [('A0_native', None), ('a1_iface', 'r27'), ('a3_vcs', 'r27'),
@@ -22,7 +23,8 @@ ARMS = [('A0_native', None), ('a1_iface', 'r27'), ('a3_vcs', 'r27'),
         ('d1_vcs_i2t', 'r27d'), ('d2_vcs_t2i', 'r27d'), ('d3_snce_i2t', 'r27d'), ('d4_snce_t2i', 'r27d'),
         ('o1_rescue_native_t2i', 'r27o'), ('o2_rescue_vcs_t2i', 'r27o'), ('o3_true_target_t2i', 'r27o3'),
         ('bn_cross_t2i', 'r27cs'), ('cn_mix_t2i', 'r27cs'),
-        ('q1_cos_pool', 'r27q'), ('q2_vcs_pool', 'r27q'), ('q3_bce_pool', 'r27q'), ('q4_snce_pool', 'r27q')]
+        ('q1_cos_pool', 'r27q'), ('q2_vcs_pool', 'r27q'), ('q3_bce_pool', 'r27q'), ('q4_snce_pool', 'r27q'),
+        ('g1_cos_sel', 'r28'), ('g2_vcs_sel', 'r28'), ('r1_res_vcs_sel', 'r28'), ('r2_res_bce_sel', 'r28')]
 KEYS = ['i2t_r1', 'i2t_r5', 'i2t_r10', 't2i_r1', 't2i_r5', 't2i_r10']
 PAIRS = [('s1_balanced_dual', 'a1_iface'), ('s2_single_free_vcs', 'a1_iface'), ('s3_single_cap_delta', 'a1_iface'), ('s4_single_cap_vcs', 'a1_iface'),
          ('s5_single_cap_bce', 'a1_iface'), ('s6_single_cap_snce', 'a1_iface'), ('s2_single_free_vcs', 'a3_vcs'), ('s4_single_cap_vcs', 'a3_vcs'),
@@ -35,7 +37,9 @@ PAIRS = [('s1_balanced_dual', 'a1_iface'), ('s2_single_free_vcs', 'a1_iface'), (
          ('bn_cross_t2i', 'a1_iface'), ('cn_mix_t2i', 'a1_iface'), ('bn_cross_t2i', 'cn_mix_t2i'),
          ('q1_cos_pool', 'cn_mix_t2i'), ('q2_vcs_pool', 'cn_mix_t2i'), ('q3_bce_pool', 'cn_mix_t2i'), ('q4_snce_pool', 'cn_mix_t2i'),
          ('q1_cos_pool', 'a1_iface'), ('q2_vcs_pool', 'a1_iface'), ('q3_bce_pool', 'a1_iface'), ('q4_snce_pool', 'a1_iface'),
-         ('q2_vcs_pool', 'q1_cos_pool'), ('q2_vcs_pool', 'q3_bce_pool'), ('q2_vcs_pool', 'q4_snce_pool')]
+         ('q2_vcs_pool', 'q1_cos_pool'), ('q2_vcs_pool', 'q3_bce_pool'), ('q2_vcs_pool', 'q4_snce_pool'),
+         ('g1_cos_sel', 'q1_cos_pool'), ('g2_vcs_sel', 'q2_vcs_pool'), ('r1_res_vcs_sel', 'g2_vcs_sel'), ('r1_res_vcs_sel', 'g1_cos_sel'),
+         ('r1_res_vcs_sel', 'r2_res_bce_sel'), ('r1_res_vcs_sel', 'a1_iface'), ('g1_cos_sel', 'cn_mix_t2i'), ('g2_vcs_sel', 'cn_mix_t2i')]
 METRICS = ['best', 'last5', 'i2t_r1', 't2i_r1']
 
 
@@ -81,7 +85,7 @@ json.dump({'scope': 'Flickr30K seed1001, full DEV (1,014 img / 5,070 cap), best 
 
 f = lambda v: 'NA' if v is None else f'{v:+.2f}'
 L = ['# R27-S / R27-D / R27-O 数字表（自动生成，full DEV；未读 TEST；只列数字，不含解读）', '',
-     'Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27-O 为显式使用真对应的诊断（O1/O2：t2i 候选救援；O3：t2i 编码器目标直接取当前 peer 重编码的真图），不进入主结果表。bn_cross_t2i / cn_mix_t2i：A1 宿主，t2i 候选改为直接跨模态检索 / 固定 3+2 混合（唯一 ID，整体接口改动）。q1–q4：C-native 候选上 t2i GraphRefiner 末端改为 query 条件加权 pooling（α 来自另一 peer：q1 直接跨模态 cosine；q2/q3/q4 同输入关系头，VCS / BCE / soft-NCE 训练），配置见 r27_qpool_20261031/PROTOCOL_FROZEN.json。', '',
+     'Flickr30K × seed1001。A0 = R25 原生 H0；A1/A3 为 R27 已完成单元；R27-O 为显式使用真对应的诊断（O1/O2：t2i 候选救援；O3：t2i 编码器目标直接取当前 peer 重编码的真图），不进入主结果表。bn_cross_t2i / cn_mix_t2i：A1 宿主，t2i 候选改为直接跨模态检索 / 固定 3+2 混合（唯一 ID，整体接口改动）。q1–q4：C-native 候选上 t2i GraphRefiner 末端改为 query 条件加权 pooling（α 来自另一 peer：q1 直接跨模态 cosine；q2/q3/q4 同输入关系头，VCS / BCE / soft-NCE 训练），配置见 r27_qpool_20261031/PROTOCOL_FROZEN.json。g1/g2/r1/r2_*_sel（R28）：在 q1/q2 加权上加选择性回退 α=(1−u)·均匀+u·α_score（u 为全臂共享的支持校准器）；r1/r2 为 cosine 锚定残差（VCS / BCE），配置见 r28_selective_20261031/PROTOCOL_FROZEN.json。', '',
      f'缺失单元（未完成，记 NA，不以其他臂替代）：{", ".join(missing) if missing else "无"}', '']
 for c in CELLS:
     L += [f'## {c}：各臂终点', '', '| 臂 | best rSum | best epoch | last | last5 | i2t R@1 | i2t R@5 | i2t R@10 | t2i R@1 | t2i R@5 | t2i R@10 | attempts |',
