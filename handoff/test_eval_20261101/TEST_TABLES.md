@@ -2,12 +2,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # TEST evaluation of DEV-selected retrieval checkpoints (numbers only)
 
-Generated 2026-11-01T20:54:01.797775Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e).
+Generated 2026-11-01T22:15:20.750901Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428).
 Checkpoint per unit = existing model_best.pth.tar (best full-DEV epoch during training; SPS S0: full-DEV best checkpoint_37 from FULLDEV.json). TEST protocol = native IN2R evalrank: both peers, peer-averaged similarity. Flickr30K: test split 1,000 images / 5,000 captions. MS-COCO: testall, 5-fold 1K mean (main) and 5K. CC152K: test 1,000 / 1,000. DEV gate: DEV recomputed with the same evaluator (r25_co_train.validate path) must match the logged best-epoch DEV within 0.1 pp on each of the six recalls; units failing it are listed separately and are not in the tables. mean ± std = over seeds 1001/1002/1003 (sample std, n−1), given only when all three seeds exist; otherwise NA. Oracle rows (R27-O / R27-O3) use ground-truth rescue during training: oracle diagnostic, not a method.
 
 ## Coverage
 
-Units in manifests: 249; evaluated: 249; DEV gate PASS: 249; FAIL: 0; pending/not evaluated: 0; skipped dirs: 58.
+Units in manifests: 253; evaluated: 253; DEV gate PASS: 252; FAIL: 1; pending/not evaluated: 0; skipped dirs: 57.
 
 | line | units | evaluated | gate PASS | gate FAIL | max abs DEV recall diff (pp) |
 |---|---|---|---|---|---|
@@ -23,7 +23,13 @@ Units in manifests: 249; evaluated: 249; DEV gate PASS: 249; FAIL: 0; pending/no
 | R27-A1X | 6 | 6 | 6 | 0 | 0.0000 |
 | R28 | 8 | 8 | 8 | 0 | 0.0197 |
 | R29 | 18 | 18 | 18 | 0 | 0.0197 |
-| R30 | 21 | 21 | 21 | 0 | 0.0986 |
+| R30 | 25 | 25 | 24 | 1 | 0.1972 |
+
+### Units failing the DEV-recompute gate (TEST numbers not used in the tables)
+
+| unit | logged DEV rSum | recomputed DEV rSum | max abs recall diff (pp) | TEST rSum |
+|---|---|---|---|---|
+| R30/f60_s1003/HH | 496.07 | 495.88 | 0.1972 | 496.44 |
 
 ## Flickr30K, 0% noise
 
@@ -434,6 +440,9 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | R30 | H->L [40ep] | epochs 40 | 1 | 482.92 | NA | NA | NA | 480.38 | NA | NA | NA |
 | R30 | H->N [10ep] | epochs 10 | 2 | NA | 474.77 | 488.60 | NA | NA | 474.30 | 489.78 | NA |
 | R30 | H->N [40ep] | epochs 40 | 1 | 495.88 | NA | NA | NA | 496.78 | NA | NA | NA |
+| R30 | H->PB(scale=fit_static) [40ep] | epochs 40 | 1 | NA | 482.50 | NA | NA | NA | 481.48 | NA | NA |
+| R30 | H->PN(scale=fit_static) [40ep] | epochs 40 | 1 | NA | 480.34 | NA | NA | NA | 482.32 | NA | NA |
+| R30 | H->PV(scale=fit_static) [40ep] | epochs 40 | 1 | NA | 481.20 | NA | NA | NA | 480.78 | NA | NA |
 | R30 | L->L [10ep] | epochs 10 | 3 | 444.87 | 409.01 | 448.99 | 434.29 ± 21.99 | 449.32 | 413.98 | 452.12 | 438.47 ± 21.26 |
 | R30 | L->N [10ep] | epochs 10 | 3 | 482.41 | 460.83 | 483.73 | 475.65 ± 12.86 | 484.28 | 460.38 | 485.36 | 476.67 ± 14.12 |
 
@@ -515,16 +524,19 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | 39 | R29 | h_native | 3 | 491.32 | 490.25 |
 | 40 | R26 | m_vcs | 3 | 491.07 | 491.81 |
 | 41 | R30 | H->L [40ep] | 1 | 482.92 | 480.38 |
-| 42 | R30 | H->N [10ep] | 2 | 481.69 | 482.04 |
-| 43 | R30 | H->B [40ep] | 1 | 481.28 | 481.08 |
-| 44 | R29 | n_infonce | 3 | 481.19 | 480.62 |
-| 45 | R30 | L->N [10ep] | 3 | 475.65 | 476.67 |
-| 46 | R30 | H->B [10ep] | 2 | 464.89 | 463.18 |
-| 47 | R30 | H->L [10ep] | 2 | 464.30 | 464.78 |
-| 48 | R29 | b_listwise_bce | 3 | 443.04 | 445.46 |
-| 49 | R29 | l_listwise_vcs | 3 | 436.40 | 438.42 |
-| 50 | R30 | L->L [10ep] | 3 | 434.29 | 438.47 |
-| 51 | R29 | p_pointwise_vcs | 1 | 431.62 | 432.82 |
+| 42 | R30 | H->PB(scale=fit_static) [40ep] | 1 | 482.50 | 481.48 |
+| 43 | R30 | H->N [10ep] | 2 | 481.69 | 482.04 |
+| 44 | R30 | H->B [40ep] | 1 | 481.28 | 481.08 |
+| 45 | R30 | H->PV(scale=fit_static) [40ep] | 1 | 481.20 | 480.78 |
+| 46 | R29 | n_infonce | 3 | 481.19 | 480.62 |
+| 47 | R30 | H->PN(scale=fit_static) [40ep] | 1 | 480.34 | 482.32 |
+| 48 | R30 | L->N [10ep] | 3 | 475.65 | 476.67 |
+| 49 | R30 | H->B [10ep] | 2 | 464.89 | 463.18 |
+| 50 | R30 | H->L [10ep] | 2 | 464.30 | 464.78 |
+| 51 | R29 | b_listwise_bce | 3 | 443.04 | 445.46 |
+| 52 | R29 | l_listwise_vcs | 3 | 436.40 | 438.42 |
+| 53 | R30 | L->L [10ep] | 3 | 434.29 | 438.47 |
+| 54 | R29 | p_pointwise_vcs | 1 | 431.62 | 432.82 |
 
 ### Seed-matched ranking: seed 1001 only (every group that has seed 1001), DEV rSum with TEST rSum
 
@@ -692,6 +704,9 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f60_s1001
 | R30/f60_s1002/HN | 1002 | 8 | L40S | 474.77 | 474.77 | 0.0000 | 71.20 | 89.90 | 94.70 | 52.62 | 79.12 | 86.76 | 474.30 |
 | R30/f60_s1003/HN | 1003 | 5 | L40S | 488.60 | 488.60 | 0.0000 | 75.70 | 91.80 | 96.30 | 55.80 | 81.96 | 88.22 | 489.78 |
 | R30/f60_s1001/HN | 1001 | 8 | RTX PRO 6000 | 495.88 | 495.78 | 0.0986 | 77.50 | 93.00 | 96.50 | 57.58 | 82.98 | 89.22 | 496.78 |
+| R30/f60_s1002/PB | 1002 | 31 | L40S | 482.50 | 482.49 | 0.0197 | 75.10 | 90.80 | 94.90 | 53.12 | 80.54 | 87.02 | 481.48 |
+| R30/f60_s1002/PN | 1002 | 29 | L40S | 480.34 | 480.34 | 0.0000 | 74.30 | 91.50 | 95.30 | 53.74 | 80.52 | 86.96 | 482.32 |
+| R30/f60_s1002/PV | 1002 | 25 | L40S | 481.20 | 481.20 | 0.0000 | 74.90 | 91.60 | 94.90 | 52.56 | 80.06 | 86.76 | 480.78 |
 | R30/f60_s1001/LL | 1001 | 9 | RTX PRO 6000 | 444.87 | 444.87 | 0.0000 | 64.80 | 87.30 | 91.60 | 48.00 | 75.00 | 82.62 | 449.32 |
 | R30/f60_s1002/LL | 1002 | 9 | L40S | 409.01 | 409.01 | 0.0000 | 56.70 | 80.70 | 88.30 | 39.86 | 69.20 | 79.22 | 413.98 |
 | R30/f60_s1003/LL | 1003 | 9 | L40S | 448.99 | 448.99 | 0.0000 | 65.90 | 87.00 | 92.30 | 48.48 | 75.16 | 83.28 | 452.12 |
@@ -897,10 +912,6 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r25_in2r_20261027/groups/f60_s1003/prefix | shared warm-up prefix state, not a trained unit |
 | r30_pairwise_20261101/runs/r30_f00_s1001_Ls | no DONE.json (still training / not finished) |
 | r30_pairwise_20261101/runs/r30_f00_s1001_PN | no DONE.json (still training / not finished) |
-| r30_pairwise_20261101/runs/r30a1_f60_s1002_PB | no DONE.json (still training / not finished) |
-| r30_pairwise_20261101/runs/r30a1_f60_s1002_PN | no DONE.json (still training / not finished) |
-| r30_pairwise_20261101/runs/r30a1_f60_s1002_PV | no DONE.json (still training / not finished) |
-| r30_pairwise_20261101/runs/r30v11_f60_s1003_HH | no DONE.json (still training / not finished) |
 | r25_in2r_20261027/runs/S0_sps_f40_s1001/model_best.pth.tar | SPS native model_best (selected on SPS native 200-image DEV subset); replaced by the full-DEV selected checkpoint_37 recorded in FULLDEV.json (rule: max full-DEV rSum, earliest tie) |
 | r25_in2r_20261027/smoke/S0_sps_branchcheck | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r25_in2r_20261027/smoke_1067593/cont | smoke / gate / parent / diagnostic dir (not a formal unit) |
@@ -947,6 +958,9 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r30_pairwise_20261101/runs/r30_f00_s1001_PV | no DONE.json (still training / not finished) |
 | r30_pairwise_20261101/runs/r30_f60_s1001_Ls | no DONE.json (still training / not finished) |
 | r30_pairwise_20261101/runs/r30a1_f60_s1003_PN | no DONE.json (still training / not finished) |
+| r30_pairwise_20261101/runs/r30a1_f60_s1003_PB | no DONE.json (still training / not finished) |
+| r30_pairwise_20261101/runs/r30a1_f60_s1003_PV | no DONE.json (still training / not finished) |
+| r31_in2r_fidelity_20261101/runs/f40_s1001/H0_default | no DONE.json (still training / not finished) |
 
 ## Limitations
 
@@ -955,4 +969,4 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 - Seeds: many groups have one seed; means/stds over three seeds are descriptive, not significance tests. Rankings mix groups with different numbers of seeds.
 - Literature rows are copied from the IN2R paper (arXiv:2606.04061v1, Tables 1-2); they use their own noise draws and runs and were not reproduced here. Our noise maps are the locked R25 maps (40%/60%/0%); CC152K noise is real.
 - R27-O / R27-O3 use ground-truth oracle rescue/targets during training (diagnostic, not a method). R30 stage paths stop at 10 co-train epochs by design (marked "epochs 10").
-- TEST access log: 13 test_read entries (one per evaluation job start, including re-starts after preemption).
+- TEST access log: 15 test_read entries (one per evaluation job start, including re-starts after preemption).

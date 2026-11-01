@@ -1,0 +1,81 @@
+{
+  "line": "R31 native IN2R reproduction-fidelity checks (2026-11-01, user: 「a和b都跑，runfill」)",
+  "why": "our native IN2R reproduction scores above the IN2R paper on TEST at Flickr40 / COCO40 / CC152K but below at Flickr60; these sets test whether the gap comes from the noise draw (a) or from the configuration we ran (b, b').",
+  "host_code": {
+    "dir": "handoff/r31_in2r_fidelity_20261101/code",
+    "note": "byte-identical copy of handoff/r25_in2r_20261027/code/*.py (CODE_SHA256.txt; author IN2R-code 909e5329 + R25 shims and native-fixed guards: GloVe shim, labeled-batch<2 skip, unlabeled B<2/empty skip, empty-caption guard; guards act only when triggered). Native SCE noisy loss only (--noisy_obj sce); no CS/VCS terms.",
+    "entry": "r25_run.py (run.py arguments + R25 hook args at native values); no automatic TEST"
+  },
+  "sets": {
+    "a": {
+      "tests": "same noise draw as the literature: OFFICIAL NCR Flickr30K 20% index, R25 code-version config exactly as R25 H0; compare later with the paper's Flickr 20% rSum 511.6",
+      "cells": [
+        "f20_s1001",
+        "f20_s1002",
+        "f20_s1003"
+      ],
+      "arm": "H0_codecfg",
+      "extra_args": ""
+    },
+    "b": {
+      "tests": "author run.py default configuration (warmup 1, K 1, --i2t/--t2i off, everything else default) on our Flickr 40% map and CC152K",
+      "cells": [
+        "f40_s1001",
+        "f40_s1002",
+        "f40_s1003",
+        "cc_s1001",
+        "cc_s1002",
+        "cc_s1003"
+      ],
+      "arm": "H0_default",
+      "extra_args": "--warmup_epoch 1 --k 1 --no_i2t --no_t2i"
+    },
+    "b_prime": {
+      "tests": "author defaults with --i2t --t2i on (pure defaults switch the noisy-branch rectification off)",
+      "cells": [
+        "f40_s1001",
+        "f40_s1002",
+        "f40_s1003",
+        "cc_s1001",
+        "cc_s1002",
+        "cc_s1003"
+      ],
+      "arm": "H0_default_i2t_t2i",
+      "extra_args": "--warmup_epoch 1 --k 1"
+    }
+  },
+  "common_args": "--batch_size 128 --num_epochs 40 --lr_update 15 --learning_rate 0.0005 --workers 0 --grad_clip 2.0 --margin 0.2 --img_dim 2048 --dropout_rate 0.3 --word_dim 300 --embed_size 1024 --num_layers 1 (bi-GRU) --p_threshold 0.5 --soft_margin exponential --queue_size 65536 --noisy_obj sce --seed <1001|1002|1003> (all = author run.py defaults except seed; R25 code-version config additionally has warmup 5, K 5, i2t+t2i on)",
+  "author_run_py_defaults_checked": "handoff/r25_in2r_20261027/code/run.py: warmup_epoch 1, k 1, --i2t/--t2i store_true (off), num_epochs 40, lr_update 15, lr 5e-4, batch 128, embed 1024, queue 65536, p_threshold 0.5; noise_ratio 0.2 and seed 0 defaults are replaced by the cell values",
+  "data": {
+    "f30k_precomp": {
+      "root": "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/f30k_precomp",
+      "staged": "train_ims.npy dev_ims.npy train_caps.txt dev_caps.txt (no TEST file)"
+    },
+    "cc152k_precomp": {
+      "root": "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data/cc152k_precomp",
+      "staged": "train_ims.npy dev_ims.npy train_caps.tsv dev_caps.tsv (no TEST file)",
+      "noise": "real (noise_ratio 0, noise_file none; same as R26 H0)"
+    },
+    "vocab": "/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/vocab/<data_name>_vocab.json"
+  },
+  "noise_files": {
+    "f20 (set a)": {
+      "realized_mismatch": 0.19999310344827587,
+      "origin": "official NCR-data index (read only; the loader only loads it)"
+    },
+    "f40 (sets b, b')": {
+      "realized_mismatch": 0.3999931034482759,
+      "origin": "R25 NOISE_LOCK.json (author algorithm, RandomState(20261027))"
+    }
+  },
+  "training": "each unit from scratch (own warmup; no R25/R26 prefix reuse). Selection = native full-DEV best co-train epoch -> model_best.pth.tar (as R25). Outputs DONE.json, EPOCHS.json, RUN_<job>.json (opt + env + code sha256), ATTEMPTS.tsv, state_last.pt.",
+  "outputs": "/projects/EEG-foundation-model/yinghao/outputs_v9/r31_in2r_fidelity_20261101/runs/<cell>/<arm>; smoke under .../smoke/",
+  "scheduling": "sbatch/r31_unit.sbatch: --qos=runfill --partition=V100-32GB,L40S,A100,A40 --exclude=node51,node53,node60, 1 GPU, 4 CPU, 64G, 24h, nice 0, --requeue, no --dependency. Preemption -> Slurm requeue -> script resumes from state_last.pt (attempt logged in ATTEMPTS.tsv; a preemption during warmup restarts from scratch since no warmup state exists). Wall-clock timeout -> self-continuation (while fewer than 8 attempts incl. requeues) recorded in SUBMITTED.tsv.",
+  "test": "not run here; the standing TEST tool (handoff/test_eval_20261101, ROOTS.json line R31-FID) evaluates finished units later.",
+  "disclosures": [
+    "set a uses the literature's noise draw but our R25 code-version config, i.e. not necessarily the authors' full run configuration",
+    "f40 uses our own 40% draw (no official 40% index exists)",
+    "hardware differs from R25 H0 (runfill GPUs: V100-32GB/L40S/A100/A40); report per unit GPU"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
