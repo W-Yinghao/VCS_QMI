@@ -1,5 +1,5 @@
 """Audit 3 extension: same per-query DEV rank export as audit_ranks.py (unchanged, imported), for the R27-S / R27-D /
-R27-O / R27-O3 / R27-CS units (Flickr seed1001 cells). Only units with DONE.json + model_best are exported; done units are
+R27-O / R27-O3 / R27-CS / R27-Q / R28 units (Flickr seed1001 cells). Only units with DONE.json + model_best are exported; done units are
 skipped by model_best sha256 (audit_ranks rule). Usage: audit_ranks_x.py OUT_ROOT DATA_PATH. DEV only; TEST is never read."""
 import os, sys
 import audit_ranks as AR
@@ -10,7 +10,8 @@ ROOTS = {'/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qtarget_20261029
          '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle_20261030/runs': ('o1_rescue_native_t2i', 'o2_rescue_vcs_t2i'),
          '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_oracle3_20261031/runs': ('o3_true_target_t2i',),
          '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_candsrc_20261031/runs': ('bn_cross_t2i', 'cn_mix_t2i'),
-         '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs': ('q1_cos_pool', 'q2_vcs_pool', 'q3_bce_pool', 'q4_snce_pool')}
+         '/projects/EEG-foundation-model/yinghao/outputs_v9/r27_qpool_20261031/runs': ('q1_cos_pool', 'q2_vcs_pool', 'q3_bce_pool', 'q4_snce_pool'),
+         '/projects/EEG-foundation-model/yinghao/outputs_v9/r28_selective_20261031/runs': ('g1_cos_sel', 'g2_vcs_sel', 'r1_res_vcs_sel', 'r2_res_bce_sel')}
 CELLS = ('f40_s1001', 'f60_s1001')
 
 

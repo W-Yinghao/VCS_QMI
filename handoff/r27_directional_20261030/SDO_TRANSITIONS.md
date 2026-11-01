@@ -78,6 +78,22 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | q2_vcs_pool/q3_bce_pool | t2i | 200 | 0 | 175 | 0 | 66 | 175 | 200 | -25 | 3112 | 3087 |
 | q2_vcs_pool/q4_snce_pool | i2t | 43 | 0 | 37 | 0 | 6 | 37 | 43 | -6 | 841 | 835 |
 | q2_vcs_pool/q4_snce_pool | t2i | 187 | 0 | 177 | 0 | 73 | 177 | 187 | -10 | 3097 | 3087 |
+| g1_cos_sel/q1_cos_pool | i2t | 35 | 0 | 40 | 0 | 5 | 40 | 35 | +5 | 831 | 836 |
+| g1_cos_sel/q1_cos_pool | t2i | 159 | 0 | 170 | 0 | 62 | 170 | 159 | +11 | 3082 | 3093 |
+| g2_vcs_sel/q2_vcs_pool | i2t | 39 | 0 | 36 | 0 | 3 | 36 | 39 | -3 | 835 | 832 |
+| g2_vcs_sel/q2_vcs_pool | t2i | 175 | 1 | 200 | 0 | 77 | 200 | 176 | +24 | 3087 | 3111 |
+| r1_res_vcs_sel/g2_vcs_sel | i2t | 32 | 0 | 38 | 0 | 4 | 38 | 32 | +6 | 832 | 838 |
+| r1_res_vcs_sel/g2_vcs_sel | t2i | 179 | 0 | 172 | 0 | 62 | 172 | 179 | -7 | 3111 | 3104 |
+| r1_res_vcs_sel/g1_cos_sel | i2t | 40 | 0 | 42 | 0 | 6 | 42 | 40 | +2 | 836 | 838 |
+| r1_res_vcs_sel/g1_cos_sel | t2i | 171 | 0 | 182 | 0 | 72 | 182 | 171 | +11 | 3093 | 3104 |
+| r1_res_vcs_sel/r2_res_bce_sel | i2t | 30 | 0 | 40 | 1 | 8 | 41 | 30 | +11 | 827 | 838 |
+| r1_res_vcs_sel/r2_res_bce_sel | t2i | 184 | 0 | 186 | 0 | 66 | 186 | 184 | +2 | 3102 | 3104 |
+| r1_res_vcs_sel/a1_iface | i2t | 35 | 0 | 33 | 0 | 6 | 33 | 35 | -2 | 840 | 838 |
+| r1_res_vcs_sel/a1_iface | t2i | 187 | 0 | 173 | 0 | 58 | 173 | 187 | -14 | 3118 | 3104 |
+| g1_cos_sel/cn_mix_t2i | i2t | 43 | 0 | 38 | 0 | 3 | 38 | 43 | -5 | 841 | 836 |
+| g1_cos_sel/cn_mix_t2i | t2i | 169 | 0 | 146 | 0 | 64 | 146 | 169 | -23 | 3116 | 3093 |
+| g2_vcs_sel/cn_mix_t2i | i2t | 41 | 0 | 32 | 0 | 4 | 32 | 41 | -9 | 841 | 832 |
+| g2_vcs_sel/cn_mix_t2i | t2i | 168 | 1 | 164 | 0 | 61 | 164 | 169 | -5 | 3116 | 3111 |
 
 ## f60_s1001
 
@@ -151,4 +167,20 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | q2_vcs_pool/q3_bce_pool | t2i | 166 | 0 | 187 | 0 | 81 | 187 | 166 | +21 | 2959 | 2980 |
 | q2_vcs_pool/q4_snce_pool | i2t | 43 | 0 | 40 | 0 | 4 | 40 | 43 | -3 | 811 | 808 |
 | q2_vcs_pool/q4_snce_pool | t2i | 198 | 1 | 231 | 0 | 73 | 231 | 199 | +32 | 2948 | 2980 |
+| g1_cos_sel/q1_cos_pool | i2t | 36 | 0 | 46 | 0 | 5 | 46 | 36 | +10 | 819 | 829 |
+| g1_cos_sel/q1_cos_pool | t2i | 220 | 1 | 221 | 1 | 76 | 222 | 221 | +1 | 2965 | 2966 |
+| g2_vcs_sel/q2_vcs_pool | i2t | 29 | 0 | 42 | 0 | 7 | 42 | 29 | +13 | 808 | 821 |
+| g2_vcs_sel/q2_vcs_pool | t2i | 180 | 0 | 191 | 0 | 71 | 191 | 180 | +11 | 2980 | 2991 |
+| r1_res_vcs_sel/g2_vcs_sel | i2t | 40 | 0 | 38 | 0 | 6 | 38 | 40 | -2 | 821 | 819 |
+| r1_res_vcs_sel/g2_vcs_sel | t2i | 184 | 1 | 177 | 0 | 68 | 177 | 185 | -8 | 2991 | 2983 |
+| r1_res_vcs_sel/g1_cos_sel | i2t | 45 | 0 | 35 | 0 | 7 | 35 | 45 | -10 | 829 | 819 |
+| r1_res_vcs_sel/g1_cos_sel | t2i | 178 | 0 | 194 | 1 | 66 | 195 | 178 | +17 | 2966 | 2983 |
+| r1_res_vcs_sel/r2_res_bce_sel | i2t | 36 | 0 | 41 | 0 | 7 | 41 | 36 | +5 | 814 | 819 |
+| r1_res_vcs_sel/r2_res_bce_sel | t2i | 177 | 0 | 195 | 0 | 70 | 195 | 177 | +18 | 2965 | 2983 |
+| r1_res_vcs_sel/a1_iface | i2t | 37 | 0 | 31 | 0 | 7 | 31 | 37 | -6 | 825 | 819 |
+| r1_res_vcs_sel/a1_iface | t2i | 211 | 0 | 214 | 0 | 72 | 214 | 211 | +3 | 2980 | 2983 |
+| g1_cos_sel/cn_mix_t2i | i2t | 24 | 0 | 40 | 0 | 5 | 40 | 24 | +16 | 813 | 829 |
+| g1_cos_sel/cn_mix_t2i | t2i | 196 | 0 | 192 | 1 | 80 | 193 | 196 | -3 | 2969 | 2966 |
+| g2_vcs_sel/cn_mix_t2i | i2t | 33 | 0 | 41 | 0 | 4 | 41 | 33 | +8 | 813 | 821 |
+| g2_vcs_sel/cn_mix_t2i | t2i | 185 | 0 | 207 | 0 | 83 | 207 | 185 | +22 | 2969 | 2991 |
 

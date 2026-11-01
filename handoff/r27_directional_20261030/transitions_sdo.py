@@ -1,4 +1,4 @@
-"""Per-query rank transitions for the R27-S / R27-D / R27-O / R27-O3 / R27-CS comparisons (numbers only, no TEST).
+"""Per-query rank transitions for the R27-S / R27-D / R27-O / R27-O3 / R27-CS / R27-Q / R28 comparisons (numbers only, no TEST).
 Reads the audit-3 rank arrays OUT3/<cell>/<arm>/{i2t_rank,t2i_rank}.npy (0-based rank of the GT at each unit's selected
 best full-DEV checkpoint, same fixed DEV order; A1/A0 from the original export, new arms from audit_ranks_x.py).
 Buckets (1-based): 1 / 2-10 / >10. "new/ref" counts queries moving ref -> new; only pairs with both units exported.
@@ -20,7 +20,9 @@ PAIRS = [('a1_iface', A0), ('s1_balanced_dual', 'a1_iface'), ('s2_single_free_vc
          ('o3_true_target_t2i', 'o1_rescue_native_t2i'), ('o3_true_target_t2i', 'a1_iface'),
          ('bn_cross_t2i', 'a1_iface'), ('cn_mix_t2i', 'a1_iface'), ('bn_cross_t2i', 'cn_mix_t2i'),
          ('q1_cos_pool', 'cn_mix_t2i'), ('q2_vcs_pool', 'cn_mix_t2i'), ('q3_bce_pool', 'cn_mix_t2i'), ('q4_snce_pool', 'cn_mix_t2i'),
-         ('q2_vcs_pool', 'q1_cos_pool'), ('q2_vcs_pool', 'q3_bce_pool'), ('q2_vcs_pool', 'q4_snce_pool')]
+         ('q2_vcs_pool', 'q1_cos_pool'), ('q2_vcs_pool', 'q3_bce_pool'), ('q2_vcs_pool', 'q4_snce_pool'),
+         ('g1_cos_sel', 'q1_cos_pool'), ('g2_vcs_sel', 'q2_vcs_pool'), ('r1_res_vcs_sel', 'g2_vcs_sel'), ('r1_res_vcs_sel', 'g1_cos_sel'),
+         ('r1_res_vcs_sel', 'r2_res_bce_sel'), ('r1_res_vcs_sel', 'a1_iface'), ('g1_cos_sel', 'cn_mix_t2i'), ('g2_vcs_sel', 'cn_mix_t2i')]
 COLS = ['1->2-10', '1->>10', '2-10->1', '>10->1', '>10->2-10']
 
 

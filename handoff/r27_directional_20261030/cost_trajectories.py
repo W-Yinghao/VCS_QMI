@@ -1,4 +1,4 @@
-"""Full per-attempt cost and per-epoch DEV trajectories for the R27-S / R27-D / R27-O / R27-O3 / R27-CS / R27-A1X units.
+"""Full per-attempt cost and per-epoch DEV trajectories for the R27-S / R27-D / R27-O / R27-O3 / R27-CS / R27-Q / R28 / R27-A1X units.
 sacct is not available on this cluster, so cost is reconstructed from the job logs: every Slurm log of a unit (first attempt
 and every timeout continuation) gives one attempt; its span = last minus first logging timestamp (python logging, includes
 data load and DEV evaluation; excludes node staging before the first log line), GPU = the nvidia-smi line at the top.
@@ -17,6 +17,10 @@ LINES = {  # line: (log dir, log-name prefix, output root, arms, cells)
     'R27-O': (f'{H}/r27_oracle_20261030/logs', 'r27o_', f'{O}/r27_oracle_20261030/runs', ['o1_rescue_native_t2i', 'o2_rescue_vcs_t2i'], ['f40_s1001', 'f60_s1001']),
     'R27-O3': (f'{H}/r27_oracle3_20261031/logs', 'r27o3_', f'{O}/r27_oracle3_20261031/runs', ['o3_true_target_t2i'], ['f40_s1001', 'f60_s1001']),
     'R27-CS': (f'{H}/r27_candsrc_20261031/logs', 'r27cs_', f'{O}/r27_candsrc_20261031/runs', ['bn_cross_t2i', 'cn_mix_t2i'], ['f40_s1001', 'f60_s1001']),
+    'R27-Q': (f'{H}/r27_qpool_20261031/logs', 'r27q_', f'{O}/r27_qpool_20261031/runs',
+               ['q1_cos_pool', 'q2_vcs_pool', 'q3_bce_pool', 'q4_snce_pool'], ['f40_s1001', 'f60_s1001']),
+    'R28': (f'{H}/r28_selective_20261031/logs', 'r28_', f'{O}/r28_selective_20261031/runs',
+             ['g1_cos_sel', 'g2_vcs_sel', 'r1_res_vcs_sel', 'r2_res_bce_sel'], ['f40_s1001', 'f60_s1001']),
     'R27-A1X': (f'{H}/r27_a1cross_20261030/logs', 'r27x_a1_', f'{O}/r27_a1cross_20261030/runs', ['a1_iface'],
                 ['c40_s1001', 'c40_s1002', 'c40_s1003', 'cc_s1001', 'cc_s1002', 'cc_s1003']),
 }
