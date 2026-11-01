@@ -6,15 +6,15 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 | unit | 噪声 | seed | 臂 | best | best epoch | i2t R@1 | i2t R@5 | i2t R@10 | t2i R@1 | t2i R@5 | t2i R@10 | final | last5 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| r30_f00_s1001_H0 | 0% | 1001 | H→H | NA | | | | | | | | | |
-| r30_f00_s1001_L0 | 0% | 1001 | H→L | NA | | | | | | | | | |
+| r30_f00_s1001_H0 | 0% | 1001 | H→H | 522.07 | 28 | 84.52 | 96.06 | 98.62 | 64.26 | 87.08 | 91.54 | 521.66 | 521.62 |
+| r30_f00_s1001_L0 | 0% | 1001 | H→L | 508.78 | 35 | 81.56 | 93.89 | 97.24 | 61.05 | 84.56 | 90.49 | 508.66 | 508.64 |
 | r30_f00_s1001_Ls | 0% | 1001 | H→L(s) | NA | | | | | | | | | |
 | r30_f00_s1001_PB | 0% | 1001 | H→PB(s) | NA | | | | | | | | | |
 | r30_f00_s1001_PN | 0% | 1001 | H→PN(s) | NA | | | | | | | | | |
 | r30_f00_s1001_PV | 0% | 1001 | H→PV(s) | NA | | | | | | | | | |
 | r30v11_f00_s1001_HB | 0% | 1001 | H→B | NA | | | | | | | | | |
 | r30v11_f00_s1001_HN | 0% | 1001 | H→N | NA | | | | | | | | | |
-| r30_f60_s1001_H0 | 60% | 1001 | H→H | NA | | | | | | | | | |
+| r30_f60_s1001_H0 | 60% | 1001 | H→H | 505.21 | 20 | 80.67 | 95.07 | 98.22 | 58.70 | 83.31 | 89.23 | 504.20 | 504.42 |
 | r30_f60_s1001_L0 | 60% | 1001 | H→L | 482.92 | 24 | 75.05 | 92.21 | 95.76 | 53.57 | 79.25 | 87.08 | 481.83 | 481.53 |
 | r30_f60_s1001_Ls | 60% | 1001 | H→L(s) | NA | | | | | | | | | |
 | r30_f60_s1001_PB | 60% | 1001 | H→PB(s) | NA | | | | | | | | | |
@@ -42,7 +42,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | f00_s1001 | PN-H0 | NA | NA | NA | NA | NA |
 | f00_s1001 | PV-H0 | NA | NA | NA | NA | NA |
 | f00_s1001 | PB-H0 | NA | NA | NA | NA | NA |
-| f00_s1001 | L0-H0 | NA | NA | NA | NA | NA |
+| f00_s1001 | L0-H0 | -13.29 | -12.99 | -13.00 | -2.96 | -3.21 |
 | f00_s1001 | Ls-H0 | NA | NA | NA | NA | NA |
 | f00_s1001 | L0-HN | NA | NA | NA | NA | NA |
 | f00_s1001 | L0-HB | NA | NA | NA | NA | NA |
@@ -55,7 +55,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | f60_s1001 | PN-H0 | NA | NA | NA | NA | NA |
 | f60_s1001 | PV-H0 | NA | NA | NA | NA | NA |
 | f60_s1001 | PB-H0 | NA | NA | NA | NA | NA |
-| f60_s1001 | L0-H0 | NA | NA | NA | NA | NA |
+| f60_s1001 | L0-H0 | -22.29 | -22.89 | -22.37 | -5.62 | -5.13 |
 | f60_s1001 | Ls-H0 | NA | NA | NA | NA | NA |
 | f60_s1001 | L0-HN | NA | NA | NA | NA | NA |
 | f60_s1001 | L0-HB | NA | NA | NA | NA | NA |
