@@ -1,0 +1,185 @@
+{
+  "what": "Diagnostic export contract (supplementary plan §九): every R30 v1.1 diagnostic readout is a field of one record keyed by unit_id in MARGIN_DIAG.json (records[unit_id]); fields absent in the source are NA/null, never zero-filled",
+  "protocol": "DIAG_PROTOCOL_V3.json (sha256 in records[*].meta.protocol_sha256)",
+  "unit_id": {
+    "R29 saved state": "r29_<cell>__<arm>@raw<E> (raw co-train epoch E; completed = E+1)",
+    "R30 parent (E0)": "<parent_id> from WARMUP_PARENTS.csv (completed 0)",
+    "R30 fixed E10": "<unit_id> from MATRIX.csv, state_completed10.pt (completed 10, raw 9)",
+    "R30 fixed E40": "<unit_id> from MATRIX.csv (FULL40), state_last.pt with DONE.json (completed 40, raw 39)"
+  },
+  "record": {
+    "meta.identity": [
+      "unit_id",
+      "label",
+      "path",
+      "state_sha256",
+      "raw_epoch",
+      "completed_cotrain_epochs",
+      "cond",
+      "seed",
+      "state_opt_seed",
+      "state_opt_noise_ratio",
+      "state_opt_r29_arm",
+      "state_opt_r30"
+    ],
+    "meta.endpoint": [
+      "full_dev_rsum",
+      "full_dev_rsum_source (PARENT.json warmup_dev[-1] / E10_RECORD.json / EPOCHS.json raw epoch)"
+    ],
+    "meta.reference": [
+      "ref_id (common H parent of cond/seed)",
+      "state (path)",
+      "state_sha256",
+      "fixed_list_file (REFLIST_<parent_id>.npz)",
+      "fixed_list_sha256",
+      "counts (group counts, update and held-out batches, per direction)",
+      "smoke_stand_in (must be false for formal records)"
+    ],
+    "meta.batches": [
+      "NB",
+      "BS",
+      "seed",
+      "noise_file",
+      "noise_sha256",
+      "caption_indices_sha256 (update)",
+      "heldout_caption_indices_sha256",
+      "injected_mismatch_frac_in_sample"
+    ],
+    "meta.validity_receipts": [
+      "checks.gru_train_vs_eval_forward_maxabs",
+      "checks.restore_recompute_maxabs",
+      "checks.nonfinite_events",
+      "checks.fingerprint_unchanged (+ before/after sha256)",
+      "checks.opt_state (inherited AdamW settings per peer, params without state)",
+      "pair_source + pair_source_info",
+      "code_sha256 (probe modules, production modules, package reference, protocol)",
+      "env (gpu, host, job, torch, cudnn)",
+      "noisy_branch_available",
+      "queue (capacity, filled, id_bearing_slots per peer)",
+      "lr_next, next_epoch",
+      "self-check receipts: SELFCHECK_CPU.json, SELFCHECK_V2.json, SELFCHECK_V3.json (job ids in SUBMITTED.tsv)"
+    ],
+    "results[layer][objective][peer A|B|AB][dir i2t|t2i|both][group]": [
+      "n",
+      "n_loss_down",
+      "n_margin_down",
+      "n_loss_down_and_margin_down",
+      "frac_loss_down",
+      "frac_margin_down",
+      "frac_loss_down_and_margin_down",
+      "mean_dmargin (observed)",
+      "mean_dloss",
+      "n_truepair_computable",
+      "frac_truepair_margin_down",
+      "frac_loss_down_and_truepair_margin_down",
+      "mean_dtruepair_margin"
+    ],
+    "layers": [
+      "A_score_joint@update",
+      "A_score_own@update",
+      "B_main_inherited@update",
+      "B_main_inherited@heldout",
+      "C_full@update",
+      "C_full@heldout",
+      "X_adam1_fresh@update (extra)",
+      "X_gd@update (extra)"
+    ],
+    "objectives": [
+      "H_hinge",
+      "N",
+      "L",
+      "B",
+      "PN",
+      "PV",
+      "PB"
+    ],
+    "groups (results)": [
+      "all",
+      "ref_labelled_first",
+      "ref_labelled_not_first",
+      "mismatch",
+      "mismatch_truepair_absent",
+      "mismatch_truepair_present",
+      "correct_ref_not_first (correct hard)",
+      "correct_ref_first (correct easy)"
+    ],
+    "audit[B|C layer@update|heldout][objective][dir][group]": [
+      "group_count",
+      "true_available_count",
+      "unavailable_count",
+      "competitor_is_true_match_count",
+      "mean_d_observed_margin",
+      "frac_observed_margin_down",
+      "mean_d_true_margin",
+      "frac_true_margin_down",
+      "mean_d_true_rank",
+      "frac_true_rank_worse",
+      "frac_top_competitor_changed",
+      "mean_d_old_competitor_margin",
+      "wrong_top1_observed_before",
+      "wrong_top1_observed_after",
+      "wrong_top1_true_before",
+      "wrong_top1_true_after"
+    ],
+    "groups (audit)": [
+      "all",
+      "correct_easy",
+      "correct_hard",
+      "mismatch",
+      "mismatch&true_unavailable",
+      "mismatch&true_available",
+      "mismatch&true_available&competitor_is_true",
+      "mismatch&true_available&competitor_not_true"
+    ],
+    "fixed_list[dir|group]": [
+      "n",
+      "mean_J_list",
+      "mean_S_list",
+      "mean_gap_list",
+      "max_abs_S_minus_J_minus_gap_list",
+      "mean_m",
+      "mean_J_pair",
+      "mean_S_pair",
+      "mean_gap_pair",
+      "max_abs_S_minus_J_minus_gap_pair",
+      "mean_margin_fixed",
+      "mean_rank_pos",
+      "mean_pos_first",
+      "dynamic (separate table): mean_margin_dyn, mean_J_pair_dyn, mean_gap_pair_dyn, mean_dyn_equals_fixed"
+    ],
+    "grad_composition[objective]": [
+      "n_batches",
+      "mean_g_main",
+      "mean_g_intra",
+      "mean_g_noisy",
+      "mean_cos_main_intra",
+      "mean_cos_main_noisy",
+      "mean_cos_intra_noisy",
+      "mean_B_preclip",
+      "mean_B_postclip",
+      "B_clip_rate",
+      "mean_B_update_norm",
+      "mean_C_preclip",
+      "mean_C_postclip",
+      "C_clip_rate",
+      "mean_C_update_norm",
+      "ratio_main_intra_quantiles",
+      "ratio_main_noisy_quantiles"
+    ],
+    "grad_composition_per_batch[objective][i]": "the same per batch and peer (noisy_steps = noisy branches actually run)",
+    "grad_strength.by_objective_group[objective|group]": [
+      "n",
+      "raw_quantiles_p5_p25_p50_p75_p95",
+      "raw_frac_below_threshold",
+      "calibration_coefficient (COEFFICIENTS.json of the s1001 H parent; N/B/H 1; NA before calibration exists)",
+      "calibrated_quantiles_p5_p25_p50_p75_p95",
+      "calibrated_frac_below_threshold"
+    ],
+    "grad_strength.threshold": "near-zero threshold, fixed in DIAG_PROTOCOL_V3.json before measurement"
+  },
+  "top_level": {
+    "coverage": "COVERAGE_V3.json items (kind, unit_id, path, exists, measured) for R29 saved states, 7 parents, 30 fixed E10, 12 fixed E40"
+  },
+  "not_in_this_contract": "formal performance endpoints (templates/METRICS_SCHEMA.json, produced by the R30 runs); R29 historical records (R29_DIAG_EXPORT.json)",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

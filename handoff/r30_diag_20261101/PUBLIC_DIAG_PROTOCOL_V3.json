@@ -1,0 +1,38 @@
+{
+  "what": "R30 v1.1 diagnostic probe protocol (v3), registered before any v3 measurement",
+  "registered_utc": "2026-11-01T14:16:40Z",
+  "sources": [
+    "VCS_R30_v1_1_Merged_Server_20261101/docs/DIAGNOSTICS_AND_READOUT_CN.md §3-§5",
+    "R30_v1_1_补充审查与最小实验计划_20261101_CN.md §四 §五 §六 §九"
+  ],
+  "batches": {
+    "update": "NB=64 x 128 FIT (train) observed pairs: numpy default_rng(20261101).permutation(145000)[:8192]",
+    "heldout": "NB=64 x 128 FIT pairs, the NEXT 8192 indices of the same permutation (disjoint from update batches); used only to evaluate the single-step transfer of layers B and C, never for an update; not TEST",
+    "same_for": "every state of a noise condition (f00 / f60); seeds 1002/1003 use the f60 batches",
+    "separate_from": "the R30 static calibration FIT batches (labeled loader of the first common GMM split)"
+  },
+  "reference_state": "the common H warmup parent of the same condition and seed (wp_<cond>_s<seed>_H_e5, R30 v1.1 parents/<id>/boundary_state.pt); R29 states (seed 1001) use the s1001 H parent of their condition; peer-averaged eval-path scores",
+  "groups": {
+    "correct_easy": "observed pair correct and its true-pair margin > 0 on the reference (true pair above every true negative)",
+    "correct_hard": "observed pair correct, true-pair margin <= 0 on the reference",
+    "mismatch": "observed pair is an injected mismatch; split by true_match_available (a true partner is among the candidates) and, per state, selected_competitor_is_true_match",
+    "labelled_first_on_reference": "observed margin > 0 on the reference"
+  },
+  "fixed_reference_list": "chosen ONCE on the H parent: for every query of the 64 update batches (both directions) its observed positives (observed-ID) and the competitor = highest-scoring observed non-positive under the parent peer-averaged scores; saved with IDs and sha256; evaluated on every measured state (E0 = parent, E10, E40 of R30 units; R29 states auxiliary)",
+  "fixed_list_objects": {
+    "list": "K = 128 in-batch candidates, a = uniform over the m observed positives, critic T = (K pi - 1)/(K pi + 1), pi = softmax(s/0.05); oracle S = (K-m)/(K+m); gap = sum (a+q)/2 (T-eta)^2, q = 1/K, eta = (a-q)/(a+q); check S - J = gap",
+    "pair": "labelled positive (diagonal) vs the fixed competitor, K = 2, m = 1, pi = softmax(((s_pos - s_comp)/0.05, 0)); S = 1/3; same gap check"
+  },
+  "layers": {
+    "A": "score-space: first-order change under a unit Frobenius step along -dL/dS (joint, both directions) and under each query own-row/column step; update batch only",
+    "B": "main term only: train mode (dropout seed 20261102 + batch index, shared by all objectives), training grad clip 2.0 on encoder params, ONE AdamW step from the inherited (restored) optimizer moments, lr of the next scheduled co-train epoch, weight decay 1e-4; evaluated on the update and the held-out batch (eval path), then discarded",
+    "C": "main term + native intra (hinge 0.3, two train-mode passes) + native noisy branch (R27 A1 interface on the state queue/IDs/refiners, the update batch as unlabeled input; NA without a queue), same clip and inherited AdamW step; update and held-out batch",
+    "extra_kept_from_v1": "X_adam1: fresh-moment AdamW step lr 5e-5 (main term, eval mode); X_gd: normalized GD with the same norm; update batch only"
+  },
+  "gradient_strength": "per query: norm of the score-space gradient of its own loss w.r.t. its row (i2t) / column (t2i); raw = production reduction (coefficient 1); calibrated = x the registered static coefficient (COEFFICIENTS.json of the s1001 H parent of the condition: Ls applied to L, PN, PV, PB); quantiles 0.05/0.25/0.5/0.75/0.95",
+  "near_zero_threshold": 0.001,
+  "truth_use": "injected-noise map read only by the evaluator (groups, true-pair margin/rank, identity audit); never in losses, gradients, steps, competitor selection of the training objective, or the fixed-list competitor choice",
+  "isolation": "all layers start from the same restored state: parameters and BN buffers restored after every step, optimizer moments never mutated (update computed out of place), dropout seed fixed per batch; model fingerprint (sha256 of parameters+buffers of both peers) checked equal before/after each state",
+  "scope": "local one-step behaviour; not a full explanation of training failures",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
