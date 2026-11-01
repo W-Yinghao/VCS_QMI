@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 H 原生 A1 配方 / N InfoNCE / P 点对 VCS（T=tanh(s/τ+b)）/ L 候选竞争 VCS（T=(Kπ−1)/(Kπ+1)）/ B 同 π 参数化 balanced BCE；替换位置为 warmup 与可信配对对齐项，noisy 分支保持 A1；共同未训练初值，warmup 5 + co-train 40；τ=0.05，批内候选 K=128；配置见 `handoff/r29_listwise_20261101/PROTOCOL_FROZEN.json`。0% 为恒等映射（无人工错配）。未完成单元记 NA，不以其他臂替代。
 
-未完成单元：f60_s1003/n_infonce
+未完成单元：无
 
 ## f00_s1001
 
@@ -68,31 +68,31 @@ H 原生 A1 配方 / N InfoNCE / P 点对 VCS（T=tanh(s/τ+b)）/ L 候选竞�
 | 臂 | best | best epoch | last | last5 | i2t R@1 | i2t R@5 | i2t R@10 | t2i R@1 | t2i R@5 | t2i R@10 | warmup best | warmup last |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | h_native | 483.41 | 18 | 481.07 | 481.23 | 72.88 | 92.50 | 96.25 | 53.83 | 80.34 | 87.61 | 457.87 | 457.87 |
-| n_infonce | NA | | | | | | | | | | | | |
+| n_infonce | 480.51 | 9 | 475.90 | 476.13 | 73.37 | 91.81 | 95.66 | 52.66 | 79.76 | 87.24 | 432.84 | 432.84 |
 | l_listwise_vcs | 426.15 | 33 | 425.40 | 425.51 | 61.24 | 84.12 | 90.24 | 41.36 | 69.59 | 79.61 | 276.49 | 276.49 |
 | b_listwise_bce | 432.54 | 34 | 431.93 | 431.92 | 62.13 | 85.60 | 91.72 | 41.95 | 71.03 | 80.12 | 291.97 | 291.97 |
 
 | 比较 | best | last5 | i2t R@1 | t2i R@1 |
 |---|---|---|---|---|
-| l_listwise_vcs-n_infonce | NA | NA | NA | NA |
+| l_listwise_vcs-n_infonce | -54.36 | -50.62 | -12.13 | -11.30 |
 | l_listwise_vcs-b_listwise_bce | -6.39 | -6.40 | -0.89 | -0.59 |
 | l_listwise_vcs-h_native | -57.26 | -55.71 | -11.64 | -12.47 |
-| n_infonce-h_native | NA | NA | NA | NA |
-| b_listwise_bce-n_infonce | NA | NA | NA | NA |
+| n_infonce-h_native | -2.90 | -5.10 | +0.49 | -1.16 |
+| b_listwise_bce-n_infonce | -47.97 | -44.21 | -11.24 | -10.71 |
 
 ## 60% 多 seed（seed 1001–1003；均值只在已完成 seed 上计算并标注 n）
 
 | 臂 | n | 均值 best | 均值 last5 |
 |---|---|---|---|
 | h_native | 3 | 491.32 | 489.89 |
-| n_infonce | 2 | 481.53 | 474.67 |
+| n_infonce | 3 | 481.19 | 475.16 |
 | l_listwise_vcs | 3 | 436.40 | 435.80 |
 | b_listwise_bce | 3 | 443.04 | 442.20 |
 
 | 比较 | 逐 seed best 差 | 均值 | >0 |
 |---|---|---|---|
-| l_listwise_vcs-n_infonce | -36.35, -43.67 | -40.01 | 0/2 |
+| l_listwise_vcs-n_infonce | -36.35, -43.67, -54.36 | -44.79 | 0/3 |
 | l_listwise_vcs-b_listwise_bce | -6.84, -6.69, -6.39 | -6.64 | 0/3 |
 | l_listwise_vcs-h_native | -46.94, -60.57, -57.26 | -54.92 | 0/3 |
-| n_infonce-h_native | -10.59, -16.90 | -13.75 | 0/2 |
-| b_listwise_bce-n_infonce | -29.51, -36.98 | -33.24 | 0/2 |
+| n_infonce-h_native | -10.59, -16.90, -2.90 | -10.13 | 0/3 |
+| b_listwise_bce-n_infonce | -29.51, -36.98, -47.97 | -38.15 | 0/3 |
