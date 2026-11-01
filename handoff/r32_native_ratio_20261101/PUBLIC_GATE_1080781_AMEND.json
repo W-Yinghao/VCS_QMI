@@ -1,0 +1,46 @@
+{
+  "gate_job": "1080781",
+  "utc": "2026-11-01T22:09:55Z",
+  "reason": "gate-script defect: the original token 'true_caption' matched gpo_adapter.py:104, the RolePool assertion that REJECTS clean-map keys ({'caption_image_index','true_caption_image_index','clean_image_index'}); no clean map is read by the trainer",
+  "original_tokens": [
+    "evaluator_only",
+    "_clean_index",
+    "// 5",
+    "//5",
+    "true_caption"
+  ],
+  "corrected_tokens": [
+    "evaluator_only",
+    "_clean_index.npy",
+    "// 5",
+    "//5",
+    "im_div"
+  ],
+  "hits": [],
+  "files_changed_since_gate": [
+    "nrcs/gate.py"
+  ],
+  "other_checks": "unchanged from the GPU gate run (all PASS)",
+  "checks": {
+    "no_data_role_identity_overlap": true,
+    "train_and_select_no_clean_map": true,
+    "trainer_source_has_no_clean_map_access": true,
+    "parent_transfer_weights_and_BN_only": true,
+    "all_arms_production_steps": true,
+    "BN_frozen_after_train_call": true,
+    "encoder_and_head_finite_gradients": true,
+    "checkpoint_rng_next_step_equal": true,
+    "intra_on_off": true,
+    "embedding_shapes_and_valid_lengths": true,
+    "same_record_sequence_across_E2_arms": true,
+    "intra_on_off_and_duplicate_mask": true,
+    "P_Q_weights_and_ID_sampling": true,
+    "eval_companion_order_shard_invariance": true,
+    "ratio_dense_inner_product_equal": true,
+    "multi_positive_metrics_equal": true,
+    "TEST_not_loaded": true,
+    "R30_unchanged": true
+  },
+  "status": "PASS",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

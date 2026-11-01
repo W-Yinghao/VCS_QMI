@@ -1,0 +1,30 @@
+{
+  "route": "VCS_NATIVE_RATIO_v1",
+  "protocol": "NRCS-v1-20261101 (package PROTOCOL.json/MATRIX.csv unchanged; no matrix/objective/data-role change)",
+  "scheduling": "main-session decision: formal GPU units normal QOS, RTX6000PRO,L40S,H100 excl node51,53,60, nice 10 (R30 nice 0), <=2 NRCS GPU jobs while any r30*/r30v11*/r30a1* job exists, no --dependency; one chain job per W2 parent runs W2 -> F1 export -> its 6 E2 children on one GPU (same-hardware rule); continuation pinned to the same partition; at exit a chain submits the next queued chain (CHAINS_QUEUE.txt) under the cap. Smoke/gate jobs on runfill. S0/F1 on CPU.",
+  "decisions_without_protocol_change": [
+    "BN: running statistics frozen at their registered initial values (no pretrained statistics exist; running_mean 0 / running_var 1), BN affine trainable, same for all arms incl. W2/C2; BN modules forced to eval after every .train()",
+    "head input = sqrt(1024) * h for W2/E2/C2 (all arms); ratio readout r = (u/sqrt(pi)).(v/sqrt(pi)), no extra L2; cosine arms use the head-output cosine",
+    "region augmentation: keep region iff U>0.2 (upstream rule) from a dedicated numpy stream; region shuffle omitted because GPO output with frozen BN is region-order invariant; all-dropped -> keep all (count logged)",
+    "caption augmentation: upstream process_caption(drop=True) rule (20%: 50% <mask>, 10% random, 40% delete; all-deleted -> keep, R25 fix) from the same dedicated numpy stream; '<mask>' appended to the vocab as IN2R co_train.py:214 (vocab 8482)",
+    "RNG streams: model init torch.manual_seed(seed) (identical for W2 and C2 of a seed); sampler / augmentation / dropout streams from SeedSequence([seed, noise, phase, stream]) with phase W2=1, E2=2, C2=3 -> all E2 children of a parent see the same record sequence (gate-verified digests)",
+    "cross-modal hinge (W2, E2 cosine_hinge): upstream ContrastiveLoss(mode=train) formula, only the diagonal excluded (no identity mask), sum/(2B); identity masks only in the intra term; main J Q keeps all off-diagonal records",
+    "cosine_hinge arms: the reported J is a readout under the untrained default affine (a=2, kappa=0.5); it is not optimized",
+    "SELECT-J checkpoint candidates: epoch 0 (= parent / cold init) and epochs 1..20, earliest tie",
+    "LR: per-step cosine from the initial value to 0.1x over the full phase (W2 5 epochs, E2/C2 20 epochs); AdamW weight decay 1e-4 on every parameter group; GloVe embedding trainable (upstream)",
+    "precision FP32 with TF32 disabled (matmul and cuDNN); torch deterministic algorithms in warn_only mode",
+    "every epoch evaluates SELECT (selection), AUDIT and full DEV (development readouts, never used for selection); last5 = epochs 16..20 computed online; kept checkpoints: epoch20.pt, selected.pt (E2/C2), parent.pt (W2, with optimizer for audit only); per-epoch checkpoints not kept",
+    "noise: IN2R/R25 subset-permutation rule applied separately inside FIT and inside SELECT, each with a fresh RandomState(20261027); realized FIT 0.599992, SELECT 0.599586; image marginals preserved",
+    "split: RandomState(20261101).permutation(29000) over train_ids.txt rows; FIT/SELECT/AUDIT 26100/1450/1450 images; DEV 1014 images (5x repeated rows verified bitwise and de-duplicated)",
+    "F1 features: pointwise L2-normalized 1024-d h of the W2 parent (before the sqrt(1024) head scale), package runner standardizes on FIT; F1 runs on CPU through the package tools/run_registered.py with a per-condition binding"
+  ],
+  "technical_amendments": [
+    "gate 1080781: the static source scan matched the RolePool assertion literal that rejects clean-map keys (false positive); rule corrected (GATE_1080781_AMEND.json), re-applied on byte-identical trainer/adapter sources; all GPU checks unchanged PASS",
+    "after the gate, train_gpo.py gained an env-gated smoke override (NRCS_SMOKE, refused outside a */smoke runs dir); no effect on formal units; formal units record their own source sha256",
+    "CPU code-path check 1080789 found a TypeError in the diagnostic gradient-norm helper (empty parameter group); fixed before the GPU gate"
+  ],
+  "not_done_here": [
+    "TEST: never loaded; TEST entry prepared in test_entry/ (views + evaluator + patch + ROOTS entry) for the main session's standing tool, not applied"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

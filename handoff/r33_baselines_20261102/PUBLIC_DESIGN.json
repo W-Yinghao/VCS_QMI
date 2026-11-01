@@ -1,0 +1,15 @@
+{
+  "line": "R33 benchmark baseline rows for the retrieval main table (2026-11-02; user: 「今晚，凌晨这些时间，还是要好好利用runfill这部分卡」). Baselines only, no CS/VCS terms.",
+  "cells": "CELLS.json; queue order c60 (COCO 60%) -> f80 (Flickr 80%) -> c20 (COCO 20%) -> c80 (COCO 80%) -> f20 (Flickr 20%, a1_iface only; its H0 is R31-FID f20 H0_codecfg) x seeds 1001/1002/1003 = 27 units",
+  "noise": "NOISE_LOCK.json (written before any R33 training): 20% = OFFICIAL NCR index; COCO 60% = R25 NOISE_LOCK map (no earlier training used it); 80% = new maps, R25 procedure, fresh RandomState(20261027) per file",
+  "prefix": "one native prefix per cell (code_h0 r25_run.py --stop_after_prefix: warmup 5 + co-train epoch 0) at outputs/.../prefix/<cell>/prefix_state.pt (outside runs/, so not a TEST unit); shared by H0 and a1_iface as in R26/R27; co-train epochs 1..39 in each unit (40 co-train epochs in total). Prefix deleted once every arm of the cell has its own state_last.pt (PREFIX_DELETED.json records it).",
+  "selection": "native full-DEV best co-train epoch -> model_best.pth.tar; DONE.json / EPOCHS.json / RUN_<job>.json / ATTEMPTS.tsv / state_last.pt per unit. No TEST here; standing TEST tool (test_eval_20261101/ROOTS.json line R33-BASE).",
+  "scheduling": "runfill, A100,A40,L40S,V100-32GB excl node51/53/60, 1 GPU, 4 CPU, 64G, 24h, nice 0, --requeue, no --dependency. Preemption -> requeue -> resume from own state_last.pt (prefix: from scratch unless prefix_state.pt exists). Wall clock -> self-continuation; feeder (sbatch/r33_feed.sh as CPU job) submits prefixes/units in order when my runfill count < 27 and resubmits unfinished units without a live job; >= 3 FAILED.tsv lines -> blocked.",
+  "disclosures": [
+    "runfill hardware differs from R25/R26 H0 (RTX6000PRO/L40S/H100) and varies per unit; GPU recorded per attempt",
+    "80% maps and COCO 60% map are our own draws (no official index)",
+    "f20 a1_iface is not prefix-paired with the R31 f20 H0 (R31 trains from scratch)",
+    "if the prefix epoch 0 stays the best DEV epoch, a unit has no model_best.pth.tar of its own (not expected)"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
