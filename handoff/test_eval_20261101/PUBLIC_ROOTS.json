@@ -1,0 +1,142 @@
+{
+  "_doc": "Registry of retrieval run roots for TEST evaluation. One entry per line/root. glob is relative to outputs_root; layout 'cell/arm' = <glob>=.../<cell>/<arm>, 'r30flat' = .../r30*_<cell>_<arm>. A unit = dir with DONE.json + model_best.pth.tar (dirs named in exclude_arms are skipped). oracle=true marks ground-truth oracle diagnostics (not a method). host: in2r (IN2R VSE eval code in eval_code/). Datasets are read from the checkpoint opt and the cell name (f<noise>=Flickr30K, c<noise>=MS-COCO, cc=CC152K). Add a new experiment line by appending one entry.",
+  "outputs_root": "/projects/EEG-foundation-model/yinghao/outputs_v9",
+  "exclude_arms": {
+    "prefix": "shared warm-up prefix state, not a trained unit",
+    "calib": "calibration dir, not a trained unit"
+  },
+  "snapshot_globs": [
+    "r25_in2r_20261027/code",
+    "r26_dist_20261027/code",
+    "r27_*/code*",
+    "r27_seedext_20261031/*/code*",
+    "r28_*/code*",
+    "r29_*/code*",
+    "r30_pairwise_20261101/code*"
+  ],
+  "lines": [
+    {
+      "line": "R25",
+      "glob": "r25_in2r_20261027/groups/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r25_in2r_20261027/code"
+    },
+    {
+      "line": "R26",
+      "glob": "r26_dist_20261027/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r26_dist_20261027/code"
+    },
+    {
+      "line": "R27",
+      "glob": "r27_qtarget_20261029/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_qtarget_20261029/code{,_v11,_v12}"
+    },
+    {
+      "line": "R27-D",
+      "glob": "r27_directional_20261030/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_directional_20261030/code_frozen"
+    },
+    {
+      "line": "R27-D",
+      "glob": "r27_seedext_20261031/r27d/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_seedext_20261031/r27d/code_frozen"
+    },
+    {
+      "line": "R27-O",
+      "glob": "r27_oracle_20261030/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": true,
+      "snapshot": "handoff/r27_oracle_20261030/code_oracle"
+    },
+    {
+      "line": "R27-O",
+      "glob": "r27_seedext_20261031/r27o/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": true,
+      "snapshot": "handoff/r27_seedext_20261031/r27o/code_oracle"
+    },
+    {
+      "line": "R27-O3",
+      "glob": "r27_oracle3_20261031/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": true,
+      "snapshot": "handoff/r27_oracle3_20261031/code_o3"
+    },
+    {
+      "line": "R27-O3",
+      "glob": "r27_seedext_20261031/r27o3/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": true,
+      "snapshot": "handoff/r27_seedext_20261031/r27o3/code_o3"
+    },
+    {
+      "line": "R27-CS",
+      "glob": "r27_candsrc_20261031/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_candsrc_20261031/code_cs"
+    },
+    {
+      "line": "R27-CS",
+      "glob": "r27_seedext_20261031/r27cs/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_seedext_20261031/r27cs/code_cs"
+    },
+    {
+      "line": "R27-Q",
+      "glob": "r27_qpool_20261031/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_qpool_20261031/code_q"
+    },
+    {
+      "line": "R27-A1X",
+      "glob": "r27_a1cross_20261030/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r27_a1cross_20261030/code_a1x"
+    },
+    {
+      "line": "R28",
+      "glob": "r28_selective_20261031/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r28_selective_20261031/code_r28"
+    },
+    {
+      "line": "R29",
+      "glob": "r29_listwise_20261101/runs/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r29_listwise_20261101/code_r29"
+    },
+    {
+      "line": "R30",
+      "glob": "r30_pairwise_20261101/runs/*",
+      "layout": "r30flat",
+      "oracle": false,
+      "snapshot": "handoff/r30_pairwise_20261101/code_r30{,v11}"
+    }
+  ],
+  "fixed_units": [
+    {
+      "line": "R25-SPS",
+      "cell": "f40_s1001",
+      "arm": "S0_sps",
+      "run_dir": "r25_in2r_20261027/runs/S0_sps_f40_s1001",
+      "oracle": false,
+      "checkpoint_rule": "FULLDEV.json best epoch (max full-DEV rSum, earliest tie; written 2026-10-29) -> checkpoint_<epoch>.pth.tar; SPS native model_best.pth.tar was selected on its 200-image DEV subset"
+    }
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
