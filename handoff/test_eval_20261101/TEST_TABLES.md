@@ -2,12 +2,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # TEST evaluation of DEV-selected retrieval checkpoints (numbers only)
 
-Generated 2026-11-02T12:36:17.463799Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d), `TEST_MANIFEST_INC_20261102T043325Z.json` (sha256 4274e37fa25db83508c6f5830b82a8d072bf1a6d916a2deb63a0e9d21e339ee6), `TEST_MANIFEST_INC_20261102T053334Z.json` (sha256 31acff9db15d88d52cadc8aad69e78a478017760f51b3a707961f000b5c0313b), `TEST_MANIFEST_INC_20261102T055359Z.json` (sha256 e2a560368ca07f94d14016408d1906d32af6f08457dcb26f9d4a81c7ebf41016), `TEST_MANIFEST_INC_20261102T061337Z.json` (sha256 890cd09485ba1329d79b77335a9a77b2b0597cbedd26c4c7ef652b7a1f1e94a1), `TEST_MANIFEST_INC_20261102T065339Z.json` (sha256 7a0373d6e634d0985fad9950355a0862802ec983cb4cae516863b8d261d4c227), `TEST_MANIFEST_INC_20261102T073402Z.json` (sha256 b095d77158ea28433c02663d76f1ae5a8edc42f4e58f5e5ddf1d92baa2c0baa4), `TEST_MANIFEST_INC_20261102T091842Z.json` (sha256 e715dcf6d44b999855d03922cdad10731bb60ea02b827d48ff5ab258abcbdcfd), `TEST_MANIFEST_INC_20261102T095522Z.json` (sha256 3eeb031223ab0a3868d47024c56fdf0eea64224759b8f2de315245eee6fd4076), `TEST_MANIFEST_INC_20261102T103058Z.json` (sha256 dba42449da5d7ced3da7f4d8132499daccaf404d263bafc98478b4857cd15441), `TEST_MANIFEST_INC_20261102T112851Z.json` (sha256 2b9e155a88f6d3ee55958af2c041aca4f8a3ab364c09fe36c8d20e826dd1f07b), `TEST_MANIFEST_INC_20261102T121157Z.json` (sha256 915bfd0dac172b35e203aa26f53f18258549578497fcd9c1f5a6b1121c8c9638).
+Generated 2026-11-02T14:31:25.548616Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d), `TEST_MANIFEST_INC_20261102T043325Z.json` (sha256 4274e37fa25db83508c6f5830b82a8d072bf1a6d916a2deb63a0e9d21e339ee6), `TEST_MANIFEST_INC_20261102T053334Z.json` (sha256 31acff9db15d88d52cadc8aad69e78a478017760f51b3a707961f000b5c0313b), `TEST_MANIFEST_INC_20261102T055359Z.json` (sha256 e2a560368ca07f94d14016408d1906d32af6f08457dcb26f9d4a81c7ebf41016), `TEST_MANIFEST_INC_20261102T061337Z.json` (sha256 890cd09485ba1329d79b77335a9a77b2b0597cbedd26c4c7ef652b7a1f1e94a1), `TEST_MANIFEST_INC_20261102T065339Z.json` (sha256 7a0373d6e634d0985fad9950355a0862802ec983cb4cae516863b8d261d4c227), `TEST_MANIFEST_INC_20261102T073402Z.json` (sha256 b095d77158ea28433c02663d76f1ae5a8edc42f4e58f5e5ddf1d92baa2c0baa4), `TEST_MANIFEST_INC_20261102T091842Z.json` (sha256 e715dcf6d44b999855d03922cdad10731bb60ea02b827d48ff5ab258abcbdcfd), `TEST_MANIFEST_INC_20261102T095522Z.json` (sha256 3eeb031223ab0a3868d47024c56fdf0eea64224759b8f2de315245eee6fd4076), `TEST_MANIFEST_INC_20261102T103058Z.json` (sha256 dba42449da5d7ced3da7f4d8132499daccaf404d263bafc98478b4857cd15441), `TEST_MANIFEST_INC_20261102T112851Z.json` (sha256 2b9e155a88f6d3ee55958af2c041aca4f8a3ab364c09fe36c8d20e826dd1f07b), `TEST_MANIFEST_INC_20261102T121157Z.json` (sha256 915bfd0dac172b35e203aa26f53f18258549578497fcd9c1f5a6b1121c8c9638), `TEST_MANIFEST_INC_20261102T131521Z.json` (sha256 68f4fbf803eb69d425442113ab0b24f1dc1b116789f2eeb778efae9e4b2d4859), `TEST_MANIFEST_INC_20261102T141148Z.json` (sha256 c800f9c60f15af4f31db35a5d0c769eaec2ff4d199dfeb8ee27e411c061ce805).
 Checkpoint per unit = existing model_best.pth.tar (best full-DEV epoch during training; SPS S0: full-DEV best checkpoint_37 from FULLDEV.json). TEST protocol = native IN2R evalrank: both peers, peer-averaged similarity. Flickr30K: test split 1,000 images / 5,000 captions. MS-COCO: testall, 5-fold 1K mean (main) and 5K. CC152K: test 1,000 / 1,000. DEV gate: DEV recomputed with the same evaluator (r25_co_train.validate path) must match the logged best-epoch DEV within 0.1 pp on each of the six recalls; units failing it are listed separately and are not in the tables. mean ± std = over seeds 1001/1002/1003 (sample std, n−1), given only when all three seeds exist; otherwise NA. Oracle rows (R27-O / R27-O3) use ground-truth rescue during training: oracle diagnostic, not a method.
 
 ## Coverage
 
-Units in manifests: 368; evaluated: 368; DEV gate PASS: 364; FAIL: 4; pending/not evaluated: 0; skipped dirs: 61.
+Units in manifests: 370; evaluated: 370; DEV gate PASS: 366; FAIL: 4; pending/not evaluated: 0; skipped dirs: 60.
 
 | line | units | evaluated | gate PASS | gate FAIL | max abs DEV recall diff (pp) |
 |---|---|---|---|---|---|
@@ -24,9 +24,9 @@ Units in manifests: 368; evaluated: 368; DEV gate PASS: 364; FAIL: 4; pending/no
 | R28 | 8 | 8 | 8 | 0 | 0.0197 |
 | R29 | 18 | 18 | 18 | 0 | 0.0197 |
 | R30 | 36 | 36 | 36 | 0 | 0.0986 |
-| R31-FID | 15 | 15 | 15 | 0 | 0.0197 |
-| R33-BASE | 13 | 13 | 13 | 0 | 0.0000 |
+| R33-BASE | 15 | 15 | 15 | 0 | 0.0000 |
 | NRCS-v1 | 76 | 76 | 72 | 4 | 1.8738 |
+| R31-FID | 15 | 15 | 15 | 0 | 0.0197 |
 
 ### Units failing the DEV-recompute gate (TEST numbers not used in the tables)
 
@@ -1211,17 +1211,16 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30v11_f60_s1001_LN | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r33_baselines_20261102/runs/c20_s1001/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c60_s1002/a1_iface | no DONE.json (still training / not finished) |
-| r33_baselines_20261102/runs/c80_s1002/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c20_s1001/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c60_s1001/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c20_s1002/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c20_s1002/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c60_s1002/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c80_s1003/a1_iface | no DONE.json (still training / not finished) |
-| r33_baselines_20261102/runs/f20_s1003/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c80_s1003/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c20_s1003/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c60_s1001/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c20_s1003/a1_iface | no DONE.json (still training / not finished) |
 
 ## Limitations
 
@@ -1230,4 +1229,4 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 - Seeds: many groups have one seed; means/stds over three seeds are descriptive, not significance tests. Rankings mix groups with different numbers of seeds.
 - Literature rows are copied from the IN2R paper (arXiv:2606.04061v1, Tables 1-2); they use their own noise draws and runs and were not reproduced here. Our noise maps are the locked R25 maps (40%/60%/0%); CC152K noise is real.
 - R27-O / R27-O3 use ground-truth oracle rescue/targets during training (diagnostic, not a method). R30 stage paths stop at 10 co-train epochs by design (marked "epochs 10").
-- TEST access log: 32 test_read entries (one per evaluation job start, including re-starts after preemption).
+- TEST access log: 34 test_read entries (one per evaluation job start, including re-starts after preemption).
