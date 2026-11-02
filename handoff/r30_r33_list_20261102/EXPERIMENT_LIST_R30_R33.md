@@ -49,7 +49,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R31：IN²R 复现忠实度（(a) 官方 NCR 20% 噪声；(b) 作者 run.py 默认；(b′) 默认 + i2t/t2i）
 
-单元数 15；DONE 14，RUNNING 1
+单元数 15；DONE 15
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
@@ -67,7 +67,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 512.88 | 515.60 |
 | cc_s1001/H0_default_i2t_t2i | CC152K | 1001 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 391.00 | 405.20 |
 | cc_s1002/H0_default_i2t_t2i | CC152K | 1002 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 392.50 | 404.50 |
-| cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
+| cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 391.50 | 404.20 |
 
 ## R32：VCS_NATIVE_RATIO_v1（GPO 双塔 + 有边缘约束的 ratio critic；S0/W2/F1/E2/C2）
 

@@ -1,0 +1,76 @@
+{
+  "note": "R31 IN2R reproduction-fidelity table (numbers only, no interpretation).\n\nFor each R31 set (a: official NCR 20% index + R25 code config; b: author run.py defaults; b': defaults + --i2t --t2i) and\ncell, reports the line's own best full-DEV rSum and the one-shot TEST (Flickr30K 1K / CC152K test) six Recalls and rSum from\nthe standing TEST tool, the 3-seed mean, the IN2R paper value (LITERATURE_TABLE.json, arXiv:2606.04061v1) and our earlier\nnative reproductions under the same condition (R25 H0 Flickr 40%, R26 H0 CC152K). Only units passing the DEV-recompute gate\nenter the TEST columns. Writes R31_FIDELITY.md / R31_FIDELITY.json next to DESIGN.json.\nUsage: python3 -B tools/summarize_r31.py",
+  "summary": [
+    {
+      "set": "a",
+      "condition": "f20",
+      "n_test": 3,
+      "dev_mean": 516.8573307034845,
+      "test_mean": 519.0266666666666,
+      "test_sd": 0.5281413952090017,
+      "paper": 511.6,
+      "earlier_reproduction": {
+        "line": null,
+        "mean": null,
+        "n": 0
+      }
+    },
+    {
+      "set": "b",
+      "condition": "f40",
+      "n_test": 3,
+      "dev_mean": 511.4727153188691,
+      "test_mean": 514.4399999999999,
+      "test_sd": 2.1633307652784124,
+      "paper": 504.1,
+      "earlier_reproduction": {
+        "line": "R25",
+        "mean": 514.5266666666666,
+        "n": 3
+      }
+    },
+    {
+      "set": "b",
+      "condition": "cc",
+      "n_test": 3,
+      "dev_mean": 392.3,
+      "test_mean": 403.7,
+      "test_sd": 2.3811761799581252,
+      "paper": 380.8,
+      "earlier_reproduction": {
+        "line": "R26",
+        "mean": 403.09999999999997,
+        "n": 3
+      }
+    },
+    {
+      "set": "b_prime",
+      "condition": "f40",
+      "n_test": 3,
+      "dev_mean": 512.5443786982248,
+      "test_mean": 514.7733333333333,
+      "test_sd": 4.024193500980461,
+      "paper": 504.1,
+      "earlier_reproduction": {
+        "line": "R25",
+        "mean": 514.5266666666666,
+        "n": 3
+      }
+    },
+    {
+      "set": "b_prime",
+      "condition": "cc",
+      "n_test": 3,
+      "dev_mean": 391.6666666666667,
+      "test_mean": 404.6333333333333,
+      "test_sd": 0.5131601439446869,
+      "paper": 380.8,
+      "earlier_reproduction": {
+        "line": "R26",
+        "mean": 403.09999999999997,
+        "n": 3
+      }
+    }
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

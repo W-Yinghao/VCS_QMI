@@ -2,12 +2,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # TEST evaluation of DEV-selected retrieval checkpoints (numbers only)
 
-Generated 2026-11-02T10:38:09.243855Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d), `TEST_MANIFEST_INC_20261102T043325Z.json` (sha256 4274e37fa25db83508c6f5830b82a8d072bf1a6d916a2deb63a0e9d21e339ee6), `TEST_MANIFEST_INC_20261102T053334Z.json` (sha256 31acff9db15d88d52cadc8aad69e78a478017760f51b3a707961f000b5c0313b), `TEST_MANIFEST_INC_20261102T055359Z.json` (sha256 e2a560368ca07f94d14016408d1906d32af6f08457dcb26f9d4a81c7ebf41016), `TEST_MANIFEST_INC_20261102T061337Z.json` (sha256 890cd09485ba1329d79b77335a9a77b2b0597cbedd26c4c7ef652b7a1f1e94a1), `TEST_MANIFEST_INC_20261102T065339Z.json` (sha256 7a0373d6e634d0985fad9950355a0862802ec983cb4cae516863b8d261d4c227), `TEST_MANIFEST_INC_20261102T073402Z.json` (sha256 b095d77158ea28433c02663d76f1ae5a8edc42f4e58f5e5ddf1d92baa2c0baa4), `TEST_MANIFEST_INC_20261102T091842Z.json` (sha256 e715dcf6d44b999855d03922cdad10731bb60ea02b827d48ff5ab258abcbdcfd), `TEST_MANIFEST_INC_20261102T095522Z.json` (sha256 3eeb031223ab0a3868d47024c56fdf0eea64224759b8f2de315245eee6fd4076), `TEST_MANIFEST_INC_20261102T103058Z.json` (sha256 dba42449da5d7ced3da7f4d8132499daccaf404d263bafc98478b4857cd15441).
+Generated 2026-11-02T11:29:50.695897Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d), `TEST_MANIFEST_INC_20261102T043325Z.json` (sha256 4274e37fa25db83508c6f5830b82a8d072bf1a6d916a2deb63a0e9d21e339ee6), `TEST_MANIFEST_INC_20261102T053334Z.json` (sha256 31acff9db15d88d52cadc8aad69e78a478017760f51b3a707961f000b5c0313b), `TEST_MANIFEST_INC_20261102T055359Z.json` (sha256 e2a560368ca07f94d14016408d1906d32af6f08457dcb26f9d4a81c7ebf41016), `TEST_MANIFEST_INC_20261102T061337Z.json` (sha256 890cd09485ba1329d79b77335a9a77b2b0597cbedd26c4c7ef652b7a1f1e94a1), `TEST_MANIFEST_INC_20261102T065339Z.json` (sha256 7a0373d6e634d0985fad9950355a0862802ec983cb4cae516863b8d261d4c227), `TEST_MANIFEST_INC_20261102T073402Z.json` (sha256 b095d77158ea28433c02663d76f1ae5a8edc42f4e58f5e5ddf1d92baa2c0baa4), `TEST_MANIFEST_INC_20261102T091842Z.json` (sha256 e715dcf6d44b999855d03922cdad10731bb60ea02b827d48ff5ab258abcbdcfd), `TEST_MANIFEST_INC_20261102T095522Z.json` (sha256 3eeb031223ab0a3868d47024c56fdf0eea64224759b8f2de315245eee6fd4076), `TEST_MANIFEST_INC_20261102T103058Z.json` (sha256 dba42449da5d7ced3da7f4d8132499daccaf404d263bafc98478b4857cd15441), `TEST_MANIFEST_INC_20261102T112851Z.json` (sha256 2b9e155a88f6d3ee55958af2c041aca4f8a3ab364c09fe36c8d20e826dd1f07b).
 Checkpoint per unit = existing model_best.pth.tar (best full-DEV epoch during training; SPS S0: full-DEV best checkpoint_37 from FULLDEV.json). TEST protocol = native IN2R evalrank: both peers, peer-averaged similarity. Flickr30K: test split 1,000 images / 5,000 captions. MS-COCO: testall, 5-fold 1K mean (main) and 5K. CC152K: test 1,000 / 1,000. DEV gate: DEV recomputed with the same evaluator (r25_co_train.validate path) must match the logged best-epoch DEV within 0.1 pp on each of the six recalls; units failing it are listed separately and are not in the tables. mean ± std = over seeds 1001/1002/1003 (sample std, n−1), given only when all three seeds exist; otherwise NA. Oracle rows (R27-O / R27-O3) use ground-truth rescue during training: oracle diagnostic, not a method.
 
 ## Coverage
 
-Units in manifests: 365; evaluated: 365; DEV gate PASS: 361; FAIL: 4; pending/not evaluated: 0; skipped dirs: 63.
+Units in manifests: 366; evaluated: 366; DEV gate PASS: 362; FAIL: 4; pending/not evaluated: 0; skipped dirs: 63.
 
 | line | units | evaluated | gate PASS | gate FAIL | max abs DEV recall diff (pp) |
 |---|---|---|---|---|---|
@@ -25,8 +25,8 @@ Units in manifests: 365; evaluated: 365; DEV gate PASS: 361; FAIL: 4; pending/no
 | R29 | 18 | 18 | 18 | 0 | 0.0197 |
 | R30 | 36 | 36 | 36 | 0 | 0.0986 |
 | NRCS-v1 | 76 | 76 | 72 | 4 | 1.8738 |
-| R31-FID | 14 | 14 | 14 | 0 | 0.0197 |
 | R33-BASE | 11 | 11 | 11 | 0 | 0.0000 |
+| R31-FID | 15 | 15 | 15 | 0 | 0.0197 |
 
 ### Units failing the DEV-recompute gate (TEST numbers not used in the tables)
 
@@ -1078,7 +1078,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | R26 | n_vcs |  | 3 | 391.30 | 391.20 | 389.70 | 390.73 ± 0.90 | 404.40 | 407.30 | 404.10 | 405.27 ± 1.77 |
 | R27-A1X | a1_iface |  | 3 | 392.70 | 395.80 | 393.10 | 393.87 ± 1.69 | 404.30 | 407.30 | 408.20 | 406.60 ± 2.04 |
 | R31-FID | H0_default |  | 3 | 389.70 | 394.60 | 392.60 | 392.30 ± 2.46 | 401.90 | 402.80 | 406.40 | 403.70 ± 2.38 |
-| R31-FID | H0_default_i2t_t2i |  | 2 | 391.00 | 392.50 | NA | NA | 405.20 | 404.50 | NA | NA |
+| R31-FID | H0_default_i2t_t2i |  | 3 | 391.00 | 392.50 | 391.50 | 391.67 ± 0.76 | 405.20 | 404.50 | 404.20 | 404.63 ± 0.51 |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -1092,6 +1092,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | R26 | n_vcs | 47.63 | 73.37 | 81.87 | 46.20 | 73.87 | 82.33 | 405.27 |
 | R27-A1X | a1_iface | 47.87 | 73.90 | 82.33 | 46.13 | 73.97 | 82.40 | 406.60 |
 | R31-FID | H0_default | 46.23 | 73.40 | 81.83 | 46.90 | 73.10 | 82.23 | 403.70 |
+| R31-FID | H0_default_i2t_t2i | 47.07 | 73.30 | 82.33 | 46.67 | 73.30 | 81.97 | 404.63 |
 
 ### Ranking by mean DEV rSum (seeds available per group; n differs between groups), with mean TEST rSum of the same seeds
 
@@ -1100,7 +1101,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | 1 | R27-A1X | a1_iface | 3 | 393.87 | 406.60 |
 | 2 | R26 | d_snce | 3 | 392.67 | 406.20 |
 | 3 | R31-FID | H0_default | 3 | 392.30 | 403.70 |
-| 4 | R31-FID | H0_default_i2t_t2i | 2 | 391.75 | 404.85 |
+| 4 | R31-FID | H0_default_i2t_t2i | 3 | 391.67 | 404.63 |
 | 5 | R26 | d_vcs | 3 | 391.50 | 403.70 |
 | 6 | R26 | n_vcs | 3 | 390.73 | 405.27 |
 | 7 | R26 | m_vcs | 3 | 390.50 | 404.30 |
@@ -1154,6 +1155,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | R31-FID/cc_s1003/H0_default | 1003 | 31 | Tesla V100S-PCIE-32GB | 392.60 | 392.60 | 0.0000 | 47.30 | 73.40 | 82.20 | 47.30 | 73.20 | 83.00 | 406.40 |
 | R31-FID/cc_s1001/H0_default_i2t_t2i | 1001 | 28 | Tesla V100S-PCIE-32GB | 391.00 | 391.00 | 0.0000 | 47.00 | 73.20 | 82.80 | 46.50 | 73.20 | 82.50 | 405.20 |
 | R31-FID/cc_s1002/H0_default_i2t_t2i | 1002 | 37 | Tesla V100S-PCIE-32GB | 392.50 | 392.50 | 0.0000 | 46.50 | 73.70 | 82.20 | 46.70 | 73.70 | 81.70 | 404.50 |
+| R31-FID/cc_s1003/H0_default_i2t_t2i | 1003 | 35 | A40, Tesla V100S-PCIE-32GB | 391.50 | 391.50 | 0.0000 | 47.70 | 73.00 | 82.00 | 46.80 | 73.00 | 81.70 | 404.20 |
 
 ## Skipped directories
 
@@ -1207,7 +1209,6 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30_f60_s1001_H0 | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30_f60_s1001_PV | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30v11_f60_s1001_LN | smoke / gate / parent / diagnostic dir (not a formal unit) |
-| r31_in2r_fidelity_20261101/runs/cc_s1003/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c60_s1003/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/f20_s1002/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c20_s1001/a1_iface | no DONE.json (still training / not finished) |
@@ -1222,6 +1223,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r33_baselines_20261102/runs/f20_s1003/a1_iface | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c80_s1003/H0 | no DONE.json (still training / not finished) |
 | r33_baselines_20261102/runs/c20_s1003/H0 | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c60_s1001/a1_iface | no DONE.json (still training / not finished) |
 
 ## Limitations
 
@@ -1230,4 +1232,4 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 - Seeds: many groups have one seed; means/stds over three seeds are descriptive, not significance tests. Rankings mix groups with different numbers of seeds.
 - Literature rows are copied from the IN2R paper (arXiv:2606.04061v1, Tables 1-2); they use their own noise draws and runs and were not reproduced here. Our noise maps are the locked R25 maps (40%/60%/0%); CC152K noise is real.
 - R27-O / R27-O3 use ground-truth oracle rescue/targets during training (diagnostic, not a method). R30 stage paths stop at 10 co-train epochs by design (marked "epochs 10").
-- TEST access log: 30 test_read entries (one per evaluation job start, including re-starts after preemption).
+- TEST access log: 31 test_read entries (one per evaluation job start, including re-starts after preemption).
