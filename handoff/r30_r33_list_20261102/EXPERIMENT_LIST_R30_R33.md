@@ -49,29 +49,29 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R31：IN²R 复现忠实度（(a) 官方 NCR 20% 噪声；(b) 作者 run.py 默认；(b′) 默认 + i2t/t2i）
 
-单元数 15；RUNNING 15
+单元数 15；DONE 6，RUNNING 9
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
 | f20_s1001/H0_codecfg | Flickr 20% (official NCR index) | 1001 | set a: H0_codecfg | 40 | RUNNING | NA | — |
 | f20_s1002/H0_codecfg | Flickr 20% (official NCR index) | 1002 | set a: H0_codecfg | 40 | RUNNING | NA | — |
 | f20_s1003/H0_codecfg | Flickr 20% (official NCR index) | 1003 | set a: H0_codecfg | 40 | RUNNING | NA | — |
-| f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | RUNNING | NA | — |
-| f40_s1002/H0_default | Flickr 40% | 1002 | set b: H0_default | 40 | RUNNING | NA | — |
-| f40_s1003/H0_default | Flickr 40% | 1003 | set b: H0_default | 40 | RUNNING | NA | — |
-| cc_s1001/H0_default | CC152K | 1001 | set b: H0_default | 40 | RUNNING | NA | — |
+| f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | DONE | 514.18 | — |
+| f40_s1002/H0_default | Flickr 40% | 1002 | set b: H0_default | 40 | DONE | 509.45 | 512.04 |
+| f40_s1003/H0_default | Flickr 40% | 1003 | set b: H0_default | 40 | DONE | 510.79 | 515.04 |
+| cc_s1001/H0_default | CC152K | 1001 | set b: H0_default | 40 | DONE | 389.70 | — |
 | cc_s1002/H0_default | CC152K | 1002 | set b: H0_default | 40 | RUNNING | NA | — |
 | cc_s1003/H0_default | CC152K | 1003 | set b: H0_default | 40 | RUNNING | NA | — |
-| f40_s1001/H0_default_i2t_t2i | Flickr 40% | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
+| f40_s1001/H0_default_i2t_t2i | Flickr 40% | 1001 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 514.28 | — |
 | f40_s1002/H0_default_i2t_t2i | Flickr 40% | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
-| f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
+| f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 512.88 | — |
 | cc_s1001/H0_default_i2t_t2i | CC152K | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | cc_s1002/H0_default_i2t_t2i | CC152K | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 
 ## R32：VCS_NATIVE_RATIO_v1（GPO 双塔 + 有边缘约束的 ratio critic；S0/W2/F1/E2/C2）
 
-单元数 95；CHAIN_QUEUED 3，DONE 92
+单元数 95；DONE 95
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（epoch-20 DEV rSum (E2/C2) / J (S0)） | TEST rSum |
 |---|---|---|---|---|---|---|---|
@@ -136,8 +136,8 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | nrcs_v1_e2_n00_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 399.19 | — |
 | nrcs_v1_e2_n00_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 177.22 | — |
 | nrcs_v1_e2_n00_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 168.42 | — |
-| nrcs_v1_e2_n00_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n00_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | DONE | 192.11 | — |
+| nrcs_v1_e2_n00_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | DONE | 473.47 | — |
 | nrcs_v1_f1_n60_s1001_cosine_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: cosine_J | 0 | DONE | 185.21 | — |
 | nrcs_v1_f1_n60_s1001_ratio_J_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | DONE | 38.84 | — |
 | nrcs_v1_f1_n60_s1001_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_logistic | 0 | DONE | 35.74 | — |
@@ -167,41 +167,41 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | nrcs_v1_e2_n60_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 119.51 | — |
 | nrcs_v1_e2_n60_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 107.89 | — |
 | nrcs_v1_e2_n60_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | DONE | 108.13 | — |
-| nrcs_v1_e2_n60_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n60_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | DONE | 12.82 | — |
 | nrcs_v1_c2_n00_s1001_cosine_J_b0_i0p1 | flickr_cold_diagnostic | 1001 | C2: cosine_J | 20 | DONE | 391.34 | — |
 | nrcs_v1_c2_n00_s1001_ratio_J_b1_i0p1 | flickr_cold_diagnostic | 1001 | C2: ratio_J | 20 | DONE | 185.94 | — |
 
 ## R33：基准基线行（原生 IN²R 与 IN²R + A1；COCO 60%、Flickr 80%、COCO 20%/80%、Flickr 20% A1）
 
-单元数 27；NOT_STARTED 27
+单元数 27；NOT_STARTED 6，PREFIX_PENDING 21
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
-| c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
+| c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
 | f80_s1001/H0 | Flickr 80% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
 | f80_s1001/a1_iface | Flickr 80% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
 | f80_s1002/H0 | Flickr 80% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
 | f80_s1002/a1_iface | Flickr 80% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
 | f80_s1003/H0 | Flickr 80% | 1003 | native IN²R | 40 | NOT_STARTED | NA | — |
 | f80_s1003/a1_iface | Flickr 80% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c20_s1001/H0 | COCO 20% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c20_s1001/a1_iface | COCO 20% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c20_s1002/H0 | COCO 20% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c20_s1002/a1_iface | COCO 20% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c20_s1003/H0 | COCO 20% | 1003 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c20_s1003/a1_iface | COCO 20% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c80_s1001/H0 | COCO 80% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c80_s1001/a1_iface | COCO 80% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c80_s1002/H0 | COCO 80% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c80_s1002/a1_iface | COCO 80% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c80_s1003/H0 | COCO 80% | 1003 | native IN²R | 40 | NOT_STARTED | NA | — |
-| c80_s1003/a1_iface | COCO 80% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| f20_s1001/a1_iface | Flickr 20% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| f20_s1002/a1_iface | Flickr 20% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| f20_s1003/a1_iface | Flickr 20% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
+| c20_s1001/H0 | COCO 20% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c20_s1001/a1_iface | COCO 20% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c20_s1002/H0 | COCO 20% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c20_s1002/a1_iface | COCO 20% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c20_s1003/H0 | COCO 20% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c20_s1003/a1_iface | COCO 20% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c80_s1001/H0 | COCO 80% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c80_s1001/a1_iface | COCO 80% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c80_s1002/H0 | COCO 80% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c80_s1002/a1_iface | COCO 80% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c80_s1003/H0 | COCO 80% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
+| c80_s1003/a1_iface | COCO 80% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| f20_s1001/a1_iface | Flickr 20% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| f20_s1002/a1_iface | Flickr 20% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| f20_s1003/a1_iface | Flickr 20% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
 

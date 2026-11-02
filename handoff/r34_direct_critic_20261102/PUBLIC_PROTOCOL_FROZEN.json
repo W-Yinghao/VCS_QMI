@@ -1,0 +1,655 @@
+{
+  "line": "R34 DIRECT_CRITIC_RETRIEVAL_v1",
+  "frozen_utc": "2026-11-02T03:32:22Z",
+  "status": "FROZEN_BEFORE_FORMAL_UNITS",
+  "design_package": {},
+  "units": [
+    "direct_n00_s1001_D_dual_cosine_J",
+    "direct_n00_s1001_D_dual_cosine_BCE",
+    "direct_n00_s1001_D_dual_cosine_InfoNCE",
+    "direct_n00_s1001_X_joint_mlp_J",
+    "direct_n00_s1001_X_joint_mlp_BCE",
+    "direct_n00_s1001_X_joint_mlp_InfoNCE",
+    "direct_n60_s1001_D_dual_cosine_J",
+    "direct_n60_s1001_D_dual_cosine_BCE",
+    "direct_n60_s1001_D_dual_cosine_InfoNCE",
+    "direct_n60_s1001_X_joint_mlp_J",
+    "direct_n60_s1001_X_joint_mlp_BCE",
+    "direct_n60_s1001_X_joint_mlp_InfoNCE"
+  ],
+  "configs": {
+    "direct_n00_s1001_D_dual_cosine_J": {
+      "unit_id": "direct_n00_s1001_D_dual_cosine_J",
+      "cond": "n00",
+      "noise_percent": 0,
+      "structure": "D",
+      "objective": "J",
+      "encoder_source": "r30_f00_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "a*cos(Wx hx, Wy hy)+b, proj 256, a=2s,b=-2so, s init 2, o init 0.5",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n00_s1001_D_dual_cosine_BCE": {
+      "unit_id": "direct_n00_s1001_D_dual_cosine_BCE",
+      "cond": "n00",
+      "noise_percent": 0,
+      "structure": "D",
+      "objective": "BCE",
+      "encoder_source": "r30_f00_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "a*cos(Wx hx, Wy hy)+b, proj 256, a=2s,b=-2so, s init 2, o init 0.5",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n00_s1001_D_dual_cosine_InfoNCE": {
+      "unit_id": "direct_n00_s1001_D_dual_cosine_InfoNCE",
+      "cond": "n00",
+      "noise_percent": 0,
+      "structure": "D",
+      "objective": "NCE",
+      "encoder_source": "r30_f00_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "a*cos(Wx hx, Wy hy)+b, proj 256, a=2s,b=-2so, s init 2, o init 0.5",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n00_s1001_X_joint_mlp_J": {
+      "unit_id": "direct_n00_s1001_X_joint_mlp_J",
+      "cond": "n00",
+      "noise_percent": 0,
+      "structure": "X",
+      "objective": "J",
+      "encoder_source": "r30_f00_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "MLP([hx,hy]) 2048-256-GELU-256-GELU-1, blockwise first layer",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n00_s1001_X_joint_mlp_BCE": {
+      "unit_id": "direct_n00_s1001_X_joint_mlp_BCE",
+      "cond": "n00",
+      "noise_percent": 0,
+      "structure": "X",
+      "objective": "BCE",
+      "encoder_source": "r30_f00_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "MLP([hx,hy]) 2048-256-GELU-256-GELU-1, blockwise first layer",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n00_s1001_X_joint_mlp_InfoNCE": {
+      "unit_id": "direct_n00_s1001_X_joint_mlp_InfoNCE",
+      "cond": "n00",
+      "noise_percent": 0,
+      "structure": "X",
+      "objective": "NCE",
+      "encoder_source": "r30_f00_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "MLP([hx,hy]) 2048-256-GELU-256-GELU-1, blockwise first layer",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n60_s1001_D_dual_cosine_J": {
+      "unit_id": "direct_n60_s1001_D_dual_cosine_J",
+      "cond": "n60",
+      "noise_percent": 60,
+      "structure": "D",
+      "objective": "J",
+      "encoder_source": "r30_f60_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "a*cos(Wx hx, Wy hy)+b, proj 256, a=2s,b=-2so, s init 2, o init 0.5",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n60_s1001_D_dual_cosine_BCE": {
+      "unit_id": "direct_n60_s1001_D_dual_cosine_BCE",
+      "cond": "n60",
+      "noise_percent": 60,
+      "structure": "D",
+      "objective": "BCE",
+      "encoder_source": "r30_f60_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "a*cos(Wx hx, Wy hy)+b, proj 256, a=2s,b=-2so, s init 2, o init 0.5",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n60_s1001_D_dual_cosine_InfoNCE": {
+      "unit_id": "direct_n60_s1001_D_dual_cosine_InfoNCE",
+      "cond": "n60",
+      "noise_percent": 60,
+      "structure": "D",
+      "objective": "NCE",
+      "encoder_source": "r30_f60_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "a*cos(Wx hx, Wy hy)+b, proj 256, a=2s,b=-2so, s init 2, o init 0.5",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n60_s1001_X_joint_mlp_J": {
+      "unit_id": "direct_n60_s1001_X_joint_mlp_J",
+      "cond": "n60",
+      "noise_percent": 60,
+      "structure": "X",
+      "objective": "J",
+      "encoder_source": "r30_f60_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "MLP([hx,hy]) 2048-256-GELU-256-GELU-1, blockwise first layer",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n60_s1001_X_joint_mlp_BCE": {
+      "unit_id": "direct_n60_s1001_X_joint_mlp_BCE",
+      "cond": "n60",
+      "noise_percent": 60,
+      "structure": "X",
+      "objective": "BCE",
+      "encoder_source": "r30_f60_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "MLP([hx,hy]) 2048-256-GELU-256-GELU-1, blockwise first layer",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    },
+    "direct_n60_s1001_X_joint_mlp_InfoNCE": {
+      "unit_id": "direct_n60_s1001_X_joint_mlp_InfoNCE",
+      "cond": "n60",
+      "noise_percent": 60,
+      "structure": "X",
+      "objective": "NCE",
+      "encoder_source": "r30_f60_s1001_H0",
+      "encoder_frozen": true,
+      "structure_spec": "MLP([hx,hy]) 2048-256-GELU-256-GELU-1, blockwise first layer",
+      "seed": 1001,
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": {
+        "name": "AdamW",
+        "lr": 0.001,
+        "weight_decay": 0.0,
+        "betas": [
+          0.9,
+          0.999
+        ],
+        "eps": 1e-08,
+        "amsgrad": false
+      },
+      "grad_clip": 0.0,
+      "eval_every": 250,
+      "primary_checkpoint": "step_2000",
+      "sampling": "IID caption records with replacement: numpy default_rng(seed).integers(0,145000,128) per step; image = observed_map[record]",
+      "P": "record diagonal, weight 1/B",
+      "Q": "off-diagonal record draws, weight 1/(B(B-1)); same-image retained (R32 F1)",
+      "NCE": "bidirectional CE on g, diagonal positives, all other in-batch draws as candidates (no masking)",
+      "init": "torch.manual_seed(seed) then build(structure); identical across objectives within a structure",
+      "peers": "shared critic params; loss = 0.5*(loss_peerA + loss_peerB) on the same records; eval g per peer then mean; no cross-peer products",
+      "standardization": "per peer, FIT-only (cache standardization_peer*.npz)",
+      "precision": "float32, matmul tf32 off (torch default), no AMP",
+      "rank_score": "peer-mean g (float64 of per-peer float32 g); upstream IN2R i2t/t2i argsort; tie-bounded values also reported",
+      "test_read": false
+    }
+  },
+  "input_locks": {
+    "caches": {
+      "n00": {
+        "manifest": "/projects/EEG-foundation-model/yinghao/outputs_v9/r34_direct_critic_20261102/cache/n00/CACHE_MANIFEST.json",
+        "parent": {
+          "unit": "r30_f00_s1001_H0",
+          "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_H0/model_best.pth.tar",
+          "epoch": 27,
+          "best_rsum": 522.0710059171597,
+          "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_H0/RUN_1080229.json",
+          "code_dir": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11"
+        },
+        "observed_map": {
+          "noise_ratio": 0.0,
+          "realized_mismatch": 0.0,
+          "note": "same file the H parent trained with; identity at 0% (native data.py uses arange//5 there)"
+        },
+        "native_dev": {
+          "i2t_r1": 84.51676528599606,
+          "i2t_r5": 96.05522682445759,
+          "i2t_r10": 98.61932938856016,
+          "t2i_r1": 64.2603550295858,
+          "t2i_r5": 87.08086785009861,
+          "t2i_r10": 91.53846153846153,
+          "rsum": 522.0710059171597,
+          "peer_rsum": {
+            "A": 517.2583826429981,
+            "B": 515.8777120315582
+          },
+          "cache_rescore_identical": true,
+          "checkpoint_best_rsum": 522.0710059171597,
+          "checkpoint_epoch": 27,
+          "reproduces_checkpoint_best_rsum_exactly": true,
+          "abs_diff_vs_checkpoint": 0.0
+        },
+        "cache_gpu": {
+          "torch": "2.9.0+cu128",
+          "gpu": "NVIDIA L40S",
+          "matmul_tf32": false,
+          "cudnn_tf32": true
+        }
+      },
+      "n60": {
+        "manifest": "/projects/EEG-foundation-model/yinghao/outputs_v9/r34_direct_critic_20261102/cache/n60/CACHE_MANIFEST.json",
+        "parent": {
+          "unit": "r30_f60_s1001_H0",
+          "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/model_best.pth.tar",
+          "epoch": 19,
+          "best_rsum": 505.20710059171597,
+          "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/RUN_1080232.json",
+          "code_dir": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11"
+        },
+        "observed_map": {
+          "noise_ratio": 0.6,
+          "realized_mismatch": 0.5999793103448275,
+          "note": "same file the H parent trained with; identity at 0% (native data.py uses arange//5 there)"
+        },
+        "native_dev": {
+          "i2t_r1": 80.6706114398422,
+          "i2t_r5": 95.06903353057199,
+          "i2t_r10": 98.22485207100591,
+          "t2i_r1": 58.69822485207101,
+          "t2i_r5": 83.31360946745562,
+          "t2i_r10": 89.23076923076923,
+          "rsum": 505.20710059171597,
+          "peer_rsum": {
+            "A": 499.1715976331361,
+            "B": 497.6528599605523
+          },
+          "cache_rescore_identical": true,
+          "checkpoint_best_rsum": 505.20710059171597,
+          "checkpoint_epoch": 19,
+          "reproduces_checkpoint_best_rsum_exactly": true,
+          "abs_diff_vs_checkpoint": 0.0
+        },
+        "cache_gpu": {
+          "torch": "2.9.0+cu128",
+          "gpu": "NVIDIA L40S",
+          "matmul_tf32": false,
+          "cudnn_tf32": true
+        }
+      }
+    },
+    "locks": {
+      "created_utc": "2026-11-02T02:20:38Z",
+      "dev_observed_maps": {
+        "n00": {
+          "ratio": 0.0,
+          "seed": 20261102,
+          "mechanism": "IN2R data.py subset caption->image permutation within DEV (1014 images x5)",
+          "realized_mismatch": 0.0,
+          "image_counts_preserved": true,
+          "use": "evaluation-only DEV-observed J; never batches/optimizer/selection"
+        },
+        "n60": {
+          "ratio": 0.6,
+          "seed": 20261102,
+          "mechanism": "IN2R data.py subset caption->image permutation within DEV (1014 images x5)",
+          "realized_mismatch": 0.5992110453648916,
+          "image_counts_preserved": true,
+          "use": "evaluation-only DEV-observed J; never batches/optimizer/selection"
+        }
+      },
+      "fit_eval_subset": {
+        "n": 14500,
+        "seed": 20261103,
+        "rule": "uniform without replacement over the 145000 FIT caption records; observed map of the condition",
+        "use": "FIT-observed J readout (same record U-statistic as training P/Q)"
+      }
+    }
+  },
+  "pq_rules": {
+    "line": "R34 DIRECT_CRITIC_RETRIEVAL_v1",
+    "sources_read": [
+      "r32_native_ratio/VCS_NATIVE_RATIO_v1_Server_20261101/configs/PROTOCOL.json (data.P_measure, Q_measure, Q_training_estimator, same_image_exclusion_from_Q, F1 block)",
+      "r32_native_ratio/VCS_NATIVE_RATIO_v1_Server_20261101/src/native_ratio/{frozen.py,objectives.py,models.py}",
+      "outputs_v9/r32_native_ratio_20261101/runs/nrcs_v1_f1_n60_s1001_cosine_J_b0_i0/metrics.json (actual executed F1 config)"
+    ],
+    "PQ_rules_adopted": {
+      "sampling": "F1: each update draws B=128 caption records IID uniformly WITH replacement (numpy default_rng(seed).integers(0,145000,128)); image of a record = observed map[record]",
+      "P": "F1 inbatch_pair_weights: record diagonal, weight 1/B",
+      "Q": "F1: off-diagonal record draw positions, weight 1/(B(B-1)) (U-statistic); same-image (and repeated-record) product pairs are RETAINED, no masking",
+      "J_BCE": "same P/Q weights; J = E_P[T-T^2/2]-E_Q[T+T^2/2] with T=tanh(g/2), no clipping; BCE = E_P softplus(-g)+E_Q softplus(g) (= F1 balanced_logistic on log_ratio=g)",
+      "NCE": "bidirectional CE on the same BxB g, positives = the same observed record diagonal; all other draws are candidates (no duplicate masking, consistent with Q support). Not read from truth.",
+      "duplicate_counts": "per unit: number of repeated-record pairs and same-observed-image off-diagonal pairs over all 2000 batches recorded in RESULT.json batch_stats",
+      "peers": "two R30 H peers: shared critic parameters, per-peer standardization, loss = 0.5*(peerA + peerB) on the same records, eval per peer then mean of g; no cross-peer products"
+    },
+    "copied_from_F1_actual": {
+      "steps": 2000,
+      "batch_size": 128,
+      "optimizer": "AdamW",
+      "lr": 0.001,
+      "weight_decay": 0.0,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "eps": 1e-08,
+      "grad_clip": 0.0,
+      "standardize": "train (FIT-only, R32 standardize_caches rule)",
+      "D_affine_init": "F1 AffineCosineCritic: s=softplus(raw)+1e-6 init 2.0, offset 0.5, both learnable; g=log_ratio=2s(cos-o)",
+      "D_projection": "F1 components=256, linear head with bias per modality (hidden_dim null)"
+    },
+    "mismatches_vs_old_F1": [
+      "Encoder: R30 H 40-epoch DEV-best two-peer IN2R host (each condition its own H), not the R32 W2 GPO single-tower parent.",
+      "Features: native H embeddings with native per-batch centering + L2 (forward_emb, eval mode); F1 used pointwise encoder outputs without batch centering.",
+      "Two peers (shared critic, peer-mean score) vs F1 single model.",
+      "Observed map: the H parent's own full-pool map (R25 f30k_precomp_0.6.npy / identity at 0%); F1 used R32 FIT/SELECT role split with its own noise draw. R32 maps not used.",
+      "No SELECT pool and no checkpoint selection: fixed step 2000 primary endpoint (F1 selected by SELECT-J, eval_every 100).",
+      "eval_every 250 (plan) vs F1 100.",
+      "DEV J readout uses the record U-statistic (Q off-diagonal records) like training; F1 evaluate() used the image-marginal x uniform-caption V-statistic (diagonal included).",
+      "FIT-observed J read on a locked 14,500-record FIT subset (not F1's SELECT pool).",
+      "New arms: BCE for the dual-cosine structure (F1 had ratio_logistic only on the simplex critic), InfoNCE (absent in F1), joint MLP X structure (absent in F1). F1 simplex-ratio arms not used.",
+      "Device: GPU float32 (F1 ran on CPU float32).",
+      "Ranking: upstream IN2R i2t/t2i argsort on the peer-mean g (F1 used its own deterministic-tie retrieval_metrics); tie-bounded (optimistic/pessimistic) recalls reported in addition."
+    ],
+    "X_structure_choices_not_in_package": "activation GELU (as R32 _head hidden layer), torch default Linear init, output scalar g without extra affine"
+  },
+  "gate": {
+    "file": "GPU_GATE.json",
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+  },
+  "cpu_check": {
+    "status": "PASS",
+    "pytest": "10 passed",
+    "pytest_log": "logs/PYTEST_1080977.txt",
+    "check_math": "CHECK_MATH_1080977.json (8/8 all_pass)",
+    "tests": [
+      "native_eval_verbatim (vs code_r30v11/evaluation.py incl. ties)",
+      "tie_bounded",
+      "objectives_match_r32_and_gradients (gradcheck fp64; -J and BCE logit grads equal at g=0)",
+      "dual_cosine_equals_r32_affine",
+      "joint_blockwise_equals_concat_and_params (D 524802, X 590593)",
+      "identical_init_within_structure",
+      "j_from_matrix_ustat_bruteforce",
+      "standardization_matches_r32",
+      "noise_mechanism_matches_r25_and_locks (reproduces R25 f30k 0.6 map exactly)",
+      "test_guard"
+    ],
+    "recheck": {
+      "status": "PASS",
+      "pytest": "11 passed (adds unit-path synthetic: run_unit on CPU fake data for 6 arms, identical init/batches, NaN-DEV isolation)",
+      "check_math": "CHECK_MATH_1080990.json 8/8"
+    }
+  },
+  "primary_endpoint": "fixed step-2000 full-DEV R@1/5/10 both directions + rSum (upstream IN2R i2t/t2i on peer-mean g); no checkpoint selection",
+  "test_read": false,
+  "formal_execution": "one GPU job per condition running its 6 units sequentially (same GPU per condition), normal QOS, nice 0",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

@@ -33,6 +33,11 @@ def msd(v):
     return statistics.mean(v), statistics.stdev(v)
 
 
+GATE_OK = ('PASS', 'PASS_LOGGING_RULE')
+_XC = os.path.join(HERE, 'diag', 'NRCS_RANK_RULE_CROSSCHECK.json')
+LOGGING_RULE = {'NRCS-v1': {x['view']: x for x in json.load(open(_XC))['rows']}} if os.path.exists(_XC) else {}
+
+
 def main():
     events = [json.loads(l) for l in open(LOG)]
     mans = [(e['manifest'], e['sha256']) for e in events if e.get('event') == 'manifest_frozen']
@@ -73,6 +78,21 @@ def main():
                 row.update(dev_recomputed=r['dev_recomputed'], dev_diff_recomputed_minus_logged=r['dev_diff_recomputed_minus_logged'],
                            dev_max_abs_recall_diff_pp=r['dev_max_abs_recall_diff_pp'], dev_gate='PASS' if ok else 'FAIL',
                            dev_gate_jobtime=r['dev_gate'], eval_env=r['env'], eval_job=r['env']['job'])
+                if not ok and u['line'] in LOGGING_RULE:
+                    # GATE_AMENDMENT_NRCS_EVAL_RULE_20261102.md: the line logged DEV under its own rank rule; the gate is checked
+                    # under that rule on the same score matrix (DEV-only cross-check); table values stay the upstream program's
+                    xc = LOGGING_RULE[u['line']].get(u['run_dir'].split('test_view/')[-1])
+                    if (xc and xc['package_minus_logged_max_pp'] <= 0.1 + 1e-9
+                            and abs(xc['upstream']['rsum'] - r['dev_recomputed']['rsum']) < 1e-6):
+                        row.update(dev_gate='PASS_LOGGING_RULE', dev_logging_rule_check=dict(
+                            source='diag/NRCS_RANK_RULE_CROSSCHECK.json', package_rule_rsum=xc['package']['rsum'],
+                            upstream_rsum=xc['upstream']['rsum'], tie_worst_rsum=xc['tie_worst']['rsum'],
+                            tie_best_rsum=xc['tie_best']['rsum'], package_minus_logged_max_pp=xc['package_minus_logged_max_pp']))
+                if u['line'] in LOGGING_RULE:
+                    # unified table rule: every unit of a line that logged DEV under another rank rule shows the upstream-program
+                    # DEV recompute in the tables; the logged value (logging rule) is kept alongside
+                    row['logged_dev_logging_rule'] = row['logged_dev']
+                    row['logged_dev'] = dict(r['dev_recomputed'], source='upstream evaluation.py recompute (unified table rule)')
                 if 'test' in r:
                     row['test'] = r['test']
                 else:
@@ -81,7 +101,7 @@ def main():
     lit = json.load(open(os.path.join(HERE, 'LITERATURE_TABLE.json')))
     out = dict(generated_utc=datetime.datetime.utcnow().isoformat() + 'Z', manifests=[dict(file=a, sha256=b) for a, b in mans],
                n_units=len(rows), n_complete=sum(r['status'] == 'COMPLETE' for r in rows),
-               n_gate_pass=sum(r.get('dev_gate') == 'PASS' for r in rows), units=rows, skipped=skipped,
+               n_gate_pass=sum(r.get('dev_gate') in GATE_OK for r in rows), units=rows, skipped=skipped,
                test_read_events=[e for e in events if e.get('event') == 'test_read'])
     json.dump(out, open(os.path.join(HERE, 'TEST_RESULTS.json'), 'w'), indent=1)
     md = tables(rows, skipped, mans, lit, events)
@@ -115,8 +135,8 @@ def tables(rows, skipped, mans, lit, events):
       'mean ± std = over seeds 1001/1002/1003 (sample std, n−1), given only when all three seeds exist; otherwise NA. '
       'Oracle rows (R27-O / R27-O3) use ground-truth rescue during training: oracle diagnostic, not a method.\n')
     comp = [r for r in rows if r['status'] == 'COMPLETE']
-    gp = [r for r in comp if r['dev_gate'] == 'PASS']
-    gf = [r for r in comp if r['dev_gate'] != 'PASS']
+    gp = [r for r in comp if r['dev_gate'] in GATE_OK]
+    gf = [r for r in comp if r['dev_gate'] not in GATE_OK]
     A('## Coverage\n')
     A(f"Units in manifests: {len(rows)}; evaluated: {len(comp)}; DEV gate PASS: {len(gp)}; FAIL: {len(gf)}; "
       f"pending/not evaluated: {len(rows) - len(comp)}; skipped dirs: {len(skipped)}.\n")
@@ -126,7 +146,7 @@ def tables(rows, skipped, mans, lit, events):
         rr = [r for r in rows if r['line'] == ln]
         cc = [r for r in rr if r['status'] == 'COMPLETE']
         mx = max([r['dev_max_abs_recall_diff_pp'] for r in cc], default=None)
-        A(f"| {ln} | {len(rr)} | {len(cc)} | {sum(r['dev_gate'] == 'PASS' for r in cc)} | {sum(r['dev_gate'] != 'PASS' for r in cc)} | "
+        A(f"| {ln} | {len(rr)} | {len(cc)} | {sum(r['dev_gate'] in GATE_OK for r in cc)} | {sum(r['dev_gate'] not in GATE_OK for r in cc)} | "
           f"{'NA' if mx is None else f'{mx:.4f}'} |")
     A('')
     if gf:
@@ -135,6 +155,20 @@ def tables(rows, skipped, mans, lit, events):
         A('|---|---|---|---|---|')
         for r in gf:
             A(f"| {r['unit_id']} | {f2(r['logged_dev']['rsum'])} | {f2(r['dev_recomputed']['rsum'])} | {r['dev_max_abs_recall_diff_pp']:.4f} | {f2(tsum(r)['rsum'])} |")
+        A('')
+    lr = [r for r in comp if r['dev_gate'] == 'PASS_LOGGING_RULE']
+    if lr:
+        A('### Units passing the DEV gate under their logging rank rule (GATE_AMENDMENT_NRCS_EVAL_RULE_20261102.md)\n')
+        A('These lines logged DEV with a different rank rule (R32 NRCS-v1: package retrieval_metrics, ties by increasing candidate index). '
+          'The gate is checked under that rule on the same full-DEV score matrix (diag/NRCS_RANK_RULE_CROSSCHECK.json, DEV only); '
+          'all table values are the upstream IN2R evaluation.py values. The job-time gate FAIL records are kept. '
+          'Tie range = rSum with every tied candidate ranked ahead / none ranked ahead.\n')
+        A('| unit | logged DEV rSum (logging rule) | DEV rSum, logging rule recomputed | DEV rSum, upstream | DEV tie range | TEST rSum (upstream) |')
+        A('|---|---|---|---|---|---|')
+        for r in lr:
+            c = r['dev_logging_rule_check']
+            A(f"| {r['unit_id']} | {f2(r['logged_dev_logging_rule']['rsum'])} | {f2(c['package_rule_rsum'])} | {f2(c['upstream_rsum'])} | "
+              f"{f2(c['tie_worst_rsum'])}–{f2(c['tie_best_rsum'])} | {f2(tsum(r)['rsum'])} |")
         A('')
     pend = [r for r in rows if r['status'] != 'COMPLETE']
     if pend:

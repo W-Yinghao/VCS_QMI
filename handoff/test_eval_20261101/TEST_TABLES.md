@@ -2,12 +2,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # TEST evaluation of DEV-selected retrieval checkpoints (numbers only)
 
-Generated 2026-11-02T01:49:58.229011Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973).
+Generated 2026-11-02T03:56:47.912438Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d).
 Checkpoint per unit = existing model_best.pth.tar (best full-DEV epoch during training; SPS S0: full-DEV best checkpoint_37 from FULLDEV.json). TEST protocol = native IN2R evalrank: both peers, peer-averaged similarity. Flickr30K: test split 1,000 images / 5,000 captions. MS-COCO: testall, 5-fold 1K mean (main) and 5K. CC152K: test 1,000 / 1,000. DEV gate: DEV recomputed with the same evaluator (r25_co_train.validate path) must match the logged best-epoch DEV within 0.1 pp on each of the six recalls; units failing it are listed separately and are not in the tables. mean ± std = over seeds 1001/1002/1003 (sample std, n−1), given only when all three seeds exist; otherwise NA. Oracle rows (R27-O / R27-O3) use ground-truth rescue during training: oracle diagnostic, not a method.
 
 ## Coverage
 
-Units in manifests: 302; evaluated: 302; DEV gate PASS: 296; FAIL: 6; pending/not evaluated: 0; skipped dirs: 60.
+Units in manifests: 346; evaluated: 346; DEV gate PASS: 342; FAIL: 4; pending/not evaluated: 0; skipped dirs: 57.
 
 | line | units | evaluated | gate PASS | gate FAIL | max abs DEV recall diff (pp) |
 |---|---|---|---|---|---|
@@ -24,18 +24,30 @@ Units in manifests: 302; evaluated: 302; DEV gate PASS: 296; FAIL: 6; pending/no
 | R28 | 8 | 8 | 8 | 0 | 0.0197 |
 | R29 | 18 | 18 | 18 | 0 | 0.0197 |
 | R30 | 36 | 36 | 36 | 0 | 0.0986 |
-| NRCS-v1 | 38 | 38 | 32 | 6 | 0.7890 |
+| R31-FID | 6 | 6 | 6 | 0 | 0.0197 |
+| NRCS-v1 | 76 | 76 | 72 | 4 | 1.8738 |
 
 ### Units failing the DEV-recompute gate (TEST numbers not used in the tables)
 
 | unit | logged DEV rSum | recomputed DEV rSum | max abs recall diff (pp) | TEST rSum |
 |---|---|---|---|---|
-| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0 | 121.52 | 121.72 | 0.2959 | 130.98 |
-| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0__selJ | 121.52 | 121.72 | 0.2959 | 130.98 |
-| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0p1 | 134.60 | 134.79 | 0.1972 | 136.02 |
-| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0p1__selJ | 136.29 | 136.59 | 0.3945 | 140.82 |
-| NRCS-v1/f00_s1001/e2_ratio_logistic_b1_i0p1 | 152.45 | 153.63 | 0.7890 | 158.54 |
-| NRCS-v1/f00_s1001/e2_ratio_logistic_b1_i0p1__selJ | 152.45 | 153.63 | 0.7890 | 158.54 |
+| NRCS-v1/f60_s1001/e2_cosine_hinge_b0_i0p1 | 9.01 | 9.01 | 1.8738 | 8.08 |
+| NRCS-v1/f60_s1002/e2_cosine_hinge_b0_i0p1 | 8.70 | 8.70 | 1.1834 | 10.90 |
+| NRCS-v1/f60_s1003/e2_cosine_hinge_b0_i0p1 | 12.72 | 12.72 | 0.1972 | 9.08 |
+| NRCS-v1/f60_s1003/e2_cosine_hinge_b0_i0p1__selJ | 8.95 | 8.95 | 0.1972 | 9.90 |
+
+### Units passing the DEV gate under their logging rank rule (GATE_AMENDMENT_NRCS_EVAL_RULE_20261102.md)
+
+These lines logged DEV with a different rank rule (R32 NRCS-v1: package retrieval_metrics, ties by increasing candidate index). The gate is checked under that rule on the same full-DEV score matrix (diag/NRCS_RANK_RULE_CROSSCHECK.json, DEV only); all table values are the upstream IN2R evaluation.py values. The job-time gate FAIL records are kept. Tie range = rSum with every tied candidate ranked ahead / none ranked ahead.
+
+| unit | logged DEV rSum (logging rule) | DEV rSum, logging rule recomputed | DEV rSum, upstream | DEV tie range | TEST rSum (upstream) |
+|---|---|---|---|---|---|
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0 | 121.52 | 121.52 | 121.72 | 116.59–128.13 | 130.98 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0__selJ | 121.52 | 121.52 | 121.72 | 116.59–128.13 | 130.98 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0p1 | 134.60 | 134.60 | 134.79 | 130.06–139.92 | 136.02 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0p1__selJ | 136.29 | 136.29 | 136.59 | 132.05–141.72 | 140.82 |
+| NRCS-v1/f00_s1001/e2_ratio_logistic_b1_i0p1 | 152.45 | 152.45 | 153.63 | 147.61–160.63 | 158.54 |
+| NRCS-v1/f00_s1001/e2_ratio_logistic_b1_i0p1__selJ | 152.45 | 152.45 | 153.63 | 147.61–160.63 | 158.54 |
 
 ## Flickr30K, 0% noise
 
@@ -60,12 +72,20 @@ No paper value at 0% noise in the literature table.
 | R30 | H->PV(scale=fit_static) [40ep] | epochs 40 | 1 | 522.84 | NA | NA | NA | 524.72 | NA | NA | NA |
 | NRCS-v1 | c2_cosine_J_b0_i0p1 | epochs 20 | 1 | 391.34 | NA | NA | NA | 396.08 | NA | NA | NA |
 | NRCS-v1 | c2_cosine_J_b0_i0p1__selJ | epochs 20 | 1 | 386.45 | NA | NA | NA | 391.50 | NA | NA | NA |
+| NRCS-v1 | c2_ratio_J_b1_i0p1 | epochs 20 | 1 | 186.04 | NA | NA | NA | 183.38 | NA | NA | NA |
+| NRCS-v1 | c2_ratio_J_b1_i0p1__selJ | epochs 20 | 1 | 186.04 | NA | NA | NA | 183.38 | NA | NA | NA |
 | NRCS-v1 | e2_cosine_J_b0_i0 | epochs 20 | 3 | 374.58 | 408.15 | 399.05 | 393.93 ± 17.36 | 382.54 | 411.50 | 399.38 | 397.81 ± 14.54 |
 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | epochs 20 | 3 | 373.79 | 391.14 | 391.62 | 385.52 ± 10.16 | 380.58 | 394.60 | 391.34 | 388.84 ± 7.34 |
-| NRCS-v1 | e2_cosine_J_b0_i0p1 | epochs 20 | 2 | 383.91 | 408.78 | NA | NA | 386.36 | 412.98 | NA | NA |
-| NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | epochs 20 | 2 | 372.78 | 399.55 | NA | NA | 373.78 | 400.64 | NA | NA |
-| NRCS-v1 | e2_ratio_J_b1_i0 | epochs 20 | 1 | NA | 183.65 | NA | NA | NA | 184.58 | NA | NA |
-| NRCS-v1 | e2_ratio_J_b1_i0__selJ | epochs 20 | 1 | NA | 184.28 | NA | NA | NA | 182.48 | NA | NA |
+| NRCS-v1 | e2_cosine_J_b0_i0p1 | epochs 20 | 3 | 383.91 | 408.78 | 399.19 | 397.29 ± 12.54 | 386.36 | 412.98 | 408.78 | 402.71 ± 14.31 |
+| NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | epochs 20 | 3 | 372.78 | 399.55 | 393.51 | 388.61 ± 14.04 | 373.78 | 400.64 | 404.46 | 392.96 ± 16.72 |
+| NRCS-v1 | e2_cosine_hinge_b0_i0p1 | epochs 20 | 3 | 475.23 | 473.67 | 473.47 | 474.12 ± 0.96 | 475.38 | 481.08 | 479.14 | 478.53 ± 2.90 |
+| NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | epochs 20 | 3 | 472.01 | 466.51 | 466.59 | 468.37 ± 3.15 | 472.12 | 475.08 | 471.02 | 472.74 ± 2.10 |
+| NRCS-v1 | e2_ratio_J_b1_i0 | epochs 20 | 3 | 121.72 | 183.65 | 177.22 | 160.86 ± 34.05 | 130.98 | 184.58 | 179.28 | 164.95 ± 29.54 |
+| NRCS-v1 | e2_ratio_J_b1_i0__selJ | epochs 20 | 3 | 121.72 | 184.28 | 175.74 | 160.58 ± 33.93 | 130.98 | 182.48 | 178.50 | 163.99 ± 28.65 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1 | epochs 20 | 3 | 134.79 | 184.20 | 168.42 | 162.47 ± 25.24 | 136.02 | 189.76 | 173.34 | 166.37 ± 27.54 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | epochs 20 | 3 | 136.59 | 184.20 | 168.42 | 163.07 ± 24.25 | 140.82 | 189.76 | 173.34 | 167.97 ± 24.91 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1 | epochs 20 | 3 | 153.63 | 196.25 | 192.11 | 180.66 ± 23.50 | 158.54 | 202.14 | 196.16 | 185.61 ± 23.64 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | epochs 20 | 3 | 153.63 | 195.84 | 188.80 | 179.42 ± 22.61 | 158.54 | 200.18 | 192.28 | 183.67 ± 22.12 |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -73,6 +93,16 @@ No paper value at 0% noise in the literature table.
 |---|---|---|---|---|---|---|---|---|
 | NRCS-v1 | e2_cosine_J_b0_i0 | 42.20 | 77.03 | 87.03 | 38.83 | 71.26 | 81.45 | 397.81 |
 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 39.87 | 75.40 | 85.73 | 37.71 | 69.56 | 80.57 | 388.84 |
+| NRCS-v1 | e2_cosine_J_b0_i0p1 | 44.30 | 77.93 | 87.33 | 39.48 | 71.77 | 81.89 | 402.71 |
+| NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 41.90 | 75.47 | 85.77 | 38.46 | 70.27 | 81.10 | 392.96 |
+| NRCS-v1 | e2_cosine_hinge_b0_i0p1 | 70.33 | 90.60 | 95.20 | 53.69 | 80.73 | 87.97 | 478.53 |
+| NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | 69.53 | 89.60 | 94.53 | 52.11 | 79.77 | 87.19 | 472.74 |
+| NRCS-v1 | e2_ratio_J_b1_i0 | 9.30 | 26.73 | 39.27 | 9.19 | 32.39 | 48.07 | 164.95 |
+| NRCS-v1 | e2_ratio_J_b1_i0__selJ | 9.23 | 26.70 | 38.67 | 9.25 | 32.16 | 47.97 | 163.99 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1 | 8.87 | 27.07 | 41.13 | 9.11 | 32.50 | 47.70 | 166.37 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 9.63 | 27.80 | 41.67 | 9.04 | 32.31 | 47.53 | 167.97 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 11.07 | 30.83 | 44.33 | 10.43 | 36.43 | 52.51 | 185.61 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 11.17 | 30.87 | 43.93 | 10.35 | 35.55 | 51.80 | 183.67 |
 
 ### Ranking by mean DEV rSum (seeds available per group; n differs between groups), with mean TEST rSum of the same seeds
 
@@ -91,14 +121,22 @@ No paper value at 0% noise in the literature table.
 | 11 | R29 | b_listwise_bce | 1 | 505.40 | 511.42 |
 | 12 | R29 | l_listwise_vcs | 1 | 504.62 | 508.86 |
 | 13 | R29 | p_pointwise_vcs | 1 | 487.51 | 490.80 |
-| 14 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 2 | 396.34 | 399.67 |
-| 15 | NRCS-v1 | e2_cosine_J_b0_i0 | 3 | 393.93 | 397.81 |
-| 16 | NRCS-v1 | c2_cosine_J_b0_i0p1 | 1 | 391.34 | 396.08 |
-| 17 | NRCS-v1 | c2_cosine_J_b0_i0p1__selJ | 1 | 386.45 | 391.50 |
-| 18 | NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 2 | 386.16 | 387.21 |
-| 19 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 3 | 385.52 | 388.84 |
-| 20 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 1 | 184.28 | 182.48 |
-| 21 | NRCS-v1 | e2_ratio_J_b1_i0 | 1 | 183.65 | 184.58 |
+| 14 | NRCS-v1 | e2_cosine_hinge_b0_i0p1 | 3 | 474.12 | 478.53 |
+| 15 | NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | 3 | 468.37 | 472.74 |
+| 16 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 3 | 397.29 | 402.71 |
+| 17 | NRCS-v1 | e2_cosine_J_b0_i0 | 3 | 393.93 | 397.81 |
+| 18 | NRCS-v1 | c2_cosine_J_b0_i0p1 | 1 | 391.34 | 396.08 |
+| 19 | NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 3 | 388.61 | 392.96 |
+| 20 | NRCS-v1 | c2_cosine_J_b0_i0p1__selJ | 1 | 386.45 | 391.50 |
+| 21 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 3 | 385.52 | 388.84 |
+| 22 | NRCS-v1 | c2_ratio_J_b1_i0p1 | 1 | 186.04 | 183.38 |
+| 23 | NRCS-v1 | c2_ratio_J_b1_i0p1__selJ | 1 | 186.04 | 183.38 |
+| 24 | NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 3 | 180.66 | 185.61 |
+| 25 | NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 3 | 179.42 | 183.67 |
+| 26 | NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 3 | 163.07 | 167.97 |
+| 27 | NRCS-v1 | e2_ratio_J_b1_i0p1 | 3 | 162.47 | 166.37 |
+| 28 | NRCS-v1 | e2_ratio_J_b1_i0 | 3 | 160.86 | 164.95 |
+| 29 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 3 | 160.58 | 163.99 |
 
 ### Seed-matched ranking: seed 1001 only (every group that has seed 1001), DEV rSum with TEST rSum
 
@@ -117,14 +155,24 @@ No paper value at 0% noise in the literature table.
 | 11 | R29 | b_listwise_bce | 505.40 | 511.42 |
 | 12 | R29 | l_listwise_vcs | 504.62 | 508.86 |
 | 13 | R29 | p_pointwise_vcs | 487.51 | 490.80 |
-| 14 | NRCS-v1 | c2_cosine_J_b0_i0p1 | 391.34 | 396.08 |
-| 15 | NRCS-v1 | c2_cosine_J_b0_i0p1__selJ | 386.45 | 391.50 |
-| 16 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 383.91 | 386.36 |
-| 17 | NRCS-v1 | e2_cosine_J_b0_i0 | 374.58 | 382.54 |
-| 18 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 373.79 | 380.58 |
-| 19 | NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 372.78 | 373.78 |
+| 14 | NRCS-v1 | e2_cosine_hinge_b0_i0p1 | 475.23 | 475.38 |
+| 15 | NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | 472.01 | 472.12 |
+| 16 | NRCS-v1 | c2_cosine_J_b0_i0p1 | 391.34 | 396.08 |
+| 17 | NRCS-v1 | c2_cosine_J_b0_i0p1__selJ | 386.45 | 391.50 |
+| 18 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 383.91 | 386.36 |
+| 19 | NRCS-v1 | e2_cosine_J_b0_i0 | 374.58 | 382.54 |
+| 20 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 373.79 | 380.58 |
+| 21 | NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 372.78 | 373.78 |
+| 22 | NRCS-v1 | c2_ratio_J_b1_i0p1 | 186.04 | 183.38 |
+| 23 | NRCS-v1 | c2_ratio_J_b1_i0p1__selJ | 186.04 | 183.38 |
+| 24 | NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 153.63 | 158.54 |
+| 25 | NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 153.63 | 158.54 |
+| 26 | NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 136.59 | 140.82 |
+| 27 | NRCS-v1 | e2_ratio_J_b1_i0p1 | 134.79 | 136.02 |
+| 28 | NRCS-v1 | e2_ratio_J_b1_i0 | 121.72 | 130.98 |
+| 29 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 121.72 | 130.98 |
 
-DEV-selected group among non-oracle groups with all three seeds: NRCS-v1 e2_cosine_J_b0_i0 -- mean DEV 393.93, mean TEST 397.81.
+DEV-selected group among non-oracle groups with all three seeds: NRCS-v1 e2_cosine_hinge_b0_i0p1 -- mean DEV 474.12, mean TEST 478.53.
 Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN (TEST rSum 527.88, DEV 522.88); picking the maximum TEST row (or group) across methods uses TEST for selection and is optimistic, not a DEV-selected result.
 
 ### Per unit
@@ -146,6 +194,8 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | R30/f00_s1001/PV | 1001 | 26 | RTX PRO 6000 | 522.84 | 522.84 | 0.0000 | 83.90 | 96.40 | 98.60 | 65.28 | 88.20 | 92.34 | 524.72 |
 | NRCS-v1/f00_s1001/c2_cosine_J_b0_i0p1 | 1001 | 20 | RTX PRO 6000 | 391.34 | 391.34 | 0.0000 | 42.30 | 77.40 | 86.70 | 38.02 | 70.26 | 81.40 | 396.08 |
 | NRCS-v1/f00_s1001/c2_cosine_J_b0_i0p1__selJ | 1001 | 16 | RTX PRO 6000 | 386.45 | 386.45 | 0.0000 | 41.90 | 76.50 | 85.00 | 37.54 | 69.94 | 80.62 | 391.50 |
+| NRCS-v1/f00_s1001/c2_ratio_J_b1_i0p1 | 1001 | 20 | RTX PRO 6000 | 186.04 | 186.04 | 0.0986 | 11.00 | 29.60 | 43.20 | 10.90 | 35.82 | 52.86 | 183.38 |
+| NRCS-v1/f00_s1001/c2_ratio_J_b1_i0p1__selJ | 1001 | 20 | RTX PRO 6000 | 186.04 | 186.04 | 0.0986 | 11.00 | 29.60 | 43.20 | 10.90 | 35.82 | 52.86 | 183.38 |
 | NRCS-v1/f00_s1001/e2_cosine_J_b0_i0 | 1001 | 20 | L40S | 374.58 | 374.58 | 0.0000 | 38.10 | 73.80 | 85.60 | 36.16 | 69.02 | 79.86 | 382.54 |
 | NRCS-v1/f00_s1002/e2_cosine_J_b0_i0 | 1002 | 20 | RTX PRO 6000 | 408.15 | 408.15 | 0.0000 | 45.80 | 79.70 | 88.80 | 40.84 | 73.18 | 83.18 | 411.50 |
 | NRCS-v1/f00_s1003/e2_cosine_J_b0_i0 | 1003 | 20 | L40S | 399.05 | 399.05 | 0.0000 | 42.70 | 77.60 | 86.70 | 39.48 | 71.58 | 81.32 | 399.38 |
@@ -154,10 +204,34 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | NRCS-v1/f00_s1003/e2_cosine_J_b0_i0__selJ | 1003 | 13 | L40S | 391.62 | 391.62 | 0.0000 | 40.70 | 75.80 | 85.90 | 38.42 | 69.96 | 80.56 | 391.34 |
 | NRCS-v1/f00_s1001/e2_cosine_J_b0_i0p1 | 1001 | 20 | L40S | 383.91 | 383.91 | 0.0000 | 41.20 | 73.40 | 84.90 | 36.36 | 70.16 | 80.34 | 386.36 |
 | NRCS-v1/f00_s1002/e2_cosine_J_b0_i0p1 | 1002 | 20 | RTX PRO 6000 | 408.78 | 408.78 | 0.0000 | 45.90 | 80.90 | 89.00 | 41.36 | 72.88 | 82.94 | 412.98 |
+| NRCS-v1/f00_s1003/e2_cosine_J_b0_i0p1 | 1003 | 20 | L40S | 399.19 | 399.19 | 0.0000 | 45.80 | 79.50 | 88.10 | 40.72 | 72.26 | 82.40 | 408.78 |
 | NRCS-v1/f00_s1001/e2_cosine_J_b0_i0p1__selJ | 1001 | 14 | L40S | 372.78 | 372.78 | 0.0000 | 37.50 | 70.30 | 82.90 | 35.26 | 68.26 | 79.56 | 373.78 |
 | NRCS-v1/f00_s1002/e2_cosine_J_b0_i0p1__selJ | 1002 | 11 | RTX PRO 6000 | 399.55 | 399.55 | 0.0000 | 43.80 | 78.00 | 87.20 | 39.58 | 70.48 | 81.58 | 400.64 |
+| NRCS-v1/f00_s1003/e2_cosine_J_b0_i0p1__selJ | 1003 | 15 | L40S | 393.51 | 393.51 | 0.0000 | 44.40 | 78.10 | 87.20 | 40.54 | 72.06 | 82.16 | 404.46 |
+| NRCS-v1/f00_s1001/e2_cosine_hinge_b0_i0p1 | 1001 | 20 | L40S | 475.23 | 475.23 | 0.0000 | 69.50 | 90.20 | 94.90 | 52.78 | 80.54 | 87.46 | 475.38 |
+| NRCS-v1/f00_s1002/e2_cosine_hinge_b0_i0p1 | 1002 | 20 | RTX PRO 6000 | 473.67 | 473.67 | 0.0000 | 72.50 | 90.70 | 95.30 | 53.84 | 80.50 | 88.24 | 481.08 |
+| NRCS-v1/f00_s1003/e2_cosine_hinge_b0_i0p1 | 1003 | 20 | L40S | 473.47 | 473.47 | 0.0000 | 69.00 | 90.90 | 95.40 | 54.46 | 81.16 | 88.22 | 479.14 |
+| NRCS-v1/f00_s1001/e2_cosine_hinge_b0_i0p1__selJ | 1001 | 16 | L40S | 472.01 | 472.01 | 0.0000 | 69.50 | 88.70 | 93.90 | 52.50 | 80.30 | 87.22 | 472.12 |
+| NRCS-v1/f00_s1002/e2_cosine_hinge_b0_i0p1__selJ | 1002 | 10 | RTX PRO 6000 | 466.51 | 466.51 | 0.0000 | 70.90 | 91.00 | 94.80 | 51.88 | 79.54 | 86.96 | 475.08 |
+| NRCS-v1/f00_s1003/e2_cosine_hinge_b0_i0p1__selJ | 1003 | 9 | L40S | 466.59 | 466.59 | 0.0000 | 68.20 | 89.10 | 94.90 | 51.96 | 79.48 | 87.38 | 471.02 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0 | 1001 | 20 | L40S | 121.72 | 121.72 | 0.2959 | 6.30 | 21.30 | 32.90 | 6.90 | 24.80 | 38.78 | 130.98 |
 | NRCS-v1/f00_s1002/e2_ratio_J_b1_i0 | 1002 | 20 | RTX PRO 6000 | 183.65 | 183.65 | 0.0000 | 11.80 | 30.40 | 42.80 | 10.28 | 36.16 | 53.14 | 184.58 |
+| NRCS-v1/f00_s1003/e2_ratio_J_b1_i0 | 1003 | 20 | L40S | 177.22 | 177.22 | 0.0000 | 9.80 | 28.50 | 42.10 | 10.38 | 36.22 | 52.28 | 179.28 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0__selJ | 1001 | 20 | L40S | 121.72 | 121.72 | 0.2959 | 6.30 | 21.30 | 32.90 | 6.90 | 24.80 | 38.78 | 130.98 |
 | NRCS-v1/f00_s1002/e2_ratio_J_b1_i0__selJ | 1002 | 19 | RTX PRO 6000 | 184.28 | 184.28 | 0.0000 | 11.30 | 30.00 | 42.10 | 10.68 | 35.78 | 52.62 | 182.48 |
+| NRCS-v1/f00_s1003/e2_ratio_J_b1_i0__selJ | 1003 | 19 | L40S | 175.74 | 175.74 | 0.0000 | 10.10 | 28.80 | 41.00 | 10.18 | 35.90 | 52.52 | 178.50 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0p1 | 1001 | 20 | L40S | 134.79 | 134.79 | 0.1972 | 5.70 | 22.20 | 35.50 | 7.14 | 26.14 | 39.34 | 136.02 |
+| NRCS-v1/f00_s1002/e2_ratio_J_b1_i0p1 | 1002 | 20 | RTX PRO 6000 | 184.20 | 184.20 | 0.0000 | 11.50 | 31.00 | 45.40 | 10.46 | 37.38 | 54.02 | 189.76 |
+| NRCS-v1/f00_s1003/e2_ratio_J_b1_i0p1 | 1003 | 20 | L40S | 168.42 | 168.42 | 0.0000 | 9.40 | 28.00 | 42.50 | 9.72 | 33.98 | 49.74 | 173.34 |
+| NRCS-v1/f00_s1001/e2_ratio_J_b1_i0p1__selJ | 1001 | 19 | L40S | 136.59 | 136.59 | 0.3945 | 8.00 | 24.40 | 37.10 | 6.94 | 25.56 | 38.82 | 140.82 |
+| NRCS-v1/f00_s1002/e2_ratio_J_b1_i0p1__selJ | 1002 | 20 | RTX PRO 6000 | 184.20 | 184.20 | 0.0000 | 11.50 | 31.00 | 45.40 | 10.46 | 37.38 | 54.02 | 189.76 |
+| NRCS-v1/f00_s1003/e2_ratio_J_b1_i0p1__selJ | 1003 | 20 | L40S | 168.42 | 168.42 | 0.0000 | 9.40 | 28.00 | 42.50 | 9.72 | 33.98 | 49.74 | 173.34 |
+| NRCS-v1/f00_s1001/e2_ratio_logistic_b1_i0p1 | 1001 | 20 | L40S | 153.63 | 153.63 | 0.7890 | 8.00 | 27.00 | 39.30 | 8.20 | 30.44 | 45.60 | 158.54 |
+| NRCS-v1/f00_s1002/e2_ratio_logistic_b1_i0p1 | 1002 | 20 | RTX PRO 6000 | 196.25 | 196.25 | 0.0000 | 13.40 | 33.40 | 48.20 | 11.70 | 39.14 | 56.30 | 202.14 |
+| NRCS-v1/f00_s1003/e2_ratio_logistic_b1_i0p1 | 1003 | 20 | L40S | 192.11 | 192.11 | 0.0000 | 11.80 | 32.10 | 45.50 | 11.40 | 39.72 | 55.64 | 196.16 |
+| NRCS-v1/f00_s1001/e2_ratio_logistic_b1_i0p1__selJ | 1001 | 20 | L40S | 153.63 | 153.63 | 0.7890 | 8.00 | 27.00 | 39.30 | 8.20 | 30.44 | 45.60 | 158.54 |
+| NRCS-v1/f00_s1002/e2_ratio_logistic_b1_i0p1__selJ | 1002 | 18 | RTX PRO 6000 | 195.84 | 195.84 | 0.0000 | 13.60 | 33.70 | 46.70 | 11.88 | 38.60 | 55.70 | 200.18 |
+| NRCS-v1/f00_s1003/e2_ratio_logistic_b1_i0p1__selJ | 1003 | 13 | L40S | 188.80 | 188.80 | 0.0000 | 11.90 | 31.90 | 45.80 | 10.96 | 37.62 | 54.10 | 192.28 |
 
 ## Flickr30K, 40% noise
 
@@ -219,6 +293,8 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | R28 | g2_vcs_sel |  | 1 | 513.25 | NA | NA | NA | 516.04 | NA | NA | NA |
 | R28 | r1_res_vcs_sel |  | 1 | 513.91 | NA | NA | NA | 516.22 | NA | NA | NA |
 | R28 | r2_res_bce_sel |  | 1 | 512.25 | NA | NA | NA | 518.22 | NA | NA | NA |
+| R31-FID | H0_default |  | 3 | 514.18 | 509.45 | 510.79 | 511.47 ± 2.44 | 516.24 | 512.04 | 515.04 | 514.44 ± 2.16 |
+| R31-FID | H0_default_i2t_t2i |  | 2 | 514.28 | NA | 512.88 | NA | 518.32 | NA | 515.60 | NA |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -247,6 +323,7 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | R27-O3 | o3_true_target_t2i (oracle) | 82.73 | 96.37 | 98.23 | 62.71 | 86.94 | 91.73 | 518.71 |
 | R27-CS | bn_cross_t2i | 81.43 | 95.93 | 98.17 | 61.96 | 86.31 | 91.37 | 515.17 |
 | R27-CS | cn_mix_t2i | 82.40 | 95.87 | 98.20 | 62.17 | 86.45 | 91.38 | 516.47 |
+| R31-FID | H0_default | 81.40 | 95.60 | 97.93 | 61.87 | 86.20 | 91.44 | 514.44 |
 
 ### Ranking by mean DEV rSum (seeds available per group; n differs between groups), with mean TEST rSum of the same seeds
 
@@ -259,39 +336,41 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | 5 | R27-O | o2_rescue_vcs_t2i (oracle) | 3 | 513.85 | 516.49 |
 | 6 | R25 | B1 | 3 | 513.77 | 515.77 |
 | 7 | R27 | s1_balanced_dual | 1 | 513.61 | 519.32 |
-| 8 | R27-CS | bn_cross_t2i | 3 | 513.58 | 515.17 |
-| 9 | R27-Q | q2_vcs_pool | 1 | 513.53 | 518.12 |
-| 10 | R27 | a1_iface | 3 | 513.50 | 516.83 |
-| 11 | R28 | g1_cos_sel | 1 | 513.43 | 517.70 |
-| 12 | R27 | s2_single_free_vcs | 1 | 513.35 | 518.14 |
-| 13 | R28 | g2_vcs_sel | 1 | 513.25 | 516.04 |
-| 14 | R27-O | o1_rescue_native_t2i (oracle) | 3 | 513.18 | 516.30 |
-| 15 | R27-Q | q1_cos_pool | 1 | 513.14 | 518.18 |
-| 16 | R27-CS | cn_mix_t2i | 3 | 513.07 | 516.47 |
-| 17 | R27 | s3_single_cap_delta | 1 | 513.04 | 518.96 |
-| 18 | R27-Q | q4_snce_pool | 1 | 513.02 | 518.66 |
-| 19 | R27-D | d1_vcs_i2t | 3 | 513.00 | 516.99 |
-| 20 | R27-D | d4_snce_t2i | 3 | 512.87 | 516.65 |
-| 21 | R27 | s5_single_cap_bce | 1 | 512.76 | 518.26 |
-| 22 | R27-D | d3_snce_i2t | 3 | 512.64 | 515.30 |
-| 23 | R27 | a4_bce | 3 | 512.63 | 516.43 |
-| 24 | R27 | a6_delta | 3 | 512.51 | 515.27 |
-| 25 | R27 | s4_single_cap_vcs | 1 | 512.50 | 518.64 |
-| 26 | R27 | a3_vcs | 3 | 512.48 | 515.81 |
-| 27 | R25 | V1 | 3 | 512.32 | 515.57 |
-| 28 | R28 | r2_res_bce_sel | 1 | 512.25 | 518.22 |
-| 29 | R27 | a5_snce | 3 | 512.18 | 515.95 |
-| 30 | R27-D | d2_vcs_t2i | 3 | 511.88 | 516.42 |
-| 31 | R25 | V0 | 1 | 511.76 | 515.00 |
-| 32 | R27 | a2_mean | 3 | 511.55 | 515.94 |
-| 33 | R26 | d_snce | 3 | 511.24 | 515.49 |
-| 34 | R26 | n_vcs | 3 | 510.70 | 513.88 |
-| 35 | R25 | H0 (native IN2R repro) | 3 | 510.49 | 514.53 |
-| 36 | R26 | d_vcs | 3 | 510.25 | 514.20 |
-| 37 | R25 | B0 | 1 | 510.20 | 513.46 |
-| 38 | R26 | m_vcs | 3 | 509.75 | 512.73 |
-| 39 | R26 | d_bce | 3 | 508.87 | 512.09 |
-| 40 | R25-SPS | S0_sps | 1 | 487.26 | 494.10 |
+| 8 | R31-FID | H0_default_i2t_t2i | 2 | 513.58 | 516.96 |
+| 9 | R27-CS | bn_cross_t2i | 3 | 513.58 | 515.17 |
+| 10 | R27-Q | q2_vcs_pool | 1 | 513.53 | 518.12 |
+| 11 | R27 | a1_iface | 3 | 513.50 | 516.83 |
+| 12 | R28 | g1_cos_sel | 1 | 513.43 | 517.70 |
+| 13 | R27 | s2_single_free_vcs | 1 | 513.35 | 518.14 |
+| 14 | R28 | g2_vcs_sel | 1 | 513.25 | 516.04 |
+| 15 | R27-O | o1_rescue_native_t2i (oracle) | 3 | 513.18 | 516.30 |
+| 16 | R27-Q | q1_cos_pool | 1 | 513.14 | 518.18 |
+| 17 | R27-CS | cn_mix_t2i | 3 | 513.07 | 516.47 |
+| 18 | R27 | s3_single_cap_delta | 1 | 513.04 | 518.96 |
+| 19 | R27-Q | q4_snce_pool | 1 | 513.02 | 518.66 |
+| 20 | R27-D | d1_vcs_i2t | 3 | 513.00 | 516.99 |
+| 21 | R27-D | d4_snce_t2i | 3 | 512.87 | 516.65 |
+| 22 | R27 | s5_single_cap_bce | 1 | 512.76 | 518.26 |
+| 23 | R27-D | d3_snce_i2t | 3 | 512.64 | 515.30 |
+| 24 | R27 | a4_bce | 3 | 512.63 | 516.43 |
+| 25 | R27 | a6_delta | 3 | 512.51 | 515.27 |
+| 26 | R27 | s4_single_cap_vcs | 1 | 512.50 | 518.64 |
+| 27 | R27 | a3_vcs | 3 | 512.48 | 515.81 |
+| 28 | R25 | V1 | 3 | 512.32 | 515.57 |
+| 29 | R28 | r2_res_bce_sel | 1 | 512.25 | 518.22 |
+| 30 | R27 | a5_snce | 3 | 512.18 | 515.95 |
+| 31 | R27-D | d2_vcs_t2i | 3 | 511.88 | 516.42 |
+| 32 | R25 | V0 | 1 | 511.76 | 515.00 |
+| 33 | R27 | a2_mean | 3 | 511.55 | 515.94 |
+| 34 | R31-FID | H0_default | 3 | 511.47 | 514.44 |
+| 35 | R26 | d_snce | 3 | 511.24 | 515.49 |
+| 36 | R26 | n_vcs | 3 | 510.70 | 513.88 |
+| 37 | R25 | H0 (native IN2R repro) | 3 | 510.49 | 514.53 |
+| 38 | R26 | d_vcs | 3 | 510.25 | 514.20 |
+| 39 | R25 | B0 | 1 | 510.20 | 513.46 |
+| 40 | R26 | m_vcs | 3 | 509.75 | 512.73 |
+| 41 | R26 | d_bce | 3 | 508.87 | 512.09 |
+| 42 | R25-SPS | S0_sps | 1 | 487.26 | 494.10 |
 
 ### Seed-matched ranking: seed 1001 only (every group that has seed 1001), DEV rSum with TEST rSum
 
@@ -304,39 +383,41 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | 5 | R27-O | o2_rescue_vcs_t2i (oracle) | 514.77 | 519.54 |
 | 6 | R27-CS | cn_mix_t2i | 514.60 | 518.16 |
 | 7 | R27 | s6_single_cap_snce | 514.46 | 518.36 |
-| 8 | R27 | a4_bce | 513.94 | 518.38 |
-| 9 | R27-Q | q3_bce_pool | 513.93 | 518.04 |
-| 10 | R28 | r1_res_vcs_sel | 513.91 | 516.22 |
-| 11 | R27-O | o1_rescue_native_t2i (oracle) | 513.75 | 519.48 |
-| 12 | R25 | V1 | 513.65 | 517.40 |
-| 13 | R27 | s1_balanced_dual | 513.61 | 519.32 |
-| 14 | R27 | a6_delta | 513.59 | 517.10 |
-| 15 | R27-D | d4_snce_t2i | 513.53 | 519.70 |
-| 16 | R27-Q | q2_vcs_pool | 513.53 | 518.12 |
-| 17 | R28 | g1_cos_sel | 513.43 | 517.70 |
-| 18 | R27 | s2_single_free_vcs | 513.35 | 518.14 |
-| 19 | R28 | g2_vcs_sel | 513.25 | 516.04 |
-| 20 | R27-D | d1_vcs_i2t | 513.16 | 518.80 |
-| 21 | R27-Q | q1_cos_pool | 513.14 | 518.18 |
-| 22 | R27 | a2_mean | 513.04 | 518.06 |
-| 23 | R27 | s3_single_cap_delta | 513.04 | 518.96 |
-| 24 | R27 | a3_vcs | 513.02 | 517.92 |
-| 25 | R27-D | d3_snce_i2t | 513.02 | 517.52 |
-| 26 | R27-Q | q4_snce_pool | 513.02 | 518.66 |
-| 27 | R27 | a5_snce | 512.88 | 517.20 |
-| 28 | R27 | s5_single_cap_bce | 512.76 | 518.26 |
-| 29 | R25 | H0 (native IN2R repro) | 512.62 | 517.00 |
-| 30 | R27 | s4_single_cap_vcs | 512.50 | 518.64 |
-| 31 | R26 | n_vcs | 512.45 | 516.78 |
-| 32 | R28 | r2_res_bce_sel | 512.25 | 518.22 |
-| 33 | R26 | m_vcs | 511.95 | 515.88 |
-| 34 | R27-D | d2_vcs_t2i | 511.95 | 517.60 |
-| 35 | R26 | d_snce | 511.93 | 518.02 |
-| 36 | R25 | V0 | 511.76 | 515.00 |
-| 37 | R26 | d_vcs | 511.50 | 516.74 |
-| 38 | R25 | B0 | 510.20 | 513.46 |
-| 39 | R26 | d_bce | 509.78 | 514.56 |
-| 40 | R25-SPS | S0_sps | 487.26 | 494.10 |
+| 8 | R31-FID | H0_default_i2t_t2i | 514.28 | 518.32 |
+| 9 | R31-FID | H0_default | 514.18 | 516.24 |
+| 10 | R27 | a4_bce | 513.94 | 518.38 |
+| 11 | R27-Q | q3_bce_pool | 513.93 | 518.04 |
+| 12 | R28 | r1_res_vcs_sel | 513.91 | 516.22 |
+| 13 | R27-O | o1_rescue_native_t2i (oracle) | 513.75 | 519.48 |
+| 14 | R25 | V1 | 513.65 | 517.40 |
+| 15 | R27 | s1_balanced_dual | 513.61 | 519.32 |
+| 16 | R27 | a6_delta | 513.59 | 517.10 |
+| 17 | R27-D | d4_snce_t2i | 513.53 | 519.70 |
+| 18 | R27-Q | q2_vcs_pool | 513.53 | 518.12 |
+| 19 | R28 | g1_cos_sel | 513.43 | 517.70 |
+| 20 | R27 | s2_single_free_vcs | 513.35 | 518.14 |
+| 21 | R28 | g2_vcs_sel | 513.25 | 516.04 |
+| 22 | R27-D | d1_vcs_i2t | 513.16 | 518.80 |
+| 23 | R27-Q | q1_cos_pool | 513.14 | 518.18 |
+| 24 | R27 | a2_mean | 513.04 | 518.06 |
+| 25 | R27 | s3_single_cap_delta | 513.04 | 518.96 |
+| 26 | R27 | a3_vcs | 513.02 | 517.92 |
+| 27 | R27-D | d3_snce_i2t | 513.02 | 517.52 |
+| 28 | R27-Q | q4_snce_pool | 513.02 | 518.66 |
+| 29 | R27 | a5_snce | 512.88 | 517.20 |
+| 30 | R27 | s5_single_cap_bce | 512.76 | 518.26 |
+| 31 | R25 | H0 (native IN2R repro) | 512.62 | 517.00 |
+| 32 | R27 | s4_single_cap_vcs | 512.50 | 518.64 |
+| 33 | R26 | n_vcs | 512.45 | 516.78 |
+| 34 | R28 | r2_res_bce_sel | 512.25 | 518.22 |
+| 35 | R26 | m_vcs | 511.95 | 515.88 |
+| 36 | R27-D | d2_vcs_t2i | 511.95 | 517.60 |
+| 37 | R26 | d_snce | 511.93 | 518.02 |
+| 38 | R25 | V0 | 511.76 | 515.00 |
+| 39 | R26 | d_vcs | 511.50 | 516.74 |
+| 40 | R25 | B0 | 510.20 | 513.46 |
+| 41 | R26 | d_bce | 509.78 | 514.56 |
+| 42 | R25-SPS | S0_sps | 487.26 | 494.10 |
 
 DEV-selected group among non-oracle groups with all three seeds: R25 B1 -- mean DEV 513.77, mean TEST 515.77.
 Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001/o3_true_target_t2i (TEST rSum 520.96, DEV 515.96); picking the maximum TEST row (or group) across methods uses TEST for selection and is optimistic, not a DEV-selected result.
@@ -431,6 +512,11 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | R28/f40_s1001/g2_vcs_sel | 1001 | 24 | RTX PRO 6000 | 513.25 | 513.23 | 0.0197 | 81.40 | 95.60 | 98.20 | 62.72 | 86.54 | 91.58 | 516.04 |
 | R28/f40_s1001/r1_res_vcs_sel | 1001 | 17 | L40S | 513.91 | 513.91 | 0.0000 | 81.50 | 96.00 | 98.10 | 62.48 | 86.54 | 91.60 | 516.22 |
 | R28/f40_s1001/r2_res_bce_sel | 1001 | 23 | RTX PRO 6000 | 512.25 | 512.23 | 0.0197 | 82.80 | 96.30 | 98.40 | 62.30 | 86.96 | 91.46 | 518.22 |
+| R31-FID/f40_s1001/H0_default | 1001 | 25 | L40S, RTX PRO 6000 | 514.18 | 514.18 | 0.0000 | 82.20 | 95.60 | 98.00 | 62.56 | 86.34 | 91.54 | 516.24 |
+| R31-FID/f40_s1002/H0_default | 1002 | 22 | Tesla V100S-PCIE-32GB | 509.45 | 509.45 | 0.0000 | 80.30 | 95.40 | 97.60 | 61.40 | 86.06 | 91.28 | 512.04 |
+| R31-FID/f40_s1003/H0_default | 1003 | 27 | Tesla V100S-PCIE-32GB | 510.79 | 510.81 | 0.0197 | 81.70 | 95.80 | 98.20 | 61.64 | 86.20 | 91.50 | 515.04 |
+| R31-FID/f40_s1001/H0_default_i2t_t2i | 1001 | 29 | Tesla V100S-PCIE-32GB | 514.28 | 514.28 | 0.0000 | 83.20 | 96.00 | 98.40 | 62.38 | 86.86 | 91.48 | 518.32 |
+| R31-FID/f40_s1003/H0_default_i2t_t2i | 1003 | 28 | L40S, RTX PRO 6000 | 512.88 | 512.88 | 0.0000 | 82.40 | 95.60 | 98.10 | 62.00 | 86.04 | 91.46 | 515.60 |
 
 ## Flickr30K, 60% noise
 
@@ -509,14 +595,15 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | R30 | L->N [10ep] | epochs 10 | 3 | 482.41 | 460.83 | 483.73 | 475.65 ± 12.86 | 484.28 | 460.38 | 485.36 | 476.67 ± 14.12 |
 | NRCS-v1 | e2_cosine_J_b0_i0 | epochs 20 | 3 | 143.91 | 136.55 | 135.66 | 138.70 ± 4.53 | 145.74 | 142.68 | 149.12 | 145.85 ± 3.22 |
 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | epochs 20 | 3 | 152.92 | 159.49 | 151.95 | 154.79 ± 4.10 | 158.44 | 160.42 | 160.66 | 159.84 ± 1.22 |
-| NRCS-v1 | e2_cosine_J_b0_i0p1 | epochs 20 | 2 | 179.23 | 171.56 | NA | NA | 191.28 | 176.58 | NA | NA |
-| NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | epochs 20 | 2 | 228.07 | 220.79 | NA | NA | 229.66 | 227.60 | NA | NA |
-| NRCS-v1 | e2_ratio_J_b1_i0 | epochs 20 | 2 | 116.23 | 105.66 | NA | NA | 122.88 | 112.34 | NA | NA |
-| NRCS-v1 | e2_ratio_J_b1_i0__selJ | epochs 20 | 2 | 117.67 | 110.97 | NA | NA | 117.92 | 121.48 | NA | NA |
-| NRCS-v1 | e2_ratio_J_b1_i0p1 | epochs 20 | 1 | 102.92 | NA | NA | NA | 99.88 | NA | NA | NA |
-| NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | epochs 20 | 1 | 104.28 | NA | NA | NA | 110.52 | NA | NA | NA |
-| NRCS-v1 | e2_ratio_logistic_b1_i0p1 | epochs 20 | 1 | 108.68 | NA | NA | NA | 111.62 | NA | NA | NA |
-| NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | epochs 20 | 1 | 113.73 | NA | NA | NA | 117.32 | NA | NA | NA |
+| NRCS-v1 | e2_cosine_J_b0_i0p1 | epochs 20 | 3 | 179.23 | 171.56 | 174.69 | 175.16 ± 3.86 | 191.28 | 176.58 | 180.22 | 182.69 ± 7.66 |
+| NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | epochs 20 | 3 | 228.07 | 220.79 | 209.61 | 219.49 ± 9.30 | 229.66 | 227.60 | 207.52 | 221.59 ± 12.23 |
+| NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | epochs 20 | 2 | 10.14 | 11.40 | NA | NA | 9.86 | 11.86 | NA | NA |
+| NRCS-v1 | e2_ratio_J_b1_i0 | epochs 20 | 3 | 116.23 | 105.66 | 119.51 | 113.80 ± 7.24 | 122.88 | 112.34 | 115.92 | 117.05 ± 5.36 |
+| NRCS-v1 | e2_ratio_J_b1_i0__selJ | epochs 20 | 3 | 117.57 | 110.97 | 118.50 | 115.68 ± 4.11 | 117.92 | 121.48 | 118.64 | 119.35 ± 1.88 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1 | epochs 20 | 3 | 102.92 | 95.42 | 107.89 | 102.08 ± 6.28 | 99.88 | 93.24 | 110.18 | 101.10 ± 8.54 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | epochs 20 | 3 | 104.28 | 92.21 | 105.56 | 100.68 ± 7.37 | 110.52 | 96.68 | 111.30 | 106.17 ± 8.22 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1 | epochs 20 | 3 | 108.68 | 105.09 | 108.13 | 107.30 ± 1.93 | 111.62 | 116.50 | 125.30 | 117.81 ± 6.93 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | epochs 20 | 3 | 113.73 | 101.24 | 107.28 | 107.42 ± 6.24 | 117.32 | 103.84 | 113.38 | 111.51 ± 6.93 |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -556,6 +643,14 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | R30 | L->N [10ep] | 71.70 | 90.57 | 94.83 | 53.54 | 79.61 | 86.42 | 476.67 |
 | NRCS-v1 | e2_cosine_J_b0_i0 | 9.83 | 28.77 | 40.53 | 7.60 | 23.73 | 35.38 | 145.85 |
 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 11.57 | 31.07 | 43.93 | 8.25 | 26.25 | 38.77 | 159.84 |
+| NRCS-v1 | e2_cosine_J_b0_i0p1 | 14.60 | 36.37 | 48.87 | 10.63 | 29.59 | 42.65 | 182.69 |
+| NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 18.87 | 43.97 | 58.07 | 13.41 | 36.84 | 50.44 | 221.59 |
+| NRCS-v1 | e2_ratio_J_b1_i0 | 5.90 | 19.57 | 30.57 | 5.74 | 21.50 | 33.77 | 117.05 |
+| NRCS-v1 | e2_ratio_J_b1_i0__selJ | 6.00 | 19.93 | 31.03 | 5.58 | 21.74 | 35.06 | 119.35 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1 | 5.00 | 15.87 | 26.30 | 5.11 | 19.17 | 29.66 | 101.10 |
+| NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 4.97 | 17.27 | 28.10 | 5.07 | 19.63 | 31.13 | 106.17 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 6.37 | 19.83 | 30.07 | 5.93 | 21.99 | 33.62 | 117.81 |
+| NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 5.93 | 18.17 | 29.17 | 5.58 | 20.12 | 32.55 | 111.51 |
 
 ### Ranking by mean DEV rSum (seeds available per group; n differs between groups), with mean TEST rSum of the same seeds
 
@@ -616,16 +711,17 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | 53 | R29 | l_listwise_vcs | 3 | 436.40 | 438.42 |
 | 54 | R30 | L->L [10ep] | 3 | 434.29 | 438.47 |
 | 55 | R29 | p_pointwise_vcs | 1 | 431.62 | 432.82 |
-| 56 | NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 2 | 224.43 | 228.63 |
-| 57 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 2 | 175.39 | 183.93 |
+| 56 | NRCS-v1 | e2_cosine_J_b0_i0p1__selJ | 3 | 219.49 | 221.59 |
+| 57 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 3 | 175.16 | 182.69 |
 | 58 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 3 | 154.79 | 159.84 |
 | 59 | NRCS-v1 | e2_cosine_J_b0_i0 | 3 | 138.70 | 145.85 |
-| 60 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 2 | 114.32 | 119.70 |
-| 61 | NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 1 | 113.73 | 117.32 |
-| 62 | NRCS-v1 | e2_ratio_J_b1_i0 | 2 | 110.95 | 117.61 |
-| 63 | NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 1 | 108.68 | 111.62 |
-| 64 | NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 1 | 104.28 | 110.52 |
-| 65 | NRCS-v1 | e2_ratio_J_b1_i0p1 | 1 | 102.92 | 99.88 |
+| 60 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 3 | 115.68 | 119.35 |
+| 61 | NRCS-v1 | e2_ratio_J_b1_i0 | 3 | 113.80 | 117.05 |
+| 62 | NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 3 | 107.42 | 111.51 |
+| 63 | NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 3 | 107.30 | 117.81 |
+| 64 | NRCS-v1 | e2_ratio_J_b1_i0p1 | 3 | 102.08 | 101.10 |
+| 65 | NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 3 | 100.68 | 106.17 |
+| 66 | NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | 2 | 10.77 | 10.86 |
 
 ### Seed-matched ranking: seed 1001 only (every group that has seed 1001), DEV rSum with TEST rSum
 
@@ -687,12 +783,13 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | 54 | NRCS-v1 | e2_cosine_J_b0_i0p1 | 179.23 | 191.28 |
 | 55 | NRCS-v1 | e2_cosine_J_b0_i0__selJ | 152.92 | 158.44 |
 | 56 | NRCS-v1 | e2_cosine_J_b0_i0 | 143.91 | 145.74 |
-| 57 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 117.67 | 117.92 |
+| 57 | NRCS-v1 | e2_ratio_J_b1_i0__selJ | 117.57 | 117.92 |
 | 58 | NRCS-v1 | e2_ratio_J_b1_i0 | 116.23 | 122.88 |
 | 59 | NRCS-v1 | e2_ratio_logistic_b1_i0p1__selJ | 113.73 | 117.32 |
 | 60 | NRCS-v1 | e2_ratio_logistic_b1_i0p1 | 108.68 | 111.62 |
 | 61 | NRCS-v1 | e2_ratio_J_b1_i0p1__selJ | 104.28 | 110.52 |
 | 62 | NRCS-v1 | e2_ratio_J_b1_i0p1 | 102.92 | 99.88 |
+| 63 | NRCS-v1 | e2_cosine_hinge_b0_i0p1__selJ | 10.14 | 9.86 |
 
 DEV-selected group among non-oracle groups with all three seeds: R27 a2_mean -- mean DEV 494.94, mean TEST 494.66.
 Post-hoc note: the single highest TEST row in this condition is R27-O3/f60_s1001/o3_true_target_t2i (TEST rSum 506.96, DEV 507.91); picking the maximum TEST row (or group) across methods uses TEST for selection and is optimistic, not a DEV-selected result.
@@ -832,16 +929,30 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f60_s1001
 | NRCS-v1/f60_s1003/e2_cosine_J_b0_i0__selJ | 1003 | 5 | RTX PRO 6000 | 151.95 | 151.95 | 0.0000 | 10.90 | 31.30 | 44.40 | 8.36 | 26.58 | 39.12 | 160.66 |
 | NRCS-v1/f60_s1001/e2_cosine_J_b0_i0p1 | 1001 | 20 | RTX PRO 6000 | 179.23 | 179.23 | 0.0000 | 15.20 | 38.30 | 50.80 | 11.28 | 30.88 | 44.82 | 191.28 |
 | NRCS-v1/f60_s1002/e2_cosine_J_b0_i0p1 | 1002 | 20 | RTX PRO 6000 | 171.56 | 171.56 | 0.0000 | 14.10 | 36.40 | 46.40 | 10.06 | 28.42 | 41.20 | 176.58 |
+| NRCS-v1/f60_s1003/e2_cosine_J_b0_i0p1 | 1003 | 20 | RTX PRO 6000 | 174.69 | 174.69 | 0.0000 | 14.50 | 34.40 | 49.40 | 10.54 | 29.46 | 41.92 | 180.22 |
 | NRCS-v1/f60_s1001/e2_cosine_J_b0_i0p1__selJ | 1001 | 4 | RTX PRO 6000 | 228.07 | 228.07 | 0.0000 | 20.80 | 45.30 | 59.30 | 14.24 | 38.44 | 51.58 | 229.66 |
 | NRCS-v1/f60_s1002/e2_cosine_J_b0_i0p1__selJ | 1002 | 4 | RTX PRO 6000 | 220.79 | 220.79 | 0.0000 | 20.20 | 45.90 | 59.50 | 13.90 | 37.08 | 51.02 | 227.60 |
+| NRCS-v1/f60_s1003/e2_cosine_J_b0_i0p1__selJ | 1003 | 3 | RTX PRO 6000 | 209.61 | 209.61 | 0.0000 | 15.60 | 40.70 | 55.40 | 12.10 | 35.00 | 48.72 | 207.52 |
+| NRCS-v1/f60_s1001/e2_cosine_hinge_b0_i0p1__selJ | 1001 | 1 | RTX PRO 6000 | 10.14 | 10.14 | 0.0592 | 0.10 | 2.30 | 3.50 | 0.30 | 1.42 | 2.24 | 9.86 |
+| NRCS-v1/f60_s1002/e2_cosine_hinge_b0_i0p1__selJ | 1002 | 1 | RTX PRO 6000 | 11.40 | 11.40 | 0.0986 | 0.30 | 2.30 | 3.40 | 0.60 | 2.02 | 3.24 | 11.86 |
 | NRCS-v1/f60_s1001/e2_ratio_J_b1_i0 | 1001 | 20 | RTX PRO 6000 | 116.23 | 116.23 | 0.0000 | 7.70 | 21.40 | 31.30 | 6.12 | 22.40 | 33.96 | 122.88 |
 | NRCS-v1/f60_s1002/e2_ratio_J_b1_i0 | 1002 | 20 | RTX PRO 6000 | 105.66 | 105.66 | 0.0000 | 4.80 | 17.90 | 28.70 | 5.28 | 21.66 | 34.00 | 112.34 |
-| NRCS-v1/f60_s1001/e2_ratio_J_b1_i0__selJ | 1001 | 4 | RTX PRO 6000 | 117.67 | 117.57 | 0.0986 | 5.90 | 20.70 | 31.00 | 5.60 | 21.00 | 33.72 | 117.92 |
+| NRCS-v1/f60_s1003/e2_ratio_J_b1_i0 | 1003 | 20 | RTX PRO 6000 | 119.51 | 119.51 | 0.0000 | 5.20 | 19.40 | 31.70 | 5.82 | 20.44 | 33.36 | 115.92 |
+| NRCS-v1/f60_s1001/e2_ratio_J_b1_i0__selJ | 1001 | 4 | RTX PRO 6000 | 117.57 | 117.57 | 0.0986 | 5.90 | 20.70 | 31.00 | 5.60 | 21.00 | 33.72 | 117.92 |
 | NRCS-v1/f60_s1002/e2_ratio_J_b1_i0__selJ | 1002 | 4 | RTX PRO 6000 | 110.97 | 110.97 | 0.0000 | 6.80 | 20.50 | 30.60 | 5.48 | 22.16 | 35.94 | 121.48 |
+| NRCS-v1/f60_s1003/e2_ratio_J_b1_i0__selJ | 1003 | 4 | RTX PRO 6000 | 118.50 | 118.50 | 0.0000 | 5.30 | 18.60 | 31.50 | 5.66 | 22.06 | 35.52 | 118.64 |
 | NRCS-v1/f60_s1001/e2_ratio_J_b1_i0p1 | 1001 | 20 | RTX PRO 6000 | 102.92 | 102.92 | 0.0000 | 4.90 | 15.20 | 26.40 | 5.02 | 19.36 | 29.00 | 99.88 |
+| NRCS-v1/f60_s1002/e2_ratio_J_b1_i0p1 | 1002 | 20 | RTX PRO 6000 | 95.42 | 95.42 | 0.0000 | 4.70 | 14.20 | 23.20 | 5.36 | 17.86 | 27.92 | 93.24 |
+| NRCS-v1/f60_s1003/e2_ratio_J_b1_i0p1 | 1003 | 20 | RTX PRO 6000 | 107.89 | 107.89 | 0.0000 | 5.40 | 18.20 | 29.30 | 4.94 | 20.28 | 32.06 | 110.18 |
 | NRCS-v1/f60_s1001/e2_ratio_J_b1_i0p1__selJ | 1001 | 3 | RTX PRO 6000 | 104.28 | 104.28 | 0.0000 | 5.60 | 19.20 | 28.60 | 4.92 | 20.28 | 31.92 | 110.52 |
+| NRCS-v1/f60_s1002/e2_ratio_J_b1_i0p1__selJ | 1002 | 3 | RTX PRO 6000 | 92.21 | 92.21 | 0.0000 | 4.40 | 15.40 | 25.80 | 4.42 | 17.86 | 28.80 | 96.68 |
+| NRCS-v1/f60_s1003/e2_ratio_J_b1_i0p1__selJ | 1003 | 3 | RTX PRO 6000 | 105.56 | 105.56 | 0.0000 | 4.90 | 17.20 | 29.90 | 5.88 | 20.76 | 32.66 | 111.30 |
 | NRCS-v1/f60_s1001/e2_ratio_logistic_b1_i0p1 | 1001 | 20 | RTX PRO 6000 | 108.68 | 108.68 | 0.0000 | 6.30 | 17.90 | 28.00 | 5.58 | 20.86 | 32.98 | 111.62 |
+| NRCS-v1/f60_s1002/e2_ratio_logistic_b1_i0p1 | 1002 | 20 | RTX PRO 6000 | 105.09 | 105.09 | 0.0000 | 6.00 | 20.00 | 28.70 | 6.10 | 22.38 | 33.32 | 116.50 |
+| NRCS-v1/f60_s1003/e2_ratio_logistic_b1_i0p1 | 1003 | 20 | RTX PRO 6000 | 108.13 | 108.13 | 0.0000 | 6.80 | 21.60 | 33.50 | 6.10 | 22.74 | 34.56 | 125.30 |
 | NRCS-v1/f60_s1001/e2_ratio_logistic_b1_i0p1__selJ | 1001 | 3 | RTX PRO 6000 | 113.73 | 113.73 | 0.0000 | 7.10 | 19.20 | 30.20 | 5.68 | 21.00 | 34.14 | 117.32 |
+| NRCS-v1/f60_s1002/e2_ratio_logistic_b1_i0p1__selJ | 1002 | 3 | RTX PRO 6000 | 101.24 | 101.24 | 0.0000 | 5.20 | 16.90 | 27.10 | 5.62 | 18.76 | 30.26 | 103.84 |
+| NRCS-v1/f60_s1003/e2_ratio_logistic_b1_i0p1__selJ | 1003 | 3 | RTX PRO 6000 | 107.28 | 107.28 | 0.0000 | 5.50 | 18.40 | 30.20 | 5.44 | 20.60 | 33.24 | 113.38 |
 
 ## MS-COCO, 40% noise
 
@@ -963,6 +1074,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | R26 | m_vcs |  | 3 | 388.60 | 391.00 | 391.90 | 390.50 ± 1.71 | 402.70 | 404.40 | 405.80 | 404.30 ± 1.55 |
 | R26 | n_vcs |  | 3 | 391.30 | 391.20 | 389.70 | 390.73 ± 0.90 | 404.40 | 407.30 | 404.10 | 405.27 ± 1.77 |
 | R27-A1X | a1_iface |  | 3 | 392.70 | 395.80 | 393.10 | 393.87 ± 1.69 | 404.30 | 407.30 | 408.20 | 406.60 ± 2.04 |
+| R31-FID | H0_default |  | 1 | 389.70 | NA | NA | NA | 401.90 | NA | NA | NA |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -985,8 +1097,9 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | 3 | R26 | d_vcs | 3 | 391.50 | 403.70 |
 | 4 | R26 | n_vcs | 3 | 390.73 | 405.27 |
 | 5 | R26 | m_vcs | 3 | 390.50 | 404.30 |
-| 6 | R26 | H0 (native IN2R repro) | 3 | 389.63 | 403.10 |
-| 7 | R26 | d_bce | 3 | 389.37 | 404.33 |
+| 6 | R31-FID | H0_default | 1 | 389.70 | 401.90 |
+| 7 | R26 | H0 (native IN2R repro) | 3 | 389.63 | 403.10 |
+| 8 | R26 | d_bce | 3 | 389.37 | 404.33 |
 
 ### Seed-matched ranking: seed 1001 only (every group that has seed 1001), DEV rSum with TEST rSum
 
@@ -996,9 +1109,10 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | 2 | R26 | n_vcs | 391.30 | 404.40 |
 | 3 | R26 | d_vcs | 390.70 | 402.20 |
 | 4 | R26 | d_snce | 390.10 | 405.20 |
-| 5 | R26 | d_bce | 389.00 | 402.20 |
-| 6 | R26 | m_vcs | 388.60 | 402.70 |
-| 7 | R26 | H0 (native IN2R repro) | 388.50 | 402.60 |
+| 5 | R31-FID | H0_default | 389.70 | 401.90 |
+| 6 | R26 | d_bce | 389.00 | 402.20 |
+| 7 | R26 | m_vcs | 388.60 | 402.70 |
+| 8 | R26 | H0 (native IN2R repro) | 388.50 | 402.60 |
 
 DEV-selected group among non-oracle groups with all three seeds: R27-A1X a1_iface -- mean DEV 393.87, mean TEST 406.60.
 Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_snce (TEST rSum 409.70, DEV 394.70); picking the maximum TEST row (or group) across methods uses TEST for selection and is optimistic, not a DEV-selected result.
@@ -1028,6 +1142,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | R27-A1X/cc_s1001/a1_iface | 1001 | 23 | RTX PRO 6000 | 392.70 | 392.70 | 0.0000 | 47.80 | 73.90 | 82.30 | 45.60 | 73.50 | 81.20 | 404.30 |
 | R27-A1X/cc_s1002/a1_iface | 1002 | 27 | L40S | 395.80 | 395.80 | 0.0000 | 47.80 | 73.80 | 82.50 | 46.10 | 74.10 | 83.00 | 407.30 |
 | R27-A1X/cc_s1003/a1_iface | 1003 | 33 | RTX PRO 6000 | 393.10 | 393.10 | 0.0000 | 48.00 | 74.00 | 82.20 | 46.70 | 74.30 | 83.00 | 408.20 |
+| R31-FID/cc_s1001/H0_default | 1001 | 38 | L40S, RTX PRO 6000 | 389.70 | 389.70 | 0.0000 | 46.00 | 73.00 | 81.60 | 47.10 | 72.70 | 81.50 | 401.90 |
 
 ## Skipped directories
 
@@ -1081,18 +1196,15 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30_f60_s1001_H0 | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30_f60_s1001_PV | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30v11_f60_s1001_LN | smoke / gate / parent / diagnostic dir (not a formal unit) |
-| r31_in2r_fidelity_20261101/runs/f40_s1001/H0_default | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/cc_s1001/H0_default | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/cc_s1001/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/cc_s1002/H0_default | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/cc_s1002/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/cc_s1003/H0_default | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/f20_s1003/H0_codecfg | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f40_s1001/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f40_s1002/H0_default | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/f40_s1002/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f40_s1003/H0_default | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f40_s1003/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
+| r31_in2r_fidelity_20261101/runs/cc_s1003/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
+| r31_in2r_fidelity_20261101/runs/f20_s1001/H0_codecfg | no DONE.json (still training / not finished) |
+| r31_in2r_fidelity_20261101/runs/f20_s1002/H0_codecfg | no DONE.json (still training / not finished) |
 
 ## Limitations
 
@@ -1101,4 +1213,4 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 - Seeds: many groups have one seed; means/stds over three seeds are descriptive, not significance tests. Rankings mix groups with different numbers of seeds.
 - Literature rows are copied from the IN2R paper (arXiv:2606.04061v1, Tables 1-2); they use their own noise draws and runs and were not reproduced here. Our noise maps are the locked R25 maps (40%/60%/0%); CC152K noise is real.
 - R27-O / R27-O3 use ground-truth oracle rescue/targets during training (diagnostic, not a method). R30 stage paths stop at 10 co-train epochs by design (marked "epochs 10").
-- TEST access log: 18 test_read entries (one per evaluation job start, including re-starts after preemption).
+- TEST access log: 21 test_read entries (one per evaluation job start, including re-starts after preemption).
