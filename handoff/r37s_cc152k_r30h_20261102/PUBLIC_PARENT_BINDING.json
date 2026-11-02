@@ -1,0 +1,260 @@
+{
+  "created_utc": "2026-11-02T19:36:11Z",
+  "line": "R37S critic line; development experiment, no TEST read",
+  "parent_unit": "r37s_cc_s1001_H0",
+  "series": "R37S R30-style H adaptation on CC152K (warmup 5 + H0 co-train 40, A1, K5, i2t/t2i on, DEV-best); NOT the R31 IN2R-default series",
+  "never_mixed_with": "R31 H0_default parents (R37C / R38 CC tables): different training recipe/series; separate tables only",
+  "dataset": "CC152K",
+  "noise": "real (uninjected), observed relation = native identity",
+  "parent_seed": 1001,
+  "parent_dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/runs/r37s_cc_s1001_H0",
+  "recipe": {
+    "warmup_epoch": 5,
+    "k": 5,
+    "i2t": true,
+    "t2i": true,
+    "arm": "a1_iface",
+    "lam": 0.0,
+    "num_epochs": 40,
+    "lr_update": 15,
+    "learning_rate": 0.0005,
+    "batch_size": 128,
+    "noise_ratio": 0,
+    "seed": 1001,
+    "r30_objective": "H"
+  },
+  "recipe_matches_frozen": true,
+  "warmup_parent": {
+    "state": "/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/parents/wp_cc_s1001_H_e5/parent_state.pt",
+    "warmup_dev_rsum": [
+      306.3,
+      327.4,
+      347.29999999999995,
+      353.2,
+      360.6
+    ]
+  },
+  "done": {
+    "status": "COMPLETE",
+    "best_rsum": 393.2,
+    "epochs_done": 40
+  },
+  "epochs_done": 40,
+  "dev_rsum_by_epoch": [
+    367.1,
+    371.3,
+    372.4,
+    375.0,
+    376.4,
+    381.1,
+    383.90000000000003,
+    385.79999999999995,
+    386.0,
+    389.6,
+    388.6,
+    388.9,
+    388.9,
+    389.5,
+    385.7,
+    389.79999999999995,
+    390.3,
+    390.1,
+    390.6,
+    392.0,
+    391.1,
+    391.5,
+    393.2,
+    391.6,
+    392.7,
+    392.4,
+    391.5,
+    392.3,
+    393.0,
+    392.2,
+    393.2,
+    393.2,
+    392.0,
+    392.0,
+    392.6,
+    392.6,
+    392.4,
+    392.29999999999995,
+    392.6,
+    392.9
+  ],
+  "best_cotrain_epoch": 22,
+  "best_dev_rsum": 393.2,
+  "best_epoch_dev": {
+    "peer0_rsum": 381.5,
+    "peer1_rsum": 384.1,
+    "i2t_r1": 45.4,
+    "i2t_r5": 72.6,
+    "i2t_r10": 80.5,
+    "t2i_r1": 42.7,
+    "t2i_r5": 71.7,
+    "t2i_r10": 80.3,
+    "rsum": 393.2,
+    "n_images": 1000,
+    "n_captions": 1000
+  },
+  "logged_is_best_epochs": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    15,
+    16,
+    18,
+    19,
+    22
+  ],
+  "rule": "strictly highest peer-averaged full-DEV rSum over co-train epochs 0..39 (first maximum on ties; best_rsum starts at 0 at the boundary; warmup never eligible) -- native r25_co_train rule (R30 H0)",
+  "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/runs/r37s_cc_s1001_H0/model_best.pth.tar",
+  "model_best_epoch": 22,
+  "model_best_best_rsum": 393.2,
+  "model_best_consistent": true,
+  "attempts": [
+    {
+      "mode": "fork",
+      "resume_epoch": null,
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+    }
+  ],
+  "best_epoch_attempt": "1082196",
+  "best_epoch_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "gpu_block": {
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "utc": "2026-11-02T15:58:16Z"
+  },
+  "cost": {
+    "per_epoch_seconds_cotrain": [
+      270.3160583972931,
+      291.40195202827454,
+      286.6606779098511,
+      300.99664092063904,
+      289.4854598045349,
+      300.04051899909973,
+      290.8887691497803,
+      304.12022137641907,
+      291.6862733364105,
+      296.2046117782593,
+      295.1037163734436,
+      297.9639551639557,
+      292.20070815086365,
+      293.48772287368774,
+      293.14674520492554,
+      293.62205839157104,
+      293.9103493690491,
+      293.342139005661,
+      292.2369456291199,
+      293.3683078289032,
+      292.9711699485779,
+      296.0294861793518,
+      293.7624578475952,
+      292.35814476013184,
+      292.4319648742676,
+      293.57329773902893,
+      293.75754857063293,
+      293.8026988506317,
+      293.0952422618866,
+      293.6337525844574,
+      292.9968070983887,
+      293.35271286964417,
+      293.244886636734,
+      294.8999307155609,
+      293.7014625072479,
+      293.59041833877563,
+      293.431857585907,
+      294.4617340564728,
+      294.1273124217987,
+      294.1626296043396
+    ],
+    "cotrain_seconds_sum": 11733.569347143173,
+    "warmup_seconds_sum": 610.8933355808258,
+    "peak_files": {
+      "parents/wp_cc_s1001_H_e5/PEAK_1082196.json": {
+        "peak_mem_allocated_GiB": 1.363192081451416,
+        "peak_mem_reserved_GiB": 1.666015625,
+        "wall_seconds": 633.9168317317963,
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+        "img_gather": null
+      },
+      "runs/r37s_cc_s1001_H0/PEAK_1082196.json": {
+        "peak_mem_allocated_GiB": 45.14526128768921,
+        "peak_mem_reserved_GiB": 49.318359375,
+        "wall_seconds": 11787.143463850021,
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+        "img_gather": "gpu"
+      }
+    }
+  },
+  "cache": {
+    "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/critic/cache/cc_r37s",
+    "native_dev": {
+      "i2t_r1": 45.4,
+      "i2t_r5": 72.6,
+      "i2t_r10": 80.5,
+      "t2i_r1": 42.7,
+      "t2i_r5": 71.7,
+      "t2i_r10": 80.3,
+      "rsum": 393.2,
+      "peer_rsum": {
+        "A": 381.5,
+        "B": 384.1
+      },
+      "per_captions": 1,
+      "cache_rescore_identical": true,
+      "checkpoint_best_rsum": 393.2,
+      "checkpoint_epoch": 22,
+      "reproduces_checkpoint_best_rsum_exactly": true,
+      "abs_diff_vs_checkpoint": 0.0,
+      "logged_epoch_dev": {
+        "peer0_rsum": 381.5,
+        "peer1_rsum": 384.1,
+        "i2t_r1": 45.4,
+        "i2t_r5": 72.6,
+        "i2t_r10": 80.5,
+        "t2i_r1": 42.7,
+        "t2i_r5": 71.7,
+        "t2i_r10": 80.3,
+        "rsum": 393.2,
+        "n_images": 1000,
+        "n_captions": 1000
+      },
+      "six_recalls_equal_logged_epoch": true
+    },
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+  },
+  "prep": {
+    "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/critic/prep/cc_r37s",
+    "a0b0": {
+      "a0": 20.362365665997043,
+      "b0": -4.587970883339977
+    },
+    "candidates": {
+      "seconds": 4.4911956787109375,
+      "rule": "peer-mean native fp32 score (xA.yA + xB.yB)/2 over the full FIT pool (150000 x 150000), torch.topk(32)",
+      "i2t_frac_images_with_an_observed_caption_in_top32": 0.7542933333333334,
+      "t2i_frac_captions_observed_image_in_top32": 0.72058,
+      "i2t_frac_observed_partner_at_rank1": 0.2784,
+      "t2i_frac_observed_partner_at_rank1": 0.22287333333333334
+    },
+    "trust": {
+      "n_subset": 139787,
+      "retention": 0.9319133333333334,
+      "prob_A_mean": 0.9284822614555313,
+      "prob_B_mean": 0.9299219412296359,
+      "agreement_A_B_ge_half": 0.9823733333333333
+    },
+    "seconds": {
+      "cc_r37s": 48.85858392715454
+    }
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

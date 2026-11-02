@@ -164,7 +164,7 @@ def main():
                 continue
             ck = os.path.join(d, 'model_best.pth.tar')
             if e['layout'] == 'r30flat':
-                m = re.match(r'^r30[a-z0-9]*_(f\d\d_s\d+)_(\w+)$', os.path.basename(d))
+                m = re.match(r'^r3[07][a-z0-9]*_((?:f\d\d|cc)_s\d+)_(\w+)$', os.path.basename(d))  # r37s: CC152K R30-style parent (2026-11-02)
                 cell, arm = (m.group(1), m.group(2)) if m else (None, os.path.basename(d))
             else:
                 cell, arm = os.path.basename(os.path.dirname(d)), os.path.basename(d)

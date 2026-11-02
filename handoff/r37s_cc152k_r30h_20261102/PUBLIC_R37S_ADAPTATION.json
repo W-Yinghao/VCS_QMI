@@ -1,0 +1,73 @@
+{
+  "label": "R30-style adaptation (CC152K data adaptation only); NOT byte-identical to code_r30v11",
+  "base": "code_r30v11 (R30 v1.1 + amendment A1 snapshot, gated 1080158)",
+  "diff_file": "R37S_ADAPTATION_DIFF.patch",
+  "unchanged_files": [
+    "co_train.py",
+    "data.py",
+    "evaluation.py",
+    "glove_shim.py",
+    "model.py",
+    "noisy_loss.py",
+    "r25_co_train.py",
+    "r25_run.py",
+    "r26_co_train.py",
+    "r26_graph.py",
+    "r27_calibrate.py",
+    "r27_co_train.py",
+    "r27_cpu_check.py",
+    "r27_delta_control.py",
+    "r27_gate.py",
+    "r27_run.py",
+    "r27_targets.py",
+    "r27s_cpu_check.py",
+    "r27s_gate.py",
+    "r27s_targets.py",
+    "r29_align.py",
+    "r29_co_train.py",
+    "r29_run.py",
+    "r30_align.py",
+    "r30_calibrate.py",
+    "r30_state.py",
+    "train.py",
+    "utils.py",
+    "vocab.py",
+    "vse.py",
+    "vse_.py"
+  ],
+  "changes": [
+    {
+      "file": "r30_run.py",
+      "change": "assert data_name == 'f30k_precomp' -> data_name in (f30k_precomp, cc152k_precomp)",
+      "reason": "R30 entry refused any dataset but Flickr; the driver below it (r25_co_train / data.py / evaluation) is the IN2R code that natively supports cc152k_precomp (im_div 1, per_captions 1, .tsv captions, noise_ratio forced 0 by r25_run)."
+    },
+    {
+      "file": "r30_run.py",
+      "change": "PEAK_<job>.json also records r27_interface.Ctx.gather_mode",
+      "reason": "report-only (as R27-A1X r27_run.py)"
+    },
+    {
+      "file": "r30_co_train.py",
+      "change": "data_digests(): caption files train_caps.tsv / dev_caps.tsv for cc152k_precomp",
+      "reason": "PARENT.json data digest would otherwise try to hash the non-existent Flickr .txt caption files (FileNotFoundError at the boundary save)."
+    },
+    {
+      "file": "r30_co_train.py",
+      "change": "dev_ranks() (E10 report-only rank pass): per_captions = 1 for cc152k_precomp (was hard-coded 5)",
+      "reason": "Flickr 5-captions-per-image assumption; CC152K has exactly one caption per image. Same rule as r25_co_train.validate / evaluation.py."
+    },
+    {
+      "file": "r27_interface.py",
+      "change": "byte-identical copy of R27-A1X code_a1x/r27_interface.py: Ctx.image_rows() host-gather of observed-image rows",
+      "reason": "CC152K train features are 41.2 GiB fp32; the A1 re-encoding put the full array on the GPU. image_rows returns exactly the rows gpu_images()[cols] returns (same bytes, same order); auto mode = GPU-resident iff array + 16 GiB <= GPU memory (RTX PRO 6000 / H100: gpu, L40S: cpu). Gated bitwise for R27-A1X (GATE_A1X.json, Flickr gather 1077656)."
+    }
+  ],
+  "not_changed": [
+    "training recipe / options (R30 H parent + H0 continuation: warmup 5, K 5, i2t+t2i on, 40 co-train epochs, native hinge)",
+    "A1 noisy interface (other peer selects candidate identities from its own ID-bearing queue, current peer re-encodes)",
+    "GMM split / eval_train / LR schedule / DEV-best rule / save-resume code"
+  ],
+  "cc152k_structure": "one image per caption: t2i_index = arange(150000), im_div 1, DEV 1000 images x 1000 captions; no record//5 and no multi-positive assumption is used (observed-ID equality in report-only readouts reduces to the diagonal).",
+  "created_utc": "2026-11-02T14:54:36Z",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

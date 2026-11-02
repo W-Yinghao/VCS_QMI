@@ -1,0 +1,302 @@
+{
+  "utc": "2026-11-02T22:49:14Z",
+  "checks": {
+    "code_derivation": {
+      "passed": true,
+      "detail": {
+        "r39xf": {
+          "byte_identical": {
+            "common.py": false,
+            "data35.py": false,
+            "data36.py": true,
+            "evals.py": true,
+            "heads.py": true,
+            "native_eval.py": true,
+            "objectives.py": true,
+            "r38ext.py": true,
+            "r39_targets.py": true,
+            "r39ext.py": false,
+            "train_unit.py": false
+          },
+          "removed_lines": {
+            "common.py": {
+              "removed": [
+                "-\"\"\"R39 Flickr tree r39f = byte copy of R38 r38f (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, oracle env name, R39 dataset/joint constants at the end). R38 (Flickr code tree r38f = byte copy of R37 r37; R38 edits: ROOT/OUT, PACKAGE, CONDS = the R36 parent n60"
+              ],
+              "n_added": 18
+            },
+            "r39ext.py": {
+              "removed": [
+                "-\"\"\"R39 additions, byte-identical in both code trees (r39f Flickr60, r39c CC152K); dataset specifics come from the tree's common.py.",
+                "-def load_parent(device):",
+                "-    ck = torch.load(C.PARENT_CKPT, map_location='cpu', weights_only=False)",
+                "-        assert cond == C.TARGET_COND",
+                "-        self.dev = device; self.d = d",
+                "-        pdir = C.R39_PREP / C.DS_KEY",
+                "-        assert man['parent']['model_best_sha256'] == sha256(C.PARENT_CKPT) == d['manifest']['parent']['model_best_sha256']",
+                "-        assert man['target_cache_manifest_sha256'] == d['manifest_sha256']",
+                "-        self.ck = load_parent(device)"
+              ],
+              "n_added": 10
+            },
+            "train_unit.py": {
+              "removed": [
+                "-\"\"\"R39: R38 train_unit.py + R39 edits (tools/patch_train_unit.py: COMPLETE label hook, JOINT student global encoders, two AdamW groups,",
+                "-        lineage['student'] = dict(parent_ckpt=str(R9.C.PARENT_CKPT), parent_sha256=ctx.joint.manifest['parent']['model_best_sha256'],",
+                "-                      parent_ckpt_sha256_unchanged=sha256(R9.C.PARENT_CKPT) == lineage['student']['parent_sha256'])",
+                "-    frozen = read_json(ROOT / 'PROTOCOL_FROZEN.json')"
+              ],
+              "n_added": 4
+            },
+            "data35.py": {
+              "removed": [
+                "-\"\"\"R37 data (copied from R36/R35 data35.py; load_cond generalised to the bound parents): R34 raw (unstandardised) native global caches (hash-verified), R35 prep locks, FIT candidate",
+                "-            for name in (f\"candidates_{c['prep_key']}.npz\", c['trust_file']):",
+                "-        T = np.load(pdir / c['trust_file']); d['trust_subset'] = T['subset'].astype(np.int64)",
+                "-        d['trust_sha256'] = pm['files'][c['trust_file']]['sha256']"
+              ]
+            }
+          },
+          "ok": true
+        },
+        "r39xc": {
+          "byte_identical": {
+            "common.py": false,
+            "data35.py": true,
+            "data36.py": true,
+            "evals.py": true,
+            "heads.py": true,
+            "native_eval.py": true,
+            "objectives.py": true,
+            "r38ext.py": true,
+            "r39_targets.py": true,
+            "r39ext.py": false,
+            "train_unit.py": false
+          },
+          "removed_lines": {
+            "common.py": {
+              "removed": [
+                "-\"\"\"R39 CC152K tree r39c = byte copy of R38 r38c (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, R38 cc_s1002/1003 cache/prep paths made absolute to the R38 output tree (read-only), oracle env name, R39 dataset/joint constants at the end). R38 (CC152K code tree r38c = byte copy of R37C r37c; R38 edits: ROOT/OUT, three R31 parents s1001/s1002/s1003, per-parent"
+              ],
+              "n_added": 19
+            },
+            "r39ext.py": {
+              "removed": [
+                "-\"\"\"R39 additions, byte-identical in both code trees (r39f Flickr60, r39c CC152K); dataset specifics come from the tree's common.py.",
+                "-def load_parent(device):",
+                "-    ck = torch.load(C.PARENT_CKPT, map_location='cpu', weights_only=False)",
+                "-        assert cond == C.TARGET_COND",
+                "-        self.dev = device; self.d = d",
+                "-        pdir = C.R39_PREP / C.DS_KEY",
+                "-        assert man['parent']['model_best_sha256'] == sha256(C.PARENT_CKPT) == d['manifest']['parent']['model_best_sha256']",
+                "-        assert man['target_cache_manifest_sha256'] == d['manifest_sha256']",
+                "-        self.ck = load_parent(device)"
+              ],
+              "n_added": 10
+            },
+            "train_unit.py": {
+              "removed": [
+                "-\"\"\"R39: R38 train_unit.py + R39 edits (tools/patch_train_unit.py: COMPLETE label hook, JOINT student global encoders, two AdamW groups,",
+                "-        lineage['student'] = dict(parent_ckpt=str(R9.C.PARENT_CKPT), parent_sha256=ctx.joint.manifest['parent']['model_best_sha256'],",
+                "-                      parent_ckpt_sha256_unchanged=sha256(R9.C.PARENT_CKPT) == lineage['student']['parent_sha256'])",
+                "-    frozen = read_json(ROOT / 'PROTOCOL_FROZEN.json')"
+              ],
+              "n_added": 4
+            }
+          },
+          "ok": true
+        },
+        "r39ext_identical_trees": true,
+        "passed": true
+      },
+      "seconds": 0.02036738395690918
+    },
+    "configs": {
+      "passed": true,
+      "detail": {
+        "n": 21,
+        "bad": [],
+        "passed": true
+      },
+      "seconds": 0.11769938468933105
+    },
+    "bindings_r39xf": {
+      "passed": true,
+      "detail": {
+        "n00": {
+          "native_dev_rsum": 522.0710059171598,
+          "ckpt_sha_matches_cache": true,
+          "vocab_size": 8482,
+          "max_token": 8480,
+          "batch_size": 128,
+          "code_vse_equal": true,
+          "refs": {},
+          "native_matches_cache_manifest": true,
+          "ok": true
+        },
+        "n60s1002": {
+          "native_dev_rsum": 482.93885601577904,
+          "ckpt_sha_matches_cache": true,
+          "vocab_size": 8482,
+          "max_token": 8480,
+          "batch_size": 128,
+          "code_vse_equal": true,
+          "refs": {
+            "R39X_Flickr60_R30H_s1002_N_joint_global_J": {
+              "ref_native_H_rsum": 482.93885601577904,
+              "ref_rsum8000": 485.93688362919124,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_Flickr60_R30H_s1002_N_joint_global_BCE": {
+              "ref_native_H_rsum": 482.93885601577904,
+              "ref_rsum8000": 486.50887573964496,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_Flickr60_R30H_s1002_N_joint_global_NCE": {
+              "ref_native_H_rsum": 482.93885601577904,
+              "ref_rsum8000": 485.73964497041413,
+              "ref_chain_len": 7,
+              "native_matches": true
+            }
+          },
+          "native_matches_cache_manifest": true,
+          "ok": true
+        },
+        "n60s1003": {
+          "native_dev_rsum": 496.07495069033536,
+          "ckpt_sha_matches_cache": true,
+          "vocab_size": 8482,
+          "max_token": 8480,
+          "batch_size": 128,
+          "code_vse_equal": true,
+          "refs": {
+            "R39X_Flickr60_R30H_s1003_N_joint_global_J": {
+              "ref_native_H_rsum": 496.07495069033536,
+              "ref_rsum8000": 498.46153846153845,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_Flickr60_R30H_s1003_N_joint_global_BCE": {
+              "ref_native_H_rsum": 496.07495069033536,
+              "ref_rsum8000": 497.9092702169625,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_Flickr60_R30H_s1003_N_joint_global_NCE": {
+              "ref_native_H_rsum": 496.07495069033536,
+              "ref_rsum8000": 498.4812623274161,
+              "ref_chain_len": 7,
+              "native_matches": true
+            }
+          },
+          "native_matches_cache_manifest": true,
+          "ok": true
+        },
+        "passed": true
+      },
+      "seconds": 45.94038105010986
+    },
+    "bindings_r39xc": {
+      "passed": true,
+      "detail": {
+        "cc_r37s": {
+          "native_dev_rsum": 393.2,
+          "ckpt_sha_matches_cache": true,
+          "vocab_size": 12073,
+          "max_token": 12071,
+          "batch_size": 128,
+          "code_vse_equal": true,
+          "refs": {
+            "R39X_CC152K_R37S_s1001_N_joint_global_J": {
+              "ref_native_H_rsum": 393.2,
+              "ref_rsum8000": 393.4,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_CC152K_R37S_s1001_N_joint_global_BCE": {
+              "ref_native_H_rsum": 393.2,
+              "ref_rsum8000": 393.2,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_CC152K_R37S_s1001_N_joint_global_NCE": {
+              "ref_native_H_rsum": 393.2,
+              "ref_rsum8000": 390.30000000000007,
+              "ref_chain_len": 7,
+              "native_matches": true
+            }
+          },
+          "native_matches_cache_manifest": true,
+          "ok": true
+        },
+        "cc_s1002": {
+          "native_dev_rsum": 394.6,
+          "ckpt_sha_matches_cache": true,
+          "vocab_size": 12073,
+          "max_token": 12071,
+          "batch_size": 128,
+          "code_vse_equal": true,
+          "refs": {
+            "R39X_CC152K_R31H0_s1002_N_joint_global_J": {
+              "ref_native_H_rsum": 394.6,
+              "ref_rsum8000": 394.1,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_CC152K_R31H0_s1002_N_joint_global_BCE": {
+              "ref_native_H_rsum": 394.6,
+              "ref_rsum8000": 392.9,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_CC152K_R31H0_s1002_N_joint_global_NCE": {
+              "ref_native_H_rsum": 394.6,
+              "ref_rsum8000": 390.30000000000007,
+              "ref_chain_len": 7,
+              "native_matches": true
+            }
+          },
+          "native_matches_cache_manifest": true,
+          "ok": true
+        },
+        "cc_s1003": {
+          "native_dev_rsum": 392.6,
+          "ckpt_sha_matches_cache": true,
+          "vocab_size": 12073,
+          "max_token": 12071,
+          "batch_size": 128,
+          "code_vse_equal": true,
+          "refs": {
+            "R39X_CC152K_R31H0_s1003_N_joint_global_J": {
+              "ref_native_H_rsum": 392.6,
+              "ref_rsum8000": 393.5,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_CC152K_R31H0_s1003_N_joint_global_BCE": {
+              "ref_native_H_rsum": 392.6,
+              "ref_rsum8000": 392.99999999999994,
+              "ref_chain_len": 7,
+              "native_matches": true
+            },
+            "R39X_CC152K_R31H0_s1003_N_joint_global_NCE": {
+              "ref_native_H_rsum": 392.6,
+              "ref_rsum8000": 391.3,
+              "ref_chain_len": 7,
+              "native_matches": true
+            }
+          },
+          "native_matches_cache_manifest": true,
+          "ok": true
+        },
+        "passed": true
+      },
+      "seconds": 30.827497005462646
+    }
+  },
+  "note": "batch-chain identity vs the reference unit is asserted in every formal unit at each readout (train_unit reference check); not duplicated here",
+  "ALL_PASS": true,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

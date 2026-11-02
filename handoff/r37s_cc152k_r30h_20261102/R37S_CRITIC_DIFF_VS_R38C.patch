@@ -1,0 +1,185 @@
+diff -u /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/build_cache.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/build_cache.py
+--- /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/build_cache.py	2026-11-02 18:43:00.901345013 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/build_cache.py	2026-11-02 20:13:54.450614974 +0100
+@@ -1,4 +1,6 @@
+-"""R38: byte copy of R37C build_cache.py (R38 edits: --cond required (cc_s1002/cc_s1003), manifest line text). R37C (port of R37/R34 build_cache.py to CC152K). Build the frozen native embedding caches of the R31 CC152K parent
++"""R37S: byte copy of R38 r38c build_cache.py (R37S edits: --cond choice cc_r37s, recipe assertion = the R37S R30-style parent recipe
++(common.PARENT_RECIPE) instead of the R31 author defaults, series/manifest text; exact native DEV reproduction rule unchanged).
++R38: byte copy of R37C build_cache.py (R38 edits: --cond required (cc_s1002/cc_s1003), manifest line text). R37C (port of R37/R34 build_cache.py to CC152K). Build the frozen native embedding caches of the R31 CC152K parent
+ (H0_default cc_s1001, both peers), FIT(train) + DEV, and reproduce the parent's logged full-DEV rSum EXACTLY with the
+ native validate() path (r25_co_train.validate: per_captions = 1 for cc152k_precomp). Refuses to write the manifest if
+ the reproduction is not exact (float equality with the checkpoint's best_rsum).
+@@ -17,7 +19,7 @@
+ import numpy as np
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+-from common import (CODE_NATIVE, CONDS, OUT, VOCAB, DATA_NAME, PEERS, PER_CAP, N_TRAIN_IMG, N_TRAIN_CAP, N_DEV_IMG, N_DEV_CAP,
++from common import (PARENT_RECIPE, SERIES, CODE_NATIVE, CONDS, OUT, VOCAB, DATA_NAME, PEERS, PER_CAP, N_TRAIN_IMG, N_TRAIN_CAP, N_DEV_IMG, N_DEV_CAP,
+                     install_guards, guard_record, sha256, write_json, read_json, utc)
+ 
+ 
+@@ -33,7 +35,7 @@
+ 
+ 
+ def main():
+-    ap = argparse.ArgumentParser(); ap.add_argument('--cond', required=True, choices=('cc_s1002', 'cc_s1003'))
++    ap = argparse.ArgumentParser(); ap.add_argument('--cond', required=True, choices=('cc_r37s',))
+     ap.add_argument('--data-path', required=True); ap.add_argument('--workers', type=int, default=4)
+     ap.add_argument('--require-gpu', default='')
+     a = ap.parse_args()
+@@ -56,7 +58,7 @@
+     ck = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+     opt = ck['opt']; run = read_json(hdir / c['run_json'])
+     assert opt.data_name == DATA_NAME and float(opt.noise_ratio) == 0 and run['opt']['data_name'] == DATA_NAME
+-    assert run['opt']['warmup_epoch'] == 1 and run['opt']['k'] == 1 and run['opt']['i2t'] is False and run['opt']['t2i'] is False
++    assert all(run['opt'][k] == v for k, v in PARENT_RECIPE.items()) and all(getattr(opt, k) == v for k, v in PARENT_RECIPE.items()), (PARENT_RECIPE, run['opt'])
+     assert int(opt.seed) == c['parent_seed']
+     run_code_match = {f: run['env']['code_sha256'][f] == sha256(CODE_NATIVE / f) for f in run['env']['code_sha256']}
+     assert all(run_code_match.values()), ('native code differs from the parent run', run_code_match)
+@@ -101,7 +103,7 @@
+     print('NATIVE DEV', native, flush=True)
+     if not (native['reproduces_checkpoint_best_rsum_exactly'] and native['cache_rescore_identical']):
+         write_json(cdir / f"FAILED_REPRO_{os.environ.get('SLURM_JOB_ID', 'local')}.json", dict(native=native, gpu=torch.cuda.get_device_name(0), utc=utc()))
+-        raise SystemExit('R38: native DEV not reproduced exactly; cache NOT written')
++        raise SystemExit('R37S: native DEV not reproduced exactly; cache NOT written')
+     files = {}
+     def save(name, arr):
+         path = cdir / name; np.save(path, arr); files[name] = dict(sha256=sha256(path), shape=list(arr.shape), dtype=str(arr.dtype))
+@@ -142,9 +144,9 @@
+                         n_image_rows_with_bitwise_duplicate_embedding=int(sum(v for v in hi.values() if v > 1)))
+         del img, cap
+     manifest = dict(
+-        line='R38 CC152K cache of parent %s (R37C build_cache rule unchanged; development experiment, no TEST read)' % a.cond, cond=a.cond,
++        line='R37S CC152K cache of parent %s (R37C/R38 build_cache rule unchanged; development experiment, no TEST read)' % a.cond, cond=a.cond,
+         parent_seed=c['parent_seed'], created_utc=utc(),
+-        parent=dict(unit=c['h_unit'], series='R31 IN2R native fidelity (author run.py defaults: warmup 1, K 1, i2t/t2i off); NOT the Flickr R30-H series',
++        parent=dict(unit=c['h_unit'], series=SERIES,
+                     model_best=str(ckpt_path), model_best_sha256=sha256(ckpt_path),
+                     epoch=int(ck['epoch']), best_rsum=float(ck['best_rsum']), run_json=str(hdir / c['run_json']),
+                     code_dir=str(CODE_NATIVE), code_sha256={f: sha256(CODE_NATIVE / f) for f in ('vse.py', 'data.py', 'evaluation.py', 'vocab.py', 'glove_shim.py', 'r25_co_train.py')},
+@@ -166,7 +168,7 @@
+                  matmul_tf32=torch.backends.cuda.matmul.allow_tf32, cudnn_tf32=torch.backends.cudnn.allow_tf32),
+         test_guard=guard_record(), elapsed_seconds=time.time() - t_start)
+     write_json(cdir / 'CACHE_MANIFEST.json', manifest)
+-    print('R38_CACHE_DONE', a.cond, native['rsum'], native['reproduces_checkpoint_best_rsum_exactly'])
++    print('R37S_CACHE_DONE', a.cond, native['rsum'], native['reproduces_checkpoint_best_rsum_exactly'])
+ 
+ 
+ if __name__ == '__main__':
+diff -u /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/common.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/common.py
+--- /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/common.py	2026-11-02 18:42:22.427026652 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/common.py	2026-11-02 20:13:38.807484636 +0100
+@@ -1,4 +1,11 @@
+-"""R38 (CC152K code tree r38c = byte copy of R37C r37c; R38 edits: ROOT/OUT, three R31 parents s1001/s1002/s1003, per-parent
++"""R37S critic tree r37s_critic = byte copy of R38 r38c (CC152K, directional head + cosine schedule; superset of R37C), R37S edits
++in common.py only: ROOT/OUT -> the R37S line dir / outputs, CODE_NATIVE -> code_r37s (the code the R37S parent was trained with;
++its native vse/data/evaluation/vocab/co_train/r25_co_train/model are byte-identical to the R31 code used by R37C/R38), and a single
++condition 'cc_r37s' = the R37S CC152K R30-style H parent (warmup 5 + H0 co-train 40, A1, K5, i2t/t2i on, seed 1001, DEV-best).
++This parent is a DIFFERENT SERIES from the R31 H0_default parents of R37C/R38: never mixed in one table with R31-parent results.
++Development experiment: no TEST file is read in this line. All R30-R38 files are read-only and never written.
++(R38 docstring follows.)
++R38 (CC152K code tree r38c = byte copy of R37C r37c; R38 edits: ROOT/OUT, three R31 parents s1001/s1002/s1003, per-parent
+ prep dirs; s1001 cache/prep are the R37C artifacts, reused read-only). R37C CC152K: shared paths, constants, hashing, TEST-file guard, isolation guard. Copied from R37 common.py
+ (paths/conditions/dataset constants changed). Separate line R37C (CC152K block of R37), development experiment:
+ no TEST file is read in this line. All R30-R37 files are read-only and never written.
+@@ -12,21 +19,22 @@
+ import hashlib, importlib.abc, json, os, re, sys, time
+ from pathlib import Path
+ 
+-ROOT = Path('/home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102')
+-OUT = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r38_direction_20261102')
++ROOT = Path('/home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102')
++OUT = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/critic')
+ R37C_OUT = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r37c_cc152k_20261102')
+ R37C_ROOT = Path('/home/infres/yinwang/CS_QMI/handoff/r37c_cc152k_20261102')
+ RUNS = OUT / 'runs'
+ ORACLE_RUNS = OUT / 'oracle_runs'   # no oracle units; kept so the trainer-role guard still refuses this tree
+-PREP = OUT / 'prep'                 # R38: per-parent prep dirs OUT/prep/<cond> for the new parents (s1001: R37C prep, read-only). R37C prep: record locks (rebuilt for 150000 records), calibration, top-32 tables, B-TRUST
++PREP = OUT / 'prep'                 # R37S: prep dir of the single R37S parent (locks, calibration, top-32 tables, B-TRUST)
+ R37_ROOT = Path('/home/infres/yinwang/CS_QMI/handoff/r37_confirm_20261102')
+ R31_ROOT = Path('/home/infres/yinwang/CS_QMI/handoff/r31_in2r_fidelity_20261101')
+-CODE_NATIVE = R31_ROOT / 'code'     # byte copy of R25 IN2R code (author IN2R-code 909e5329); the parent was trained with it
++CODE_NATIVE = ROOT / 'code_r37s'    # R37S: the code the parent was trained with (native modules byte-identical to R31 code)
+ DATA_NAME = 'cc152k_precomp'
+ DATA_SRC = Path('/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data') / DATA_NAME
+ VOCAB = Path('/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/vocab')
+ R31_RUNS = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r31_in2r_fidelity_20261101/runs')
+-PARENT_DIR = R31_RUNS / 'cc_s1001' / 'H0_default'
++PARENT_RUNS = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r37s_cc152k_r30h_20261102/runs')
++PARENT_DIR = PARENT_RUNS / 'r37s_cc_s1001_H0'
+ PACKAGE = Path('/home/infres/yinwang/CS_QMI/r38_plan/VCS_R37_Review_R38_Plan_20261102')
+ 
+ N_TRAIN_IMG, N_TRAIN_CAP, N_DEV_IMG, N_DEV_CAP = 150000, 150000, 1000, 1000
+@@ -34,17 +42,13 @@
+ PEERS = ('A', 'B')
+ CKPT_STEPS_ABC = (0, 250, 500, 1000, 2000, 4000, 8000)
+ 
+-# single condition: the R31 native IN2R parent (author run.py defaults: warmup 1, K 1, i2t/t2i off), seed 1001, CC152K
++# single condition: the R37S R30-style H parent, seed 1001, CC152K
++SERIES = 'R37S R30-style H adaptation on CC152K (warmup 5 + H0 co-train 40, A1, K5, i2t/t2i on, DEV-best); NOT the R31 IN2R-default series'
++PARENT_RECIPE = dict(warmup_epoch=5, k=5, i2t=True, t2i=True, arm='a1_iface', num_epochs=40)
+ CONDS = {
+-    'cc': dict(dataset='CC152K', noise_percent=None, noise='real (uninjected); observed relation = native identity', parent_seed=1001,
+-               h_unit='r31_cc_s1001_H0_default', parent_dir=str(PARENT_DIR), run_json='RUN_1080782.json', noise_ratio=0.0,
+-               cache_dir=str(R37C_OUT / 'cache' / 'cc'), prep_dir=str(R37C_OUT / 'prep'), prep_key='cc', trust_file='trust_cc.npz'),
+-    'cc_s1002': dict(dataset='CC152K', noise_percent=None, noise='real (uninjected); observed relation = native identity', parent_seed=1002,
+-                     h_unit='r31_cc_s1002_H0_default', parent_dir=str(R31_RUNS / 'cc_s1002' / 'H0_default'), run_json='RUN_1080783.json', noise_ratio=0.0,
+-                     cache_dir=str(OUT / 'cache' / 'cc_s1002'), prep_dir=str(PREP / 'cc_s1002'), prep_key='cc_s1002', trust_file='trust_cc_s1002.npz'),
+-    'cc_s1003': dict(dataset='CC152K', noise_percent=None, noise='real (uninjected); observed relation = native identity', parent_seed=1003,
+-                     h_unit='r31_cc_s1003_H0_default', parent_dir=str(R31_RUNS / 'cc_s1003' / 'H0_default'), run_json='RUN_1080784.json', noise_ratio=0.0,
+-                     cache_dir=str(OUT / 'cache' / 'cc_s1003'), prep_dir=str(PREP / 'cc_s1003'), prep_key='cc_s1003', trust_file='trust_cc_s1003.npz'),
++    'cc_r37s': dict(dataset='CC152K', noise_percent=None, noise='real (uninjected); observed relation = native identity', parent_seed=1001,
++                    h_unit='r37s_cc_s1001_H0', parent_dir=str(PARENT_DIR), run_json='RUN_1082196.json', noise_ratio=0.0, series=SERIES,
++                    cache_dir=str(OUT / 'cache' / 'cc_r37s'), prep_dir=str(PREP / 'cc_r37s'), prep_key='cc_r37s', trust_file='trust_cc_r37s.npz'),
+ }
+ 
+ 
+diff -u /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/prep.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/prep.py
+--- /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/prep.py	2026-11-02 18:43:00.899344996 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/prep.py	2026-11-02 20:13:54.451614982 +0100
+@@ -1,4 +1,5 @@
+-"""R38 prep (byte copy of R37C prep.py; R38 edit: --cond selects one of the new R31 parents cc_s1002/cc_s1003 and writes its own
++"""R37S prep (byte copy of R38 r38c prep.py; R37S edit: --cond choice cc_r37s and line text; rules/lock seeds unchanged -> locks
++identical to R37C). R38 prep (byte copy of R37C prep.py; R38 edit: --cond selects one of the new R31 parents cc_s1002/cc_s1003 and writes its own
+ prep dir OUT/prep/<cond> (same rules, same lock seeds -> locks identical to R37C); s1001 keeps the R37C prep, read-only).
+ R37C prep (port of R37/R35 prep.py to CC152K; same rules, rebuilt for this dataset). Writes OUT/prep/*:
+  locks_records.npz    record locks rebuilt for the 150000 CC152K records with the R35 rule and the SAME seeds
+@@ -106,14 +107,14 @@
+ 
+ 
+ def main():
+-    ap = argparse.ArgumentParser(); ap.add_argument('--data-path', required=True); ap.add_argument('--cond', required=True, choices=('cc_s1002', 'cc_s1003'))
++    ap = argparse.ArgumentParser(); ap.add_argument('--data-path', required=True); ap.add_argument('--cond', required=True, choices=('cc_r37s',))
+     a = ap.parse_args()
+     install_guards(role='gate'); assert_no_oracle_loaded()
+     cond = a.cond
+     PREP = Path(CONDS[cond]['prep_dir']); assert str(PREP).startswith(str(OUT)), PREP
+     t0 = time.time(); PREP.mkdir(parents=True, exist_ok=True)
+-    assert not (PREP / 'PREP_MANIFEST.json').exists(), 'R38 prep already built'
+-    files, man = {}, dict(line='R38 CC152K prep of parent %s (R37C prep rules unchanged; development experiment, no TEST read)' % cond, cond=cond, parent_unit=CONDS[cond]['h_unit'], created_utc=utc())
++    assert not (PREP / 'PREP_MANIFEST.json').exists(), 'R37S prep already built'
++    files, man = {}, dict(line='R37S CC152K prep of parent %s (R37C/R38 prep rules unchanged; development experiment, no TEST read)' % cond, cond=cond, parent_unit=CONDS[cond]['h_unit'], created_utc=utc())
+ 
+     def save_npz(name, **arrs):
+         np.savez(PREP / name, **arrs); files[name] = dict(sha256=sha256(PREP / name), keys=sorted(arrs))
+@@ -148,7 +149,7 @@
+     man['files'] = files; man['test_guard'] = guard_record(); man['elapsed_seconds'] = time.time() - t0
+     man['env'] = dict(gpu=torch.cuda.get_device_name(0), host=os.uname().nodename, job=os.environ.get('SLURM_JOB_ID'), torch=torch.__version__)
+     write_json(PREP / 'PREP_MANIFEST.json', man)
+-    print('R38_PREP_DONE', cond, {k: v for k, v in man.items() if k in ('calibration_init', 'candidates', 'trust')})
++    print('R37S_PREP_DONE', cond, {k: v for k, v in man.items() if k in ('calibration_init', 'candidates', 'trust')})
+ 
+ 
+ if __name__ == '__main__':
+diff -u /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/train_unit.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/train_unit.py
+--- /home/infres/yinwang/CS_QMI/handoff/r38_direction_20261102/r38c/train_unit.py	2026-11-02 18:58:26.198003363 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/r37s_critic/train_unit.py	2026-11-02 20:13:54.453614999 +0100
+@@ -681,7 +681,7 @@
+ 
+ 
+ def check_frozen(uids):
+-    frozen = read_json(ROOT / 'PROTOCOL_FROZEN.json')
++    frozen = read_json(ROOT / 'PROTOCOL_FROZEN_CRITIC.json')   # R37S: critic-line freeze file (PROTOCOL.json is the parent's)
+     here = Path(__file__).resolve().parent
+     code = frozen['code_sha256_by_tree'][here.name]   # R38: one frozen code set per tree (r38f / r38c)
+     assert set(code) == {Path(f).name for f in glob.glob(str(here / '*.py'))}, 'code file set differs from frozen protocol'

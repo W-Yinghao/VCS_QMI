@@ -1,0 +1,104 @@
+diff -u -x INSTALL_MANIFEST.json -x __pycache__ /home/infres/yinwang/CS_QMI/handoff/r30_pairwise_20261101/code_r30v11/r27_interface.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/code_r37s/r27_interface.py
+--- /home/infres/yinwang/CS_QMI/handoff/r30_pairwise_20261101/code_r30v11/r27_interface.py	2026-10-29 02:36:07.035677677 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/code_r37s/r27_interface.py	2026-11-02 15:52:41.150216073 +0100
+@@ -13,7 +13,7 @@
+    pre-centering mean of that modality (detached, taken from the native forward_emb of the query batch) and
+    unit-normalizes (host l2norm). The snapshot is stop-grad. Queries keep the native forward_emb values.
+ """
+-import time
++import os, time
+ import numpy as np
+ import torch
+ from vse import l2norm
+@@ -45,6 +45,38 @@
+             cls.images_gpu = t
+         return cls.images_gpu
+ 
++    # R27-A1X (COCO / CC152K): the full train feature array (COCO 31.1 GiB, CC152K 41.2 GiB fp32) does not fit next to
++    # the models on every allowed GPU. image_rows() returns exactly the rows the original path returns
++    # (gpu_images()[cols], same float32 bytes, same order); 'cpu' mode gathers the requested rows from the host
++    # memmap and copies only them to the GPU. Mode: env R27X_IMG_GATHER in {auto, gpu, cpu}; auto = gpu iff
++    # array bytes + GATHER_HEADROOM <= total GPU memory (a fixed function of the GPU type), else cpu.
++    GATHER_HEADROOM = 16 * 2**30
++    gather_mode = None
++
++    @classmethod
++    def mode(cls):
++        if cls.gather_mode is None:
++            m = os.environ.get('R27X_IMG_GATHER', 'auto')
++            assert m in ('auto', 'gpu', 'cpu'), m
++            if m == 'auto':
++                total = torch.cuda.get_device_properties(0).total_memory
++                m = 'gpu' if cls.images.nbytes + cls.GATHER_HEADROOM <= total else 'cpu'
++            cls.gather_mode = m
++            print(f"R27X image gather mode {m} (array {cls.images.nbytes / 2**30:.2f} GiB, "
++                  f"GPU total {torch.cuda.get_device_properties(0).total_memory / 2**30:.2f} GiB)", flush=True)
++        return cls.gather_mode
++
++    @classmethod
++    def rows_np(cls, idx):
++        """Host gather of observed-image feature rows (float32, given order) from the memmap."""
++        return np.ascontiguousarray(cls.images[np.asarray(idx, dtype=np.int64)])
++
++    @classmethod
++    def image_rows(cls, cols):
++        if cls.mode() == 'gpu':
++            return cls.gpu_images()[cols]
++        return torch.from_numpy(cls.rows_np(cols.detach().cpu().numpy())).to(cols.device)
++
+     @classmethod
+     def tokens(cls, cid):
+         t = cls.tok.get(cid)
+@@ -167,7 +199,7 @@
+                 cap[j, :len(t)] = t
+             raw = net.txt_enc(cap.cuda(), lengths)
+         else:
+-            ims = Ctx.gpu_images()[cols]
++            ims = Ctx.image_rows(cols)
+             lens = torch.full((ims.shape[0],), float(ims.shape[1]), device=ims.device)
+             raw = net.img_enc(ims, lens)
+     finally:
+diff -u -x INSTALL_MANIFEST.json -x __pycache__ /home/infres/yinwang/CS_QMI/handoff/r30_pairwise_20261101/code_r30v11/r30_co_train.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/code_r37s/r30_co_train.py
+--- /home/infres/yinwang/CS_QMI/handoff/r30_pairwise_20261101/code_r30v11/r30_co_train.py	2026-11-01 15:27:46.624534898 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/code_r37s/r30_co_train.py	2026-11-02 15:52:41.147216048 +0100
+@@ -108,7 +108,8 @@
+ def data_digests(opt):
+     """sha256 of the train/dev caption files and image arrays actually read (staged copies) and of the noise file."""
+     d = os.path.join(opt.data_path, opt.data_name)
+-    files = {f: sha256(os.path.join(d, f)) for f in ('train_caps.txt', 'dev_caps.txt', 'train_ims.npy', 'dev_ims.npy')}
++    ext = 'tsv' if opt.data_name == 'cc152k_precomp' else 'txt'                                     # R37S: CC152K caption files are .tsv
++    files = {f: sha256(os.path.join(d, f)) for f in (f'train_caps.{ext}', f'dev_caps.{ext}', 'train_ims.npy', 'dev_ims.npy')}
+     noise = sha256(opt.noise_file) if os.path.isfile(opt.noise_file) else None
+     return dict(files=files, data_split_digest=hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest(), noise_digest=noise)
+ 
+@@ -430,7 +431,7 @@
+     vocab = deserialize_vocab(os.path.join(opt.vocab_path, "%s_vocab.json" % opt.data_name)); vocab.add_word('<mask>')
+     captions_dev, images_dev = R.get_dataset(opt.data_path, opt.data_name, "dev")
+     val_loader = R.get_loader(captions_dev, images_dev, vocab, "dev", opt.batch_size, opt.workers)
+-    per_captions = 5
++    per_captions = 1 if opt.data_name == 'cc152k_precomp' else 5                                    # R37S: as r25_co_train.validate
+     sims_mean = 0
+     for m in models:
+         img_embs, cap_embs, cap_lens = R.encode_data(m, val_loader, opt.log_step)
+diff -u -x INSTALL_MANIFEST.json -x __pycache__ /home/infres/yinwang/CS_QMI/handoff/r30_pairwise_20261101/code_r30v11/r30_run.py /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/code_r37s/r30_run.py
+--- /home/infres/yinwang/CS_QMI/handoff/r30_pairwise_20261101/code_r30v11/r30_run.py	2026-11-01 14:55:56.926573846 +0100
++++ /home/infres/yinwang/CS_QMI/handoff/r37s_cc152k_r30h_20261102/code_r37s/r30_run.py	2026-11-02 15:52:41.145216031 +0100
+@@ -32,7 +32,7 @@
+     a, rest = p.parse_known_args(argv)
+     opt = r25_run.parse(rest)
+     assert opt.noisy_obj == 'sce' and opt.link == 'c0', 'R25 hook flags are not used by R30'
+-    assert opt.data_name == 'f30k_precomp'
++    assert opt.data_name in ('f30k_precomp', 'cc152k_precomp')   # R37S: CC152K data adaptation (one image per caption)
+     opt.arm, opt.lam = 'a1_iface', 0.0
+     for k, v in vars(a).items():
+         setattr(opt, k, v)
+@@ -75,7 +75,8 @@
+     t0 = time.time()
+     r30_co_train.main(opt)
+     json.dump({'peak_mem_allocated_GiB': torch.cuda.max_memory_allocated() / 2**30, 'peak_mem_reserved_GiB': torch.cuda.max_memory_reserved() / 2**30,
+-               'wall_seconds': time.time() - t0, 'gpu': env['gpu'], 'job': env['job']},
++               'wall_seconds': time.time() - t0, 'gpu': env['gpu'], 'job': env['job'],
++               'img_gather': __import__('r27_interface').Ctx.gather_mode},                         # R37S (as R27-A1X)
+               open(os.path.join(opt.output_dir, f"PEAK_{env['job']}.json"), 'w'), indent=1)
+ 
+ 

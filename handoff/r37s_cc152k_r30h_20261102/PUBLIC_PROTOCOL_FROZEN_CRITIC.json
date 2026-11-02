@@ -1,0 +1,61 @@
+{
+  "line": "R37S critic-only fits on the R37S CC152K R30-style H parent (18 units, 8000 steps); development experiment, no TEST read",
+  "frozen_utc": "2026-11-02T19:40:08Z",
+  "status": "FROZEN_BEFORE_FORMAL_UNITS",
+  "series": "R37S R30-style H adaptation on CC152K (warmup 5 + H0 co-train 40, A1, K5, i2t/t2i on, DEV-best); NOT the R31 IN2R-default series",
+  "units": [
+    "r37s_cc_r30h_s1001_N_shared_J_constant",
+    "r37s_cc_r30h_s1001_N_shared_BCE_constant",
+    "r37s_cc_r30h_s1001_N_shared_NCE_constant",
+    "r37s_cc_r30h_s1001_T_shared_J_constant",
+    "r37s_cc_r30h_s1001_T_shared_BCE_constant",
+    "r37s_cc_r30h_s1001_T_shared_NCE_constant",
+    "r37s_cc_r30h_s1001_N_shared_J_cosine",
+    "r37s_cc_r30h_s1001_N_shared_BCE_cosine",
+    "r37s_cc_r30h_s1001_N_shared_NCE_cosine",
+    "r37s_cc_r30h_s1001_N_directional_J_constant",
+    "r37s_cc_r30h_s1001_N_directional_BCE_constant",
+    "r37s_cc_r30h_s1001_N_directional_NCE_constant",
+    "r37s_cc_r30h_s1001_N_directional_J_cosine",
+    "r37s_cc_r30h_s1001_N_directional_BCE_cosine",
+    "r37s_cc_r30h_s1001_N_directional_NCE_cosine",
+    "r37s_cc_r30h_s1001_T_shared_J_cosine",
+    "r37s_cc_r30h_s1001_T_shared_BCE_cosine",
+    "r37s_cc_r30h_s1001_T_shared_NCE_cosine"
+  ],
+  "matrix": {
+    "approved_6": "{T, N} shared head, constant lr x {J, BCE, NCE} (R37C definitions on this parent)",
+    "user_added_12": {
+      "quote": "「实验要做的全一些」",
+      "relayed_by": "supervising session (main cs-qmi session)",
+      "cells": "N shared-cosine, N directional-constant, N directional-cosine, T shared-cosine x {J, BCE, NCE} (the R38 cells, same definitions)",
+      "reason": "completeness requested by the user, before any R37S critic result existed (not outcome-driven)"
+    },
+    "not_included": "T directional (undefined in the R38 package), oracle/M/V units"
+  },
+  "definitions": {
+    "steps": 8000,
+    "lr_head": 0.0001,
+    "cosine": "lr(t) = 1e-4*[0.1+0.45*(1+cos(pi*t/7999))], t = update index 0..7999 (R38)",
+    "directional": "R38 DirGHead: shared trunk, per-direction output (zero init) + positive affine; +131 params/peer",
+    "N": "OBS_MISSING_NULL (frozen-H top-32 + null slot, Q uniform 33)",
+    "T": "TRUST_HARD (this parent's native-GMM trusted subset; observed positive + 31 frozen-H top-32 others, Q uniform 32)"
+  },
+  "code_not_bound": [
+    "build_cache.py",
+    "prep.py"
+  ],
+  "code_diff_vs_r38c": {
+    "file": "R37S_CRITIC_DIFF_VS_R38C.patch"
+  },
+  "cpu_test": {},
+  "gpu_gate": {
+    "waived_by_user": true,
+    "utc": "2026-11-02T19:40:08Z",
+    "basis": "R37 waiver (user 2026-11-02 「好，取消gate，直接提交正式实验」), carried to R38 and to this line by the supervising session: no standalone GPU gate; every unit asserts step-0 two-stage ranks == native ranks and the first/second-update graph checks (fail-fast); no earlier unit on this parent -> no reference init/chain assertion (cross-unit equality checked post hoc)"
+  },
+  "hardware": "--qos=normal --partition=RTX6000PRO,L40S,H100 --exclude=node51,node53,node60 --nice=0; formal units never on runfill",
+  "primary_endpoint": "fixed step 8000 (curves 0/250/500/1000/2000/4000/8000; no per-method stop/extend/best-step)",
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
