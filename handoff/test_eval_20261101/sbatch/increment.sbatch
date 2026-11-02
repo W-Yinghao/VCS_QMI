@@ -21,5 +21,6 @@ $PY -B -u tools/build_manifest.py --increment; rc=$?
 if [ $rc -ne 0 ] && [ $rc -ne 3 ]; then echo "manifest increment failed rc=$rc"; exit $rc; fi
 $PY -B -u tools/test_eval.py --host in2r --dataset all || exit 1
 $PY -B -u tools/test_eval.py --host sps --dataset all || exit 1
+$PY -B -u tools/test_eval.py --host nrcs --dataset all || exit 1
 $PY -B -u tools/aggregate_test.py || exit 1
 echo TE_INCREMENT_DONE

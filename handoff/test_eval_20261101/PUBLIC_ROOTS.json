@@ -142,6 +142,15 @@
       "oracle": false,
       "snapshot": "handoff/r33_baselines_20261102/code_h0 (H0, byte copy of r25_in2r_20261027/code) | code_a1 (a1_iface, byte copy of r27_a1cross_20261030/code_a1x)",
       "note": "benchmark baseline rows: H0 = native IN2R (R25 code-version config) and a1_iface = IN2R+A1, sharing one native prefix per cell (prefix kept outside runs/); cells c60/c20/c80 (COCO), f80/f20 (Flickr30K); 20% = OFFICIAL NCR index, 60% = R25 lock map, 80% = R33 NOISE_LOCK map; f20 has a1_iface only (its H0 is R31-FID f20 H0_codecfg, trained from scratch, not prefix-paired)"
+    },
+    {
+      "line": "NRCS-v1",
+      "glob": "r32_native_ratio_20261101/test_view/*/*",
+      "layout": "cell/arm",
+      "oracle": false,
+      "snapshot": "handoff/r32_native_ratio_20261101/nrcs",
+      "checkpoint_rule": "declared 2026-11-01 before any TEST read: arm dir <stage>_<arm>_b*_i* = PRIMARY fixed epoch-20 checkpoint (epoch20.pt); arm dir ..__selJ = SECONDARY checkpoint selected by max SELECT observed J (earliest tie, epochs 0..20); DEV/TEST never used for selection",
+      "note": "VCS_NATIVE_RATIO_v1 single-model GPO two-tower (E2 36 + C2 2 units, Flickr30K internal FIT split 26,100 images, 0/60% noise); views built by nrcs/test_entry.py views; requires TEST_EVAL_NRCS.patch (host nrcs) and a '--host nrcs' line in sbatch/increment.sbatch"
     }
   ],
   "fixed_units": [

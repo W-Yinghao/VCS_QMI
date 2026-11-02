@@ -4,7 +4,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 每条阶段路径读第 10 个完成的 co-train 轮（raw_epoch 9）的 full-DEV rSum，不是前 10 轮 best；E0 为父状态边界。H→L 与 H→H 在 seed1001 取 40 轮单元 L0/H0 的 E10，在 seed1002/1003 的 H→H 取 40 轮对照的 E10。未完成记 NA。60% 跨 seed 正式均值仅在三 seed 齐全时给出，否则为 NA；部分均值单列为 exploratory_partial_mean。
 
-未完成单元：r30_f00_s1001_PN, r30_f00_s1001_PV, r30_f00_s1001_PB, r30_f60_s1001_PN, r30_f60_s1001_PV, r30_f60_s1001_PB, r30a1_f60_s1003_PN, r30a1_f60_s1003_PV, r30a1_f60_s1003_PB
+未完成单元：无
 
 | unit | 噪声 | seed | 路径 | E0 | E1 | E2 | E5 | E10 | E10−E0 | E10 累计更新 | E10 i2t R@1 | E10 t2i R@1 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|

@@ -236,7 +236,7 @@ class Sps:
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--host', required=True, choices=('in2r', 'sps'))
+    ap.add_argument('--host', required=True, choices=('in2r', 'sps', 'nrcs'))
     ap.add_argument('--dataset', default='all', choices=('all', 'f30k', 'coco', 'cc152k'))
     ap.add_argument('--shard', default='0/1')
     ap.add_argument('--manifest', nargs='*')
@@ -254,7 +254,9 @@ def main():
         assert sha_file(mp) == sha, f'manifest changed after freezing: {mp}'
         man = json.load(open(mp))
         mans[mp] = man
-        ec = man['eval_code'] if a.host == 'in2r' else man['eval_code_sps']
+        if not any(u['host'] == a.host for u in man['units']):
+            continue  # manifests frozen before a host existed carry no units (and no eval_code entry) for it
+        ec = man['eval_code'] if a.host == 'in2r' else man['eval_code_sps'] if a.host == 'sps' else man['eval_code_nrcs']
         for f, s in ec['sha256'].items():
             assert sha_file(os.path.join(ec['dir'], f)) == s, f'eval code changed: {f}'
         for u in man['units']:
@@ -291,7 +293,10 @@ def main():
         staged = {}
         for dn in dns:
             staged.update(stage(data_root, dn, tmp, dev_only=a.smoke_dev))
-        ev = In2r(tmp) if a.host == 'in2r' else Sps(tmp)
+        if a.host == 'nrcs':
+            sys.path.insert(0, '/home/infres/yinwang/CS_QMI/handoff/r32_native_ratio_20261101/nrcs')
+            from test_entry import Nrcs
+        ev = In2r(tmp) if a.host == 'in2r' else Sps(tmp) if a.host == 'sps' else Nrcs(tmp)
         if a.smoke_dev:
             ev.test_split, ev.nfolds = 'dev', 1
         env = dict(gpu=gpu, node=os.uname().nodename, job=jid, torch=torch.__version__, cuda=torch.version.cuda,

@@ -23,6 +23,9 @@ DATA = '/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data'
 VOCAB = '/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/vocab'
 GLOVE = '/projects/EEG-foundation-model/yinghao/models/glove840b/glove840b_r25_subset.npz'
 EVAL_FILES = ('evaluation.py', 'vse.py', 'model.py', 'data.py', 'vocab.py', 'utils.py', 'glove_shim.py')
+NRCS_DIR = '/home/infres/yinwang/CS_QMI/handoff/r32_native_ratio_20261101'
+NRCS_EVAL_FILES = ('nrcs/test_entry.py', 'nrcs/gpo_adapter.py', 'upstream/vse.py', 'upstream/glove_shim.py',
+                   'upstream/evaluation_909e5329_orig.py', 'package/src/native_ratio/models.py')
 SPS_EVAL_FILES = ('evaluation.py', 'model.py', 'data.py', 'vocab.py', 'utils.py', 'InfoNCELoss.py')
 # author-original IN2R data.py (commit 909e5329); differs from the eval copy only in the training-time caption-drop branch
 KNOWN_DATA_PY = {'80b7d497be1f2df2d90d4695888caf36642de2146f8e865abd655d8b6d0865d8':
@@ -150,6 +153,7 @@ def main():
 
     eval_code = {f: sha_file(os.path.join(HERE, 'eval_code', f)) for f in EVAL_FILES}
     sps_code = {f: sha_file(os.path.join(HERE, 'eval_code_sps', f)) for f in SPS_EVAL_FILES}
+    nrcs_code = {f: sha_file(os.path.join(NRCS_DIR, f)) for f in NRCS_EVAL_FILES}
     snaps = snapshots()
     units, skipped = [], []
     claimed = set()
@@ -250,6 +254,18 @@ def main():
                 lab, ident = r30_label(u['run_dir'])
                 u['arm_label'], u['r30_identity'] = lab, ident
             u['epochs_done'] = done.get('epochs_done')
+        elif u['host'] == 'nrcs':  # NRCS-v1 GPO two-tower views (r32_native_ratio_20261101/nrcs/test_entry.py views)
+            done = json.load(open(os.path.join(u['run_dir'], 'DONE.json')))
+            u['done'] = done
+            checks['done_best_equals_checkpoint_best'] = abs(done['best_rsum'] - u['checkpoint_best_rsum']) < 1e-9
+            u['logged_dev'], u['logged_dev_source'] = done['logged_dev'], done['logged_dev_source']
+            u['logged_dev_context'] = dict(checkpoint_rule=done['checkpoint_rule'], source_checkpoint_sha256=done['source_checkpoint_sha256'])
+            checks['logged_entry_found'] = True
+            checks['source_checkpoint_sha256_matches'] = sha_file(ckpt['source_checkpoint']) == done['source_checkpoint_sha256']
+            u['training_runs'] = [dict(file='DONE.json', gpu=done.get('gpu_model'))]
+            u['eval_code_vs_training'] = 'NRCS evaluator files (manifest eval_code_nrcs) are the training adapter files'
+            checks['eval_code_ok'] = all(sha_file(os.path.join(NRCS_DIR, f)) == s for f, s in nrcs_code.items())
+            u['epochs_done'] = done['epochs_done']
         else:  # SPS
             row = [r for r in fd['rows'] if r['epoch'] == u['checkpoint_epoch']][-1]
             u['logged_dev'] = {k: row[k] for k in ('i2t_r1', 'i2t_r5', 'i2t_r10', 't2i_r1', 't2i_r5', 't2i_r10', 'rsum', 'n_images', 'n_captions')}
@@ -295,6 +311,7 @@ def main():
         eval_code=dict(dir=os.path.join(HERE, 'eval_code'), sha256=eval_code,
                        source='/home/infres/yinwang/CS_QMI/handoff/r25_in2r_20261027/code (byte-identical evaluation.py / vse.py / model.py / '
                               'data.py / vocab.py / utils.py / glove_shim.py in every R25-R30 snapshot)'),
+        eval_code_nrcs=dict(dir=NRCS_DIR, sha256=nrcs_code, note='NRCS-v1 GPO two-tower evaluator (host nrcs); pointwise, frozen BN, no batch centering'),
         eval_code_sps=dict(dir=os.path.join(HERE, 'eval_code_sps'), sha256=sps_code,
                            source='/home/infres/yinwang/CS_QMI/handoff/r25_in2r_20261027/sps_code'),
         glove_npz=dict(path=GLOVE, bytes=os.stat(GLOVE).st_size, note='only used to construct EncoderText before load_state_dict'),

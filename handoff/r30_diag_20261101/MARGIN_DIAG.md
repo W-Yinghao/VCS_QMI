@@ -10,30 +10,30 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 
 | 类别 | unit_id | 完成co-train轮 | 存在 | 已测量 | 路径 |
 |---|---|---|---|---|---|
-| R29_saved_state | r29_f00_s1001__h_native@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native/state_epoch10.pt |
-| R29_saved_state | r29_f00_s1001__h_native@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native/state_epoch20.pt |
-| R29_saved_state | r29_f00_s1001__h_native@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native/state_last.pt |
-| R29_saved_state | r29_f00_s1001__n_infonce@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/n_infonce/state_epoch10.pt |
-| R29_saved_state | r29_f00_s1001__n_infonce@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/n_infonce/state_epoch20.pt |
-| R29_saved_state | r29_f00_s1001__n_infonce@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/n_infonce/state_last.pt |
-| R29_saved_state | r29_f00_s1001__l_listwise_vcs@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs/state_epoch10.pt |
-| R29_saved_state | r29_f00_s1001__l_listwise_vcs@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs/state_epoch20.pt |
-| R29_saved_state | r29_f00_s1001__l_listwise_vcs@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs/state_last.pt |
-| R29_saved_state | r29_f00_s1001__b_listwise_bce@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/b_listwise_bce/state_epoch10.pt |
-| R29_saved_state | r29_f00_s1001__b_listwise_bce@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/b_listwise_bce/state_epoch20.pt |
-| R29_saved_state | r29_f00_s1001__b_listwise_bce@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/b_listwise_bce/state_last.pt |
-| R29_saved_state | r29_f60_s1001__h_native@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native/state_epoch10.pt |
-| R29_saved_state | r29_f60_s1001__h_native@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native/state_epoch20.pt |
-| R29_saved_state | r29_f60_s1001__h_native@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native/state_last.pt |
-| R29_saved_state | r29_f60_s1001__n_infonce@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/n_infonce/state_epoch10.pt |
-| R29_saved_state | r29_f60_s1001__n_infonce@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/n_infonce/state_epoch20.pt |
-| R29_saved_state | r29_f60_s1001__n_infonce@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/n_infonce/state_last.pt |
-| R29_saved_state | r29_f60_s1001__l_listwise_vcs@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs/state_epoch10.pt |
-| R29_saved_state | r29_f60_s1001__l_listwise_vcs@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs/state_epoch20.pt |
-| R29_saved_state | r29_f60_s1001__l_listwise_vcs@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs/state_last.pt |
-| R29_saved_state | r29_f60_s1001__b_listwise_bce@raw10 | 11 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/b_listwise_bce/state_epoch10.pt |
-| R29_saved_state | r29_f60_s1001__b_listwise_bce@raw20 | 21 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/b_listwise_bce/state_epoch20.pt |
-| R29_saved_state | r29_f60_s1001__b_listwise_bce@raw39 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/b_listwise_bce/state_last.pt |
+| R29_saved_state | r29_f00_s1001__h_native@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native/state_epoch10.pt |
+| R29_saved_state | r29_f00_s1001__h_native@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native/state_epoch20.pt |
+| R29_saved_state | r29_f00_s1001__h_native@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/h_native/state_last.pt |
+| R29_saved_state | r29_f00_s1001__n_infonce@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/n_infonce/state_epoch10.pt |
+| R29_saved_state | r29_f00_s1001__n_infonce@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/n_infonce/state_epoch20.pt |
+| R29_saved_state | r29_f00_s1001__n_infonce@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/n_infonce/state_last.pt |
+| R29_saved_state | r29_f00_s1001__l_listwise_vcs@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs/state_epoch10.pt |
+| R29_saved_state | r29_f00_s1001__l_listwise_vcs@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs/state_epoch20.pt |
+| R29_saved_state | r29_f00_s1001__l_listwise_vcs@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/l_listwise_vcs/state_last.pt |
+| R29_saved_state | r29_f00_s1001__b_listwise_bce@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/b_listwise_bce/state_epoch10.pt |
+| R29_saved_state | r29_f00_s1001__b_listwise_bce@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/b_listwise_bce/state_epoch20.pt |
+| R29_saved_state | r29_f00_s1001__b_listwise_bce@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f00_s1001/b_listwise_bce/state_last.pt |
+| R29_saved_state | r29_f60_s1001__h_native@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native/state_epoch10.pt |
+| R29_saved_state | r29_f60_s1001__h_native@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native/state_epoch20.pt |
+| R29_saved_state | r29_f60_s1001__h_native@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/h_native/state_last.pt |
+| R29_saved_state | r29_f60_s1001__n_infonce@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/n_infonce/state_epoch10.pt |
+| R29_saved_state | r29_f60_s1001__n_infonce@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/n_infonce/state_epoch20.pt |
+| R29_saved_state | r29_f60_s1001__n_infonce@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/n_infonce/state_last.pt |
+| R29_saved_state | r29_f60_s1001__l_listwise_vcs@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs/state_epoch10.pt |
+| R29_saved_state | r29_f60_s1001__l_listwise_vcs@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs/state_epoch20.pt |
+| R29_saved_state | r29_f60_s1001__l_listwise_vcs@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/l_listwise_vcs/state_last.pt |
+| R29_saved_state | r29_f60_s1001__b_listwise_bce@raw10 | 11 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/b_listwise_bce/state_epoch10.pt |
+| R29_saved_state | r29_f60_s1001__b_listwise_bce@raw20 | 21 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/b_listwise_bce/state_epoch20.pt |
+| R29_saved_state | r29_f60_s1001__b_listwise_bce@raw39 | 40 | 0 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r29_listwise_20261101/runs/f60_s1001/b_listwise_bce/state_last.pt |
 | R30_parent_E0 | wp_f00_s1001_H_e5 | 0 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/parents/wp_f00_s1001_H_e5/parent_state.pt |
 | R30_parent_E0 | wp_f60_s1001_H_e5 | 0 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/parents/wp_f60_s1001_H_e5/parent_state.pt |
 | R30_parent_E0 | wp_f60_s1001_L_e5 | 0 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/parents/wp_f60_s1001_L_e5/parent_state.pt |
@@ -46,25 +46,25 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | R30_fixed_E10 | r30_f00_s1001_L0 | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_L0/state_completed10.pt |
 | R30_fixed_E40 | r30_f00_s1001_L0 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_L0/state_last.pt |
 | R30_fixed_E10 | r30_f00_s1001_Ls | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_Ls/state_completed10.pt |
-| R30_fixed_E40 | r30_f00_s1001_Ls | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_Ls/state_last.pt |
+| R30_fixed_E40 | r30_f00_s1001_Ls | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_Ls/state_last.pt |
 | R30_fixed_E10 | r30_f00_s1001_PN | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PN/state_completed10.pt |
-| R30_fixed_E40 | r30_f00_s1001_PN | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PN/state_last.pt |
+| R30_fixed_E40 | r30_f00_s1001_PN | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PN/state_last.pt |
 | R30_fixed_E10 | r30_f00_s1001_PV | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PV/state_completed10.pt |
-| R30_fixed_E40 | r30_f00_s1001_PV | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PV/state_last.pt |
-| R30_fixed_E10 | r30_f00_s1001_PB | 10 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PB/state_completed10.pt |
-| R30_fixed_E40 | r30_f00_s1001_PB | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PB/state_last.pt |
+| R30_fixed_E40 | r30_f00_s1001_PV | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PV/state_last.pt |
+| R30_fixed_E10 | r30_f00_s1001_PB | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PB/state_completed10.pt |
+| R30_fixed_E40 | r30_f00_s1001_PB | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_PB/state_last.pt |
 | R30_fixed_E10 | r30_f60_s1001_H0 | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/state_completed10.pt |
 | R30_fixed_E40 | r30_f60_s1001_H0 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/state_last.pt |
 | R30_fixed_E10 | r30_f60_s1001_L0 | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_L0/state_completed10.pt |
 | R30_fixed_E40 | r30_f60_s1001_L0 | 40 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_L0/state_last.pt |
 | R30_fixed_E10 | r30_f60_s1001_Ls | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_Ls/state_completed10.pt |
-| R30_fixed_E40 | r30_f60_s1001_Ls | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_Ls/state_last.pt |
-| R30_fixed_E10 | r30_f60_s1001_PN | 10 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PN/state_completed10.pt |
-| R30_fixed_E40 | r30_f60_s1001_PN | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PN/state_last.pt |
-| R30_fixed_E10 | r30_f60_s1001_PV | 10 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PV/state_completed10.pt |
-| R30_fixed_E40 | r30_f60_s1001_PV | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PV/state_last.pt |
-| R30_fixed_E10 | r30_f60_s1001_PB | 10 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PB/state_completed10.pt |
-| R30_fixed_E40 | r30_f60_s1001_PB | 40 | 0 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PB/state_last.pt |
+| R30_fixed_E40 | r30_f60_s1001_Ls | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_Ls/state_last.pt |
+| R30_fixed_E10 | r30_f60_s1001_PN | 10 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PN/state_completed10.pt |
+| R30_fixed_E40 | r30_f60_s1001_PN | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PN/state_last.pt |
+| R30_fixed_E10 | r30_f60_s1001_PV | 10 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PV/state_completed10.pt |
+| R30_fixed_E40 | r30_f60_s1001_PV | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PV/state_last.pt |
+| R30_fixed_E10 | r30_f60_s1001_PB | 10 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PB/state_completed10.pt |
+| R30_fixed_E40 | r30_f60_s1001_PB | 40 | 1 | 0 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_PB/state_last.pt |
 | R30_fixed_E10 | r30v11_f00_s1001_HN | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30v11_f00_s1001_HN/state_completed10.pt |
 | R30_fixed_E10 | r30v11_f00_s1001_HB | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30v11_f00_s1001_HB/state_completed10.pt |
 | R30_fixed_E10 | r30v11_f60_s1001_HN | 10 | 1 | 1 | /projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30v11_f60_s1001_HN/state_completed10.pt |
@@ -101,6 +101,7 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_H0 | 10 | 519.11 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | Tesla V100S-PCIE-32GB | 418 |
 | r30_f00_s1001_L0 | 10 | 503.21 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | Tesla V100S-PCIE-32GB | 400 |
 | r30_f00_s1001_Ls | 10 | 505.01 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | Tesla V100S-PCIE-32GB | 384 |
+| r30_f00_s1001_PB | 10 | 516.96 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | NVIDIA L40S | 183 |
 | r30_f00_s1001_PN | 10 | 517.06 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | Tesla V100S-PCIE-32GB | 397 |
 | r30_f00_s1001_PV | 10 | 520.06 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | Tesla V100S-PCIE-32GB | 344 |
 | r30v11_f00_s1001_HB | 10 | 504.22 | 0.000500 | 1 | 1 | 0.0e+00 | 0.0e+00 | 0 | Tesla V100S-PCIE-32GB | 407 |
@@ -167,6 +168,7 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_H0 | 10 | 519.11 | 0.9575 | 0.9845 | 0.0269 | 0.0269 | 4.4e-16 | 1.003 | 0.2853 | 0.3333 | 0.0480 | 4.4e-16 | 0.2339 | 0.959 | 0.21 |
 | r30_f00_s1001_L0 | 10 | 503.21 | 0.9545 | 0.9845 | 0.0299 | 0.0299 | 8.9e-16 | 1.003 | 0.2592 | 0.3333 | 0.0741 | 4.4e-16 | 0.1898 | 0.932 | 0.19 |
 | r30_f00_s1001_Ls | 10 | 505.01 | 0.9549 | 0.9845 | 0.0295 | 0.0295 | 4.4e-16 | 1.003 | 0.2607 | 0.3333 | 0.0726 | 4.4e-16 | 0.1904 | 0.932 | 0.19 |
+| r30_f00_s1001_PB | 10 | 516.96 | 0.9110 | 0.9845 | 0.0735 | 0.0735 | 4.4e-16 | 1.003 | 0.2819 | 0.3333 | 0.0514 | 4.4e-16 | 0.1610 | 0.963 | 0.19 |
 | r30_f00_s1001_PN | 10 | 517.06 | 0.9098 | 0.9845 | 0.0747 | 0.0747 | 4.4e-16 | 1.003 | 0.2850 | 0.3333 | 0.0483 | 4.4e-16 | 0.1607 | 0.965 | 0.18 |
 | r30_f00_s1001_PV | 10 | 520.06 | 0.9094 | 0.9845 | 0.0751 | 0.0751 | 2.2e-16 | 1.003 | 0.2860 | 0.3333 | 0.0474 | 4.4e-16 | 0.1597 | 0.968 | 0.18 |
 | r30v11_f00_s1001_HB | 10 | 504.22 | 0.9576 | 0.9845 | 0.0268 | 0.0268 | 6.7e-16 | 1.003 | 0.2628 | 0.3333 | 0.0705 | 4.4e-16 | 0.1942 | 0.934 | 0.17 |
@@ -233,6 +235,7 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_H0 | 10 | 0.2183 | 0.2812 | 0.0522 | 0.649 |
 | r30_f00_s1001_L0 | 10 | 0.1800 | 0.2549 | 0.0784 | 0.731 |
 | r30_f00_s1001_Ls | 10 | 0.1803 | 0.2562 | 0.0771 | 0.729 |
+| r30_f00_s1001_PB | 10 | 0.1483 | 0.2763 | 0.0570 | 0.617 |
 | r30_f00_s1001_PN | 10 | 0.1477 | 0.2794 | 0.0539 | 0.610 |
 | r30_f00_s1001_PV | 10 | 0.1468 | 0.2806 | 0.0527 | 0.616 |
 | r30v11_f00_s1001_HB | 10 | 0.1845 | 0.2590 | 0.0743 | 0.736 |
@@ -323,6 +326,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 74.389 | 2.101 | 0.803 | 35.29 | 92.76 | 0.025 | 0.040 | 0.005 | 74.389 | 2.000 | 1.000 | 0.4526 | 74.511 | 2.000 | 1.000 | 0.4526 |
 | r30_f00_s1001_Ls | PV | 34.658 | 2.101 | 0.803 | 16.59 | 43.45 | 0.023 | 0.043 | 0.005 | 34.658 | 2.000 | 1.000 | 0.4531 | 34.827 | 2.000 | 1.000 | 0.4532 |
 | r30_f00_s1001_Ls | PB | 50.642 | 2.101 | 0.803 | 23.49 | 63.01 | 0.024 | 0.038 | 0.005 | 50.642 | 2.000 | 1.000 | 0.4518 | 50.781 | 2.000 | 1.000 | 0.4518 |
+| r30_f00_s1001_PB | H_hinge | 12.535 | 1.099 | 0.830 | 8.38 | 15.18 | 0.008 | 0.129 | 0.001 | 12.535 | 2.000 | 1.000 | 0.4665 | 12.755 | 2.000 | 1.000 | 0.4665 |
+| r30_f00_s1001_PB | N | 99.501 | 1.099 | 0.830 | 65.19 | 119.53 | -0.008 | 0.226 | 0.001 | 99.501 | 2.000 | 1.000 | 0.4596 | 99.691 | 2.000 | 1.000 | 0.4595 |
+| r30_f00_s1001_PB | L | 18.294 | 1.099 | 0.830 | 11.95 | 21.63 | -0.022 | 0.292 | 0.001 | 18.294 | 2.000 | 1.000 | 0.4521 | 18.579 | 2.000 | 1.000 | 0.4519 |
+| r30_f00_s1001_PB | B | 29.717 | 1.099 | 0.830 | 19.57 | 35.29 | -0.026 | 0.321 | 0.001 | 29.717 | 2.000 | 1.000 | 0.4491 | 29.995 | 2.000 | 1.000 | 0.4489 |
+| r30_f00_s1001_PB | PN | 60.653 | 1.099 | 0.830 | 40.57 | 73.46 | 0.011 | 0.046 | 0.001 | 60.653 | 2.000 | 1.000 | 0.4644 | 60.726 | 2.000 | 1.000 | 0.4644 |
+| r30_f00_s1001_PB | PV | 29.443 | 1.099 | 0.830 | 18.86 | 35.71 | 0.011 | 0.045 | 0.001 | 29.443 | 2.000 | 1.000 | 0.4645 | 29.538 | 2.000 | 1.000 | 0.4646 |
+| r30_f00_s1001_PB | PB | 39.263 | 1.099 | 0.830 | 25.83 | 46.59 | 0.011 | 0.050 | 0.001 | 39.263 | 2.000 | 1.000 | 0.4641 | 39.351 | 2.000 | 1.000 | 0.4641 |
 | r30_f00_s1001_PN | H_hinge | 12.939 | 1.200 | 0.873 | 7.40 | 14.80 | 0.005 | 0.153 | 0.001 | 12.939 | 2.000 | 1.000 | 0.4563 | 13.199 | 2.000 | 1.000 | 0.4563 |
 | r30_f00_s1001_PN | N | 103.987 | 1.200 | 0.873 | 59.14 | 118.28 | -0.013 | 0.260 | 0.001 | 103.987 | 2.000 | 1.000 | 0.4484 | 104.214 | 2.000 | 1.000 | 0.4483 |
 | r30_f00_s1001_PN | L | 19.837 | 1.200 | 0.873 | 11.37 | 22.45 | -0.029 | 0.326 | 0.001 | 19.837 | 2.000 | 1.000 | 0.4407 | 20.163 | 2.000 | 1.000 | 0.4405 |
@@ -811,6 +821,27 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PB | all | 32768 | 0.0193 / 0.1479 / 0.6745 / 2.6085 / 9.4468 | 0.0003 | 0.1257 | 0.0024 / 0.0186 / 0.0848 / 0.3279 / 1.1874 | 0.0163 |
 | r30_f00_s1001_Ls | PB | correct_ref_first | 29170 | 0.0175 / 0.1228 / 0.5001 / 1.7266 / 5.0046 | 0.0003 | 0.1257 | 0.0022 / 0.0154 / 0.0629 / 0.2170 / 0.6290 | 0.0183 |
 | r30_f00_s1001_Ls | PB | correct_ref_not_first | 3598 | 1.9898 / 4.7515 / 7.7823 / 13.5286 / 25.0732 | 0.0000 | 0.1257 | 0.2501 / 0.5972 / 0.9781 / 1.7004 / 3.1514 | 0.0000 |
+| r30_f00_s1001_PB | H_hinge | all | 32768 | 0.0000 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.2464 | 1.0000 | 0.0000 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.2464 |
+| r30_f00_s1001_PB | H_hinge | correct_ref_first | 29170 | 0.0000 / 0.0000 / 1.4142 / 1.4142 / 1.4142 | 0.2767 | 1.0000 | 0.0000 / 0.0000 / 1.4142 / 1.4142 / 1.4142 | 0.2767 |
+| r30_f00_s1001_PB | H_hinge | correct_ref_not_first | 3598 | 1.4142 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.0006 | 1.0000 | 1.4142 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.0006 |
+| r30_f00_s1001_PB | N | all | 32768 | 0.7201 / 2.0451 / 4.1100 / 7.8006 / 15.6998 | 0.0000 | 1.0000 | 0.7201 / 2.0451 / 4.1100 / 7.8006 / 15.6998 | 0.0000 |
+| r30_f00_s1001_PB | N | correct_ref_first | 29170 | 0.6839 / 1.8650 / 3.5720 / 6.3743 / 11.8151 | 0.0000 | 1.0000 | 0.6839 / 1.8650 / 3.5720 / 6.3743 / 11.8151 | 0.0000 |
+| r30_f00_s1001_PB | N | correct_ref_not_first | 3598 | 5.8839 / 10.2607 / 13.9683 / 17.7214 / 20.9257 | 0.0000 | 1.0000 | 5.8839 / 10.2607 / 13.9683 / 17.7214 / 20.9257 | 0.0000 |
+| r30_f00_s1001_PB | L | all | 32768 | 0.2151 / 0.5393 / 0.8704 / 1.1877 / 1.5935 | 0.0000 | 0.4779 | 0.1028 / 0.2578 / 0.4160 / 0.5676 / 0.7616 | 0.0000 |
+| r30_f00_s1001_PB | L | correct_ref_first | 29170 | 0.2037 / 0.5121 / 0.8354 / 1.1679 / 1.5587 | 0.0000 | 0.4779 | 0.0974 / 0.2448 / 0.3992 / 0.5582 / 0.7449 | 0.0000 |
+| r30_f00_s1001_PB | L | correct_ref_not_first | 3598 | 0.4111 / 0.8435 / 1.0633 / 1.3004 / 4.3273 | 0.0000 | 0.4779 | 0.1965 / 0.4031 / 0.5082 / 0.6215 / 2.0682 | 0.0000 |
+| r30_f00_s1001_PB | B | all | 32768 | 0.5322 / 1.0321 / 1.4682 / 1.8253 / 2.2574 | 0.0000 | 1.0000 | 0.5322 / 1.0321 / 1.4682 / 1.8253 / 2.2574 | 0.0000 |
+| r30_f00_s1001_PB | B | correct_ref_first | 29170 | 0.5131 / 0.9941 / 1.4279 / 1.8069 / 2.2193 | 0.0000 | 1.0000 | 0.5131 / 0.9941 / 1.4279 / 1.8069 / 2.2193 | 0.0000 |
+| r30_f00_s1001_PB | B | correct_ref_not_first | 3598 | 0.8752 / 1.4197 / 1.6788 / 1.9550 / 5.5581 | 0.0000 | 1.0000 | 0.8752 / 1.4197 / 1.6788 / 1.9550 / 5.5581 | 0.0000 |
+| r30_f00_s1001_PB | PN | all | 32768 | 0.1397 / 0.5148 / 1.3559 / 3.6321 / 12.9669 | 0.0000 | 0.0978 | 0.0137 / 0.0503 / 0.1326 / 0.3551 / 1.2677 | 0.0002 |
+| r30_f00_s1001_PB | PN | correct_ref_first | 29170 | 0.1303 / 0.4544 / 1.1186 / 2.6299 / 7.6547 | 0.0000 | 0.0978 | 0.0127 / 0.0444 / 0.1094 / 0.2571 / 0.7484 | 0.0002 |
+| r30_f00_s1001_PB | PN | correct_ref_not_first | 3598 | 2.3425 / 5.6984 / 9.9992 / 16.7240 / 26.0991 | 0.0000 | 0.0978 | 0.2290 / 0.5571 / 0.9776 / 1.6350 / 2.5516 | 0.0000 |
+| r30_f00_s1001_PB | PV | all | 32768 | 0.0055 / 0.0690 / 0.3960 / 1.7877 / 6.3241 | 0.0092 | 0.2475 | 0.0014 / 0.0171 / 0.0980 / 0.4425 / 1.5652 | 0.0384 |
+| r30_f00_s1001_PB | PV | correct_ref_first | 29170 | 0.0048 / 0.0545 / 0.2842 / 1.1440 / 4.1147 | 0.0103 | 0.2475 | 0.0012 / 0.0135 / 0.0703 / 0.2831 / 1.0184 | 0.0431 |
+| r30_f00_s1001_PB | PV | correct_ref_not_first | 3598 | 0.8871 / 2.9981 / 5.0690 / 7.8450 / 12.0101 | 0.0000 | 0.2475 | 0.2196 / 0.7420 / 1.2546 / 1.9416 / 2.9725 | 0.0000 |
+| r30_f00_s1001_PB | PB | all | 32768 | 0.1379 / 0.4909 / 1.2002 / 2.6888 / 6.5171 | 0.0000 | 0.1257 | 0.0173 / 0.0617 / 0.1509 / 0.3380 / 0.8191 | 0.0001 |
+| r30_f00_s1001_PB | PB | correct_ref_first | 29170 | 0.1288 / 0.4356 / 1.0105 / 2.0976 / 4.4650 | 0.0000 | 0.1257 | 0.0162 / 0.0548 / 0.1270 / 0.2636 / 0.5612 | 0.0001 |
+| r30_f00_s1001_PB | PB | correct_ref_not_first | 3598 | 1.9116 / 3.6855 / 5.3284 / 8.5728 / 21.5682 | 0.0000 | 0.1257 | 0.2403 / 0.4632 / 0.6697 / 1.0775 / 2.7109 | 0.0000 |
 | r30_f00_s1001_PN | H_hinge | all | 32768 | 0.0000 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.2336 | 1.0000 | 0.0000 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.2336 |
 | r30_f00_s1001_PN | H_hinge | correct_ref_first | 29170 | 0.0000 / 0.0000 / 1.4142 / 1.4142 / 1.4142 | 0.2624 | 1.0000 | 0.0000 / 0.0000 / 1.4142 / 1.4142 / 1.4142 | 0.2624 |
 | r30_f00_s1001_PN | H_hinge | correct_ref_not_first | 3598 | 1.4142 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.0003 | 1.0000 | 1.4142 / 1.4142 / 1.4142 / 1.4142 / 1.4142 | 0.0003 |
@@ -2314,6 +2345,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 0.000 / 0.0665 | 0.000 / 0.0448 | 0.000 / 0.2426 | NA / NA | NA / NA | 0.000 / 0.2426 | 0.000 / 0.0448 | 0.000 / 0.2426 | 0.000 / 0.0448 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_Ls | PV | 0.000 / 0.0646 | 0.000 / 0.0435 | 0.000 / 0.2358 | NA / NA | NA / NA | 0.000 / 0.2358 | 0.000 / 0.0435 | 0.000 / 0.2358 | 0.000 / 0.0435 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_Ls | PB | 0.000 / 0.0661 | 0.000 / 0.0449 | 0.000 / 0.2374 | NA / NA | NA / NA | 0.000 / 0.2374 | 0.000 / 0.0449 | 0.000 / 0.2374 | 0.000 / 0.0449 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | H_hinge | 0.000 / 0.1053 | 0.000 / 0.1009 | 0.000 / 0.1412 | NA / NA | NA / NA | 0.000 / 0.1413 | 0.000 / 0.1009 | 0.001 / 0.1411 | 0.002 / 0.1006 | 32768 | 0.754 | 0.000 |
+| r30_f00_s1001_PB | N | 0.000 / 0.0822 | 0.000 / 0.0687 | 0.000 / 0.1915 | NA / NA | NA / NA | 0.000 / 0.1916 | 0.000 / 0.0687 | 0.000 / 0.1915 | 0.001 / 0.0687 | 32768 | 1.000 | 0.001 |
+| r30_f00_s1001_PB | L | 0.006 / 0.0672 | 0.004 / 0.0644 | 0.024 / 0.0899 | NA / NA | NA / NA | 0.024 / 0.0899 | 0.004 / 0.0644 | 0.024 / 0.0899 | 0.004 / 0.0644 | 32768 | 0.999 | 0.007 |
+| r30_f00_s1001_PB | B | 0.000 / 0.0752 | 0.000 / 0.0722 | 0.000 / 0.0990 | NA / NA | NA / NA | 0.000 / 0.0991 | 0.000 / 0.0722 | 0.000 / 0.0991 | 0.000 / 0.0722 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | PN | 0.000 / 0.0732 | 0.000 / 0.0540 | 0.000 / 0.2290 | NA / NA | NA / NA | 0.000 / 0.2291 | 0.000 / 0.0540 | 0.000 / 0.2290 | 0.000 / 0.0540 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | PV | 0.000 / 0.0695 | 0.000 / 0.0500 | 0.000 / 0.2276 | NA / NA | NA / NA | 0.000 / 0.2276 | 0.000 / 0.0500 | 0.000 / 0.2276 | 0.000 / 0.0500 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | PB | 0.000 / 0.0761 | 0.000 / 0.0582 | 0.000 / 0.2211 | NA / NA | NA / NA | 0.000 / 0.2212 | 0.000 / 0.0582 | 0.000 / 0.2212 | 0.000 / 0.0582 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_PN | H_hinge | 0.000 / 0.1060 | 0.000 / 0.1018 | 0.000 / 0.1404 | NA / NA | NA / NA | 0.000 / 0.1404 | 0.000 / 0.1018 | 0.001 / 0.1402 | 0.002 / 0.1016 | 32768 | 0.766 | 0.000 |
 | r30_f00_s1001_PN | N | 0.000 / 0.0831 | 0.000 / 0.0700 | 0.000 / 0.1888 | NA / NA | NA / NA | 0.000 / 0.1888 | 0.000 / 0.0700 | 0.000 / 0.1888 | 0.001 / 0.0700 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_PN | L | 0.005 / 0.0689 | 0.003 / 0.0665 | 0.015 / 0.0887 | NA / NA | NA / NA | 0.015 / 0.0887 | 0.003 / 0.0665 | 0.015 / 0.0887 | 0.003 / 0.0665 | 32768 | 1.000 | 0.005 |
@@ -2746,6 +2784,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4136 | NA / NA | NA / NA | 0.000 / 1.4137 | 0.000 / 1.4136 | 0.000 / 1.4135 | 0.000 / 1.4134 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_Ls | PV | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4136 | NA / NA | NA / NA | 0.000 / 1.4137 | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4133 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_Ls | PB | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4136 | NA / NA | NA / NA | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4134 | 0.000 / 1.4134 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | H_hinge | 0.000 / 1.0637 | 0.000 / 1.0208 | 0.000 / 1.4111 | NA / NA | NA / NA | 0.000 / 1.4115 | 0.000 / 1.0208 | 0.001 / 1.4099 | 0.002 / 1.0187 | 32768 | 0.754 | 0.000 |
+| r30_f00_s1001_PB | N | 0.000 / 1.1772 | 0.000 / 1.1710 | 0.000 / 1.2266 | NA / NA | NA / NA | 0.000 / 1.2267 | 0.000 / 1.1710 | 0.001 / 1.2257 | 0.001 / 1.1703 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | L | 0.020 / 0.9270 | 0.005 / 0.9792 | 0.144 / 0.5036 | NA / NA | NA / NA | 0.144 / 0.5037 | 0.005 / 0.9792 | 0.144 / 0.5041 | 0.005 / 0.9793 | 32768 | 1.000 | 0.020 |
+| r30_f00_s1001_PB | B | 0.001 / 0.9648 | 0.000 / 0.9952 | 0.004 / 0.7187 | NA / NA | NA / NA | 0.004 / 0.7187 | 0.000 / 0.9952 | 0.004 / 0.7189 | 0.000 / 0.9952 | 32768 | 1.000 | 0.001 |
+| r30_f00_s1001_PB | PN | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4136 | NA / NA | NA / NA | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4134 | 0.000 / 1.4135 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | PV | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4136 | NA / NA | NA / NA | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4134 | 0.000 / 1.4134 | 32768 | 1.000 | 0.000 |
+| r30_f00_s1001_PB | PB | 0.000 / 1.4136 | 0.000 / 1.4136 | 0.000 / 1.4136 | NA / NA | NA / NA | 0.000 / 1.4137 | 0.000 / 1.4136 | 0.000 / 1.4135 | 0.000 / 1.4135 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_PN | H_hinge | 0.000 / 1.0818 | 0.000 / 1.0410 | 0.000 / 1.4119 | NA / NA | NA / NA | 0.000 / 1.4122 | 0.000 / 1.0410 | 0.001 / 1.4107 | 0.002 / 1.0389 | 32768 | 0.766 | 0.000 |
 | r30_f00_s1001_PN | N | 0.000 / 1.1735 | 0.000 / 1.1676 | 0.001 / 1.2210 | NA / NA | NA / NA | 0.001 / 1.2210 | 0.000 / 1.1676 | 0.001 / 1.2201 | 0.001 / 1.1669 | 32768 | 1.000 | 0.000 |
 | r30_f00_s1001_PN | L | 0.018 / 0.9272 | 0.004 / 0.9771 | 0.126 / 0.5232 | NA / NA | NA / NA | 0.126 / 0.5232 | 0.004 / 0.9771 | 0.126 / 0.5232 | 0.004 / 0.9772 | 32768 | 1.000 | 0.018 |
@@ -3178,6 +3223,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 0.000 / 0.00313 | 0.000 / 0.00206 | 0.000 / 0.01184 | NA / NA | NA / NA | 0.000 / 0.01184 | 0.000 / 0.00206 | 0.000 / 0.01183 | 0.000 / 0.00206 | 32768 | 0.770 | 0.230 |
 | r30_f00_s1001_Ls | PV | 0.002 / 0.00307 | 0.002 / 0.00205 | 0.000 / 0.01133 | NA / NA | NA / NA | 0.000 / 0.01133 | 0.002 / 0.00205 | 0.000 / 0.01133 | 0.002 / 0.00205 | 32768 | 0.732 | 0.256 |
 | r30_f00_s1001_Ls | PB | 0.000 / 0.00307 | 0.000 / 0.00200 | 0.000 / 0.01171 | NA / NA | NA / NA | 0.000 / 0.01171 | 0.000 / 0.00200 | 0.000 / 0.01170 | 0.000 / 0.00200 | 32768 | 0.789 | 0.211 |
+| r30_f00_s1001_PB | H_hinge | 0.000 / 0.00424 | 0.000 / 0.00409 | 0.000 / 0.00543 | NA / NA | NA / NA | 0.000 / 0.00543 | 0.000 / 0.00409 | 0.000 / 0.00543 | 0.000 / 0.00409 | 32768 | 0.745 | 0.054 |
+| r30_f00_s1001_PB | N | 0.052 / 0.00322 | 0.058 / 0.00275 | 0.004 / 0.00696 | NA / NA | NA / NA | 0.004 / 0.00696 | 0.058 / 0.00275 | 0.004 / 0.00696 | 0.058 / 0.00275 | 32768 | 0.985 | 0.065 |
+| r30_f00_s1001_PB | L | 0.098 / 0.00219 | 0.082 / 0.00216 | 0.225 / 0.00248 | NA / NA | NA / NA | 0.225 / 0.00248 | 0.082 / 0.00216 | 0.225 / 0.00248 | 0.082 / 0.00216 | 32768 | 0.991 | 0.106 |
+| r30_f00_s1001_PB | B | 0.076 / 0.00225 | 0.068 / 0.00222 | 0.144 / 0.00252 | NA / NA | NA / NA | 0.144 / 0.00252 | 0.068 / 0.00222 | 0.144 / 0.00252 | 0.068 / 0.00222 | 32768 | 0.998 | 0.077 |
+| r30_f00_s1001_PB | PN | 0.000 / 0.00301 | 0.000 / 0.00221 | 0.000 / 0.00946 | NA / NA | NA / NA | 0.000 / 0.00946 | 0.000 / 0.00221 | 0.000 / 0.00946 | 0.000 / 0.00221 | 32768 | 0.865 | 0.135 |
+| r30_f00_s1001_PB | PV | 0.000 / 0.00290 | 0.000 / 0.00210 | 0.000 / 0.00932 | NA / NA | NA / NA | 0.000 / 0.00932 | 0.000 / 0.00210 | 0.000 / 0.00932 | 0.000 / 0.00210 | 32768 | 0.824 | 0.175 |
+| r30_f00_s1001_PB | PB | 0.000 / 0.00310 | 0.000 / 0.00234 | 0.000 / 0.00918 | NA / NA | NA / NA | 0.000 / 0.00918 | 0.000 / 0.00235 | 0.000 / 0.00918 | 0.000 / 0.00234 | 32768 | 0.894 | 0.106 |
 | r30_f00_s1001_PN | H_hinge | 0.000 / 0.00422 | 0.000 / 0.00408 | 0.000 / 0.00532 | NA / NA | NA / NA | 0.000 / 0.00532 | 0.000 / 0.00408 | 0.000 / 0.00532 | 0.001 / 0.00408 | 32768 | 0.759 | 0.047 |
 | r30_f00_s1001_PN | N | 0.046 / 0.00315 | 0.051 / 0.00272 | 0.005 / 0.00664 | NA / NA | NA / NA | 0.005 / 0.00664 | 0.051 / 0.00272 | 0.005 / 0.00663 | 0.051 / 0.00272 | 32768 | 0.988 | 0.056 |
 | r30_f00_s1001_PN | L | 0.091 / 0.00215 | 0.076 / 0.00212 | 0.215 / 0.00234 | NA / NA | NA / NA | 0.215 / 0.00234 | 0.076 / 0.00212 | 0.215 / 0.00234 | 0.076 / 0.00212 | 32768 | 0.992 | 0.098 |
@@ -3610,6 +3662,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 0.000 / 0.00002 | 0.000 / 0.00001 | 0.000 / 0.00008 | NA / NA | NA / NA | 0.000 / 0.00008 | 0.000 / 0.00001 | 0.000 / 0.00008 | 0.000 / 0.00001 | 32768 | 0.508 | 0.491 |
 | r30_f00_s1001_Ls | PV | 0.002 / 0.00002 | 0.003 / 0.00001 | 0.000 / 0.00008 | NA / NA | NA / NA | 0.000 / 0.00008 | 0.003 / 0.00001 | 0.001 / 0.00008 | 0.003 / 0.00001 | 32768 | 0.497 | 0.491 |
 | r30_f00_s1001_Ls | PB | 0.000 / 0.00002 | 0.000 / 0.00001 | 0.000 / 0.00008 | NA / NA | NA / NA | 0.000 / 0.00008 | 0.000 / 0.00001 | 0.000 / 0.00008 | 0.000 / 0.00001 | 32768 | 0.508 | 0.492 |
+| r30_f00_s1001_PB | H_hinge | 0.001 / 0.00014 | 0.001 / 0.00017 | 0.001 / -0.00015 | NA / NA | NA / NA | 0.001 / -0.00015 | 0.001 / 0.00017 | 0.001 / -0.00015 | 0.001 / 0.00017 | 32768 | 0.416 | 0.439 |
+| r30_f00_s1001_PB | N | 0.207 / 0.00020 | 0.211 / 0.00026 | 0.167 / -0.00026 | NA / NA | NA / NA | 0.167 / -0.00026 | 0.211 / 0.00026 | 0.167 / -0.00026 | 0.212 / 0.00026 | 32768 | 0.759 | 0.420 |
+| r30_f00_s1001_PB | L | 0.290 / 0.00027 | 0.268 / 0.00034 | 0.484 / -0.00036 | NA / NA | NA / NA | 0.484 / -0.00036 | 0.268 / 0.00034 | 0.484 / -0.00036 | 0.268 / 0.00034 | 32768 | 0.858 | 0.403 |
+| r30_f00_s1001_PB | B | 0.323 / 0.00029 | 0.302 / 0.00036 | 0.507 / -0.00039 | NA / NA | NA / NA | 0.507 / -0.00039 | 0.302 / 0.00036 | 0.507 / -0.00039 | 0.302 / 0.00036 | 32768 | 0.908 | 0.400 |
+| r30_f00_s1001_PB | PN | 0.000 / 0.00007 | 0.000 / 0.00008 | 0.000 / -0.00008 | NA / NA | NA / NA | 0.000 / -0.00008 | 0.000 / 0.00008 | 0.001 / -0.00008 | 0.000 / 0.00008 | 32768 | 0.531 | 0.468 |
+| r30_f00_s1001_PB | PV | 0.000 / 0.00006 | 0.000 / 0.00008 | 0.000 / -0.00008 | NA / NA | NA / NA | 0.000 / -0.00008 | 0.000 / 0.00008 | 0.001 / -0.00008 | 0.000 / 0.00008 | 32768 | 0.529 | 0.470 |
+| r30_f00_s1001_PB | PB | 0.000 / 0.00007 | 0.000 / 0.00009 | 0.000 / -0.00008 | NA / NA | NA / NA | 0.000 / -0.00008 | 0.000 / 0.00009 | 0.001 / -0.00008 | 0.000 / 0.00009 | 32768 | 0.534 | 0.466 |
 | r30_f00_s1001_PN | H_hinge | 0.001 / 0.00013 | 0.001 / 0.00017 | 0.001 / -0.00014 | NA / NA | NA / NA | 0.001 / -0.00014 | 0.001 / 0.00017 | 0.001 / -0.00014 | 0.001 / 0.00017 | 32768 | 0.425 | 0.439 |
 | r30_f00_s1001_PN | N | 0.217 / 0.00022 | 0.221 / 0.00027 | 0.181 / -0.00025 | NA / NA | NA / NA | 0.181 / -0.00025 | 0.221 / 0.00027 | 0.181 / -0.00025 | 0.221 / 0.00027 | 32768 | 0.784 | 0.410 |
 | r30_f00_s1001_PN | L | 0.294 / 0.00028 | 0.272 / 0.00035 | 0.484 / -0.00033 | NA / NA | NA / NA | 0.483 / -0.00033 | 0.272 / 0.00035 | 0.483 / -0.00033 | 0.272 / 0.00035 | 32768 | 0.878 | 0.391 |
@@ -4042,6 +4101,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 0.000 / 0.00314 | 0.000 / 0.00207 | 0.000 / 0.01183 | NA / NA | NA / NA | 0.000 / 0.01184 | 0.000 / 0.00207 | 0.000 / 0.01183 | 0.000 / 0.00207 | 32768 | 0.771 | 0.228 |
 | r30_f00_s1001_Ls | PV | 0.002 / 0.00309 | 0.003 / 0.00207 | 0.000 / 0.01131 | NA / NA | NA / NA | 0.000 / 0.01131 | 0.003 / 0.00207 | 0.000 / 0.01131 | 0.003 / 0.00207 | 32768 | 0.735 | 0.253 |
 | r30_f00_s1001_Ls | PB | 0.000 / 0.00308 | 0.000 / 0.00202 | 0.000 / 0.01170 | NA / NA | NA / NA | 0.000 / 0.01170 | 0.000 / 0.00202 | 0.000 / 0.01170 | 0.000 / 0.00202 | 32768 | 0.792 | 0.208 |
+| r30_f00_s1001_PB | H_hinge | 0.000 / 0.00422 | 0.000 / 0.00408 | 0.000 / 0.00539 | NA / NA | NA / NA | 0.000 / 0.00539 | 0.000 / 0.00408 | 0.000 / 0.00539 | 0.001 / 0.00407 | 32768 | 0.745 | 0.053 |
+| r30_f00_s1001_PB | N | 0.052 / 0.00322 | 0.058 / 0.00276 | 0.004 / 0.00696 | NA / NA | NA / NA | 0.004 / 0.00696 | 0.058 / 0.00276 | 0.004 / 0.00696 | 0.058 / 0.00275 | 32768 | 0.985 | 0.064 |
+| r30_f00_s1001_PB | L | 0.095 / 0.00220 | 0.080 / 0.00216 | 0.219 / 0.00248 | NA / NA | NA / NA | 0.219 / 0.00248 | 0.080 / 0.00216 | 0.219 / 0.00248 | 0.080 / 0.00216 | 32768 | 0.991 | 0.103 |
+| r30_f00_s1001_PB | B | 0.075 / 0.00225 | 0.066 / 0.00222 | 0.145 / 0.00252 | NA / NA | NA / NA | 0.145 / 0.00252 | 0.066 / 0.00222 | 0.145 / 0.00252 | 0.066 / 0.00222 | 32768 | 0.998 | 0.076 |
+| r30_f00_s1001_PB | PN | 0.000 / 0.00302 | 0.000 / 0.00222 | 0.000 / 0.00946 | NA / NA | NA / NA | 0.000 / 0.00946 | 0.000 / 0.00222 | 0.000 / 0.00946 | 0.000 / 0.00222 | 32768 | 0.866 | 0.134 |
+| r30_f00_s1001_PB | PV | 0.000 / 0.00291 | 0.000 / 0.00212 | 0.000 / 0.00931 | NA / NA | NA / NA | 0.000 / 0.00931 | 0.000 / 0.00212 | 0.000 / 0.00931 | 0.000 / 0.00212 | 32768 | 0.826 | 0.173 |
+| r30_f00_s1001_PB | PB | 0.000 / 0.00310 | 0.000 / 0.00236 | 0.000 / 0.00917 | NA / NA | NA / NA | 0.000 / 0.00918 | 0.000 / 0.00236 | 0.000 / 0.00918 | 0.000 / 0.00236 | 32768 | 0.896 | 0.104 |
 | r30_f00_s1001_PN | H_hinge | 0.000 / 0.00419 | 0.000 / 0.00405 | 0.000 / 0.00527 | NA / NA | NA / NA | 0.000 / 0.00527 | 0.000 / 0.00405 | 0.000 / 0.00527 | 0.000 / 0.00405 | 32768 | 0.759 | 0.047 |
 | r30_f00_s1001_PN | N | 0.046 / 0.00315 | 0.051 / 0.00272 | 0.004 / 0.00663 | NA / NA | NA / NA | 0.004 / 0.00663 | 0.051 / 0.00272 | 0.005 / 0.00662 | 0.051 / 0.00272 | 32768 | 0.988 | 0.056 |
 | r30_f00_s1001_PN | L | 0.087 / 0.00215 | 0.073 / 0.00212 | 0.208 / 0.00234 | NA / NA | NA / NA | 0.208 / 0.00234 | 0.073 / 0.00212 | 0.208 / 0.00234 | 0.073 / 0.00212 | 32768 | 0.992 | 0.094 |
@@ -4474,6 +4540,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 0.000 / 0.00002 | 0.000 / 0.00001 | 0.000 / 0.00008 | NA / NA | NA / NA | 0.000 / 0.00008 | 0.000 / 0.00001 | 0.000 / 0.00008 | 0.000 / 0.00001 | 32768 | 0.509 | 0.490 |
 | r30_f00_s1001_Ls | PV | 0.002 / 0.00002 | 0.003 / 0.00001 | 0.000 / 0.00008 | NA / NA | NA / NA | 0.000 / 0.00008 | 0.003 / 0.00001 | 0.000 / 0.00008 | 0.003 / 0.00001 | 32768 | 0.497 | 0.490 |
 | r30_f00_s1001_Ls | PB | 0.000 / 0.00002 | 0.000 / 0.00001 | 0.000 / 0.00008 | NA / NA | NA / NA | 0.000 / 0.00008 | 0.000 / 0.00001 | 0.000 / 0.00008 | 0.000 / 0.00001 | 32768 | 0.508 | 0.491 |
+| r30_f00_s1001_PB | H_hinge | 0.001 / 0.00014 | 0.000 / 0.00017 | 0.001 / -0.00015 | NA / NA | NA / NA | 0.000 / -0.00015 | 0.001 / 0.00017 | 0.001 / -0.00015 | 0.001 / 0.00017 | 32768 | 0.415 | 0.439 |
+| r30_f00_s1001_PB | N | 0.207 / 0.00020 | 0.211 / 0.00026 | 0.166 / -0.00026 | NA / NA | NA / NA | 0.166 / -0.00026 | 0.211 / 0.00026 | 0.166 / -0.00026 | 0.211 / 0.00026 | 32768 | 0.759 | 0.420 |
+| r30_f00_s1001_PB | L | 0.289 / 0.00027 | 0.267 / 0.00034 | 0.484 / -0.00036 | NA / NA | NA / NA | 0.483 / -0.00036 | 0.267 / 0.00034 | 0.483 / -0.00036 | 0.267 / 0.00034 | 32768 | 0.856 | 0.403 |
+| r30_f00_s1001_PB | B | 0.323 / 0.00029 | 0.302 / 0.00036 | 0.505 / -0.00039 | NA / NA | NA / NA | 0.505 / -0.00039 | 0.302 / 0.00036 | 0.504 / -0.00039 | 0.302 / 0.00036 | 32768 | 0.907 | 0.401 |
+| r30_f00_s1001_PB | PN | 0.000 / 0.00007 | 0.000 / 0.00008 | 0.000 / -0.00008 | NA / NA | NA / NA | 0.000 / -0.00008 | 0.000 / 0.00008 | 0.001 / -0.00008 | 0.000 / 0.00008 | 32768 | 0.532 | 0.468 |
+| r30_f00_s1001_PB | PV | 0.000 / 0.00006 | 0.000 / 0.00008 | 0.000 / -0.00008 | NA / NA | NA / NA | 0.000 / -0.00008 | 0.000 / 0.00008 | 0.001 / -0.00008 | 0.000 / 0.00008 | 32768 | 0.529 | 0.470 |
+| r30_f00_s1001_PB | PB | 0.000 / 0.00007 | 0.000 / 0.00009 | 0.000 / -0.00008 | NA / NA | NA / NA | 0.000 / -0.00008 | 0.000 / 0.00009 | 0.001 / -0.00008 | 0.000 / 0.00009 | 32768 | 0.534 | 0.466 |
 | r30_f00_s1001_PN | H_hinge | 0.001 / 0.00013 | 0.001 / 0.00017 | 0.000 / -0.00015 | NA / NA | NA / NA | 0.000 / -0.00015 | 0.001 / 0.00017 | 0.000 / -0.00015 | 0.001 / 0.00017 | 32768 | 0.424 | 0.439 |
 | r30_f00_s1001_PN | N | 0.217 / 0.00022 | 0.221 / 0.00027 | 0.182 / -0.00025 | NA / NA | NA / NA | 0.182 / -0.00025 | 0.221 / 0.00027 | 0.182 / -0.00025 | 0.221 / 0.00027 | 32768 | 0.784 | 0.410 |
 | r30_f00_s1001_PN | L | 0.293 / 0.00028 | 0.271 / 0.00035 | 0.486 / -0.00033 | NA / NA | NA / NA | 0.485 / -0.00033 | 0.271 / 0.00035 | 0.485 / -0.00033 | 0.271 / 0.00035 | 32768 | 0.876 | 0.392 |
@@ -4906,6 +4979,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 29170 / 0.00206 / 0.00206 / 0.000 / 0.012 / 0.017→0.012 | 3598 / 0.01184 / 0.01183 / 0.000 / 0.018 / 0.541→0.487 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PV | 29170 / 0.00205 / 0.00205 / 0.000 / 0.013 / 0.017→0.012 | 3598 / 0.01133 / 0.01133 / 0.001 / 0.019 / 0.541→0.483 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PB | 29170 / 0.00200 / 0.00200 / 0.000 / 0.012 / 0.017→0.013 | 3598 / 0.01171 / 0.01170 / 0.000 / 0.018 / 0.541→0.493 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | H_hinge | 29170 / 0.00409 / 0.00409 / 0.000 / 0.023 / 0.008→0.006 | 3598 / 0.00543 / 0.00543 / 0.000 / 0.017 / 0.329→0.307 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | N | 29170 / 0.00275 / 0.00275 / 0.000 / 0.015 / 0.008→0.005 | 3598 / 0.00696 / 0.00696 / 0.000 / 0.011 / 0.329→0.295 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | L | 29170 / 0.00216 / 0.00216 / 0.000 / 0.015 / 0.008→0.007 | 3598 / 0.00248 / 0.00248 / 0.001 / 0.011 / 0.329→0.325 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | B | 29170 / 0.00222 / 0.00222 / 0.000 / 0.014 / 0.008→0.007 | 3598 / 0.00252 / 0.00252 / 0.001 / 0.011 / 0.329→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PN | 29170 / 0.00221 / 0.00221 / 0.000 / 0.016 / 0.008→0.004 | 3598 / 0.00946 / 0.00946 / 0.000 / 0.030 / 0.329→0.280 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PV | 29170 / 0.00210 / 0.00210 / 0.000 / 0.016 / 0.008→0.004 | 3598 / 0.00932 / 0.00932 / 0.000 / 0.030 / 0.329→0.278 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PB | 29170 / 0.00235 / 0.00234 / 0.000 / 0.016 / 0.008→0.005 | 3598 / 0.00918 / 0.00918 / 0.000 / 0.029 / 0.329→0.285 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | H_hinge | 29170 / 0.00408 / 0.00408 / 0.000 / 0.024 / 0.007→0.005 | 3598 / 0.00532 / 0.00532 / 0.000 / 0.016 / 0.302→0.280 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | N | 29170 / 0.00272 / 0.00272 / 0.000 / 0.014 / 0.007→0.005 | 3598 / 0.00664 / 0.00663 / 0.000 / 0.011 / 0.302→0.271 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | L | 29170 / 0.00212 / 0.00212 / 0.000 / 0.015 / 0.007→0.006 | 3598 / 0.00234 / 0.00234 / 0.003 / 0.008 / 0.302→0.299 | 0 | 0 | 0 | 0 | 0 |
@@ -5338,6 +5418,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 29422 / 0.00001 / 0.00001 / 0.000 / 0.008 / 0.021→0.021 | 3346 / 0.00008 / 0.00008 / 0.008 / 0.005 / 0.552→0.551 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PV | 29422 / 0.00001 / 0.00001 / 0.000 / 0.008 / 0.021→0.021 | 3346 / 0.00008 / 0.00008 / 0.007 / 0.005 / 0.552→0.551 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PB | 29422 / 0.00001 / 0.00001 / 0.000 / 0.007 / 0.021→0.021 | 3346 / 0.00008 / 0.00008 / 0.007 / 0.005 / 0.552→0.551 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | H_hinge | 29422 / 0.00017 / 0.00017 / 0.000 / 0.010 / 0.006→0.007 | 3346 / -0.00015 / -0.00015 / 0.013 / 0.008 / 0.322→0.325 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | N | 29422 / 0.00026 / 0.00026 / 0.000 / 0.011 / 0.006→0.006 | 3346 / -0.00026 / -0.00026 / 0.013 / 0.010 / 0.322→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | L | 29422 / 0.00034 / 0.00034 / 0.000 / 0.012 / 0.006→0.006 | 3346 / -0.00036 / -0.00036 / 0.012 / 0.011 / 0.322→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | B | 29422 / 0.00036 / 0.00036 / 0.000 / 0.012 / 0.006→0.006 | 3346 / -0.00039 / -0.00039 / 0.013 / 0.012 / 0.322→0.325 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PN | 29422 / 0.00008 / 0.00008 / 0.000 / 0.009 / 0.006→0.006 | 3346 / -0.00008 / -0.00008 / 0.012 / 0.009 / 0.322→0.323 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PV | 29422 / 0.00008 / 0.00008 / 0.000 / 0.009 / 0.006→0.006 | 3346 / -0.00008 / -0.00008 / 0.013 / 0.008 / 0.322→0.323 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PB | 29422 / 0.00009 / 0.00009 / 0.000 / 0.010 / 0.006→0.006 | 3346 / -0.00008 / -0.00008 / 0.012 / 0.009 / 0.322→0.323 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | H_hinge | 29422 / 0.00017 / 0.00017 / 0.000 / 0.009 / 0.008→0.008 | 3346 / -0.00014 / -0.00014 / 0.010 / 0.004 / 0.297→0.299 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | N | 29422 / 0.00027 / 0.00027 / 0.000 / 0.011 / 0.008→0.008 | 3346 / -0.00025 / -0.00025 / 0.013 / 0.005 / 0.297→0.300 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | L | 29422 / 0.00035 / 0.00035 / 0.000 / 0.011 / 0.008→0.008 | 3346 / -0.00033 / -0.00033 / 0.012 / 0.005 / 0.297→0.300 | 0 | 0 | 0 | 0 | 0 |
@@ -5770,6 +5857,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 29170 / 0.00207 / 0.00207 / 0.000 / 0.012 / 0.017→0.012 | 3598 / 0.01184 / 0.01183 / 0.000 / 0.018 / 0.541→0.487 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PV | 29170 / 0.00207 / 0.00207 / 0.000 / 0.013 / 0.017→0.012 | 3598 / 0.01131 / 0.01131 / 0.001 / 0.018 / 0.541→0.483 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PB | 29170 / 0.00202 / 0.00202 / 0.000 / 0.012 / 0.017→0.013 | 3598 / 0.01170 / 0.01170 / 0.000 / 0.018 / 0.541→0.493 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | H_hinge | 29170 / 0.00408 / 0.00407 / 0.000 / 0.023 / 0.008→0.006 | 3598 / 0.00539 / 0.00539 / 0.000 / 0.016 / 0.329→0.306 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | N | 29170 / 0.00276 / 0.00275 / 0.000 / 0.015 / 0.008→0.005 | 3598 / 0.00696 / 0.00696 / 0.000 / 0.011 / 0.329→0.295 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | L | 29170 / 0.00216 / 0.00216 / 0.000 / 0.014 / 0.008→0.007 | 3598 / 0.00248 / 0.00248 / 0.001 / 0.012 / 0.329→0.325 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | B | 29170 / 0.00222 / 0.00222 / 0.000 / 0.014 / 0.008→0.007 | 3598 / 0.00252 / 0.00252 / 0.001 / 0.011 / 0.329→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PN | 29170 / 0.00222 / 0.00222 / 0.000 / 0.016 / 0.008→0.004 | 3598 / 0.00946 / 0.00946 / 0.000 / 0.030 / 0.329→0.280 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PV | 29170 / 0.00212 / 0.00212 / 0.000 / 0.016 / 0.008→0.004 | 3598 / 0.00931 / 0.00931 / 0.000 / 0.030 / 0.329→0.278 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PB | 29170 / 0.00236 / 0.00236 / 0.000 / 0.016 / 0.008→0.005 | 3598 / 0.00918 / 0.00918 / 0.000 / 0.029 / 0.329→0.285 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | H_hinge | 29170 / 0.00405 / 0.00405 / 0.000 / 0.024 / 0.007→0.005 | 3598 / 0.00527 / 0.00527 / 0.000 / 0.016 / 0.302→0.279 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | N | 29170 / 0.00272 / 0.00272 / 0.000 / 0.014 / 0.007→0.005 | 3598 / 0.00663 / 0.00662 / 0.000 / 0.011 / 0.302→0.271 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | L | 29170 / 0.00212 / 0.00212 / 0.000 / 0.015 / 0.007→0.006 | 3598 / 0.00234 / 0.00234 / 0.003 / 0.008 / 0.302→0.299 | 0 | 0 | 0 | 0 | 0 |
@@ -6202,6 +6296,13 @@ PN/PV/PB 实现来源：r30_production:code_r30v11/r30_align.hard_pair_rows sha2
 | r30_f00_s1001_Ls | PN | 29422 / 0.00001 / 0.00001 / 0.000 / 0.007 / 0.021→0.021 | 3346 / 0.00008 / 0.00008 / 0.008 / 0.005 / 0.552→0.551 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PV | 29422 / 0.00001 / 0.00001 / 0.000 / 0.007 / 0.021→0.021 | 3346 / 0.00008 / 0.00008 / 0.007 / 0.006 / 0.552→0.551 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_Ls | PB | 29422 / 0.00001 / 0.00001 / 0.000 / 0.007 / 0.021→0.021 | 3346 / 0.00008 / 0.00008 / 0.007 / 0.005 / 0.552→0.551 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | H_hinge | 29422 / 0.00017 / 0.00017 / 0.000 / 0.010 / 0.006→0.007 | 3346 / -0.00015 / -0.00015 / 0.013 / 0.008 / 0.322→0.325 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | N | 29422 / 0.00026 / 0.00026 / 0.000 / 0.011 / 0.006→0.006 | 3346 / -0.00026 / -0.00026 / 0.013 / 0.010 / 0.322→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | L | 29422 / 0.00034 / 0.00034 / 0.000 / 0.012 / 0.006→0.006 | 3346 / -0.00036 / -0.00036 / 0.011 / 0.012 / 0.322→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | B | 29422 / 0.00036 / 0.00036 / 0.000 / 0.012 / 0.006→0.006 | 3346 / -0.00039 / -0.00039 / 0.013 / 0.012 / 0.322→0.324 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PN | 29422 / 0.00008 / 0.00008 / 0.000 / 0.009 / 0.006→0.006 | 3346 / -0.00008 / -0.00008 / 0.012 / 0.009 / 0.322→0.323 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PV | 29422 / 0.00008 / 0.00008 / 0.000 / 0.009 / 0.006→0.006 | 3346 / -0.00008 / -0.00008 / 0.013 / 0.008 / 0.322→0.323 | 0 | 0 | 0 | 0 | 0 |
+| r30_f00_s1001_PB | PB | 29422 / 0.00009 / 0.00009 / 0.000 / 0.009 / 0.006→0.006 | 3346 / -0.00008 / -0.00008 / 0.012 / 0.009 / 0.322→0.323 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | H_hinge | 29422 / 0.00017 / 0.00017 / 0.000 / 0.009 / 0.008→0.008 | 3346 / -0.00015 / -0.00015 / 0.010 / 0.004 / 0.297→0.299 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | N | 29422 / 0.00027 / 0.00027 / 0.000 / 0.011 / 0.008→0.008 | 3346 / -0.00025 / -0.00025 / 0.013 / 0.005 / 0.297→0.300 | 0 | 0 | 0 | 0 | 0 |
 | r30_f00_s1001_PN | L | 29422 / 0.00035 / 0.00035 / 0.000 / 0.011 / 0.008→0.008 | 3346 / -0.00033 / -0.00033 / 0.012 / 0.005 / 0.297→0.299 | 0 | 0 | 0 | 0 | 0 |

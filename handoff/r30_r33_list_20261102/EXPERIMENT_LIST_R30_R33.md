@@ -6,22 +6,22 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R30 v1.1 + 修订 A1：共同原生 warmup 后的直接竞争学习（阶段交叉与六臂完整比较）
 
-单元数 36；DONE 27，RUNNING 9
+单元数 36；DONE 36
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（E10 rSum / best-40 rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
 | r30_f00_s1001_H0 | Flickr 0% | 1001 | H→H | 40 | DONE | 519.11 / 522.07 | 525.74 |
 | r30_f00_s1001_L0 | Flickr 0% | 1001 | H→L | 40 | DONE | 503.21 / 508.78 | 513.46 |
-| r30_f00_s1001_Ls | Flickr 0% | 1001 | H→L (static scale) | 40 | DONE | 505.01 / 511.20 | — |
-| r30_f00_s1001_PN | Flickr 0% | 1001 | H→PN (static scale) | 40 | RUNNING | 517.06 / NA | — |
-| r30_f00_s1001_PV | Flickr 0% | 1001 | H→PV (static scale) | 40 | RUNNING | 520.06 / NA | — |
-| r30_f00_s1001_PB | Flickr 0% | 1001 | H→PB (static scale) | 40 | RUNNING | 516.96 / NA | — |
+| r30_f00_s1001_Ls | Flickr 0% | 1001 | H→L (static scale) | 40 | DONE | 505.01 / 511.20 | 514.44 |
+| r30_f00_s1001_PN | Flickr 0% | 1001 | H→PN (static scale) | 40 | DONE | 517.06 / 522.88 | 527.88 |
+| r30_f00_s1001_PV | Flickr 0% | 1001 | H→PV (static scale) | 40 | DONE | 520.06 / 522.84 | 524.72 |
+| r30_f00_s1001_PB | Flickr 0% | 1001 | H→PB (static scale) | 40 | DONE | 516.96 / 522.37 | 525.24 |
 | r30_f60_s1001_H0 | Flickr 60% | 1001 | H→H | 40 | DONE | 501.58 / 505.21 | 503.52 |
 | r30_f60_s1001_L0 | Flickr 60% | 1001 | H→L | 40 | DONE | 478.46 / 482.92 | 480.38 |
-| r30_f60_s1001_Ls | Flickr 60% | 1001 | H→L (static scale) | 40 | DONE | 478.07 / 483.29 | — |
-| r30_f60_s1001_PN | Flickr 60% | 1001 | H→PN (static scale) | 40 | RUNNING | 496.21 / NA | — |
-| r30_f60_s1001_PV | Flickr 60% | 1001 | H→PV (static scale) | 40 | RUNNING | 496.55 / NA | — |
-| r30_f60_s1001_PB | Flickr 60% | 1001 | H→PB (static scale) | 40 | RUNNING | 497.06 / NA | — |
+| r30_f60_s1001_Ls | Flickr 60% | 1001 | H→L (static scale) | 40 | DONE | 478.07 / 483.29 | 483.16 |
+| r30_f60_s1001_PN | Flickr 60% | 1001 | H→PN (static scale) | 40 | DONE | 496.21 / 500.59 | 502.48 |
+| r30_f60_s1001_PV | Flickr 60% | 1001 | H→PV (static scale) | 40 | DONE | 496.55 / 501.89 | 501.80 |
+| r30_f60_s1001_PB | Flickr 60% | 1001 | H→PB (static scale) | 40 | DONE | 497.06 / 501.38 | 503.34 |
 | r30v11_f00_s1001_HN | Flickr 0% | 1001 | H→N | 40 | DONE | 514.06 / 518.21 | 522.64 |
 | r30v11_f00_s1001_HB | Flickr 0% | 1001 | H→B | 40 | DONE | 504.22 / 509.90 | 513.70 |
 | r30v11_f60_s1001_HN | Flickr 60% | 1001 | H→N | 40 | DONE | 493.23 / 495.88 | 496.78 |
@@ -43,35 +43,35 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | r30a1_f60_s1002_PN | Flickr 60% | 1002 | H→PN (static scale) | 40 | DONE | 474.48 / 480.34 | 482.32 |
 | r30a1_f60_s1002_PV | Flickr 60% | 1002 | H→PV (static scale) | 40 | DONE | 473.63 / 481.20 | 480.78 |
 | r30a1_f60_s1002_PB | Flickr 60% | 1002 | H→PB (static scale) | 40 | DONE | 473.33 / 482.50 | 481.48 |
-| r30a1_f60_s1003_PN | Flickr 60% | 1003 | H→PN (static scale) | 40 | RUNNING | 488.19 / NA | — |
-| r30a1_f60_s1003_PV | Flickr 60% | 1003 | H→PV (static scale) | 40 | RUNNING | 488.28 / NA | — |
-| r30a1_f60_s1003_PB | Flickr 60% | 1003 | H→PB (static scale) | 40 | RUNNING | 488.07 / NA | — |
+| r30a1_f60_s1003_PN | Flickr 60% | 1003 | H→PN (static scale) | 40 | DONE | 488.19 / 495.74 | 496.92 |
+| r30a1_f60_s1003_PV | Flickr 60% | 1003 | H→PV (static scale) | 40 | DONE | 488.28 / 493.10 | 495.60 |
+| r30a1_f60_s1003_PB | Flickr 60% | 1003 | H→PB (static scale) | 40 | DONE | 488.07 / 494.24 | 496.14 |
 
 ## R31：IN²R 复现忠实度（(a) 官方 NCR 20% 噪声；(b) 作者 run.py 默认；(b′) 默认 + i2t/t2i）
 
-单元数 15；PENDING 7，RUNNING 8
+单元数 15；PENDING 2，RUNNING 13
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
-| f20_s1001/H0_codecfg | Flickr 20% (official NCR index) | 1001 | set a: H0_codecfg | 40 | PENDING | NA | — |
+| f20_s1001/H0_codecfg | Flickr 20% (official NCR index) | 1001 | set a: H0_codecfg | 40 | RUNNING | NA | — |
 | f20_s1002/H0_codecfg | Flickr 20% (official NCR index) | 1002 | set a: H0_codecfg | 40 | PENDING | NA | — |
 | f20_s1003/H0_codecfg | Flickr 20% (official NCR index) | 1003 | set a: H0_codecfg | 40 | RUNNING | NA | — |
-| f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | PENDING | NA | — |
+| f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | RUNNING | NA | — |
 | f40_s1002/H0_default | Flickr 40% | 1002 | set b: H0_default | 40 | RUNNING | NA | — |
 | f40_s1003/H0_default | Flickr 40% | 1003 | set b: H0_default | 40 | RUNNING | NA | — |
-| cc_s1001/H0_default | CC152K | 1001 | set b: H0_default | 40 | PENDING | NA | — |
-| cc_s1002/H0_default | CC152K | 1002 | set b: H0_default | 40 | PENDING | NA | — |
+| cc_s1001/H0_default | CC152K | 1001 | set b: H0_default | 40 | RUNNING | NA | — |
+| cc_s1002/H0_default | CC152K | 1002 | set b: H0_default | 40 | RUNNING | NA | — |
 | cc_s1003/H0_default | CC152K | 1003 | set b: H0_default | 40 | RUNNING | NA | — |
 | f40_s1001/H0_default_i2t_t2i | Flickr 40% | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | f40_s1002/H0_default_i2t_t2i | Flickr 40% | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | PENDING | NA | — |
 | cc_s1001/H0_default_i2t_t2i | CC152K | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | cc_s1002/H0_default_i2t_t2i | CC152K | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
-| cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | PENDING | NA | — |
+| cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 
 ## R32：VCS_NATIVE_RATIO_v1（GPO 双塔 + 有边缘约束的 ratio critic；S0/W2/F1/E2/C2）
 
-单元数 95；CHAIN_QUEUED 61，DONE 34
+单元数 95；CHAIN_QUEUED 11，DONE 84
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（epoch-20 DEV rSum (E2/C2) / J (S0)） | TEST rSum |
 |---|---|---|---|---|---|---|---|
@@ -103,86 +103,86 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | nrcs_v1_s0_n90_s1003_ratio_J_b1_i0 | latent_mix | 1003 | S0: ratio_J | 0 | DONE | J 0.0011 | — |
 | nrcs_v1_s0_n90_s1003_ratio_logistic_b1_i0 | latent_mix | 1003 | S0: ratio_logistic | 0 | DONE | J 0.0011 | — |
 | nrcs_v1_w2_n00_s1001_cosine_hinge_b0_i0p1 | flickr_fit | 1001 | W2: cosine_hinge | 5 | DONE | NA | — |
-| nrcs_v1_w2_n00_s1002_cosine_hinge_b0_i0p1 | flickr_fit | 1002 | W2: cosine_hinge | 5 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_w2_n00_s1003_cosine_hinge_b0_i0p1 | flickr_fit | 1003 | W2: cosine_hinge | 5 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_w2_n60_s1001_cosine_hinge_b0_i0p1 | flickr_fit | 1001 | W2: cosine_hinge | 5 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_w2_n60_s1002_cosine_hinge_b0_i0p1 | flickr_fit | 1002 | W2: cosine_hinge | 5 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_w2_n60_s1003_cosine_hinge_b0_i0p1 | flickr_fit | 1003 | W2: cosine_hinge | 5 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_w2_n00_s1002_cosine_hinge_b0_i0p1 | flickr_fit | 1002 | W2: cosine_hinge | 5 | DONE | NA | — |
+| nrcs_v1_w2_n00_s1003_cosine_hinge_b0_i0p1 | flickr_fit | 1003 | W2: cosine_hinge | 5 | DONE | NA | — |
+| nrcs_v1_w2_n60_s1001_cosine_hinge_b0_i0p1 | flickr_fit | 1001 | W2: cosine_hinge | 5 | DONE | NA | — |
+| nrcs_v1_w2_n60_s1002_cosine_hinge_b0_i0p1 | flickr_fit | 1002 | W2: cosine_hinge | 5 | DONE | NA | — |
+| nrcs_v1_w2_n60_s1003_cosine_hinge_b0_i0p1 | flickr_fit | 1003 | W2: cosine_hinge | 5 | DONE | NA | — |
 | nrcs_v1_f1_n00_s1001_cosine_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: cosine_J | 0 | DONE | 281.07 | — |
 | nrcs_v1_f1_n00_s1001_ratio_J_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | DONE | 96.86 | — |
 | nrcs_v1_f1_n00_s1001_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_logistic | 0 | DONE | 105.82 | — |
 | nrcs_v1_f1_n00_s1001_ratio_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | DONE | 122.43 | — |
 | nrcs_v1_e2_n00_s1001_cosine_J_b0_i0 | flickr_trainable_GPO | 1001 | E2: cosine_J | 20 | DONE | 374.58 | — |
 | nrcs_v1_e2_n00_s1001_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_J | 20 | DONE | 383.91 | — |
-| nrcs_v1_e2_n00_s1001_ratio_J_b1_i0 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1001_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1001_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1001_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1002_cosine_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: cosine_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1002_ratio_J_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1002_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_logistic | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1002_ratio_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1002_cosine_J_b0_i0 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1002_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1002_ratio_J_b1_i0 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1002_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n00_s1001_ratio_J_b1_i0 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | DONE | 121.52 | — |
+| nrcs_v1_e2_n00_s1001_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | DONE | 134.60 | — |
+| nrcs_v1_e2_n00_s1001_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_logistic | 20 | DONE | 152.45 | — |
+| nrcs_v1_e2_n00_s1001_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_hinge | 20 | DONE | 475.23 | — |
+| nrcs_v1_f1_n00_s1002_cosine_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: cosine_J | 0 | DONE | 331.16 | — |
+| nrcs_v1_f1_n00_s1002_ratio_J_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | DONE | 107.55 | — |
+| nrcs_v1_f1_n00_s1002_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_logistic | 0 | DONE | 122.09 | — |
+| nrcs_v1_f1_n00_s1002_ratio_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | DONE | 142.68 | — |
+| nrcs_v1_e2_n00_s1002_cosine_J_b0_i0 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | DONE | 408.15 | — |
+| nrcs_v1_e2_n00_s1002_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | DONE | 408.78 | — |
+| nrcs_v1_e2_n00_s1002_ratio_J_b1_i0 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 183.65 | — |
+| nrcs_v1_e2_n00_s1002_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 184.20 | — |
 | nrcs_v1_e2_n00_s1002_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n00_s1002_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1003_cosine_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: cosine_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1003_ratio_J_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1003_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_logistic | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n00_s1003_ratio_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1003_cosine_J_b0_i0 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_f1_n00_s1003_cosine_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: cosine_J | 0 | DONE | 298.66 | — |
+| nrcs_v1_f1_n00_s1003_ratio_J_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 97.32 | — |
+| nrcs_v1_f1_n00_s1003_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_logistic | 0 | DONE | 110.61 | — |
+| nrcs_v1_f1_n00_s1003_ratio_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 127.73 | — |
+| nrcs_v1_e2_n00_s1003_cosine_J_b0_i0 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 399.05 | — |
+| nrcs_v1_e2_n00_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 399.19 | — |
 | nrcs_v1_e2_n00_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n00_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n00_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n00_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1001_cosine_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: cosine_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1001_ratio_J_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1001_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_logistic | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1001_ratio_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1001_cosine_J_b0_i0 | flickr_trainable_GPO | 1001 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1001_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1001_ratio_J_b1_i0 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1001_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1001_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1001_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1002_cosine_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: cosine_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1002_ratio_J_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1002_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_logistic | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1002_ratio_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1002_cosine_J_b0_i0 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1002_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1002_ratio_J_b1_i0 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1002_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_f1_n60_s1001_cosine_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: cosine_J | 0 | DONE | 185.21 | — |
+| nrcs_v1_f1_n60_s1001_ratio_J_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | DONE | 38.84 | — |
+| nrcs_v1_f1_n60_s1001_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1001 | F1: ratio_logistic | 0 | DONE | 35.74 | — |
+| nrcs_v1_f1_n60_s1001_ratio_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: ratio_J | 0 | DONE | 49.47 | — |
+| nrcs_v1_e2_n60_s1001_cosine_J_b0_i0 | flickr_trainable_GPO | 1001 | E2: cosine_J | 20 | DONE | 143.91 | — |
+| nrcs_v1_e2_n60_s1001_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_J | 20 | DONE | 179.23 | — |
+| nrcs_v1_e2_n60_s1001_ratio_J_b1_i0 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | DONE | 116.23 | — |
+| nrcs_v1_e2_n60_s1001_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_J | 20 | DONE | 102.92 | — |
+| nrcs_v1_e2_n60_s1001_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1001 | E2: ratio_logistic | 20 | DONE | 108.68 | — |
+| nrcs_v1_e2_n60_s1001_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1001 | E2: cosine_hinge | 20 | DONE | 12.37 | — |
+| nrcs_v1_f1_n60_s1002_cosine_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: cosine_J | 0 | DONE | 180.20 | — |
+| nrcs_v1_f1_n60_s1002_ratio_J_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | DONE | 37.30 | — |
+| nrcs_v1_f1_n60_s1002_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1002 | F1: ratio_logistic | 0 | DONE | 31.52 | — |
+| nrcs_v1_f1_n60_s1002_ratio_J_b0_i0 | flickr_frozen_W2 | 1002 | F1: ratio_J | 0 | DONE | 44.52 | — |
+| nrcs_v1_e2_n60_s1002_cosine_J_b0_i0 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | DONE | 136.55 | — |
+| nrcs_v1_e2_n60_s1002_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | DONE | 171.56 | — |
+| nrcs_v1_e2_n60_s1002_ratio_J_b1_i0 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 105.66 | — |
+| nrcs_v1_e2_n60_s1002_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 95.42 | — |
 | nrcs_v1_e2_n60_s1002_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n60_s1002_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1003_cosine_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: cosine_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1003_ratio_J_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1003_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_logistic | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_f1_n60_s1003_ratio_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1003_cosine_J_b0_i0 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_f1_n60_s1003_cosine_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: cosine_J | 0 | DONE | 190.28 | — |
+| nrcs_v1_f1_n60_s1003_ratio_J_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 35.80 | — |
+| nrcs_v1_f1_n60_s1003_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_logistic | 0 | DONE | 33.20 | — |
+| nrcs_v1_f1_n60_s1003_ratio_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 54.30 | — |
+| nrcs_v1_e2_n60_s1003_cosine_J_b0_i0 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 135.66 | — |
+| nrcs_v1_e2_n60_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 174.69 | — |
+| nrcs_v1_e2_n60_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 119.51 | — |
 | nrcs_v1_e2_n60_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n60_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n60_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_c2_n00_s1001_cosine_J_b0_i0p1 | flickr_cold_diagnostic | 1001 | C2: cosine_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_c2_n00_s1001_ratio_J_b1_i0p1 | flickr_cold_diagnostic | 1001 | C2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_c2_n00_s1001_cosine_J_b0_i0p1 | flickr_cold_diagnostic | 1001 | C2: cosine_J | 20 | DONE | 391.34 | — |
+| nrcs_v1_c2_n00_s1001_ratio_J_b1_i0p1 | flickr_cold_diagnostic | 1001 | C2: ratio_J | 20 | DONE | 185.94 | — |
 
 ## R33：基准基线行（原生 IN²R 与 IN²R + A1；COCO 60%、Flickr 80%、COCO 20%/80%、Flickr 20% A1）
 
-单元数 27；NOT_STARTED 21，PREFIX_PENDING 6
+单元数 27；NOT_STARTED 27
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
-| c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
+| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
+| c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
+| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
+| c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | NOT_STARTED | NA | — |
+| c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
 | f80_s1001/H0 | Flickr 80% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
 | f80_s1001/a1_iface | Flickr 80% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
 | f80_s1002/H0 | Flickr 80% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
