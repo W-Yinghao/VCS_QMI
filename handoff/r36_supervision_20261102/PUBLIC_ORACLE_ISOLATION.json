@@ -1,0 +1,70 @@
+{
+  "created_utc": "2026-11-02T11:40:33Z",
+  "ALL_PASS": true,
+  "oracle_runner_rc": 0,
+  "oracle_runner_tail": "r36_M_n60_G_SHIELD_ORACLE_J p1 step 0 rsum 505.21 (3.2s)\nr36_M_n60_G_SHIELD_ORACLE_J p1 step 30 rsum 505.21 (3.0s)\nR36_UNIT_DONE r36_M_n60_G_SHIELD_ORACLE_J rsum 505.2071005917159 native 505.2071005917159\nr36_M_n60_G_SHIELD_ORACLE_NCE p1 step 0 rsum 505.21 (3.1s)\nr36_M_n60_G_SHIELD_ORACLE_NCE p1 step 30 rsum 505.23 (2.9s)\nR36_UNIT_DONE r36_M_n60_G_SHIELD_ORACLE_NCE rsum 505.22682445759364 native 505.2071005917159\nr36_M_n60_G_RELABEL_AVAILABLE_ORACLE_J p1 step 0 rsum 505.21 (3.1s)\nr36_M_n60_G_RELABEL_AVAILABLE_ORACLE_J p1 step 30 rsum 505.21 (2.8s)\nR36_UNIT_DONE r36_M_n60_G_RELABEL_AVAILABLE_ORACLE_J rsum 505.2071005917159 native 505.2071005917159\nR36_JOB_END failed []\n<WORKSPACE>/handoff/r36_supervision_20261102/r36/evals.py:83: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.\nConsider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)\n  return float(torch.exp(la)), float(b), v, bool(torch.isfinite(la) and torch.isfinite(b))\n",
+  "r36_M_n60_G_SHIELD_ORACLE_J": {
+    "rsum_step30": 505.2071005917159,
+    "rsum_step0": 505.2071005917159,
+    "oracle_counts": {
+      "oracle_i2t_rows": 480,
+      "oracle_i2t_rows_with_shielded": 400,
+      "oracle_i2t_shielded_slots": 823,
+      "oracle_t2i_rows": 480,
+      "oracle_t2i_rows_with_shielded": 210,
+      "oracle_t2i_shielded_slots": 210
+    },
+    "slot_grad_means": {
+      "dLdg_i2t_real_A0": 0.0001651666392457714,
+      "dLdg_i2t_real_Apos": -0.0009526786450515916,
+      "dLdg_t2i_real_A0": 0.0002003785385326292,
+      "dLdg_t2i_real_Apos": -0.00498884562080247
+    }
+  },
+  "r36_M_n60_G_SHIELD_ORACLE_NCE": {
+    "rsum_step30": 505.22682445759364,
+    "rsum_step0": 505.2071005917159,
+    "oracle_counts": {
+      "oracle_i2t_rows": 480,
+      "oracle_i2t_rows_with_shielded": 400,
+      "oracle_i2t_shielded_slots": 823,
+      "oracle_t2i_rows": 480,
+      "oracle_t2i_rows_with_shielded": 210,
+      "oracle_t2i_shielded_slots": 210
+    },
+    "slot_grad_means": {
+      "dLdg_i2t_real_A0": 0.000474000597245182,
+      "dLdg_i2t_real_Apos": -0.005618513145168639,
+      "dLdg_t2i_real_A0": 0.0004887956205542437,
+      "dLdg_t2i_real_Apos": -0.015152664316701703
+    }
+  },
+  "r36_M_n60_G_RELABEL_AVAILABLE_ORACLE_J": {
+    "rsum_step30": 505.2071005917159,
+    "rsum_step0": 505.2071005917159,
+    "oracle_counts": {
+      "oracle_i2t_rows": 480,
+      "oracle_i2t_rows_relabelled": 471,
+      "oracle_i2t_rows_unchanged_no_true": 9,
+      "oracle_t2i_rows": 480,
+      "oracle_t2i_rows_relabelled": 394,
+      "oracle_t2i_rows_unchanged_no_true": 86
+    },
+    "slot_grad_means": {
+      "dLdg_i2t_real_A0": 0.0001664526141820968,
+      "dLdg_i2t_real_Apos": -4.842521542605841e-05,
+      "dLdg_t2i_real_A0": 0.00020020683708915833,
+      "dLdg_t2i_real_Apos": -0.0017082546882018453
+    }
+  },
+  "non_oracle_runner_refuses_oracle_unit": true,
+  "oracle_runner_refuses_non_oracle_unit": true,
+  "import_in_gate_process": "refused",
+  "design": {
+    "truth_module": "r36/oracle_truth.py (ImportError unless R36_ORACLE_PROCESS=1 and argv[0] is train_oracle*)",
+    "blocker": "common._OracleBlocker meta-path finder in every R36 entry; trainer/oracle roles also refuse audit_export/audit_candidate_lists",
+    "file_guard": "trainer role: audit hook refuses opening OUT/oracle_runs/* and OUT/audit/*; oracle role refuses OUT/audit/*",
+    "runner": "r36/train_oracle.py (own process; refuses non-oracle units; outputs OUT/oracle_runs)"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
