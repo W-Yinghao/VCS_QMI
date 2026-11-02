@@ -1,0 +1,339 @@
+--- r37/train_unit.py
++++ r38f/train_unit.py
+@@ -1,4 +1,6 @@
+-"""R37 unit trainer = R36 train_unit.py (copied; R37 changes: per-parent conditions, TRUST_NATIVE_NULL (B1) and
++"""R38: train_unit.py of R37 (r37/) + R38 edits (directional G readout per row direction, common cosine schedule, read-only reference
++(R36/R37C) init/batch-chain identity, first-update graph check, direction-gradient diagnostic); shared/constant path unchanged.
++R37 unit trainer = R36 train_unit.py (copied; R37 changes: per-parent conditions, TRUST_NATIVE_NULL (B1) and
+ N_PRESENT_ONLY (B2) supervision, r37 code hashing; no oracle units in R37). R36 unit trainer. Non-oracle process (train_unit.py): M-RANDOM, T (TRUST_HARD), N (OBS_MISSING_NULL), V (C-L
+ clean replication, 8000 + 4000 HEAD_CONTROL continuation). Oracle process (train_oracle.py -> main(oracle=module)):
+ M-SHIELD_ORACLE / M-RELABEL_AVAILABLE_ORACLE only, outputs under OUT/oracle_runs. Every unit starts from a FRESH
+@@ -21,6 +23,7 @@
+ import evals as EV
+ from data35 import load_cond, shard_mm, build_lists, load_local_encoders, load_raw, N_SLOTS
+ import data36 as D36
++import r38ext as X
+ 
+ # ============================================================================ configuration / context
+ 
+@@ -30,7 +33,7 @@
+ 
+ 
+ def code_hashes():
+-    return {Path(f).name: sha256(f) for f in sorted(glob.glob(str(ROOT / 'r37' / '*.py')))}
++    return {Path(f).name: sha256(f) for f in sorted(glob.glob(str(Path(__file__).resolve().parent / '*.py')))}
+ 
+ 
+ class Ctx:
+@@ -85,7 +88,7 @@
+     return torch.cat(V), torch.cat(W), torch.cat(M), torch.as_tensor(inv_i, device=dev), torch.as_tensor(inv_c, device=dev)
+ 
+ 
+-def g_pairs_lists(h, enc, ctx, p, split, img_idx, cap_idx, grad=False, enc_grad=False, s_exact=None, chunk=8192, proj=None):
++def g_pairs_lists(h, enc, ctx, p, split, img_idx, cap_idx, grad=False, enc_grad=False, s_exact=None, chunk=8192, proj=None, direction=None):
+     """per-peer scores of explicit (image, caption) pairs. s_exact (fp64 array) replaces the fp32 skip term in
+     the affine part (evaluation: exact native shard score)."""
+     d = ctx.d
+@@ -107,6 +110,11 @@
+         hid = h.glob.hidden(x, y, s)
+         if lf is not None:
+             hid = torch.cat([hid, lf], -1)
++        if getattr(h, 'directional', False):   # R38: each row scored with its own direction's output + affine (shared trunk)
++            assert direction is not None, 'directional head needs the per-row direction (0 = i2t, 1 = t2i)'
++            dd = torch.as_tensor(np.broadcast_to(np.asarray(direction), img_idx.shape)[i:i + chunk].copy(), device=dev)
++            outs.append(h.rows(s, hid, dd, None if s_exact is None else torch.as_tensor(s_exact[i:i + chunk], device=dev)))
++            continue
+         r = h.out(hid).squeeze(-1)
+         if s_exact is None:
+             outs.append(h.affine(s) + r)
+@@ -147,34 +155,44 @@
+     t0 = time.time()
+     heads.eval()
+     img, cap, names, sizes = dev_pairs(tab)
++    directional = getattr(heads[PEERS[0]], 'directional', False)
++    if directional:   # R38: GT pairs scored once per direction (g_gt: i2t, g_gt_t2i: t2i); every other DEV part in its own direction
++        a_, b_ = sum(sizes[:2]), sum(sizes[:3]); assert names[2] == 'gt'
++        img, cap, names, sizes = np.concatenate([img, img[a_:b_]]), np.concatenate([cap, cap[a_:b_]]), names + ['gt_t2i'], sizes + [b_ - a_]
++    DIRN = dict(i_top=0, t_top=1, gt=0, rand_i=0, rand_t=1, gt_t2i=1)
++    dirs = np.concatenate([np.full(n, DIRN[k], np.int64) for k, n in zip(names, sizes)])
+     with torch.no_grad():
+         gsum = 0
+         for p in PEERS:
+             h = heads[p]
+             proj = project_items(h, encs[p], ctx.raw, 'dev', img, cap) if h.local is not None else None
+             s_ex = d['dev_s'][p][torch.as_tensor(img, device=ctx.dev), torch.as_tensor(cap, device=ctx.dev)].cpu().numpy()
+-            gsum = gsum + g_pairs_lists(h, encs[p] if encs else None, ctx, p, 'dev', img, cap, s_exact=s_ex, proj=proj)
++            gsum = gsum + g_pairs_lists(h, encs[p] if encs else None, ctx, p, 'dev', img, cap, s_exact=s_ex, proj=proj, direction=dirs)
+         g = (gsum / 2).cpu().numpy()
+     parts = dict(zip(names, np.split(g, np.cumsum(sizes)[:-1])))
+     gi_top = parts['i_top'].reshape(N_DEV_IMG, -1); gt_top = parts['t_top'].reshape(N_DEV_CAP, -1)
+     m, tb, cov, rk = EV.composite_metrics(d['native_dev'], tab, gi_top, gt_top)
+     rec = dict(dev_retrieval=m, dev_retrieval_tie_bounded=tb, candidate_coverage=cov)
+     g_gt = parts['gt']
++    g_gt_t2i = parts['gt_t2i'] if directional else g_gt
+     pos_i = g_gt.reshape(N_DEV_IMG, 5).max(1)
+     hard_i = np.take_along_axis(gi_top, np.stack([np.nonzero((r // 5) != q)[0][:10] for q, r in enumerate(tab['i_top'])]), 1)
+     hard_t = np.take_along_axis(gt_top, np.stack([np.nonzero(r != c // 5)[0][:10] for c, r in enumerate(tab['t_top'])]), 1)
+-    rec['pair_win_rates'] = EV.pair_win_rates(g_gt, hard_t, parts['rand_t'].reshape(N_DEV_CAP, 10), pos_i, hard_i,
++    rec['pair_win_rates'] = EV.pair_win_rates(g_gt_t2i, hard_t, parts['rand_t'].reshape(N_DEV_CAP, 10), pos_i, hard_i,
+                                               parts['rand_i'].reshape(N_DEV_IMG, 10))
+     li, lt = EV.dev_list_scores(gi_top, gt_top, g_gt, ctx.pos_i, ctx.pos_t)
++    if directional:
++        lt = EV.dev_list_scores(gi_top, gt_top, g_gt_t2i, ctx.pos_i, ctx.pos_t)[1]
+     rec['dev_list_clean_J_raw'] = EV.list_j(li, ctx.ai_dev, lt, ctx.at_dev)
+     # FIT locked lists: eval (raw J) and calibration (affine fit)
+     def fit_lists(ki, kt):
+         lists = lists_from_locks(ctx, ki, kt)
+         im, cp, ai, at = list_pairs(lists)
++        fd = np.concatenate([np.zeros(len(ai) * N_SLOTS, np.int64), np.ones(len(at) * N_SLOTS, np.int64)])
+         with torch.no_grad():
+             gs = 0
+             for p in PEERS:
+-                gs = gs + g_pairs_lists(heads[p], encs[p] if encs else None, ctx, p, 'fit', im, cp).double()
++                gs = gs + g_pairs_lists(heads[p], encs[p] if encs else None, ctx, p, 'fit', im, cp, direction=fd).double()
+         gg = (gs / 2).cpu().numpy(); n = len(ai)
+         return gg[:n * N_SLOTS].reshape(n, N_SLOTS), gg[n * N_SLOTS:].reshape(n, N_SLOTS), ai, at
+     ei, et, eai, eat = fit_lists('lev_i', 'lev_t')
+@@ -191,8 +209,13 @@
+     rec['calibration_affine_fit_only'] = cal
+     rec['T_saturation_dev_top100'] = EV.sat(np.concatenate([gi_top.ravel(), gt_top.ravel()[::5]]))
+     rec['heads_ab'] = {p: [float(t) for t in heads[p].affine.ab()] for p in PEERS}
++    if directional:
++        rec['heads_ab_t2i'] = {p: [float(t) for t in heads[p].affine_t2i.ab()] for p in PEERS}
+     rec['readout_seconds'] = time.time() - t0
+-    return rec, dict(gi_top=gi_top, gt_top=gt_top, g_gt=g_gt), rk
++    arrs = dict(gi_top=gi_top, gt_top=gt_top, g_gt=g_gt)
++    if directional:
++        arrs['g_gt_t2i'] = g_gt_t2i
++    return rec, arrs, rk
+ 
+ 
+ # ============================================================================ training
+@@ -216,10 +239,10 @@
+ 
+ 
+ @torch.no_grad()
+-def fit_pair_scores(heads, encs, ctx, img, cap):
++def fit_pair_scores(heads, encs, ctx, img, cap, direction=None):
+     gs, ss = 0, 0
+     for p in PEERS:
+-        gs = gs + g_pairs_lists(heads[p], encs[p] if encs else None, ctx, p, 'fit', img, cap).double()
++        gs = gs + g_pairs_lists(heads[p], encs[p] if encs else None, ctx, p, 'fit', img, cap, direction=direction).double()
+         x = ctx.d[('fit', 'img', p)][torch.as_tensor(img, device=ctx.dev)]; y = ctx.d[('fit', 'cap', p)][torch.as_tensor(cap, device=ctx.dev)]
+         ss = ss + (x * y).sum(-1).double()
+     return (gs / 2).cpu().numpy(), (ss / 2).cpu().numpy()
+@@ -233,7 +256,7 @@
+     t0 = time.time()
+     (qi, caps, ai), (qc, imgs, at) = lists_from_locks(ctx, 'lev_i', 'lev_t')
+     im, cp, _, _ = list_pairs(((qi, caps, ai), (qc, imgs, at)))
+-    g, s = fit_pair_scores(heads, encs, ctx, im, cp)
++    g, s = fit_pair_scores(heads, encs, ctx, im, cp, direction=np.concatenate([np.zeros(len(ai) * N_SLOTS, np.int64), np.ones(len(at) * N_SLOTS, np.int64)]))
+     n = len(ai) * N_SLOTS
+     G = np.concatenate([g[:n].reshape(-1, N_SLOTS), g[n:].reshape(-1, N_SLOTS)]); S = np.concatenate([s[:n].reshape(-1, N_SLOTS), s[n:].reshape(-1, N_SLOTS)])
+     sp = _spearman_rows(G, S)
+@@ -248,7 +271,7 @@
+                 img_, cap_ = np.repeat(q, D36.K_NULL).reshape(ids.shape)[real], ids[real]
+             else:
+                 img_, cap_ = ids[real], np.repeat(q, D36.K_NULL).reshape(ids.shape)[real]
+-            gr, _ = fit_pair_scores(heads, encs, ctx, img_, cap_)
++            gr, _ = fit_pair_scores(heads, encs, ctx, img_, cap_, direction=di)
+             gg = np.zeros(ids.shape); gg[real] = gr
+             gg[~real] = float(np.mean([float(nulls.v[p][di]) for p in PEERS]))
+             t = np.tanh(gg / 2); K = gg.shape[1]
+@@ -301,6 +324,7 @@
+         Qi, Qt = torch.as_tensor(q_i, device=ctx.dev), torch.as_tensor(q_t, device=ctx.dev)
+         Vi, Vt = torch.as_tensor(v_i, device=ctx.dev), torch.as_tensor(v_t, device=ctx.dev)
+     n_i = int(ri.sum())
++    dirs = np.concatenate([np.zeros(n_i, np.int64), np.ones(len(img) - n_i, np.int64)])
+     ri_t, rt_t = torch.as_tensor(ri, device=ctx.dev), torch.as_tensor(rt, device=ctx.dev)
+     present_only = sup == 'N_PRESENT_ONLY'
+     if present_only:
+@@ -309,10 +333,11 @@
+         stats.update(valid_rows_i2t=float(mi.sum()), valid_rows_t2i=float(mt.sum()), empty_valid_batch_i2t=float(mi.sum() == 0),
+                      empty_valid_batch_t2i=float(mt.sum() == 0))
+     loss, jb, gl = 0.0, 0.0, []
++    dl_i = dl_t = 0.0
+     for p in PEERS:
+         h = heads[p]
+         proj = project_items(h, encs[p], ctx.raw, 'fit', img, cap, grad=True, enc_grad=False) if h.local is not None else None
+-        g = g_pairs_lists(h, encs[p] if encs else None, ctx, p, 'fit', img, cap, grad=True, enc_grad=False, proj=proj, chunk=1 << 30)
++        g = g_pairs_lists(h, encs[p] if encs else None, ctx, p, 'fit', img, cap, grad=True, enc_grad=False, proj=proj, chunk=1 << 30, direction=dirs)
+         if nulls is None:
+             gi, gt = g[:n_i].reshape(caps.shape), g[n_i:].reshape(imgs.shape)
+         else:
+@@ -328,6 +353,7 @@
+         else:
+             li, lt = loss_list(cfg['objective'], gi, A_i), loss_list(cfg['objective'], gt, A_t)
+         loss = loss + .5 * (.5 * li + .5 * lt)
++        dl_i = dl_i + .25 * li; dl_t = dl_t + .25 * lt
+         with torch.no_grad():
+             jb += .5 * float(.5 * list_rows(gi, A_i, 'J').mean() + .5 * list_rows(gt, A_t, 'J').mean())
+     stats.update(n_pos_slots_i2t_rows_sum=float((ai > 0).sum()), n_unique_images=int(len(np.unique(img))), n_unique_caps=int(len(np.unique(cap))))
+@@ -335,7 +361,7 @@
+         stats.update(null_label_rows_i2t=float(ai[~ri].sum()), null_label_rows_t2i=float(at[~rt].sum()),
+                      observed_pos_real_slots_i2t=float(((ai > 0) & ri).sum()), observed_pos_real_slots_t2i=float(((at > 0) & rt).sum()),
+                      effective_pos_rows_i2t=float(((ai > 0) & ri).any(1).sum()), effective_pos_rows_t2i=float(((at > 0) & rt).any(1).sum()))
+-    ctxs = dict(ai=ai, at=at, ri=ri, rt=rt)
++    ctxs = dict(ai=ai, at=at, ri=ri, rt=rt, dir_losses=(dl_i, dl_t), dirs=dirs)
+     return loss, jb, (img, cap, idx[2], idx[3]), stats, gl, ctxs
+ 
+ 
+@@ -410,6 +436,15 @@
+                         parent_head_state_sha256=state_hash(heads), optimizer='fresh AdamW (parent optimizer state NOT loaded)',
+                         sampler_seed=cfg['sampler_seed'], parent_sampler_seed=par['config']['sampler_seed'])
+     init_hash = state_hash(heads) + (state_hash(nulls) if nulls is not None else '')
++    sched = cfg['optimizer'].get('schedule', 'constant'); assert sched in ('constant', 'cosine'), sched
++    directional = getattr(heads[PEERS[0]], 'directional', False)
++    assert directional == (cfg['structure'] == 'GD')
++    ref = X.reference(cfg)
++    r38 = dict(schedule=sched, directional=directional, init_state_sha256_shared_keys=X.state_hash_shared(heads, nulls),
++               reference_unit=ref['unit'] if ref else None, reference_init_equal=None, reference_chain_equal_at=[], lr_at_readout={})
++    if ref is not None:   # read-only reuse check: same fresh head init (shared keys) as the R36/R37C reference unit of this parent/route
++        r38['reference_init_equal'] = r38['init_state_sha256_shared_keys'] == ref['init']
++        assert r38['reference_init_equal'], f"init differs from reference {ref['unit']}"
+     opt = make_opt(cfg, heads, nulls)
+     if boundary is not None:
+         boundary['optimizer_state_entries_at_reset'] = len(opt.state_dict()['state'])
+@@ -436,6 +471,9 @@
+         write_json(out / 'PHASE_BOUNDARY_RECEIPT.json', dict(boundary, utc=utc(), resumed_from_step=start))
+     hist = read_json(out / 'TRAIN_HISTORY.json') if (start and (out / 'TRAIN_HISTORY.json').exists()) else dict(windows=[], train_seconds=0.0, eval_seconds=0.0, batch_hash=[], stats_sum={})
+     hist['windows'] = [w for w in hist['windows'] if w['end_step'] <= start]
++    hist.setdefault('r38', {}).update({k: v for k, v in r38.items() if k not in hist['r38']})
++    hist['r38'].setdefault('dir_grad_diag', {})
++    last_lr = None; gc = None
+     win = []; gwin = []; t_train = 0.0; t_eval = 0.0
+     chain = bytes.fromhex(hist['batch_hash'][-1]) if hist['batch_hash'] else b''
+ 
+@@ -483,6 +521,12 @@
+                 save_ckpt(out / f'ckpt_step{step}.pt', cfg, step, heads, nulls, opt, rng, rng2, lineage)
+             hist['train_seconds'] += t_train; hist['eval_seconds'] += t_eval; t_train = t_eval = 0.0
+             hist['batch_hash'].append(chain.hex()); hist['last_step'] = step
++            if ref is not None:   # read-only reuse check: identical sampled lists (batch-index hash chain) as the reference unit
++                kk = len(hist['batch_hash']) - 1
++                assert hist['batch_hash'][-1] == ref['chain'][kk], f"batch chain differs from reference {ref['unit']} at step {step}"
++                if step not in hist['r38']['reference_chain_equal_at']:
++                    hist['r38']['reference_chain_equal_at'].append(step)
++            hist['r38']['lr_at_readout'][str(step)] = last_lr
+             write_json(out / 'TRAIN_HISTORY.json', hist)
+         if step == steps or (stop_at is not None and step == stop_at):
+             break
+@@ -492,8 +536,38 @@
+         chain = upd(chain, *idx)
+         for k2, v2 in st.items():
+             hist['stats_sum'][k2] = hist['stats_sum'].get(k2, 0) + v2
++        diag = None
++        if step in ckpt_steps or step <= 1:   # R38 diagnostic: per-direction gradients on this training batch (no effect on .grad)
++            diag, flat = X.dir_grads(heads, nulls, PEERS, *cx['dir_losses'])
++            hist['r38']['dir_grad_diag'][str(step)] = diag
++            for a_, b_ in gl:   # autograd.grad fills .grad of the retain_grad score tensors: reset so grad_class_stats sees only loss.backward()
++                a_.grad = None; b_.grad = None
++        if step == 0 and cfg.get('phase', 1) == 1:
++            gc = first_step_graph_check(cfg, heads, nulls, ctx, idx, cx, diag, a0, b0)
+         opt.zero_grad(set_to_none=True)
+         loss.backward()
++        if step == 0 and cfg.get('phase', 1) == 1:   # total gradient = sum of the two direction gradients (pre-clip)
++            named, gi_, gt_ = flat
++            err = max(float((((q.grad if q.grad is not None else torch.zeros_like(q)) - (a + b)).abs().max())) for (_, _, q), a, b in zip(named, gi_, gt_))
++            scale = max(float(q.grad.abs().max()) for (_, _, q) in named if q.grad is not None)
++            gc['sum_of_direction_grads_equals_total'] = dict(max_abs_err=err, max_abs_grad=scale, passed=bool(err <= 1e-6 * scale + 1e-12))
++            gc['passed'] = bool(gc['passed'] and gc['sum_of_direction_grads_equals_total']['passed'])
++            hist['r38']['step1_graph_check'] = gc
++            write_json(out / 'STEP1_GRAPH_CHECK.json', gc)
++            assert gc['passed'], f'R38 first-update graph check failed: {gc}'
++        if step == 1 and cfg.get('phase', 1) == 1 and gc is not None:   # update 1: nonzero outputs -> trunk gets both directions; routing still exact
++            sec = {}
++            for p in PEERS:
++                d_ = diag[p]; zz = lambda g, k: d_.get(g, {}).get(k, 0.0)
++                sec[p] = dict(trunk_from_i2t=zz('trunk', 'norm_i2t'), trunk_from_t2i=zz('trunk', 'norm_t2i'), trunk_cos=zz('trunk', 'cos'),
++                              i2t_loss_to_t2i_extras=zz('out_t2i', 'norm_i2t') + zz('affine_t2i', 'norm_i2t'), t2i_loss_to_i2t_output=zz('out_i2t', 'norm_t2i') + zz('affine_i2t', 'norm_t2i'))
++            ok2 = all(sec[p]['trunk_from_i2t'] > 0 and sec[p]['trunk_from_t2i'] > 0 for p in PEERS)
++            if directional:
++                ok2 &= all(sec[p]['i2t_loss_to_t2i_extras'] == 0.0 and sec[p]['t2i_loss_to_i2t_output'] == 0.0 for p in PEERS)
++            gc['second_update'] = dict(sec, passed=bool(ok2)); gc['passed'] = bool(gc['passed'] and ok2)
++            hist['r38']['step1_graph_check'] = gc
++            write_json(out / 'STEP1_GRAPH_CHECK.json', gc)
++            assert gc['passed'], f'R38 second-update graph check failed: {gc}'
+         gns = []
+         for p in PEERS:
+             ps = [q for q in peer_params(heads, nulls, p) if q.grad is not None]
+@@ -501,6 +575,10 @@
+         if not (np.isfinite(gns).all() and torch.isfinite(loss)):
+             raise FloatingPointError(f'nonfinite at step {step}')
+         gwin.append(grad_class_stats(gl, cx))
++        if sched == 'cosine':   # R38 common cosine (all objectives): lr(t) = lr_head * lr_multiplier(t), t = update index; optimizer never reset
++            for pg in opt.param_groups:
++                pg['lr'] = cfg['optimizer']['lr_head'] * X.lr_multiplier(step, cfg['steps'], 'cosine', cfg['optimizer']['cosine_floor'])
++        last_lr = opt.param_groups[0]['lr']
+         opt.step()
+         win.append((float(loss), jb, float(np.mean(gns))))
+         if dev.type == 'cuda':
+@@ -508,6 +586,51 @@
+         t_train += time.time() - t0
+     return dict(heads=heads, nulls=nulls, encs=encs, init_hash=init_hash, final_hash=state_hash(heads) + (state_hash(nulls) if nulls is not None else ''),
+                 batch_hash=chain.hex(), hist=hist, out=out, boundary=boundary)
++
++
++@torch.no_grad()
++def first_step_graph_check(cfg, heads, nulls, ctx, idx, cx, diag, a0, b0):
++    """R38 in-unit check on the first training batch, before the first update (replaces a standalone GPU gate):
++    directional: (1) routed scores == all-i2t scores == all-t2i scores bitwise (both outputs zero, both affines a0/b0);
++    (2) == the scores of a freshly built shared G head of the same seed (trunk/out/affine bitwise those of 'G');
++    (3) routing: dL_i2t/d(out_t2i, affine_t2i) == 0 and dL_t2i/d(out_i2t, affine_i2t) == 0 exactly, the own-direction output
++    and the shared trunk get nonzero gradients from each direction. shared: both directions reach the single output.
++    The sum check (total grad == sum of direction grads) is added after loss.backward()."""
++    img, cap = idx[0], idx[1]; dirs = cx['dirs']
++    out = dict(directional=bool(getattr(heads[PEERS[0]], 'directional', False)), n_pairs=int(len(img)), n_i2t_pairs=int((dirs == 0).sum()))
++    ok = True
++    if out['directional']:
++        with torch.random.fork_rng(devices=[]):   # fresh same-seed shared head without disturbing the run's CPU RNG
++            ref_heads = build_heads('G', a0, b0, cfg['init_seed']).to(ctx.dev)
++        eq = {}
++        for p in PEERS:
++            kw = dict(chunk=1 << 30)
++            g_r = g_pairs_lists(heads[p], None, ctx, p, 'fit', img, cap, direction=dirs, **kw)
++            g_0 = g_pairs_lists(heads[p], None, ctx, p, 'fit', img, cap, direction=0, **kw)
++            g_1 = g_pairs_lists(heads[p], None, ctx, p, 'fit', img, cap, direction=1, **kw)
++            g_s = g_pairs_lists(ref_heads[p], None, ctx, p, 'fit', img, cap, **kw)
++            eq[p] = dict(routed_eq_i2t=bool(torch.equal(g_r, g_0)), routed_eq_t2i=bool(torch.equal(g_r, g_1)), routed_eq_fresh_shared_G=bool(torch.equal(g_r, g_s)))
++            ok &= all(eq[p].values())
++        out['step0_scores'] = eq
++        rt = {}
++        for p in PEERS:
++            d = diag[p]
++            z = lambda g, k: d.get(g, {}).get(k, 0.0)
++            rt[p] = dict(i2t_loss_to_t2i_extras=z('out_t2i', 'norm_i2t') + z('affine_t2i', 'norm_i2t'), t2i_loss_to_i2t_output=z('out_i2t', 'norm_t2i') + z('affine_i2t', 'norm_t2i'),
++                         i2t_loss_to_own_output=z('out_i2t', 'norm_i2t'), t2i_loss_to_own_output=z('out_t2i', 'norm_t2i'),
++                         trunk_from_i2t=z('trunk', 'norm_i2t'), trunk_from_t2i=z('trunk', 'norm_t2i'))
++            ok &= rt[p]['i2t_loss_to_t2i_extras'] == 0.0 and rt[p]['t2i_loss_to_i2t_output'] == 0.0 and rt[p]['i2t_loss_to_own_output'] > 0 and rt[p]['t2i_loss_to_own_output'] > 0
++        out['routing'] = rt
++    else:
++        rt = {p: dict(out_from_i2t=diag[p]['out_i2t']['norm_i2t'], out_from_t2i=diag[p]['out_i2t']['norm_t2i'], trunk_from_i2t=diag[p]['trunk']['norm_i2t'], trunk_from_t2i=diag[p]['trunk']['norm_t2i']) for p in PEERS}
++        ok &= all(rt[p]['out_from_i2t'] > 0 and rt[p]['out_from_t2i'] > 0 for p in PEERS)   # trunk grads are 0 at update 0 (zero output): checked at update 1
++        out['routing'] = rt
++    sched = cfg['optimizer'].get('schedule', 'constant')
++    out['lr_update0'] = cfg['optimizer']['lr_head'] * (X.lr_multiplier(0, cfg['steps'], 'cosine', cfg['optimizer']['cosine_floor']) if sched == 'cosine' else 1.0)
++    out['lr_last_update'] = cfg['optimizer']['lr_head'] * (X.lr_multiplier(cfg['steps'] - 1, cfg['steps'], 'cosine', cfg['optimizer']['cosine_floor']) if sched == 'cosine' else 1.0)
++    ok &= out['lr_update0'] == cfg['optimizer']['lr_head'] and (sched == 'constant' or abs(out['lr_last_update'] - .1 * cfg['optimizer']['lr_head']) < 1e-18)
++    out['passed'] = bool(ok); out['utc'] = utc()
++    return out
+ 
+ 
+ def finalize(cfg, ctx, res_list, t_wall, base_out):
+@@ -526,7 +649,7 @@
+                   primary_endpoint=cfg['primary_endpoint'], native_H_dev=ctx.nat_metrics, parent=dict(cond=cfg['cond'], **{k: ctx.d['manifest']['parent'][k] for k in ('unit', 'model_best', 'model_best_sha256', 'epoch', 'best_rsum')}),
+                   present_probs=ctx.present,
+                   diff_vs_native={k: fin['dev_retrieval'][k] - ctx.nat_metrics[k] for k in ('i2t_r1', 'i2t_r5', 'i2t_r10', 't2i_r1', 't2i_r5', 't2i_r10', 'rsum')},
+-                  code_sha256=code_hashes(),
++                  code_sha256=code_hashes(), r38=phases[-1]['train_history'].get('r38'),
+                   batch_stats={f"phase{p['phase']}": p['train_history']['stats_sum'] for p in phases},
+                   cost=dict(params_trainable=n_params(r0['heads']) + (n_params(r0['nulls']) if r0['nulls'] is not None else 0),
+                             train_seconds=sum(p['train_history']['train_seconds'] for p in phases), eval_seconds=sum(p['train_history']['eval_seconds'] for p in phases),
+@@ -560,7 +683,7 @@
+     for f, h in frozen['code_sha256'].items():
+         if f in frozen.get('code_not_bound', []):
+             continue
+-        assert sha256(ROOT / 'r37' / f) == h, f'code differs from frozen protocol: {f}'  # was ROOT/'r36' (nonexistent dir; would have failed every formal unit)
++        assert sha256(Path(__file__).resolve().parent / f) == h, f'code differs from frozen protocol: {f}'  # R37: was ROOT/'r36'; R38: this tree's own directory
+     for u in uids:
+         assert sha256(ROOT / 'configs' / f'{u}.json') == frozen['config_sha256'][u], f'config differs from frozen: {u}'
+     assert frozen.get('gpu_gate', {}).get('waived_by_user') or read_json(ROOT / 'GPU_GATE.json')['ALL_PASS'], 'GPU gate not passed'

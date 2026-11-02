@@ -173,14 +173,14 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R33：基准基线行（原生 IN²R 与 IN²R + A1；COCO 60%、Flickr 80%、COCO 20%/80%、Flickr 20% A1）
 
-单元数 27；DONE 17，PENDING 4，RUNNING 6
+单元数 27；DONE 19，RUNNING 8
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
 | c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | DONE | 538.94 | — |
-| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | PENDING | NA | — |
+| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | RUNNING | NA | — |
 | c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | DONE | 538.44 | — |
-| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | DONE | 539.24 | — |
 | c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | DONE | 539.32 | — |
 | c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | DONE | 538.50 | — |
 | f80_s1001/H0 | Flickr 80% | 1001 | native IN²R | 40 | DONE | 464.93 | 467.08 |
@@ -190,8 +190,8 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | f80_s1003/H0 | Flickr 80% | 1003 | native IN²R | 40 | DONE | 454.12 | 450.30 |
 | f80_s1003/a1_iface | Flickr 80% | 1003 | IN²R + A1 | 40 | DONE | 461.03 | 454.44 |
 | c20_s1001/H0 | COCO 20% | 1001 | native IN²R | 40 | RUNNING | NA | — |
-| c20_s1001/a1_iface | COCO 20% | 1001 | IN²R + A1 | 40 | PENDING | NA | — |
-| c20_s1002/H0 | COCO 20% | 1002 | native IN²R | 40 | PENDING | NA | — |
+| c20_s1001/a1_iface | COCO 20% | 1001 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c20_s1002/H0 | COCO 20% | 1002 | native IN²R | 40 | RUNNING | NA | — |
 | c20_s1002/a1_iface | COCO 20% | 1002 | IN²R + A1 | 40 | RUNNING | NA | — |
 | c20_s1003/H0 | COCO 20% | 1003 | native IN²R | 40 | RUNNING | NA | — |
 | c20_s1003/a1_iface | COCO 20% | 1003 | IN²R + A1 | 40 | RUNNING | NA | — |
@@ -199,8 +199,8 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | c80_s1001/a1_iface | COCO 80% | 1001 | IN²R + A1 | 40 | DONE | 526.14 | — |
 | c80_s1002/H0 | COCO 80% | 1002 | native IN²R | 40 | DONE | 511.66 | — |
 | c80_s1002/a1_iface | COCO 80% | 1002 | IN²R + A1 | 40 | DONE | 512.66 | — |
-| c80_s1003/H0 | COCO 80% | 1003 | native IN²R | 40 | RUNNING | NA | — |
-| c80_s1003/a1_iface | COCO 80% | 1003 | IN²R + A1 | 40 | PENDING | NA | — |
+| c80_s1003/H0 | COCO 80% | 1003 | native IN²R | 40 | DONE | 512.18 | — |
+| c80_s1003/a1_iface | COCO 80% | 1003 | IN²R + A1 | 40 | RUNNING | NA | — |
 | f20_s1001/a1_iface | Flickr 20% | 1001 | IN²R + A1 | 40 | DONE | 518.99 | 520.72 |
 | f20_s1002/a1_iface | Flickr 20% | 1002 | IN²R + A1 | 40 | DONE | 516.65 | 522.58 |
 | f20_s1003/a1_iface | Flickr 20% | 1003 | IN²R + A1 | 40 | DONE | 516.98 | 522.08 |
