@@ -1,0 +1,84 @@
+{
+  "ALL_PASS": true,
+  "checks": {
+    "code_identity_vs_R37": {
+      "pass_": true,
+      "byte_identical": {
+        "heads.py": true,
+        "objectives.py": true,
+        "native_eval.py": true
+      },
+      "data36_function_diffs": [],
+      "unwhitelisted_diff_lines": {
+        "train_unit.py": [],
+        "evals.py": []
+      }
+    },
+    "toy_identity_T_and_N_lists_presence": {
+      "pass_": true,
+      "presence": {
+        "p_i2t": 0.3334666666666667,
+        "p_t2i": 0.25018666666666667,
+        "p_i2t_per_image": 0.3334666666666667,
+        "n_records": 150000,
+        "rule": "p_d = mean over the 150000 CC152K FIT records of [observed partner in native top-32] for the query that record induces"
+      },
+      "toy_rows_unique": true
+    },
+    "per_captions1_evaluators": {
+      "pass_": true,
+      "upstream_i2t_t2i_source_identical": true,
+      "toy_rsum": 78.6
+    },
+    "real_cache_prep_identity_mapping": {
+      "pass_": true,
+      "native_dev": {
+        "rsum": 389.7,
+        "checkpoint_best_rsum": 389.7,
+        "checkpoint_epoch": 38,
+        "peer_rsum": {
+          "A": 385.90000000000003,
+          "B": 380.7
+        }
+      },
+      "presence": {
+        "p_i2t": 0.71906,
+        "p_t2i": 0.6866733333333334,
+        "p_i2t_per_image": 0.71906,
+        "n_records": 150000,
+        "rule": "p_d = mean over the 150000 CC152K FIT records of [observed partner in native top-32] for the query that record induces"
+      },
+      "trust": {
+        "n_subset": 137675,
+        "retention": 0.9178333333333333
+      },
+      "a0b0": [
+        21.564115925429032,
+        -4.322719856531427
+      ],
+      "candidates": {
+        "seconds": 16.820285320281982,
+        "rule": "peer-mean native fp32 score (xA.yA + xB.yB)/2 over the full FIT pool (150000 x 150000), torch.topk(32)",
+        "i2t_frac_images_with_an_observed_caption_in_top32": 0.71906,
+        "t2i_frac_captions_observed_image_in_top32": 0.6866733333333334,
+        "i2t_frac_observed_partner_at_rank1": 0.26121333333333335,
+        "t2i_frac_observed_partner_at_rank1": 0.2101
+      }
+    },
+    "null_slots_no_rng": {
+      "pass_": true
+    },
+    "isolation_and_static_scan": {
+      "pass_": true,
+      "opens": [
+        "REFUSED",
+        "REFUSED",
+        "REFUSED"
+      ],
+      "hits": []
+    }
+  },
+  "created_utc": "2026-11-02T15:34:40Z",
+  "seconds": 9.520302772521973,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
