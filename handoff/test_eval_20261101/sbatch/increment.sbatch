@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=te_increment
-#SBATCH --qos=runfill
-#SBATCH --partition=V100-32GB,V100,L40S,A100,A40,3090,A30
+#SBATCH --qos=normal
+#SBATCH --partition=RTX6000PRO,L40S,H100
 #SBATCH --exclude=node51,node53,node60
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=4

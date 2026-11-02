@@ -37,7 +37,7 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | r30v11_f60_s1003_HN | Flickr 60% | 1003 | H→N | 10 | DONE | 485.84 / — | 489.78 |
 | r30v11_f60_s1003_HB | Flickr 60% | 1003 | H→B | 10 | DONE | 469.41 / — | 470.68 |
 | r30v11_f60_s1003_HL | Flickr 60% | 1003 | H→L | 10 | DONE | 470.00 / — | 472.46 |
-| r30v11_f60_s1003_HH | Flickr 60% | 1003 | H→H | 40 | DONE | 494.40 / 496.07 | 496.44 (DEV gate FAIL) |
+| r30v11_f60_s1003_HH | Flickr 60% | 1003 | H→H | 40 | DONE | 494.40 / 496.07 | 496.44 |
 | r30v11_f60_s1003_LN | Flickr 60% | 1003 | L→N | 10 | DONE | 483.73 / — | 485.36 |
 | r30v11_f60_s1003_LL | Flickr 60% | 1003 | L→L | 10 | DONE | 448.99 / — | 452.12 |
 | r30a1_f60_s1002_PN | Flickr 60% | 1002 | H→PN (static scale) | 40 | DONE | 474.48 / 480.34 | 482.32 |
@@ -49,12 +49,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R31：IN²R 复现忠实度（(a) 官方 NCR 20% 噪声；(b) 作者 run.py 默认；(b′) 默认 + i2t/t2i）
 
-单元数 15；PENDING 2，RUNNING 13
+单元数 15；RUNNING 15
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
 | f20_s1001/H0_codecfg | Flickr 20% (official NCR index) | 1001 | set a: H0_codecfg | 40 | RUNNING | NA | — |
-| f20_s1002/H0_codecfg | Flickr 20% (official NCR index) | 1002 | set a: H0_codecfg | 40 | PENDING | NA | — |
+| f20_s1002/H0_codecfg | Flickr 20% (official NCR index) | 1002 | set a: H0_codecfg | 40 | RUNNING | NA | — |
 | f20_s1003/H0_codecfg | Flickr 20% (official NCR index) | 1003 | set a: H0_codecfg | 40 | RUNNING | NA | — |
 | f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | RUNNING | NA | — |
 | f40_s1002/H0_default | Flickr 40% | 1002 | set b: H0_default | 40 | RUNNING | NA | — |
@@ -64,14 +64,14 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | cc_s1003/H0_default | CC152K | 1003 | set b: H0_default | 40 | RUNNING | NA | — |
 | f40_s1001/H0_default_i2t_t2i | Flickr 40% | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | f40_s1002/H0_default_i2t_t2i | Flickr 40% | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
-| f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | PENDING | NA | — |
+| f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | cc_s1001/H0_default_i2t_t2i | CC152K | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | cc_s1002/H0_default_i2t_t2i | CC152K | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 | cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 
 ## R32：VCS_NATIVE_RATIO_v1（GPO 双塔 + 有边缘约束的 ratio critic；S0/W2/F1/E2/C2）
 
-单元数 95；CHAIN_QUEUED 11，DONE 84
+单元数 95；CHAIN_QUEUED 3，DONE 92
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（epoch-20 DEV rSum (E2/C2) / J (S0)） | TEST rSum |
 |---|---|---|---|---|---|---|---|
@@ -126,16 +126,16 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | nrcs_v1_e2_n00_s1002_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | DONE | 408.78 | — |
 | nrcs_v1_e2_n00_s1002_ratio_J_b1_i0 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 183.65 | — |
 | nrcs_v1_e2_n00_s1002_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 184.20 | — |
-| nrcs_v1_e2_n00_s1002_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1002_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n00_s1002_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_logistic | 20 | DONE | 196.25 | — |
+| nrcs_v1_e2_n00_s1002_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_hinge | 20 | DONE | 473.67 | — |
 | nrcs_v1_f1_n00_s1003_cosine_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: cosine_J | 0 | DONE | 298.66 | — |
 | nrcs_v1_f1_n00_s1003_ratio_J_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 97.32 | — |
 | nrcs_v1_f1_n00_s1003_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_logistic | 0 | DONE | 110.61 | — |
 | nrcs_v1_f1_n00_s1003_ratio_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 127.73 | — |
 | nrcs_v1_e2_n00_s1003_cosine_J_b0_i0 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 399.05 | — |
 | nrcs_v1_e2_n00_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 399.19 | — |
-| nrcs_v1_e2_n00_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n00_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n00_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 177.22 | — |
+| nrcs_v1_e2_n00_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 168.42 | — |
 | nrcs_v1_e2_n00_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_e2_n00_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_f1_n60_s1001_cosine_J_b0_i0 | flickr_frozen_W2 | 1001 | F1: cosine_J | 0 | DONE | 185.21 | — |
@@ -156,8 +156,8 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | nrcs_v1_e2_n60_s1002_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_J | 20 | DONE | 171.56 | — |
 | nrcs_v1_e2_n60_s1002_ratio_J_b1_i0 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 105.66 | — |
 | nrcs_v1_e2_n60_s1002_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_J | 20 | DONE | 95.42 | — |
-| nrcs_v1_e2_n60_s1002_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1002_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n60_s1002_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1002 | E2: ratio_logistic | 20 | DONE | 105.09 | — |
+| nrcs_v1_e2_n60_s1002_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1002 | E2: cosine_hinge | 20 | DONE | 12.19 | — |
 | nrcs_v1_f1_n60_s1003_cosine_J_b0_i0 | flickr_frozen_W2 | 1003 | F1: cosine_J | 0 | DONE | 190.28 | — |
 | nrcs_v1_f1_n60_s1003_ratio_J_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_J | 0 | DONE | 35.80 | — |
 | nrcs_v1_f1_n60_s1003_ratio_logistic_b1_i0 | flickr_frozen_W2 | 1003 | F1: ratio_logistic | 0 | DONE | 33.20 | — |
@@ -165,8 +165,8 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 | nrcs_v1_e2_n60_s1003_cosine_J_b0_i0 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 135.66 | — |
 | nrcs_v1_e2_n60_s1003_cosine_J_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_J | 20 | DONE | 174.69 | — |
 | nrcs_v1_e2_n60_s1003_ratio_J_b1_i0 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 119.51 | — |
-| nrcs_v1_e2_n60_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | CHAIN_QUEUED | NA | — |
-| nrcs_v1_e2_n60_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | CHAIN_QUEUED | NA | — |
+| nrcs_v1_e2_n60_s1003_ratio_J_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_J | 20 | DONE | 107.89 | — |
+| nrcs_v1_e2_n60_s1003_ratio_logistic_b1_i0p1 | flickr_trainable_GPO | 1003 | E2: ratio_logistic | 20 | DONE | 108.13 | — |
 | nrcs_v1_e2_n60_s1003_cosine_hinge_b0_i0p1 | flickr_trainable_GPO | 1003 | E2: cosine_hinge | 20 | CHAIN_QUEUED | NA | — |
 | nrcs_v1_c2_n00_s1001_cosine_J_b0_i0p1 | flickr_cold_diagnostic | 1001 | C2: cosine_J | 20 | DONE | 391.34 | — |
 | nrcs_v1_c2_n00_s1001_ratio_J_b1_i0p1 | flickr_cold_diagnostic | 1001 | C2: ratio_J | 20 | DONE | 185.94 | — |
