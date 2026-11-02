@@ -1,0 +1,35 @@
+{
+  "created_utc": "2026-11-02T09:55:51Z",
+  "ALL_PASS": true,
+  "oracle_runner_smoke_rc": 0,
+  "oracle_runner_tail": "r35_B_n60_s1001_ORACLE_J step 0 rsum 505.21 (4.2s)\nr35_B_n60_s1001_ORACLE_J step 30 rsum 505.21 (7.2s)\nR35_UNIT_DONE r35_B_n60_s1001_ORACLE_J rsum 505.2071005917159 native 505.2071005917159\nR35_JOB_END failed []\n<WORKSPACE>/handoff/r35_expanded_20261102/r35/evals.py:83: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.\nConsider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:836.)\n  return float(torch.exp(la)), float(b), v, bool(torch.isfinite(la) and torch.isfinite(b))\n",
+  "oracle_smoke_guard": {
+    "installed": true,
+    "rule": "basename ^test(all|5k)?_ inside *_precomp dir -> PermissionError",
+    "blocked_attempts": [],
+    "oracle_import_refusals": [],
+    "oracle_process": true
+  },
+  "oracle_smoke_rsum_step30": 505.2071005917159,
+  "oracle_fit_truth_J_step30": 0.6379562728583195,
+  "non_oracle_runner_refuses_oracle_unit": true,
+  "oracle_runner_refuses_non_oracle_unit": true,
+  "oracle_module_refuses_foreign_entry_even_with_flag": true,
+  "import_in_gate_process": "refused",
+  "static_importers_of_oracle_truth": [],
+  "oracle_diagnostics": {
+    "utc": "2026-11-02T09:55:50Z",
+    "observed_mismatch_fraction_full_pool": 0.5999793103448275,
+    "trust_subset_size": 61588,
+    "trust_subset_truth_clean_fraction": 0.9134571669805807,
+    "trust_subset_retention": 0.4247448275862069,
+    "complement_truth_clean_fraction": 0.020920251282789046,
+    "note": "evaluator statistics computed in the oracle process only; not used by any non-oracle arm"
+  },
+  "design": {
+    "truth_module": "r35/oracle_truth.py (raises ImportError unless R35_ORACLE_PROCESS=1 and argv[0] is train_oracle*)",
+    "blocker": "common._OracleBlocker meta-path finder installed by every R35 entry; non-oracle runner asserts the module is not loaded and refuses ORACLE units",
+    "runner": "r35/train_oracle.py (own process; refuses non-ORACLE units)"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

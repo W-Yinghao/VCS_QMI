@@ -49,24 +49,24 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R31：IN²R 复现忠实度（(a) 官方 NCR 20% 噪声；(b) 作者 run.py 默认；(b′) 默认 + i2t/t2i）
 
-单元数 15；DONE 6，RUNNING 9
+单元数 15；DONE 14，RUNNING 1
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
-| f20_s1001/H0_codecfg | Flickr 20% (official NCR index) | 1001 | set a: H0_codecfg | 40 | RUNNING | NA | — |
-| f20_s1002/H0_codecfg | Flickr 20% (official NCR index) | 1002 | set a: H0_codecfg | 40 | RUNNING | NA | — |
-| f20_s1003/H0_codecfg | Flickr 20% (official NCR index) | 1003 | set a: H0_codecfg | 40 | RUNNING | NA | — |
-| f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | DONE | 514.18 | — |
+| f20_s1001/H0_codecfg | Flickr 20% (official NCR index) | 1001 | set a: H0_codecfg | 40 | DONE | 517.71 | 519.60 |
+| f20_s1002/H0_codecfg | Flickr 20% (official NCR index) | 1002 | set a: H0_codecfg | 40 | DONE | 516.59 | 518.92 |
+| f20_s1003/H0_codecfg | Flickr 20% (official NCR index) | 1003 | set a: H0_codecfg | 40 | DONE | 516.27 | 518.56 |
+| f40_s1001/H0_default | Flickr 40% | 1001 | set b: H0_default | 40 | DONE | 514.18 | 516.24 |
 | f40_s1002/H0_default | Flickr 40% | 1002 | set b: H0_default | 40 | DONE | 509.45 | 512.04 |
 | f40_s1003/H0_default | Flickr 40% | 1003 | set b: H0_default | 40 | DONE | 510.79 | 515.04 |
-| cc_s1001/H0_default | CC152K | 1001 | set b: H0_default | 40 | DONE | 389.70 | — |
-| cc_s1002/H0_default | CC152K | 1002 | set b: H0_default | 40 | RUNNING | NA | — |
-| cc_s1003/H0_default | CC152K | 1003 | set b: H0_default | 40 | RUNNING | NA | — |
-| f40_s1001/H0_default_i2t_t2i | Flickr 40% | 1001 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 514.28 | — |
-| f40_s1002/H0_default_i2t_t2i | Flickr 40% | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
-| f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 512.88 | — |
-| cc_s1001/H0_default_i2t_t2i | CC152K | 1001 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
-| cc_s1002/H0_default_i2t_t2i | CC152K | 1002 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
+| cc_s1001/H0_default | CC152K | 1001 | set b: H0_default | 40 | DONE | 389.70 | 401.90 |
+| cc_s1002/H0_default | CC152K | 1002 | set b: H0_default | 40 | DONE | 394.60 | 402.80 |
+| cc_s1003/H0_default | CC152K | 1003 | set b: H0_default | 40 | DONE | 392.60 | 406.40 |
+| f40_s1001/H0_default_i2t_t2i | Flickr 40% | 1001 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 514.28 | 518.32 |
+| f40_s1002/H0_default_i2t_t2i | Flickr 40% | 1002 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 510.47 | 510.40 |
+| f40_s1003/H0_default_i2t_t2i | Flickr 40% | 1003 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 512.88 | 515.60 |
+| cc_s1001/H0_default_i2t_t2i | CC152K | 1001 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 391.00 | 405.20 |
+| cc_s1002/H0_default_i2t_t2i | CC152K | 1002 | set b_prime: H0_default_i2t_t2i | 40 | DONE | 392.50 | 404.50 |
 | cc_s1003/H0_default_i2t_t2i | CC152K | 1003 | set b_prime: H0_default_i2t_t2i | 40 | RUNNING | NA | — |
 
 ## R32：VCS_NATIVE_RATIO_v1（GPO 双塔 + 有边缘约束的 ratio critic；S0/W2/F1/E2/C2）
@@ -173,35 +173,35 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 ## R33：基准基线行（原生 IN²R 与 IN²R + A1；COCO 60%、Flickr 80%、COCO 20%/80%、Flickr 20% A1）
 
-单元数 27；NOT_STARTED 6，PREFIX_PENDING 21
+单元数 27；DONE 11，RUNNING 16
 
 | 单元 | 条件 | seed | 臂 | 轮/步 | 状态 | DEV（best full-DEV rSum） | TEST rSum |
 |---|---|---|---|---|---|---|---|
-| c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| f80_s1001/H0 | Flickr 80% | 1001 | native IN²R | 40 | NOT_STARTED | NA | — |
-| f80_s1001/a1_iface | Flickr 80% | 1001 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| f80_s1002/H0 | Flickr 80% | 1002 | native IN²R | 40 | NOT_STARTED | NA | — |
-| f80_s1002/a1_iface | Flickr 80% | 1002 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| f80_s1003/H0 | Flickr 80% | 1003 | native IN²R | 40 | NOT_STARTED | NA | — |
-| f80_s1003/a1_iface | Flickr 80% | 1003 | IN²R + A1 | 40 | NOT_STARTED | NA | — |
-| c20_s1001/H0 | COCO 20% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c20_s1001/a1_iface | COCO 20% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c20_s1002/H0 | COCO 20% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c20_s1002/a1_iface | COCO 20% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c20_s1003/H0 | COCO 20% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c20_s1003/a1_iface | COCO 20% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c80_s1001/H0 | COCO 80% | 1001 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c80_s1001/a1_iface | COCO 80% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c80_s1002/H0 | COCO 80% | 1002 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c80_s1002/a1_iface | COCO 80% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| c80_s1003/H0 | COCO 80% | 1003 | native IN²R | 40 | PREFIX_PENDING | NA | — |
-| c80_s1003/a1_iface | COCO 80% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| f20_s1001/a1_iface | Flickr 20% | 1001 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| f20_s1002/a1_iface | Flickr 20% | 1002 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
-| f20_s1003/a1_iface | Flickr 20% | 1003 | IN²R + A1 | 40 | PREFIX_PENDING | NA | — |
+| c60_s1001/H0 | COCO 60% | 1001 | native IN²R | 40 | RUNNING | NA | — |
+| c60_s1001/a1_iface | COCO 60% | 1001 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c60_s1002/H0 | COCO 60% | 1002 | native IN²R | 40 | RUNNING | NA | — |
+| c60_s1002/a1_iface | COCO 60% | 1002 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c60_s1003/H0 | COCO 60% | 1003 | native IN²R | 40 | DONE | 539.32 | — |
+| c60_s1003/a1_iface | COCO 60% | 1003 | IN²R + A1 | 40 | RUNNING | NA | — |
+| f80_s1001/H0 | Flickr 80% | 1001 | native IN²R | 40 | DONE | 464.93 | 467.08 |
+| f80_s1001/a1_iface | Flickr 80% | 1001 | IN²R + A1 | 40 | DONE | 470.24 | 467.32 |
+| f80_s1002/H0 | Flickr 80% | 1002 | native IN²R | 40 | DONE | 437.51 | 431.90 |
+| f80_s1002/a1_iface | Flickr 80% | 1002 | IN²R + A1 | 40 | DONE | 440.97 | 437.52 |
+| f80_s1003/H0 | Flickr 80% | 1003 | native IN²R | 40 | DONE | 454.12 | 450.30 |
+| f80_s1003/a1_iface | Flickr 80% | 1003 | IN²R + A1 | 40 | DONE | 461.03 | 454.44 |
+| c20_s1001/H0 | COCO 20% | 1001 | native IN²R | 40 | RUNNING | NA | — |
+| c20_s1001/a1_iface | COCO 20% | 1001 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c20_s1002/H0 | COCO 20% | 1002 | native IN²R | 40 | RUNNING | NA | — |
+| c20_s1002/a1_iface | COCO 20% | 1002 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c20_s1003/H0 | COCO 20% | 1003 | native IN²R | 40 | RUNNING | NA | — |
+| c20_s1003/a1_iface | COCO 20% | 1003 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c80_s1001/H0 | COCO 80% | 1001 | native IN²R | 40 | DONE | 526.52 | — |
+| c80_s1001/a1_iface | COCO 80% | 1001 | IN²R + A1 | 40 | DONE | 526.14 | — |
+| c80_s1002/H0 | COCO 80% | 1002 | native IN²R | 40 | DONE | 511.66 | — |
+| c80_s1002/a1_iface | COCO 80% | 1002 | IN²R + A1 | 40 | RUNNING | NA | — |
+| c80_s1003/H0 | COCO 80% | 1003 | native IN²R | 40 | RUNNING | NA | — |
+| c80_s1003/a1_iface | COCO 80% | 1003 | IN²R + A1 | 40 | RUNNING | NA | — |
+| f20_s1001/a1_iface | Flickr 20% | 1001 | IN²R + A1 | 40 | DONE | 518.99 | 520.72 |
+| f20_s1002/a1_iface | Flickr 20% | 1002 | IN²R + A1 | 40 | RUNNING | NA | — |
+| f20_s1003/a1_iface | Flickr 20% | 1003 | IN²R + A1 | 40 | RUNNING | NA | — |
 

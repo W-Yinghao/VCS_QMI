@@ -1,0 +1,38 @@
+{
+  "line": "R35 EXPANDED (package VCS_R35_Expanded_Server_20261102, base commit ea5513f9)",
+  "scope": "42 units = A12 + B6 + C12 + D12 (30 critic-only fits of 8000 steps; 6 local-encoder adaptations + 6 matched HEAD_CONTROL of 4000 steps). seed 1001. TEST never read.",
+  "parents_and_caches": "R34-bound R30 H 40-epoch DEV-best two-peer checkpoints (r30_f00_s1001_H0, r30_f60_s1001_H0); R34 raw global caches re-hash-verified at every load; hashes in STATE_BINDING.json",
+  "diff_vs_R34": [
+    "features: R34 raw native unit vectors (native batch-centering + L2) instead of the R34 FIT standardisation; the skip term is the native score itself",
+    "heads: per-peer independent heads (R34 shared one critic across peers); loss = mean of the two peer losses, score = mean of the two peer scores; no cross-peer products",
+    "initialisation: every head starts at g0 = a0*s + b0 with one common FIT-only positive affine per condition (balanced logistic on 5000 FIT observed records vs 50000 independent FIT record pairs, native peer-mean score); step-0 ranking = frozen H (gate-checked)",
+    "structures: A-ID (x + B A x, rank 64, B=0), A-G / C-G (pair-interaction MLP 4097-256-GELU-128-GELU, zero-init last layer), C-L (C-G + region/token cross-attention branch, zero-init last layer); R34 D/X structures not repeated",
+    "optimiser: AdamW lr 1e-4 (heads) / 1e-5 (D local encoder), wd 1e-4, constant, grad clip 2 per peer (R34: lr 1e-3, wd 0, no clip)",
+    "budget: 8000 (A/B/C) / 4000 (D) updates; checkpoints+readouts at 0/250/500/1000/2000/4000/8000 (D 0/1000/2000/4000); fixed final step is the primary endpoint",
+    "new blocks: B (frozen native GMM trusted subset; truth-repaired oracle in a separate process), C (32-slot candidate-list P_C/Q_C from frozen-H FIT top-32 tables, two-stage H-top-100 rerank on DEV), D (local encoder unfreeze vs head-only continuation from C-L step 8000)",
+    "J readouts: A/B use the R34 record U-statistic (DEV full matrix; FIT on a locked 5000 P + 50000 Q pair set instead of R34's 14500-record matrix, because the G pair MLP is not blockwise); C/D use the candidate-list J (different object, reported separately); raw and common FIT-only positive affine calibrated (balanced logistic and max-J) both reported",
+    "precision: float32 training with torch deterministic algorithms (R34: default); evaluation affine part in float64 on the exact native shard score"
+  ],
+  "diff_vs_package_reference": [
+    "PositiveAffine, IdentityMetric, GlobalResidual, LocalResidual body, candidate_loss: same formulas (CPU test: max abs error 0 to 1e-15 vs the reference modules)",
+    "A-ID: u' = u*|x|/|u| (rescale to the native vector's own norm, = 1 up to fp32) instead of normalize(u); cos(u,v)*|x||y|, makes the step-0 score bitwise a0*s+b0",
+    "A-ID affine and A-G/C affine are learnable per peer (a = softplus(raw) > 0, b free), initialised at the common (a0,b0)",
+    "LocalBranch split into per-item projection + per-pair features (mathematically identical); C-L final layer acts on [global hidden 128, m_r 128, m_t 128] (reference out acted on [m_r, m_t] only) so the local and global hidden features are concatenated as in the plan",
+    "candidate J per row: sum A(T-T^2/2) - mean(T+T^2/2); losses averaged over the 16 rows of each direction then 0.5*(i2t+t2i), then mean over peers"
+  ],
+  "implementation_choices_not_fixed_by_package": {
+    "list_construction": "i2t: query = observed image of a sampled record, slots = that record's caption + the first 31 frozen-H top-32 captions other than it; every slot caption whose OBSERVED image equals the query image counts in A (uniform). t2i: query = sampled caption, slots = its observed image + first 31 frozen-H top-32 images other than it (one positive). Slots permuted per row by the training rng. Truth is never read.",
+    "local_vectors": "image: EncoderImage fc(x)+mlp(x) before gpool (36 x 1024, BN running stats, no dropout); text: BiGRU outputs averaged over the two directions (EncoderText before fc/mlp/gpool), length mask from the native process_caption(drop=False) tokens. Computed on the fly from raw region features and token ids (no local cache on disk).",
+    "D_unfrozen": "image fc + mlp (incl. BN affine; BN running stats frozen), text BiGRU; GloVe embedding frozen; GRU module kept in train mode only because cuDNN RNN backward requires it (1 layer: no dropout). HEAD_CONTROL: same code path, encoder parameters frozen, only heads updated. Both re-initialise AdamW and share the D sampling stream default_rng([1001,4]).",
+    "D_scheduling": "each D unit runs in the same GPU job directly after its C-L parent reaches step 8000 (no --dependency, no outcome gate)",
+    "B_TRUST": "native co_train.eval_train on both frozen H60 peers once (native 'warmup' loader with its augmentation, seeds 1001, workers 0); subset = mean(prob_A, prob_B) >= 0.5; Q from the subset's own in-batch product. The native loader builds clean labels internally; they are discarded unread.",
+    "B_ORACLE": "same features, same caption records, P and Q from the truth-repaired record->image map (record k -> image k//5), common native calibration init; runs only in r35/train_oracle.py (separate process; truth module refuses any other importer).",
+    "init_seeds": "peer k head built after torch.manual_seed(10*1001+k); identical across objectives; the global MLP of C-L equals that of C-G",
+    "sampling": "A/B: numpy default_rng(1001), 128 records with replacement per step; C: default_rng([1001,3]); D: default_rng([1001,4]); identical across objectives within a block",
+    "weight_decay_on_affine": "AdamW weight decay 1e-4 applies to every head parameter including the affine raw_a and b",
+    "clip": "clip_grad_norm 2.0 applied separately to each peer's parameter set (head, plus local encoder for D joint) to keep peers independent"
+  },
+  "evaluation": "A/B: full-DEV direct ranking by peer-mean g. C/D: frozen-H top-100 per query reranked by peer-mean g, rest kept in H order (composite score matrix into the upstream IN2R i2t/t2i program); full query set reported with coverage and conditional R@1. Tie bounds (optimistic/pessimistic) for all. DEV observed map (R34 lock) and DEV clean annotation only in evaluators.",
+  "not_done_here": "§6.4/§6.5: cite handoff/r30_exports_20261102/EXPORT_R30_CN.md and handoff/r32_exports_20261102/EXPORT_R32_CN.md (already exported); §6.1-6.3 in r35/readouts6.py (READOUTS6.json, CALIBRATION_R34.csv).",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

@@ -2,12 +2,12 @@ Publication copy (sample names aliased; numbers and conclusions unchanged).
 
 # TEST evaluation of DEV-selected retrieval checkpoints (numbers only)
 
-Generated 2026-11-02T03:56:47.912438Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d).
+Generated 2026-11-02T10:38:09.243855Z by tools/aggregate_test.py. Frozen manifests: `TEST_MANIFEST.json` (sha256 556af0a0530aa1445090813e9f43e5e3df017fc07005deb3e4895ebdbc3a06e1), `TEST_MANIFEST_INC_20261101T205204Z.json` (sha256 bcc17b807a720752b74cf833f8485164a44deb3865d7e99bda7239f65794471e), `TEST_MANIFEST_INC_20261101T212406Z.json` (sha256 71cfdef795c5d44aa090292bede7f9fad0523cdf68a0f26d8a203b5b7dc3a775), `TEST_MANIFEST_INC_20261101T214518Z.json` (sha256 bbf09a83acb6f4fae5b46807380b831c69a63d54495a45bf00785500f2b09428), `TEST_MANIFEST_INC_20261102T005158Z.json` (sha256 47ea8cfa05eda297eccaffdde571cea4fb834218f3a13c6fcb3763842ad6d973), `TEST_MANIFEST_INC_20261102T024348Z.json` (sha256 dc0bb8304952d8a60b18e2275418170a19f71c337ede8d4810eab5162361e130), `TEST_MANIFEST_INC_20261102T035458Z.json` (sha256 39ccd39dcdc8cf0efef8cbfdc60e9dddfafbffb9b286f7f911b87744abd66a0d), `TEST_MANIFEST_INC_20261102T043325Z.json` (sha256 4274e37fa25db83508c6f5830b82a8d072bf1a6d916a2deb63a0e9d21e339ee6), `TEST_MANIFEST_INC_20261102T053334Z.json` (sha256 31acff9db15d88d52cadc8aad69e78a478017760f51b3a707961f000b5c0313b), `TEST_MANIFEST_INC_20261102T055359Z.json` (sha256 e2a560368ca07f94d14016408d1906d32af6f08457dcb26f9d4a81c7ebf41016), `TEST_MANIFEST_INC_20261102T061337Z.json` (sha256 890cd09485ba1329d79b77335a9a77b2b0597cbedd26c4c7ef652b7a1f1e94a1), `TEST_MANIFEST_INC_20261102T065339Z.json` (sha256 7a0373d6e634d0985fad9950355a0862802ec983cb4cae516863b8d261d4c227), `TEST_MANIFEST_INC_20261102T073402Z.json` (sha256 b095d77158ea28433c02663d76f1ae5a8edc42f4e58f5e5ddf1d92baa2c0baa4), `TEST_MANIFEST_INC_20261102T091842Z.json` (sha256 e715dcf6d44b999855d03922cdad10731bb60ea02b827d48ff5ab258abcbdcfd), `TEST_MANIFEST_INC_20261102T095522Z.json` (sha256 3eeb031223ab0a3868d47024c56fdf0eea64224759b8f2de315245eee6fd4076), `TEST_MANIFEST_INC_20261102T103058Z.json` (sha256 dba42449da5d7ced3da7f4d8132499daccaf404d263bafc98478b4857cd15441).
 Checkpoint per unit = existing model_best.pth.tar (best full-DEV epoch during training; SPS S0: full-DEV best checkpoint_37 from FULLDEV.json). TEST protocol = native IN2R evalrank: both peers, peer-averaged similarity. Flickr30K: test split 1,000 images / 5,000 captions. MS-COCO: testall, 5-fold 1K mean (main) and 5K. CC152K: test 1,000 / 1,000. DEV gate: DEV recomputed with the same evaluator (r25_co_train.validate path) must match the logged best-epoch DEV within 0.1 pp on each of the six recalls; units failing it are listed separately and are not in the tables. mean ± std = over seeds 1001/1002/1003 (sample std, n−1), given only when all three seeds exist; otherwise NA. Oracle rows (R27-O / R27-O3) use ground-truth rescue during training: oracle diagnostic, not a method.
 
 ## Coverage
 
-Units in manifests: 346; evaluated: 346; DEV gate PASS: 342; FAIL: 4; pending/not evaluated: 0; skipped dirs: 57.
+Units in manifests: 365; evaluated: 365; DEV gate PASS: 361; FAIL: 4; pending/not evaluated: 0; skipped dirs: 63.
 
 | line | units | evaluated | gate PASS | gate FAIL | max abs DEV recall diff (pp) |
 |---|---|---|---|---|---|
@@ -24,8 +24,9 @@ Units in manifests: 346; evaluated: 346; DEV gate PASS: 342; FAIL: 4; pending/no
 | R28 | 8 | 8 | 8 | 0 | 0.0197 |
 | R29 | 18 | 18 | 18 | 0 | 0.0197 |
 | R30 | 36 | 36 | 36 | 0 | 0.0986 |
-| R31-FID | 6 | 6 | 6 | 0 | 0.0197 |
 | NRCS-v1 | 76 | 76 | 72 | 4 | 1.8738 |
+| R31-FID | 14 | 14 | 14 | 0 | 0.0197 |
+| R33-BASE | 11 | 11 | 11 | 0 | 0.0000 |
 
 ### Units failing the DEV-recompute gate (TEST numbers not used in the tables)
 
@@ -294,7 +295,7 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | R28 | r1_res_vcs_sel |  | 1 | 513.91 | NA | NA | NA | 516.22 | NA | NA | NA |
 | R28 | r2_res_bce_sel |  | 1 | 512.25 | NA | NA | NA | 518.22 | NA | NA | NA |
 | R31-FID | H0_default |  | 3 | 514.18 | 509.45 | 510.79 | 511.47 ± 2.44 | 516.24 | 512.04 | 515.04 | 514.44 ± 2.16 |
-| R31-FID | H0_default_i2t_t2i |  | 2 | 514.28 | NA | 512.88 | NA | 518.32 | NA | 515.60 | NA |
+| R31-FID | H0_default_i2t_t2i |  | 3 | 514.28 | 510.47 | 512.88 | 512.54 ± 1.93 | 518.32 | 510.40 | 515.60 | 514.77 ± 4.02 |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -324,6 +325,7 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | R27-CS | bn_cross_t2i | 81.43 | 95.93 | 98.17 | 61.96 | 86.31 | 91.37 | 515.17 |
 | R27-CS | cn_mix_t2i | 82.40 | 95.87 | 98.20 | 62.17 | 86.45 | 91.38 | 516.47 |
 | R31-FID | H0_default | 81.40 | 95.60 | 97.93 | 61.87 | 86.20 | 91.44 | 514.44 |
+| R31-FID | H0_default_i2t_t2i | 82.07 | 95.43 | 98.07 | 61.79 | 86.17 | 91.25 | 514.77 |
 
 ### Ranking by mean DEV rSum (seeds available per group; n differs between groups), with mean TEST rSum of the same seeds
 
@@ -336,23 +338,23 @@ Post-hoc note: the single highest TEST row in this condition is R30/f00_s1001/PN
 | 5 | R27-O | o2_rescue_vcs_t2i (oracle) | 3 | 513.85 | 516.49 |
 | 6 | R25 | B1 | 3 | 513.77 | 515.77 |
 | 7 | R27 | s1_balanced_dual | 1 | 513.61 | 519.32 |
-| 8 | R31-FID | H0_default_i2t_t2i | 2 | 513.58 | 516.96 |
-| 9 | R27-CS | bn_cross_t2i | 3 | 513.58 | 515.17 |
-| 10 | R27-Q | q2_vcs_pool | 1 | 513.53 | 518.12 |
-| 11 | R27 | a1_iface | 3 | 513.50 | 516.83 |
-| 12 | R28 | g1_cos_sel | 1 | 513.43 | 517.70 |
-| 13 | R27 | s2_single_free_vcs | 1 | 513.35 | 518.14 |
-| 14 | R28 | g2_vcs_sel | 1 | 513.25 | 516.04 |
-| 15 | R27-O | o1_rescue_native_t2i (oracle) | 3 | 513.18 | 516.30 |
-| 16 | R27-Q | q1_cos_pool | 1 | 513.14 | 518.18 |
-| 17 | R27-CS | cn_mix_t2i | 3 | 513.07 | 516.47 |
-| 18 | R27 | s3_single_cap_delta | 1 | 513.04 | 518.96 |
-| 19 | R27-Q | q4_snce_pool | 1 | 513.02 | 518.66 |
-| 20 | R27-D | d1_vcs_i2t | 3 | 513.00 | 516.99 |
-| 21 | R27-D | d4_snce_t2i | 3 | 512.87 | 516.65 |
-| 22 | R27 | s5_single_cap_bce | 1 | 512.76 | 518.26 |
-| 23 | R27-D | d3_snce_i2t | 3 | 512.64 | 515.30 |
-| 24 | R27 | a4_bce | 3 | 512.63 | 516.43 |
+| 8 | R27-CS | bn_cross_t2i | 3 | 513.58 | 515.17 |
+| 9 | R27-Q | q2_vcs_pool | 1 | 513.53 | 518.12 |
+| 10 | R27 | a1_iface | 3 | 513.50 | 516.83 |
+| 11 | R28 | g1_cos_sel | 1 | 513.43 | 517.70 |
+| 12 | R27 | s2_single_free_vcs | 1 | 513.35 | 518.14 |
+| 13 | R28 | g2_vcs_sel | 1 | 513.25 | 516.04 |
+| 14 | R27-O | o1_rescue_native_t2i (oracle) | 3 | 513.18 | 516.30 |
+| 15 | R27-Q | q1_cos_pool | 1 | 513.14 | 518.18 |
+| 16 | R27-CS | cn_mix_t2i | 3 | 513.07 | 516.47 |
+| 17 | R27 | s3_single_cap_delta | 1 | 513.04 | 518.96 |
+| 18 | R27-Q | q4_snce_pool | 1 | 513.02 | 518.66 |
+| 19 | R27-D | d1_vcs_i2t | 3 | 513.00 | 516.99 |
+| 20 | R27-D | d4_snce_t2i | 3 | 512.87 | 516.65 |
+| 21 | R27 | s5_single_cap_bce | 1 | 512.76 | 518.26 |
+| 22 | R27-D | d3_snce_i2t | 3 | 512.64 | 515.30 |
+| 23 | R27 | a4_bce | 3 | 512.63 | 516.43 |
+| 24 | R31-FID | H0_default_i2t_t2i | 3 | 512.54 | 514.77 |
 | 25 | R27 | a6_delta | 3 | 512.51 | 515.27 |
 | 26 | R27 | s4_single_cap_vcs | 1 | 512.50 | 518.64 |
 | 27 | R27 | a3_vcs | 3 | 512.48 | 515.81 |
@@ -516,6 +518,7 @@ Post-hoc note: the single highest TEST row in this condition is R27-O3/f40_s1001
 | R31-FID/f40_s1002/H0_default | 1002 | 22 | Tesla V100S-PCIE-32GB | 509.45 | 509.45 | 0.0000 | 80.30 | 95.40 | 97.60 | 61.40 | 86.06 | 91.28 | 512.04 |
 | R31-FID/f40_s1003/H0_default | 1003 | 27 | Tesla V100S-PCIE-32GB | 510.79 | 510.81 | 0.0197 | 81.70 | 95.80 | 98.20 | 61.64 | 86.20 | 91.50 | 515.04 |
 | R31-FID/f40_s1001/H0_default_i2t_t2i | 1001 | 29 | Tesla V100S-PCIE-32GB | 514.28 | 514.28 | 0.0000 | 83.20 | 96.00 | 98.40 | 62.38 | 86.86 | 91.48 | 518.32 |
+| R31-FID/f40_s1002/H0_default_i2t_t2i | 1002 | 35 | Tesla V100S-PCIE-32GB | 510.47 | 510.47 | 0.0000 | 80.60 | 94.70 | 97.70 | 60.98 | 85.60 | 90.82 | 510.40 |
 | R31-FID/f40_s1003/H0_default_i2t_t2i | 1003 | 28 | L40S, RTX PRO 6000 | 512.88 | 512.88 | 0.0000 | 82.40 | 95.60 | 98.10 | 62.00 | 86.04 | 91.46 | 515.60 |
 
 ## Flickr30K, 60% noise
@@ -1074,7 +1077,8 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | R26 | m_vcs |  | 3 | 388.60 | 391.00 | 391.90 | 390.50 ± 1.71 | 402.70 | 404.40 | 405.80 | 404.30 ± 1.55 |
 | R26 | n_vcs |  | 3 | 391.30 | 391.20 | 389.70 | 390.73 ± 0.90 | 404.40 | 407.30 | 404.10 | 405.27 ± 1.77 |
 | R27-A1X | a1_iface |  | 3 | 392.70 | 395.80 | 393.10 | 393.87 ± 1.69 | 404.30 | 407.30 | 408.20 | 406.60 ± 2.04 |
-| R31-FID | H0_default |  | 1 | 389.70 | NA | NA | NA | 401.90 | NA | NA | NA |
+| R31-FID | H0_default |  | 3 | 389.70 | 394.60 | 392.60 | 392.30 ± 2.46 | 401.90 | 402.80 | 406.40 | 403.70 ± 2.38 |
+| R31-FID | H0_default_i2t_t2i |  | 2 | 391.00 | 392.50 | NA | NA | 405.20 | 404.50 | NA | NA |
 
 ### Six TEST recalls, 3-seed mean (groups with all three seeds)
 
@@ -1087,6 +1091,7 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 | R26 | m_vcs | 46.77 | 73.60 | 81.90 | 46.00 | 73.40 | 82.63 | 404.30 |
 | R26 | n_vcs | 47.63 | 73.37 | 81.87 | 46.20 | 73.87 | 82.33 | 405.27 |
 | R27-A1X | a1_iface | 47.87 | 73.90 | 82.33 | 46.13 | 73.97 | 82.40 | 406.60 |
+| R31-FID | H0_default | 46.23 | 73.40 | 81.83 | 46.90 | 73.10 | 82.23 | 403.70 |
 
 ### Ranking by mean DEV rSum (seeds available per group; n differs between groups), with mean TEST rSum of the same seeds
 
@@ -1094,12 +1099,13 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 |---|---|---|---|---|---|
 | 1 | R27-A1X | a1_iface | 3 | 393.87 | 406.60 |
 | 2 | R26 | d_snce | 3 | 392.67 | 406.20 |
-| 3 | R26 | d_vcs | 3 | 391.50 | 403.70 |
-| 4 | R26 | n_vcs | 3 | 390.73 | 405.27 |
-| 5 | R26 | m_vcs | 3 | 390.50 | 404.30 |
-| 6 | R31-FID | H0_default | 1 | 389.70 | 401.90 |
-| 7 | R26 | H0 (native IN2R repro) | 3 | 389.63 | 403.10 |
-| 8 | R26 | d_bce | 3 | 389.37 | 404.33 |
+| 3 | R31-FID | H0_default | 3 | 392.30 | 403.70 |
+| 4 | R31-FID | H0_default_i2t_t2i | 2 | 391.75 | 404.85 |
+| 5 | R26 | d_vcs | 3 | 391.50 | 403.70 |
+| 6 | R26 | n_vcs | 3 | 390.73 | 405.27 |
+| 7 | R26 | m_vcs | 3 | 390.50 | 404.30 |
+| 8 | R26 | H0 (native IN2R repro) | 3 | 389.63 | 403.10 |
+| 9 | R26 | d_bce | 3 | 389.37 | 404.33 |
 
 ### Seed-matched ranking: seed 1001 only (every group that has seed 1001), DEV rSum with TEST rSum
 
@@ -1107,12 +1113,13 @@ Post-hoc note: the single highest TEST row in this condition is R26/c40_s1001/d_
 |---|---|---|---|---|
 | 1 | R27-A1X | a1_iface | 392.70 | 404.30 |
 | 2 | R26 | n_vcs | 391.30 | 404.40 |
-| 3 | R26 | d_vcs | 390.70 | 402.20 |
-| 4 | R26 | d_snce | 390.10 | 405.20 |
-| 5 | R31-FID | H0_default | 389.70 | 401.90 |
-| 6 | R26 | d_bce | 389.00 | 402.20 |
-| 7 | R26 | m_vcs | 388.60 | 402.70 |
-| 8 | R26 | H0 (native IN2R repro) | 388.50 | 402.60 |
+| 3 | R31-FID | H0_default_i2t_t2i | 391.00 | 405.20 |
+| 4 | R26 | d_vcs | 390.70 | 402.20 |
+| 5 | R26 | d_snce | 390.10 | 405.20 |
+| 6 | R31-FID | H0_default | 389.70 | 401.90 |
+| 7 | R26 | d_bce | 389.00 | 402.20 |
+| 8 | R26 | m_vcs | 388.60 | 402.70 |
+| 9 | R26 | H0 (native IN2R repro) | 388.50 | 402.60 |
 
 DEV-selected group among non-oracle groups with all three seeds: R27-A1X a1_iface -- mean DEV 393.87, mean TEST 406.60.
 Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_snce (TEST rSum 409.70, DEV 394.70); picking the maximum TEST row (or group) across methods uses TEST for selection and is optimistic, not a DEV-selected result.
@@ -1143,6 +1150,10 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | R27-A1X/cc_s1002/a1_iface | 1002 | 27 | L40S | 395.80 | 395.80 | 0.0000 | 47.80 | 73.80 | 82.50 | 46.10 | 74.10 | 83.00 | 407.30 |
 | R27-A1X/cc_s1003/a1_iface | 1003 | 33 | RTX PRO 6000 | 393.10 | 393.10 | 0.0000 | 48.00 | 74.00 | 82.20 | 46.70 | 74.30 | 83.00 | 408.20 |
 | R31-FID/cc_s1001/H0_default | 1001 | 38 | L40S, RTX PRO 6000 | 389.70 | 389.70 | 0.0000 | 46.00 | 73.00 | 81.60 | 47.10 | 72.70 | 81.50 | 401.90 |
+| R31-FID/cc_s1002/H0_default | 1002 | 29 | L40S | 394.60 | 394.60 | 0.0000 | 45.40 | 73.80 | 81.70 | 46.30 | 73.40 | 82.20 | 402.80 |
+| R31-FID/cc_s1003/H0_default | 1003 | 31 | Tesla V100S-PCIE-32GB | 392.60 | 392.60 | 0.0000 | 47.30 | 73.40 | 82.20 | 47.30 | 73.20 | 83.00 | 406.40 |
+| R31-FID/cc_s1001/H0_default_i2t_t2i | 1001 | 28 | Tesla V100S-PCIE-32GB | 391.00 | 391.00 | 0.0000 | 47.00 | 73.20 | 82.80 | 46.50 | 73.20 | 82.50 | 405.20 |
+| R31-FID/cc_s1002/H0_default_i2t_t2i | 1002 | 37 | Tesla V100S-PCIE-32GB | 392.50 | 392.50 | 0.0000 | 46.50 | 73.70 | 82.20 | 46.70 | 73.70 | 81.70 | 404.50 |
 
 ## Skipped directories
 
@@ -1196,15 +1207,21 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30_f60_s1001_H0 | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30_f60_s1001_PV | smoke / gate / parent / diagnostic dir (not a formal unit) |
 | r30_pairwise_20261101/smoke/smoke_v11_1080148/runs/r30v11_f60_s1001_LN | smoke / gate / parent / diagnostic dir (not a formal unit) |
-| r31_in2r_fidelity_20261101/runs/cc_s1001/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/cc_s1002/H0_default | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/cc_s1002/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/cc_s1003/H0_default | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f20_s1003/H0_codecfg | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f40_s1002/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
 | r31_in2r_fidelity_20261101/runs/cc_s1003/H0_default_i2t_t2i | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f20_s1001/H0_codecfg | no DONE.json (still training / not finished) |
-| r31_in2r_fidelity_20261101/runs/f20_s1002/H0_codecfg | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c60_s1003/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/f20_s1002/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c20_s1001/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c60_s1002/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c80_s1002/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c20_s1001/H0 | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c60_s1001/H0 | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c20_s1002/H0 | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c20_s1002/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c60_s1002/H0 | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c80_s1003/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/f20_s1003/a1_iface | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c80_s1003/H0 | no DONE.json (still training / not finished) |
+| r33_baselines_20261102/runs/c20_s1003/H0 | no DONE.json (still training / not finished) |
 
 ## Limitations
 
@@ -1213,4 +1230,4 @@ Post-hoc note: the single highest TEST row in this condition is R26/cc_s1003/d_s
 - Seeds: many groups have one seed; means/stds over three seeds are descriptive, not significance tests. Rankings mix groups with different numbers of seeds.
 - Literature rows are copied from the IN2R paper (arXiv:2606.04061v1, Tables 1-2); they use their own noise draws and runs and were not reproduced here. Our noise maps are the locked R25 maps (40%/60%/0%); CC152K noise is real.
 - R27-O / R27-O3 use ground-truth oracle rescue/targets during training (diagnostic, not a method). R30 stage paths stop at 10 co-train epochs by design (marked "epochs 10").
-- TEST access log: 21 test_read entries (one per evaluation job start, including re-starts after preemption).
+- TEST access log: 30 test_read entries (one per evaluation job start, including re-starts after preemption).

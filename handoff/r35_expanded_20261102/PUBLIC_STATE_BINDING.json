@@ -1,0 +1,126 @@
+{
+  "created_utc": "2026-11-02T10:34:48Z",
+  "line": "R35 EXPANDED (VCS_R35_Expanded_Server_20261102)",
+  "package_base_commit": "ea5513f92cc9e52e500487961ffe380d199af26a",
+  "conditions": {
+    "n00": {
+      "parent": {
+        "unit": "r30_f00_s1001_H0",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_H0/model_best.pth.tar",
+        "bound_in_R34_cache": "adf76fabab66e067c9c362aa11dde588c662b330102853ca1ea8df73d8fc4a59",
+        "epoch": 27,
+        "best_rsum": 522.0710059171597,
+        "code_dir": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11",
+        "matches_R34_binding": true
+      },
+      "observed_map": {
+        "expected": "311f1f81f192c8ea213cb734bd7270917179193f249e42e846ba48901b8f5153",
+        "realized_mismatch": 0.0
+      },
+      "r34_cache": {
+        "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/r34_direct_critic_20261102/cache/n00",
+        "n_files": 11,
+        "native_dev_rsum": 522.0710059171597,
+        "native_reproduces_checkpoint": true,
+        "used": [
+          "fit_img/cap_peer{A,B}.npy raw native unit vectors (NOT the R34 FIT standardisation)",
+          "dev_img/cap_peer{A,B}.npy",
+          "native_dev_sims.npy"
+        ]
+      },
+      "r34_locks": {}
+    },
+    "n60": {
+      "parent": {
+        "unit": "r30_f60_s1001_H0",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/model_best.pth.tar",
+        "bound_in_R34_cache": "e16d6f10d25e75331f10664d24a444d677a79971555336f7ed9f853d0d4b8b46",
+        "epoch": 19,
+        "best_rsum": 505.20710059171597,
+        "code_dir": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11",
+        "matches_R34_binding": true
+      },
+      "observed_map": {
+        "expected": "d81939538fb43272bcb7aae6e408ded86c224ba9175896c3d786cbe895d42cd1",
+        "realized_mismatch": 0.5999793103448275
+      },
+      "r34_cache": {
+        "dir": "/projects/EEG-foundation-model/yinghao/outputs_v9/r34_direct_critic_20261102/cache/n60",
+        "n_files": 11,
+        "native_dev_rsum": 505.20710059171597,
+        "native_reproduces_checkpoint": true,
+        "used": [
+          "fit_img/cap_peer{A,B}.npy raw native unit vectors (NOT the R34 FIT standardisation)",
+          "dev_img/cap_peer{A,B}.npy",
+          "native_dev_sims.npy"
+        ]
+      },
+      "r34_locks": {}
+    }
+  },
+  "r35_prep": {
+    "manifest": "/projects/EEG-foundation-model/yinghao/outputs_v9/r35_expanded_20261102/prep/PREP_MANIFEST.json",
+    "calibration_init": {
+      "n00": {
+        "a0": 24.66704801441393,
+        "b0": -6.661171252703522,
+        "balanced_logistic_value": 0.07074387733635254,
+        "fit_set": "FIT calibration: 5000 observed records (P) + 50000 independent record pairs (Q), observed map of the condition",
+        "score": "native peer-mean s=(sA+sB)/2, sA/sB fp32 dot products of the R34 raw native unit vectors",
+        "J_raw_fit": 0.23247794678510633,
+        "J_affine_fit": 0.9668031300321582,
+        "dev_rank_invariance": true
+      },
+      "n60": {
+        "a0": 6.006331911511089,
+        "b0": -0.47528609382967124,
+        "balanced_logistic_value": 1.1217183780661824,
+        "fit_set": "FIT calibration: 5000 observed records (P) + 50000 independent record pairs (Q), observed map of the condition",
+        "score": "native peer-mean s=(sA+sB)/2, sA/sB fp32 dot products of the R34 raw native unit vectors",
+        "J_raw_fit": 0.08962241679111005,
+        "J_affine_fit": 0.21562388785049078,
+        "dev_rank_invariance": true
+      }
+    },
+    "trust_n60": {
+      "n_records": 145000,
+      "n_subset": 61588,
+      "retention": 0.4247448275862069,
+      "n_images_in_subset": 27041,
+      "captions_per_image_in_subset": {
+        "0": 1959,
+        "1": 6665,
+        "2": 9832,
+        "3": 7324,
+        "4": 2813,
+        "5": 407
+      },
+      "prob_A_mean": 0.42012328335856014,
+      "prob_B_mean": 0.4224805769071162,
+      "agreement_A_B_ge_half": 0.9874137931034482,
+      "seconds": 200.14076828956604,
+      "seeds": {
+        "python": 1001,
+        "numpy": 1001,
+        "torch": 1001
+      },
+      "loader": "native get_loader('warmup'): shuffle, region/caption augmentation, workers=0",
+      "rule": "native co_train.eval_train (eval_loss, min-max normalised, GaussianMixture(2,max_iter=10,tol=1e-2,reg_covar=5e-4), prob of low-mean component); subset = mean(prob_A,prob_B) >= 0.5; computed once, never updated"
+    },
+    "candidates": {
+      "n00": {
+        "seconds": 3.4192287921905518,
+        "rule": "peer-mean native fp32 score (xA.yA + xB.yB)/2 over the full FIT pool, torch.topk(32)",
+        "i2t_frac_images_with_an_observed_caption_in_top32": 0.9987241379310344,
+        "t2i_frac_captions_observed_image_in_top32": 0.9683793103448276
+      },
+      "n60": {
+        "seconds": 2.774794816970825,
+        "rule": "peer-mean native fp32 score (xA.yA + xB.yB)/2 over the full FIT pool, torch.topk(32)",
+        "i2t_frac_images_with_an_observed_caption_in_top32": 0.8938620689655172,
+        "t2i_frac_captions_observed_image_in_top32": 0.3985448275862069
+      }
+    }
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
