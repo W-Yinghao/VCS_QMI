@@ -1,0 +1,46 @@
+{
+  "scope": "R40 vs the frozen R39 protocol (handoff/r39_complete_joint_20261102/PROTOCOL_FROZEN.json); recorded before any R40 formal unit",
+  "unchanged": [
+    "parents: R39 F60 (R30-H f60 s1001, r30_f60_s1001_H0) and CC31 (R31 H0_default cc_s1001); same caches, candidate tables, a0/b0 calibration, record locks, tokens, centring vectors (R39 prep, read-only)",
+    "shared G head, zero-output residual init (seed 1001), null scalar per peer/direction, 33-slot N lists (natural top-32 + null), Q = Uniform(33), random slot order, 16 queries/direction/update, sampler [1001, 3]",
+    "8000 updates; head lr 1e-4 -> 1e-5, student lr 1e-5 -> 1e-6 on the common cosine multiplier (floor 0.1); AdamW wd 1e-4, betas (0.9, 0.999), eps 1e-8; one clip per peer (head + null + enabled student) at 2.0",
+    "each direction 0.5, each peer 0.5; J/BCE/NCE row definitions (production objectives.py byte-identical to R39)",
+    "student = parent global encoders re-run from region features / tokens with the registered parent per-native-batch centring; BN running stats / dropout off; GRUs in train mode only for cuDNN backward; word embedding and unused native MLP output BN frozen",
+    "frozen H top-100 two-stage DEV readout, native s_H skip, checkpoints/readouts at 0/250/500/1000/2000/4000/8000, primary endpoint fixed step 8000",
+    "ORACLE_MISSING rule: oracle_truth.py byte-identical to R39 (separate oracle process, meta-path import blocker, outputs only under OUT/oracle_runs)",
+    "no TEST read"
+  ],
+  "new_in_R40": [
+    {
+      "what": "adaptation image_only / text_only (block A)",
+      "how": "Student(modalities): the frozen modality keeps the parent parameters, requires_grad False, hence not in trainable(), the optimizer or the clip; it is still re-encoded through the same student forward path as R39 N-JOINT (no cache substitution); its whole state joins frozen_state() and must be bit-unchanged (update 1 and end of unit)"
+    },
+    {
+      "what": "N_PRESENT_ONLY x {frozen, both_joint} (block B)",
+      "how": "R37 production supervision path (data36.valid_rows / presence_probs, objectives.loss_list_masked) with the R39 cosine schedule; in-unit: p_d recomputed from the full FIT observed map + candidate tables (== production), masked rows get exactly zero dL/dg every update, valid rows / unique queries / empty-valid batches / present weight logged"
+    },
+    {
+      "what": "ORACLE_MISSING x both_joint (block C)",
+      "how": "R39 oracle runner + R39 JOINT student (both modalities)"
+    },
+    {
+      "what": "per-modality gradient record",
+      "how": "per peer and update, pre-clip norms of head (without null), null, image student, text student, the per-peer total and the shared clip multiplier (TRAIN_HISTORY r40.grad_split_windows, eval_step*.train_window.r40_grad_split); R39 split kept"
+    },
+    {
+      "what": "R40 one-step active-path rule (every unit, update 1)",
+      "how": "all declared-active tensors (head, null, enabled student modality) must change at update 1 unless the update-1 gradient is exactly zero or the predicted AdamW step (post-update optimizer state) is below the fp32 spacing of every element; per-tensor values in ONE_STEP_CHECK_R40.json; frozen modality requires_grad False, no .grad, outside the optimizer, bit-unchanged; frozen-H cache unchanged. Replaces R39's 'every trainable student tensor changed' (recorded as all_trainable_changed_vs_parent_R39_rule); the R39X A1/A2 issue (unchanged tensors with zero gradient / sub-spacing Adam step) is covered by construction"
+    },
+    {
+      "what": "read-only reused references asserted in-unit",
+      "how": "R38 N-FROZEN (R38 rule: head init + batch chain); R39 N-JOINT (head/null init hash, student init-state hash from its ckpt_step0 lineage, batch chain) for A / B-joint / C; R39 ORACLE-FROZEN (head/null init hash, batch chain) for C"
+    },
+    {
+      "what": "direction-sum gradient tolerance",
+      "how": "relative 1e-5 (R39X amendment A1), adopted before any R40 unit; R39 used 1e-6"
+    }
+  ],
+  "resources": "JOINT jobs as R39 JOINT (Flickr 64G/8h, CC 150G/10h); PRESENT_frozen (head-only) jobs as the R39 frozen jobs (64G/2h); normal QOS nice 100, RTX6000PRO/L40S/H100 excl. node51/53/60; self-resume <= 3",
+  "not_reused_exactly": "R37 r37_factor_f60_h1001_N_PRESENT_ONLY_G_* used a constant schedule (package section 4): not a reference for R40 B",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

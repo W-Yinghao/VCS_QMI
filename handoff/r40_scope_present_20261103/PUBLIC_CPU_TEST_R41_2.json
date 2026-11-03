@@ -1,0 +1,205 @@
+{
+  "part": "2",
+  "utc": "2026-11-03T03:27:20Z",
+  "checks": {
+    "code_derivation": {
+      "passed": true,
+      "detail": {
+        "byte_identical": {
+          "data36.py": true,
+          "evals.py": true,
+          "heads.py": true,
+          "native_eval.py": true,
+          "objectives.py": true,
+          "oracle_truth.py": true,
+          "r38ext.py": true,
+          "r39_targets.py": true,
+          "train_oracle.py": true
+        },
+        "file_set_equal": true,
+        "diff_equals_registered_patch": true,
+        "data35_equals_r39xf": true,
+        "oracle_truth_equals_r39": true,
+        "passed": true
+      },
+      "seconds": 0.036978960037231445
+    },
+    "configs": {
+      "passed": true,
+      "detail": {
+        "n": 12,
+        "bad": [],
+        "passed": true
+      },
+      "seconds": 0.02403712272644043
+    },
+    "new_parents": {
+      "passed": true,
+      "detail": {
+        "f40in": {
+          "native_rsum": 514.1814595660749,
+          "checkpoint_best_rsum": 514.1814595660749,
+          "exact": true,
+          "cache_rescore_identical": true,
+          "a0b0": {
+            "a0": 7.2469468585239625,
+            "b0": -0.858410368142559,
+            "balanced_logistic_value": 0.9423783388221804,
+            "fit_set": "R35 locks cal_p (P) + cal_q (Q), observed map of the parent",
+            "score": "native peer-mean fp32 dot of the R41 cache",
+            "J_raw_fit": 0.12974894770628723,
+            "J_affine_fit": 0.3674485728856908,
+            "dev_rank_invariance": true
+          },
+          "candidates": {
+            "rule": "peer-mean native fp32 score over the full FIT pool, torch.topk(32) (R35/R37 rule)",
+            "i2t_frac_images_with_an_observed_caption_in_top32": 0.9655172413793104,
+            "t2i_frac_captions_observed_image_in_top32": 0.5720068965517241
+          },
+          "joint_equivalence_max_abs": 1.635029911994934e-05,
+          "dev_from_student": {
+            "rsum": 514.1814595660749,
+            "native_rsum": 514.1814595660749,
+            "max_abs_sim_diff": 8.01868736743927e-06,
+            "n_i2t_rank_diff": 0,
+            "n_t2i_rank_diff": 0
+          },
+          "passed": true
+        },
+        "f80in": {
+          "native_rsum": 464.930966469428,
+          "checkpoint_best_rsum": 464.930966469428,
+          "exact": true,
+          "cache_rescore_identical": true,
+          "a0b0": {
+            "a0": 5.876896586380774,
+            "b0": -0.22988160186079287,
+            "balanced_logistic_value": 1.257864469963404,
+            "fit_set": "R35 locks cal_p (P) + cal_q (Q), observed map of the parent",
+            "score": "native peer-mean fp32 dot of the R41 cache",
+            "J_raw_fit": 0.043388657653385246,
+            "J_affine_fit": 0.10574580917773681,
+            "dev_rank_invariance": true
+          },
+          "candidates": {
+            "rule": "peer-mean native fp32 score over the full FIT pool, torch.topk(32) (R35/R37 rule)",
+            "i2t_frac_images_with_an_observed_caption_in_top32": 0.6749310344827586,
+            "t2i_frac_captions_observed_image_in_top32": 0.22637241379310344
+          },
+          "joint_equivalence_max_abs": 1.4882534742355347e-05,
+          "dev_from_student": {
+            "rsum": 464.93096646942803,
+            "native_rsum": 464.93096646942803,
+            "max_abs_sim_diff": 8.016824722290039e-06,
+            "n_i2t_rank_diff": 0,
+            "n_t2i_rank_diff": 0
+          },
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 0.010213375091552734
+    },
+    "e2e_part2": {
+      "passed": true,
+      "detail": {
+        "R41_C_F40_IN2R_H1001_N_frozen_J": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 18,
+            "n_changed": 18,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 0,
+              "B": 0
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_H_cache_unchanged": true
+          },
+          "references": null,
+          "r38_chain": [],
+          "step0_cache_equivalence": null,
+          "step1_graph_check": true,
+          "lr_update0": 0.0001,
+          "lr_last_update": 1e-05,
+          "passed": true
+        },
+        "R41_C_F40_IN2R_H1001_N_joint_BCE": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "references": null,
+          "r38_chain": [],
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "lr_update0": 0.0001,
+          "lr_last_update": 1e-05,
+          "passed": true
+        },
+        "R41_C_F80_IN2R_H1001_N_joint_NCE": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "references": null,
+          "r38_chain": [],
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "lr_update0": 0.0001,
+          "lr_last_update": 1e-05,
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 323.3227119445801
+    }
+  },
+  "ALL_PASS": true,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

@@ -232,6 +232,32 @@
       ],
       "scope": "technical in-unit checks only; training, data, configs, recipe unchanged; train_unit.py in r39xf/r39xc only",
       "failed_units_rerun": "failed unit dirs moved to runs_r39x/_failed_attempts/ (kept), units resubmitted"
+    },
+    {
+      "id": "A2",
+      "utc": "2026-11-03T00:51:22Z",
+      "trigger": "1083238 (rerun of R39X_CC152K_R37S_s1001_N_joint_global_J after A1): peer A img.gpool.gru.bias_ih_l0 unchanged after update 1 with nonzero gradient",
+      "evidence": {
+        "diagnostic_job": "1083287 (tools/replay_update1.py, L40S, scratch OUT/diag)",
+        "file": "DIAG_REPLAY_UPDATE1_R37S_J.json",
+        "unchanged": [
+          {
+            "tensor": "A.img.gpool.gru.bias_ih_l0",
+            "numel": 96,
+            "grad1_absmax": 2.133876842586036e-12,
+            "grad1_norm": 4.836195899895463e-12,
+            "pred_step_absmax": 1.0474500388140975e-09,
+            "spacing_min": 1.1641532182693481e-10,
+            "max_step_over_spacing": 0.43762991734173484,
+            "n_elem_step_gt_half_spacing": 0,
+            "changed": false,
+            "abs_value_min": 0.0014158171834424138
+          }
+        ],
+        "summary": "update-1 grad absmax 2.1e-12 << AdamW eps 1e-8; predicted step absmax 1.05e-9 vs fp32 spacing; max step/spacing 0.44, 0 elements > 0.5 spacing; replay reproduces the unchanged tensor; all 83 other tensors change"
+      },
+      "change": "one-step check: an unchanged student tensor is also accepted if no element of its predicted update-1 AdamW step exceeds 0.5 x the fp32 spacing of its value (per-tensor predicted step, spacing and ratio recorded in ONE_STEP_CHECK.json)",
+      "scope": "technical in-unit check only; training/data/configs unchanged; train_unit.py in r39xf/r39xc only"
     }
   ],
   "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."

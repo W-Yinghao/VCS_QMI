@@ -32,3 +32,7 @@ CPU-test fixture fix: oracle selftest t2i fixture (1082794 -> 1082800). Package:
   frozen-H s_H skip and candidates, so step-0 two-stage ranks are unaffected (asserted in-unit).
 - 0% parent: no R38 N reference exists, so 3 N-frozen-shared-cosine cells (R38 recipe, cond n00) are new units; JOINT 0% units have no
   in-unit reference; their init/batch-chain identity with the new frozen cells is compared in the summary.
+- R39X amendments (PROTOCOL_FROZEN_R39X.json, technical in-unit checks only): A1 — one-step check accepts exactly-zero-gradient tensors,
+  gradient-sum tolerance 1e-6 -> 1e-5 (failed: 1083219 R37S J, 1083222 0% frozen NCE). A2 — also accepts a tensor whose predicted first
+  AdamW step is below fp32 resolution (no element > 0.5 spacing); replay 1083287: R37S J peer A img.gpool.gru.bias_ih_l0 update-1 grad
+  absmax 2.1e-12, max step/spacing 0.44 (failed: 1083238). Failed attempts kept under runs_r39x/_failed_attempts/.

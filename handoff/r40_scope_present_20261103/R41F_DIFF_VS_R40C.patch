@@ -1,0 +1,82 @@
+--- r40c/common.py	2026-11-03 01:02:02.422690883 +0100
++++ r41c/common.py	2026-11-03 06:29:07.612290874 +0100
+@@ -1,4 +1,4 @@
+-"""R40 tree r40c = byte copy of R39 r39c (R40 edits: ROOT/OUT/RUNS/ORACLE_RUNS to the R40 dirs, R39_PREP pinned to the R39 output tree (read-only), trainer guard also refuses the R39 oracle/audit outputs, R40 constants at the end). R39 CC152K tree r39c = byte copy of R38 r38c (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, R38 cc_s1002/1003 cache/prep paths made absolute to the R38 output tree (read-only), oracle env name, R39 dataset/joint constants at the end). R38 (CC152K code tree r38c = byte copy of R37C r37c; R38 edits: ROOT/OUT, three R31 parents s1001/s1002/s1003, per-parent
++"""R41-F tree r41c = byte copy of R40 r40c (R41-F edits: RUNS/ORACLE_RUNS -> runs_r41 / oracle_runs_r41, freeze file PROTOCOL_FROZEN_R41F.json, trainer guard also refuses the R40 oracle dirs). R40 tree r40c = byte copy of R39 r39c (R40 edits: ROOT/OUT/RUNS/ORACLE_RUNS to the R40 dirs, R39_PREP pinned to the R39 output tree (read-only), trainer guard also refuses the R39 oracle/audit outputs, R40 constants at the end). R39 CC152K tree r39c = byte copy of R38 r38c (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, R38 cc_s1002/1003 cache/prep paths made absolute to the R38 output tree (read-only), oracle env name, R39 dataset/joint constants at the end). R38 (CC152K code tree r38c = byte copy of R37C r37c; R38 edits: ROOT/OUT, three R31 parents s1001/s1002/s1003, per-parent
+ prep dirs; s1001 cache/prep are the R37C artifacts, reused read-only). R37C CC152K: shared paths, constants, hashing, TEST-file guard, isolation guard. Copied from R37 common.py
+ (paths/conditions/dataset constants changed). Separate line R37C (CC152K block of R37), development experiment:
+ no TEST file is read in this line. All R30-R37 files are read-only and never written.
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -188,3 +188,10 @@
+ R40_PACKAGE = Path('/home/infres/yinwang/CS_QMI/r40_plan/VCS_R39_Review_R40_Plan_20261103')   # R40 design package (read-only)
+ FROZEN_FILE = 'PROTOCOL_FROZEN.json'      # R40 protocol (ROOT/PROTOCOL_FROZEN.json); the R39/R39X freeze files are never read for binding
+ ADAPTATIONS = {'frozen': (), 'image_only': ('img',), 'text_only': ('txt',), 'both_joint': ('img', 'txt')}
++
++
++# ----------------------------------------------------------------------------- R41-F (CC152K encoder step-size variant; amendment to R41)
++RUNS = OUT / 'runs_r41'
++ORACLE_RUNS = OUT / 'oracle_runs_r41'   # no oracle units in R41-F
++FROZEN_FILE = 'PROTOCOL_FROZEN_R41F.json'
++FROZEN_FILES_R41 = ('PROTOCOL_FROZEN_R41F.json',)
+--- r40c/train_unit.py	2026-11-03 01:04:27.525896352 +0100
++++ r41c/train_unit.py	2026-11-03 06:29:07.616290908 +0100
+@@ -1,4 +1,4 @@
+-"""R40: R39 train_unit.py + R40 edits (update scope image_only/text_only/both_joint via cfg adaptation -> Student(modalities); N_PRESENT_ONLY
++"""R41-F: R40 r40c train_unit.py (R41 freeze-file lookup; encoder-lr-variant reference mode in r40ext). R40: R39 train_unit.py + R40 edits (update scope image_only/text_only/both_joint via cfg adaptation -> Student(modalities); N_PRESENT_ONLY
+ in-unit checks (p_d recomputed from the full FIT observed relation, masked-row zero gradient every update, valid-row/unique-query/empty-batch
+ logs); per-modality/head/null pre-clip gradient norms + shared clip multiplier; R40 one-step active-path rule (all units); read-only
+ reused references R39 N-JOINT / R39 ORACLE-FROZEN asserted in-unit (init hashes, student init, batch chain); R39X A1 direction-sum
+@@ -857,7 +857,9 @@
+ 
+ 
+ def check_frozen(uids):
+-    frozen = read_json(ROOT / FROZEN_FILE)   # R40 freeze file
++    from common import FROZEN_FILES_R41
++    parts = [read_json(ROOT / f) for f in FROZEN_FILES_R41 if (ROOT / f).exists()]   # R41-F freeze file
++    frozen = next(fr for fr in parts if all(u in fr['config_sha256'] for u in uids))
+     here = Path(__file__).resolve().parent
+     code = frozen['code_sha256_by_tree'][here.name]   # R38: one frozen code set per tree (r38f / r38c)
+     assert set(code) == {Path(f).name for f in glob.glob(str(here / '*.py'))}, 'code file set differs from frozen protocol'
+@@ -927,13 +929,13 @@
+                 res = run_unit(pc, ctx, pool=pool_of(pc, ctx), out_dir=unit_out(pc, a.gate_out or None), oracle=oracle)
+                 res_list.append((pc, res))
+             r = finalize(cfg, ctx, res_list, time.time() - t0, base)
+-            print('R40_UNIT_DONE', cfg['unit_id'], 'rsum', r['final']['dev_retrieval']['rsum'], 'native', ctx.nat_metrics['rsum'], flush=True)
++            print('R41_UNIT_DONE', cfg['unit_id'], 'rsum', r['final']['dev_retrieval']['rsum'], 'native', ctx.nat_metrics['rsum'], flush=True)
+         except Exception:
+             tb = traceback.format_exc(); print(tb, flush=True)
+             base.mkdir(parents=True, exist_ok=True)
+             write_json(base / f"FAILED_{os.environ.get('SLURM_JOB_ID', 'local')}.json", dict(unit=cfg['unit_id'], traceback=tb, utc=utc()))
+             failed.append(cfg['unit_id'])
+-    print('R40_JOB_END failed', failed)
++    print('R41_JOB_END failed', failed)
+     sys.exit(1 if failed else 0)
+ 
+ 
+--- r40c/r40ext.py	2026-11-03 01:18:07.994709597 +0100
++++ r41c/r40ext.py	2026-11-03 06:29:07.617290916 +0100
+@@ -1,4 +1,5 @@
+-"""R40 additions, byte-identical in both code trees (r40f Flickr60, r40c CC152K).
++"""R41-F: R40 r40ext.py + reference mode "encoder_lr_variant" (optimizer compared except lr_encoder).
++R40 additions, byte-identical in both code trees (r40f Flickr60, r40c CC152K).
+ 
+  - extra_references(cfg): read-only reused references besides the R38 N-FROZEN unit (cfg['reference_unit'], R38 rule): the R39 N-JOINT
+    unit of the same parent/objective ('reference_joint': head+null init hash, student init-state hash, batch-index hash chain) and, for the
+@@ -31,7 +32,8 @@
+         res = read_json(ref['result_json']); hist = read_json(ref['train_history_json'])
+         rc = res['config']
+         assert rc['ckpt_steps'] == cfg['ckpt_steps'] and rc['sampler_seed'] == cfg['sampler_seed'] and rc['init_seed'] == cfg['init_seed'] and rc['steps'] == cfg['steps']
+-        assert rc['objective'] == cfg['objective'] and rc['cond'] == cfg['cond'] and rc['optimizer'] == {k: v for k, v in cfg['optimizer'].items() if k in rc['optimizer']}
++        skip = ('lr_encoder',) if ref.get('mode') == 'encoder_lr_variant' else ()   # R41-F: the variant differs from the reference only in the student lr
++        assert rc['objective'] == cfg['objective'] and rc['cond'] == cfg['cond'] and {k: v for k, v in rc['optimizer'].items() if k not in skip} == {k: v for k, v in cfg['optimizer'].items() if k in rc['optimizer'] and k not in skip}
+         out[key] = dict(unit=ref['unit_id'], init=res['phases'][0]['identity']['init_state_sha256'], chain=list(hist['batch_hash']),
+                         student_init=ref.get('student_init_state_sha256'))
+     return out

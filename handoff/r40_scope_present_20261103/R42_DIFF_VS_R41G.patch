@@ -1,0 +1,46 @@
+--- r41g/common.py	2026-11-03 06:50:46.927298362 +0100
++++ r42f/common.py	2026-11-03 08:46:21.271230926 +0100
+@@ -1,4 +1,4 @@
+-"""R41-G tree r41g = byte copy of R41 r41f with FROZEN_FILES_R41 -> (PROTOCOL_FROZEN_R41G.json,) (amendment; r41f stays bound to the R41 part 1/2 freeze). R41 tree r41f = byte copy of R40 r40f (R41 edits: RUNS/ORACLE_RUNS/FROZEN_FILE -> runs_r41 / oracle_runs_r41 / PROTOCOL_FROZEN_R41*.json, trainer guard also refuses the R40 oracle dirs, R41 conditions (R39X n00, IN2R-native Flickr parents f40in / f80in) and per-cond JOINT parents at the end). R40 tree r40f = byte copy of R39 r39f (R40 edits: ROOT/OUT/RUNS/ORACLE_RUNS to the R40 dirs, R39_PREP pinned to the R39 output tree (read-only), trainer guard also refuses the R39 oracle/audit outputs, R40 constants at the end). R39 Flickr tree r39f = byte copy of R38 r38f (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, oracle env name, R39 dataset/joint constants at the end). R38 (Flickr code tree r38f = byte copy of R37 r37; R38 edits: ROOT/OUT, PACKAGE, CONDS = the R36 parent n60
++"""R42 tree r42f = byte copy of R41-G r41g (R42 edits at the end: runs_r42 / oracle_runs_r42 / r42_parents, PROTOCOL_FROZEN_R42.json, seven new IN2R-native Flickr parents (f20 s1001-3, f40 s1002-3, f80 s1002-3) and their JOINT parents; trainer guard also refuses the R41 oracle dir). R41-G tree r41g = byte copy of R41 r41f with FROZEN_FILES_R41 -> (PROTOCOL_FROZEN_R41G.json,) (amendment; r41f stays bound to the R41 part 1/2 freeze). R41 tree r41f = byte copy of R40 r40f (R41 edits: RUNS/ORACLE_RUNS/FROZEN_FILE -> runs_r41 / oracle_runs_r41 / PROTOCOL_FROZEN_R41*.json, trainer guard also refuses the R40 oracle dirs, R41 conditions (R39X n00, IN2R-native Flickr parents f40in / f80in) and per-cond JOINT parents at the end). R40 tree r40f = byte copy of R39 r39f (R40 edits: ROOT/OUT/RUNS/ORACLE_RUNS to the R40 dirs, R39_PREP pinned to the R39 output tree (read-only), trainer guard also refuses the R39 oracle/audit outputs, R40 constants at the end). R39 Flickr tree r39f = byte copy of R38 r38f (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, oracle env name, R39 dataset/joint constants at the end). R38 (Flickr code tree r38f = byte copy of R37 r37; R38 edits: ROOT/OUT, PACKAGE, CONDS = the R36 parent n60
+ (R30-H f60 s1001: R34 cache, R35 prep, read-only) + (user amendment) the R37 parents n60s1002/n60s1003 (R37 cache/prep, read-only)). R37 CONFIRM: shared paths, constants, hashing, TEST-file guard, isolation guard. Copied from R36 common.py
+ (paths/conditions changed); R34 caches, R35 prep and all R30-R36 files are read-only and never written."""
+ from __future__ import annotations
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -226,3 +226,28 @@
+     'f40in': dict(ckpt=Path(CONDS['f40in']['parent_dir']) / 'model_best.pth.tar', prep_dir=R41_PARENTS / 'joint' / 'f40in', code=CODE_IN2R),
+     'f80in': dict(ckpt=Path(CONDS['f80in']['parent_dir']) / 'model_best.pth.tar', prep_dir=R41_PARENTS / 'joint' / 'f80in', code=CODE_IN2R),
+ }
++
++
++# ----------------------------------------------------------------------------- R42 (noise dose-response of JOINT on IN2R-native Flickr parents)
++RUNS = OUT / 'runs_r42'
++ORACLE_RUNS = OUT / 'oracle_runs_r42'
++FROZEN_FILE = 'PROTOCOL_FROZEN_R42.json'
++FROZEN_FILES_R42 = ('PROTOCOL_FROZEN_R42.json', 'PROTOCOL_FROZEN_R42B.json')   # part 1 (42 units) + part 2 (f40 s1003 cells, frozen after that parent's build)
++FROZEN_FILES_R41 = FROZEN_FILES_R42   # name used by train_unit.check_frozen
++R42_PARENTS = OUT / 'r42_parents'
++_R31 = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r31_in2r_fidelity_20261101/runs')
++_R33 = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/runs')
++_NOISE = {20: ('/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/noise_index/f30k_precomp_0.2.npy', 'cdd8b019e69dc1341316fb089a1d9e2c32ca14a62cdd48d72c6af49ab0120f50'),
++          40: (CONDS['f40in']['noise_file'], CONDS['f40in']['noise_sha256']), 80: (CONDS['f80in']['noise_file'], CONDS['f80in']['noise_sha256'])}
++for _key, _pct, _seed, _pdir, _run, _unit in (
++        ('f20in_s1001', 20, 1001, _R31 / 'f20_s1001' / 'H0_codecfg', 'RUN_1080760.json', 'r31_f20_s1001_H0_codecfg'),
++        ('f20in_s1002', 20, 1002, _R31 / 'f20_s1002' / 'H0_codecfg', 'RUN_1080761.json', 'r31_f20_s1002_H0_codecfg'),
++        ('f20in_s1003', 20, 1003, _R31 / 'f20_s1003' / 'H0_codecfg', 'RUN_1080762.json', 'r31_f20_s1003_H0_codecfg'),
++        ('f40in_s1002', 40, 1002, _R31 / 'f40_s1002' / 'H0_default', 'RUN_1080764.json', 'r31_f40_s1002_H0_default'),
++        ('f40in_s1003', 40, 1003, _R31 / 'f40_s1003' / 'H0_default', 'RUN_1080765.json', 'r31_f40_s1003_H0_default'),
++        ('f80in_s1002', 80, 1002, _R33 / 'f80_s1002' / 'H0', 'RUN_1081032.json', 'r33_f80_s1002_H0'),
++        ('f80in_s1003', 80, 1003, _R33 / 'f80_s1003' / 'H0', 'RUN_1081034.json', 'r33_f80_s1003_H0')):
++    CONDS[_key] = dict(noise_percent=_pct, parent_seed=_seed, h_unit=_unit, run_json=_run, parent_dir=str(_pdir), noise_file=_NOISE[_pct][0], noise_sha256=_NOISE[_pct][1],
++                       noise_ratio=_pct / 100, cache_dir=str(R42_PARENTS / 'cache' / _key), prep_dir=str(R42_PARENTS / 'prep' / _key), prep_key=_key, dev_lock='n00', trust_file=None,
++                       code=str(CODE_IN2R))
++    JOINT_PARENTS[_key] = dict(ckpt=_pdir / 'model_best.pth.tar', prep_dir=R42_PARENTS / 'joint' / _key, code=CODE_IN2R)

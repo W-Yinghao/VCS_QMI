@@ -1,0 +1,17 @@
+--- r41f/common.py	2026-11-03 04:14:15.463886259 +0100
++++ r41g/common.py	2026-11-03 06:50:46.927298362 +0100
+@@ -1,4 +1,4 @@
+-"""R41 tree r41f = byte copy of R40 r40f (R41 edits: RUNS/ORACLE_RUNS/FROZEN_FILE -> runs_r41 / oracle_runs_r41 / PROTOCOL_FROZEN_R41*.json, trainer guard also refuses the R40 oracle dirs, R41 conditions (R39X n00, IN2R-native Flickr parents f40in / f80in) and per-cond JOINT parents at the end). R40 tree r40f = byte copy of R39 r39f (R40 edits: ROOT/OUT/RUNS/ORACLE_RUNS to the R40 dirs, R39_PREP pinned to the R39 output tree (read-only), trainer guard also refuses the R39 oracle/audit outputs, R40 constants at the end). R39 Flickr tree r39f = byte copy of R38 r38f (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, oracle env name, R39 dataset/joint constants at the end). R38 (Flickr code tree r38f = byte copy of R37 r37; R38 edits: ROOT/OUT, PACKAGE, CONDS = the R36 parent n60
++"""R41-G tree r41g = byte copy of R41 r41f with FROZEN_FILES_R41 -> (PROTOCOL_FROZEN_R41G.json,) (amendment; r41f stays bound to the R41 part 1/2 freeze). R41 tree r41f = byte copy of R40 r40f (R41 edits: RUNS/ORACLE_RUNS/FROZEN_FILE -> runs_r41 / oracle_runs_r41 / PROTOCOL_FROZEN_R41*.json, trainer guard also refuses the R40 oracle dirs, R41 conditions (R39X n00, IN2R-native Flickr parents f40in / f80in) and per-cond JOINT parents at the end). R40 tree r40f = byte copy of R39 r39f (R40 edits: ROOT/OUT/RUNS/ORACLE_RUNS to the R40 dirs, R39_PREP pinned to the R39 output tree (read-only), trainer guard also refuses the R39 oracle/audit outputs, R40 constants at the end). R39 Flickr tree r39f = byte copy of R38 r38f (R39 edits: ROOT/OUT/R38_OUT/R39_PREP paths, oracle env name, R39 dataset/joint constants at the end). R38 (Flickr code tree r38f = byte copy of R37 r37; R38 edits: ROOT/OUT, PACKAGE, CONDS = the R36 parent n60
+ (R30-H f60 s1001: R34 cache, R35 prep, read-only) + (user amendment) the R37 parents n60s1002/n60s1003 (R37 cache/prep, read-only)). R37 CONFIRM: shared paths, constants, hashing, TEST-file guard, isolation guard. Copied from R36 common.py
+ (paths/conditions changed); R34 caches, R35 prep and all R30-R36 files are read-only and never written."""
+ from __future__ import annotations
+@@ -195,7 +195,7 @@
+ RUNS = OUT / 'runs_r41'
+ ORACLE_RUNS = OUT / 'oracle_runs_r41'
+ FROZEN_FILE = 'PROTOCOL_FROZEN_R41.json'
+-FROZEN_FILES_R41 = ('PROTOCOL_FROZEN_R41.json', 'PROTOCOL_FROZEN_R41C.json')   # part 1 (A/B/D/E), part 2 (C: new IN2R-native parents, frozen after their prep)
++FROZEN_FILES_R41 = ('PROTOCOL_FROZEN_R41G.json',)   # R41-G amendment freeze (r41g tree)   # part 1 (A/B/D/E), part 2 (C: new IN2R-native parents, frozen after their prep)
+ R41_PARENTS = OUT / 'r41_parents'            # caches / prep / JOINT prep of the new IN2R-native Flickr parents (written once by tools/r41_build_parent.py)
+ CODE_IN2R = Path('/home/infres/yinwang/CS_QMI/handoff/r31_in2r_fidelity_20261101/code')   # R25 IN2R code copy (R31; R33 code_h0 is byte-identical in vse/data/evaluation)
+ R39_RUNS_R39X = R39_OUT / 'runs_r39x'

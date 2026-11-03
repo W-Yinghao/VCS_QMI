@@ -1,0 +1,295 @@
+{
+  "part": "1",
+  "utc": "2026-11-03T03:26:03Z",
+  "checks": {
+    "code_derivation": {
+      "passed": true,
+      "detail": {
+        "byte_identical": {
+          "data36.py": true,
+          "evals.py": true,
+          "heads.py": true,
+          "native_eval.py": true,
+          "objectives.py": true,
+          "oracle_truth.py": true,
+          "r38ext.py": true,
+          "r39_targets.py": true,
+          "train_oracle.py": true
+        },
+        "file_set_equal": true,
+        "diff_equals_registered_patch": true,
+        "data35_equals_r39xf": true,
+        "oracle_truth_equals_r39": true,
+        "passed": true
+      },
+      "seconds": 0.028188705444335938
+    },
+    "oracle_isolation": {
+      "passed": true,
+      "detail": {
+        "passed": true,
+        "selftest": {
+          "row0": true,
+          "row1_present_unchanged": true,
+          "row2_no_true_unchanged": true,
+          "row3_no_true_unchanged": true,
+          "counts": {
+            "null_rows": 3,
+            "relabelled_rows": 1,
+            "null_rows_no_true_in_list": 2,
+            "true_slots_used": 2
+          },
+          "t2i_single_true": true,
+          "ALL_PASS": true
+        }
+      },
+      "seconds": 3.106090545654297
+    },
+    "configs": {
+      "passed": true,
+      "detail": {
+        "n": 27,
+        "bad": [],
+        "passed": true
+      },
+      "seconds": 0.14453339576721191
+    },
+    "lr_schedule": {
+      "passed": true,
+      "detail": {
+        "m0_16k": 1.0,
+        "mlast_16k": 0.1,
+        "m8000_16k": 0.5499558185920419,
+        "mlast_8k": 0.1,
+        "m4000_8k": 0.5499116316611433,
+        "passed": true
+      },
+      "seconds": 1.9748201370239258
+    },
+    "e2e_oracle_part1": {
+      "passed": true,
+      "detail": {
+        "R41_D_F60_R30_H1002_ORACLE_joint_J": {
+          "unit": "R41_D_F60_R30_H1002_ORACLE_joint_J",
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "references": {
+            "reference_joint": {
+              "unit": "R39X_Flickr60_R30H_s1002_N_joint_global_J",
+              "init_equal": true,
+              "chain_equal_at": [
+                0
+              ],
+              "student_init_equal": true
+            }
+          },
+          "r38_chain": [
+            0
+          ],
+          "step0_cache_equivalence": true,
+          "oracle_stats_2_updates": {
+            "oracle_i2t_rows": 32.0,
+            "oracle_i2t_null_rows": 3.0,
+            "oracle_i2t_relabelled_rows": 1.0,
+            "oracle_i2t_null_rows_no_true_in_list": 2.0,
+            "oracle_i2t_true_slots_used": 4.0,
+            "oracle_t2i_rows": 32.0,
+            "oracle_t2i_null_rows": 18.0,
+            "oracle_t2i_relabelled_rows": 10.0,
+            "oracle_t2i_null_rows_no_true_in_list": 8.0,
+            "oracle_t2i_true_slots_used": 10.0
+          },
+          "passed": true
+        },
+        "R41_D_F60_R30_H1002_ORACLE_frozen_NCE": {
+          "unit": "R41_D_F60_R30_H1002_ORACLE_frozen_NCE",
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 18,
+            "n_changed": 18,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 0,
+              "B": 0
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_H_cache_unchanged": true
+          },
+          "references": null,
+          "r38_chain": [
+            0
+          ],
+          "step0_cache_equivalence": null,
+          "oracle_stats_2_updates": {
+            "oracle_i2t_rows": 32.0,
+            "oracle_i2t_null_rows": 3.0,
+            "oracle_i2t_relabelled_rows": 1.0,
+            "oracle_i2t_null_rows_no_true_in_list": 2.0,
+            "oracle_i2t_true_slots_used": 4.0,
+            "oracle_t2i_rows": 32.0,
+            "oracle_t2i_null_rows": 18.0,
+            "oracle_t2i_relabelled_rows": 10.0,
+            "oracle_t2i_null_rows_no_true_in_list": 8.0,
+            "oracle_t2i_true_slots_used": 10.0
+          },
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 105.90710997581482
+    },
+    "e2e_part1": {
+      "passed": true,
+      "detail": {
+        "R41_A_F00_R30_H1001_N_joint_16k_J": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "references": {
+            "reference_joint": {
+              "unit": "R39X_Flickr00_R30H_s1001_N_joint_global_J",
+              "init_equal": true,
+              "chain_equal_at": [
+                0
+              ],
+              "student_init_equal": true
+            }
+          },
+          "r38_chain": [],
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "lr_update0": 0.0001,
+          "lr_last_update": 1e-05,
+          "passed": true
+        },
+        "R41_B_F60_R30_H1001_seed2002_N_joint_NCE": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "references": null,
+          "r38_chain": [],
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "lr_update0": 0.0001,
+          "lr_last_update": 1e-05,
+          "passed": true
+        },
+        "R41_E_F60_R30_H1003_image_only_BCE": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 52,
+            "n_changed": 52,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 17,
+              "B": 17
+            },
+            "n_frozen_modality_tensors": 56,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "references": {
+            "reference_joint": {
+              "unit": "R39X_Flickr60_R30H_s1003_N_joint_global_BCE",
+              "init_equal": true,
+              "chain_equal_at": [
+                0
+              ],
+              "student_init_equal": true
+            }
+          },
+          "r38_chain": [
+            0
+          ],
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "lr_update0": 0.0001,
+          "lr_last_update": 1e-05,
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 284.9322192668915
+    }
+  },
+  "ALL_PASS": true,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

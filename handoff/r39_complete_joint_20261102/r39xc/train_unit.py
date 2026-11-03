@@ -678,13 +678,28 @@ def run_unit(cfg, ctx, pool=None, out_dir=None, steps=None, ckpt_steps=None, log
             unchanged = {p: [n for n, q in stud[p].named_parameters() if q.requires_grad and torch.equal(q.detach(), stud_ref[p][n])] for p in PEERS}
             # R39X A1: a tensor may stay unchanged only if it had exactly zero gradient at update 1 (e.g. saturated pooling softmax)
             unexplained = {p: [n for n in unchanged[p] if n not in zero_grad1[p]] for p in PEERS}
+            # R39X A2: an unchanged tensor is also explained if its predicted update-1 AdamW step is below fp32 resolution of its values
+            # (no element with |step| > 0.5 * fp32 spacing; e.g. grad ~1e-12 << eps). Predicted step from the optimizer state after the step.
+            g1_ = opt.param_groups[1]; b1_, b2_ = g1_['betas']; below = {}
+            for p in PEERS:
+                for n_, q in stud[p].named_parameters():
+                    if n_ in unexplained[p]:
+                        sq = opt.state[q]; t_ = float(sq['step'])
+                        mh = sq['exp_avg'].double() / (1 - b1_ ** t_); vh = sq['exp_avg_sq'].double() / (1 - b2_ ** t_)
+                        th = stud_ref[p][n_]
+                        st_ = g1_['lr'] * mh / (vh.sqrt() + g1_['eps']) + g1_['lr'] * g1_['weight_decay'] * th.double()
+                        sp_ = (torch.nextafter(th.abs(), torch.full_like(th, float('inf'))) - th.abs()).double()
+                        below[f'{p}.{n_}'] = dict(grad_absmax=float(q.grad.abs().max()) if q.grad is not None else 0.0, pred_step_absmax=float(st_.abs().max()),
+                                                  spacing_min=float(sp_.min()), max_step_over_spacing=float((st_.abs() / sp_).max()),
+                                                  n_elem_step_gt_half_spacing=int((st_.abs() > .5 * sp_).sum()))
+            unexplained = {p: [n_ for n_ in unexplained[p] if below[f'{p}.{n_}']['n_elem_step_gt_half_spacing'] > 0] for p in PEERS}
             ntr = {p: sum(1 for q in stud[p].trainable()) for p in PEERS}
             fr = {p: R9.state_digest(stud[p].frozen_state()) == frozen0[p] for p in PEERS}
             ca = R9.state_digest({f'{s}_{k}_{p}': d[(s, k, p)] for s in ('fit', 'dev') for k in ('img', 'cap') for p in PEERS}) == cache0
             oc = dict(student_tensors_changed=ch, student_trainable_tensors=ntr, frozen_embedding_and_bn_stats_unchanged=fr, frozen_H_cache_unchanged=bool(ca),
                       parent_ckpt_sha256_unchanged=sha256(ctx.joint.ckpt_path) == lineage['student']['parent_sha256'])
-            oc.update(unchanged_tensors=unchanged, zero_grad_at_update1=zero_grad1, unchanged_with_nonzero_grad=unexplained,
-                      rule='R39X A1: every student tensor with a nonzero update-1 gradient must change; >= 1 changed per peer')
+            oc.update(unchanged_tensors=unchanged, zero_grad_at_update1=zero_grad1, unchanged_below_fp32_resolution=below, unchanged_unexplained=unexplained,
+                      rule='R39X A1+A2: every student tensor must change unless its update-1 gradient is exactly zero or its predicted first AdamW step is below fp32 resolution (no element > 0.5 spacing); >= 1 changed per peer')
             oc['passed'] = bool(all(not unexplained[p] and ch[p] > 0 for p in PEERS) and all(fr.values()) and ca and oc['parent_ckpt_sha256_unchanged'])
             hist['r39']['one_step_check'] = oc; write_json(out / 'ONE_STEP_CHECK.json', oc)
             assert oc['passed'], f'R39 one-step check failed: {oc}'

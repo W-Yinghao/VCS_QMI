@@ -1,0 +1,12 @@
+{
+  "amendment": "R41-G A1 (infrastructure, registered before resubmission)",
+  "failure": "job 1083883 (r41_u_G2_F60_R30_H1003_oracle_joint) exited rc=1 before any unit started: train_oracle.py writes the shared OUT/oracle_runs_r41/ORACLE_DIAGNOSTICS.json via common.write_json (fixed name .tmp + os.replace); 1083884 (oracle frozen, same start time) did the same and its os.replace consumed the shared .tmp first -> FileNotFoundError in 1083883. No unit directory, checkpoint or FAILED file was created for the 3 oracle-JOINT units; log kept: logs/r41_u_G2_F60_R30_H1003_oracle_joint_1083883.out",
+  "fix": "no code change (r41g files stay byte-identical to the PROTOCOL_FROZEN_R41G.json hashes, so already-running/resuming R41-G jobs keep verifying): the 3 oracle-JOINT units are resubmitted as a single job at a time when no other oracle-runner job is queued or running (1083884 finished rc=0, R41 D oracle jobs finished), so the shared diagnostics file has a single writer; the file holds only a run-independent evaluator statistic (observed-mismatch fraction of the full pool) and is not read by any unit",
+  "training_or_oracle_logic_changed": false,
+  "units": [
+    "R41_G2_F60_R30_H1003_ORACLE_joint_J",
+    "R41_G2_F60_R30_H1003_ORACLE_joint_BCE",
+    "R41_G2_F60_R30_H1003_ORACLE_joint_NCE"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

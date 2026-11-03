@@ -1,0 +1,100 @@
+{
+  "utc": "2026-11-03T06:08:01Z",
+  "checks": {
+    "code_derivation": {
+      "passed": true,
+      "detail": {
+        "passed": true,
+        "byte_identical": {
+          "heads.py": true,
+          "data35.py": true,
+          "data36.py": true,
+          "r38ext.py": true,
+          "native_eval.py": true,
+          "evals.py": true,
+          "r39ext.py": true,
+          "objectives.py": true,
+          "r39_targets.py": true
+        },
+        "diff_equals_registered": true
+      },
+      "seconds": 0.027318716049194336
+    },
+    "configs": {
+      "passed": true,
+      "detail": {
+        "bad": [],
+        "passed": true
+      },
+      "seconds": 0.006880283355712891
+    },
+    "e2e_J": {
+      "passed": true,
+      "detail": {
+        "one_step": {
+          "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+          "n_active": 102,
+          "n_changed": 98,
+          "unexplained_unchanged": [],
+          "unchanged_explained": {
+            "student.A.img.mlp.bns.0.weight": {
+              "grad1_exactly_zero": false,
+              "predicted_step_over_fp32_spacing_max": 0.13097414240098604
+            },
+            "student.A.img.gpool.gru.bias_hh_l0": {
+              "grad1_exactly_zero": false,
+              "predicted_step_over_fp32_spacing_max": 0.400679492363553
+            },
+            "student.A.txt.mlp.bns.0.weight": {
+              "grad1_exactly_zero": false,
+              "predicted_step_over_fp32_spacing_max": 0.2973830913356318
+            },
+            "student.B.img.mlp.bns.0.weight": {
+              "grad1_exactly_zero": false,
+              "predicted_step_over_fp32_spacing_max": 0.13761805631507315
+            }
+          },
+          "head_tensors_changed": {
+            "A": 8,
+            "B": 8
+          },
+          "student_tensors_changed": {
+            "A": 39,
+            "B": 41
+          },
+          "n_frozen_modality_tensors": 0,
+          "frozen_modality_ok": true,
+          "passed": true,
+          "frozen_state_unchanged": {
+            "A": true,
+            "B": true
+          },
+          "frozen_H_cache_unchanged": true
+        },
+        "references": {
+          "reference_joint": {
+            "unit": "R39_CC152K_N_joint_global_J",
+            "init_equal": true,
+            "chain_equal_at": [
+              0
+            ],
+            "student_init_equal": true
+          }
+        },
+        "r38_chain": [
+          0
+        ],
+        "eq": true,
+        "graph": true,
+        "opt_group_lrs": [
+          0.0001,
+          1e-06
+        ],
+        "passed": true
+      },
+      "seconds": 2388.0002739429474
+    }
+  },
+  "ALL_PASS": true,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

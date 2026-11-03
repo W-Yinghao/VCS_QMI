@@ -45,43 +45,43 @@ J readouts: DEV list-J uses the clean DEV annotation; FIT observed-label J and c
 
 ## R39X JOINT confirmation extension (numbers only)
 
-3/21 R39X units complete (15 JOINT on five additional parents + 3 JOINT and 3 new N-frozen cells on Flickr 0%). Fixed step 8000, DEV two-stage, TEST not read.
+21/21 R39X units complete (15 JOINT on five additional parents + 3 JOINT and 3 new N-frozen cells on Flickr 0%). Fixed step 8000, DEV two-stage, TEST not read.
 
 | parent | H | obj | N-frozen | N-JOINT | JOINT-FROZEN | frozen-H | JOINT-H | net R@1 vs H (frozen / JOINT) |
 |---|---|---|---|---|---|---|---|---|
-| Flickr00_R30H_s1001 | 522.07 | J | 522.78 | NA | NA | 0.71 | NA | 43 / NA |
-| Flickr00_R30H_s1001 | 522.07 | BCE | 521.95 | NA | NA | -0.12 | NA | 45 / NA |
-| Flickr00_R30H_s1001 | 522.07 | NCE | 524.24 | NA | NA | 2.17 | NA | 75 / NA |
-| Flickr60_R30H_s1002 | 482.94 | J | 485.94 | NA | NA | 3.00 | NA | 42 / NA |
-| Flickr60_R30H_s1002 | 482.94 | BCE | 486.51 | NA | NA | 3.57 | NA | 43 / NA |
-| Flickr60_R30H_s1002 | 482.94 | NCE | 485.74 | NA | NA | 2.80 | NA | 38 / NA |
-| Flickr60_R30H_s1003 | 496.07 | J | 498.46 | NA | NA | 2.39 | NA | 60 / NA |
-| Flickr60_R30H_s1003 | 496.07 | BCE | 497.91 | NA | NA | 1.83 | NA | 61 / NA |
-| Flickr60_R30H_s1003 | 496.07 | NCE | 498.48 | NA | NA | 2.41 | NA | 39 / NA |
-| CC152K_R31H0_s1002 | 394.60 | J | 394.10 | NA | NA | -0.50 | NA | -2 / NA |
-| CC152K_R31H0_s1002 | 394.60 | BCE | 392.90 | NA | NA | -1.70 | NA | -5 / NA |
-| CC152K_R31H0_s1002 | 394.60 | NCE | 390.30 | NA | NA | -4.30 | NA | -9 / NA |
-| CC152K_R31H0_s1003 | 392.60 | J | 393.50 | NA | NA | 0.90 | NA | 20 / NA |
-| CC152K_R31H0_s1003 | 392.60 | BCE | 393.00 | NA | NA | 0.40 | NA | 12 / NA |
-| CC152K_R31H0_s1003 | 392.60 | NCE | 391.30 | NA | NA | -1.30 | NA | 12 / NA |
-| CC152K_R37S_s1001 | 393.20 | J | 393.40 | NA | NA | 0.20 | NA | 9 / NA |
-| CC152K_R37S_s1001 | 393.20 | BCE | 393.20 | NA | NA | 0.00 | NA | 9 / NA |
-| CC152K_R37S_s1001 | 393.20 | NCE | 390.30 | NA | NA | -2.90 | NA | 14 / NA |
+| Flickr00_R30H_s1001 | 522.07 | J | 522.78 | 527.59 | 4.81 | 0.71 | 5.52 | 43 / 146 |
+| Flickr00_R30H_s1001 | 522.07 | BCE | 521.95 | 525.66 | 3.71 | -0.12 | 3.59 | 45 / 112 |
+| Flickr00_R30H_s1001 | 522.07 | NCE | 524.24 | 551.08 | 26.84 | 2.17 | 29.01 | 75 / 601 |
+| Flickr60_R30H_s1002 | 482.94 | J | 485.94 | 493.39 | 7.46 | 3.00 | 10.45 | 42 / 162 |
+| Flickr60_R30H_s1002 | 482.94 | BCE | 486.51 | 491.79 | 5.29 | 3.57 | 8.86 | 43 / 137 |
+| Flickr60_R30H_s1002 | 482.94 | NCE | 485.74 | 491.18 | 5.44 | 2.80 | 8.24 | 38 / 119 |
+| Flickr60_R30H_s1003 | 496.07 | J | 498.46 | 510.47 | 12.01 | 2.39 | 14.40 | 60 / 226 |
+| Flickr60_R30H_s1003 | 496.07 | BCE | 497.91 | 508.66 | 10.75 | 1.83 | 12.58 | 61 / 191 |
+| Flickr60_R30H_s1003 | 496.07 | NCE | 498.48 | 508.40 | 9.92 | 2.41 | 12.33 | 39 / 181 |
+| CC152K_R31H0_s1002 | 394.60 | J | 394.10 | 392.80 | -1.30 | -0.50 | -1.80 | -2 / -8 |
+| CC152K_R31H0_s1002 | 394.60 | BCE | 392.90 | 391.20 | -1.70 | -1.70 | -3.40 | -5 / -14 |
+| CC152K_R31H0_s1002 | 394.60 | NCE | 390.30 | 390.00 | -0.30 | -4.30 | -4.60 | -9 / -6 |
+| CC152K_R31H0_s1003 | 392.60 | J | 393.50 | 391.40 | -2.10 | 0.90 | -1.20 | 20 / 10 |
+| CC152K_R31H0_s1003 | 392.60 | BCE | 393.00 | 393.40 | 0.40 | 0.40 | 0.80 | 12 / 13 |
+| CC152K_R31H0_s1003 | 392.60 | NCE | 391.30 | 391.10 | -0.20 | -1.30 | -1.50 | 12 / 9 |
+| CC152K_R37S_s1001 | 393.20 | J | 393.40 | 390.20 | -3.20 | 0.20 | -3.00 | 9 / -10 |
+| CC152K_R37S_s1001 | 393.20 | BCE | 393.20 | 391.10 | -2.10 | 0.00 | -2.10 | 9 / 1 |
+| CC152K_R37S_s1001 | 393.20 | NCE | 390.30 | 389.70 | -0.60 | -2.90 | -3.50 | 14 / 3 |
 
 | parent | cell | J-BCE | J-NCE |
 |---|---|---|---|
 | Flickr00_R30H_s1001 | frozen | 0.83 | -1.46 |
-| Flickr00_R30H_s1001 | joint | NA | NA |
+| Flickr00_R30H_s1001 | joint | 1.93 | -23.49 |
 | Flickr60_R30H_s1002 | frozen | -0.57 | 0.20 |
-| Flickr60_R30H_s1002 | joint | NA | NA |
+| Flickr60_R30H_s1002 | joint | 1.60 | 2.21 |
 | Flickr60_R30H_s1003 | frozen | 0.55 | -0.02 |
-| Flickr60_R30H_s1003 | joint | NA | NA |
+| Flickr60_R30H_s1003 | joint | 1.81 | 2.07 |
 | CC152K_R31H0_s1002 | frozen | 1.20 | 3.80 |
-| CC152K_R31H0_s1002 | joint | NA | NA |
+| CC152K_R31H0_s1002 | joint | 1.60 | 2.80 |
 | CC152K_R31H0_s1003 | frozen | 0.50 | 2.20 |
-| CC152K_R31H0_s1003 | joint | NA | NA |
+| CC152K_R31H0_s1003 | joint | -2.00 | 0.30 |
 | CC152K_R37S_s1001 | frozen | 0.20 | 3.10 |
-| CC152K_R37S_s1001 | joint | NA | NA |
+| CC152K_R37S_s1001 | joint | -0.90 | 0.50 |
 
 Files: R39X_RESULTS.csv (all recalls, pair identity, student change, costs), R39X_CURVES.csv. N-frozen cells: reused R38 / R37S N-shared-cosine units; Flickr 0% frozen cells are new R39X units (no R38 reference at 0%).
-Failed attempts (kept, rerun after amendment A1 of PROTOCOL_FROZEN_R39X.json; technical in-unit checks only): 3 (R39X_FAILURES.csv).
+Failed attempts (kept, rerun after amendment A1 of PROTOCOL_FROZEN_R39X.json; technical in-unit checks only): 4 (R39X_FAILURES.csv).
