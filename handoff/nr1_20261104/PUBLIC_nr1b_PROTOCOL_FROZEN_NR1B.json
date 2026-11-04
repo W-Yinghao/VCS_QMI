@@ -1,0 +1,81 @@
+{
+  "protocol_id": "NR1B_20261104",
+  "frozen_utc": "2026-11-04T02:52:24.412016Z",
+  "authorisation": {
+    "user_quote": "你之后如果发现GPU有空的话，就沿着NR1路线设计和提交",
+    "relayed_by": "main session (coordinator) 2026-11-04",
+    "reason": "NR1 first round complete (18/18 Flickr, CC152K BLOCKED_DATA); package follow-up rules docs/RESULTS_AND_DECISIONS_CN.md §3-§5 and SERVER_PLAN §10"
+  },
+  "constraints": "no second backbone, no resolution change, no encoder unfreeze, no OT/teacher/null/GMM, no temperature or hyper-parameter grids; TEST never read; DEV only",
+  "parts": {
+    "1_seed_replication": {
+      "units": [
+        "NR1B_Flickr00_GL_BCE_s1002",
+        "NR1B_Flickr00_GL_BCE_s1003",
+        "NR1B_Flickr00_GL_J_s1002",
+        "NR1B_Flickr00_GL_J_s1003",
+        "NR1B_Flickr00_GL_NCE_s1002",
+        "NR1B_Flickr00_GL_NCE_s1003",
+        "NR1B_Flickr00_G_BCE_s1002",
+        "NR1B_Flickr00_G_BCE_s1003",
+        "NR1B_Flickr00_G_J_s1002",
+        "NR1B_Flickr00_G_J_s1003",
+        "NR1B_Flickr00_G_NCE_s1002",
+        "NR1B_Flickr00_G_NCE_s1003"
+      ],
+      "rule": "package §3: only complete matched groups with net gain get extra training seeds",
+      "decision": "Flickr00: all six recipes have delta_rSum>0 at step 8000 -> seeds 1002,1003 (12 units). Flickr60/Flickr80: only NCE (G,GL) has delta_rSum>0; J/BCE are below base -> the six-unit group is not a complete group with net gain -> no seeds added.",
+      "step8000_delta_rSum": {
+        "Flickr00_G_BCE": 5.86,
+        "Flickr00_G_J": 5.88,
+        "Flickr00_G_NCE": 6.49,
+        "Flickr00_GL_BCE": 6.11,
+        "Flickr00_GL_J": 6.02,
+        "Flickr00_GL_NCE": 6.39,
+        "Flickr60_G_BCE": -9.49,
+        "Flickr60_G_J": -4.97,
+        "Flickr60_G_NCE": 1.34,
+        "Flickr60_GL_BCE": -7.77,
+        "Flickr60_GL_J": -4.4,
+        "Flickr60_GL_NCE": 1.95,
+        "Flickr80_G_BCE": -12.49,
+        "Flickr80_G_J": -8.52,
+        "Flickr80_G_NCE": 1.83,
+        "Flickr80_GL_BCE": -12.49,
+        "Flickr80_GL_J": -8.46,
+        "Flickr80_GL_NCE": 2.01
+      },
+      "changed": "seed only (head init RNG + iid sampler RNG); same locked config otherwise, same FIT cache, same Flickr00 calibration a0/b0, same evaluator",
+      "configs": {
+        "NR1B_Flickr00_GL_BCE_s1002.json": "bd5799e7b94c9fefe94d1f93d3ca0fe6c248a353631704f92cdafc1e7b641a4f",
+        "NR1B_Flickr00_GL_BCE_s1003.json": "a9dfb2843f70ee8b55f5e1500b624df05c1c662803f161f758da7045799c43a0",
+        "NR1B_Flickr00_GL_J_s1002.json": "33a6da811a4e8e67a9182e6065069cb8450fa85fa127e58ae98023891f6bb0bd",
+        "NR1B_Flickr00_GL_J_s1003.json": "162a4f6e897b7c38b02e79c1411161b0229b1ed79fbb7e6a0b3e7da7820fe185",
+        "NR1B_Flickr00_GL_NCE_s1002.json": "9fdaacb68cc9f853a1067ce174f226fa5b68601cd5a24a7f7b7fb905292cf5e0",
+        "NR1B_Flickr00_GL_NCE_s1003.json": "8fa00be2fb3a4c14a942ccdbdecb14788fd8d58cb0af5f84500ec8acd363cf65",
+        "NR1B_Flickr00_G_BCE_s1002.json": "bc56b4070993cb2f7ce40bf638cd077e65921ceb7dc3b87ec8d3d265eec8a8aa",
+        "NR1B_Flickr00_G_BCE_s1003.json": "e224dd327b86b328e537fff9eb3481413e4b2a5460d0f29670dedb950d459555",
+        "NR1B_Flickr00_G_J_s1002.json": "5b3874e8fdc517fd349f06210aa93775c019d4af746854640b7b7924bc1a6394",
+        "NR1B_Flickr00_G_J_s1003.json": "50bbc8b24ce183629f36b322f084a304961f2cac5290d07409aba624edd983cf",
+        "NR1B_Flickr00_G_NCE_s1002.json": "9f54ffae75dbd44385458a8c7525577c22a3762abb501581b53c404f8a56b811",
+        "NR1B_Flickr00_G_NCE_s1003.json": "bed928dd4df05489fe87a84a6d6356a8be5cc7cba63aff9d14f683f77e32ddc8"
+      }
+    },
+    "2_local_ablation": "read-only: 9 GL step-8000 checkpoints with local_readout.weight zeroed, same base top-100 rerank (package §4 diagnostic, not a matched training control)",
+    "3_instance_errors": "read-only, evaluator-only ranks: base-correct-head-lost / base-wrong-head-rescued / in-top100-still-failed / coverage-failure; FIT post-hoc stratification of scores by isolated injected-noise truth for Flickr60/80 (clean flag = observed image equals Flickr00 identity image), evaluator process only",
+    "4_training_signal": "read-only: TRAIN.jsonl loss/J/grad-norm/|T|/saturation; independent FIT samples A (seed 2026110401) and B (2026110402), 32768 P and 32768 product-Q pairs each: score quantiles, |T|>.99, raw J, common-calibration J (package fit_affine refit on A, read on B) for every registered step"
+  },
+  "code": {
+    "code/site/nr1b_readonly.py": "712acf0bf66f9588a912d6a385e6f804f8c65be3d236dd28d1767acef3d6b061",
+    "code/site/train_unit.py": "7ad734004452041a8702d7a62191d9b456a187ce6809918632ffa62b8c97c3cd",
+    "code/src/nr1/train.py": "f77b7eb799539d3f5fac01dc551a2fbc66f5bd48a9cc3ebcd911aca4123dbfc7",
+    "code/src/nr1/evaluate.py": "e69540b6a31851b8619083fb5cb8e58602a5ff873c7a3afd3de5279c5f824d65",
+    "code/src/nr1/models.py": "63de0ae4eda2837623cc848d0c93d1fb92dad1efbd97395dc9aadb5b9b4ed1bc",
+    "code/src/nr1/objectives.py": "1198b2d1e5c1e5aa527b5d1a19799e91659dd51b530bc7eb9cebecec5b1e937f",
+    "code/src/nr1/io.py": "4bb47066676b96a5c4d17462f91fa033f1590aadd9107238c5f6709621e27faa",
+    "sbatch/unit.sbatch": "b5b1e9876ca92761facbe63532d65ff3705dfbd7373fc86b036f2dbff7cc979b",
+    "sbatch/nr1b_readonly.sbatch": "33197882a54e1e08d5ebedac37c09dd3fef72a9a933366b66b45836a838ea75c"
+  },
+  "primary_endpoint": "step 8000 fixed, all objectives; curves at 0/250/500/1000/2000/4000/8000",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

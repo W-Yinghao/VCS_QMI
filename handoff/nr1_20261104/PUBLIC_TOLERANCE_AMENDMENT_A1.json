@@ -1,0 +1,110 @@
+{
+  "amendment": "NR1_20261104 A1 (site, written before any production cache was extracted)",
+  "trigger": "acceptance 1086314 failed at the package extractor single-vs-batch check (fail-fast, nothing exported)",
+  "raw_errors_diag_job_1086317": {
+    "default": {
+      "cudnn_tf32": true,
+      "matmul_tf32": false,
+      "diffs": {
+        "img_pool": {
+          "max_abs": 0.0007389485836029053,
+          "max_ref": 5.499266624450684,
+          "max_rel_excess": 0.0007316058035939932,
+          "allclose_3e5": false
+        },
+        "txt_pool": {
+          "max_abs": 1.430511474609375e-06,
+          "max_ref": 3.217942714691162,
+          "max_rel_excess": 8.529312367500097e-07,
+          "allclose_3e5": true
+        },
+        "img_hidden": {
+          "max_abs": 0.41560935974121094,
+          "max_ref": 36.1246337890625,
+          "max_rel_excess": 0.41495397686958313,
+          "allclose_3e5": false
+        },
+        "txt_hidden": {
+          "max_abs": 7.62939453125e-06,
+          "max_ref": 17.234241485595703,
+          "max_rel_excess": 5.24563711223891e-06,
+          "allclose_3e5": true
+        }
+      }
+    },
+    "no_tf32": {
+      "cudnn_tf32": false,
+      "matmul_tf32": false,
+      "diffs": {
+        "img_pool": {
+          "max_abs": 2.562999725341797e-06,
+          "max_ref": 5.499032974243164,
+          "max_rel_excess": 2.4978953661047854e-06,
+          "allclose_3e5": true
+        },
+        "txt_pool": {
+          "max_abs": 1.430511474609375e-06,
+          "max_ref": 3.217942714691162,
+          "max_rel_excess": 8.529312367500097e-07,
+          "allclose_3e5": true
+        },
+        "img_hidden": {
+          "max_abs": 0.0005311965942382812,
+          "max_ref": 36.12791442871094,
+          "max_rel_excess": 0.0004167913575656712,
+          "allclose_3e5": false
+        },
+        "txt_hidden": {
+          "max_abs": 7.62939453125e-06,
+          "max_ref": 17.234241485595703,
+          "max_rel_excess": 5.24563711223891e-06,
+          "allclose_3e5": true
+        }
+      }
+    },
+    "all_tf32": {
+      "cudnn_tf32": true,
+      "matmul_tf32": true,
+      "diffs": {
+        "img_pool": {
+          "max_abs": 0.0021886825561523438,
+          "max_ref": 5.4996747970581055,
+          "max_rel_excess": 0.0021813539788126945,
+          "allclose_3e5": false
+        },
+        "txt_pool": {
+          "max_abs": 0.001190185546875,
+          "max_ref": 3.2177114486694336,
+          "max_rel_excess": 0.001103646820411086,
+          "allclose_3e5": false
+        },
+        "img_hidden": {
+          "max_abs": 0.31795692443847656,
+          "max_ref": 36.122962951660156,
+          "max_rel_excess": 0.3173314332962036,
+          "allclose_3e5": false
+        },
+        "txt_hidden": {
+          "max_abs": 0.0030486881732940674,
+          "max_ref": 17.23285675048828,
+          "max_rel_excess": 0.0030337420757859945,
+          "allclose_3e5": false
+        }
+      }
+    },
+    "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "matmul_precision": "high"
+  },
+  "changes": [
+    "(1) exporter runs true fp32: torch.backends.cudnn.allow_tf32=False and cuda.matmul.allow_tf32=False (torch default leaves cuDNN conv TF32 ON; package says exporter default fp32/eager). Not a tolerance change.",
+    "(2) REPLACED (no tolerance change): an elementwise-relaxed / per-token relL2 check was tried in acceptance 1086321 and itself failed (vision token rel L2 7.34e-05 > 3e-5). Final: lock the GEMM algorithm by running every forward at one fixed leading shape B=32 (pad with copies of the last item, discard padded rows; SigLIP has no cross-item op). The package elementwise allclose(atol=rtol=3e-5) check on pooler outputs AND last_hidden_state of both modalities is kept unchanged.",
+    "(3) comparisons against fp16-stored local caches use the explicit fp16 storage bound: per-token relative L2 <= 2^-11 (+3e-5) vs fp32 recompute, <= 2*2^-11 (+3e-5) cache-vs-cache; raw max errors are stored in ACCEPTANCE.json."
+  ],
+  "unchanged": "all package thresholds (3e-5 elementwise for features, hidden states, logits, scores); step-0 order equality exact",
+  "history": [
+    "1086314 acceptance FAIL (extractor single/batch, TF32 conv on)",
+    "1086317 diag: TF32 conv -> img hidden max abs 0.416; TF32 off -> 5.3e-4",
+    "1086321 acceptance FAIL with per-token relL2 7.34e-05 (that variant abandoned)"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}
