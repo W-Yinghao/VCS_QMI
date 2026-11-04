@@ -1,0 +1,66 @@
+{
+  "part": "B",
+  "line": "R43 B: deployable cleaner supervision under JOINT (R37 TRUST_NATIVE_NULL) x {frozen, both_joint} on the 80% IN2R-native Flickr parents and CC152K CC31; R41 C / R42 recipe; development experiment, no TEST read",
+  "frozen_utc": "2026-11-03T11:04:09Z",
+  "status": "FROZEN_BEFORE_FORMAL_UNITS",
+  "authorisation": {
+    "user_quote": "你上次的R39X的提议就很好，R40结束的时候你也思考一下，我们还需要补充哪些实验，只要你觉得有用的就提交，不用问我",
+    "relayed_by": "main session",
+    "priority": "normal QOS nice 50; frozen 2h, joint 8h (COCO memory/time from the in-build timing run, registered in R43_ADAPTATION.json)"
+  },
+  "units": [
+    "R43_B_F80_IN2R_H1001_TRUST_frozen_J",
+    "R43_B_F80_IN2R_H1002_TRUST_frozen_J",
+    "R43_B_F80_IN2R_H1003_TRUST_frozen_J",
+    "R43_B_F80_IN2R_H1001_TRUST_joint_J",
+    "R43_B_F80_IN2R_H1002_TRUST_joint_J",
+    "R43_B_F80_IN2R_H1003_TRUST_joint_J",
+    "R43_B_CC31_H1001_TRUST_frozen_J",
+    "R43_B_CC31_H1001_TRUST_joint_J",
+    "R43_B_F80_IN2R_H1001_TRUST_frozen_BCE",
+    "R43_B_F80_IN2R_H1002_TRUST_frozen_BCE",
+    "R43_B_F80_IN2R_H1003_TRUST_frozen_BCE",
+    "R43_B_F80_IN2R_H1001_TRUST_joint_BCE",
+    "R43_B_F80_IN2R_H1002_TRUST_joint_BCE",
+    "R43_B_F80_IN2R_H1003_TRUST_joint_BCE",
+    "R43_B_CC31_H1001_TRUST_frozen_BCE",
+    "R43_B_CC31_H1001_TRUST_joint_BCE",
+    "R43_B_F80_IN2R_H1001_TRUST_frozen_NCE",
+    "R43_B_F80_IN2R_H1002_TRUST_frozen_NCE",
+    "R43_B_F80_IN2R_H1003_TRUST_frozen_NCE",
+    "R43_B_F80_IN2R_H1001_TRUST_joint_NCE",
+    "R43_B_F80_IN2R_H1002_TRUST_joint_NCE",
+    "R43_B_F80_IN2R_H1003_TRUST_joint_NCE",
+    "R43_B_CC31_H1001_TRUST_frozen_NCE",
+    "R43_B_CC31_H1001_TRUST_joint_NCE"
+  ],
+  "other_freeze_files_untouched": {
+    "PROTOCOL_FROZEN.json": "f557a0b351d43afbfe7ed9be10bfaca49611133cdba8ed9faefa32eb002e3582",
+    "PROTOCOL_FROZEN_R41.json": "b601f1843feaea7f6554baf52b01df655ecc951e778214044635ae73f18b8bdf",
+    "PROTOCOL_FROZEN_R41C.json": "e61082d8005da502d63d17d86837dedb0264fa1971eabe7b9b97d7169fcfd9f5",
+    "PROTOCOL_FROZEN_R41F.json": "91d6fddce9d4b1eb5c72520330af3418fc1599602c8f725748a1dcce36f84ad0",
+    "PROTOCOL_FROZEN_R41G.json": "fcdbcfd2598f1eab22fa78147daebce5a2594728a1da01188b8fb5e6052b00bc",
+    "PROTOCOL_FROZEN_R42.json": "8ea4802bda20c0ee02dbf38c3add2a73a123748de08159d1565390e33bdc997a",
+    "PROTOCOL_FROZEN_R42B.json": "b5e6ad1c07339867577c5d574023961e1a333f3bd2361f9db79f1ab9f4e73c52"
+  },
+  "code_not_bound": [],
+  "cpu_test": {},
+  "gpu_gate": {
+    "waived_by_user": true,
+    "utc": "2026-11-03T11:04:09Z",
+    "basis": "user waiver; CPU checks + in-unit fail-fast checks (step-0 native reproduction, cache equivalence, R38 graph check, R40 one-step rule)"
+  },
+  "primary_endpoint": "fixed step 8000",
+  "test_read": false,
+  "amendments": [
+    {
+      "name": "R43-B A1",
+      "utc": "2026-11-03T11:19:13Z",
+      "before_any_training": true,
+      "reason": "freeze writer used the key parent_manifest_sha256 while the frozen trainer check_frozen (r43f/r43c train_unit.py, unchanged) reads parent_cache_manifest_sha256; all 8 formal jobs 1084566-1084573 exited in check_frozen before any unit started (logs kept)",
+      "change": "added parent_cache_manifest_sha256 = parent_manifest_sha256 (same 12 manifests, hashes re-verified unchanged); no code / config / unit change",
+      "previous_file": "PROTOCOL_FROZEN_R43.v0_before_A1.json"
+    }
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

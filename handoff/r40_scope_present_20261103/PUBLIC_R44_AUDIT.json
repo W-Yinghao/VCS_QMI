@@ -1,0 +1,393 @@
+{
+  "utc": "2026-11-03T19:33:49Z",
+  "tool": "tools/r44_audit.py (zero training, no TEST)",
+  "cause": "LAYOUT LEAK through the JOINT student centring, not a routing-arithmetic bug and not DEV data in the training graph. The R39 JOINT student vector is u = l2norm(e - mu[batch]) with mu = the PARENT per-native-batch mean of 128 SEQUENTIAL rows of the native eval layout (row r = image r//5, caption r), so an image and its own captions always share a batch (DEV: the true pairs; FIT: the clean grouping k//5, i.e. truth). ROUTE_PRESENT trains the encoder only on present rows (enriched for clean records) and removes the null-row push-down; the encoder output collapses (DEV mean cosine of random distinct items 0.97-0.99 vs 0.76-0.87 for ALL / parent) and the head reads pair identity from the shared batch mean. With layout-free DEV centring (one global mean, or independent random batches for images and captions) the R44 ROUTE_PRESENT units fall to 489-496 (F60), 454.6 (F80), 520.0 (F00), i.e. below the frozen parent H; student-cosine-only DEV is 9-90 rSum (near chance on F80).",
+  "item1_parameters": {
+    "finding": "same 42 trainable student tensors per peer as R39 ALL (stud[p].trainable(); r39ext identical); all 42 moved; word embedding / BN statistics / unused BN unchanged (frozen_state digest == parent, 0 buffers moved, 0 non-trainable tensors moved) in RP, RR, ALL, PA",
+    "rel_param_distance_A": {
+      "F60_RP_J": 0.0713,
+      "F60_RP_NCE": 0.0865,
+      "F60_RR_J": 0.0208,
+      "F60_ALL_J": 0.0242,
+      "F60_PA_J": 0.0215,
+      "F80_RP_J": 0.0912,
+      "F80_ALL_J": 0.0259,
+      "F00_RP_J": 0.0224,
+      "F00_ALL_J": 0.0213
+    }
+  },
+  "item2_leakage": {
+    "dev_in_training_graph": "no: training uses FIT items only (JointInputs fit split); readouts run without grad; no buffer mutated (BN eval, 0 buffers moved); step-0 / eval readouts do not change state",
+    "mask_and_pd": "present mask = D36.valid_rows(lists): A mass on the null slot from the OBSERVED map; p_d from observed map + parent candidate tables; record//5 truth not read",
+    "leak": "layout: the fixed parent per-native-batch centring vectors (registered R39 JOINT patch) encode which images and captions are co-located in the native sequential layout; FIT: co-location = clean grouping k//5 (truth); DEV: co-location = the true pairs. The student can exploit it once its own output carries little item signal.",
+    "native_evaluation_note": "the native IN2R evaluation (VSE.forward_emb per-batch mean subtraction over the sequential loader) has the same layout dependence: the parent student-cosine DEV readout with native per-batch centring vs layout-free centring is 505.2 vs 496.6 / 493.6 (F60), 522.1 vs 511.9 / 510.8 (F00), 464.9 vs 453.8 / 452.1 (F80). This affects every native H number (DEV and the TEST tool use the native path) and the frozen-H cache / stage-1 top-100 of all critic lines; it is constant across arms of one parent but not zero."
+  },
+  "item3_reevaluation": [
+    {
+      "cond": "n60",
+      "label": "parent_fresh_student",
+      "unit": "parent",
+      "logged": null,
+      "H_native": 505.2071005917159,
+      "two_stage_native": 505.2071005917159,
+      "two_stage_global": 505.2071005917159,
+      "two_stage_decoupled": 505.2071005917159,
+      "student_cos_native": 505.2071005917159,
+      "student_cos_global": 496.6272189349113,
+      "student_cos_decoupled": 493.55029585798815,
+      "global_minus_H": 0.0,
+      "collapse_mean_cos_img_A": 0.7588708996772766,
+      "collapse_mean_cos_cap_A": 0.4093915820121765,
+      "cos_e_mu_img_A": 0.8774253129959106,
+      "cos_e_mu_cap_A": 0.6516478657722473,
+      "rel_param_distance_A": null,
+      "frozen_equal_parent": null,
+      "non_trainable_moved": null,
+      "moved_buffers": null
+    },
+    {
+      "cond": "n60",
+      "label": "RP_J",
+      "unit": "R44_B_F60_R30_H1001_ROUTE_PRESENT_J_train1001",
+      "logged": 567.4950690335305,
+      "H_native": 505.2071005917159,
+      "two_stage_native": 567.4950690335305,
+      "two_stage_global": 489.38856015779095,
+      "two_stage_decoupled": 484.79289940828403,
+      "student_cos_native": 89.5266272189349,
+      "student_cos_global": 40.1577909270217,
+      "student_cos_decoupled": 36.50887573964497,
+      "global_minus_H": -15.818540433924966,
+      "collapse_mean_cos_img_A": 0.9686755537986755,
+      "collapse_mean_cos_cap_A": 0.9806719422340393,
+      "cos_e_mu_img_A": 0.49079394340515137,
+      "cos_e_mu_cap_A": 0.4200693964958191,
+      "rel_param_distance_A": 0.07130982935474596,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "n60",
+      "label": "RP_NCE",
+      "unit": "R44_B_F60_R30_H1001_ROUTE_PRESENT_NCE_train1001",
+      "logged": 569.7633136094674,
+      "H_native": 505.2071005917159,
+      "two_stage_native": 569.7633136094674,
+      "two_stage_global": 496.1143984220907,
+      "two_stage_decoupled": 494.4773175542406,
+      "student_cos_native": 33.767258382643,
+      "student_cos_global": 9.940828402366863,
+      "student_cos_decoupled": 9.03353057199211,
+      "global_minus_H": -9.092702169625227,
+      "collapse_mean_cos_img_A": 0.9762539267539978,
+      "collapse_mean_cos_cap_A": 0.9915942549705505,
+      "cos_e_mu_img_A": 0.27582594752311707,
+      "cos_e_mu_cap_A": 0.5764011740684509,
+      "rel_param_distance_A": 0.08653249198378157,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "n60",
+      "label": "RR_J",
+      "unit": "R44_B_F60_R30_H1001_ROUTE_RANDOM_J_train1001",
+      "logged": 515.34516765286,
+      "H_native": 505.2071005917159,
+      "two_stage_native": 515.34516765286,
+      "two_stage_global": 498.16568047337273,
+      "two_stage_decoupled": 496.48915187376724,
+      "student_cos_native": 501.4792899408284,
+      "student_cos_global": 484.8323471400394,
+      "student_cos_decoupled": 480.71005917159766,
+      "global_minus_H": -7.041420118343183,
+      "collapse_mean_cos_img_A": 0.8539619445800781,
+      "collapse_mean_cos_cap_A": 0.5843642950057983,
+      "cos_e_mu_img_A": 0.9048839807510376,
+      "cos_e_mu_cap_A": 0.7494049072265625,
+      "rel_param_distance_A": 0.020822409093458696,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "n60",
+      "label": "ALL_J",
+      "unit": "R39_Flickr60_N_joint_global_J",
+      "logged": 517.8698224852071,
+      "H_native": 505.2071005917159,
+      "two_stage_native": 517.8698224852071,
+      "two_stage_global": 496.5285996055227,
+      "two_stage_decoupled": 496.0157790927022,
+      "student_cos_native": 504.1222879684418,
+      "student_cos_global": 485.0493096646943,
+      "student_cos_decoupled": 482.18934911242604,
+      "global_minus_H": -8.678500986193228,
+      "collapse_mean_cos_img_A": 0.86620032787323,
+      "collapse_mean_cos_cap_A": 0.6160815358161926,
+      "cos_e_mu_img_A": 0.9106563329696655,
+      "cos_e_mu_cap_A": 0.7658371329307556,
+      "rel_param_distance_A": 0.0241780356748531,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "n60",
+      "label": "PA_J",
+      "unit": "R40_B_F60_R30_H1001_PRESENT_both_joint_J",
+      "logged": 516.1143984220907,
+      "H_native": 505.2071005917159,
+      "two_stage_native": 516.1143984220907,
+      "two_stage_global": 496.7258382642998,
+      "two_stage_decoupled": 495.36489151873764,
+      "student_cos_native": 503.155818540434,
+      "student_cos_global": 486.9428007889546,
+      "student_cos_decoupled": 484.5956607495069,
+      "global_minus_H": -8.481262327416118,
+      "collapse_mean_cos_img_A": 0.8549387454986572,
+      "collapse_mean_cos_cap_A": 0.5859591364860535,
+      "cos_e_mu_img_A": 0.9086087346076965,
+      "cos_e_mu_cap_A": 0.7529422044754028,
+      "rel_param_distance_A": 0.021488370269829266,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "n00",
+      "label": "parent_fresh_student",
+      "unit": "parent",
+      "logged": null,
+      "H_native": 522.0710059171598,
+      "two_stage_native": 522.0710059171598,
+      "two_stage_global": 522.0710059171598,
+      "two_stage_decoupled": 522.0710059171598,
+      "student_cos_native": 522.0710059171598,
+      "student_cos_global": 511.854043392505,
+      "student_cos_decoupled": 510.8284023668639,
+      "global_minus_H": 0.0,
+      "collapse_mean_cos_img_A": 0.8297414779663086,
+      "collapse_mean_cos_cap_A": 0.2978619635105133,
+      "cos_e_mu_img_A": 0.915276825428009,
+      "cos_e_mu_cap_A": 0.5627261400222778,
+      "rel_param_distance_A": null,
+      "frozen_equal_parent": null,
+      "non_trainable_moved": null,
+      "moved_buffers": null
+    },
+    {
+      "cond": "n00",
+      "label": "RP_J",
+      "unit": "R44_B_F00_R30_H1001_ROUTE_PRESENT_J_train1001",
+      "logged": 532.5246548323471,
+      "H_native": 522.0710059171598,
+      "two_stage_native": 532.5246548323471,
+      "two_stage_global": 519.9605522682446,
+      "two_stage_decoupled": 519.9211045364891,
+      "student_cos_native": 467.7909270216963,
+      "student_cos_global": 449.2899408284024,
+      "student_cos_decoupled": 439.6844181459566,
+      "global_minus_H": -2.110453648915268,
+      "collapse_mean_cos_img_A": 0.9321064949035645,
+      "collapse_mean_cos_cap_A": 0.5658861994743347,
+      "cos_e_mu_img_A": 0.9268876910209656,
+      "cos_e_mu_cap_A": 0.7140417695045471,
+      "rel_param_distance_A": 0.022361216435616713,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "n00",
+      "label": "ALL_J",
+      "unit": "R39X_Flickr00_R30H_s1001_N_joint_global_J",
+      "logged": 527.5936883629191,
+      "H_native": 522.0710059171598,
+      "two_stage_native": 527.5936883629191,
+      "two_stage_global": 520.4142011834319,
+      "two_stage_decoupled": 519.723865877712,
+      "student_cos_native": 435.6410256410256,
+      "student_cos_global": 423.31360946745565,
+      "student_cos_decoupled": 417.06114398422096,
+      "global_minus_H": -1.6568047337278813,
+      "collapse_mean_cos_img_A": 0.9242687821388245,
+      "collapse_mean_cos_cap_A": 0.45089834928512573,
+      "cos_e_mu_img_A": 0.9179551601409912,
+      "cos_e_mu_cap_A": 0.646352231502533,
+      "rel_param_distance_A": 0.021274777119952612,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "f80in",
+      "label": "parent_fresh_student",
+      "unit": "parent",
+      "logged": null,
+      "H_native": 464.93096646942803,
+      "two_stage_native": 464.93096646942803,
+      "two_stage_global": 464.93096646942803,
+      "two_stage_decoupled": 464.93096646942803,
+      "student_cos_native": 464.93096646942803,
+      "student_cos_global": 453.8461538461539,
+      "student_cos_decoupled": 452.1499013806706,
+      "global_minus_H": 0.0,
+      "collapse_mean_cos_img_A": 0.8101498484611511,
+      "collapse_mean_cos_cap_A": 0.6385924220085144,
+      "cos_e_mu_img_A": 0.9048605561256409,
+      "cos_e_mu_cap_A": 0.80446857213974,
+      "rel_param_distance_A": null,
+      "frozen_equal_parent": null,
+      "non_trainable_moved": null,
+      "moved_buffers": null
+    },
+    {
+      "cond": "f80in",
+      "label": "RP_J",
+      "unit": "R44_B_F80_IN2R_H1001_ROUTE_PRESENT_J_train1001",
+      "logged": 542.5049309664694,
+      "H_native": 464.93096646942803,
+      "two_stage_native": 542.5049309664694,
+      "two_stage_global": 454.6153846153845,
+      "two_stage_decoupled": 452.09072978303743,
+      "student_cos_native": 12.958579881656807,
+      "student_cos_global": 5.680473372781066,
+      "student_cos_decoupled": 5.207100591715976,
+      "global_minus_H": -10.3155818540435,
+      "collapse_mean_cos_img_A": 0.984009325504303,
+      "collapse_mean_cos_cap_A": 0.9952554702758789,
+      "cos_e_mu_img_A": 0.17107005417346954,
+      "cos_e_mu_cap_A": 0.43815895915031433,
+      "rel_param_distance_A": 0.09119885233798401,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    },
+    {
+      "cond": "f80in",
+      "label": "ALL_J",
+      "unit": "R41_C_F80_IN2R_H1001_N_joint_J",
+      "logged": 457.55424063116374,
+      "H_native": 464.93096646942803,
+      "two_stage_native": 457.55424063116374,
+      "two_stage_global": 448.1459566074951,
+      "two_stage_decoupled": 447.2189349112426,
+      "student_cos_native": 449.30966469428006,
+      "student_cos_global": 438.63905325443784,
+      "student_cos_decoupled": 436.7061143984221,
+      "global_minus_H": -16.785009861932906,
+      "collapse_mean_cos_img_A": 0.8440635204315186,
+      "collapse_mean_cos_cap_A": 0.6997659802436829,
+      "cos_e_mu_img_A": 0.9021348357200623,
+      "cos_e_mu_cap_A": 0.8201990127563477,
+      "rel_param_distance_A": 0.025924375149037778,
+      "frozen_equal_parent": {
+        "A": true,
+        "B": true
+      },
+      "non_trainable_moved": {
+        "A": [],
+        "B": []
+      },
+      "moved_buffers": {
+        "A_buffers": [],
+        "B_buffers": []
+      }
+    }
+  ],
+  "item4_scaling": {
+    "p_d": {
+      "F60": {
+        "i2t": 0.894,
+        "t2i": 0.399
+      },
+      "F80": {
+        "i2t": 0.675,
+        "t2i": 0.226
+      },
+      "F00": {
+        "i2t": 0.9987,
+        "t2i": 0.968
+      }
+    },
+    "finding": "loss_enc = masked row sum / (n p_d): present t2i rows weighted 1/p_d (F60 2.5x, F80 4.4x). The per-peer clip is almost never active (F60 RP frac_clipped 0.0014 at 8000), and AdamW normalises step size per parameter, so the scaling does not make a larger effective lr; encoder grad norms are similar to ROUTE_RANDOM (end window img 0.376 vs 0.437, txt 0.507 vs 0.386). The 3.5x larger parameter distance (0.071 vs 0.021) comes from a consistent gradient direction (collapse toward the layout code), not from the scale."
+  },
+  "scope_of_impact": "all JOINT units (R39, R39X, R40 encoder arms, R41, R42, R43 joint, R44, R45, R46-B) are evaluated with the same centring; under layout-free centring the R39 F60 ALL J falls 517.9 -> 496.5 (H 505.2, i.e. -8.7 instead of +12.7), R41-C F80 ALL J 457.6 -> 448.1 (H 464.9), R39X F00 ALL J 527.6 -> 520.4 (H 522.1). The JOINT gains reported since R39 are therefore not established; frozen-encoder (head-only) units use the frozen-H cache and are not affected by the student centring (only by the native-evaluation layout effect common to all arms).",
+  "caveat": "global / decoupled centring changes the student input statistics. Reference points: the parent (same model, only centring changed) loses 9-11 rSum in its student-cosine readout and 0 in the two-stage readout (its head residual is zero, stage 1 = frozen-H cache); the JOINT units lose 7-21 rSum two-stage (ALL / PA / RR) and 12-88 (ROUTE_PRESENT). How much of the ALL drop is layout leak vs distribution shift is not separated by this audit; a JOINT student trained with layout-free centring (e.g. global or shuffled-batch FIT means) would separate them.",
+  "status": "R44 B/C UNDER_AUDIT; no code changed",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

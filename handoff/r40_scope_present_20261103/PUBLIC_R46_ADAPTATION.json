@@ -1,0 +1,40 @@
+{
+  "line": "R46 registered adaptations / implementation choices (before PROTOCOL_FROZEN_R46.json)",
+  "utc": "2026-11-03T16:35:44Z",
+  "trees": {
+    "r46f": "r42f + tools/r46_patch.py (train_unit) + common R46 section; oracle runner / oracle_truth not copied",
+    "r46o": "r43o + tools/r46_patch.py (train_unit) + data35 record-pool loading + common R46 section (subset conds)"
+  },
+  "A": {
+    "subset": "one permutation of the 113287 COCO train images (np.random.default_rng(20261146)); 29k = sorted first 29000, 58k = sorted first 58000 (nested)",
+    "pool": "records whose OBSERVED image (R33 NOISE_LOCK 0.8 map, unchanged) is in the subset: exactly 5 per kept image (the map keeps 5 observed captions per image); 145000 / 290000 records; realized noise 0.8003 / 0.7998 inside the pools",
+    "interpretation_note": "\"all 5 captions per kept image, noise map restricted to the subset\" implemented on the observed side (the N route trains on observed pairs); restricting by the caption source image instead would change the in-pool noise rate (noisy captions keep an out-of-subset observed image) and was not used",
+    "sampler": "record draws from the pool (data36 draw_main pool argument, as TRUST) -> new record stream; head init / sampler seed unchanged",
+    "prep": "candidates (i2t: subset images over pool captions; t2i: pool captions over subset images), locks (R35 rule over the pool), calibration rebuilt within the pool with the frozen parent H; rows outside the pool keep the R43 rows (never sampled); cache = R43 c80 cache (unchanged, DEV unchanged)",
+    "joint_prep": "byte copy of the R43 c80in_s1001 JOINT prep (same cache), manifest cond renamed"
+  },
+  "B": {
+    "init": "heads / nulls / student loaded from the round-1 step-8000 checkpoint of the same objective; fresh AdamW; R39 JOINT cosine restarted over the 8000 round-2 updates; sampler stream [1001, 46] (new, both arms)",
+    "rebuilt": "natural top-32 from the round-1 student: full FIT encoded with the round-1 student (parent per-native-batch centring as in training), peer-mean cosine, torch.topk(32); N labels from the observed relation; calibration of the head not re-done (the head continues from round 1; s_H stays the frozen parent native score)",
+    "continued": "identical continuation with the parent (H) tables",
+    "step0": "step-0 DEV two-stage ranks (i2t, t2i) == round-1 step-8000 ranks exactly and rsum equal (replaces the native-H step-0 check and the R39 student-vs-cache check)",
+    "gpu_pin": "B jobs pinned to the round-1 GPU type (Flickr R39 / R41-C units: L40S; COCO R43-A units: RTX6000PRO) so the step-0 rank equality is not broken by kernel differences",
+    "secondary_readout": "round-2 student own top-100 two-stage DEV: post-hoc tool on the final checkpoints (zero training), not in the trainer"
+  },
+  "checks": {
+    "cpu": "tests/cpu_test_r46.py",
+    "gpu_smoke": "sbatch/r46_smoke.sbatch + tools/r46_smoke_check.py (gate mode, 20 updates per unit, readouts 0 / 20); GPU_GATE.json written at freeze from GPU_SMOKE_R46.json"
+  },
+  "check_history": {
+    "cpu_1085184": "failed: r46o CPU e2e of the 29k JOINT unit, R39 student-vs-cache equivalence 1.3e-4 > 1e-4 on CPU kernels (cache built on GPU); same check passed on GPU in smoke 1085185; CPU e2e switched to the 29k FROZEN unit (main session agreed)",
+    "cpu_1085212": "failed: e2e criterion bug (required the JOINT-only cache-equivalence flag for the frozen unit); fixed in tests/e2e_r46.py",
+    "cpu_1085242": "ALL_PASS",
+    "smoke_1085185": "ALL_PASS (r46o, RTX6000PRO, 4 units)",
+    "smoke_1085186": "ALL_PASS (r46f, L40S, 3 units)",
+    "records": [
+      "CPU_TEST_R46_1085184_failed.json",
+      "CPU_TEST_R46_1085212_failed.json"
+    ]
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

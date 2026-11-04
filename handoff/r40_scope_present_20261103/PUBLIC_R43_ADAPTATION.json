@@ -1,0 +1,64 @@
+{
+  "line": "R43 registered adaptations / implementation choices (before PROTOCOL_FROZEN_R43*.json)",
+  "utc": "2026-11-03T10:55:49Z",
+  "A_coco": {
+    "tree": "r43o",
+    "derivation": "r42f core (train_unit, r39ext per-cond JOINT, r40ext, r38ext, heads, objectives, native_eval, data36, r39_targets) + r41c (R37C CC152K port) data35 / evals / common; diff R43O_DIFF.patch",
+    "data": {
+      "train": "113287 images (train_ims.npy one row per image) x 566435 captions, 5 per image (native im_div 5)",
+      "dev": "native 1K-image dev split: dev_ims.npy 5000 rows (each image x5), 5000 captions; validate() keeps img[::5] -> 1000 x 5000, per_captions 5",
+      "test": "5K / testall never opened (TEST guard)"
+    },
+    "observed_relation": "injected noise map of each parent run (R33 run opt noise_file, sha-bound): c20 official NCR noise_index coco_precomp_0.2 (83c71bd6...), c60 R25 lock coco_precomp_0.6 (b141047d...), c80 R33 NOISE_LOCK coco_precomp_0.8 (98356e10...)",
+    "dev_observed": "= DEV clean = k//5 (no DEV-observed lock exists for COCO; the N / JOINT route never uses it; same as the R41/R42 IN2R parents, dev_lock n00 identity)",
+    "record_locks": "R35 prep.record_locks with n_records=566435 and the same seeds 20261110..20261113 (R37C rule); per-parent prep dir holds a byte-identical copy",
+    "tokens": "data.process_caption(vocab, caption, drop=False), native coco_precomp vocab + <mask>; one writer (c60in_s1001 build job), sha-bound in every JOINT prep manifest",
+    "raw_features": "train region features 33.4 GB -> host RAM with the CC152K per-step gather (RAW_FIT_ON_GPU False)",
+    "cache_gpu": "all seven parents rebuilt on RTX6000PRO = GPU type of the attempt that wrote each model_best (attempt start times vs model_best mtime); native DEV reproduced exactly for all (rsum == checkpoint best_rsum, float32 re-score identical)",
+    "parents_added": "c80 s1002 / s1003 added by the main session after they finished (3 parents at 60% and 80%); c20 has one parent (s1002/s1003 still training in R33)",
+    "g_units_only": "need_local refused (assert), as R37C",
+    "timing": {
+      "gpu": "NVIDIA L40S",
+      "note": "30-update gate-mode runs of R43_A_C60_IN2R_H1001_N_{frozen,joint}_J (scratch, not formal); in-build timing of 1084286 did not run (/usr/bin/time absent)",
+      "frozen": {
+        "train_seconds_30": 13.28,
+        "eval_seconds_2_readouts": 30.1,
+        "peak_gpu_GB": 6.66,
+        "peak_host_rss_GiB": 5
+      },
+      "joint": {
+        "train_seconds_30": 30.24,
+        "eval_seconds_2_readouts": 196.8,
+        "peak_gpu_GB": 15.85,
+        "peak_host_rss_GiB": 63,
+        "job_wall_s": 1559,
+        "note": "includes the 33 GB raw-feature load from NFS"
+      },
+      "resources": "COCO frozen 64G / 6h (3 units ~ 3 x (8000 x <=0.44 s + 7 readouts)), COCO joint 128G / 12h (3 units ~ 3 x (8000 x <=1.0 s + 7 x ~100 s) + raw load); self-resume <= 3 as all R40-R42 jobs"
+    }
+  },
+  "B_trust": {
+    "trees": {
+      "r43f": "r42f + common.py only (R43F_DIFF_VS_R42F.patch): RUNS runs_r43, freeze file, f80 conds -> R43 prep dirs with trust_file",
+      "r43c": "r41c + common.py only (R43C_DIFF_VS_R41C.patch): RUNS runs_r43, freeze file"
+    },
+    "supervision": "R37 TRUST_NATIVE_NULL (B1) exactly: anchors from the parent B-TRUST subset, full N lists / labels (data36 production path, unchanged)",
+    "trust_rule": "R37 prep.trust_cond verbatim with the IN2R code copy (co_train.py byte-identical to R30 code): native eval_train, seeds 1001, warmup loader with the parent noise map, subset = mean(prob_A, prob_B) >= 0.5",
+    "trust_job": 1084285,
+    "f80_retention": {
+      "f80in": 0.2456,
+      "f80in_s1002": 0.2472,
+      "f80in_s1003": 0.2403
+    },
+    "cc": "R37C trust_cc.npz (read-only)",
+    "prep_dirs": "R43 prep dir per f80 parent: candidate table byte copy (sha = source manifest) + calibration entry copied + trust file; R41/R42 prep dirs only read",
+    "references": "no in-unit reference unit (TRUST changes the anchor stream); N-frozen / N-JOINT of the same parent compared in the summary (R41 C, R42, R38 CC, R39 CC)",
+    "resources": "Flickr frozen 64G/2h, joint 64G/8h; CC frozen 64G/2h, joint 150G/10h (R39 CC JOINT setting)"
+  },
+  "cpu_checks": {
+    "B_failed_1084349": "test-only KeyError (source_manifest vs source_prep_manifest) in trust_prep; e2e r43f/r43c passed; record CPU_TEST_R43_B_1084349_failed.json",
+    "B_rerun": 1084513
+  },
+  "dedupe": "DEDUPE_R43.json: 66 R43 configs unique within and vs 276 prior R37-R42 configs",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

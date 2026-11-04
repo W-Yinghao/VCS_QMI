@@ -1,0 +1,226 @@
+{
+  "part": "R43-B",
+  "utc": "2026-11-03T10:59:33Z",
+  "checks": {
+    "code_derivation": {
+      "passed": true,
+      "detail": {
+        "r43f": {
+          "byte_identical": {
+            "data35.py": true,
+            "data36.py": true,
+            "evals.py": true,
+            "heads.py": true,
+            "native_eval.py": true,
+            "objectives.py": true,
+            "oracle_truth.py": true,
+            "r38ext.py": true,
+            "r39_targets.py": true,
+            "r39ext.py": true,
+            "r40ext.py": true,
+            "train_oracle.py": true,
+            "train_unit.py": true
+          },
+          "file_set_equal": true,
+          "diff_equals_registered_patch": true,
+          "passed": true
+        },
+        "r43c": {
+          "byte_identical": {
+            "data35.py": true,
+            "data36.py": true,
+            "evals.py": true,
+            "heads.py": true,
+            "native_eval.py": true,
+            "objectives.py": true,
+            "r38ext.py": true,
+            "r39_targets.py": true,
+            "r39ext.py": true,
+            "r40ext.py": true,
+            "train_unit.py": true
+          },
+          "file_set_equal": true,
+          "diff_equals_registered_patch": true,
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 0.03628683090209961
+    },
+    "configs": {
+      "passed": true,
+      "detail": {
+        "n": 24,
+        "bad": [],
+        "passed": true
+      },
+      "seconds": 0.034358978271484375
+    },
+    "trust_prep": {
+      "passed": true,
+      "detail": {
+        "f80in": {
+          "candidates_identical": true,
+          "calibration_identical": true,
+          "source_manifest_sha": true,
+          "r35": true,
+          "trust_sha": true,
+          "n_subset": 35609,
+          "retention": 0.24557931034482758,
+          "sorted_unique": true,
+          "in_range": true,
+          "rule": "native co_train.eval_train (eval_loss, min-max normalised, GaussianMixture(2,max_iter=10,tol=1e-2,reg_covar=5e-4), prob of low-mean component); subset = mean(prob_A,prob_B) >= 0.5; computed once, never updated",
+          "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "passed": true
+        },
+        "f80in_s1002": {
+          "candidates_identical": true,
+          "calibration_identical": true,
+          "source_manifest_sha": true,
+          "r35": true,
+          "trust_sha": true,
+          "n_subset": 35838,
+          "retention": 0.24715862068965516,
+          "sorted_unique": true,
+          "in_range": true,
+          "rule": "native co_train.eval_train (eval_loss, min-max normalised, GaussianMixture(2,max_iter=10,tol=1e-2,reg_covar=5e-4), prob of low-mean component); subset = mean(prob_A,prob_B) >= 0.5; computed once, never updated",
+          "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "passed": true
+        },
+        "f80in_s1003": {
+          "candidates_identical": true,
+          "calibration_identical": true,
+          "source_manifest_sha": true,
+          "r35": true,
+          "trust_sha": true,
+          "n_subset": 34837,
+          "retention": 0.2402551724137931,
+          "sorted_unique": true,
+          "in_range": true,
+          "rule": "native co_train.eval_train (eval_loss, min-max normalised, GaussianMixture(2,max_iter=10,tol=1e-2,reg_covar=5e-4), prob of low-mean component); subset = mean(prob_A,prob_B) >= 0.5; computed once, never updated",
+          "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "passed": true
+        },
+        "cc": {
+          "trust_sha": true,
+          "retention": 0.9178333333333333,
+          "rule": "native co_train.eval_train (eval_loss, min-max normalised, GaussianMixture(2,max_iter=10,tol=1e-2,reg_covar=5e-4), prob of low-mean component); subset = mean(prob_A,prob_B) >= 0.5; computed once, never updated; record k = (image k, caption k)",
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 7.690603733062744
+    },
+    "e2e_r43f": {
+      "passed": true,
+      "detail": {
+        "R43_B_F80_IN2R_H1001_TRUST_frozen_J": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 18,
+            "n_changed": 18,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 0,
+              "B": 0
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_H_cache_unchanged": true
+          },
+          "step0_cache_equivalence": null,
+          "step1_graph_check": true,
+          "seconds": 28.55105233192444,
+          "supervision": "TRUST_NATIVE_NULL",
+          "cond": "f80in",
+          "trust_pool_size": 35609,
+          "anchors_in_pool": true,
+          "passed": true
+        },
+        "R43_B_F80_IN2R_H1002_TRUST_joint_NCE": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "seconds": 74.76036787033081,
+          "supervision": "TRUST_NATIVE_NULL",
+          "cond": "f80in_s1002",
+          "trust_pool_size": 35838,
+          "anchors_in_pool": true,
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 173.97747826576233
+    },
+    "e2e_r43c": {
+      "passed": true,
+      "detail": {
+        "R43_B_CC31_H1001_TRUST_joint_BCE": {
+          "one_step_r40": {
+            "rule": "R40: every active tensor (head, null, enabled student modality) changes at update 1 unless its update-1 gradient is exactly zero or the predicted AdamW step is below the fp32 spacing of every element; frozen-modality tensors requires_grad False, no .grad, not in the optimizer, bit-unchanged; >= 1 head tensor and (if a student exists) >= 1 student tensor changed per peer",
+            "n_active": 102,
+            "n_changed": 102,
+            "unexplained_unchanged": [],
+            "unchanged_explained": {},
+            "head_tensors_changed": {
+              "A": 8,
+              "B": 8
+            },
+            "student_tensors_changed": {
+              "A": 42,
+              "B": 42
+            },
+            "n_frozen_modality_tensors": 0,
+            "frozen_modality_ok": true,
+            "passed": true,
+            "frozen_state_unchanged": {
+              "A": true,
+              "B": true
+            },
+            "frozen_H_cache_unchanged": true
+          },
+          "step0_cache_equivalence": true,
+          "step1_graph_check": true,
+          "seconds": 88.74516296386719,
+          "supervision": "TRUST_NATIVE_NULL",
+          "cond": "cc",
+          "trust_pool_size": 137675,
+          "anchors_in_pool": true,
+          "passed": true
+        },
+        "passed": true
+      },
+      "seconds": 256.3339042663574
+    }
+  },
+  "ALL_PASS": true,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

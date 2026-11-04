@@ -1,0 +1,192 @@
+--- r41c/common.py	2026-11-03 06:29:07.612290874 +0100
++++ r43o/common.py	2026-11-03 11:05:37.657050642 +0100
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'oracle_runs_r42'), str(OUT / 'oracle_runs_r43'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs; R43: + R41/R42/R43 oracle_runs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -195,3 +195,51 @@
+ ORACLE_RUNS = OUT / 'oracle_runs_r41'   # no oracle units in R41-F
+ FROZEN_FILE = 'PROTOCOL_FROZEN_R41F.json'
+ FROZEN_FILES_R41 = ('PROTOCOL_FROZEN_R41F.json',)
++
++
++# ----------------------------------------------------------------------------- R43 A (MS-COCO, second injected-noise dataset; IN2R-native R33 H0 parents)
++# Tree r43o = r42f core (train_unit / r39ext per-cond JOINT / r40ext / r38ext / heads / objectives / native_eval / data36) + r41c (CC152K port)
++# data35 / evals / common, i.e. the PER_CAP-parametrised G-unit port, with the COCO constants below (registered in R43_ADAPTATION.json):
++#  * coco_precomp train: 113287 images (train_ims.npy one row per image), 566435 captions, 5 captions per image (native im_div 5, t2i_index k//5);
++#  * DEV = the native 1K-image dev split: dev_ims.npy has 5000 rows (each image repeated 5x, native im_div 1 on dev) + 5000 captions; the native
++#    validate() keeps img_embs[::5] -> 1000 images x 5000 captions, per_captions 5. The 5K split is TEST only and is never opened (TEST guard).
++#  * observed relation = the injected noise map the parent trained with (R33 run opt noise_file; c20 official NCR noise_index, c60 R25 lock,
++#    c80 R33 NOISE_LOCK), hash-bound; DEV observed = DEV clean = k//5 (no DEV-observed lock exists for COCO; the N / JOINT route never uses it).
++#  * raw train region features 113287x36x2048 fp32 = 33.4 GB -> host RAM with the per-step gather of the CC152K path (RAW_FIT_ON_GPU False).
++DATA_NAME = 'coco_precomp'
++DATA_SRC = Path('/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/data') / DATA_NAME
++N_TRAIN_IMG, N_TRAIN_CAP, N_DEV_IMG, N_DEV_CAP = 113287, 566435, 1000, 5000
++PER_CAP = 5
++RUNS = OUT / 'runs_r43'
++ORACLE_RUNS = OUT / 'oracle_runs_r43'   # no oracle units in R43
++FROZEN_FILE = 'PROTOCOL_FROZEN_R43A.json'   # R43 part A (COCO), frozen after the five COCO parent builds; part B = PROTOCOL_FROZEN_R43.json
++FROZEN_FILES_R43 = ('PROTOCOL_FROZEN_R43A.json',)
++FROZEN_FILES_R41 = FROZEN_FILES_R43   # name used by train_unit.check_frozen
++R43_PARENTS = OUT / 'r43_parents'
++CODE_IN2R = Path('/home/infres/yinwang/CS_QMI/handoff/r31_in2r_fidelity_20261101/code')   # R25 IN2R code copy; R33 code_h0 is byte-identical (diff -q, every file)
++CODE_NATIVE = CODE_IN2R
++PREP = R43_PARENTS / 'prep'
++_R33 = Path('/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/runs')
++_CNOISE = {20: ('/projects/EEG-foundation-model/yinghao/data/ncr_precomp/NCR-data/noise_index/coco_precomp_0.2.npy', '83c71bd62ebe32dc03dd2db1d1ab81789c1167050bdb99280caee1874653c52e'),
++           60: ('/projects/EEG-foundation-model/yinghao/outputs_v9/r25_in2r_20261027/noise/coco_precomp_0.6.npy', 'b141047d84c422f52f13fa0d995472a18c72efa9373e93ea4a157110f07d3ecf'),
++           80: ('/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/noise/coco_precomp_0.8.npy', '98356e1016192bf3da3b36aea6e5dd812237ca656cf4815563a58a54f4fa1c9a')}
++CONDS = {}
++JOINT_PARENTS = {}
++for _key, _pct, _seed, _run in (('c20in_s1001', 20, 1001, 'RUN_1081054.json'), ('c60in_s1001', 60, 1001, 'RUN_1081079.json'), ('c60in_s1002', 60, 1002, 'RUN_1081076.json'),
++                                ('c60in_s1003', 60, 1003, 'RUN_1081028.json'), ('c80in_s1001', 80, 1001, 'RUN_1081070.json'),
++                                ('c80in_s1002', 80, 1002, 'RUN_1081072.json'), ('c80in_s1003', 80, 1003, 'RUN_1081081.json')):   # main session: + c80 s1002/s1003 (3 parents at 60% and at 80%)
++    _pdir = _R33 / f'c{_pct}_s{_seed}' / 'H0'
++    CONDS[_key] = dict(dataset='MS-COCO', noise_percent=_pct, parent_seed=_seed, h_unit=f'r33_c{_pct}_s{_seed}_H0', run_json=_run, parent_dir=str(_pdir),
++                       noise_file=_CNOISE[_pct][0], noise_sha256=_CNOISE[_pct][1], noise_ratio=_pct / 100,
++                       cache_dir=str(R43_PARENTS / 'cache' / _key), prep_dir=str(PREP / _key), prep_key=_key, trust_file=None, code=str(CODE_IN2R))
++    JOINT_PARENTS[_key] = dict(ckpt=_pdir / 'model_best.pth.tar', prep_dir=R43_PARENTS / 'joint' / _key, code=CODE_IN2R)
++TARGET_COND = 'c60in_s1001'
++TEACHER_CONDS = ()
++NATIVE_CODE = CODE_IN2R
++PARENT_DIR = Path(CONDS[TARGET_COND]['parent_dir'])
++PARENT_CKPT = PARENT_DIR / 'model_best.pth.tar'   # unused by the per-cond JOINT path (JOINT_PARENTS); kept for imports
++TOKENS_FILE = R43_PARENTS / 'coco' / 'tokens_coco.npz'   # data.process_caption(vocab, caption, drop=False), coco vocab + <mask> (R35 / R39 rule)
++RAW_FIT_IMS = DATA_SRC / 'train_ims.npy'; RAW_DEV_IMS = DATA_SRC / 'dev_ims.npy'
++DEV_IMS_ROW_STRIDE = 5                   # DEV image k = dev_ims row 5k (dev_ims.npy has one row per caption)
++RAW_FIT_ON_GPU = False                   # 113287x36x2048 fp32 = 33.4 GB: host RAM, per-step gather of the unique batch images (CC152K path)
++DS_KEY = 'coco'
+--- r41c/data35.py	2026-11-02 20:35:44.254523393 +0100
++++ r43o/data35.py	2026-11-03 10:57:16.059915608 +0100
+@@ -1,4 +1,6 @@
+-"""R37C data (port of R37 data35.py to CC152K): R37C native global caches (hash-verified), R37C prep locks, FIT candidate
++"""R43 r43o (MS-COCO): r41c data35.py with the observed relation read from the parent's injected noise map (hash-bound, as the Flickr
++trees) instead of the CC152K identity, and parents without a B-TRUST file tolerated (N route only, as R39X). DEV observed = DEV clean = k // 5.
++R37C data (port of R37 data35.py to CC152K): R37C native global caches (hash-verified), R37C prep locks, FIT candidate
+ lists. Only train/dev arrays are ever opened (TEST guard active in every entry). G units only: the local (pre-GPO)
+ encoder path of R35/R36 is not ported (load_local_encoders / load_raw refuse). Observed relation = native identity
+ (observed_map.npy in the cache, re-derived from the native loader); DEV clean/observed relation = identity (per_captions 1)."""
+@@ -37,10 +39,11 @@
+         for name, rec in man['files'].items():
+             assert sha256(cdir / name) == rec['sha256'], f'cache hash mismatch {name}'
+         assert man['parent']['unit'] == c['h_unit'], (man['parent']['unit'], c['h_unit'])
+-        assert man['native_dev']['reproduces_checkpoint_best_rsum_exactly'] and man['observed_map']['is_identity']
++        assert man['native_dev']['reproduces_checkpoint_best_rsum_exactly'] and man['native_dev']['cache_rescore_identical']
++        assert sha256(man['observed_map']['path']) == man['observed_map']['sha256'] == c['noise_sha256'] and man['observed_map']['path'] == c['noise_file']
+     d = dict(cond=cond, manifest=man, manifest_sha256=sha256(cdir / 'CACHE_MANIFEST.json'))
+-    obs = np.load(cdir / 'observed_map.npy').astype(np.int64)
+-    assert obs.shape == (N_TRAIN_CAP,) and np.array_equal(obs, np.arange(N_TRAIN_CAP)) and N_TRAIN_IMG == N_TRAIN_CAP
++    obs = np.load(man['observed_map']['path']).astype(np.int64)
++    assert obs.shape == (N_TRAIN_CAP,) and obs.min() >= 0 and obs.max() < N_TRAIN_IMG
+     d['obs_np'] = obs; d['obs'] = torch.from_numpy(obs).to(device)
+     for p in PEERS:
+         for split in ('fit', 'dev'):
+@@ -54,18 +57,21 @@
+     if need_prep:
+         pdir = Path(c['prep_dir']); pm = read_json(pdir / 'PREP_MANIFEST.json')
+         if verify:
+-            for name in ('locks_records.npz', f"candidates_{c['prep_key']}.npz", c['trust_file']):
++            for name in ('locks_records.npz', f"candidates_{c['prep_key']}.npz") + ((c['trust_file'],) if c['trust_file'] else ()):
+                 assert sha256(pdir / name) == pm['files'][name]['sha256'], f'prep hash mismatch {name}'
+         d['prep_manifest_sha256'] = sha256(pdir / 'PREP_MANIFEST.json')
+-        d['r35_prep_manifest_sha256'] = None   # R35 (Flickr) prep is not used by R37C
++        d['r35_prep_manifest_sha256'] = None   # R35 (Flickr) prep is not used by R43 COCO
+         d['a0b0'] = pm['calibration_init'][c['prep_key']]
+         L = np.load(pdir / 'locks_records.npz')
+         d['locks'] = {k: L[k] for k in L.files}
+         cand = np.load(pdir / f"candidates_{c['prep_key']}.npz")
+         d['cand_i2t'] = cand['i2t_top32']; d['cand_t2i'] = cand['t2i_top32']
+         d['cand_sha256'] = pm['files'][f"candidates_{c['prep_key']}.npz"]['sha256']
+-        T = np.load(pdir / c['trust_file']); d['trust_subset'] = T['subset'].astype(np.int64)
+-        d['trust_sha256'] = pm['files'][c['trust_file']]['sha256']
++        if c['trust_file']:
++            T = np.load(pdir / c['trust_file']); d['trust_subset'] = T['subset'].astype(np.int64)
++            d['trust_sha256'] = pm['files'][c['trust_file']]['sha256']
++        else:   # R43 COCO: no B-TRUST subset (N route only)
++            d['trust_subset'] = None; d['trust_sha256'] = None
+     return d
+ 
+ 
+--- r42f/train_unit.py	2026-11-03 04:14:40.306091555 +0100
++++ r43o/train_unit.py	2026-11-03 10:57:16.058915599 +0100
+@@ -1,4 +1,4 @@
+-"""R41: R40 train_unit.py (per-cond JOINT parent path as R39X; reference chain checked on the reference's own readouts (prefix references for the
++"""R43 r43o (MS-COCO): r42f train_unit.py with the R37C PER_CAP port (DEV readout / step-0 tie rule use PER_CAP = 5 instead of the literal 5; G units only). R41: R40 train_unit.py (per-cond JOINT parent path as R39X; reference chain checked on the reference's own readouts (prefix references for the
+ 16000-update budget cells); R41 freeze files). R40: R39 train_unit.py + R40 edits (update scope image_only/text_only/both_joint via cfg adaptation -> Student(modalities); N_PRESENT_ONLY
+ in-unit checks (p_d recomputed from the full FIT observed relation, masked-row zero gradient every update, valid-row/unique-query/empty-batch
+ logs); per-modality/head/null pre-clip gradient norms + shared clip multiplier; R40 one-step active-path rule (all units); read-only
+@@ -23,7 +23,7 @@
+ import torch
+ 
+ sys.path.insert(0, str(Path(__file__).resolve().parent))
+-from common import (ROOT, RUNS, ORACLE_RUNS, PEERS, N_TRAIN_CAP, N_DEV_IMG, N_DEV_CAP, install_guards, guard_record, assert_no_oracle_loaded,
++from common import (ROOT, RUNS, ORACLE_RUNS, PEERS, N_TRAIN_CAP, N_DEV_IMG, N_DEV_CAP, PER_CAP, install_guards, guard_record, assert_no_oracle_loaded,
+                     sha256, write_json, read_json, utc, state_hash, EVAL_ONLY_MODULES)
+ from heads import build_heads, n_params, NullSlots
+ from objectives import loss_list, list_rows, loss_list_pq, j_parts, loss_list_masked
+@@ -55,6 +55,7 @@
+         tab = self.d['dev_tab']
+         self.pos_i, self.pos_t, self.ai_dev, self.at_dev = EV.dev_list_positions(tab)
+         self.need_local = need_local
++        assert not need_local, 'R43 COCO: G units only'
+         if need_local:
+             self.raw = load_raw(device)
+             self.enc0, self.enc_info = load_local_encoders(cond, device)
+@@ -158,7 +159,7 @@
+     i_top, t_top = tab['i_top'], tab['t_top']
+     parts = dict(i_top=(np.repeat(np.arange(N_DEV_IMG), i_top.shape[1]), i_top.ravel()),
+                  t_top=(t_top.ravel(), np.repeat(np.arange(N_DEV_CAP), t_top.shape[1])),
+-                 gt=(np.arange(N_DEV_CAP) // 5, np.arange(N_DEV_CAP)),
++                 gt=(np.arange(N_DEV_CAP) // PER_CAP, np.arange(N_DEV_CAP)),
+                  rand_i=(np.repeat(np.arange(N_DEV_IMG), 10), tab['rand_i'].ravel()),
+                  rand_t=(tab['rand_t'].ravel(), np.repeat(np.arange(N_DEV_CAP), 10)))
+     img = np.concatenate([v[0] for v in parts.values()]); cap = np.concatenate([v[1] for v in parts.values()])
+@@ -205,9 +206,9 @@
+     rec = dict(dev_retrieval=m, dev_retrieval_tie_bounded=tb, candidate_coverage=cov)
+     g_gt = parts['gt']
+     g_gt_t2i = parts['gt_t2i'] if directional else g_gt
+-    pos_i = g_gt.reshape(N_DEV_IMG, 5).max(1)
+-    hard_i = np.take_along_axis(gi_top, np.stack([np.nonzero((r // 5) != q)[0][:10] for q, r in enumerate(tab['i_top'])]), 1)
+-    hard_t = np.take_along_axis(gt_top, np.stack([np.nonzero(r != c // 5)[0][:10] for c, r in enumerate(tab['t_top'])]), 1)
++    pos_i = g_gt.reshape(N_DEV_IMG, PER_CAP).max(1)
++    hard_i = np.take_along_axis(gi_top, np.stack([np.nonzero((r // PER_CAP) != q)[0][:10] for q, r in enumerate(tab['i_top'])]), 1)
++    hard_t = np.take_along_axis(gt_top, np.stack([np.nonzero(r != c // PER_CAP)[0][:10] for c, r in enumerate(tab['t_top'])]), 1)
+     rec['pair_win_rates'] = EV.pair_win_rates(g_gt_t2i, hard_t, parts['rand_t'].reshape(N_DEV_CAP, 10), pos_i, hard_i,
+                                               parts['rand_i'].reshape(N_DEV_IMG, 10))
+     li, lt = EV.dev_list_scores(gi_top, gt_top, g_gt, ctx.pos_i, ctx.pos_t)
+@@ -237,7 +238,7 @@
+                          dev_list_clean_J=EV.list_j(f['a'] * li + f['b'], ctx.ai_dev, f['a'] * lt + f['b'], ctx.at_dev)['J'],
+                          dev_rank_invariant=bool(EV.rank_invariance(gi_top, f['a'], f['b']) and EV.rank_invariance(gt_top, f['a'], f['b'])) if final else None)
+     rec['calibration_affine_fit_only'] = cal
+-    rec['T_saturation_dev_top100'] = EV.sat(np.concatenate([gi_top.ravel(), gt_top.ravel()[::5]]))
++    rec['T_saturation_dev_top100'] = EV.sat(np.concatenate([gi_top.ravel(), gt_top.ravel()[::PER_CAP]]))
+     rec['heads_ab'] = {p: [float(t) for t in heads[p].affine.ab()] for p in PEERS}
+     if directional:
+         rec['heads_ab_t2i'] = {p: [float(t) for t in heads[p].affine_t2i.ab()] for p in PEERS}
+@@ -614,8 +615,8 @@
+                 # step-0 two-stage ranks must equal the frozen-H native ranks, ties (|Δs| <= 1e-6) excepted — same rule as gate.step0_native
+                 nat = d['native_dev']; TOL = 1e-6
+                 di = np.nonzero(rk['ranks_i'] != ctx.nat_rk['ranks_i'])[0]; dt = np.nonzero(rk['ranks_t'] != ctx.nat_rk['ranks_t'])[0]
+-                tied_i = all(any((np.abs(nat[i] - nat[i, 5 * i + k]) <= TOL).sum() > 1 for k in range(5)) for i in di)
+-                tied_t = all((np.abs(nat[:, c] - nat[c // 5, c]) <= TOL).sum() > 1 for c in dt)
++                tied_i = all(any((np.abs(nat[i] - nat[i, PER_CAP * i + k]) <= TOL).sum() > 1 for k in range(PER_CAP)) for i in di)
++                tied_t = all((np.abs(nat[:, c] - nat[c // PER_CAP, c]) <= TOL).sum() > 1 for c in dt)
+                 rec['step0_native_check'] = dict(n_i2t_rank_diff=int(len(di)), n_t2i_rank_diff=int(len(dt)), rsum=rec['dev_retrieval']['rsum'], native_rsum=ctx.nat_metrics['rsum'],
+                                                  passed=bool((len(di) == 0 and len(dt) == 0) or (tied_i and tied_t)))
+                 write_json(out / 'eval_step0.json', dict(rec, step=0))
+--- r42f/data36.py	2026-11-02 20:36:34.816944321 +0100
++++ r43o/data36.py	2026-11-03 10:57:30.549034969 +0100
+@@ -107,7 +107,7 @@
+     cap_present = (ct == obs[:, None]).any(1)
+     return dict(p_i2t=float(img_present[obs].mean()), p_t2i=float(cap_present.mean()),
+                 p_i2t_per_image=float(img_present.mean()), n_records=int(len(obs)),
+-                rule='p_d = mean over the 145000 FIT records of [observed partner in native top-32] for the query that record induces')
++                rule=f'p_d = mean over the {N_TRAIN_CAP} FIT records of [observed partner in native top-32] for the query that record induces')
+ 
+ 
+ def valid_rows(lists):

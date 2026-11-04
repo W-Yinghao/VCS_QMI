@@ -1,0 +1,23 @@
+--- r43o/common.py
++++ r45o/common.py
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'oracle_runs_r42'), str(OUT / 'oracle_runs_r43'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs; R43: + R41/R42/R43 oracle_runs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'oracle_runs_r42'), str(OUT / 'oracle_runs_r43'), str(OUT / 'oracle_runs_r44'), str(OUT / 'oracle_runs_r45'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs; R43: + R41/R42/R43 oracle_runs; R45: + R44/R45 oracle_runs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -243,3 +243,11 @@
+ DEV_IMS_ROW_STRIDE = 5                   # DEV image k = dev_ims row 5k (dev_ims.npy has one row per caption)
+ RAW_FIT_ON_GPU = False                   # 113287x36x2048 fp32 = 33.4 GB: host RAM, per-step gather of the unique batch images (CC152K path)
+ DS_KEY = 'coco'
++
++
++# ----------------------------------------------------------------------------- R45 (COCO N-JOINT 16000-update budget on c60 s1001 / c80 s1001; R41-A recipe)
++RUNS = OUT / 'runs_r45'
++ORACLE_RUNS = OUT / 'oracle_runs_r45'   # no oracle units in R45
++FROZEN_FILE = 'PROTOCOL_FROZEN_R45.json'
++FROZEN_FILES_R45 = ('PROTOCOL_FROZEN_R45.json',)
++FROZEN_FILES_R41 = FROZEN_FILES_R45   # name used by train_unit.check_frozen

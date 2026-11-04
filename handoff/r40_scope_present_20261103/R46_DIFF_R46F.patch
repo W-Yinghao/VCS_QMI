@@ -1,0 +1,107 @@
+--- r42f/common.py
++++ r46f/common.py
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'oracle_runs_r42'), str(OUT / 'oracle_runs_r43'), str(OUT / 'oracle_runs_r44'), str(OUT / 'oracle_runs_r45'), str(OUT / 'oracle_runs_r46'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle'), str(OUT / 'r46_parents' / 'truth_eval')]   # R40-R46 oracle / evaluator-only outputs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -251,3 +251,12 @@
+                        noise_ratio=_pct / 100, cache_dir=str(R42_PARENTS / 'cache' / _key), prep_dir=str(R42_PARENTS / 'prep' / _key), prep_key=_key, dev_lock='n00', trust_file=None,
+                        code=str(CODE_IN2R))
+     JOINT_PARENTS[_key] = dict(ckpt=_pdir / 'model_best.pth.tar', prep_dir=R42_PARENTS / 'joint' / _key, code=CODE_IN2R)
++
++
++# ----------------------------------------------------------------------------- R46 (A: FIT-pool restriction on COCO 80%; B: iterated N supervision, round 2)
++RUNS = OUT / 'runs_r46'
++ORACLE_RUNS = OUT / 'oracle_runs_r46'   # no oracle units in R46
++FROZEN_FILE = 'PROTOCOL_FROZEN_R46.json'
++FROZEN_FILES_R46 = ('PROTOCOL_FROZEN_R46.json',)
++FROZEN_FILES_R41 = FROZEN_FILES_R46   # name used by train_unit.check_frozen
++R46_PARENTS = OUT / 'r46_parents'
+--- r42f/train_unit.py
++++ r46f/train_unit.py
+@@ -48,9 +48,13 @@
+ 
+ class Ctx:
+     """per-condition data (+ local encoders/raw features for L units), loaded once per process."""
+-    def __init__(self, cond, device, need_local, fit_maps=None):
++    def __init__(self, cond, device, need_local, fit_maps=None, cand_file=None):
+         self.cond, self.dev = cond, device
+         self.d = load_cond(cond, device)
++        if cand_file:   # R46-B REBUILT: round-2 natural top-32 tables (round-1 student, same rule), hash-bound in the config
++            assert sha256(cand_file['path']) == cand_file['sha256'], 'R46: round-2 candidate table changed'
++            Z = np.load(cand_file['path']); assert Z['i2t_top32'].shape == self.d['cand_i2t'].shape and Z['t2i_top32'].shape == self.d['cand_t2i'].shape
++            self.d = dict(self.d); self.d['cand_i2t'] = Z['i2t_top32']; self.d['cand_t2i'] = Z['t2i_top32']; self.d['cand_sha256'] = cand_file['sha256']
+         self.fit_maps = fit_maps or {'observed': self.d['obs_np']}
+         tab = self.d['dev_tab']
+         self.pos_i, self.pos_t, self.ai_dev, self.at_dev = EV.dev_list_positions(tab)
+@@ -497,6 +501,16 @@
+             for q in encs[p].parameters():
+                 q.requires_grad_(False)          # R36: local encoders frozen in every unit
+         lineage['local_encoder_source'] = ctx.enc_info
++    if cfg.get('init_from'):   # R46-B round 2: start from the round-1 step-8000 state (heads, nulls, student); fresh AdamW
++        inf = cfg['init_from']; assert stud is not None and nulls is not None and sha256(inf['ckpt']) == inf['ckpt_sha256'], 'R46: round-1 checkpoint changed'
++        par = torch.load(inf['ckpt'], map_location=dev, weights_only=False)
++        assert par['step'] == inf['step'] and par['unit_id'] == inf['unit_id'] and par['config']['cond'] == cfg['cond'] and par['config']['objective'] == cfg['objective']
++        heads.load_state_dict(par['heads']); nulls.load_state_dict(par['nulls']); stud.load_state_dict(par['student'])
++        assert all(R9.state_digest(stud[p].frozen_state()) == frozen0[p] for p in PEERS), 'R46: round-1 frozen student tensors differ from the parent'
++        stud_ref = {p: {n: q.detach().clone() for n, q in stud[p].named_parameters()} for p in PEERS}
++        lineage['init_from'] = dict(inf, head_state_sha256=state_hash(heads), null_state_sha256=state_hash(nulls), student_state_sha256=state_hash(stud),
++                                    optimizer='fresh AdamW (round-1 optimizer state not loaded); common cosine restarted over the round-2 updates')
++        del par
+     boundary = None
+     if cfg.get('parent_ckpt'):                  # V phase 2 only: own phase-1 head at step 8000
+         assert cfg['block'] == 'V' and cfg['phase'] == 2 and 'oracle_runs' not in cfg['parent_ckpt']
+@@ -609,7 +623,14 @@
+                     hist['r40']['grad_split_windows'].append(dict(end_step=step, **rec['train_window']['r40_grad_split'])); gs40 = []
+                 hist['windows'].append(dict(end_step=step, **rec['train_window']))
+                 win = []; gwin = []
+-            if rk is not None and step == 0 and cfg.get('phase', 1) == 1:
++            if rk is not None and step == 0 and cfg.get('init_from'):   # R46-B: step 0 must reproduce the round-1 step-8000 DEV exactly
++                R1 = np.load(cfg['init_from']['dev_ranks'])
++                ni = int((rk['ranks_i'] != R1['ranks_i']).sum()); nt = int((rk['ranks_t'] != R1['ranks_t']).sum())
++                rec['step0_init_from_check'] = dict(rsum=rec['dev_retrieval']['rsum'], round1_rsum=cfg['init_from']['eval_rsum'], n_i2t_rank_diff=ni, n_t2i_rank_diff=nt,
++                                                    passed=bool(ni == 0 and nt == 0 and rec['dev_retrieval']['rsum'] == cfg['init_from']['eval_rsum']))
++                write_json(out / 'eval_step0.json', dict(rec, step=0))
++                assert rec['step0_init_from_check']['passed'], f"R46 step 0 does not reproduce round 1: {rec['step0_init_from_check']}"
++            if rk is not None and step == 0 and cfg.get('phase', 1) == 1 and not cfg.get('init_from'):
+                 # fail-fast step-0 check (replaces the standalone GPU gate; user 2026-11-02 「取消gate，直接提交正式实验」):
+                 # step-0 two-stage ranks must equal the frozen-H native ranks, ties (|Δs| <= 1e-6) excepted — same rule as gate.step0_native
+                 nat = d['native_dev']; TOL = 1e-6
+@@ -653,7 +674,9 @@
+         if stud is not None:
+             stud.train()
+         loss, jb, idx, st, gl, cx = step_lists(cfg, heads, nulls, encs, ctx, rng, rng2, pool, oracle, stud)
+-        if step == 0 and cfg.get('phase', 1) == 1 and stud is not None:   # R39 fail-fast: student forward (grad on, training batch) == native cache
++        if step == 0 and cfg.get('init_from'):   # R46-B: replaced by the step-0 round-1 DEV rank equality
++            hist['r39']['step0_cache_equivalence'] = dict(passed=True, replaced='R46 round 2: the student starts from the round-1 step-8000 state; step-0 DEV ranks == round-1 ranks asserted instead')
++        if step == 0 and cfg.get('phase', 1) == 1 and stud is not None and not cfg.get('init_from'):   # R39 fail-fast: student forward (grad on, training batch) == native cache
+             eq = dict(train_batch_grad=ctx.joint.cache_equivalence(stud, idx[0], idx[1], 'fit', grad=True))
+             ctx.joint.clear_eval()
+             eq['dev_all_nograd'] = {k: v for k, v in ctx.joint.cache_equivalence(stud, np.arange(N_DEV_IMG), np.arange(N_DEV_CAP), 'dev', grad=False).items()}
+@@ -878,7 +901,7 @@
+ 
+ 
+ def pool_of(cfg, ctx):
+-    return ctx.d['trust_subset'] if cfg['supervision'] in D36.TRUST_SUPS else None
++    return ctx.d['trust_subset'] if cfg['supervision'] in D36.TRUST_SUPS else ctx.d.get('record_pool')   # R46-A: fixed FIT record pool (None = full pool)
+ 
+ 
+ def main(oracle=None):
+@@ -908,9 +931,10 @@
+         if (base / 'DONE.json').exists():
+             print('skip DONE', cfg['unit_id']); continue
+         try:
+-            key = (cfg['cond'], cfg['structure'] == 'L')
++            key = (cfg['cond'], cfg['structure'] == 'L', (cfg.get('candidate_file') or {}).get('sha256'))   # R46: + round-2 table
+             if key not in ctxs:
+-                ctxs[key] = Ctx(cfg['cond'], device, need_local=key[1])
++                ctxs = {}   # R46: one context at a time (memory)
++                ctxs[key] = Ctx(cfg['cond'], device, need_local=key[1], cand_file=cfg.get('candidate_file'))
+             ctx = ctxs[key]
+             if cfg['supervision'] == 'COMPLETE_XCHECK':
+                 ctx.ensure_completion()

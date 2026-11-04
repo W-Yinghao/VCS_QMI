@@ -1,0 +1,24 @@
+--- r41c/common.py	2026-11-03 06:29:07.612290874 +0100
++++ r43c/common.py	2026-11-03 10:56:09.828370058 +0100
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'oracle_runs_r42'), str(OUT / 'oracle_runs_r43'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs; R43: + R41/R42/R43 oracle_runs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -195,3 +195,12 @@
+ ORACLE_RUNS = OUT / 'oracle_runs_r41'   # no oracle units in R41-F
+ FROZEN_FILE = 'PROTOCOL_FROZEN_R41F.json'
+ FROZEN_FILES_R41 = ('PROTOCOL_FROZEN_R41F.json',)
++
++
++# ----------------------------------------------------------------------------- R43 B (deployable cleaner supervision under JOINT: TRUST+N on CC152K CC31)
++RUNS = OUT / 'runs_r43'
++ORACLE_RUNS = OUT / 'oracle_runs_r43'   # no oracle units in R43
++FROZEN_FILE = 'PROTOCOL_FROZEN_R43.json'
++FROZEN_FILES_R43 = ('PROTOCOL_FROZEN_R43.json',)
++FROZEN_FILES_R41 = FROZEN_FILES_R43   # name used by train_unit.check_frozen
++# parent 'cc' = R31 H0_default cc_s1001: R37C cache + R37C prep (B-TRUST trust_cc.npz, R37C prep.trust_cond) + R39 JOINT prep, all read-only.

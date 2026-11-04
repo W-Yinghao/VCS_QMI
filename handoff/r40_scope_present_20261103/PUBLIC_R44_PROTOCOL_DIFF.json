@@ -1,0 +1,14 @@
+{
+  "utc": "2026-11-03T12:24:06Z",
+  "vs": "R39 / R39X N-JOINT recipe (R41-A 16k stretched cosine for block A; R40 N_PRESENT_ONLY for block C)",
+  "A": "training seed 2002 (R41-B definition: build_heads(..., 2002), sampler [2002, 3]) on the R41-A 16000-update recipe from the original H + fresh head; readouts + 12000",
+  "B": "routing ROUTE_PRESENT / ROUTE_RANDOM: head + null = grad of the full-N loss, student encoders = grad of the masked conditional loss (observed-present rows / independent Bernoulli(p_d) rows from default_rng([init_seed, 44, step])), fixed p_d = R40 presence_probs; two autograd.grad on one graph; per-peer single clip; single AdamW step",
+  "C": "R40 N_PRESENT_ONLY x both_joint on F00 (R30-H f00_s1001) and F80 (R33 H0 f80_s1001); F60 / CC PRESENT_ALL reused from R40",
+  "unchanged": "N lists / labels / Q, shared G + cosine (head 1e-4 -> 1e-5, encoder 1e-5 -> 1e-6), AdamW wd 1e-4, per-peer clip 2, 16 queries / direction, DEV two-stage frozen-H top-100 rerank, step-0 native reproduction, R38 graph check, R40 one-step rule, frozen H / buffers",
+  "in_unit_checks": "ROUTING_CHECK.json at update 0 (all-ones p=1 = ALL encoder grad rel 1e-5; head grad = ALL head grad bitwise; encoder grad = conditional objective bitwise; masked rows zero encoder / nonzero head score-gradient); every update: masked rows zero encoder score-gradient, one optimizer step",
+  "code": {
+    "r44f": "r42f + tools/r44_patch.py (train_unit) + common R44 section (R44_DIFF_R44F.patch); oracle runner / oracle_truth not copied",
+    "r44c": "r41c + tools/r44_patch.py (train_unit) + common R44 section (R44_DIFF_R44C.patch)"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

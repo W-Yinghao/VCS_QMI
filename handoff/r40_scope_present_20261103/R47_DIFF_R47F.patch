@@ -1,0 +1,88 @@
+--- r42f/common.py
++++ r47f/common.py
+@@ -141,7 +141,7 @@
+     if not GUARD['installed']:
+         GUARD['role'] = role
+         if role == 'trainer':
+-            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle')]   # R40: + R39 oracle/audit outputs; R41: + R40 oracle_runs
++            _FORBIDDEN_PREFIXES[:] = [str(ORACLE_RUNS), str(OUT / 'oracle_runs'), str(OUT / 'oracle_runs_r41'), str(OUT / 'oracle_runs_r42'), str(OUT / 'oracle_runs_r43'), str(OUT / 'oracle_runs_r44'), str(OUT / 'oracle_runs_r45'), str(OUT / 'oracle_runs_r46'), str(OUT / 'oracle_runs_r47'), str(OUT / 'audit'), str(R39_OUT / 'oracle_runs'), str(R39_OUT / 'audit'), str(OUT / 'diag7' / 'oracle'), str(OUT / 'r46_parents' / 'truth_eval')]   # R40-R47 oracle / evaluator-only outputs
+         elif role == 'oracle':
+             _FORBIDDEN_PREFIXES[:] = [str(OUT / 'audit'), str(R39_OUT / 'audit')]
+         sys.addaudithook(_hook)
+@@ -251,3 +251,19 @@
+                        noise_ratio=_pct / 100, cache_dir=str(R42_PARENTS / 'cache' / _key), prep_dir=str(R42_PARENTS / 'prep' / _key), prep_key=_key, dev_lock='n00', trust_file=None,
+                        code=str(CODE_IN2R))
+     JOINT_PARENTS[_key] = dict(ckpt=_pdir / 'model_best.pth.tar', prep_dir=R42_PARENTS / 'joint' / _key, code=CODE_IN2R)
++
++
++# ----------------------------------------------------------------------------- R47 (JOINT with layout-free centring: G = fixed global parent means, S = own batch means)
++RUNS = OUT / 'runs_r47'
++ORACLE_RUNS = OUT / 'oracle_runs_r47'   # no oracle units in R47
++FROZEN_FILE = 'PROTOCOL_FROZEN_R47.json'
++FROZEN_FILES_R47 = ('PROTOCOL_FROZEN_R47.json',)
++FROZEN_FILES_R41 = FROZEN_FILES_R47   # name used by train_unit.check_frozen
++R47_PARENTS = OUT / 'r47_parents'
++# layout-free parent cache per base parent (tools/r47_build_lf.py): parent encoder outputs centred by ONE mean per split / modality / peer over all items
++# (no sequential-batch grouping); prep (calibration, natural top-32) rebuilt on it with the R35 rules; JOINT prep per variant (G: global means; S: own batch means).
++LF_BASES = ('n60', 'f80in', 'n00')
++for _b in LF_BASES:
++    for _v in ('G', 'S'):
++        CONDS[f'{_b}_lf{_v}'] = dict(CONDS[_b], cache_dir=str(R47_PARENTS / 'cache' / _b), prep_dir=str(R47_PARENTS / 'prep' / _b), prep_key=_b, trust_file=None, lf_base=_b, lf_variant=_v)
++        JOINT_PARENTS[f'{_b}_lf{_v}'] = dict(JOINT_PARENTS[_b], prep_dir=R47_PARENTS / 'joint' / f'{_b}_{_v}')
+--- r42f/r39ext.py
++++ r47f/r39ext.py
+@@ -199,6 +199,8 @@
+                     assert sha256(f) == man['files'][f.name]['sha256'], f'centring file changed: {f}'
+                     self.mu[(split, kind, p)] = torch.from_numpy(np.load(f)).to(device)
+         self.n = dict(fit=dict(img=N_TRAIN_IMG, cap=N_TRAIN_CAP), dev=dict(img=N_DEV_IMG, cap=N_DEV_CAP))
++        self.mode = man.get('centring_mode', 'native_batch')   # R47: native_batch (R39) | global (G) | train_batch (S)
++        assert self.mode in ('native_batch', 'global', 'train_batch'), self.mode
+         self._eval = {}
+         self.l2norm = native_vse().l2norm
+ 
+@@ -220,14 +222,30 @@
+             for i in range(0, len(ids_t), chunk):
+                 c = ids_t[i:i + chunk]
+                 e = self.raw_encode(stud_p, split, kind, c)
+-                mu = self.mu[(split, kind, p)][batch_index(kind, c.to(self.dev))]
++                if self.mode == 'native_batch':
++                    mu = self.mu[(split, kind, p)][batch_index(kind, c.to(self.dev))]
++                elif self.mode == 'global':   # R47 G: one fixed parent mean per split / modality / peer
++                    mu = self.mu[(split, kind, p)][:1]
++                else:   # R47 S: mean of the student's own outputs over the unique items of this (training) batch
++                    assert grad and len(c) == len(ids_t), 'R47 S: non-table encodings are only defined for whole training batches'
++                    mu = e.mean(0, keepdim=True)
+                 outs.append(self.l2norm(e - mu))
+         return torch.cat(outs)
+ 
+     def table(self, stud_p, p, split, kind):
+         key = (p, split, kind)
+         if key not in self._eval:
+-            self._eval[key] = self.encode(stud_p, p, split, kind, np.arange(self.n[split][kind]), grad=False)
++            if self.mode == 'train_batch':   # R47 S evaluation: fixed random batches of 512 items (independent per modality), own-output means
++                n = self.n[split][kind]; ids = torch.arange(n); ch = 512 if kind == 'img' else 2048
++                with torch.no_grad():
++                    e = torch.cat([self.raw_encode(stud_p, split, kind, ids[i:i + ch]) for i in range(0, n, ch)])
++                    perm = np.random.default_rng([4701, ('fit', 'dev').index(split), ('img', 'cap').index(kind), PEERS.index(p)]).permutation(n)
++                    b = np.empty(n, np.int64); b[perm] = np.arange(n) // 512; bt = torch.as_tensor(b, device=e.device); nb = int(b.max()) + 1
++                    mu = torch.zeros(nb, e.shape[1], device=e.device, dtype=torch.float64).index_add_(0, bt, e.double())
++                    mu = (mu / torch.bincount(bt, minlength=nb).double()[:, None]).float()
++                    self._eval[key] = self.l2norm(e - mu[bt])
++            else:
++                self._eval[key] = self.encode(stud_p, p, split, kind, np.arange(self.n[split][kind]), grad=False)
+         return self._eval[key]
+ 
+     def clear_eval(self):
+--- r42f/train_unit.py
++++ r47f/train_unit.py
+@@ -653,7 +653,9 @@
+         if stud is not None:
+             stud.train()
+         loss, jb, idx, st, gl, cx = step_lists(cfg, heads, nulls, encs, ctx, rng, rng2, pool, oracle, stud)
+-        if step == 0 and cfg.get('phase', 1) == 1 and stud is not None:   # R39 fail-fast: student forward (grad on, training batch) == native cache
++        if step == 0 and cfg.get('phase', 1) == 1 and stud is not None and ctx.joint.mode == 'train_batch':   # R47 S: equivalence to the (global-centred) cache not defined
++            hist['r39']['step0_cache_equivalence'] = dict(passed=True, skipped='R47 S (train_batch centring): the student is centred by its own batch means, the cache by the global parent means')
++        if step == 0 and cfg.get('phase', 1) == 1 and stud is not None and ctx.joint.mode != 'train_batch':   # R39 fail-fast: student forward (grad on, training batch) == native cache
+             eq = dict(train_batch_grad=ctx.joint.cache_equivalence(stud, idx[0], idx[1], 'fit', grad=True))
+             ctx.joint.clear_eval()
+             eq['dev_all_nograd'] = {k: v for k, v in ctx.joint.cache_equivalence(stud, np.arange(N_DEV_IMG), np.arange(N_DEV_CAP), 'dev', grad=False).items()}
