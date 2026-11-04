@@ -1,0 +1,62 @@
+{
+  "unit_id": "NR3_B_NCE2J_Flickr80_G_s1001",
+  "block": "B_SHARED_NCE_PREFIX",
+  "condition": "Flickr80",
+  "objective": "J",
+  "seed": 1001,
+  "new_updates": 4000,
+  "total_task_updates": 12000,
+  "initial_score": "registered_NCE_HREF_step8000",
+  "parent_unit": "NR2_HREF_Flickr80_G_NCE_s1001",
+  "parent_step": 8000,
+  "calibration": "FIT_HREF_BCE_affine_on_parent_score",
+  "lr_start": 1e-05,
+  "lr_end": 1e-06,
+  "optimizer_state": "fresh_all_three_branches",
+  "reference": "HREF",
+  "alpha": 0.5,
+  "hard_k": 100,
+  "n_query_per_direction": 32,
+  "n_reference_per_query": 63,
+  "source_commit": "a05c6281626203db6cd9de73d45be08ef0a8bba9",
+  "protocol_id": "NR3_REF_INIT_AND_TASK_PREFIX_V1",
+  "backbone": "google/siglip2-base-patch16-224",
+  "model_revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2",
+  "architecture": "G",
+  "encoder": "frozen",
+  "normalization": "sample_l2_no_center",
+  "optimizer": "AdamW",
+  "weight_decay": 0.0001,
+  "grad_clip": 2.0,
+  "schedule": "cosine",
+  "pair_budget_per_update": 4096,
+  "primary": "all_query_base_top100_step_final",
+  "read_TEST": false,
+  "calibration_pool_seed": 20261104031,
+  "witness_pool_seed": 20261104032,
+  "calibration_p_per_direction": 32768,
+  "calibration_q_per_direction": 32768,
+  "calibration_bounds": {
+    "a": [
+      0.1,
+      100.0
+    ],
+    "b": [
+      -20.0,
+      20.0
+    ]
+  },
+  "maxiter": 500,
+  "train_sampler_seed": 101001,
+  "score_checks": [
+    0,
+    250,
+    500,
+    1000,
+    2000,
+    4000
+  ],
+  "queries_per_direction": 32,
+  "reference_draws_per_query": 63,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

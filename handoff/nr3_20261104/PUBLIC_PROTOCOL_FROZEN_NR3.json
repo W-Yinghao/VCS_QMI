@@ -1,0 +1,147 @@
+{
+  "protocol_id": "NR3_REF_INIT_AND_TASK_PREFIX_V1",
+  "site_tag": "NR3_20261104",
+  "frozen_utc": "2026-11-04T12:08:59Z",
+  "authorisation": {
+    "user_quote": "查看这个包，准备并提交相关实验",
+    "package": "VCS_NR2_Review_NR3_Server_20261104.zip (sha256 86e7d8a7…, MANIFEST 48/48)",
+    "evidence_snapshot": "a05c6281626203db6cd9de73d45be08ef0a8bba9"
+  },
+  "scope": "30 units per package MATRIX.csv: A 15 (HREF-aware calibrated init, 8000 steps) + B 15 (shared folded NR2 HREF-NCE s1001 step-8000 prefix, NCE->J/BCE/NCE 4000 steps)",
+  "constraints": [
+    "retrieval only; SigLIP2 75de2d55 frozen; G only; original J",
+    "no TEST; no DEV/truth in calibration or training",
+    "deployment ranking uses s; training g = s - log w on P and reference terms",
+    "complete matched groups; no early arm cancellation; no extra budget",
+    "parent checkpoints read only; B branches start from one identical folded prefix with fresh AdamW and sampler seed 101001"
+  ],
+  "storage": "all NR3 outputs under /projects/EEG-foundation-model/yinghao/outputs_nr3/NR3_20261104; Flickr inputs and NR2 Flickr HREF s1001 parents copied from home outputs_nr1/outputs_nr2 with sha256 verification (inputs_flickr/COPY_RECEIPT.json, 11 files cross-checked against PROTOCOL_FROZEN_NR2.json); COCO/CC read in place",
+  "production_deviations": {
+    "A": "production config = registered NR2-HREF s1001 config (protocol_id NR2_QUERY_REFERENCE_V1, NR2 trainer unchanged) + nr3 metadata; only the calibration file differs (calibration_HCAL.json); recipe fields asserted equal to the package config (CONFIG_EQUIVALENCE.json)",
+    "B": "nr3/train_prefix.py = nr2/train.py + minimal changes (TRAIN_PREFIX_DIFF_vs_NR2_train.patch): prefix load, fresh AdamW, seed from train_sampler_seed, lr_start/lr_end, checkpoints stamped 8000+stage_step, step-0 contract s==a*s_parent+b; package config + 2 key aliases",
+    "calibration": "nr3/ref_init.py is a byte copy of the package reference; pools defined in nr3/pools.py (draw order recorded)"
+  },
+  "units": {
+    "NR3_A_HCAL_CC152K_RECOVERED_G_BCE_s1001": {
+      "production": "c26e71360c87806182a3b11912bb4faf63fc579630e612d771b1cd430927592b",
+      "package": "1583298a34445cfe4fea42b495cfbf67ed81f1543483a356ae8f72e4928c6710"
+    },
+    "NR3_A_HCAL_CC152K_RECOVERED_G_J_s1001": {
+      "production": "25945ebf078a745552d8ebdef6eaf11d70b78df8c37c85c7179713e1f9688369",
+      "package": "13f81d2a1c31213493bc108f30bb4abb9a41717203141240afd157c9cb8b3372"
+    },
+    "NR3_A_HCAL_CC152K_RECOVERED_G_NCE_s1001": {
+      "production": "93f70aae87a469cad3393bcb05dc517755edc75d0024a16f61a83cb8724f4a05",
+      "package": "b1bda54bd113e1f498eff03d0a67338d28280b7d250098b30edbaf7c06468e48"
+    },
+    "NR3_A_HCAL_COCO60_G_BCE_s1001": {
+      "production": "a86d86afa020669b8b854ed5395702b8712e2a3ae8cc4d386bdf57fda7f430f5",
+      "package": "23f5310a3ef6aa4b319e8e765fa61e0d39420c614616bc9cf6d762fb81004255"
+    },
+    "NR3_A_HCAL_COCO60_G_J_s1001": {
+      "production": "0943dd7755830b960f3cc9c8104482afc3744cb99373c97199f69070d013b539",
+      "package": "591878cec27bce75d851d309c5685cb2ca7534ab7b3e5d63540d6985f68df32d"
+    },
+    "NR3_A_HCAL_COCO60_G_NCE_s1001": {
+      "production": "2e1720046352b0c1f111100bedbc9450b4028b1706e0cee0431ef340cd1d5bf7",
+      "package": "ec8908ddf909b139c2907d8d73ffdf9b297b0eadaaf22a248e6944eabec8c660"
+    },
+    "NR3_A_HCAL_Flickr00_G_BCE_s1001": {
+      "production": "8eff77a85f4bed8ddd75b2d99b806cda15df82e3b088ee1c6b91896d3ff96bd2",
+      "package": "1b10a17c176353c3e40fee6304c7715f3664e6311ad63eee1a8292302449fc90"
+    },
+    "NR3_A_HCAL_Flickr00_G_J_s1001": {
+      "production": "5de848c1bceb43c7105a7877e65c833995beb57441c42da165bc7d13276f02d3",
+      "package": "d4befeba0fc107108b59f47bf620ff005489175ea7c67e4aa59abbf0d790372f"
+    },
+    "NR3_A_HCAL_Flickr00_G_NCE_s1001": {
+      "production": "e98f0309848f957916e8ee8ff329e3853508665ca642fedcb2132eeecc5c59a5",
+      "package": "fb0b1d330ce8746f86b6fb1ef1d44d23392fcfb55bb1df48d3a0b88907e7dc19"
+    },
+    "NR3_A_HCAL_Flickr60_G_BCE_s1001": {
+      "production": "0b6c857f76bb4cc5e592d483ddab432bdf7319cfcff842e92537536bf3974bfd",
+      "package": "25eeafe585969ae452187c8994a4359ed3b8ff1d65e455f335429f2182c6c195"
+    },
+    "NR3_A_HCAL_Flickr60_G_J_s1001": {
+      "production": "11b08ad4e872fdd79c16a534e86ccff06e996038eb05945613bd89d56bda55b1",
+      "package": "be6a990a5b252cc4660208e5a8d6ee6dac677774ca1a56e80dc121c7e77e4f25"
+    },
+    "NR3_A_HCAL_Flickr60_G_NCE_s1001": {
+      "production": "2478a2fbf950908ff3645bd4ee273cee038d18923bd25f5b753ee4c8956af65f",
+      "package": "cb38fab7d0ce8360c19c35b130accd679eea81c09a806ccf82c3c67ded20672a"
+    },
+    "NR3_A_HCAL_Flickr80_G_BCE_s1001": {
+      "production": "ba159953e5c572d13bf3b5de2a2a5498b66818e2ee4e2a548c611cdcf21eea28",
+      "package": "16a8b834ad4fd4621c69d2cee24be037283cc4fa7560d88a4e3092d846e15488"
+    },
+    "NR3_A_HCAL_Flickr80_G_J_s1001": {
+      "production": "01fda7d16be2f2e471f7583e823b7c7c2ef6063b07b2dfe6a1f85631997ebfdb",
+      "package": "17a55f330a4aba156e01c896d38ea89e85914b10c8e2603929e2fae8c39e28c7"
+    },
+    "NR3_A_HCAL_Flickr80_G_NCE_s1001": {
+      "production": "c57ebc381789b1eec363d7716f9daa75b08db49fc67144e687b0f4b858e9665f",
+      "package": "4eb08205f919a7ffa28ffff349a62a0c768776333b829043ac784104e8596ec3"
+    },
+    "NR3_B_NCE2BCE_CC152K_RECOVERED_G_s1001": {
+      "production": "3791e1c64495f272aaeefc7e21538315981becd56d1054a91eda242ef5632688",
+      "package": "e28507caa0b2b3e24ed4ee02d9d709a6948b1e8b6666333eb23593d623e3e635"
+    },
+    "NR3_B_NCE2BCE_COCO60_G_s1001": {
+      "production": "bff3d858c1efb1afb6baccf58fb8e9efe21247a3f872b0d74a6016412413a51a",
+      "package": "cb192a311ddf69802416b1ec32bef4c6e7a20eca6d07d896b0924a5414beefd1"
+    },
+    "NR3_B_NCE2BCE_Flickr00_G_s1001": {
+      "production": "1ef471ff3eb940fcc3ee55149d1740412a4cd3870f2b2fb7b339fba358f4c087",
+      "package": "ee2b8ffea8e036693b20fe1adcca5fd3242f3b59724b003b3cd4feadd9fac666"
+    },
+    "NR3_B_NCE2BCE_Flickr60_G_s1001": {
+      "production": "d190b85d5138cc3f0030916f84b0dff6e7cf5756ed74e9844b7c68ff873d9ad8",
+      "package": "82f9710555ac57bc1eb5d4c015d37866c9784409a6045a3be0705c50b766c33e"
+    },
+    "NR3_B_NCE2BCE_Flickr80_G_s1001": {
+      "production": "bd38093a307cb3b04127ef8a3bfb67a98fad44f5b1b6c47537377d1d5f946e8e",
+      "package": "e80e9fdec9e2fea1893b92f2f755ef195da2dc0685199536febe0d93f702ccf3"
+    },
+    "NR3_B_NCE2J_CC152K_RECOVERED_G_s1001": {
+      "production": "a337c3311fe55e33962545f5aebed4df2033b1244ce072c65a99e96e3521cd9e",
+      "package": "275470bb39e2bd2350308cbc45c1892ed18c189a03fa78a95ac59e133cdbdaf8"
+    },
+    "NR3_B_NCE2J_COCO60_G_s1001": {
+      "production": "4ba24546e6805ecf10b0f1b5427f5b9abf95fcc74937a8406e8b264f07ef7387",
+      "package": "65ab7122076d199fb7ad1a86ff369228a4fec1be4189dc2b82f88e54f06d82fa"
+    },
+    "NR3_B_NCE2J_Flickr00_G_s1001": {
+      "production": "28c31aa624dd4120c7a4cc9c2084a97d27c53796022f3d1f60ff3c4b224c3981",
+      "package": "75a2a5f3880a074c89f0243b5407de0b9d88bdeca3d75e3f628027d4793fb634"
+    },
+    "NR3_B_NCE2J_Flickr60_G_s1001": {
+      "production": "8376ad1d26c90982479b0b4ae7223c634e15f69bee2d706b8e0222f3160a1b4d",
+      "package": "20b7d8a4ead987d3d1cd286fd9d3e99fea1f0e42131d1ebd2ff7b344da73df53"
+    },
+    "NR3_B_NCE2J_Flickr80_G_s1001": {
+      "production": "ff82bb6ecb1d9f6ec60b42a8a0f249f27e1326c244fa9b55bddc0fa2f6e9e7b1",
+      "package": "97c6c560c519689fa1e2dbba415f1f9f109f48df07ecd06c3166720939be97b7"
+    },
+    "NR3_B_NCE2NCE_CC152K_RECOVERED_G_s1001": {
+      "production": "3aafc0a308f447fe3ac877fc6f7eb897ae20fd04d827cdabc2998feea6ace652",
+      "package": "941fc28841010f874c59347c6adaba49f5a4a475dd929d59af957f4a147712db"
+    },
+    "NR3_B_NCE2NCE_COCO60_G_s1001": {
+      "production": "8ede85a1c3328c9119cec9e7370c531f6cb504b1c6ef8fb871a959d78432f88f",
+      "package": "c4ec7b74aa8bd88b5798706a2c50ac9b0765ffcabb84534834774f5dc256ff9b"
+    },
+    "NR3_B_NCE2NCE_Flickr00_G_s1001": {
+      "production": "55b108e7fc955815cf814fff085c974765bb50a82084e56b4613b1f62665efa7",
+      "package": "c7e340e6dbc426842067db13d9ad9a1c60ecc25f3827e137d4e253cf0972971d"
+    },
+    "NR3_B_NCE2NCE_Flickr60_G_s1001": {
+      "production": "b5d005cfff4f35e030c437a6b7253f8f05e6ccaecf07c5f9a90524d52bc4f7da",
+      "package": "1c9563a5282956b8edff8ead4443c8ff181b7ea294627a21b1f66363f514b5a7"
+    },
+    "NR3_B_NCE2NCE_Flickr80_G_s1001": {
+      "production": "61c2f8c713665b0da5ab359a76b0fdf7d0d04afbf793d4dbb1ed25cdd48209d6",
+      "package": "bf29ed5de82a56f4b7a0a1b53a9a5711e2f3b07c1a8520e498cc223da842afc0"
+    }
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}
