@@ -1,0 +1,61 @@
+{
+  "line": "R50 amendment A3 (registered after the step-8000 in-unit check-E failure of R50_A_F60_R30H1001_PRESENT_ONLY_both_joint_NCE in job 1086393, before any re-run)",
+  "utc": "2026-11-04T04:50:28Z",
+  "failure": {
+    "unit": "R50_A_F60_R30H1001_PRESENT_ONLY_both_joint_NCE",
+    "step": 8000,
+    "E_A_max_abs": 0.00011920928955078125,
+    "tol": 0.0001,
+    "E_A_residual_std": 1.0992585923787839,
+    "other_parts_passed": [
+      "P",
+      "G",
+      "state",
+      "B_D",
+      "C",
+      "F",
+      "E.B"
+    ],
+    "records": [
+      "runs_r50/<unit>/FAILED_1086393.json",
+      "runs_r50/<unit>/R50_LAYOUT_CHECK_step8000.json"
+    ],
+    "note": "step-8000 checkpoint / eval not written (assert before save); last checkpoint 4000"
+  },
+  "diagnosis": {
+    "file": "<WORKSPACE>/outputs_v9_r50/diag_e/1086510/DIAG_E_R50_A_F60_R30H1001_PRESENT_ONLY_both_joint_NCE.json",
+    "step4000_peerA": {
+      "max_abs_fp32": 0.00010776519775390625,
+      "max_abs_fp64_scoring": 0.00010775192866674388,
+      "same_vectors_fp32": 2.86102294921875e-06,
+      "same_vectors_fp64": 6.217248937900877e-15,
+      "max_abs_score": 7.801912784576416,
+      "max_abs_residual": 9.618659031542158,
+      "reencoded_vector_max_abs": {
+        "img": 3.8370490074157715e-07,
+        "cap": 1.3962388038635254e-05
+      }
+    },
+    "step0_peerA": {
+      "max_abs_fp32": 1.7881393432617188e-07,
+      "max_abs_residual": 0.024230612579955846
+    },
+    "conclusion": "Not a layout dependence and not fp32 score rounding: with the SAME student vectors the renamed / re-ordered / re-chunked scoring differs by 2.9e-6 (fp32) and 6.2e-15 (fp64); the 1.08e-4 at step 4000 is unchanged when the head is evaluated in fp64, and comes from the re-encoded caption vectors (1.4e-5 max, fp32 BiGRU over padded chunks; within TOL_VEC) amplified by the trained head (max |residual| 9.6, max |score| 7.8 - so a 4-ulp(max|score|) or 1e-6-relative score tolerance would NOT explain it). A layout-dependent centre would move the vectors by ~4e-3 to 7e-3 (CPU-test DEV-mean control)."
+  },
+  "change": {
+    "E1": "same student vectors, renamed pool, permuted pair order, chunk 333: max|delta g| <= TOL_SCORE = 1e-4 (absolute; new sub-check, scoring layout)",
+    "E2": "pool re-encoded in the renamed order (chunks 97 / 301): max|delta g| <= TOL_SCORE * max(1, max|residual|) (scale-aware: the encoder chunk numerics propagate through the head in proportion to the residual magnitude)",
+    "not_weaker_at_step0": "max|residual| at step 0 is 0.024-0.047 < 1 for every unit -> E2 tolerance = 1e-4 exactly as before; E1 is an added check",
+    "applies_to": "all R50 units identically (r50ext.head_checks in r50f and r50c, byte-identical); the 22 units completed under the original rule had max|delta g| <= 1e-4 <= the A3 E2 tolerance (E1 not evaluated for them)"
+  },
+  "reruns": [
+    "R50_A_F60_R30H1001_PRESENT_ONLY_both_joint_NCE (failed, resumes from its step-4000 checkpoint)",
+    "R50_A_CC_R31H1001_PRESENT_ONLY_both_joint_NCE (its job 1086395 cancelled by me during the unit, past step 2000, to avoid the same pre-A3 assert; resumes from its last checkpoint)"
+  ],
+  "freeze": {
+    "file": "PROTOCOL_FROZEN_R50_A3.json",
+    "rule": "common.py FROZEN_FILES_R50 = (PROTOCOL_FROZEN_R50_A3.json, PROTOCOL_FROZEN_R50.json); the original freeze file is not edited"
+  },
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

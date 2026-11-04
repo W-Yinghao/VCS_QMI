@@ -1,0 +1,63 @@
+{
+  "protocol_id": "NR2C_20261104",
+  "frozen_utc": "2026-11-04T05:19:27Z",
+  "authorisation": {
+    "user_quote": "你之后如果发现GPU有空的话，就沿着NR1路线设计和提交",
+    "designed_by": "main session (standing NR1-route authorisation)",
+    "reason": "NR2B confirmed the HREF-U pattern over 3 seeds on Flickr (F60 J +7.77, BCE +10.28, NCE +1.05; F80 BCE +13.37, J -3.22); the package next step is confirmation on another dataset; CC152K blocked on data recovery; COCO raw images and locked noise maps are on the server."
+  },
+  "scope": "COCO x {0%,60%,80%} x {U,HREF} x {J,BCE,NCE}, G only, seed 1001 = 18 units; configs = NR2 s1001 Flickr configs with only condition/unit_id changed (alpha 0.5, hard_k 100, 32 queries/direction, 63 references, 8000 steps)",
+  "data": {
+    "fit": "NCR coco_precomp train order = Karpathy train+restval, 113287 images / 566435 captions",
+    "dev": "NCR coco_precomp dev = 1000 Karpathy val images / 5000 captions",
+    "test": "Karpathy test 5k and NCR test/testall never read or extracted",
+    "noise": {
+      "COCO60": "R25 NOISE_LOCK coco_precomp_0.6 (realized 0.5999964691447386)",
+      "COCO80": "R33 NOISE_LOCK coco_precomp_0.8 (realized 0.7999911728618465)",
+      "COCO00": "identity"
+    },
+    "features": "global-only SigLIP2 export (nr2.extract_global; global path = nr1.extract_siglip2 functions, bitwise equal to NR1 Flickr cache on 64 items); local arrays are zero placeholders, G only",
+    "proposal_tables": "frozen base FIT cosine Top100, ID-hash tie rule, tie-window margin 400 (COCO has up to 159 identical captions; NR2 default 28 tripped the guard in job 1086535)"
+  },
+  "constraints": [
+    "36 units per package MATRIX.csv only",
+    "encoder frozen, architecture G only",
+    "TEST never read",
+    "DEV only in separate evaluator process, scores hashed before truth",
+    "deployment ranking uses s only",
+    "CONFIRM = NR1 seed-1001 G recipe with seed changed only",
+    "U is a new sampler run (no NR1 reuse)",
+    "primary endpoint step 8000; no early stopping / cancellation on interim DEV"
+  ],
+  "model": {
+    "id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2"
+  },
+  "config_diff_vs_nr2_s1001": [
+    [
+      "condition",
+      "unit_id"
+    ]
+  ],
+  "units": {
+    "NR2C_HREF_COCO00_G_BCE_s1001": "c120523a6690dab0af4d49884ea8372727440630c78216080fe841db78cde9ad",
+    "NR2C_HREF_COCO00_G_J_s1001": "badcf79f772eb7f826343406995e1f80bf9c72b56e5707ddec6bb1f9e5c6f433",
+    "NR2C_HREF_COCO00_G_NCE_s1001": "322b06410dd3813edd6578e1c6d85e9fe24b8040697635ef5ae712a412cdcfab",
+    "NR2C_HREF_COCO60_G_BCE_s1001": "dc935db01d8550b8b4034c88a7482ff13b44230be1cbbc119e78cecb1c6d84d1",
+    "NR2C_HREF_COCO60_G_J_s1001": "7e7fb4dd868db5fdce6ca4e47c85a9578c535db2bb1ee162560286cc07ca1f2c",
+    "NR2C_HREF_COCO60_G_NCE_s1001": "71e3320cec9d2fa2a665e48325da5bf39c5ff1ecd507e3759f462ffc050014e4",
+    "NR2C_HREF_COCO80_G_BCE_s1001": "84be3caab76f096581a3eebc3d87dc53e1009f032232627f46687ba085b81cc8",
+    "NR2C_HREF_COCO80_G_J_s1001": "cf83d88a1a2eb45b86df61fc581fa65c6373757ee6e225e6ae2d9640eca1c9ac",
+    "NR2C_HREF_COCO80_G_NCE_s1001": "c97f00a9c00521cf2b8e95c14de246268f692db33680f7bc45caaadb36432919",
+    "NR2C_U_COCO00_G_BCE_s1001": "1beaa94381c9b69f8ffd005defb4ff139797fb1d493ee7370e27ff275de8e315",
+    "NR2C_U_COCO00_G_J_s1001": "f7eedb46ff1260fb3f9baf721d70f61e5c51eec7ffad90b99d02c985a9f0630b",
+    "NR2C_U_COCO00_G_NCE_s1001": "2558e8c0ad185aa28e0033601777500110b56e0268fb2127dc57ee4efb11732c",
+    "NR2C_U_COCO60_G_BCE_s1001": "60f08669fc8798e01a48ce81674ed2c49ede068269c02bdcfd7f8fe5b7285ccf",
+    "NR2C_U_COCO60_G_J_s1001": "8dc24253125c00146cd3eb2a04764e4df2cbd51aea855608e0b0da9023606800",
+    "NR2C_U_COCO60_G_NCE_s1001": "ffc77fead6f1b86b1dbd39c5d40777817991de468b66ad90db0abac3fd68cc91",
+    "NR2C_U_COCO80_G_BCE_s1001": "6676186bc839fcfde10c2d1a7dcf0a139b745be076fb12bb811dbcfc509d1bf3",
+    "NR2C_U_COCO80_G_J_s1001": "6b35bb7ad51e473d2fe19d75b4854ed776ab4d360ce2d75e2bac8db26ffd31bd",
+    "NR2C_U_COCO80_G_NCE_s1001": "b21a4561cdef836795e1e8f2b0b500cc3a6fdf475949b959e0ab45e26ce500a4"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

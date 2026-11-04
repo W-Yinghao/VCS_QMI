@@ -1,6 +1,6 @@
 #!/bin/bash
 # Incremental TEST step for newly finished retrieval units (run after units finish; idempotent).
-# Submits one runfill GPU job (sbatch/increment.sbatch) unless one is already queued/running. That job freezes a new
+# Submits one GPU job (normal RTX6000PRO,L40S,H100 since 2026-11-02) (sbatch/increment.sbatch) unless one is already queued/running. That job freezes a new
 # TEST_MANIFEST_INC_<utc>.json (units with DONE.json + model_best.pth.tar whose checkpoint sha256 is in no earlier frozen
 # manifest; run roots from ROOTS.json), logs it in TEST_ACCESS_LOG.jsonl before any TEST read, evaluates every pending unit
 # (DEV-recompute gate + TEST) and rebuilds TEST_RESULTS.json / TEST_TABLES.md.

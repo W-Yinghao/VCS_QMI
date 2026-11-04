@@ -1,0 +1,47 @@
+{
+  "protocol_id": "NR2E_20261104_CC152K_RECOVERED_SEEDS",
+  "frozen_utc": "2026-11-04T06:10:02Z",
+  "authorisation": {
+    "user_quote": "你之后如果发现GPU有空的话，就沿着NR1路线设计和提交",
+    "designed_by": "main session (standing NR1-route authorisation)",
+    "reason": "The CC152K_RECOVERED block of NR2D (U/HIW/HREF, seed 1001) is the only single-seed NR2 table left; HREF-U there is +0.73/+2.02/+1.44 (J/BCE/NCE), smaller than the Flickr/COCO seed spread in some cells, so seeds are needed before reading it (same practice as NR2B/NR2D-A). HIW not extended (HIW-U -0.14/-0.29)."
+  },
+  "scope": "CC152K_RECOVERED_20261104 x {U, HREF} x J/BCE/NCE x training seeds 1002/1003 = 12 units; configs = NR2D CC s1001 configs with only seed and unit_id changed",
+  "constraints": [
+    "36 units per package MATRIX.csv only",
+    "encoder frozen, architecture G only",
+    "TEST never read",
+    "DEV only in separate evaluator process, scores hashed before truth",
+    "deployment ranking uses s only",
+    "CONFIRM = NR1 seed-1001 G recipe with seed changed only",
+    "U is a new sampler run (no NR1 reuse)",
+    "primary endpoint step 8000; no early stopping / cancellation on interim DEV"
+  ],
+  "model": {
+    "id": "google/siglip2-base-patch16-224",
+    "revision": "75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2"
+  },
+  "checks": "no new checks; all PROTOCOL_FROZEN_NR2D_CC.json hashes re-verified unchanged; per-unit step-0 checks",
+  "config_diff_vs_nr2d_cc_s1001": [
+    [
+      "seed",
+      "unit_id"
+    ]
+  ],
+  "outputs": "/projects/EEG-foundation-model/yinghao/outputs_nr2/NR2D_20261104/runs_cc_nr2e",
+  "units": {
+    "NR2E_HREF_CC152K_RECOVERED_G_BCE_s1002": "38e38f08d2f94ac44f78e50d5211ca3f0682823281b79435cbec6f7fea203bcd",
+    "NR2E_HREF_CC152K_RECOVERED_G_BCE_s1003": "de8f0bd48ee6aa47469ad2cee60a695a5f83ce305a6ec624cf6c3f562ab7b3eb",
+    "NR2E_HREF_CC152K_RECOVERED_G_J_s1002": "655eac7cd7257ca5fbf58823c4da5a6ec579f36e8724ff194248ac88045cc617",
+    "NR2E_HREF_CC152K_RECOVERED_G_J_s1003": "9ab6ffe63dfc92dda99ce6f6ee8755da02ff47a726ef311adae7d1b2e0fe570d",
+    "NR2E_HREF_CC152K_RECOVERED_G_NCE_s1002": "bd8534f2884e7c2fa92a7b35e395df633b79404be59818d9ae40ed3b9a75cbdd",
+    "NR2E_HREF_CC152K_RECOVERED_G_NCE_s1003": "09f088a73db2c7649fa1f4f6a94b06ecfbcecf0f270ba5a354aa74c53febf833",
+    "NR2E_U_CC152K_RECOVERED_G_BCE_s1002": "094bc70f6cfe16adccc93d2a28ca26ecfa490722957e3078d41fa40c224ee9e2",
+    "NR2E_U_CC152K_RECOVERED_G_BCE_s1003": "1f51914ea0bb7c2947b2043cbf0ed9a88e6a831b7f8cb8d7baf3826b3cbb913c",
+    "NR2E_U_CC152K_RECOVERED_G_J_s1002": "ec2238216ebc67ff4fc58a1ede8b5de883ff141cb61d011e68bf0585a853f481",
+    "NR2E_U_CC152K_RECOVERED_G_J_s1003": "d2676a557e40ff27c74254da0780debb2794a9b7892abd31ae956328d868ea50",
+    "NR2E_U_CC152K_RECOVERED_G_NCE_s1002": "c542beec5a0d997f2f30e0fa811862a6737f63c7152a498a4639893745b9f0ce",
+    "NR2E_U_CC152K_RECOVERED_G_NCE_s1003": "1be78aa90e6080a55daa56704ff38b41bde35e61c98fb3a27062de0890cab074"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

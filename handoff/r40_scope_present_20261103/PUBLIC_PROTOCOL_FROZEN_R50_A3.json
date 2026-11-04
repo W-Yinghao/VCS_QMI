@@ -1,0 +1,44 @@
+{
+  "line": "R50 amendment A3 freeze (re-runs of the two JOINT NCE units with the A3 check E); everything else as PROTOCOL_FROZEN_R50.json",
+  "protocol_id": "FIT_FIXED_CENTER_V1",
+  "frozen_utc": "2026-11-04T04:59:19Z",
+  "status": "FROZEN_BEFORE_A3_RERUNS",
+  "amendments": {
+    "R50_AMENDMENT_A1.json": "b1f1aca2885b657d10cb6bcc2d52113303234002ece860e98b717882f77897ba",
+    "R50_AMENDMENT_A2.json": "b510c8c53deaaa0db62fc5d1c58eb3e27f99a16b71e9cdad97f655d7f4c2a871",
+    "R50_AMENDMENT_A3.json": "364249a4b25030911e4f807c7a2f19454a1bce72958076a593454ba09afe459e"
+  },
+  "units": [
+    "R50_A_F60_R30H1001_PRESENT_ONLY_both_joint_NCE",
+    "R50_A_CC_R31H1001_PRESENT_ONLY_both_joint_NCE"
+  ],
+  "code_not_bound": [],
+  "registered_diffs": {
+    "R50_DIFF_R50F.patch": "46c2fed131490d0da9124ed41bfdcec1088b1f85ac536426bbd6d58549071642",
+    "R50_DIFF_R50C.patch": "1b64210e9482cdba1910ac8bc40a291e81bb0b6a8d1c77de328a2bdfc4c99568"
+  },
+  "gpu_gate": {
+    "waived_by_user": false,
+    "smoke_jobs": {
+      "1086524": {
+        "ALL_PASS": true,
+        "units": {
+          "R50_A_F60_R30H1001_PRESENT_ONLY_frozen_NCE": true,
+          "R50_A_F60_R30H1001_PRESENT_ONLY_both_joint_NCE": true
+        }
+      },
+      "1086525": {
+        "ALL_PASS": true,
+        "units": {
+          "R50_A_CC_R31H1001_PRESENT_ONLY_frozen_NCE": true
+        }
+      }
+    }
+  },
+  "tie_policy": {
+    "env_NPY_DISABLE_CPU_FEATURES": "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR",
+    "in_unit_assert": "r50ext.protocol_check"
+  },
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

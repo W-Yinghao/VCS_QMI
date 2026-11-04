@@ -36,7 +36,7 @@ out.write_text(json.dumps(dict(
     authorisation=dict(user_quote='好，准备R49吧，smoke过了就提交，TEST也再读一次', basis='R44 audit: R34-R43 frozen-critic heads were trained on native per-batch-centred FIT features; '
                        'R49 extends the R48 layout-free N-frozen to the remaining parents', priority='normal QOS nice 50'),
     units=units, config_sha256={u: sh(W / 'configs' / f'{u}.json') for u in units}, resolved_matrix_sha256=sh(W / 'RESOLVED_MATRIX_R49.csv'),
-    tool_sha256={p: sh(W / 'tools' / p) for p in ('make_configs_r49.py', 'r49_smoke_check.py', 'freeze_r49.py')},
+    tool_sha256={p: sh(W / 'tools' / p) for p in ('make_configs_r49.py', 'r49_smoke_check.py', 'freeze_r49.py', 'r49_build_lf.py')},
     other_freeze_files_untouched={Path(f).name: sh(f) for f in sorted(glob.glob(str(W / 'PROTOCOL_FROZEN*.json'))) if Path(f).name != out.name},
     code_sha256_by_tree={t: {Path(f).name: sh(f) for f in sorted(glob.glob(str(W / t / '*.py')))} for t in TREES}, code_not_bound=[],
     parent_cache_manifest_sha256={m: sh(m) for m in sorted(set(mans))}, cpu_test=dict(job=cpu['job'], sha256=sh(W / 'CPU_TEST_R49.json')),

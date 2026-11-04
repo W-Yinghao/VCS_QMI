@@ -1,0 +1,310 @@
+{
+  "protocol_id": "FIT_FIXED_CENTER_V1",
+  "rule": "one raw-encoder-output FIT mean per parent peer / modality, shape [1, d], fp64 accumulation -> fp32; applied to FIT and DEV; no DEV statistic",
+  "utc": "2026-11-04T03:03:04Z",
+  "parents": {
+    "c60in_s1001": {
+      "file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r50_parents/cache/c60in_s1001/NORMALIZATION_c60in_s1001.json",
+      "h_only": true,
+      "fit_side_identical_to_r47G": true,
+      "parent": {
+        "unit": "r33_c60_s1001_H0",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/runs/c60_s1001/H0/model_best.pth.tar",
+        "epoch": 28,
+        "best_rsum": 538.94,
+        "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/runs/c60_s1001/H0/RUN_1081079.json",
+        "code_dir": "<WORKSPACE>/handoff/r31_in2r_fidelity_20261101/code",
+        "run_opt": {
+          "warmup_epoch": 5,
+          "k": 5,
+          "i2t": true,
+          "t2i": true,
+          "noise_ratio": 0.6,
+          "seed": 1001
+        }
+      },
+      "per_peer_modality": {
+        "img_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/c60in_s1001_G/center_fit_img_peerA.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 113287,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.015407211922856122
+        },
+        "cap_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/c60in_s1001_G/center_fit_cap_peerA.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 566435,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.02112093645157629
+        },
+        "img_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/c60in_s1001_G/center_fit_img_peerB.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 113287,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.014716513074758053
+        },
+        "cap_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/c60in_s1001_G/center_fit_cap_peerB.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 566435,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.021104186048876702
+        }
+      },
+      "check_A_passed": false,
+      "env": {
+        "gpu": "NVIDIA L40S",
+        "torch": "2.9.0+cu128",
+        "r47_build_gpu": "NVIDIA L40S"
+      }
+    },
+    "cc": {
+      "file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r50_parents/cache/cc/NORMALIZATION_cc.json",
+      "h_only": false,
+      "fit_side_identical_to_r47G": true,
+      "parent": {
+        "unit": "r31_cc_s1001_H0_default",
+        "series": "R31 IN2R native fidelity (author run.py defaults: warmup 1, K 1, i2t/t2i off); NOT the Flickr R30-H series",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r31_in2r_fidelity_20261101/runs/cc_s1001/H0_default/model_best.pth.tar",
+        "epoch": 38,
+        "best_rsum": 389.7,
+        "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r31_in2r_fidelity_20261101/runs/cc_s1001/H0_default/RUN_1080782.json",
+        "code_dir": "<WORKSPACE>/handoff/r31_in2r_fidelity_20261101/code"
+      },
+      "per_peer_modality": {
+        "img_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/cc_G/center_fit_img_peerA.npy",
+          "weighting": "each FIT image row once (one image row per caption record in this dataset)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 150000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.02793389235611688
+        },
+        "cap_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/cc_G/center_fit_cap_peerA.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 150000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.03742095440326276
+        },
+        "img_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/cc_G/center_fit_img_peerB.npy",
+          "weighting": "each FIT image row once (one image row per caption record in this dataset)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 150000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.02782811184423386
+        },
+        "cap_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/cc_G/center_fit_cap_peerB.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 150000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.035453035029895774
+        }
+      },
+      "check_A_passed": false,
+      "env": {
+        "gpu": "NVIDIA L40S",
+        "torch": "2.9.0+cu128",
+        "r47_build_gpu": "NVIDIA L40S"
+      }
+    },
+    "f80in": {
+      "file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r50_parents/cache/f80in/NORMALIZATION_f80in.json",
+      "h_only": false,
+      "fit_side_identical_to_r47G": true,
+      "parent": {
+        "unit": "r33_f80_s1001_H0",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/runs/f80_s1001/H0/model_best.pth.tar",
+        "epoch": 23,
+        "best_rsum": 464.930966469428,
+        "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r33_baselines_20261102/runs/f80_s1001/H0/RUN_1081030.json",
+        "code_dir": "<WORKSPACE>/handoff/r31_in2r_fidelity_20261101/code",
+        "run_opt": {
+          "warmup_epoch": 5,
+          "k": 5,
+          "i2t": true,
+          "t2i": true,
+          "noise_ratio": 0.8,
+          "seed": 1001
+        }
+      },
+      "per_peer_modality": {
+        "img_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/f80in_G/center_fit_img_peerA.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 29000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.013384841777135835
+        },
+        "cap_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/f80in_G/center_fit_cap_peerA.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 145000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.014295249595090697
+        },
+        "img_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/f80in_G/center_fit_img_peerB.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 29000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.013478374541622824
+        },
+        "cap_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/f80in_G/center_fit_cap_peerB.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 145000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.014735345377762018
+        }
+      },
+      "check_A_passed": false,
+      "env": {
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+        "torch": "2.9.0+cu128",
+        "r47_build_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+      }
+    },
+    "n00": {
+      "file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r50_parents/cache/n00/NORMALIZATION_n00.json",
+      "h_only": true,
+      "fit_side_identical_to_r47G": true,
+      "parent": {
+        "unit": "r30_f00_s1001_H0",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_H0/model_best.pth.tar",
+        "epoch": 27,
+        "best_rsum": 522.0710059171597,
+        "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f00_s1001_H0/RUN_1080229.json",
+        "code_dir": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11"
+      },
+      "per_peer_modality": {
+        "img_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n00_G/center_fit_img_peerA.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 29000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.012584139839893727
+        },
+        "cap_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n00_G/center_fit_cap_peerA.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 145000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.021974530176350072
+        },
+        "img_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n00_G/center_fit_img_peerB.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 29000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.012558942348351261
+        },
+        "cap_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n00_G/center_fit_cap_peerB.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 145000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.02160294990685463
+        }
+      },
+      "check_A_passed": false,
+      "env": {
+        "gpu": "NVIDIA L40S",
+        "torch": "2.9.0+cu128",
+        "r47_build_gpu": "NVIDIA L40S"
+      }
+    },
+    "n60": {
+      "file": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r50_parents/cache/n60/NORMALIZATION_n60.json",
+      "h_only": false,
+      "fit_side_identical_to_r47G": true,
+      "parent": {
+        "unit": "r30_f60_s1001_H0",
+        "model_best": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/model_best.pth.tar",
+        "epoch": 19,
+        "best_rsum": 505.20710059171597,
+        "run_json": "/projects/EEG-foundation-model/yinghao/outputs_v9/r30_pairwise_20261101/runs/r30_f60_s1001_H0/RUN_1080232.json",
+        "code_dir": "<WORKSPACE>/handoff/r30_pairwise_20261101/code_r30v11"
+      },
+      "per_peer_modality": {
+        "img_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n60_G/center_fit_img_peerA.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 29000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.014493705092046004
+        },
+        "cap_A": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n60_G/center_fit_cap_peerA.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 145000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.018424035297677308
+        },
+        "img_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n60_G/center_fit_img_peerB.npy",
+          "weighting": "each FIT image once (N_TRAIN_IMG unique image rows; not per caption record)",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 29000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.014942720241037568
+        },
+        "cap_B": {
+          "fit_mean_source": "/projects/EEG-foundation-model/yinghao/outputs_v9/r40_scope_present_20261103/r47_parents/joint/n60_G/center_fit_cap_peerB.npy",
+          "weighting": "each FIT caption record once",
+          "accumulation": "fp64 sum / n over all FIT rows, cast to fp32 (r47_build_lf.py rule)",
+          "n_fit_rows": 145000,
+          "fit_mean_recomputed_equal_bitwise": true,
+          "fit_mean_recomputed_max_abs": 0.0,
+          "dev_mean_minus_fit_mean_l2": 0.01918362305998383
+        }
+      },
+      "check_A_passed": false,
+      "env": {
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+        "torch": "2.9.0+cu128",
+        "r47_build_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+      }
+    }
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

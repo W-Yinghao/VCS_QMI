@@ -53,7 +53,7 @@ for u in units:
     pq = la['per_query']; w = la['readout_weight'][0]
     L.append(f"| {u} | {la['full_GL_rSum']:.2f} | {la['metrics']['rSum']:.2f} | {la['G_rSum']:.2f} | [{w[0]:.3f}, {w[1]:.3f}] | {pq['i2t']['full_R1_ablated_not']} | {pq['i2t']['ablated_R1_full_not']} | {pq['t2i']['full_R1_ablated_not']} | {pq['t2i']['ablated_R1_full_not']} | {pq['t2i'].get('GL_R1_G_not','')} | {pq['t2i'].get('G_R1_GL_not','')} |")
     abl_rows.append(dict(unit_id=u, full_GL_rSum=la['full_GL_rSum'], ablated_rSum=la['metrics']['rSum'], G_rSum=la['G_rSum'], readout_t2i_evidence=w[0], readout_i2t_evidence=w[1],
-                         **{f'ablated_{k}': round(v, 2) for k, v in la['metrics'].items()}, **{f'{d}_{k}': v for d in ('i2t', 't2i') for k, v in pq[d].items() if not isinstance(v, dict)}))
+                         **{f'ablated_{k}': round(v, 2) for k, v in la['metrics'].items() if k != 'rSum'}, **{f'{d}_{k}': v for d in ('i2t', 't2i') for k, v in pq[d].items() if not isinstance(v, dict)}))
 wcsv(B/'RESULTS_NR1B_ABLATION.csv', abl_rows)
 # (3) DEV categories
 L += ['', '## (3a) DEV instance categories at step 8000 (counts; i2t n=1014, t2i n=5070)', '',

@@ -1,0 +1,20 @@
+{
+  "line": "R50 amendment A2 (registered before any R50 formal unit; after the first Flickr smokes / re-reads, which are rerun under it)",
+  "utc": "2026-11-04T02:02:55Z",
+  "tie_policy": {
+    "env": {
+      "NPY_DISABLE_CPU_FEATURES": "AVX512F AVX512CD AVX512_SKX AVX512_CLX AVX512_CNL AVX512_ICL AVX512_SPR"
+    },
+    "rule": "numpy runtime dispatch without AVX-512 in every R50 process (sbatch export + in-unit assert in r50ext P): the evaluator (native_eval i2t/t2i = upstream np.argsort, default kind) then orders exactly tied DEV scores identically on AVX-512 and non-AVX-512 nodes"
+  },
+  "reason": "Every DEV row of the peer-mean native score matrix has exact ties (fp32 shard products stored in fp64: 1014/1014 i2t rows). numpy 2.2.6 dispatches argsort to an AVX-512 kernel on AVX-512 CPUs, which orders ties differently: the same R50 n60 cache gives H rSum 496.331 on AVX-512 nodes (RTX nodes, nodecpu04) and 496.233 on node52 (no AVX-512) or with AVX-512 disabled; this is also the ~0.1 R47 (496.627, node50) vs R48 (496.529, node52) H difference on one cache noted by the package. Code bytes of the evaluator unchanged; the build manifests keep their AVX-512-dispatch H records; all PRIMARY readouts (units, re-reads, H table) are taken under A2.",
+  "superseded_runs": {
+    "rereads_v1": "r50_rereads_v1_avx512 (moved, kept)",
+    "cancelled": [
+      1086298,
+      1086294,
+      1086297
+    ]
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}

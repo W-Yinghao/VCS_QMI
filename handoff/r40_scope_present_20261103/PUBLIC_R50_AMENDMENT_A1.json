@@ -1,0 +1,32 @@
+{
+  "line": "R50 amendment A1 (registered before any R50 CPU test, GPU smoke, re-read or formal unit; after the five R50 builds 1086204-1086208 recorded check A)",
+  "utc": "2026-11-04T01:36:46Z",
+  "change": {
+    "vector_tolerance": {
+      "old": 1e-05,
+      "new": 0.0001,
+      "applies_to": "same-device unit-vector equality when only chunking / batch composition / order / naming changes (build check A, r50ext B/C/D, CPU real-data checks)"
+    },
+    "score_tolerance": {
+      "old": 1e-05,
+      "new": 0.0001,
+      "applies_to": "r50ext E (critic scores under pool renaming / re-chunking)"
+    },
+    "cpu_vs_gpu_cache_tolerance": {
+      "new": 0.0005,
+      "note": "CPU-encoded vs GPU-built cache rows (R46 precedent: COCO caption CPU vs GPU 1.3e-4); the DEV-mean-centred control must differ from the R50 DEV cache by > 1e-3"
+    },
+    "unchanged": {
+      "mean_tolerance": 1e-06,
+      "near_tie_score": 1e-06
+    }
+  },
+  "reason": "Build check A with the original 1e-5: the FIT mean changes by <= 3.7e-9 under a random order with other chunks (n60/f80in), the DEV scores by <= 1.2e-7 with 0 rank changes, but the raw caption encoder output itself (BiGRU over a padded chunk) changes by up to 8.3e-6 (centred vectors up to 1.38e-5) when only the chunking changes -> check A failed at 1e-5 (failure kept in NORMALIZATION_<base>.json). 1e-4 is the existing registered R39 step-0 student-vs-cache tolerance (joint_rule.equivalence_tol_max_abs; R47 observed up to 1.34e-5). A layout-dependent centre would move the vectors by the DEV-vs-FIT mean distance (l2 0.013-0.019 per peer / modality, NORMALIZATION files), far above 1e-4.",
+  "failed_record": {
+    "n60": 1086204,
+    "f80in": 1086205,
+    "n00": 1086207,
+    "note": "check_A_full_scale.passed = False under 1e-5 kept as written"
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields and per-problem rows omitted, sample names pseudonymized, numbers unchanged."
+}
