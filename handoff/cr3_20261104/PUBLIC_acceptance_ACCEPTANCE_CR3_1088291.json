@@ -1,0 +1,360 @@
+{
+  "all_pass": true,
+  "checks": {
+    "GPU_LOCK": {
+      "ok": true,
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "torch": "2.9.0+cu128",
+      "cuda": "12.8",
+      "cudnn": 91002,
+      "determinism": {
+        "deterministic": true,
+        "matmul_tf32": false,
+        "cudnn_tf32": false,
+        "torch": "2.9.0+cu128",
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+      }
+    },
+    "A1_RECT_math_equals_CR1": {
+      "ok": true,
+      "per_graph": {
+        "OBS": [
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          }
+        ],
+        "J_KEEP_TOP1": [
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          }
+        ],
+        "KEEP_ORACLE": [
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 4.440892098500626e-16,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          }
+        ]
+      },
+      "note": "CR3 RECT trains through the unchanged CR2 path; this checks the package RECT formulation agrees"
+    },
+    "A2_same_draws": {
+      "ok": true,
+      "steps": 100,
+      "identical": true,
+      "rect_cost": {
+        "consumer": "RECT",
+        "scope": "all 100 updates",
+        "updates": 100,
+        "query_events_per_update": 64,
+        "mean_queries_image": 63.9,
+        "mean_queries_text": 63.98,
+        "mean_pair_scores_per_update": 4088.35,
+        "mean_old_rectangle_pairs_per_update": 4088.35,
+        "pair_scores_per_query_event": 63.88046875,
+        "max_pair_scores_in_an_update": 4096,
+        "mean_cache_reads_per_update": 127.88,
+        "mean_cache_image_reads": 63.9,
+        "mean_cache_text_reads": 63.98,
+        "mean_full_support_i2t_per_update": null,
+        "mean_full_support_t2i_per_update": null,
+        "complete_build_cpu_seconds": 0.0,
+        "synchronized_train_seconds": 0.5599765090737492,
+        "peak_gpu_memory_bytes": 1259221504,
+        "optimizer_steps_per_update": 1,
+        "backward_reductions_per_update": 1
+      },
+      "complete_cost": {
+        "consumer": "COMPLETE",
+        "scope": "all 100 updates",
+        "updates": 100,
+        "query_events_per_update": 64,
+        "mean_queries_image": 63.9,
+        "mean_queries_text": 63.98,
+        "mean_pair_scores_per_update": 4687.6,
+        "mean_old_rectangle_pairs_per_update": 4088.35,
+        "pair_scores_per_query_event": 73.24375,
+        "max_pair_scores_in_an_update": 4800,
+        "mean_cache_reads_per_update": 726.55,
+        "mean_cache_image_reads": 105.61,
+        "mean_cache_text_reads": 620.94,
+        "mean_full_support_i2t_per_update": 621.61,
+        "mean_full_support_t2i_per_update": 105.82,
+        "complete_build_cpu_seconds": 1.5868750042282045,
+        "synchronized_train_seconds": 2.265823882073164,
+        "peak_gpu_memory_bytes": 1269730304,
+        "optimizer_steps_per_update": 1,
+        "backward_reductions_per_update": 1
+      }
+    },
+    "A3_A4_complete_targets_and_queries": {
+      "ok": true,
+      "graphs": {
+        "Flickr60:J_KEEP_TOP1": {
+          "batches": 20,
+          "target_sum_max_err": 4.440892098500626e-16,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 53,
+          "mean_pairs_rect": 4083.200000000001,
+          "mean_pairs_complete": 4677.15,
+          "graph_unchanged": true
+        },
+        "Flickr60:OBS": {
+          "batches": 20,
+          "target_sum_max_err": 0.0,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 5,
+          "mean_pairs_rect": 4096.000000000001,
+          "mean_pairs_complete": 4351.999999999999,
+          "graph_unchanged": true
+        },
+        "Flickr00:OBS": {
+          "batches": 20,
+          "target_sum_max_err": 0.0,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 5,
+          "mean_pairs_rect": 4092.8000000000015,
+          "mean_pairs_complete": 4348.549999999999,
+          "graph_unchanged": true
+        },
+        "CC152K_RECOVERED_20261104:BASE_KEEP_TOP1": {
+          "batches": 20,
+          "target_sum_max_err": 2.220446049250313e-16,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 216,
+          "mean_pairs_rect": 4096.000000000001,
+          "mean_pairs_complete": 4171.15,
+          "graph_unchanged": true
+        },
+        "Flickr60:KEEP_ORACLE": {
+          "batches": 20,
+          "target_sum_max_err": 2.220446049250313e-16,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 10,
+          "mean_pairs_rect": 4092.8000000000015,
+          "mean_pairs_complete": 4551.65,
+          "graph_unchanged": true
+        }
+      }
+    },
+    "A6_fixture_and_multicaption": {
+      "ok": true,
+      "fixture": {
+        "rect_candidates": [
+          0,
+          2
+        ],
+        "rect_target": [
+          1.0,
+          0.0
+        ],
+        "complete_candidates": [
+          0,
+          1,
+          2
+        ],
+        "complete_target": [
+          0.5,
+          0.5,
+          0.0
+        ]
+      }
+    },
+    "A5_score_invariance": {
+      "ok": true,
+      "chunk_max_abs": 1.1920928955078125e-07,
+      "reorder_max_abs": 1.1920928955078125e-07,
+      "id_perm_max_abs": 0.0,
+      "pairs": 4723
+    },
+    "A7_exact_resume": {
+      "ok": true,
+      "note": "training code reads FIT bank, CR1 prepared, fixed graph only"
+    },
+    "R_reuse_receipts": {
+      "ok": true,
+      "receipts": {
+        "Flickr00:OBS": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr1/CR1_20261104/Flickr00/students/OBS",
+          "historical_attempt": "1087800 node52 NVIDIA L40S 2026-11-04T17:04:03Z",
+          "historical_job_line": "JOB 1087800 node52 NVIDIA L40S, 595.84 2026-11-04T17:04:03Z",
+          "historical_gpu": "NVIDIA L40S",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.026167871430516243,
+          "decision": "RERUN"
+        },
+        "Flickr60:OBS": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr1/CR1_20261104/Flickr60/students/OBS",
+          "historical_attempt": "1087805 node52 NVIDIA L40S 2026-11-04T17:08:03Z",
+          "historical_job_line": "JOB 1087805 node52 NVIDIA L40S, 595.84 2026-11-04T17:08:03Z",
+          "historical_gpu": "NVIDIA L40S",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.022461606189608574,
+          "decision": "RERUN"
+        },
+        "CC152K_RECOVERED_20261104:OBS": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr1/CR1_20261104/CC152K_RECOVERED_20261104/students/OBS",
+          "historical_attempt": "1087911 node59 NVIDIA RTX PRO 6000 Blackwell Server Edition 2026-11-04T17:20:23Z",
+          "historical_job_line": "JOB 1087911 node59 NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10 2026-11-04T17:20:23Z",
+          "historical_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.023764394223690033,
+          "decision": "RERUN"
+        },
+        "Flickr60:BASE_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/Flickr60/CR2_Flickr60_BASE_KEEP_TOP1_s1001",
+          "historical_attempt": "1088160 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition 2026-11-04T18:49:21Z",
+          "historical_job_line": "JOB 1088160 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.09 2026-11-04T18:49:21Z",
+          "historical_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.022490214556455612,
+          "decision": "RERUN"
+        },
+        "Flickr60:J_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/Flickr60/CR2_Flickr60_J_KEEP_TOP1_s1001",
+          "historical_attempt": "1088163 node52 NVIDIA L40S 2026-11-04T18:50:09Z",
+          "historical_job_line": "JOB 1088163 node52 NVIDIA L40S, 595.84 2026-11-04T18:50:09Z",
+          "historical_gpu": "NVIDIA L40S",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.02253405563533306,
+          "decision": "RERUN"
+        },
+        "Flickr60:BCE_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/Flickr60/CR2_Flickr60_BCE_KEEP_TOP1_s1001",
+          "historical_attempt": "1088165 node59 NVIDIA RTX PRO 6000 Blackwell Server Edition 2026-11-04T18:50:23Z",
+          "historical_job_line": "JOB 1088165 node59 NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10 2026-11-04T18:50:23Z",
+          "historical_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.022646550089120865,
+          "decision": "RERUN"
+        },
+        "Flickr60:NCE_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/Flickr60/CR2_Flickr60_NCE_KEEP_TOP1_s1001",
+          "historical_attempt": "1088177 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition 2026-11-04T18:51:33Z",
+          "historical_job_line": "JOB 1088177 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.09 2026-11-04T18:51:33Z",
+          "historical_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.02206537313759327,
+          "decision": "RERUN"
+        },
+        "CC152K_RECOVERED_20261104:BASE_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_s1001",
+          "historical_attempt": "1088184 node52 NVIDIA L40S 2026-11-04T18:52:49Z",
+          "historical_job_line": "JOB 1088184 node52 NVIDIA L40S, 595.84 2026-11-04T18:52:49Z",
+          "historical_gpu": "NVIDIA L40S",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.02357962355017662,
+          "decision": "RERUN"
+        },
+        "CC152K_RECOVERED_20261104:J_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_J_KEEP_TOP1_s1001",
+          "historical_attempt": "1088186 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition 2026-11-04T18:53:03Z",
+          "historical_job_line": "JOB 1088186 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.09 2026-11-04T18:53:03Z",
+          "historical_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.022525209933519363,
+          "decision": "RERUN"
+        },
+        "CC152K_RECOVERED_20261104:BCE_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_s1001",
+          "historical_attempt": "1088198 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition 2026-11-04T18:53:36Z",
+          "historical_job_line": "JOB 1088198 node61 NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.09 2026-11-04T18:53:36Z",
+          "historical_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.024750543758273125,
+          "decision": "RERUN"
+        },
+        "CC152K_RECOVERED_20261104:NCE_KEEP_TOP1": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_s1001",
+          "historical_attempt": "1088200 node52 NVIDIA L40S 2026-11-04T18:53:49Z",
+          "historical_job_line": "JOB 1088200 node52 NVIDIA L40S, 595.84 2026-11-04T18:53:49Z",
+          "historical_gpu": "NVIDIA L40S",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.024211252108216286,
+          "decision": "RERUN"
+        },
+        "Flickr60:KEEP_ORACLE": {
+          "historical_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/students/Flickr60/CR2_Flickr60_KEEP_ORACLE_s1001",
+          "historical_attempt": "1088205 node52 NVIDIA L40S 2026-11-04T18:54:49Z",
+          "historical_job_line": "JOB 1088205 node52 NVIDIA L40S, 595.84 2026-11-04T18:54:49Z",
+          "historical_gpu": "NVIDIA L40S",
+          "lock_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "this_gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+          "step250_bitwise": false,
+          "step250_max_abs_param_diff": 0.02248738706111908,
+          "decision": "RERUN"
+        }
+      }
+    }
+  },
+  "seconds": 53.31117990799248,
+  "test_read": false,
+  "truth_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

@@ -1,0 +1,224 @@
+{
+  "all_pass": true,
+  "checks": {
+    "GPU_RECORD": {
+      "ok": true,
+      "gpu": "NVIDIA L40S",
+      "note": "A1: GPU recorded per matched group; acceptance repeated on this type",
+      "torch": "2.9.0+cu128",
+      "cuda": "12.8",
+      "cudnn": 91002,
+      "determinism": {
+        "deterministic": true,
+        "matmul_tf32": false,
+        "cudnn_tf32": false,
+        "torch": "2.9.0+cu128",
+        "gpu": "NVIDIA L40S"
+      }
+    },
+    "A1_RECT_math_equals_CR1": {
+      "ok": true,
+      "per_graph": {
+        "OBS": [
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 4.440892098500626e-16,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          }
+        ],
+        "J_KEEP_TOP1": [
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          }
+        ],
+        "KEEP_ORACLE": [
+          {
+            "loss_abs": 4.440892098500626e-16,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 0.0,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          },
+          {
+            "loss_abs": 8.881784197001252e-16,
+            "grad_rel_max": 0.0,
+            "pairs": 4096
+          }
+        ]
+      },
+      "note": "CR3 RECT trains through the unchanged CR2 path; this checks the package RECT formulation agrees"
+    },
+    "A2_same_draws": {
+      "ok": true,
+      "steps": 100,
+      "identical": true,
+      "rect_cost": {
+        "consumer": "RECT",
+        "scope": "all 100 updates",
+        "updates": 100,
+        "query_events_per_update": 64,
+        "mean_queries_image": 63.9,
+        "mean_queries_text": 63.98,
+        "mean_pair_scores_per_update": 4088.35,
+        "mean_old_rectangle_pairs_per_update": 4088.35,
+        "pair_scores_per_query_event": 63.88046875,
+        "max_pair_scores_in_an_update": 4096,
+        "mean_cache_reads_per_update": 127.88,
+        "mean_cache_image_reads": 63.9,
+        "mean_cache_text_reads": 63.98,
+        "mean_full_support_i2t_per_update": null,
+        "mean_full_support_t2i_per_update": null,
+        "complete_build_cpu_seconds": 0.0,
+        "synchronized_train_seconds": 0.449194576125592,
+        "peak_gpu_memory_bytes": 1260269056,
+        "optimizer_steps_per_update": 1,
+        "backward_reductions_per_update": 1
+      },
+      "complete_cost": {
+        "consumer": "COMPLETE",
+        "scope": "all 100 updates",
+        "updates": 100,
+        "query_events_per_update": 64,
+        "mean_queries_image": 63.9,
+        "mean_queries_text": 63.98,
+        "mean_pair_scores_per_update": 4687.6,
+        "mean_old_rectangle_pairs_per_update": 4088.35,
+        "pair_scores_per_query_event": 73.24375,
+        "max_pair_scores_in_an_update": 4800,
+        "mean_cache_reads_per_update": 726.55,
+        "mean_cache_image_reads": 105.61,
+        "mean_cache_text_reads": 620.94,
+        "mean_full_support_i2t_per_update": 621.61,
+        "mean_full_support_t2i_per_update": 105.82,
+        "complete_build_cpu_seconds": 3.5182094504125416,
+        "synchronized_train_seconds": 4.018012730870396,
+        "peak_gpu_memory_bytes": 1270777856,
+        "optimizer_steps_per_update": 1,
+        "backward_reductions_per_update": 1
+      }
+    },
+    "A3_A4_complete_targets_and_queries": {
+      "ok": true,
+      "graphs": {
+        "Flickr60:J_KEEP_TOP1": {
+          "batches": 20,
+          "target_sum_max_err": 4.440892098500626e-16,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 53,
+          "mean_pairs_rect": 4083.200000000001,
+          "mean_pairs_complete": 4677.15,
+          "graph_unchanged": true
+        },
+        "Flickr60:OBS": {
+          "batches": 20,
+          "target_sum_max_err": 0.0,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 5,
+          "mean_pairs_rect": 4096.000000000001,
+          "mean_pairs_complete": 4351.999999999999,
+          "graph_unchanged": true
+        },
+        "Flickr00:OBS": {
+          "batches": 20,
+          "target_sum_max_err": 0.0,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 5,
+          "mean_pairs_rect": 4092.8000000000015,
+          "mean_pairs_complete": 4348.549999999999,
+          "graph_unchanged": true
+        },
+        "CC152K_RECOVERED_20261104:BASE_KEEP_TOP1": {
+          "batches": 20,
+          "target_sum_max_err": 2.220446049250313e-16,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 216,
+          "mean_pairs_rect": 4096.000000000001,
+          "mean_pairs_complete": 4171.15,
+          "graph_unchanged": true
+        },
+        "Flickr60:KEEP_ORACLE": {
+          "batches": 20,
+          "target_sum_max_err": 2.220446049250313e-16,
+          "support_missing": 0,
+          "old_candidates_missing": 0,
+          "extra_queries": 0,
+          "max_support_image_query": 10,
+          "mean_pairs_rect": 4092.8000000000015,
+          "mean_pairs_complete": 4551.65,
+          "graph_unchanged": true
+        }
+      }
+    },
+    "A6_fixture_and_multicaption": {
+      "ok": true,
+      "fixture": {
+        "rect_candidates": [
+          0,
+          2
+        ],
+        "rect_target": [
+          1.0,
+          0.0
+        ],
+        "complete_candidates": [
+          0,
+          1,
+          2
+        ],
+        "complete_target": [
+          0.5,
+          0.5,
+          0.0
+        ]
+      }
+    },
+    "A5_score_invariance": {
+      "ok": true,
+      "chunk_max_abs": 2.384185791015625e-07,
+      "reorder_max_abs": 1.1920928955078125e-07,
+      "id_perm_max_abs": 0.0,
+      "pairs": 4723
+    },
+    "A7_exact_resume": {
+      "ok": true,
+      "note": "training code reads FIT bank, CR1 prepared, fixed graph only"
+    }
+  },
+  "seconds": 41.7534661218524,
+  "test_read": false,
+  "truth_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

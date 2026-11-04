@@ -1,0 +1,80 @@
+{
+  "amendment_id": "CR3_A1",
+  "protocol_id": "CR3_FIXED_GRAPH_SUPPORT_COMPLETE_V1",
+  "utc": "2026-11-04T21:10:08Z",
+  "user_decision_verbatim": "不行不行，现在这个只能用一种GPU还是太慢了，你来组织一下，至少我们要能在L40S上跑",
+  "change": "GPU lock is per matched group instead of global: each condition (all its graphs x RECT/COMPLETE) runs as ONE Slurm job, cells sequential on the single GPU it receives; partition RTX6000PRO,L40S,H100, exclude node51,node53,node60. GROUP_ENV.json pins GPU name/driver/torch/CUDA/cuDNN; a later attempt on a different env stops. Within-condition comparisons are same-GPU; cross-condition comparisons may be cross-GPU (reported).",
+  "unchanged": "science, graphs, consumers, init, optimizer, sampler, steps, evaluator, cr3_student.py bytes, unit configs, data hashes",
+  "reason": "RTX PRO 6000 partition saturated (all 6 GPUs held by other users for 13-22 h); choice made without reading any CR3 DEV result",
+  "groups": {
+    "Flickr00": [
+      "CR3_Flickr00_OBS_RECT_s1001",
+      "CR3_Flickr00_OBS_COMPLETE_s1001",
+      "CR3_Flickr00_J_MASS_OBS_RECT_s1001",
+      "CR3_Flickr00_J_MASS_OBS_COMPLETE_s1001"
+    ],
+    "Flickr60": [
+      "CR3_Flickr60_OBS_RECT_s1001",
+      "CR3_Flickr60_OBS_COMPLETE_s1001",
+      "CR3_Flickr60_J_MASS_OBS_RECT_s1001",
+      "CR3_Flickr60_J_MASS_OBS_COMPLETE_s1001",
+      "CR3_Flickr60_BASE_KEEP_TOP1_RECT_s1001",
+      "CR3_Flickr60_BASE_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_Flickr60_J_KEEP_TOP1_RECT_s1001",
+      "CR3_Flickr60_J_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_Flickr60_BCE_KEEP_TOP1_RECT_s1001",
+      "CR3_Flickr60_BCE_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_Flickr60_NCE_KEEP_TOP1_RECT_s1001",
+      "CR3_Flickr60_NCE_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_Flickr60_KEEP_ORACLE_RECT_s1001",
+      "CR3_Flickr60_KEEP_ORACLE_COMPLETE_s1001",
+      "CR3_Flickr60_FULL_TRUE_ORACLE_RECT_s1001",
+      "CR3_Flickr60_FULL_TRUE_ORACLE_COMPLETE_s1001"
+    ],
+    "CC152K_RECOVERED_20261104": [
+      "CR3_CC152K_RECOVERED_20261104_OBS_RECT_s1001",
+      "CR3_CC152K_RECOVERED_20261104_OBS_COMPLETE_s1001",
+      "CR3_CC152K_RECOVERED_20261104_J_MASS_OBS_RECT_s1001",
+      "CR3_CC152K_RECOVERED_20261104_J_MASS_OBS_COMPLETE_s1001",
+      "CR3_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_RECT_s1001",
+      "CR3_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_CC152K_RECOVERED_20261104_J_KEEP_TOP1_RECT_s1001",
+      "CR3_CC152K_RECOVERED_20261104_J_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_RECT_s1001",
+      "CR3_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_COMPLETE_s1001",
+      "CR3_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_RECT_s1001",
+      "CR3_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_COMPLETE_s1001"
+    ]
+  },
+  "n_jobs": 3,
+  "superseded_runs": {
+    "CR3_Flickr00_OBS_RECT_s1001": "job 1088304 (RTX) kept on record under students/; rerun inside its condition job (students_A1/)",
+    "cancelled_pending_RTX_only_jobs": "1088305-1088315, 1088334 (never ran)"
+  },
+  "reuse": "all 12 historical RECT cells remain RERUN (receipts of 1088291); no historical endpoint is reused",
+  "numeric_env": {
+    "torch": "2.9.0+cu128",
+    "cuda": "12.8",
+    "cudnn": 91002,
+    "determinism": {
+      "deterministic": true,
+      "matmul_tf32": false,
+      "cudnn_tf32": false,
+      "torch": "2.9.0+cu128",
+      "gpu": "NVIDIA L40S"
+    },
+    "CUBLAS_WORKSPACE_CONFIG": ":4096:8"
+  },
+  "acceptance": {
+    "RTX_PRO_6000": {
+      "file": "<WORKSPACE>/handoff/cr3_20261104/acceptance/ACCEPTANCE_CR3_1088291.json",
+      "all_pass": true
+    },
+    "NVIDIA L40S": {
+      "file": "acceptance/ACCEPTANCE_CR3_A1_1088522.json",
+      "all_pass": true
+    }
+  },
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}
