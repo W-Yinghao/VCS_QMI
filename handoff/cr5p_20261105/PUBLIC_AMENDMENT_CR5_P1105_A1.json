@@ -1,0 +1,24 @@
+{
+  "amendment_id": "CR5_P1105_A1",
+  "utc": "2026-11-05T19:58:27Z",
+  "user_decision_verbatim": "好，CR组加上V100-32GB",
+  "change": "V100-32GB added as an allowed GPU type for the still-pending group jobs (scontrol Partition=L40S,RTX6000PRO,H100,V100-32GB). Per-matched-group single-GPU rule unchanged: each condition x seed job runs all its cells on the one GPU it gets; GROUP_ENV.json records GPU/driver/torch/CUDA/cuDNN.",
+  "caveat": "comparisons across groups (different seeds or conditions) may involve a GPU-type difference; the actual GPU per group is reported. Within-group RECT/PC (or within-seed source) comparisons stay same-GPU.",
+  "v100_acceptance": {
+    "file": "<WORKSPACE>/handoff/cr5_20261105/acceptance/ACCEPTANCE_CR5_V100_1090662.json",
+    "gpu": "Tesla V100S-PCIE-32GB",
+    "torch_arch_list_includes": "sm_70",
+    "all_pass": true,
+    "checks": "R1 seed-1001 RECT == CR3 trainer bitwise; R2 seed-1001 PC == CR4 trainer bitwise; R3 seeds/draws; R4 exact resume; R5 CC single-positive"
+  },
+  "jobs_widened": [
+    1089987,
+    1090066,
+    1090078,
+    1090132
+  ],
+  "running_jobs_untouched": true,
+  "code_or_config_changed": false,
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}
