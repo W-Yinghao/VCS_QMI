@@ -1,0 +1,16 @@
+{
+  "amendment_id": "CR4_A1",
+  "protocol_id": "CR4_FIXED_GRAPH_POSITIVE_EXCLUSIVE_V1",
+  "utc": "2026-11-05T05:11:26Z",
+  "reason": "technical failure: group jobs 1089385/1089386/1089387 crashed in setup at cr4_group.py line 70 (stray fz['graph_paths'] lookup -> KeyError) before any training; driver 1089287 stopped",
+  "change": "new file code/site/cr4_group_a1.py = cr4_group.py with that lookup removed (the replay graph path was already resolved from fz['units'] on the next line) plus a --dry-run setup check; new sbatch/group_cr4_a1.sbatch calls it. Frozen files (incl. cr4_group.py) unchanged and still hash-checked. Science, matrix, graphs, trainer, loss, references, evaluation unchanged.",
+  "failed_attempts": {
+    "Flickr60": 1089385,
+    "CC152K_RECOVERED_20261104": 1089386,
+    "Flickr00": 1089387
+  },
+  "group_env_handling": "GROUP_ENV.json written by the failed attempts (no training) archived as GROUP_ENV.failed_attempt_<job>.json; the new attempt pins its own env",
+  "scheduling": "resubmitted at nice 0 (coordinator request; CR4 cells are short); normal QOS; L40S,RTX6000PRO,H100",
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

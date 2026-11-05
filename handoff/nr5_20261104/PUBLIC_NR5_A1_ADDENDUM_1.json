@@ -1,0 +1,16 @@
+{
+  "addendum": "NR5_A1_ADDENDUM_1",
+  "utc": "2026-11-04T22:14:28Z",
+  "amends": "NR5_A1.json (unchanged, sha256 2f8033a4d043a259b814b04829fd0b52f71b418da03e129c4185d25e121ceb8b)",
+  "change": "group B_Flickr00 (jobs 1088666-1088671: COS/G_ZERO x J/BCE/NCE) moved PENDING from L40S to RTX6000PRO by the main session (scontrol, before any of them started), at the user's request to also use RTX and preempt runfill; the whole group stays on one GPU type",
+  "group_gpu_type_now": {
+    "A_Flickr60": "L40S",
+    "A_CC152K_RECOVERED": "L40S",
+    "B_Flickr00": "RTX6000PRO",
+    "B_Flickr60": "L40S",
+    "B_CC152K_RECOVERED": "L40S"
+  },
+  "consequence": "on RTX6000PRO (>=64 GiB) the NR5_A1 trainer uses the configured direct backward and the hidden cache GPU type gives bitwise t0; the NR5_A1 tolerance rule still applies (passes trivially)",
+  "future_rule": "further groups: prefer RTX6000PRO for a whole group when RTX has preemptible runfill or free GPUs; one type per group",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

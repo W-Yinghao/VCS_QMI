@@ -1,0 +1,110 @@
+{
+  "all_pass": true,
+  "checks": {
+    "GPU_RECORD": {
+      "ok": true,
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+      "torch": "2.9.0+cu128",
+      "cuda": "12.8",
+      "cudnn": 91002,
+      "determinism": {
+        "deterministic": true,
+        "matmul_tf32": false,
+        "cudnn_tf32": false,
+        "torch": "2.9.0+cu128",
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+      }
+    },
+    "P1_CE_branch_equals_CR3_conditional_loss": {
+      "ok": true,
+      "loss_abs": {
+        "Flickr60:J_KEEP_TOP1": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "Flickr00:OBS": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "CC152K_RECOVERED_20261104:BASE_KEEP_TOP1": [
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "note": "bitwise loss and gradient; RECT trains through the unchanged CR3 code"
+    },
+    "P2_single_positive_identity": {
+      "ok": true,
+      "graphs": {
+        "OBS": {
+          "rows_all_one": true,
+          "cols_le_one": true,
+          "pc_equals_ce_bitwise": true
+        },
+        "J_MASS_OBS": {
+          "rows_all_one": true,
+          "cols_le_one": true,
+          "pc_equals_ce_bitwise": true
+        }
+      }
+    },
+    "P3_partial_signs_and_decomposition": {
+      "ok": true,
+      "multi_positive_views": 100,
+      "pc_max_positive_partial": -0.03264542798878456,
+      "pc_min_negative_partial": 0.001996959162941309,
+      "ce_decomposition_max_abs_error": 1.3322676295501878e-15
+    },
+    "P4_numerics": {
+      "ok": true,
+      "extreme_logit_loss": 47881.57590867958,
+      "no_negative_row_value": 0.0
+    },
+    "P5_same_packed_batch_and_weights": {
+      "ok": true,
+      "graphs": {
+        "Flickr60:J_KEEP_TOP1": {
+          "extra_queries": 0,
+          "weight_sum_err": 0.0,
+          "dir_weight_err": 0.0
+        },
+        "Flickr60:KEEP_ORACLE": {
+          "extra_queries": 0,
+          "weight_sum_err": 0.0,
+          "dir_weight_err": 0.0
+        },
+        "CC152K_RECOVERED_20261104:J_KEEP_TOP1": {
+          "extra_queries": 0,
+          "weight_sum_err": 0.0,
+          "dir_weight_err": 0.0
+        }
+      },
+      "note": "PC consumes the unchanged CR3 FixedRelation.build(.,COMPLETE) object; only the final loss differs"
+    },
+    "P6_score_invariance": {
+      "ok": true,
+      "chunk_max_abs": 2.384185791015625e-07,
+      "reorder_max_abs": 5.960464477539063e-08,
+      "id_perm_max_abs": 0.0
+    },
+    "P7_exact_resume": {
+      "ok": true
+    },
+    "P8_same_draws_and_CE_replay": {
+      "ok": true,
+      "pc_ce_draws_identical_100": true,
+      "ce_replay_bitwise_vs_CR3": false,
+      "ce_replay_max_abs": 0.017545189708471298,
+      "cr3_group_gpu": "NVIDIA L40S",
+      "cr3_driver": "595.84",
+      "note": "CE replay bitwise only expected on the CR3 group environment; group jobs repeat this receipt and rerun references when it fails"
+    }
+  },
+  "seconds": 36.81248303200118,
+  "test_read": false,
+  "truth_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

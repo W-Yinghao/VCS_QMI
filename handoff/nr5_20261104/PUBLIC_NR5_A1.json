@@ -1,0 +1,86 @@
+{
+  "amendment": "NR5_A1",
+  "utc": "2026-11-04T21:39:19Z",
+  "user_decision_verbatim": "不行不行，现在这个只能用一种GPU还是太慢了，你来组织一下，至少我们要能在L40S上跑",
+  "changes": [
+    "allowed GPU types RTX6000PRO, L40S, H100 (exclude node51,node53,node60); one GPU type per matched group, chosen at submit time by availability (never by results)",
+    "groups: A = per condition FROZEN and TAIL x J/BCE/NCE; B = per condition COS and G_ZERO x J/BCE/NCE",
+    "step-0 contracts (train) and stage-0 contract (eval): bitwise / absolute-1e-5 replaced by the NR1 package elementwise rule |d| <= 3e-5 + 3e-5|ref|, the same rule on every GPU type; the stage-0 order may differ from the reference only where the reference scores of the reordered candidates are equal within 2x that tolerance; observed max diffs/ratios are recorded per unit",
+    "NR4 hidden cache (built on RTX) reused as is; not rebuilt or duplicated",
+    "code: nr5a1/{train,evaluate,train_unit}.py = byte copies of nr5/* with only the contract tolerances changed (see IMPLEMENTATION_DIFF_NR5_A1.patch); unit_a1.sbatch = unit.sbatch calling them + this gate"
+  ],
+  "kept_units_under_original_code": [
+    "NR5_A_CC152K_RECOVERED_FROZEN_BCE_t2002",
+    "NR5_A_CC152K_RECOVERED_FROZEN_J_t2002",
+    "NR5_A_CC152K_RECOVERED_FROZEN_NCE_t2002",
+    "NR5_A_Flickr60_FROZEN_BCE_t2002",
+    "NR5_A_Flickr60_FROZEN_J_t2002",
+    "NR5_A_Flickr60_FROZEN_NCE_t2002"
+  ],
+  "kept_reason": "A FROZEN units completed (L40S) before the amendment; FROZEN uses only cached globals, so the stage-0 contract was exact (0) under the original code",
+  "cancelled_pending_jobs": [
+    1088432,
+    1088433,
+    1088434,
+    1088438,
+    1088439,
+    1088440,
+    1088441,
+    1088442,
+    1088443,
+    1088463,
+    1088468,
+    1088469,
+    1088470
+  ],
+  "group_gpu_type": {
+    "A_Flickr60": {
+      "type": "L40S",
+      "basis": "forced: the group FROZEN units already ran on L40S (node52)"
+    },
+    "A_CC152K_RECOVERED": {
+      "type": "L40S",
+      "basis": "forced: the group FROZEN units already ran on L40S (node52)"
+    },
+    "B_Flickr00": {
+      "type": "L40S",
+      "basis": "availability at submit (RTX6000PRO 8 GPUs, 37 pending; L40S 24 GPUs; H100 164 pending)"
+    },
+    "B_Flickr60": {
+      "type": "L40S",
+      "basis": "availability at submit (same)"
+    },
+    "B_CC152K_RECOVERED": {
+      "type": "L40S",
+      "basis": "availability at submit (same)"
+    }
+  },
+  "units": [
+    "NR5_A_CC152K_RECOVERED_TAIL_LORA8_BCE_t2002",
+    "NR5_A_CC152K_RECOVERED_TAIL_LORA8_J_t2002",
+    "NR5_A_CC152K_RECOVERED_TAIL_LORA8_NCE_t2002",
+    "NR5_A_Flickr60_TAIL_LORA8_BCE_t2002",
+    "NR5_A_Flickr60_TAIL_LORA8_J_t2002",
+    "NR5_A_Flickr60_TAIL_LORA8_NCE_t2002",
+    "NR5_B_CC152K_RECOVERED_COS_BCE_s1001",
+    "NR5_B_CC152K_RECOVERED_COS_J_s1001",
+    "NR5_B_CC152K_RECOVERED_COS_NCE_s1001",
+    "NR5_B_CC152K_RECOVERED_G_ZERO_BCE_s1001",
+    "NR5_B_CC152K_RECOVERED_G_ZERO_J_s1001",
+    "NR5_B_CC152K_RECOVERED_G_ZERO_NCE_s1001",
+    "NR5_B_Flickr00_COS_BCE_s1001",
+    "NR5_B_Flickr00_COS_J_s1001",
+    "NR5_B_Flickr00_COS_NCE_s1001",
+    "NR5_B_Flickr00_G_ZERO_BCE_s1001",
+    "NR5_B_Flickr00_G_ZERO_J_s1001",
+    "NR5_B_Flickr00_G_ZERO_NCE_s1001",
+    "NR5_B_Flickr60_COS_BCE_s1001",
+    "NR5_B_Flickr60_COS_J_s1001",
+    "NR5_B_Flickr60_COS_NCE_s1001",
+    "NR5_B_Flickr60_G_ZERO_BCE_s1001",
+    "NR5_B_Flickr60_G_ZERO_J_s1001",
+    "NR5_B_Flickr60_G_ZERO_NCE_s1001"
+  ],
+  "l40s_acceptance": "/projects/EEG-foundation-model/yinghao/outputs_nr5/NR5_20261104/acceptance_a1_L40S/ACCEPTANCE_NR5_A1.json",
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

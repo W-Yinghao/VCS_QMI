@@ -1,0 +1,18 @@
+job,name,stage,device,status,wall_seconds,note
+1089228,cr4_pkgchecks,CHECKS,CPU,NOT_OK,,package run_checks.sh (scratch copy)
+1089229,cr4_accept,ACCEPTANCE,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",EXIT_OK,38.0,real acceptance P1-P8 (L40S = CR3 group GPU type)
+1089229,cr4_accept,ACCEPTANCE,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",EXIT_OK,38.0,"partition widened to L40S,RTX6000PRO,H100 while PENDING (all saturated)"
+1089287,cr4_driver,DRIVER,CPU,NOT_OK,,acceptance->freeze->audit/groups->audit->summarize (stops on failure)
+1089384,cr4_audit_before,AUDIT_BEFORE,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",EXIT_OK,124.0,driver: read-only CE decomposition/grad audit before training
+1089385,cr4_Flickr60,GROUP,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",NOT_OK,,driver: matched group Flickr60
+1089386,cr4_CC152K_RE,GROUP,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",NOT_OK,,driver: matched group CC152K_RECOVERED_20261104
+1089387,cr4_Flickr00,GROUP,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",NOT_OK,,driver: matched group Flickr00
+1089422,cr4_dryrun,DRYRUN_A1,CPU,EXIT_OK,13.0,CR4_A1 group setup dry-run (3 conditions)
+1089385,-,GROUP,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",NOT_OK,,"FAILED in setup (KeyError graph_paths at cr4_group.py:70), no training; superseded by CR4_A1"
+1089386,-,GROUP,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",NOT_OK,,"FAILED in setup (KeyError graph_paths at cr4_group.py:70), no training; superseded by CR4_A1"
+1089387,-,GROUP,"NVIDIA RTX PRO 6000 Blackwell Server Edition, 615.71.10",NOT_OK,,"FAILED in setup (KeyError graph_paths at cr4_group.py:70), no training; superseded by CR4_A1"
+1089423,cr4a1_Flickr60,GROUP_A1,"NVIDIA L40S, 595.84",EXIT_OK,9778.0,CR4_A1 matched group Flickr60 (nice 0)
+1089424,cr4a1_CC152K_RE,GROUP_A1,"NVIDIA L40S, 595.84",EXIT_OK,4685.0,CR4_A1 matched group CC152K_RECOVERED_20261104 (nice 0)
+1089425,cr4a1_Flickr00,GROUP_A1,"NVIDIA L40S, 595.84",EXIT_OK,2434.0,CR4_A1 matched group Flickr00 (nice 0)
+1089426,cr4_driver2,DRIVER,CPU,NOT_OK,,"wait groups 1089423,1089424,1089425 -> audit-after -> summarize"
+1089646,,AUDIT_AFTER,,NO_LOG,,driver2: read-only audit after training
