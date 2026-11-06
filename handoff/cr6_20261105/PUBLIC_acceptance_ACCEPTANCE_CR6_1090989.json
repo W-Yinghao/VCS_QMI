@@ -1,0 +1,166 @@
+{
+  "status": "ALL_PASS",
+  "mode": "portable",
+  "tail_checked": true,
+  "validates_groups": [
+    "A1",
+    "A2",
+    "B"
+  ],
+  "gpu_name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+  "checks": {
+    "E1_J_clone_vs_cr1prod_samejob": {
+      "ok": true,
+      "model_bitwise": true,
+      "optimizer_bitwise": true,
+      "max_abs": 0.0,
+      "rng_untouched": false
+    },
+    "E1_BCE_clone_vs_cr1prod_samejob": {
+      "ok": true,
+      "model_bitwise": true,
+      "optimizer_bitwise": true,
+      "max_abs": 0.0,
+      "rng_untouched": true
+    },
+    "E2_new_source_seeds": {
+      "ok": true,
+      "J_BCE_same_init": true,
+      "J_BCE_same_sampler_state": true,
+      "init_differs_from_CR1": true,
+      "rng_untouched": [
+        true,
+        true
+      ],
+      "seed_map": {
+        "E01": {
+          "head_seed": 2002000,
+          "sampler_seed": 20261105200200
+        },
+        "E02": {
+          "head_seed": 2002001,
+          "sampler_seed": 20261105200201
+        },
+        "E03": {
+          "head_seed": 2002002,
+          "sampler_seed": 20261105200202
+        },
+        "E12": {
+          "head_seed": 2002003,
+          "sampler_seed": 20261105200203
+        },
+        "E13": {
+          "head_seed": 2002004,
+          "sampler_seed": 20261105200204
+        },
+        "E23": {
+          "head_seed": 2002005,
+          "sampler_seed": 20261105200205
+        }
+      }
+    },
+    "S1_cr5_student_samejob_determinism": {
+      "ok": true,
+      "max_abs": 0.0
+    },
+    "V1_evaluator": {
+      "ok": true,
+      "steps": {
+        "0": {
+          "samejob_metrics_equal": true,
+          "samejob_orders_equal": true,
+          "rSum_cr6": 558.4418145956607,
+          "rSum_cr1bridge_samejob": 558.4418145956607
+        },
+        "8000": {
+          "samejob_metrics_equal": true,
+          "samejob_orders_equal": true,
+          "rSum_cr6": 560.9072978303748,
+          "rSum_cr1bridge_samejob": 560.9072978303748
+        }
+      }
+    },
+    "T1_zero_lora_fit": {
+      "ok": true,
+      "image_feat_max_abs": 5.960464477539063e-08,
+      "text_feat_max_abs": 5.960464477539063e-08,
+      "batch_score_max_abs": 4.76837158203125e-07,
+      "unique_images": 100,
+      "unique_texts": 610,
+      "pairs": 4680,
+      "score_tolerance": 0.00012239825248718263
+    },
+    "T2_nonzero_invariance": {
+      "ok": true,
+      "batch_membership_image_max_abs": 0.0,
+      "batch_membership_text_max_abs": 0.0,
+      "pair_chunk_max_abs": 2.384185791015625e-07,
+      "id_rename_loss_abs_diff": 0.0,
+      "loss": 2.763690948486328,
+      "lora_B_absmax": 0.07963055372238159
+    },
+    "T3_direct_vs_replay": {
+      "ok": true,
+      "bitwise": false,
+      "max_abs": 2.7939677238464355e-09,
+      "max_rel_norm": 1.1846279335259169e-07,
+      "all_grads_nonzero": true,
+      "replay_max_abs": 0.0
+    },
+    "T1_zero_lora_dev_step0": {
+      "ok": true,
+      "i_order_equal": true,
+      "t_order_equal": true,
+      "dev_feature_max_abs": {
+        "image": 0.0,
+        "text": 0.0
+      },
+      "tail_step0_rSum": 558.4418145956607,
+      "frozen_step0_rSum": 558.4418145956607,
+      "note": "criterion: zero-LoRA raw DEV features within 1e-5 of the frozen DEV cache; order/rSum identity reported (may differ only via ULP-level ties)"
+    },
+    "T4_optimizer_coverage_updates": {
+      "ok": true,
+      "head_params": 819971,
+      "lora_params": 98304,
+      "min_head_change": 8.897159568732604e-05,
+      "min_adapter_change": 1.596100628376007e-05,
+      "csr_unchanged": true,
+      "step0": {
+        "score_max_abs": 4.76837158203125e-07,
+        "image_feat_max_abs": 5.960464477539063e-08,
+        "text_feat_max_abs": 5.960464477539063e-08,
+        "pairs": 4680,
+        "score_tolerance": 0.00012239825248718263
+      }
+    },
+    "T5_resume_bitwise": {
+      "ok": true,
+      "model": true,
+      "adapter": true,
+      "optimizers": true
+    },
+    "T6_timing": {
+      "ok": true,
+      "seconds_per_update_replay_mmap": 1.1810072668537033,
+      "est_8000_update_hours": 2.624460593008229,
+      "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition"
+    },
+    "T7_cc_hidden_alignment": {
+      "ok": true,
+      "image_max_abs": 5.960464477539063e-08,
+      "text_max_abs": 5.960464477539063e-08
+    }
+  },
+  "env": {
+    "gpu_name": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "driver": "615.71.10",
+    "torch": "2.9.0+cu128",
+    "cuda": "12.8",
+    "cudnn": 91002
+  },
+  "seconds": 204.17187851294875,
+  "utc": "2026-11-06T03:47:04Z",
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

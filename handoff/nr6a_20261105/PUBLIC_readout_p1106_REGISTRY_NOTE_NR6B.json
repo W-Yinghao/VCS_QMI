@@ -1,0 +1,35 @@
+{
+  "note": "Registry note requested by VCS_NR6A_Review_Action_20261106 (server-built NR6-B is not an alias of the package names)",
+  "server_NR6B": {
+    "protocol_id": "NR6B_NATIVE_HREF_V1",
+    "frozen_protocol": "handoff/nr6b_20261105/PROTOCOL_FROZEN_NR6B.json",
+    "design": "{Flickr60, CC152K_RECOVERED, COCO60} x G_ZERO x J/BCE/NCE x HREF (alpha .5, g = s - log(q/p) on P and reference slots) + COCO60 x G_ZERO x J/BCE/NCE x U control = 12 units; from pretrained SigLIP2 + zero TAIL_LORA8 (no task prefix), 8000 steps; configs = NR5-B G_ZERO configs with only reference/alpha changed",
+    "key_fields": {
+      "init": "NATIVE",
+      "scope": "TAIL_LORA8",
+      "readout": "G_ZERO",
+      "reference": "HREF",
+      "alpha": 0.5,
+      "train_sampler_seed": 20261104501,
+      "adapter_seed": 1001,
+      "head_seed": 1001,
+      "new_updates": 8000,
+      "lr_start": 0.0001,
+      "lr_end": 1e-05,
+      "adapter_lr_start": 1e-05,
+      "adapter_lr_end": 1e-06
+    },
+    "group_gpu": {
+      "record": "handoff/nr6b_20261105/GROUP_GPU_NR6B.json",
+      "addendum": "handoff/nr6b_20261105/GROUP_GPU_NR6B_ADDENDUM_1.json"
+    }
+  },
+  "distinct_from": {
+    "NR6-A (NR6A_STRUCTURE_CONFIRM_V1, completed 24/24)": "HREF suffix from the folded NR3 NCE prefix, TAIL vs FROZEN, 4000 steps; NR6-B starts from raw SigLIP2 with no prefix, G_ZERO head, 8000 steps",
+    "NR6A_P1105 (package NR6A native)": "reference U (product-Q), COS and G_ZERO, Flickr60 only, seeds 2002 / sampler 202611052002; NR6-B uses HREF (plus a COCO60 U control), seed 1001 / sampler 20261104501",
+    "NR6B_P1105 (package NR6B LOCKED head)": "LOCKED mature head from the folded NR3 NCE prefix, HREF suffix 4000 steps; NR6-B trains a fresh G_ZERO head jointly with LoRA from raw",
+    "config-level dedup": "no NR6-B config equals any NR2..NR6 / P1105 production config (protocol + full config minus unit id)"
+  },
+  "running_jobs_changed": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

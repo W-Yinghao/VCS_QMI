@@ -1,0 +1,22 @@
+{
+  "addendum_id": "CR6_ADDENDUM_ACCEPTANCE_BY_GPU_TYPE",
+  "registered_utc": "2026-11-05T23:47:43Z",
+  "before": "no formal CR6 training submitted; PROTOCOL_FROZEN_CR6.json not yet written (frozen by the driver at the first passing acceptance, embedding this rule)",
+  "trigger": "user (via coordinator): 「CR6一定要在L40S上做吗」; coordinator: do not let CR6 wait on the L40S acceptance",
+  "acceptances": {
+    "1090959": "L40S, history mode: same-job reruns (frozen CR1 fit_estimator, CR5 student determinism, CR1 eval bridge) + bitwise vs CR1/CR5 L40S history + TAIL T1-T7",
+    "1090989": "RTX6000PRO, portable mode: same-job reruns instead of history + TAIL T1-T7",
+    "1090990": "V100-32GB, portable --no-tail: A1 estimator + A2 small-G + evaluator (TAIL never runs on V100)"
+  },
+  "release_rule": "each matched group (A1; A2 t1002/t1003; B Flickr60/CC) is one job on one GPU, submitted only to partitions whose acceptance passed and validates that group kind (A1/A2: L40S,RTX6000PRO,H100,V100-32GB; B: L40S,RTX6000PRO,H100; H100 has no acceptance -> unused); a resubmission is pinned to the GPU type in GROUP_ENV.json",
+  "references": "CR5 FROZEN references are reused only when the 250-step replay inside the group job is bitwise equal to the stored CR5 run and binding/endpoint identity holds (effectively same numeric path as the L40S history); otherwise the matched small-G reference is retrained in that group job; both decisions recorded",
+  "in_job": "every B group additionally reruns T1(FIT)/T2/T3 on its own GPU before any TAIL training",
+  "unchanged": "matrix, seeds, objectives, graphs, steps, optimizer, evaluation; no frozen file of any earlier protocol modified",
+  "revision_2": {
+    "utc": "2026-11-06T00:12:41Z",
+    "before": "no freeze, no formal training",
+    "trigger": "user: 「其余两个CR6 不能挪到别的卡上吗？我觉得你这些检查是不是有点太多余了？真的有用吗」",
+    "change": "single acceptance = RTX6000PRO portable job 1090989 (L40S 1090959 cancelled; V100 1090990 FAIL kept on record: E1 failed because the acceptance replay used a 250-step cosine schedule (T_max=250) instead of the production T_max=8000 - acceptance-script bug, fixed (stop_after replay); S1/V1 passed on V100). After RTX PASS: A1 and B -> RTX6000PRO or L40S, A2 -> RTX6000PRO, L40S or V100-32GB; one GPU type per group. B groups skip the in-job TAIL re-check on RTX (covered by 1090989) and keep it on L40S. Reference rule unchanged (in-group 250-step replay with production schedule, bitwise, else rerun)."
+  },
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

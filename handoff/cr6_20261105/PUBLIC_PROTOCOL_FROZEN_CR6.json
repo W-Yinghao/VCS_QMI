@@ -1,0 +1,830 @@
+{
+  "protocol_id": "CR6_SOURCE_REPLICATE_AND_STUDENT_SCOPE_V1",
+  "name_check": "CR6_SOURCE_REPLICATE_AND_STUDENT_SCOPE_V1 not used by any earlier server registry (grep of handoff/*.json and outputs before registration)",
+  "evidence_commit": "05754e6a0e55447a77d776d70a2aefad264b3167",
+  "package": {
+    "zip": "<WORKSPACE>/VCS_CR5_Review_CR6_Server_20261105.zip",
+    "run_checks": "12/12 unittest OK + summarize_cr5 (CPU job 1090928, env vcs_aigiqa_ir torch 2.9.0 pandas 3.0.6, scratch copy)"
+  },
+  "user_instruction": "准备CR6并提交",
+  "frozen_utc": "2026-11-06T03:48:09Z",
+  "acceptance": {
+    "at_freeze": [
+      {
+        "file": "<WORKSPACE>/handoff/cr6_20261105/acceptance/ACCEPTANCE_CR6_1090989.json",
+        "status": "ALL_PASS",
+        "mode": "portable",
+        "gpu": "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+        "validates": [
+          "A1",
+          "A2",
+          "B"
+        ]
+      }
+    ],
+    "release_rule": "see ADDENDUM revision_2 (single RTX acceptance 1090989; release A1/B RTX6000PRO|L40S, A2 RTX6000PRO|L40S|V100-32GB). Original: ADDENDUM (registered before any formal training, coordinator request 2026-11-06): acceptances per GPU type. L40S job 1090959 = history mode (same-job checks + bitwise vs CR1/CR5 L40S history); RTX6000PRO = portable mode (same-job reruns of the frozen CR1 estimator, CR5 student and CR1 eval bridge instead of history + all TAIL checks); V100-32GB = portable --no-tail (A1/A2 only; TAIL never on V100). Each matched group is one job on one GPU, submitted only to accepted types valid for its kind; CR5 FROZEN references are reused only if the 250-step replay in the group job is bitwise equal to the stored run (i.e. same numeric path as the L40S history), otherwise the matched small-G reference is retrained in that group job.",
+    "addendum": {
+      "file": "<WORKSPACE>/handoff/cr6_20261105/ADDENDUM_CR6_ACCEPTANCE_BY_GPU_TYPE.json"
+    }
+  },
+  "source_rng_roles": "CR6-A1 source replicate: CR1 estimator fit cloned with ONLY the two training RNG roles changed.\n\nRNG roles in the CR1 production estimator path (cr1_prod.fit_estimator + package src/cr1), audited by reading the code:\n  R1 estimator weight init   : GlobalScorer(..., seed) -> torch.manual_seed(seed) inside fork_rng(devices=[]) (CPU)   CHANGED\n  R2 training batch sampler  : numpy Generator, rng.integers(0, len(rows), 64) per step                              CHANGED\n  R3 FIT CAL pools           : cr1.pipeline.pools(seed=20261104051+e)   (calibration pair pool, endpoint-excluded)   FIXED\n  R4 folds / top32 candidates: content-hash folds, deterministic top32 (no RNG)                                       FIXED\n  R5 student common init CAL : pools(seed=20261104151) in PREP (not used by estimators)                               FIXED\n  R6 torch global CPU/CUDA RNG: not consumed by estimator training (no dropout, deterministic P/Q weights); asserted\n     unchanged across training in every CR6 fit receipt.\n  R7 score export / CAP solve / KEEP_TOP1 / J_MASS_OBS: deterministic, no RNG.\nCR1 used R1 = 1001 and R2 = default_rng([1001, e, 51]) for BOTH objectives. CR6 uses, per expert index e (E01..E23 -> 0..5),\nR1 = 2002000+e and R2 = default_rng(20261105200200+e), identical for J and BCE of the same expert (package MATRIX_NEW.csv).\nWith R1=1001, R2=[1001,e,51] this function replays CR1 (acceptance compares the step-250 checkpoint bitwise).\nEverything else (allowed records, objective, model, a/b init, optimizer, 8000 steps, CAL pools, calibration fit) is the CR1 code.\n",
+  "new_source_seed_map": {
+    "E01": {
+      "head_seed": 2002000,
+      "sampler_seed": 20261105200200
+    },
+    "E02": {
+      "head_seed": 2002001,
+      "sampler_seed": 20261105200201
+    },
+    "E03": {
+      "head_seed": 2002002,
+      "sampler_seed": 20261105200202
+    },
+    "E12": {
+      "head_seed": 2002003,
+      "sampler_seed": 20261105200203
+    },
+    "E13": {
+      "head_seed": 2002004,
+      "sampler_seed": 20261105200204
+    },
+    "E23": {
+      "head_seed": 2002005,
+      "sampler_seed": 20261105200205
+    }
+  },
+  "units": {
+    "CR6_A1_Flickr60_J_E01_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "J",
+      "expert": "E01",
+      "source_seed": 2002,
+      "head_seed": 2002000,
+      "sampler_seed": 20261105200200,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/J/E01",
+      "cloned_from": "CR1_Flickr60_EST_J_E01_s1001"
+    },
+    "CR6_A1_Flickr60_J_E02_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "J",
+      "expert": "E02",
+      "source_seed": 2002,
+      "head_seed": 2002001,
+      "sampler_seed": 20261105200201,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/J/E02",
+      "cloned_from": "CR1_Flickr60_EST_J_E02_s1001"
+    },
+    "CR6_A1_Flickr60_J_E03_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "J",
+      "expert": "E03",
+      "source_seed": 2002,
+      "head_seed": 2002002,
+      "sampler_seed": 20261105200202,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/J/E03",
+      "cloned_from": "CR1_Flickr60_EST_J_E03_s1001"
+    },
+    "CR6_A1_Flickr60_J_E12_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "J",
+      "expert": "E12",
+      "source_seed": 2002,
+      "head_seed": 2002003,
+      "sampler_seed": 20261105200203,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/J/E12",
+      "cloned_from": "CR1_Flickr60_EST_J_E12_s1001"
+    },
+    "CR6_A1_Flickr60_J_E13_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "J",
+      "expert": "E13",
+      "source_seed": 2002,
+      "head_seed": 2002004,
+      "sampler_seed": 20261105200204,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/J/E13",
+      "cloned_from": "CR1_Flickr60_EST_J_E13_s1001"
+    },
+    "CR6_A1_Flickr60_J_E23_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "J",
+      "expert": "E23",
+      "source_seed": 2002,
+      "head_seed": 2002005,
+      "sampler_seed": 20261105200205,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/J/E23",
+      "cloned_from": "CR1_Flickr60_EST_J_E23_s1001"
+    },
+    "CR6_A1_Flickr60_BCE_E01_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "BCE",
+      "expert": "E01",
+      "source_seed": 2002,
+      "head_seed": 2002000,
+      "sampler_seed": 20261105200200,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/BCE/E01",
+      "cloned_from": "CR1_Flickr60_EST_BCE_E01_s1001"
+    },
+    "CR6_A1_Flickr60_BCE_E02_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "BCE",
+      "expert": "E02",
+      "source_seed": 2002,
+      "head_seed": 2002001,
+      "sampler_seed": 20261105200201,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/BCE/E02",
+      "cloned_from": "CR1_Flickr60_EST_BCE_E02_s1001"
+    },
+    "CR6_A1_Flickr60_BCE_E03_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "BCE",
+      "expert": "E03",
+      "source_seed": 2002,
+      "head_seed": 2002002,
+      "sampler_seed": 20261105200202,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/BCE/E03",
+      "cloned_from": "CR1_Flickr60_EST_BCE_E03_s1001"
+    },
+    "CR6_A1_Flickr60_BCE_E12_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "BCE",
+      "expert": "E12",
+      "source_seed": 2002,
+      "head_seed": 2002003,
+      "sampler_seed": 20261105200203,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/BCE/E12",
+      "cloned_from": "CR1_Flickr60_EST_BCE_E12_s1001"
+    },
+    "CR6_A1_Flickr60_BCE_E13_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "BCE",
+      "expert": "E13",
+      "source_seed": 2002,
+      "head_seed": 2002004,
+      "sampler_seed": 20261105200204,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/BCE/E13",
+      "cloned_from": "CR1_Flickr60_EST_BCE_E13_s1001"
+    },
+    "CR6_A1_Flickr60_BCE_E23_src2002": {
+      "stage": "A1_ESTIMATOR",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "source_objective": "BCE",
+      "expert": "E23",
+      "source_seed": 2002,
+      "head_seed": 2002005,
+      "sampler_seed": 20261105200205,
+      "group": "A1",
+      "out": "/projects/EEG-foundation-model/yinghao/outputs_cr6/CR6_20261105/A1/experts/BCE/E23",
+      "cloned_from": "CR1_Flickr60_EST_BCE_E23_s1001"
+    },
+    "CR6_A2_Flickr60_J_KEEP_TOP1_src2002_t1002": {
+      "stage": "A2_SOURCE_STUDENT",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "J_KEEP_TOP1",
+      "source_set": "NEW_SRC2002",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "group": "A2_Flickr60_t1002",
+      "graph": "A1/graphs/<relation>_src2002.npz (bound by sha in GRAPH_REGISTRY_SRC2002.json at build time)"
+    },
+    "CR6_A2_Flickr60_J_KEEP_TOP1_src2002_t1003": {
+      "stage": "A2_SOURCE_STUDENT",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "J_KEEP_TOP1",
+      "source_set": "NEW_SRC2002",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "group": "A2_Flickr60_t1003",
+      "graph": "A1/graphs/<relation>_src2002.npz (bound by sha in GRAPH_REGISTRY_SRC2002.json at build time)"
+    },
+    "CR6_A2_Flickr60_BCE_KEEP_TOP1_src2002_t1002": {
+      "stage": "A2_SOURCE_STUDENT",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "BCE_KEEP_TOP1",
+      "source_set": "NEW_SRC2002",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "group": "A2_Flickr60_t1002",
+      "graph": "A1/graphs/<relation>_src2002.npz (bound by sha in GRAPH_REGISTRY_SRC2002.json at build time)"
+    },
+    "CR6_A2_Flickr60_BCE_KEEP_TOP1_src2002_t1003": {
+      "stage": "A2_SOURCE_STUDENT",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "BCE_KEEP_TOP1",
+      "source_set": "NEW_SRC2002",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "group": "A2_Flickr60_t1003",
+      "graph": "A1/graphs/<relation>_src2002.npz (bound by sha in GRAPH_REGISTRY_SRC2002.json at build time)"
+    },
+    "CR6_A2_Flickr60_J_MASS_OBS_src2002_t1002": {
+      "stage": "A2_SOURCE_STUDENT",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "J_MASS_OBS",
+      "source_set": "NEW_SRC2002",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "group": "A2_Flickr60_t1002",
+      "graph": "A1/graphs/<relation>_src2002.npz (bound by sha in GRAPH_REGISTRY_SRC2002.json at build time)"
+    },
+    "CR6_A2_Flickr60_J_MASS_OBS_src2002_t1003": {
+      "stage": "A2_SOURCE_STUDENT",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "J_MASS_OBS",
+      "source_set": "NEW_SRC2002",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "group": "A2_Flickr60_t1003",
+      "graph": "A1/graphs/<relation>_src2002.npz (bound by sha in GRAPH_REGISTRY_SRC2002.json at build time)"
+    },
+    "CR6_B_Flickr60_OBS_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "OBS",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/Flickr60/OBS.npz",
+      "baseline_ref_id": "CR6_REF_Flickr60_OBS_PC_t1002",
+      "group": "B_Flickr60_t1002"
+    },
+    "CR6_B_Flickr60_J_MASS_OBS_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "J_MASS_OBS",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/Flickr60/J_MASS_OBS.npz",
+      "baseline_ref_id": "CR6_REF_Flickr60_J_MASS_OBS_PC_t1002",
+      "group": "B_Flickr60_t1002"
+    },
+    "CR6_B_Flickr60_BASE_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "BASE_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_BASE_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_Flickr60_BASE_KEEP_TOP1_PC_t1002",
+      "group": "B_Flickr60_t1002"
+    },
+    "CR6_B_Flickr60_J_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "J_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_J_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_Flickr60_J_KEEP_TOP1_PC_t1002",
+      "group": "B_Flickr60_t1002"
+    },
+    "CR6_B_Flickr60_BCE_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "BCE_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_BCE_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_Flickr60_BCE_KEEP_TOP1_PC_t1002",
+      "group": "B_Flickr60_t1002"
+    },
+    "CR6_B_Flickr60_NCE_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "Flickr60",
+      "steps": 8000,
+      "relation": "NCE_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_NCE_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_Flickr60_NCE_KEEP_TOP1_PC_t1002",
+      "group": "B_Flickr60_t1002"
+    },
+    "CR6_B_CC152K_RECOVERED_20261104_OBS_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "CC152K_RECOVERED_20261104",
+      "steps": 8000,
+      "relation": "OBS",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/CC152K_RECOVERED_20261104/OBS.npz",
+      "baseline_ref_id": "CR6_REF_CC152K_RECOVERED_20261104_OBS_PC_t1002",
+      "group": "B_CC152K_RECOVERED_20261104_t1002"
+    },
+    "CR6_B_CC152K_RECOVERED_20261104_J_MASS_OBS_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "CC152K_RECOVERED_20261104",
+      "steps": 8000,
+      "relation": "J_MASS_OBS",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/CC152K_RECOVERED_20261104/J_MASS_OBS.npz",
+      "baseline_ref_id": "CR6_REF_CC152K_RECOVERED_20261104_J_MASS_OBS_PC_t1002",
+      "group": "B_CC152K_RECOVERED_20261104_t1002"
+    },
+    "CR6_B_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "CC152K_RECOVERED_20261104",
+      "steps": 8000,
+      "relation": "BASE_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_PC_t1002",
+      "group": "B_CC152K_RECOVERED_20261104_t1002"
+    },
+    "CR6_B_CC152K_RECOVERED_20261104_J_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "CC152K_RECOVERED_20261104",
+      "steps": 8000,
+      "relation": "J_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_J_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_CC152K_RECOVERED_20261104_J_KEEP_TOP1_PC_t1002",
+      "group": "B_CC152K_RECOVERED_20261104_t1002"
+    },
+    "CR6_B_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "CC152K_RECOVERED_20261104",
+      "steps": 8000,
+      "relation": "BCE_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_PC_t1002",
+      "group": "B_CC152K_RECOVERED_20261104_t1002"
+    },
+    "CR6_B_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_TAIL_t1002": {
+      "stage": "B_STUDENT_SCOPE",
+      "condition": "CC152K_RECOVERED_20261104",
+      "steps": 8000,
+      "relation": "NCE_KEEP_TOP1",
+      "source_set": "ORIGINAL_CR4",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "adapter_seed": 1002,
+      "scope": "TAIL_LORA8",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_s1001.npz",
+      "baseline_ref_id": "CR6_REF_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_PC_t1002",
+      "group": "B_CC152K_RECOVERED_20261104_t1002"
+    }
+  },
+  "references": {
+    "CR6_REF_Flickr60_OBS_PC_t1002": {
+      "condition": "Flickr60",
+      "relation": "OBS",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/Flickr60/OBS.npz",
+      "original_unit": "CR5_Flickr60_OBS_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_OBS_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1002",
+        "B_Flickr60_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_J_MASS_OBS_PC_t1002": {
+      "condition": "Flickr60",
+      "relation": "J_MASS_OBS",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/Flickr60/J_MASS_OBS.npz",
+      "original_unit": "CR5_Flickr60_J_MASS_OBS_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_J_MASS_OBS_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1002",
+        "B_Flickr60_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_BASE_KEEP_TOP1_PC_t1002": {
+      "condition": "Flickr60",
+      "relation": "BASE_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_BASE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_BASE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_BASE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1002",
+        "B_Flickr60_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_J_KEEP_TOP1_PC_t1002": {
+      "condition": "Flickr60",
+      "relation": "J_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_J_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_J_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_J_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1002",
+        "B_Flickr60_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_BCE_KEEP_TOP1_PC_t1002": {
+      "condition": "Flickr60",
+      "relation": "BCE_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_BCE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_BCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_BCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1002",
+        "B_Flickr60_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_NCE_KEEP_TOP1_PC_t1002": {
+      "condition": "Flickr60",
+      "relation": "NCE_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_NCE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_NCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_NCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1002",
+        "B_Flickr60_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_OBS_PC_t1003": {
+      "condition": "Flickr60",
+      "relation": "OBS",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/Flickr60/OBS.npz",
+      "original_unit": "CR5_Flickr60_OBS_COMPLETE_PC_s1003",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_OBS_COMPLETE_PC_s1003",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1003"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_J_MASS_OBS_PC_t1003": {
+      "condition": "Flickr60",
+      "relation": "J_MASS_OBS",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/Flickr60/J_MASS_OBS.npz",
+      "original_unit": "CR5_Flickr60_J_MASS_OBS_COMPLETE_PC_s1003",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_J_MASS_OBS_COMPLETE_PC_s1003",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1003"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_BASE_KEEP_TOP1_PC_t1003": {
+      "condition": "Flickr60",
+      "relation": "BASE_KEEP_TOP1",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_BASE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_BASE_KEEP_TOP1_COMPLETE_PC_s1003",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_BASE_KEEP_TOP1_COMPLETE_PC_s1003",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1003"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_J_KEEP_TOP1_PC_t1003": {
+      "condition": "Flickr60",
+      "relation": "J_KEEP_TOP1",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_J_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_J_KEEP_TOP1_COMPLETE_PC_s1003",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_J_KEEP_TOP1_COMPLETE_PC_s1003",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1003"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_BCE_KEEP_TOP1_PC_t1003": {
+      "condition": "Flickr60",
+      "relation": "BCE_KEEP_TOP1",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_BCE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_BCE_KEEP_TOP1_COMPLETE_PC_s1003",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_BCE_KEEP_TOP1_COMPLETE_PC_s1003",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1003"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_Flickr60_NCE_KEEP_TOP1_PC_t1003": {
+      "condition": "Flickr60",
+      "relation": "NCE_KEEP_TOP1",
+      "head_seed": 1003,
+      "sampler_seed": 20261104203,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/Flickr60/CR2_Flickr60_NCE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_Flickr60_NCE_KEEP_TOP1_COMPLETE_PC_s1003",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/Flickr60/CR5_Flickr60_NCE_KEEP_TOP1_COMPLETE_PC_s1003",
+      "single_positive_identity": false,
+      "groups": [
+        "A2_Flickr60_t1003"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_CC152K_RECOVERED_20261104_OBS_PC_t1002": {
+      "condition": "CC152K_RECOVERED_20261104",
+      "relation": "OBS",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/CC152K_RECOVERED_20261104/OBS.npz",
+      "original_unit": "CR5_CC152K_RECOVERED_20261104_OBS_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/CC152K_RECOVERED_20261104/CR5_CC152K_RECOVERED_20261104_OBS_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "B_CC152K_RECOVERED_20261104_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_CC152K_RECOVERED_20261104_J_MASS_OBS_PC_t1002": {
+      "condition": "CC152K_RECOVERED_20261104",
+      "relation": "J_MASS_OBS",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr3/CR3_20261104/graphs/CC152K_RECOVERED_20261104/J_MASS_OBS.npz",
+      "original_unit": "CR5_CC152K_RECOVERED_20261104_J_MASS_OBS_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/CC152K_RECOVERED_20261104/CR5_CC152K_RECOVERED_20261104_J_MASS_OBS_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "B_CC152K_RECOVERED_20261104_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_PC_t1002": {
+      "condition": "CC152K_RECOVERED_20261104",
+      "relation": "BASE_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/CC152K_RECOVERED_20261104/CR5_CC152K_RECOVERED_20261104_BASE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "B_CC152K_RECOVERED_20261104_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_CC152K_RECOVERED_20261104_J_KEEP_TOP1_PC_t1002": {
+      "condition": "CC152K_RECOVERED_20261104",
+      "relation": "J_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_J_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_CC152K_RECOVERED_20261104_J_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/CC152K_RECOVERED_20261104/CR5_CC152K_RECOVERED_20261104_J_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "B_CC152K_RECOVERED_20261104_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_PC_t1002": {
+      "condition": "CC152K_RECOVERED_20261104",
+      "relation": "BCE_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/CC152K_RECOVERED_20261104/CR5_CC152K_RECOVERED_20261104_BCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "B_CC152K_RECOVERED_20261104_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    },
+    "CR6_REF_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_PC_t1002": {
+      "condition": "CC152K_RECOVERED_20261104",
+      "relation": "NCE_KEEP_TOP1",
+      "head_seed": 1002,
+      "sampler_seed": 20261104202,
+      "scope": "FROZEN",
+      "consumer": "COMPLETE_PC",
+      "graph_path": "/projects/EEG-foundation-model/yinghao/outputs_cr2/CR2_20261104/relations/CC152K_RECOVERED_20261104/CR2_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_s1001.npz",
+      "original_unit": "CR5_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "original_dir": "/projects/EEG-foundation-model/yinghao/outputs_cr5/CR5_20261105/students/CC152K_RECOVERED_20261104/CR5_CC152K_RECOVERED_20261104_NCE_KEEP_TOP1_COMPLETE_PC_s1002",
+      "single_positive_identity": false,
+      "groups": [
+        "B_CC152K_RECOVERED_20261104_t1002"
+      ],
+      "plan": "REUSE_IF_SAME_GPU_250_REPLAY_BITWISE_AND_ENDPOINT_IDENTITY_ELSE_RERUN_IN_GROUP"
+    }
+  },
+  "matrix": {
+    "new": 30,
+    "A1": 12,
+    "A2": 6,
+    "B": 12,
+    "references": 18
+  },
+  "endpoints": [
+    0,
+    250,
+    500,
+    1000,
+    2000,
+    4000,
+    8000
+  ],
+  "main_endpoint": 8000,
+  "gpu_policy": {
+    "release": "a group is submitted only to GPU types whose CR6 acceptance (history or portable mode) passed and validates that group kind; acceptances passing after freeze are appended to ACCEPTANCE_REGISTRY.json (sha-bound) by the driver",
+    "A1": "one job (12 fits + 2 score exports) on one GPU; RTX6000PRO or L40S",
+    "A2": "one job per student seed (3 new + 6 refs) on one GPU; RTX6000PRO, L40S or V100-32GB (S1/V1 passed on V100S in 1090990)",
+    "B": "one job per condition (6 refs + 6 TAIL; in-job TAIL re-check only off RTX) on one GPU; RTX6000PRO or L40S (TAIL never on V100)",
+    "resubmission": "an incomplete group may be resubmitted (exact resume); GROUP_ENV mismatch aborts"
+  },
+  "evaluation": "full DEV, base Top100 rerank by G float64 (NR1 protocol), all queries, fixed step 8000 (curves 0..8000 reported); secondary student-cosine and current-G full gallery; no TEST",
+  "large_data_bound_by_manifest": {
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/flickr/fit/img_h10_f32.npy": {
+      "bytes": 17461248128
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/flickr/fit/txt_h10_f32.npy": {
+      "bytes": 28508160128
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/flickr/dev/pixels_u8.npy": {
+      "bytes": 152635520
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/flickr/dev/tokens_i32.npy": {
+      "bytes": 1298048
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/cc/fit/img_h10_f32.npy": {
+      "bytes": 59134623872
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/cc/fit/txt_h10_f32.npy": {
+      "bytes": 19309265024
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/cc/dev/pixels_u8.npy": {
+      "bytes": 104316032
+    },
+    "/projects/EEG-foundation-model/yinghao/outputs_nr4/NR4_20261104/raw/cc/dev/tokens_i32.npy": {
+      "bytes": 177536
+    }
+  },
+  "dedup": "DEDUP_CR6.json",
+  "test_read": false,
+  "no_result_thresholds": true,
+  "not_done": [
+    "no new NCE source",
+    "no CC source refit",
+    "new-source graphs never used in B",
+    "no LoRA rank/depth/lr changes"
+  ],
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}

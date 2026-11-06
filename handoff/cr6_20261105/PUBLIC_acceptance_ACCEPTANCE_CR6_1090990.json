@@ -1,0 +1,91 @@
+{
+  "status": "FAIL",
+  "mode": "portable",
+  "tail_checked": false,
+  "validates_groups": [],
+  "gpu_name": "Tesla V100S-PCIE-32GB",
+  "checks": {
+    "E1_J_clone_vs_cr1prod_samejob": {
+      "ok": false,
+      "model_bitwise": false,
+      "optimizer_bitwise": false,
+      "max_abs": 0.020266423642169684,
+      "rng_untouched": true
+    },
+    "E1_BCE_clone_vs_cr1prod_samejob": {
+      "ok": false,
+      "model_bitwise": false,
+      "optimizer_bitwise": false,
+      "max_abs": 0.016978032886981964,
+      "rng_untouched": true
+    },
+    "E2_new_source_seeds": {
+      "ok": true,
+      "J_BCE_same_init": true,
+      "J_BCE_same_sampler_state": true,
+      "init_differs_from_CR1": true,
+      "rng_untouched": [
+        true,
+        true
+      ],
+      "seed_map": {
+        "E01": {
+          "head_seed": 2002000,
+          "sampler_seed": 20261105200200
+        },
+        "E02": {
+          "head_seed": 2002001,
+          "sampler_seed": 20261105200201
+        },
+        "E03": {
+          "head_seed": 2002002,
+          "sampler_seed": 20261105200202
+        },
+        "E12": {
+          "head_seed": 2002003,
+          "sampler_seed": 20261105200203
+        },
+        "E13": {
+          "head_seed": 2002004,
+          "sampler_seed": 20261105200204
+        },
+        "E23": {
+          "head_seed": 2002005,
+          "sampler_seed": 20261105200205
+        }
+      }
+    },
+    "S1_cr5_student_samejob_determinism": {
+      "ok": true,
+      "max_abs": 0.0
+    },
+    "V1_evaluator": {
+      "ok": true,
+      "steps": {
+        "0": {
+          "samejob_metrics_equal": true,
+          "samejob_orders_equal": true,
+          "rSum_cr6": 558.4418145956607,
+          "rSum_cr1bridge_samejob": 558.4418145956607
+        },
+        "8000": {
+          "samejob_metrics_equal": true,
+          "samejob_orders_equal": true,
+          "rSum_cr6": 560.9072978303748,
+          "rSum_cr1bridge_samejob": 560.9072978303748
+        }
+      }
+    }
+  },
+  "env": {
+    "gpu_name": "Tesla V100S-PCIE-32GB",
+    "driver": "580.126.18",
+    "torch": "2.9.0+cu128",
+    "cuda": "12.8",
+    "cudnn": 91002
+  },
+  "seconds": 295.288319834508,
+  "utc": "2026-11-05T23:51:30Z",
+  "test_read": false,
+  "_publication_note": "Public excerpt: identity/hash/receipt/host fields omitted, numbers unchanged."
+}
